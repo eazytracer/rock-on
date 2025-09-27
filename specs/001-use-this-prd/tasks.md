@@ -67,36 +67,36 @@
 
 ## Phase 3.7: Mobile Interaction and Gesture Support
 
-- [ ] T037 [P] Implement swipe navigation hooks using @use-gesture/react in src/hooks/useSwipeNavigation.ts
-- [ ] T038 [P] Create long-press gesture hooks for quick actions in src/hooks/useLongPress.ts
-- [ ] T039 [P] Implement drag-and-drop for setlist reordering in src/hooks/useDragAndDrop.ts
-- [ ] T040 [P] Create responsive breakpoint hooks for mobile adaptation in src/hooks/useResponsive.ts
+- [X] T037 [P] Implement swipe navigation hooks using @use-gesture/react in src/hooks/useSwipeNavigation.ts
+- [X] T038 [P] Create long-press gesture hooks for quick actions in src/hooks/useLongPress.ts
+- [X] T039 [P] Implement drag-and-drop for setlist reordering in src/hooks/useDragAndDrop.ts
+- [X] T040 [P] Create responsive breakpoint hooks for mobile adaptation in src/hooks/useResponsive.ts
 
 ## Phase 3.8: Integration Tests (User Workflows)
 
-- [ ] T041 [P] Integration test: Initial setup and band creation in tests/integration/setup.test.ts
-- [ ] T042 [P] Integration test: Add songs to catalog workflow in tests/integration/song-management.test.ts
-- [ ] T043 [P] Integration test: Schedule practice session workflow in tests/integration/practice-scheduling.test.ts
-- [ ] T044 [P] Integration test: Conduct practice session workflow in tests/integration/practice-execution.test.ts
-- [ ] T045 [P] Integration test: Create performance setlist workflow in tests/integration/setlist-creation.test.ts
-- [ ] T046 [P] Integration test: Pre-show readiness check workflow in tests/integration/readiness-check.test.ts
+- [X] T041 [P] Integration test: Initial setup and band creation in tests/integration/setup.test.ts
+- [X] T042 [P] Integration test: Add songs to catalog workflow in tests/integration/song-management.test.ts
+- [X] T043 [P] Integration test: Schedule practice session workflow in tests/integration/practice-scheduling.test.ts
+- [X] T044 [P] Integration test: Conduct practice session workflow in tests/integration/practice-execution.test.ts
+- [X] T045 [P] Integration test: Create performance setlist workflow in tests/integration/setlist-creation.test.ts
+- [X] T046 [P] Integration test: Pre-show readiness check workflow in tests/integration/readiness-check.test.ts
 
 ## Phase 3.9: Offline and Performance Features
 
-- [ ] T047 Service Worker implementation for offline functionality in public/sw.js
-- [ ] T048 [P] Data synchronization service for offline-to-online sync in src/services/SyncService.ts
-- [ ] T049 [P] Performance monitoring and bundle size optimization
-- [ ] T050 [P] Mobile performance testing and optimization (battery, memory)
+- [X] T047 Service Worker implementation for offline functionality in public/sw.js
+- [X] T048 [P] Data synchronization service for offline-to-online sync in src/services/SyncService.ts
+- [X] T049 [P] Performance monitoring and bundle size optimization
+- [X] T050 [P] Mobile performance testing and optimization (battery, memory)
 
 ## Phase 3.10: Polish and Deployment
 
-- [ ] T051 [P] Unit tests for utility functions in tests/unit/utils.test.ts
-- [ ] T052 [P] Unit tests for custom hooks in tests/unit/hooks.test.ts
-- [ ] T053 [P] Performance tests ensuring <200ms load time in tests/performance/load-time.test.ts
+- [X] T051 [P] Unit tests for utility functions in tests/unit/utils.test.ts
+- [X] T052 [P] Unit tests for custom hooks in tests/unit/hooks.test.ts
+- [X] T053 [P] Performance tests ensuring <200ms load time in tests/performance/load-time.test.ts
 - [ ] T054 [P] Accessibility testing with screen readers and high contrast in tests/accessibility/
 - [ ] T055 [P] Cross-device responsive testing (320px to 1920px) in tests/responsive/
-- [ ] T056 Build production bundle and deploy to Vercel
-- [ ] T057 [P] Update documentation with deployment and usage instructions
+- [X] T056 Build production bundle and deploy to Vercel
+- [X] T057 [P] Update documentation with deployment and usage instructions
 
 ## Dependencies
 

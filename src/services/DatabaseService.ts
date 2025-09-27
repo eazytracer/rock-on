@@ -3,6 +3,7 @@ import { SongService } from './SongService'
 import { PracticeSessionService } from './PracticeSessionService'
 import { SetlistService } from './SetlistService'
 import { BandService } from './BandService'
+import { syncService } from './SyncService'
 
 export interface DatabaseStats {
   bands: number
@@ -163,6 +164,27 @@ export class DatabaseService {
 
   static async getVersion(): Promise<string> {
     return '1.0.0'
+  }
+
+  // Sync methods
+  static get sync() {
+    return syncService
+  }
+
+  static async getSyncStatus() {
+    return syncService.getSyncStatus()
+  }
+
+  static async triggerSync(): Promise<boolean> {
+    return syncService.triggerSync()
+  }
+
+  static async addPendingChange(
+    type: 'song' | 'session' | 'setlist' | 'band' | 'member',
+    action: 'create' | 'update' | 'delete',
+    data: any
+  ): Promise<void> {
+    return syncService.addPendingChange(type, action, data)
   }
 
   // Utility methods for testing and development
