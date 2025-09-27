@@ -211,7 +211,7 @@ export const Sessions: React.FC<SessionsProps> = ({
           >
             ← Back
           </TouchButton>
-          <h1 className="text-2xl font-bold text-gray-900">Schedule Practice Session</h1>
+          <h1 className="text-2xl font-bold text-steel-gray">Schedule Practice Session</h1>
         </div>
         <SessionForm
           onSubmit={handleCreateSession}
@@ -236,7 +236,7 @@ export const Sessions: React.FC<SessionsProps> = ({
           >
             ← Back
           </TouchButton>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Practice Session</h1>
+          <h1 className="text-2xl font-bold text-steel-gray">Edit Practice Session</h1>
         </div>
         <SessionForm
           onSubmit={handleEditSession}
@@ -263,7 +263,7 @@ export const Sessions: React.FC<SessionsProps> = ({
             ← Back
           </TouchButton>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Practice Session</h1>
+            <h1 className="text-2xl font-bold text-steel-gray">Practice Session</h1>
             <p className="text-gray-600">{formatDate(selectedSession.scheduledDate)}</p>
           </div>
         </div>
@@ -288,7 +288,7 @@ export const Sessions: React.FC<SessionsProps> = ({
             </TouchButton>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Practice Sessions</h1>
+            <h1 className="text-2xl font-bold text-steel-gray">Practice Sessions</h1>
             <p className="text-gray-600">Schedule and manage your band's practice sessions</p>
           </div>
         </div>
@@ -312,9 +312,9 @@ export const Sessions: React.FC<SessionsProps> = ({
 
       {/* Calendar View */}
       {viewMode === 'calendar' && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="px-6 py-4 border-b border-steel-gray/20 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-steel-gray">
               {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h2>
             <div className="flex space-x-2">
@@ -344,7 +344,7 @@ export const Sessions: React.FC<SessionsProps> = ({
                 <div
                   key={index}
                   className={`min-h-[100px] p-2 border border-gray-100 ${
-                    !day.isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
+                    !day.isCurrentMonth ? 'bg-surface text-gray-400' : 'bg-smoke-white'
                   }`}
                 >
                   <div className="text-sm font-medium mb-1">
@@ -380,18 +380,18 @@ export const Sessions: React.FC<SessionsProps> = ({
       {viewMode === 'list' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Upcoming Sessions */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Upcoming Sessions</h3>
+          <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+            <div className="px-6 py-4 border-b border-steel-gray/20">
+              <h3 className="text-lg font-semibold text-steel-gray">Upcoming Sessions</h3>
             </div>
             <div className="p-6">
               {getUpcomingSessions().length > 0 ? (
                 <div className="space-y-4">
                   {getUpcomingSessions().map(session => (
-                    <div key={session.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={session.id} className="border border-steel-gray/20 rounded-lg p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-steel-gray">
                             {formatDate(session.scheduledDate)}
                           </div>
                           {session.location && (
@@ -457,18 +457,18 @@ export const Sessions: React.FC<SessionsProps> = ({
           </div>
 
           {/* Recent Sessions */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Sessions</h3>
+          <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+            <div className="px-6 py-4 border-b border-steel-gray/20">
+              <h3 className="text-lg font-semibold text-steel-gray">Recent Sessions</h3>
             </div>
             <div className="p-6">
               {getRecentSessions().length > 0 ? (
                 <div className="space-y-4">
                   {getRecentSessions().map(session => (
-                    <div key={session.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={session.id} className="border border-steel-gray/20 rounded-lg p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-steel-gray">
                             {formatDate(session.scheduledDate)}
                           </div>
                           {session.location && (
@@ -509,7 +509,7 @@ export const Sessions: React.FC<SessionsProps> = ({
 
       {/* Empty State */}
       {sessions.length === 0 && !loading && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="text-center py-12">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -530,7 +530,7 @@ export const Sessions: React.FC<SessionsProps> = ({
                 d="M5 7h14l-.868 8.682A3 3 0 0115.14 18H8.86a3 3 0 01-2.992-2.318L5 7z"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No practice sessions</h3>
+            <h3 className="mt-2 text-sm font-medium text-steel-gray">No practice sessions</h3>
             <p className="mt-1 text-sm text-gray-500">
               Get started by scheduling your first practice session.
             </p>
@@ -549,7 +549,7 @@ export const Sessions: React.FC<SessionsProps> = ({
 
       {/* Loading State */}
       {loading && sessions.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="p-12">
             <LoadingSpinner size="lg" centered text="Loading sessions..." />
           </div>

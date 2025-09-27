@@ -27,7 +27,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
   const navigationClasses = [
     'fixed bottom-0 left-0 right-0 z-50',
-    'bg-white border-t border-gray-200 shadow-lg',
+    'bg-smoke-white border-t border-steel-gray/20 shadow-lg',
     'safe-bottom',
     className
   ].join(' ')
@@ -47,8 +47,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                 min-w-[56px] min-h-[56px] p-2 rounded-lg
                 transition-all duration-200 touch-manipulation
                 ${isActive
-                  ? 'text-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:bg-gray-100'
+                  ? 'text-energy-orange bg-energy-orange/10'
+                  : 'text-steel-gray hover:text-energy-orange hover:bg-energy-orange/5 active:bg-energy-orange/10'
                 }
               `}
               aria-label={item.label}
@@ -58,13 +58,13 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               </div>
               <span className={`
                 text-xs font-medium leading-none
-                ${isActive ? 'text-blue-600' : 'text-gray-600'}
+                ${isActive ? 'text-energy-orange' : 'text-steel-gray'}
               `}>
                 {item.label}
               </span>
 
               {item.badge && item.badge > 0 && (
-                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center">
+                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-amp-red rounded-full flex items-center justify-center">
                   <span className="text-xs font-bold text-white">
                     {item.badge > 99 ? '99+' : item.badge}
                   </span>

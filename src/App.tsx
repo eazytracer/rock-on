@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { BottomNavigation, defaultNavigationItems } from './components/common/BottomNavigation'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
+import { Header } from './components/common/Header'
 import { Song } from './models/Song'
 import { PracticeSession } from './models/PracticeSession'
 import { Setlist } from './models/Setlist'
@@ -146,7 +147,8 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-surface pb-20 pt-16">
+      <Header onLogoClick={() => navigate('/')} />
       <main className="relative">
         <Suspense fallback={
           <div className="flex items-center justify-center min-h-screen">

@@ -133,7 +133,7 @@ export const Songs: React.FC<SongsProps> = ({
           >
             ← Back
           </TouchButton>
-          <h1 className="text-2xl font-bold text-gray-900">Add New Song</h1>
+          <h1 className="text-2xl font-bold text-steel-gray">Add New Song</h1>
         </div>
         <AddSongForm
           onSubmit={handleAddSong}
@@ -156,7 +156,7 @@ export const Songs: React.FC<SongsProps> = ({
           >
             ← Back
           </TouchButton>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Song</h1>
+          <h1 className="text-2xl font-bold text-steel-gray">Edit Song</h1>
         </div>
         <AddSongForm
           onSubmit={handleEditSong}
@@ -184,7 +184,7 @@ export const Songs: React.FC<SongsProps> = ({
             </TouchButton>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Songs</h1>
+            <h1 className="text-2xl font-bold text-steel-gray">Songs</h1>
             <p className="text-gray-600">Manage your band's song catalog</p>
           </div>
         </div>
@@ -201,28 +201,28 @@ export const Songs: React.FC<SongsProps> = ({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="text-2xl font-bold text-steel-gray">{stats.total}</div>
           <div className="text-sm text-gray-600">Total Songs</div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="text-2xl font-bold text-green-600">{stats.ready}</div>
           <div className="text-sm text-gray-600">Performance Ready</div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="text-2xl font-bold text-orange-600">{stats.needsPractice}</div>
           <div className="text-sm text-gray-600">Needs Practice</div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="text-2xl font-bold text-red-600">{stats.new}</div>
           <div className="text-sm text-gray-600">New Songs</div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-2xl font-bold text-blue-600">
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="text-2xl font-bold text-energy-orange">
             {stats.averageConfidence.toFixed(1)}
           </div>
           <div className="text-sm text-gray-600">Avg Confidence</div>
@@ -231,7 +231,7 @@ export const Songs: React.FC<SongsProps> = ({
 
       {/* Empty State */}
       {songs.length === 0 && !loading && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="text-center py-12">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -246,7 +246,7 @@ export const Songs: React.FC<SongsProps> = ({
                 d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No songs yet</h3>
+            <h3 className="mt-2 text-sm font-medium text-steel-gray">No songs yet</h3>
             <p className="mt-1 text-sm text-gray-500">
               Get started by adding your first song to the catalog.
             </p>
@@ -265,7 +265,7 @@ export const Songs: React.FC<SongsProps> = ({
 
       {/* Song List */}
       {songs.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="p-6">
             <SongList
               songs={songs}
@@ -283,8 +283,8 @@ export const Songs: React.FC<SongsProps> = ({
 
       {/* Quick Actions */}
       {songs.length > 0 && (
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div className="bg-surface rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-steel-gray mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <TouchButton
               variant="secondary"
@@ -344,7 +344,7 @@ export const Songs: React.FC<SongsProps> = ({
 
       {/* Loading State */}
       {loading && songs.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="p-12">
             <LoadingSpinner size="lg" centered text="Loading songs..." />
           </div>

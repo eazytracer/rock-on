@@ -230,7 +230,7 @@ export const Setlists: React.FC<SetlistsProps> = ({
           >
             ← Back
           </TouchButton>
-          <h1 className="text-2xl font-bold text-gray-900">Create New Setlist</h1>
+          <h1 className="text-2xl font-bold text-steel-gray">Create New Setlist</h1>
         </div>
         <SetlistBuilder
           songs={songs}
@@ -254,7 +254,7 @@ export const Setlists: React.FC<SetlistsProps> = ({
           >
             ← Back
           </TouchButton>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Setlist</h1>
+          <h1 className="text-2xl font-bold text-steel-gray">Edit Setlist</h1>
         </div>
         <SetlistBuilder
           songs={songs}
@@ -280,14 +280,14 @@ export const Setlists: React.FC<SetlistsProps> = ({
             ← Back
           </TouchButton>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Readiness Report</h1>
+            <h1 className="text-2xl font-bold text-steel-gray">Readiness Report</h1>
             <p className="text-gray-600">{selectedSetlist.name}</p>
           </div>
         </div>
 
         <div className="space-y-6">
           {/* Overall Readiness */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm p-6">
             <div className="text-center">
               <div className={`text-6xl font-bold mb-2 ${getReadinessColor(readinessReport.overallReadiness)}`}>
                 {readinessReport.overallReadiness.toFixed(1)}
@@ -312,16 +312,16 @@ export const Setlists: React.FC<SetlistsProps> = ({
 
           {/* Recommendations */}
           {readinessReport.recommendations.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Recommendations</h3>
+            <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+              <div className="px-6 py-4 border-b border-steel-gray/20">
+                <h3 className="text-lg font-semibold text-steel-gray">Recommendations</h3>
               </div>
               <div className="p-6">
                 <div className="space-y-3">
                   {readinessReport.recommendations.map((recommendation, index) => (
                     <div key={index} className="flex items-start space-x-3">
                       <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 text-sm font-medium">{index + 1}</span>
+                        <span className="text-energy-orange text-sm font-medium">{index + 1}</span>
                       </div>
                       <p className="text-gray-700">{recommendation}</p>
                     </div>
@@ -339,9 +339,9 @@ export const Setlists: React.FC<SetlistsProps> = ({
           )}
 
           {/* Song Breakdown */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Song Breakdown</h3>
+          <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+            <div className="px-6 py-4 border-b border-steel-gray/20">
+              <h3 className="text-lg font-semibold text-steel-gray">Song Breakdown</h3>
             </div>
             <div className="p-6">
               <div className="space-y-3">
@@ -350,11 +350,11 @@ export const Setlists: React.FC<SetlistsProps> = ({
                   if (!song) return null
 
                   return (
-                    <div key={setlistSong.songId} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div key={setlistSong.songId} className="flex items-center justify-between p-3 border border-steel-gray/20 rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className="text-sm text-gray-500 w-8">#{index + 1}</div>
                         <div>
-                          <div className="font-medium text-gray-900">{song.title}</div>
+                          <div className="font-medium text-steel-gray">{song.title}</div>
                           <div className="text-sm text-gray-600">{song.artist}</div>
                         </div>
                       </div>
@@ -398,7 +398,7 @@ export const Setlists: React.FC<SetlistsProps> = ({
             </TouchButton>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Setlists</h1>
+            <h1 className="text-2xl font-bold text-steel-gray">Setlists</h1>
             <p className="text-gray-600">Create and manage setlists for your performances</p>
           </div>
         </div>
@@ -414,7 +414,7 @@ export const Setlists: React.FC<SetlistsProps> = ({
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+      <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm p-6">
         <SearchBar
           value={searchQuery}
           onChange={setSearchQuery}
@@ -424,9 +424,9 @@ export const Setlists: React.FC<SetlistsProps> = ({
 
       {/* Upcoming Shows */}
       {getUpcomingShows().length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Upcoming Shows</h3>
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="px-6 py-4 border-b border-steel-gray/20">
+            <h3 className="text-lg font-semibold text-steel-gray">Upcoming Shows</h3>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -434,10 +434,10 @@ export const Setlists: React.FC<SetlistsProps> = ({
                 const readiness = calculateReadiness(setlist)
 
                 return (
-                  <div key={setlist.id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={setlist.id} className="border border-steel-gray/20 rounded-lg p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h4 className="font-medium text-gray-900">{setlist.name}</h4>
+                        <h4 className="font-medium text-steel-gray">{setlist.name}</h4>
                         {setlist.venue && (
                           <p className="text-sm text-gray-600">📍 {setlist.venue}</p>
                         )}
@@ -484,9 +484,9 @@ export const Setlists: React.FC<SetlistsProps> = ({
       )}
 
       {/* All Setlists */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">All Setlists ({filteredSetlists.length})</h3>
+      <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+        <div className="px-6 py-4 border-b border-steel-gray/20">
+          <h3 className="text-lg font-semibold text-steel-gray">All Setlists ({filteredSetlists.length})</h3>
         </div>
         <div className="p-6">
           {filteredSetlists.length > 0 ? (
@@ -495,10 +495,10 @@ export const Setlists: React.FC<SetlistsProps> = ({
                 const readiness = calculateReadiness(setlist)
 
                 return (
-                  <div key={setlist.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div key={setlist.id} className="border border-steel-gray/20 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 truncate">{setlist.name}</h4>
+                        <h4 className="font-medium text-steel-gray truncate">{setlist.name}</h4>
                         {setlist.venue && (
                           <p className="text-sm text-gray-600 truncate">📍 {setlist.venue}</p>
                         )}
@@ -609,7 +609,7 @@ export const Setlists: React.FC<SetlistsProps> = ({
                       d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
                     />
                   </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No setlists yet</h3>
+                  <h3 className="mt-2 text-sm font-medium text-steel-gray">No setlists yet</h3>
                   <p className="mt-1 text-sm text-gray-500">
                     Get started by creating your first setlist for an upcoming show.
                   </p>
@@ -631,7 +631,7 @@ export const Setlists: React.FC<SetlistsProps> = ({
 
       {/* Loading State */}
       {loading && setlists.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="p-12">
             <LoadingSpinner size="lg" centered text="Loading setlists..." />
           </div>

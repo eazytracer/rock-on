@@ -157,7 +157,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-steel-gray">Dashboard</h1>
           <p className="text-gray-600">Welcome back! Here's what's happening with your band.</p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
@@ -185,27 +185,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">{quickStats.totalSongs}</div>
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="text-2xl font-bold text-steel-gray">{quickStats.totalSongs}</div>
           <div className="text-sm text-gray-600">Total Songs</div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="text-2xl font-bold text-green-600">{quickStats.practicedThisWeek}</div>
           <div className="text-sm text-gray-600">Practiced This Week</div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-2xl font-bold text-blue-600">{quickStats.upcomingSessions}</div>
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="text-2xl font-bold text-energy-orange">{quickStats.upcomingSessions}</div>
           <div className="text-sm text-gray-600">Upcoming Sessions</div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="text-2xl font-bold text-purple-600">{quickStats.readySetlists}</div>
           <div className="text-sm text-gray-600">Ready Setlists</div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-smoke-white p-4 rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="text-2xl font-bold text-orange-600">
             {quickStats.averageConfidence.toFixed(1)}
           </div>
@@ -216,10 +216,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Next Session */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="px-6 py-4 border-b border-steel-gray/20">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Next Session</h3>
+              <h3 className="text-lg font-semibold text-steel-gray">Next Session</h3>
               <TouchButton variant="ghost" size="sm" onClick={onViewSessions}>
                 View All
               </TouchButton>
@@ -229,7 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {getNextSession() ? (
               <div className="space-y-3">
                 <div>
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-steel-gray">
                     {formatRelativeDate(getNextSession()!.scheduledDate)}
                   </div>
                   <div className="text-sm text-gray-600">
@@ -265,10 +265,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Recently Practiced */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="px-6 py-4 border-b border-steel-gray/20">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Recently Practiced</h3>
+              <h3 className="text-lg font-semibold text-steel-gray">Recently Practiced</h3>
               <TouchButton variant="ghost" size="sm" onClick={onViewSongs}>
                 View All
               </TouchButton>
@@ -280,7 +280,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 {getRecentSongs().map(song => (
                   <div key={song.id} className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-gray-900 text-sm">{song.title}</div>
+                      <div className="font-medium text-steel-gray text-sm">{song.title}</div>
                       <div className="text-xs text-gray-600">{song.artist}</div>
                     </div>
                     <div className="text-xs text-gray-500">
@@ -301,10 +301,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Needs Practice */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="px-6 py-4 border-b border-steel-gray/20">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Needs Practice</h3>
+              <h3 className="text-lg font-semibold text-steel-gray">Needs Practice</h3>
               <TouchButton variant="ghost" size="sm" onClick={onViewSongs}>
                 View All
               </TouchButton>
@@ -316,7 +316,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 {getSongsNeedingPractice().map(song => (
                   <div key={song.id} className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-gray-900 text-sm">{song.title}</div>
+                      <div className="font-medium text-steel-gray text-sm">{song.title}</div>
                       <div className="text-xs text-gray-600">{song.artist}</div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -332,7 +332,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             ) : (
               <div className="text-center py-6">
                 <div className="text-green-600 mb-2">🎉</div>
-                <div className="text-gray-900 font-medium text-sm">All songs ready!</div>
+                <div className="text-steel-gray font-medium text-sm">All songs ready!</div>
                 <div className="text-gray-500 text-xs">Great job practicing</div>
               </div>
             )}
@@ -342,10 +342,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Upcoming Shows */}
       {getUpcomingShows().length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
+          <div className="px-6 py-4 border-b border-steel-gray/20">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Upcoming Shows</h3>
+              <h3 className="text-lg font-semibold text-steel-gray">Upcoming Shows</h3>
               <TouchButton variant="ghost" size="sm" onClick={onViewSetlists}>
                 View All Setlists
               </TouchButton>
@@ -354,10 +354,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {getUpcomingShows().map(setlist => (
-                <div key={setlist.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={setlist.id} className="border border-steel-gray/20 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h4 className="font-medium text-gray-900">{setlist.name}</h4>
+                      <h4 className="font-medium text-steel-gray">{setlist.name}</h4>
                       {setlist.venue && (
                         <p className="text-sm text-gray-600">📍 {setlist.venue}</p>
                       )}
@@ -386,8 +386,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {/* Quick Actions */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+      <div className="bg-surface rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-steel-gray mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <TouchButton variant="primary" size="lg" onClick={() => onStartPractice?.()}>
             <div className="text-center">

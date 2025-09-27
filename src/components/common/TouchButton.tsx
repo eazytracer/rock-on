@@ -28,24 +28,24 @@ export const TouchButton: React.FC<TouchButtonProps> = ({
 
   const variantClasses = {
     primary: [
-      'bg-blue-600 text-white',
-      'hover:bg-blue-700 focus:ring-blue-500',
-      'active:bg-blue-800'
+      'bg-energy-orange text-white',
+      'hover:bg-energy-orange/90 focus:ring-energy-orange',
+      'active:bg-energy-orange/80'
     ],
     secondary: [
-      'bg-gray-200 text-gray-900',
-      'hover:bg-gray-300 focus:ring-gray-500',
-      'active:bg-gray-400'
+      'bg-smoke-white text-steel-gray border border-steel-gray',
+      'hover:bg-steel-gray hover:text-smoke-white focus:ring-steel-gray',
+      'active:bg-steel-gray/80'
     ],
     danger: [
-      'bg-red-600 text-white',
-      'hover:bg-red-700 focus:ring-red-500',
-      'active:bg-red-800'
+      'bg-amp-red text-white',
+      'hover:bg-amp-red/90 focus:ring-amp-red',
+      'active:bg-amp-red/80'
     ],
     ghost: [
-      'bg-transparent text-gray-700 border border-gray-300',
-      'hover:bg-gray-50 focus:ring-gray-500',
-      'active:bg-gray-100'
+      'bg-transparent text-steel-gray border border-steel-gray/30',
+      'hover:bg-steel-gray/10 focus:ring-steel-gray',
+      'active:bg-steel-gray/20'
     ]
   }
 
