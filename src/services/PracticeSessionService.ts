@@ -106,6 +106,7 @@ export class PracticeSessionService {
       duration: sessionData.duration,
       location: sessionData.location,
       type: sessionData.type,
+      status: 'scheduled',
       songs: sessionData.songs?.map(songId => ({
         songId,
         timeSpent: 0,

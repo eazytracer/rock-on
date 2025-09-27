@@ -1,4 +1,4 @@
-import { SessionType, SessionSong, SessionAttendee } from '../types'
+import { SessionType, SessionStatus, SessionSong, SessionAttendee } from '../types'
 
 export interface PracticeSession {
   id: string
@@ -9,6 +9,7 @@ export interface PracticeSession {
   duration?: number
   location?: string
   type: SessionType
+  status: SessionStatus
   songs: SessionSong[]
   attendees: SessionAttendee[]
   notes?: string
