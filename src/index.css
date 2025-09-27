@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: Inter, system-ui, sans-serif;
+  }
+
+  body {
+    @apply antialiased;
+    /* Prevent zoom on double tap on iOS */
+    touch-action: manipulation;
+  }
+}
+
+@layer components {
+  .touch-target {
+    @apply min-h-touch min-w-touch;
+  }
+
+  .touch-target-lg {
+    @apply min-h-touch-lg min-w-touch-lg;
+  }
+
+  .confidence-1 {
+    @apply bg-confidence-1 text-white;
+  }
+
+  .confidence-2 {
+    @apply bg-confidence-2 text-white;
+  }
+
+  .confidence-3 {
+    @apply bg-confidence-3 text-white;
+  }
+
+  .confidence-4 {
+    @apply bg-confidence-4 text-white;
+  }
+
+  .confidence-5 {
+    @apply bg-confidence-5 text-white;
+  }
+}
