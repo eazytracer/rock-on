@@ -1,0 +1,492 @@
+openapi: 3.0.3
+info:
+  title: Rock On! Setlists API
+  description: Client-side API contract for setlist management operations
+  version: 1.0.0
+
+paths:
+  /api/setlists:
+    get:
+      summary: Get setlists for a band
+      parameters:
+        - name: bandId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [draft, rehearsed, performed]
+        - name: showDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Setlists retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  setlists:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Setlist'
+                  total:
+                    type: integer
+
+    post:
+      summary: Create new setlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSetlistRequest'
+      responses:
+        '201':
+          description: Setlist created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '400':
+          description: Invalid setlist data
+
+  /api/setlists/{setlistId}:
+    get:
+      summary: Get specific setlist
+      parameters:
+        - name: setlistId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Setlist retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          description: Setlist not found
+
+    put:
+      summary: Update setlist details
+      parameters:
+        - name: setlistId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSetlistRequest'
+      responses:
+        '200':
+          description: Setlist updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          description: Setlist not found
+
+    delete:
+      summary: Delete setlist
+      parameters:
+        - name: setlistId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Setlist deleted successfully
+        '404':
+          description: Setlist not found
+
+  /api/setlists/{setlistId}/songs:
+    post:
+      summary: Add song to setlist
+      parameters:
+        - name: setlistId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSetlistSongRequest'
+      responses:
+        '200':
+          description: Song added to setlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          description: Setlist not found
+
+  /api/setlists/{setlistId}/songs/{songId}:
+    put:
+      summary: Update song in setlist
+      parameters:
+        - name: setlistId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSetlistSongRequest'
+      responses:
+        '200':
+          description: Song updated in setlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          description: Setlist or song not found
+
+    delete:
+      summary: Remove song from setlist
+      parameters:
+        - name: setlistId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Song removed from setlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          description: Setlist or song not found
+
+  /api/setlists/{setlistId}/reorder:
+    post:
+      summary: Reorder songs in setlist
+      parameters:
+        - name: setlistId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderSongsRequest'
+      responses:
+        '200':
+          description: Songs reordered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          description: Setlist not found
+
+  /api/setlists/{setlistId}/readiness:
+    get:
+      summary: Get setlist readiness report
+      parameters:
+        - name: setlistId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Readiness report generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessReport'
+        '404':
+          description: Setlist not found
+
+components:
+  schemas:
+    Setlist:
+      type: object
+      required:
+        - id
+        - name
+        - bandId
+        - status
+        - createdDate
+        - lastModified
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        bandId:
+          type: string
+          format: uuid
+        showDate:
+          type: string
+          format: date-time
+        venue:
+          type: string
+          maxLength: 200
+        songs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SetlistSong'
+        totalDuration:
+          type: integer
+          minimum: 0
+          description: Total duration in seconds
+        notes:
+          type: string
+          maxLength: 1000
+        status:
+          type: string
+          enum: [draft, rehearsed, performed]
+        createdDate:
+          type: string
+          format: date-time
+        lastModified:
+          type: string
+          format: date-time
+
+    CreateSetlistRequest:
+      type: object
+      required:
+        - name
+        - bandId
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        bandId:
+          type: string
+          format: uuid
+        showDate:
+          type: string
+          format: date-time
+        venue:
+          type: string
+          maxLength: 200
+        songs:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Initial song IDs to include
+        notes:
+          type: string
+          maxLength: 1000
+
+    UpdateSetlistRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        showDate:
+          type: string
+          format: date-time
+        venue:
+          type: string
+          maxLength: 200
+        notes:
+          type: string
+          maxLength: 1000
+        status:
+          type: string
+          enum: [draft, rehearsed, performed]
+
+    SetlistSong:
+      type: object
+      required:
+        - songId
+        - order
+      properties:
+        songId:
+          type: string
+          format: uuid
+        order:
+          type: integer
+          minimum: 1
+          description: Position in setlist (1-based)
+        transitionNotes:
+          type: string
+          maxLength: 500
+          description: Notes for transition to next song
+        keyChange:
+          type: string
+          pattern: '^[A-G](#|b)?m?$'
+          description: Key change for this performance
+        tempoChange:
+          type: integer
+          minimum: -50
+          maximum: 50
+          description: Tempo change as percentage
+        specialInstructions:
+          type: string
+          maxLength: 500
+          description: Performance-specific notes
+
+    AddSetlistSongRequest:
+      type: object
+      required:
+        - songId
+      properties:
+        songId:
+          type: string
+          format: uuid
+        position:
+          type: integer
+          minimum: 1
+          description: Where to insert (1-based), defaults to end
+        keyChange:
+          type: string
+          pattern: '^[A-G](#|b)?m?$'
+        tempoChange:
+          type: integer
+          minimum: -50
+          maximum: 50
+        specialInstructions:
+          type: string
+          maxLength: 500
+
+    UpdateSetlistSongRequest:
+      type: object
+      properties:
+        transitionNotes:
+          type: string
+          maxLength: 500
+        keyChange:
+          type: string
+          pattern: '^[A-G](#|b)?m?$'
+        tempoChange:
+          type: integer
+          minimum: -50
+          maximum: 50
+        specialInstructions:
+          type: string
+          maxLength: 500
+
+    ReorderSongsRequest:
+      type: object
+      required:
+        - songOrder
+      properties:
+        songOrder:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Song IDs in desired order
+
+    ReadinessReport:
+      type: object
+      properties:
+        setlistId:
+          type: string
+          format: uuid
+        overallReadiness:
+          type: number
+          format: float
+          minimum: 1
+          maximum: 5
+        totalSongs:
+          type: integer
+        readySongs:
+          type: integer
+          description: Songs with confidence >= 4
+        needsPracticeSongs:
+          type: integer
+          description: Songs with confidence < 3
+        songReadiness:
+          type: array
+          items:
+            $ref: '#/components/schemas/SongReadiness'
+        recommendations:
+          type: array
+          items:
+            type: string
+          description: Suggested actions to improve readiness
+        estimatedPracticeTime:
+          type: integer
+          description: Recommended practice time in minutes
+
+    SongReadiness:
+      type: object
+      properties:
+        songId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        artist:
+          type: string
+        confidenceLevel:
+          type: number
+          format: float
+          minimum: 1
+          maximum: 5
+        lastPracticed:
+          type: string
+          format: date-time
+        daysSincePractice:
+          type: integer
+        status:
+          type: string
+          enum: [ready, needs-practice, warning, not-practiced]
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Specific readiness concerns

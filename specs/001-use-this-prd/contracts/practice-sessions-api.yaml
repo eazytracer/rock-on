@@ -1,0 +1,539 @@
+openapi: 3.0.3
+info:
+  title: Rock On! Practice Sessions API
+  description: Client-side API contract for practice session management
+  version: 1.0.0
+
+paths:
+  /api/practice-sessions:
+    get:
+      summary: Get practice sessions for a band
+      parameters:
+        - name: bandId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [scheduled, in-progress, completed, cancelled]
+      responses:
+        '200':
+          description: Sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PracticeSession'
+                  total:
+                    type: integer
+
+    post:
+      summary: Schedule new practice session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '201':
+          description: Session scheduled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSession'
+        '400':
+          description: Invalid session data
+
+  /api/practice-sessions/{sessionId}:
+    get:
+      summary: Get specific practice session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSession'
+        '404':
+          description: Session not found
+
+    put:
+      summary: Update practice session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSessionRequest'
+      responses:
+        '200':
+          description: Session updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSession'
+        '404':
+          description: Session not found
+
+    delete:
+      summary: Cancel/delete practice session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Session cancelled successfully
+        '404':
+          description: Session not found
+
+  /api/practice-sessions/{sessionId}/start:
+    post:
+      summary: Start practice session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSession'
+        '400':
+          description: Session cannot be started
+        '404':
+          description: Session not found
+
+  /api/practice-sessions/{sessionId}/end:
+    post:
+      summary: End practice session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndSessionRequest'
+      responses:
+        '200':
+          description: Session ended successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSession'
+        '404':
+          description: Session not found
+
+  /api/practice-sessions/{sessionId}/songs:
+    post:
+      summary: Add song to practice session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSessionSongRequest'
+      responses:
+        '200':
+          description: Song added to session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSong'
+        '404':
+          description: Session not found
+
+  /api/practice-sessions/{sessionId}/songs/{songId}:
+    put:
+      summary: Update song practice details
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSessionSongRequest'
+      responses:
+        '200':
+          description: Song practice updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSong'
+        '404':
+          description: Session or song not found
+
+  /api/practice-sessions/{sessionId}/attendance:
+    post:
+      summary: Record member attendance
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceRequest'
+      responses:
+        '200':
+          description: Attendance recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAttendee'
+        '404':
+          description: Session not found
+
+components:
+  schemas:
+    PracticeSession:
+      type: object
+      required:
+        - id
+        - bandId
+        - scheduledDate
+        - type
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        bandId:
+          type: string
+          format: uuid
+        scheduledDate:
+          type: string
+          format: date-time
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+          minimum: 1
+          description: Planned duration in minutes
+        location:
+          type: string
+          maxLength: 200
+        type:
+          type: string
+          enum: [rehearsal, writing, recording, audition, lesson]
+        status:
+          type: string
+          enum: [scheduled, in-progress, completed, cancelled]
+        songs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionSong'
+        attendees:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionAttendee'
+        notes:
+          type: string
+          maxLength: 2000
+        objectives:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+        completedObjectives:
+          type: array
+          items:
+            type: string
+        sessionRating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        createdDate:
+          type: string
+          format: date-time
+        lastModified:
+          type: string
+          format: date-time
+
+    CreateSessionRequest:
+      type: object
+      required:
+        - bandId
+        - scheduledDate
+        - type
+      properties:
+        bandId:
+          type: string
+          format: uuid
+        scheduledDate:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+          minimum: 1
+        location:
+          type: string
+          maxLength: 200
+        type:
+          type: string
+          enum: [rehearsal, writing, recording, audition, lesson]
+        songs:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Song IDs to practice
+        invitees:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Member IDs to invite
+        objectives:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+        notes:
+          type: string
+          maxLength: 2000
+
+    UpdateSessionRequest:
+      type: object
+      properties:
+        scheduledDate:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+          minimum: 1
+        location:
+          type: string
+          maxLength: 200
+        objectives:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+        notes:
+          type: string
+          maxLength: 2000
+
+    EndSessionRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          maxLength: 2000
+        completedObjectives:
+          type: array
+          items:
+            type: string
+        sessionRating:
+          type: integer
+          minimum: 1
+          maximum: 5
+
+    SessionSong:
+      type: object
+      required:
+        - songId
+        - status
+      properties:
+        songId:
+          type: string
+          format: uuid
+        timeSpent:
+          type: integer
+          minimum: 0
+          description: Minutes spent on this song
+        status:
+          type: string
+          enum: [not-started, in-progress, completed, skipped]
+        notes:
+          type: string
+          maxLength: 1000
+        sectionsWorked:
+          type: array
+          items:
+            type: string
+        improvements:
+          type: array
+          items:
+            type: string
+        needsWork:
+          type: array
+          items:
+            type: string
+        memberRatings:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberRating'
+
+    AddSessionSongRequest:
+      type: object
+      required:
+        - songId
+      properties:
+        songId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+          maxLength: 1000
+
+    UpdateSessionSongRequest:
+      type: object
+      properties:
+        timeSpent:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum: [not-started, in-progress, completed, skipped]
+        notes:
+          type: string
+          maxLength: 1000
+        sectionsWorked:
+          type: array
+          items:
+            type: string
+        improvements:
+          type: array
+          items:
+            type: string
+        needsWork:
+          type: array
+          items:
+            type: string
+
+    SessionAttendee:
+      type: object
+      required:
+        - memberId
+        - confirmed
+        - attended
+      properties:
+        memberId:
+          type: string
+          format: uuid
+        confirmed:
+          type: boolean
+          description: RSVP status
+        attended:
+          type: boolean
+          description: Actually showed up
+        arrivalTime:
+          type: string
+          format: date-time
+        departureTime:
+          type: string
+          format: date-time
+
+    AttendanceRequest:
+      type: object
+      required:
+        - memberId
+        - attended
+      properties:
+        memberId:
+          type: string
+          format: uuid
+        attended:
+          type: boolean
+        arrivalTime:
+          type: string
+          format: date-time
+        departureTime:
+          type: string
+          format: date-time
+
+    MemberRating:
+      type: object
+      required:
+        - memberId
+        - confidence
+      properties:
+        memberId:
+          type: string
+          format: uuid
+        confidence:
+          type: integer
+          minimum: 1
+          maximum: 5
+        feedback:
+          type: string
+          maxLength: 500

@@ -1,0 +1,419 @@
+openapi: 3.0.3
+info:
+  title: Rock On! Songs API
+  description: Client-side API contract for song management operations
+  version: 1.0.0
+
+paths:
+  /api/songs:
+    get:
+      summary: Get all songs for a band
+      description: Retrieve the complete song catalog with optional filtering
+      parameters:
+        - name: bandId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search term for title/artist
+        - name: key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by musical key
+        - name: difficulty
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+        - name: tags
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Songs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  songs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Song'
+                  total:
+                    type: integer
+                  filtered:
+                    type: integer
+        '400':
+          description: Invalid query parameters
+        '404':
+          description: Band not found
+
+    post:
+      summary: Add new song to catalog
+      description: Create a new song entry for the band
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSongRequest'
+      responses:
+        '201':
+          description: Song created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Song'
+        '400':
+          description: Invalid song data
+        '409':
+          description: Song already exists
+
+  /api/songs/{songId}:
+    get:
+      summary: Get specific song
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Song retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Song'
+        '404':
+          description: Song not found
+
+    put:
+      summary: Update song details
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSongRequest'
+      responses:
+        '200':
+          description: Song updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Song'
+        '400':
+          description: Invalid song data
+        '404':
+          description: Song not found
+
+    delete:
+      summary: Remove song from catalog
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Song deleted successfully
+        '404':
+          description: Song not found
+        '409':
+          description: Cannot delete song (used in setlists)
+
+  /api/songs/{songId}/confidence:
+    post:
+      summary: Submit confidence rating for song
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfidenceRating'
+      responses:
+        '200':
+          description: Rating submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  averageConfidence:
+                    type: number
+                    format: float
+                  totalRatings:
+                    type: integer
+        '400':
+          description: Invalid rating data
+        '404':
+          description: Song not found
+
+components:
+  schemas:
+    Song:
+      type: object
+      required:
+        - id
+        - title
+        - artist
+        - duration
+        - key
+        - bpm
+        - difficulty
+        - createdDate
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        artist:
+          type: string
+          minLength: 1
+          maxLength: 100
+        album:
+          type: string
+          maxLength: 100
+        duration:
+          type: integer
+          minimum: 1
+          description: Duration in seconds
+        key:
+          type: string
+          pattern: '^[A-G](#|b)?m?$'
+          example: 'C'
+        bpm:
+          type: integer
+          minimum: 40
+          maximum: 300
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+        structure:
+          type: array
+          items:
+            $ref: '#/components/schemas/SongSection'
+        lyrics:
+          type: string
+          maxLength: 5000
+        chords:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+          maxLength: 1000
+        referenceLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReferenceLink'
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+        createdDate:
+          type: string
+          format: date-time
+        lastPracticed:
+          type: string
+          format: date-time
+        confidenceLevel:
+          type: number
+          format: float
+          minimum: 1
+          maximum: 5
+
+    CreateSongRequest:
+      type: object
+      required:
+        - title
+        - artist
+        - duration
+        - key
+        - bpm
+        - difficulty
+        - bandId
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        artist:
+          type: string
+          minLength: 1
+          maxLength: 100
+        album:
+          type: string
+          maxLength: 100
+        duration:
+          type: integer
+          minimum: 1
+        key:
+          type: string
+          pattern: '^[A-G](#|b)?m?$'
+        bpm:
+          type: integer
+          minimum: 40
+          maximum: 300
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+        lyrics:
+          type: string
+          maxLength: 5000
+        chords:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+          maxLength: 1000
+        referenceLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReferenceLink'
+        tags:
+          type: array
+          items:
+            type: string
+        bandId:
+          type: string
+          format: uuid
+
+    UpdateSongRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        artist:
+          type: string
+          minLength: 1
+          maxLength: 100
+        album:
+          type: string
+          maxLength: 100
+        duration:
+          type: integer
+          minimum: 1
+        key:
+          type: string
+          pattern: '^[A-G](#|b)?m?$'
+        bpm:
+          type: integer
+          minimum: 40
+          maximum: 300
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+        lyrics:
+          type: string
+          maxLength: 5000
+        chords:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+          maxLength: 1000
+        referenceLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReferenceLink'
+        tags:
+          type: array
+          items:
+            type: string
+
+    SongSection:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [verse, chorus, bridge, intro, outro, solo, other]
+        name:
+          type: string
+          maxLength: 50
+        duration:
+          type: integer
+          minimum: 1
+        chords:
+          type: array
+          items:
+            type: string
+
+    ReferenceLink:
+      type: object
+      required:
+        - type
+        - url
+      properties:
+        type:
+          type: string
+          enum: [spotify, youtube, tabs, lyrics, other]
+        url:
+          type: string
+          format: uri
+        description:
+          type: string
+          maxLength: 200
+
+    ConfidenceRating:
+      type: object
+      required:
+        - memberId
+        - confidence
+      properties:
+        memberId:
+          type: string
+          format: uuid
+        confidence:
+          type: integer
+          minimum: 1
+          maximum: 5
+        feedback:
+          type: string
+          maxLength: 500
