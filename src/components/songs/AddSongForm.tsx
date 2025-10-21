@@ -29,6 +29,19 @@ const COMMON_TAGS = [
   'Acoustic', 'Electric', 'Ballad', 'Fast', 'Slow', 'Cover', 'Original'
 ]
 
+const GUITAR_TUNINGS = [
+  'Standard (E A D G B E)',
+  'Drop D (D A D G B E)',
+  'Drop C (C G C F A D)',
+  'Drop B (B F# B E G# C#)',
+  'Half Step Down (Eb Ab Db Gb Bb Eb)',
+  'Dropped Db (Db Ab Db Gb Bb Eb)',
+  'Whole Step Down (D G C F A D)',
+  'Open G (D G D G B D)',
+  'Open D (D A D F# A D)',
+  'DADGAD'
+]
+
 export const AddSongForm: React.FC<AddSongFormProps> = ({
   onSubmit,
   onCancel,
@@ -44,6 +57,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
     key: initialData?.key || '',
     bpm: initialData?.bpm || 120,
     difficulty: initialData?.difficulty || 3,
+    guitarTuning: initialData?.guitarTuning || '',
     lyrics: initialData?.lyrics || '',
     notes: initialData?.notes || '',
     tags: initialData?.tags?.join(', ') || '',
@@ -106,6 +120,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
       key: formData.key,
       bpm: formData.bpm,
       difficulty: formData.difficulty as 1 | 2 | 3 | 4 | 5,
+      guitarTuning: formData.guitarTuning.trim() || undefined,
       structure: formData.structure,
       lyrics: formData.lyrics.trim() || undefined,
       chords: formData.chords ? formData.chords.split(',').map(c => c.trim()).filter(Boolean) : [],
@@ -311,6 +326,22 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                   <p className="mt-1 text-sm text-red-600">{errors.difficulty}</p>
                 )}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Guitar Tuning
+              </label>
+              <select
+                value={formData.guitarTuning}
+                onChange={(e) => handleInputChange('guitarTuning', e.target.value)}
+                className="w-full min-h-[48px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select tuning (optional)</option>
+                {GUITAR_TUNINGS.map(tuning => (
+                  <option key={tuning} value={tuning}>{tuning}</option>
+                ))}
+              </select>
             </div>
 
             <div>

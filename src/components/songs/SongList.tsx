@@ -173,7 +173,6 @@ export const SongList: React.FC<SongListProps> = ({
         onClick={onSongClick}
         onEdit={onSongEdit}
         onDelete={onSongDelete}
-        compact={compactMode}
       />
     </div>
   )

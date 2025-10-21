@@ -61,6 +61,7 @@ Musical pieces in the band's repertoire with metadata and practice tracking.
 - `key`: string - Musical key (e.g., "C", "Am", "F#")
 - `bpm`: number - Beats per minute
 - `difficulty`: 1 | 2 | 3 | 4 | 5 - Difficulty rating
+- `guitarTuning`: string? - Guitar tuning (e.g., "Standard", "Drop D", "DADGAD") - Used for quick setlist visualization to minimize mid-show tuning changes
 - `structure`: SongSection[] - Song structure (verse, chorus, etc.)
 - `lyrics`: string? - Song lyrics (optional)
 - `chords`: string[] - Chord progression
@@ -180,6 +181,13 @@ Song within a setlist with ordering and performance details.
 - `keyChange`: string? - Key change for this performance
 - `tempoChange`: number? - Tempo modification
 - `specialInstructions`: string? - Performance-specific notes
+
+**Future Enhancement - Instrument Casting:**
+In future versions, SetlistSong will support per-song instrument assignments with custom tunings:
+- `instrumentAssignments`: InstrumentAssignment[]? - Member-to-instrument mappings for this performance
+  - Each assignment would include: `memberId`, `instrument`, `tuning`
+  - Allows different members to play instruments in different tunings for different songs
+  - Primary use case: Visualizing tuning changes across setlist to minimize mid-show tuning adjustments
 
 **Validation Rules:**
 - Order must be positive integer
