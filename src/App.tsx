@@ -143,6 +143,65 @@ const AppContent: React.FC = () => {
       } finally {
         setLoading(false)
       }
+    },
+    onEditSetlist: async (setlistId: string, setlistData: Partial<Setlist>) => {
+      try {
+        setLoading(true)
+        // If songs are being updated, recalculate total duration
+        if (setlistData.songs) {
+          setlistData.totalDuration = setlistData.songs.reduce((total, song) => {
+            const foundSong = songs.find(s => s.id === song.songId)
+            return total + (foundSong?.duration || 0)
+          }, 0)
+        }
+        await setlistService.update(setlistId, setlistData)
+        const updatedSetlists = await setlistService.getAll()
+        setSetlists(updatedSetlists)
+      } catch (error) {
+        console.error('Error editing setlist:', error)
+        throw error
+      } finally {
+        setLoading(false)
+      }
+    },
+    onDeleteSetlist: async (setlistId: string) => {
+      try {
+        setLoading(true)
+        await setlistService.delete(setlistId)
+        const updatedSetlists = await setlistService.getAll()
+        setSetlists(updatedSetlists)
+      } catch (error) {
+        console.error('Error deleting setlist:', error)
+        throw error
+      } finally {
+        setLoading(false)
+      }
+    },
+    onDuplicateSetlist: async (setlistId: string) => {
+      try {
+        setLoading(true)
+        const originalSetlist = await setlistService.getById(setlistId)
+        if (!originalSetlist) {
+          throw new Error('Setlist not found')
+        }
+        const duplicateData = {
+          ...originalSetlist,
+          name: `${originalSetlist.name} (Copy)`,
+          bandId: originalSetlist.bandId,
+          status: 'draft' as const
+        }
+        // Remove fields that will be auto-generated
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, createdDate, lastModified, ...setlistDataToAdd } = duplicateData
+        await setlistService.add(setlistDataToAdd)
+        const updatedSetlists = await setlistService.getAll()
+        setSetlists(updatedSetlists)
+      } catch (error) {
+        console.error('Error duplicating setlist:', error)
+        throw error
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
@@ -207,6 +266,9 @@ const AppContent: React.FC = () => {
                   songs={songs}
                   loading={loading}
                   onCreateSetlist={handlers.onCreateSetlist}
+                  onEditSetlist={handlers.onEditSetlist}
+                  onDeleteSetlist={handlers.onDeleteSetlist}
+                  onDuplicateSetlist={handlers.onDuplicateSetlist}
                 />
               }
             />
