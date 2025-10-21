@@ -11,6 +11,9 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@supabase/auth-ui-react": "^0.4.7",
+    "@supabase/auth-ui-shared": "^0.1.8",
+    "@supabase/supabase-js": "^2.76.1",
     "@use-gesture/react": "^10.3.0",
     "dexie": "^3.2.4",
     "dexie-react-hooks": "^1.1.7",
