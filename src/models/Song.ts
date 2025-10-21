@@ -9,6 +9,7 @@ export interface Song {
   key: string
   bpm: number
   difficulty: 1 | 2 | 3 | 4 | 5
+  guitarTuning?: string
   structure: SongSection[]
   lyrics?: string
   chords: string[]
@@ -29,6 +30,7 @@ export const SongSchema = {
   key: '',
   bpm: '',
   difficulty: '',
+  guitarTuning: '',
   structure: '',
   lyrics: '',
   chords: '',
