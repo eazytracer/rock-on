@@ -10,6 +10,7 @@ interface SongListProps {
   onSongClick?: (song: Song) => void
   onSongEdit?: (song: Song) => void
   onSongDelete?: (song: Song) => void
+  onViewLinked?: (song: Song) => void
   showSearch?: boolean
   searchPlaceholder?: string
   compactMode?: boolean
@@ -90,6 +91,7 @@ export const SongList: React.FC<SongListProps> = ({
   onSongClick,
   onSongEdit,
   onSongDelete,
+  onViewLinked,
   showSearch = true,
   searchPlaceholder = 'Search songs...',
   compactMode = false,
@@ -173,6 +175,8 @@ export const SongList: React.FC<SongListProps> = ({
         onClick={onSongClick}
         onEdit={onSongEdit}
         onDelete={onSongDelete}
+        hasLinkedVariants={!!song.songGroupId}
+        onViewLinked={onViewLinked}
       />
     </div>
   )

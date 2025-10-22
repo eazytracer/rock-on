@@ -19,6 +19,16 @@ export interface Song {
   createdDate: Date
   lastPracticed?: Date
   confidenceLevel: number
+
+  // Multi-user context fields
+  contextType: 'personal' | 'band'
+  contextId: string // userId for personal, bandId for band
+  createdBy: string // userId who created this song
+  visibility: 'private' | 'band_only' | 'public'
+
+  // Song variant linking (for Phase 2)
+  songGroupId?: string // Links related versions of the same song
+  linkedFromSongId?: string // Original song this was copied/derived from
 }
 
 export const SongSchema = {
@@ -39,5 +49,11 @@ export const SongSchema = {
   tags: '',
   createdDate: '',
   lastPracticed: '',
-  confidenceLevel: ''
+  confidenceLevel: '',
+  contextType: '',
+  contextId: '',
+  createdBy: '',
+  visibility: '',
+  songGroupId: '',
+  linkedFromSongId: ''
 }

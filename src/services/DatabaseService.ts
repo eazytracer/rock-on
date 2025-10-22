@@ -219,7 +219,8 @@ export class DatabaseService {
         key: 'C',
         bpm: 120,
         difficulty: 3,
-        bandId: band.id
+        bandId: band.id,
+        createdBy: 'test-user'
       })
 
       await SongService.createSong({
@@ -229,7 +230,8 @@ export class DatabaseService {
         key: 'G',
         bpm: 140,
         difficulty: 4,
-        bandId: band.id
+        bandId: band.id,
+        createdBy: 'test-user'
       })
 
       console.log('Test data seeded successfully')

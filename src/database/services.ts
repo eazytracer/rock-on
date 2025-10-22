@@ -1,4 +1,4 @@
-import { db } from './db'
+import { db } from '../services/database'
 import { Song } from '../models/Song'
 import { Member } from '../models/Member'
 import { PracticeSession } from '../models/PracticeSession'

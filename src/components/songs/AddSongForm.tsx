@@ -2,9 +2,10 @@ import React, { useState, useRef } from 'react'
 import { Song } from '../../models/Song'
 import { ReferenceLink } from '../../types'
 import { TouchButton } from '../common/TouchButton'
+import CircleOfFifths from './CircleOfFifths'
 
 interface AddSongFormProps {
-  onSubmit: (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel'>) => void
+  onSubmit: (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel' | 'contextType' | 'contextId' | 'createdBy' | 'visibility' | 'songGroupId' | 'linkedFromSongId'>) => void
   onCancel: () => void
   initialData?: Partial<Song>
   loading?: boolean
@@ -18,11 +19,6 @@ interface FormErrors {
   bpm?: string
   difficulty?: string
 }
-
-const MUSICAL_KEYS = [
-  'C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B',
-  'Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'A#m', 'Bbm', 'Bm'
-]
 
 const COMMON_TAGS = [
   'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'Folk', 'Metal', 'Punk', 'Alternative',
@@ -68,6 +64,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
 
   const [errors, setErrors] = useState<FormErrors>({})
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showKeyPicker, setShowKeyPicker] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
   const validateForm = (): boolean => {
@@ -263,19 +260,16 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Key *
                 </label>
-                <select
-                  value={formData.key}
-                  onChange={(e) => handleInputChange('key', e.target.value)}
-                  className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                <button
+                  type="button"
+                  onClick={() => setShowKeyPicker(true)}
+                  className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left ${
                     errors.key ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  } ${formData.key ? 'text-gray-900' : 'text-gray-400'}`}
                   data-error={!!errors.key}
                 >
-                  <option value="">Select key</option>
-                  {MUSICAL_KEYS.map(key => (
-                    <option key={key} value={key}>{key}</option>
-                  ))}
-                </select>
+                  {formData.key || 'Select key'}
+                </button>
                 {errors.key && (
                   <p className="mt-1 text-sm text-red-600">{errors.key}</p>
                 )}
@@ -496,6 +490,39 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Circle of Fifths Key Picker Modal */}
+      {showKeyPicker && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowKeyPicker(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-lg w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Select Musical Key</h3>
+              <button
+                onClick={() => setShowKeyPicker(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <CircleOfFifths
+              selectedKey={formData.key}
+              onKeySelect={(key) => {
+                handleInputChange('key', key)
+                setShowKeyPicker(false)
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

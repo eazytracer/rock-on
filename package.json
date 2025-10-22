@@ -17,6 +17,8 @@
     "@use-gesture/react": "^10.3.0",
     "dexie": "^3.2.4",
     "dexie-react-hooks": "^1.1.7",
+    "lucide-react": "^0.546.0",
+    "puppeteer": "^24.26.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.15.0"

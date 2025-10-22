@@ -1,6 +1,7 @@
 import { db } from './database'
 import { PracticeSession } from '../models/PracticeSession'
 import { SessionType, SessionStatus, SessionSong, SessionAttendee } from '../types'
+import { castingService } from './CastingService'
 
 export interface SessionFilters {
   bandId: string
@@ -342,5 +343,101 @@ export class PracticeSessionService {
     }
     // Session was scheduled in the past but never started
     return 'cancelled'
+  }
+
+  /**
+   * Inherit casting from a setlist to a practice session
+   */
+  static async inheritCastingFromSetlist(
+    sessionId: string,
+    setlistId: string,
+    createdBy: string
+  ): Promise<void> {
+    await castingService.copyCasting(
+      'setlist',
+      setlistId,
+      'session',
+      sessionId,
+      createdBy
+    )
+  }
+
+  /**
+   * Get casting for all songs in a practice session
+   */
+  static async getSessionCasting(sessionId: string): Promise<{ songId: number; casting: any }[]> {
+    const session = await this.getSessionById(sessionId)
+    if (!session) {
+      throw new Error('Session not found')
+    }
+
+    const castings = await castingService.getCastingsForContext('session', sessionId)
+
+    return castings.map(casting => ({
+      songId: casting.songId,
+      casting
+    }))
+  }
+
+  /**
+   * Create casting for a song in a practice session
+   */
+  static async createSongCasting(
+    sessionId: string,
+    songId: number,
+    createdBy: string
+  ): Promise<number> {
+    const session = await this.getSessionById(sessionId)
+    if (!session) {
+      throw new Error('Session not found')
+    }
+
+    return await castingService.createCasting({
+      contextType: 'session',
+      contextId: sessionId,
+      songId,
+      createdBy,
+      createdDate: new Date()
+    })
+  }
+
+  /**
+   * Get complete session with casting information
+   */
+  static async getSessionWithCasting(sessionId: string) {
+    const session = await this.getSessionById(sessionId)
+    if (!session) return null
+
+    const castings = await castingService.getCastingsForContext('session', sessionId)
+
+    const songsWithCasting = await Promise.all(
+      session.songs.map(async (sessionSong) => {
+        const song = await db.songs.get(sessionSong.songId)
+        const casting = castings.find(c => c.songId === parseInt(sessionSong.songId))
+
+        let completeCasting = null
+        if (casting && casting.id) {
+          completeCasting = await castingService.getCompleteCasting(casting.id)
+        }
+
+        return {
+          ...sessionSong,
+          song,
+          casting: completeCasting
+        }
+      })
+    )
+
+    return {
+      ...session,
+      songsWithCasting
+    }
+  }
+
+  /**
+   * Get member's assigned roles for a session
+   */
+  static async getMemberAssignments(sessionId: string, memberId: string) {
+    return await castingService.getMemberAssignments(memberId, 'session', sessionId)
   }
 }
