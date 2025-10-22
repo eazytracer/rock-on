@@ -19,7 +19,20 @@
       "Bash(npm run dev:*)",
       "Bash(npx tsc:*)",
       "Bash(xargs ls:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(pgrep:*)",
+      "mcp__chrome__list_pages",
+      "Bash(sudo apt-get update:*)",
+      "Bash(sudo apt-get install:*)",
+      "mcp__chrome__new_page",
+      "Bash(/home/vscode/chrome/chrome/linux-141.0.7390.122/chrome-linux64/chrome:*)",
+      "mcp__chrome__navigate_page",
+      "mcp__chrome__take_snapshot",
+      "mcp__chrome__list_console_messages",
+      "mcp__chrome__take_screenshot",
+      "mcp__chrome__click",
+      "mcp__chrome__evaluate_script",
+      "mcp__chrome__fill"
     ],
     "deny": [],
     "ask": []

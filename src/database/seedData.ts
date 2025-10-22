@@ -1,8 +1,11 @@
-import { db } from './db'
+import { db } from '../services/database'
 import { Song } from '../models/Song'
 import { Member } from '../models/Member'
 import { PracticeSession } from '../models/PracticeSession'
 import { Setlist } from '../models/Setlist'
+import { Band } from '../models/Band'
+import { BandMembership } from '../models/BandMembership'
+import { User } from '../models/User'
 
 // Initial seed data for the application
 const initialSongs: Song[] = [
@@ -22,7 +25,11 @@ const initialSongs: Song[] = [
     tags: ['rock', 'cover', 'popular'],
     createdDate: new Date('2024-01-15'),
     lastPracticed: new Date('2024-09-20'),
-    confidenceLevel: 4.2
+    confidenceLevel: 4.2,
+    contextType: 'band',
+    contextId: 'band1',
+    createdBy: '1',
+    visibility: 'band_only'
   },
   {
     id: '2',
@@ -39,7 +46,11 @@ const initialSongs: Song[] = [
     tags: ['rock', 'cover', 'challenging'],
     createdDate: new Date('2024-01-20'),
     lastPracticed: new Date('2024-09-18'),
-    confidenceLevel: 2.8
+    confidenceLevel: 2.8,
+    contextType: 'band',
+    contextId: 'band1',
+    createdBy: '1',
+    visibility: 'band_only'
   },
   {
     id: '3',
@@ -55,7 +66,11 @@ const initialSongs: Song[] = [
     referenceLinks: [],
     tags: ['rock', 'cover', 'epic'],
     createdDate: new Date('2024-02-01'),
-    confidenceLevel: 3.5
+    confidenceLevel: 3.5,
+    contextType: 'band',
+    contextId: 'band1',
+    createdBy: '1',
+    visibility: 'band_only'
   }
 ]
 
@@ -125,6 +140,77 @@ const initialSetlists: Setlist[] = [
   }
 ]
 
+const initialBands: Band[] = [
+  {
+    id: 'band1',
+    name: 'The Rock Legends',
+    description: 'Default band for all users',
+    createdDate: new Date('2024-01-01'),
+    memberIds: [],
+    settings: {
+      defaultPracticeTime: 120,
+      reminderMinutes: [60, 30, 10],
+      autoSaveInterval: 30
+    }
+  }
+]
+
+// Test users (for development/testing)
+const initialUsers: User[] = [
+  {
+    id: 'alice',
+    email: 'alice@test.com',
+    name: 'Alice Anderson',
+    createdDate: new Date('2024-01-01'),
+    authProvider: 'mock'
+  },
+  {
+    id: 'bob',
+    email: 'bob@test.com',
+    name: 'Bob Baker',
+    createdDate: new Date('2024-01-02'),
+    authProvider: 'mock'
+  },
+  {
+    id: 'charlie',
+    email: 'charlie@test.com',
+    name: 'Charlie Chen',
+    createdDate: new Date('2024-01-03'),
+    authProvider: 'mock'
+  }
+]
+
+// Link test users to band1
+const initialBandMemberships: BandMembership[] = [
+  {
+    id: 'membership-alice',
+    userId: 'alice',
+    bandId: 'band1',
+    role: 'admin',
+    joinedDate: new Date('2024-01-01'),
+    status: 'active',
+    permissions: ['admin', 'member']
+  },
+  {
+    id: 'membership-bob',
+    userId: 'bob',
+    bandId: 'band1',
+    role: 'member',
+    joinedDate: new Date('2024-01-02'),
+    status: 'active',
+    permissions: ['member']
+  },
+  {
+    id: 'membership-charlie',
+    userId: 'charlie',
+    bandId: 'band1',
+    role: 'member',
+    joinedDate: new Date('2024-01-03'),
+    status: 'active',
+    permissions: ['member']
+  }
+]
+
 export async function seedDatabase(): Promise<void> {
   try {
     // Check if data already exists
@@ -136,12 +222,21 @@ export async function seedDatabase(): Promise<void> {
 
     console.log('Seeding database with initial data...')
 
-    // Add all seed data
-    await db.transaction('rw', db.songs, db.members, db.practiceSessions, db.setlists, async () => {
-      await db.songs.bulkAdd(initialSongs)
-      await db.members.bulkAdd(initialMembers)
-      await db.practiceSessions.bulkAdd(initialSessions)
-      await db.setlists.bulkAdd(initialSetlists)
+    // Add all seed data (use put to allow overwriting existing records)
+    await db.transaction('rw', [db.users, db.songs, db.members, db.practiceSessions, db.setlists, db.bands, db.bandMemberships], async () => {
+      // Add test users first
+      await db.users.bulkPut(initialUsers)
+      console.log('Added test users (Alice, Bob, Charlie)')
+
+      await db.bands.bulkPut(initialBands)
+      await db.songs.bulkPut(initialSongs)
+      await db.members.bulkPut(initialMembers)
+      await db.practiceSessions.bulkPut(initialSessions)
+      await db.setlists.bulkPut(initialSetlists)
+
+      // Add band memberships to link test users to band1
+      await db.bandMemberships.bulkPut(initialBandMemberships)
+      console.log('Added band memberships for test users')
     })
 
     console.log('Database seeded successfully!')
@@ -151,4 +246,4 @@ export async function seedDatabase(): Promise<void> {
   }
 }
 
-export { initialSongs, initialMembers, initialSessions, initialSetlists }
+export { initialSongs, initialMembers, initialSessions, initialSetlists, initialBands, initialUsers, initialBandMemberships }

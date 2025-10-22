@@ -7,6 +7,9 @@ export interface SongFilters {
   key?: string
   difficulty?: number
   tags?: string[]
+  contextType?: 'personal' | 'band'
+  contextId?: string
+  userId?: string
 }
 
 export interface SongListResponse {
@@ -30,6 +33,10 @@ export interface CreateSongRequest {
   referenceLinks?: any[]
   tags?: string[]
   bandId: string
+  createdBy: string
+  contextType?: 'personal' | 'band'
+  contextId?: string
+  visibility?: 'private' | 'band_only' | 'public'
 }
 
 export interface ConfidenceRating {
@@ -41,6 +48,16 @@ export interface ConfidenceRating {
 export class SongService {
   static async getAllSongs(filters: SongFilters): Promise<SongListResponse> {
     let query = db.songs.orderBy('title')
+
+    // Apply context type filter
+    if (filters.contextType) {
+      query = query.filter(song => song.contextType === filters.contextType)
+    }
+
+    // Apply context ID filter
+    if (filters.contextId) {
+      query = query.filter(song => song.contextId === filters.contextId)
+    }
 
     // Apply search filter
     if (filters.search) {
@@ -78,6 +95,65 @@ export class SongService {
     }
   }
 
+  /**
+   * Get all personal songs for a specific user
+   */
+  static async getPersonalSongs(userId: string, additionalFilters?: Partial<SongFilters>): Promise<SongListResponse> {
+    return this.getAllSongs({
+      bandId: '', // Not used for personal songs
+      contextType: 'personal',
+      contextId: userId,
+      ...additionalFilters
+    })
+  }
+
+  /**
+   * Get all band songs for a specific band
+   */
+  static async getBandSongs(bandId: string, additionalFilters?: Partial<SongFilters>): Promise<SongListResponse> {
+    return this.getAllSongs({
+      bandId,
+      contextType: 'band',
+      contextId: bandId,
+      ...additionalFilters
+    })
+  }
+
+  /**
+   * Get all songs accessible by a user (personal + bands they're in)
+   */
+  static async getUserAccessibleSongs(userId: string): Promise<SongListResponse> {
+    // Get user's band memberships
+    const memberships = await db.bandMemberships
+      .where('userId')
+      .equals(userId)
+      .and(m => m.status === 'active')
+      .toArray()
+
+    const bandIds = memberships.map(m => m.bandId)
+
+    // Get all songs for this user (personal + all their bands)
+    const songs = await db.songs
+      .filter(song => {
+        // Personal songs
+        if (song.contextType === 'personal' && song.contextId === userId) {
+          return true
+        }
+        // Band songs from bands the user is in
+        if (song.contextType === 'band' && bandIds.includes(song.contextId)) {
+          return true
+        }
+        return false
+      })
+      .toArray()
+
+    return {
+      songs: songs.sort((a, b) => a.title.localeCompare(b.title)),
+      total: songs.length,
+      filtered: songs.length
+    }
+  }
+
   static async createSong(songData: CreateSongRequest): Promise<Song> {
     // Validate required fields
     this.validateSongData(songData)
@@ -110,7 +186,11 @@ export class SongService {
       referenceLinks: songData.referenceLinks || [],
       tags: songData.tags || [],
       createdDate: new Date(),
-      confidenceLevel: 1
+      confidenceLevel: 1,
+      contextType: songData.contextType || 'band',
+      contextId: songData.contextId || songData.bandId,
+      createdBy: songData.createdBy,
+      visibility: songData.visibility || 'band_only'
     }
 
     await db.songs.add(newSong)

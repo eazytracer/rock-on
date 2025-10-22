@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Song } from '../../models/Song'
+import { Band } from '../../models/Band'
 import { SongList } from '../../components/songs/SongList'
 import { AddSongForm } from '../../components/songs/AddSongForm'
 import { TouchButton } from '../../components/common/TouchButton'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { SongContextTabs, SongContext } from '../../components/songs/SongContextTabs'
+import { SongLinkingSuggestions } from '../../components/songs/SongLinkingSuggestions'
+import { LinkedSongView } from '../../components/songs/LinkedSongView'
+import { SongLinkingService, LinkingSuggestion } from '../../services/SongLinkingService'
+import { useAuth } from '../../contexts/AuthContext'
+import { InitialSetupService } from '../../services/setup/InitialSetupService'
+import { BandMembershipService } from '../../services/BandMembershipService'
+import { db } from '../../services/database'
 
 interface SongsProps {
   songs: Song[]
   loading?: boolean
-  onAddSong?: (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel'>) => Promise<void>
+  onAddSong?: (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel' | 'contextType' | 'contextId' | 'createdBy' | 'visibility' | 'songGroupId' | 'linkedFromSongId'>) => Promise<void>
   onEditSong?: (songId: string, songData: Partial<Song>) => Promise<void>
   onDeleteSong?: (songId: string) => Promise<void>
   onSongClick?: (song: Song) => void
@@ -28,9 +37,16 @@ export const Songs: React.FC<SongsProps> = ({
   onCreate,
   onBack
 }) => {
+  const { user } = useAuth()
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [activeContext, setActiveContext] = useState<SongContext>('band')
+  const [activeBandId, setActiveBandId] = useState<string>('')
+  const [availableBands, setAvailableBands] = useState<{ id: string; name: string }[]>([])
+  const [linkingSuggestions, setLinkingSuggestions] = useState<LinkingSuggestion[]>([])
+  const [viewingLinkedSong, setViewingLinkedSong] = useState<Song | null>(null)
+  const [linkedSongsData, setLinkedSongsData] = useState<any>(null)
   const [stats, setStats] = useState({
     total: 0,
     ready: 0,
@@ -39,17 +55,58 @@ export const Songs: React.FC<SongsProps> = ({
     averageConfidence: 0
   })
 
+  // Initialize default band and load available bands on mount
   useEffect(() => {
-    calculateStats()
-  }, [songs])
+    const initializeBands = async () => {
+      if (user?.id) {
+        // Get user's band memberships
+        const memberships = await BandMembershipService.getUserBands(user.id)
 
-  const calculateStats = () => {
-    const total = songs.length
-    const ready = songs.filter(song => song.confidenceLevel >= 4).length
-    const needsPractice = songs.filter(song => song.confidenceLevel >= 2 && song.confidenceLevel < 4).length
-    const newSongs = songs.filter(song => song.confidenceLevel < 2).length
+        // Fetch band details for each membership
+        const bandPromises = memberships.map(membership =>
+          db.bands.get(membership.bandId)
+        )
+        const bands = await Promise.all(bandPromises)
+
+        // Filter out undefined bands and map to the format needed by SongContextTabs
+        const validBands = bands
+          .filter((band): band is Band => band !== undefined)
+          .map(band => ({ id: band.id, name: band.name }))
+
+        setAvailableBands(validBands)
+
+        // Set default band
+        const defaultBandId = await InitialSetupService.getUserDefaultBand(user.id)
+        if (defaultBandId) {
+          setActiveBandId(defaultBandId)
+        } else if (validBands.length > 0) {
+          // If no default, use the first available band
+          setActiveBandId(validBands[0].id)
+        }
+      }
+    }
+    initializeBands()
+  }, [user])
+
+  // Filter songs by context - memoized to prevent infinite loops
+  const contextFilteredSongs = useMemo(() => {
+    return songs.filter(song => {
+      if (activeContext === 'personal') {
+        return song.contextType === 'personal' && song.contextId === user?.id
+      } else {
+        return song.contextType === 'band' && song.contextId === activeBandId
+      }
+    })
+  }, [songs, activeContext, activeBandId, user?.id])
+
+  // Calculate stats whenever filtered songs change
+  const calculateStats = useCallback(() => {
+    const total = contextFilteredSongs.length
+    const ready = contextFilteredSongs.filter(song => song.confidenceLevel >= 4).length
+    const needsPractice = contextFilteredSongs.filter(song => song.confidenceLevel >= 2 && song.confidenceLevel < 4).length
+    const newSongs = contextFilteredSongs.filter(song => song.confidenceLevel < 2).length
     const averageConfidence = total > 0
-      ? songs.reduce((sum, song) => sum + song.confidenceLevel, 0) / total
+      ? contextFilteredSongs.reduce((sum, song) => sum + song.confidenceLevel, 0) / total
       : 0
 
     setStats({
@@ -59,14 +116,117 @@ export const Songs: React.FC<SongsProps> = ({
       new: newSongs,
       averageConfidence
     })
+  }, [contextFilteredSongs])
+
+  useEffect(() => {
+    calculateStats()
+  }, [calculateStats])
+
+  // Load linking suggestions when songs change
+  useEffect(() => {
+    const loadLinkingSuggestions = async () => {
+      console.log('[Songs] Loading linking suggestions...', {
+        hasUser: !!user,
+        contextFilteredSongsCount: contextFilteredSongs.length,
+        activeContext,
+        activeBandId
+      })
+
+      if (!user || contextFilteredSongs.length === 0) return
+
+      const allSuggestions: LinkingSuggestion[] = []
+      for (const song of contextFilteredSongs.slice(0, 10)) { // Limit to prevent performance issues
+        console.log('[Songs] Checking song for suggestions:', song.title, song.artist)
+        const suggestions = await SongLinkingService.findLinkingSuggestions(song, user.id!)
+        console.log('[Songs] Found suggestions for', song.title, ':', suggestions.length)
+        allSuggestions.push(...suggestions)
+      }
+
+      // Deduplicate and limit suggestions
+      const uniqueSuggestions = allSuggestions
+        .filter((s, i, arr) =>
+          arr.findIndex(x => x.song.id === s.song.id && x.targetSong.id === s.targetSong.id) === i
+        )
+        .slice(0, 5)
+
+      console.log('[Songs] Total unique suggestions:', uniqueSuggestions.length)
+      setLinkingSuggestions(uniqueSuggestions)
+    }
+
+    loadLinkingSuggestions()
+  }, [contextFilteredSongs, user, activeContext, activeBandId])
+
+  const handleLink = async (songId: string, targetSongId: string) => {
+    if (!user) return
+
+    const song = songs.find(s => s.id === songId)
+    const targetSong = songs.find(s => s.id === targetSongId)
+    if (!song || !targetSong) return
+
+    await SongLinkingService.linkSongs(
+      [songId, targetSongId],
+      song.title,
+      user.id!,
+      `Linked variants of "${song.title}"`
+    )
+
+    // Remove the suggestion
+    setLinkingSuggestions(prev => prev.filter(s => !(s.song.id === songId && s.targetSong.id === targetSongId)))
   }
 
-  const handleAddSong = async (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel'>) => {
-    if (!onAddSong) return
+  const handleDismissSuggestion = (songId: string, targetSongId: string) => {
+    setLinkingSuggestions(prev => prev.filter(s => !(s.song.id === songId && s.targetSong.id === targetSongId)))
+  }
+
+  const handleViewLinkedSong = async (song: Song) => {
+    if (!song.songGroupId) return
+
+    const songGroup = await SongLinkingService.getSongGroup(song.id!)
+    const linkedSongs = await SongLinkingService.getSongsInGroup(song.songGroupId)
+
+    setViewingLinkedSong(song)
+    setLinkedSongsData({ songGroup, linkedSongs })
+  }
+
+  const handleUnlinkSong = async (songId: string) => {
+    await SongLinkingService.unlinkSongFromGroup(songId)
+    setViewingLinkedSong(null)
+    setLinkedSongsData(null)
+  }
+
+  const handleContributeToBand = async (songId: string) => {
+    if (!user || !activeBandId) return
+
+    await SongLinkingService.contributePersonalSongToBand(songId, activeBandId, user.id!)
+
+    // Refresh to show the new band song
+    window.location.reload() // In a real app, you'd update state properly
+  }
+
+  const handleCopyToPersonal = async (songId: string) => {
+    if (!user) return
+
+    await SongLinkingService.copyBandSongToPersonal(songId, user.id!)
+
+    // Refresh to show the new personal song
+    window.location.reload() // In a real app, you'd update state properly
+  }
+
+  const handleAddSong = async (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel' | 'contextType' | 'contextId' | 'createdBy' | 'visibility' | 'songGroupId' | 'linkedFromSongId'>) => {
+    if (!onAddSong || !user) return
 
     setIsSubmitting(true)
     try {
-      await onAddSong(songData)
+      // Add context information based on active tab
+      const contextualSongData = {
+        ...songData,
+        contextType: activeContext,
+        contextId: activeContext === 'personal' ? user.id : activeBandId,
+        createdBy: user.id,
+        visibility: (activeContext === 'personal' ? 'private' : 'band_only') as 'private' | 'band_only' | 'public'
+      } as any
+
+      await onAddSong(contextualSongData)
       setViewMode('list')
     } catch (error) {
       console.error('Failed to add song:', error)
@@ -75,7 +235,7 @@ export const Songs: React.FC<SongsProps> = ({
     }
   }
 
-  const handleEditSong = async (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel'>) => {
+  const handleEditSong = async (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel' | 'contextType' | 'contextId' | 'createdBy' | 'visibility' | 'songGroupId' | 'linkedFromSongId'>) => {
     if (!onEditSong || !selectedSong) return
 
     setIsSubmitting(true)
@@ -185,7 +345,11 @@ export const Songs: React.FC<SongsProps> = ({
           )}
           <div>
             <h1 className="text-2xl font-bold text-steel-gray">Songs</h1>
-            <p className="text-gray-600">Manage your band's song catalog</p>
+            <p className="text-gray-600">
+              {activeContext === 'personal'
+                ? 'Your personal song catalog'
+                : 'Band song catalog'}
+            </p>
           </div>
         </div>
         <div className="mt-4 sm:mt-0">
@@ -198,6 +362,62 @@ export const Songs: React.FC<SongsProps> = ({
           </TouchButton>
         </div>
       </div>
+
+      {/* Context Tabs */}
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <SongContextTabs
+          activeContext={activeContext}
+          onContextChange={setActiveContext}
+          activeBandId={activeBandId}
+          onBandChange={setActiveBandId}
+          availableBands={availableBands}
+          personalSongCount={songs.filter(s => s.contextType === 'personal' && s.contextId === user?.id).length}
+          bandSongCount={songs.filter(s => s.contextType === 'band' && s.contextId === activeBandId).length}
+        />
+      </div>
+
+      {/* Linking Suggestions */}
+      {linkingSuggestions.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+          <SongLinkingSuggestions
+            suggestions={linkingSuggestions}
+            onLink={handleLink}
+            onDismiss={handleDismissSuggestion}
+          />
+        </div>
+      )}
+
+      {/* Linked Song View */}
+      {viewingLinkedSong && linkedSongsData && (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Linked Song Variants</h2>
+            <button
+              onClick={() => {
+                setViewingLinkedSong(null)
+                setLinkedSongsData(null)
+              }}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <LinkedSongView
+            songGroup={linkedSongsData.songGroup}
+            linkedSongs={linkedSongsData.linkedSongs}
+            currentSongId={viewingLinkedSong.id}
+            onSelectSong={(songId) => {
+              const song = songs.find(s => s.id === songId)
+              if (song && onSongClick) onSongClick(song)
+            }}
+            onUnlink={handleUnlinkSong}
+            onContributeToBand={handleContributeToBand}
+            onCopyToPersonal={handleCopyToPersonal}
+          />
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -230,7 +450,7 @@ export const Songs: React.FC<SongsProps> = ({
       </div>
 
       {/* Empty State */}
-      {songs.length === 0 && !loading && (
+      {contextFilteredSongs.length === 0 && !loading && (
         <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="text-center py-12">
             <svg
@@ -248,7 +468,9 @@ export const Songs: React.FC<SongsProps> = ({
             </svg>
             <h3 className="mt-2 text-sm font-medium text-steel-gray">No songs yet</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Get started by adding your first song to the catalog.
+              {activeContext === 'personal'
+                ? 'Get started by adding your first personal song.'
+                : 'Get started by adding your first band song.'}
             </p>
             <div className="mt-6">
               <TouchButton
@@ -264,25 +486,26 @@ export const Songs: React.FC<SongsProps> = ({
       )}
 
       {/* Song List */}
-      {songs.length > 0 && (
+      {contextFilteredSongs.length > 0 && (
         <div className="bg-smoke-white rounded-lg border border-steel-gray/20 shadow-sm">
           <div className="p-6">
             <SongList
-              songs={songs}
+              songs={contextFilteredSongs}
               loading={loading}
               onSongClick={onSongClick}
               onSongEdit={handleSongEdit}
               onSongDelete={handleDeleteSong}
+              onViewLinked={handleViewLinkedSong}
               showSearch={true}
               searchPlaceholder="Search songs by title, artist, or tags..."
-              virtualized={songs.length > 50}
+              virtualized={contextFilteredSongs.length > 50}
             />
           </div>
         </div>
       )}
 
       {/* Quick Actions */}
-      {songs.length > 0 && (
+      {contextFilteredSongs.length > 0 && (
         <div className="bg-surface rounded-lg p-6">
           <h3 className="text-lg font-semibold text-steel-gray mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -291,7 +514,7 @@ export const Songs: React.FC<SongsProps> = ({
               size="md"
               onClick={() => {
                 // Filter to songs that need practice
-                const needsPracticeSongs = songs.filter(song => song.confidenceLevel < 3)
+                const needsPracticeSongs = contextFilteredSongs.filter(song => song.confidenceLevel < 3)
                 if (needsPracticeSongs.length > 0 && onSongClick) {
                   onSongClick(needsPracticeSongs[0])
                 }
@@ -306,12 +529,12 @@ export const Songs: React.FC<SongsProps> = ({
               size="md"
               onClick={() => {
                 // Filter to songs that haven't been practiced recently
-                const unpracticedSongs = songs.filter(song => !song.lastPracticed)
+                const unpracticedSongs = contextFilteredSongs.filter(song => !song.lastPracticed)
                 if (unpracticedSongs.length > 0 && onSongClick) {
                   onSongClick(unpracticedSongs[0])
                 }
               }}
-              disabled={songs.every(song => song.lastPracticed)}
+              disabled={contextFilteredSongs.every(song => song.lastPracticed)}
             >
               Practice Unpracticed
             </TouchButton>
@@ -321,12 +544,12 @@ export const Songs: React.FC<SongsProps> = ({
               size="md"
               onClick={() => {
                 // Pick a random song
-                if (songs.length > 0 && onSongClick) {
-                  const randomIndex = Math.floor(Math.random() * songs.length)
-                  onSongClick(songs[randomIndex])
+                if (contextFilteredSongs.length > 0 && onSongClick) {
+                  const randomIndex = Math.floor(Math.random() * contextFilteredSongs.length)
+                  onSongClick(contextFilteredSongs[randomIndex])
                 }
               }}
-              disabled={songs.length === 0}
+              disabled={contextFilteredSongs.length === 0}
             >
               Random Song
             </TouchButton>

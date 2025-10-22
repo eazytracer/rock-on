@@ -6,10 +6,14 @@ import { SetlistBuilder } from '../../components/setlists/SetlistBuilder'
 import { TouchButton } from '../../components/common/TouchButton'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
 import { SearchBar } from '../../components/common/SearchBar'
+import { SetlistCastingView } from '../../components/casting/SetlistCastingView'
+import { CastingComparison } from '../../components/casting/CastingComparison'
 
 interface SetlistsProps {
   setlists: Setlist[]
   songs: Song[]
+  bandMembers?: Array<{ userId: string; name: string }>
+  bandId?: string
   loading?: boolean
   onCreateSetlist?: (setlistData: {
     name: string
@@ -25,7 +29,7 @@ interface SetlistsProps {
   onBack?: () => void
 }
 
-type ViewMode = 'list' | 'add' | 'edit' | 'readiness'
+type ViewMode = 'list' | 'add' | 'edit' | 'readiness' | 'casting' | 'compare'
 
 interface ReadinessReport {
   setlistId: string
@@ -40,6 +44,8 @@ interface ReadinessReport {
 export const Setlists: React.FC<SetlistsProps> = ({
   setlists,
   songs,
+  bandMembers = [],
+  bandId = 'band1',
   loading = false,
   onCreateSetlist,
   onEditSetlist,
@@ -181,6 +187,15 @@ export const Setlists: React.FC<SetlistsProps> = ({
     setViewMode('readiness')
   }
 
+  const handleManageCasting = (setlist: Setlist) => {
+    setSelectedSetlist(setlist)
+    setViewMode('casting')
+  }
+
+  const handleCompareCasting = () => {
+    setViewMode('compare')
+  }
+
   const handleCancel = () => {
     setViewMode('list')
     setSelectedSetlist(null)
@@ -262,6 +277,61 @@ export const Setlists: React.FC<SetlistsProps> = ({
           onSave={handleEditSetlist}
           onCancel={handleCancel}
           loading={isSubmitting}
+        />
+      </div>
+    )
+  }
+
+  if (viewMode === 'casting' && selectedSetlist) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="flex items-center mb-6">
+          <TouchButton
+            variant="ghost"
+            size="sm"
+            onClick={handleCancel}
+            className="mr-4"
+          >
+            ← Back
+          </TouchButton>
+          <h1 className="text-2xl font-bold text-steel-gray">Manage Casting</h1>
+        </div>
+        <SetlistCastingView
+          setlist={selectedSetlist}
+          songs={songs}
+          bandMembers={bandMembers}
+          bandId={bandId}
+          onClose={handleCancel}
+        />
+      </div>
+    )
+  }
+
+  if (viewMode === 'compare') {
+    const availableContexts = setlists.map(s => ({
+      type: 'setlist' as const,
+      id: s.id,
+      name: s.name
+    }))
+
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="flex items-center mb-6">
+          <TouchButton
+            variant="ghost"
+            size="sm"
+            onClick={handleCancel}
+            className="mr-4"
+          >
+            ← Back
+          </TouchButton>
+          <h1 className="text-2xl font-bold text-steel-gray">Compare Casting</h1>
+        </div>
+        <CastingComparison
+          availableContexts={availableContexts}
+          songs={songs}
+          bandMembers={bandMembers}
+          onClose={handleCancel}
         />
       </div>
     )
@@ -402,7 +472,16 @@ export const Setlists: React.FC<SetlistsProps> = ({
             <p className="text-gray-600">Create and manage setlists for your performances</p>
           </div>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 sm:mt-0 flex gap-2">
+          {bandMembers.length > 0 && (
+            <TouchButton
+              variant="secondary"
+              size="md"
+              onClick={handleCompareCasting}
+            >
+              Compare Casting
+            </TouchButton>
+          )}
           <TouchButton
             variant="primary"
             size="md"
@@ -459,14 +538,25 @@ export const Setlists: React.FC<SetlistsProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <TouchButton
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleReadinessCheck(setlist)}
-                      >
-                        Readiness Check
-                      </TouchButton>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex gap-2">
+                        <TouchButton
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleReadinessCheck(setlist)}
+                        >
+                          Readiness
+                        </TouchButton>
+                        {bandMembers.length > 0 && (
+                          <TouchButton
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleManageCasting(setlist)}
+                          >
+                            Casting
+                          </TouchButton>
+                        )}
+                      </div>
                       <TouchButton
                         variant="ghost"
                         size="sm"
@@ -525,7 +615,7 @@ export const Setlists: React.FC<SetlistsProps> = ({
                     )}
 
                     <div className="flex items-center justify-between">
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 flex-wrap gap-2">
                         <TouchButton
                           variant="primary"
                           size="sm"
@@ -538,8 +628,17 @@ export const Setlists: React.FC<SetlistsProps> = ({
                           size="sm"
                           onClick={() => handleReadinessCheck(setlist)}
                         >
-                          Check Readiness
+                          Readiness
                         </TouchButton>
+                        {bandMembers.length > 0 && (
+                          <TouchButton
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleManageCasting(setlist)}
+                          >
+                            Casting
+                          </TouchButton>
+                        )}
                       </div>
                       <div className="flex space-x-1">
                         <TouchButton
