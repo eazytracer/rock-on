@@ -93,6 +93,26 @@ export class RockOnDB extends Dexie {
       memberCapabilities: '++id, userId, bandId, roleType, proficiencyLevel, isPrimary, updatedDate'
     })
 
+    // Version 5: MVP Enhancements - setlists items (songs/breaks/sections) + show metadata
+    this.version(5).stores({
+      bands: '++id, name, createdDate',
+      members: '++id, name, email, isActive',
+      songs: '++id, title, artist, key, difficulty, createdDate, lastPracticed, confidenceLevel, contextType, contextId, createdBy, visibility, songGroupId',
+      practiceSessions: '++id, bandId, scheduledDate, type, status, setlistId',  // Added setlistId index
+      setlists: '++id, name, bandId, showId, status, createdDate, lastModified',  // Changed showDate to showId
+      users: '++id, email, name, createdDate, lastLogin, authProvider',
+      userProfiles: '++id, userId, displayName, primaryInstrument, *instruments',
+      bandMemberships: '++id, userId, bandId, role, joinedDate, status, *permissions',
+      inviteCodes: '++id, bandId, code, createdBy, expiresAt, currentUses',
+      songGroups: '++id, createdBy, name, createdDate',
+      songGroupMemberships: '++id, songId, songGroupId, addedBy, addedDate',
+      songCastings: '++id, contextType, contextId, songId, createdBy, createdDate',
+      songAssignments: '++id, songCastingId, memberId, isPrimary, confidence, addedBy, addedDate',
+      assignmentRoles: '++id, assignmentId, type, name, isPrimary',
+      castingTemplates: '++id, bandId, name, contextType, createdBy, createdDate',
+      memberCapabilities: '++id, userId, bandId, roleType, proficiencyLevel, isPrimary, updatedDate'
+    })
+
     // Add hooks for automatic timestamps
     this.bands.hook('creating', function(_primKey, obj, _trans) {
       obj.createdDate = new Date()

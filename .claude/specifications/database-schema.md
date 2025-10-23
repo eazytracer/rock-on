@@ -2,7 +2,7 @@
 
 **Database Name:** RockOnDB
 **Technology:** Dexie.js (IndexedDB wrapper)
-**Current Version:** 3
+**Current Version:** 5 (TODO: Implementation in progress)
 **Location:** `/workspaces/rock-on/src/services/database/index.ts`
 
 ## Important Notes
@@ -43,7 +43,7 @@ Added user authentication and multi-band support.
 }
 ```
 
-### Version 3: Song Variant Linking (Current)
+### Version 3: Song Variant Linking
 Added song group system for linking song variants across contexts.
 
 ```typescript
@@ -61,6 +61,62 @@ Added song group system for linking song variants across contexts.
   songGroupMemberships: '++id, songId, songGroupId, addedBy, addedDate'
 }
 ```
+
+### Version 4: Context-Specific Casting System
+Added casting system for assigning band members to song roles by context.
+
+```typescript
+{
+  bands: '++id, name, createdDate',
+  members: '++id, name, email, isActive',
+  songs: '++id, title, artist, key, difficulty, createdDate, lastPracticed, confidenceLevel, contextType, contextId, createdBy, visibility, songGroupId',
+  practiceSessions: '++id, bandId, scheduledDate, type, status',
+  setlists: '++id, name, bandId, showDate, status, createdDate, lastModified',
+  users: '++id, email, name, createdDate, lastLogin, authProvider',
+  userProfiles: '++id, userId, displayName, primaryInstrument, *instruments',
+  bandMemberships: '++id, userId, bandId, role, joinedDate, status, *permissions',
+  inviteCodes: '++id, bandId, code, createdBy, expiresAt, currentUses',
+  songGroups: '++id, createdBy, name, createdDate',
+  songGroupMemberships: '++id, songId, songGroupId, addedBy, addedDate',
+  songCastings: '++id, contextType, contextId, songId, createdBy, createdDate',
+  songAssignments: '++id, songCastingId, memberId, isPrimary, confidence, addedBy, addedDate',
+  assignmentRoles: '++id, assignmentId, type, name, isPrimary',
+  castingTemplates: '++id, bandId, name, contextType, createdBy, createdDate',
+  memberCapabilities: '++id, userId, bandId, roleType, proficiencyLevel, isPrimary, updatedDate'
+}
+```
+
+### Version 5: MVP Enhancements (TODO - Current)
+Enhanced setlists and shows for MVP requirements: breaks/sections in setlists, show metadata.
+
+**Status:** 🚧 Implementation in progress
+
+```typescript
+{
+  bands: '++id, name, createdDate',
+  members: '++id, name, email, isActive',
+  songs: '++id, title, artist, key, difficulty, createdDate, lastPracticed, confidenceLevel, contextType, contextId, createdBy, visibility, songGroupId',
+  practiceSessions: '++id, bandId, scheduledDate, type, status, setlistId',  // TODO: Add setlistId index
+  setlists: '++id, name, bandId, showId, status, createdDate, lastModified',  // TODO: Replace showDate with showId
+  users: '++id, email, name, createdDate, lastLogin, authProvider',
+  userProfiles: '++id, userId, displayName, primaryInstrument, *instruments',
+  bandMemberships: '++id, userId, bandId, role, joinedDate, status, *permissions',
+  inviteCodes: '++id, bandId, code, createdBy, expiresAt, currentUses',
+  songGroups: '++id, createdBy, name, createdDate',
+  songGroupMemberships: '++id, songId, songGroupId, addedBy, addedDate',
+  songCastings: '++id, contextType, contextId, songId, createdBy, createdDate',
+  songAssignments: '++id, songCastingId, memberId, isPrimary, confidence, addedBy, addedDate',
+  assignmentRoles: '++id, assignmentId, type, name, isPrimary',
+  castingTemplates: '++id, bandId, name, contextType, createdBy, createdDate',
+  memberCapabilities: '++id, userId, bandId, roleType, proficiencyLevel, isPrimary, updatedDate'
+}
+```
+
+**Changes from Version 4:**
+- ✅ `setlists.showId` - Replaced `showDate` field with reference to show ID (from practiceSessions)
+- ✅ `practiceSessions.setlistId` - Added index for linking shows to setlists
+- ✅ `setlists.items` - New field structure supporting songs, breaks, and sections (see table definition)
+- ✅ `practiceSessions` - Extended with show-specific metadata fields (see table definition)
 
 ## Table Definitions
 
@@ -132,7 +188,7 @@ Song records with context support (personal/band).
 - `contextType: 'band'` → `contextId` is the band's ID
 
 ### practiceSessions
-Practice session scheduling and tracking.
+Practice session scheduling and tracking. Also used for shows/gigs when `type='gig'`.
 
 | Field | Type | Description | Required | Default |
 |-------|------|-------------|----------|---------|
@@ -140,7 +196,7 @@ Practice session scheduling and tracking.
 | bandId | string | Associated band | Yes | - |
 | scheduledDate | Date | Scheduled date/time | Yes | - |
 | duration | number | Duration in minutes | Yes | - |
-| location | string | Practice location | No | - |
+| location | string | Practice location or venue address | No | - |
 | type | 'rehearsal' \| 'recording' \| 'gig' | Session type | Yes | - |
 | status | 'scheduled' \| 'in-progress' \| 'completed' \| 'cancelled' | Session status | Yes | - |
 | songs | SessionSong[] | Songs to practice | Yes | [] |
@@ -148,27 +204,105 @@ Practice session scheduling and tracking.
 | notes | string | Session notes | No | - |
 | objectives | string[] | Session goals | No | [] |
 | completedObjectives | string[] | Completed goals | No | [] |
+| **name** | string | 🚧 TODO: Show/event name (only for type='gig') | No | - |
+| **venue** | string | 🚧 TODO: Venue name (only for type='gig') | No | - |
+| **loadInTime** | string | 🚧 TODO: Load-in time (format: "6:00 PM" or ISO string) | No | - |
+| **soundcheckTime** | string | 🚧 TODO: Soundcheck time (format: "7:00 PM" or ISO string) | No | - |
+| **payment** | number | 🚧 TODO: Payment amount in cents (only for type='gig') | No | - |
+| **contacts** | string | 🚧 TODO: Contact information (JSON string or plain text) | No | - |
+| **setlistId** | string | 🚧 TODO: Associated setlist ID (only for type='gig') | No | - |
 
-**Indexes:** `++id, bandId, scheduledDate, type, status`
+**Indexes:** `++id, bandId, scheduledDate, type, status, setlistId`
+
+**Show-Specific Fields (when type='gig'):**
+The following fields are only used when `type='gig'`:
+- `name` - Event/show name (e.g., "Toys 4 Tots Benefit")
+- `venue` - Venue name (e.g., "The Crocodile")
+- `loadInTime` - When to arrive for setup
+- `soundcheckTime` - Soundcheck time
+- `payment` - Payment amount (stored in cents)
+- `contacts` - Venue/promoter contact info
+- `setlistId` - Links to setlist for this show
+
+**Practice-Specific Usage (when type='rehearsal'):**
+- Use `songs` array for practice song list
+- `location` is practice location (e.g., "Mike's Garage")
+- Show-specific fields should be null/undefined
 
 ### setlists
-Setlists for performances.
+Setlists for performances with support for songs, breaks, and section markers.
 
 | Field | Type | Description | Required | Default |
 |-------|------|-------------|----------|---------|
 | id | string (UUID) | Unique identifier | Yes | auto-generated |
 | name | string | Setlist name | Yes | - |
 | bandId | string | Associated band | Yes | - |
-| showDate | Date | Performance date | No | - |
-| venue | string | Venue name | No | - |
-| songs | SetlistSong[] | Ordered song list | Yes | [] |
-| totalDuration | number | Total duration (seconds) | Yes | calculated |
+| ~~showDate~~ | ~~Date~~ | ⚠️ DEPRECATED: Use `showId` instead | No | - |
+| **showId** | string | 🚧 TODO: Associated show ID (from practiceSessions) | No | - |
+| ~~venue~~ | ~~string~~ | ⚠️ DEPRECATED: Venue is now on show (practiceSessions) | No | - |
+| ~~songs~~ | ~~SetlistSong[]~~ | ⚠️ DEPRECATED: Use `items` instead | Yes | [] |
+| **items** | SetlistItem[] | 🚧 TODO: Ordered list of songs, breaks, and sections | Yes | [] |
+| totalDuration | number | Total duration (seconds, includes breaks) | Yes | calculated |
 | notes | string | Setlist notes | No | - |
 | status | 'draft' \| 'active' \| 'archived' | Setlist status | Yes | 'draft' |
 | createdDate | Date | Creation date | Yes | auto (hook) |
 | lastModified | Date | Last update | Yes | auto (hook) |
 
-**Indexes:** `++id, name, bandId, showDate, status, createdDate, lastModified`
+**Indexes:** `++id, name, bandId, showId, status, createdDate, lastModified`
+
+**SetlistItem Interface (TODO):**
+```typescript
+interface SetlistItem {
+  id: string                 // Unique ID for this item
+  type: 'song' | 'break' | 'section'  // Item type
+  position: number           // Display order (1, 2, 3, ...)
+
+  // Song fields (when type='song')
+  songId?: string           // Reference to song
+  notes?: string            // Per-song notes in setlist
+
+  // Break fields (when type='break')
+  breakDuration?: number    // Duration in minutes (e.g., 15)
+  breakNotes?: string       // Break description (e.g., "Costume change")
+
+  // Section fields (when type='section')
+  sectionTitle?: string     // Section header (e.g., "Acoustic Set")
+}
+```
+
+**Usage Examples:**
+```typescript
+// Song item
+{
+  id: 'item-1',
+  type: 'song',
+  position: 1,
+  songId: 'song-123',
+  notes: 'Watch the bridge timing'
+}
+
+// Break item
+{
+  id: 'item-2',
+  type: 'break',
+  position: 2,
+  breakDuration: 15,
+  breakNotes: 'Costume change'
+}
+
+// Section marker
+{
+  id: 'item-3',
+  type: 'section',
+  position: 3,
+  sectionTitle: 'Acoustic Set'
+}
+```
+
+**Migration Notes:**
+- `showDate` → Use `showId` to reference practiceSessions (type='gig')
+- `songs` array → Migrate to `items` array with type='song'
+- `venue` → Now stored on the show (practiceSessions.venue)
 
 ### users
 User accounts for authentication.
@@ -469,14 +603,26 @@ location.reload()
 
 ## Version History
 
-| Version | Date | Changes | Migration Required |
-|---------|------|---------|-------------------|
-| 1 | Initial | Basic band features | N/A |
-| 2 | 2025-10-21 | Multi-user support | Yes - clear DB |
-| 3 | 2025-10-21 | Song variant linking | Yes - clear DB |
+| Version | Date | Changes | Migration Required | Status |
+|---------|------|---------|-------------------|--------|
+| 1 | Initial | Basic band features | N/A | ✅ Complete |
+| 2 | 2025-10-21 | Multi-user support | Yes - clear DB | ✅ Complete |
+| 3 | 2025-10-21 | Song variant linking | Yes - clear DB | ✅ Complete |
+| 4 | 2025-10-22 | Context-specific casting system | Yes - clear DB | ✅ Complete |
+| 5 | 2025-10-23 | MVP enhancements (setlists items, show metadata) | Yes - clear DB | 🚧 In Progress |
+
+**Version 5 Implementation Checklist:**
+- [x] Update schema in `/workspaces/rock-on/src/services/database/index.ts`
+- [x] Add `SetlistItem` TypeScript interface in models
+- [x] Extend `PracticeSession` interface with show-specific fields
+- [x] Update `Setlist` interface to use `items` and `showId`
+- [x] Create database migration/seed data for testing (`/workspaces/rock-on/src/database/seedMvpData.ts`)
+- [ ] Update all references from `songs` to `items` in setlist code
+- [ ] Test breaks and sections in setlist editor
+- [ ] Test show metadata in shows page
 
 ---
 
-**Last Updated:** 2025-10-21
+**Last Updated:** 2025-10-23
 **Maintained By:** Claude Code Development Team
 **Questions?** See `/workspaces/rock-on/.claude/artifacts/` for implementation details

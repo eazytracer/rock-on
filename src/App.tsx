@@ -24,6 +24,14 @@ const Sessions = lazy(() => import('./pages/Sessions/Sessions').then(module => (
 const SetlistsPage = lazy(() => import('./pages/Setlists/Setlists').then(module => ({ default: module.Setlists })))
 const NewLayout = lazy(() => import('./pages/NewLayout/NewLayout').then(module => ({ default: module.NewLayout })))
 
+// New Layout Pages (mockups with mock data)
+const AuthPages = lazy(() => import('./pages/NewLayout/AuthPages').then(module => ({ default: module.AuthPages })))
+const BandMembersPage = lazy(() => import('./pages/NewLayout/BandMembersPage').then(module => ({ default: module.BandMembersPage })))
+const SongsPageNew = lazy(() => import('./pages/NewLayout/SongsPage').then(module => ({ default: module.SongsPage })))
+const SetlistsPageNew = lazy(() => import('./pages/NewLayout/SetlistsPage').then(module => ({ default: module.SetlistsPage })))
+const ShowsPage = lazy(() => import('./pages/NewLayout/ShowsPage').then(module => ({ default: module.ShowsPage })))
+const PracticesPage = lazy(() => import('./pages/NewLayout/PracticesPage').then(module => ({ default: module.PracticesPage })))
+
 
 const AppContent: React.FC = () => {
   const location = useLocation()
@@ -329,8 +337,8 @@ const AppContent: React.FC = () => {
             path="/*"
             element={
               <AuthGuard>
-                <div className={location.pathname === '/new-layout' ? '' : 'pb-20 pt-16'}>
-                  {location.pathname !== '/new-layout' && (
+                <div className={location.pathname.startsWith('/new-layout') ? '' : 'pb-20 pt-16'}>
+                  {!location.pathname.startsWith('/new-layout') && (
                     <Header onLogoClick={() => navigate('/')} />
                   )}
                   <main className="relative">
@@ -406,14 +414,18 @@ const AppContent: React.FC = () => {
                           />
                         }
                       />
-                      <Route
-                        path="/new-layout"
-                        element={<NewLayout />}
-                      />
+                      {/* New Layout Routes - UI Mockups with Mock Data */}
+                      <Route path="/new-layout" element={<NewLayout />} />
+                      <Route path="/new-layout/auth" element={<AuthPages />} />
+                      <Route path="/new-layout/band-members" element={<BandMembersPage />} />
+                      <Route path="/new-layout/songs" element={<SongsPageNew />} />
+                      <Route path="/new-layout/setlists" element={<SetlistsPageNew />} />
+                      <Route path="/new-layout/shows" element={<ShowsPage />} />
+                      <Route path="/new-layout/practices" element={<PracticesPage />} />
                     </Routes>
                   </main>
 
-                  {location.pathname !== '/new-layout' && (
+                  {!location.pathname.startsWith('/new-layout') && (
                     <BottomNavigation
                       currentPath={location.pathname}
                       onNavigate={handleNavigation}

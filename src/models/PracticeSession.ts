@@ -16,6 +16,15 @@ export interface PracticeSession {
   objectives: string[]
   completedObjectives: string[]
   sessionRating?: number
+
+  // Version 5: Show-specific fields (only used when type='gig')
+  name?: string              // Show/event name (e.g., "Toys 4 Tots Benefit")
+  venue?: string             // Venue name (e.g., "The Crocodile")
+  loadInTime?: string        // Load-in time (format: "6:00 PM" or ISO string)
+  soundcheckTime?: string    // Soundcheck time (format: "7:00 PM" or ISO string)
+  payment?: number           // Payment amount in cents
+  contacts?: string          // Contact information (JSON string or plain text)
+  setlistId?: string         // Associated setlist ID (for shows/gigs)
 }
 
 export const PracticeSessionSchema = {

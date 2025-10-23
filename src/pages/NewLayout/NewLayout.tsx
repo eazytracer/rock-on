@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { ModernLayout } from '../../components/layout/ModernLayout'
 import { ChevronDown, Plus, Search, Clock, Music, Guitar, Activity, Calendar } from 'lucide-react'
+import { NewSongModal } from '../../components/songs/NewSongModal'
 
 interface Song {
   id: string
@@ -72,6 +73,7 @@ const demoSongs: Song[] = [
 
 export const NewLayout: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
     <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
@@ -102,7 +104,10 @@ export const NewLayout: React.FC = () => {
             </div>
           </div>
 
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
+          >
             <Plus size={20} />
             <span>Add Song</span>
           </button>
@@ -240,6 +245,9 @@ export const NewLayout: React.FC = () => {
           .claude/specifications/2025-10-22T14:01_design-style-guide.md for full details.
         </p>
       </div>
+
+      {/* New Song Modal */}
+      <NewSongModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </ModernLayout>
   )
 }

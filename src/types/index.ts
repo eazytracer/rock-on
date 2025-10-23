@@ -42,10 +42,10 @@ export interface PaymentInfo {
 }
 
 export type MemberRole = 'admin' | 'member' | 'viewer'
-export type SessionType = 'rehearsal' | 'writing' | 'recording' | 'audition' | 'lesson'
+export type SessionType = 'rehearsal' | 'writing' | 'recording' | 'audition' | 'lesson' | 'gig'
 export type SessionStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
 export type SongStatus = 'not-started' | 'in-progress' | 'completed' | 'skipped'
-export type SetlistStatus = 'draft' | 'rehearsed' | 'performed'
+export type SetlistStatus = 'draft' | 'active' | 'archived'
 
 export interface BandSettings {
   defaultPracticeTime: number
@@ -71,4 +71,22 @@ export interface SetlistSong {
   keyChange?: string
   tempoChange?: number
   specialInstructions?: string
+}
+
+// Version 5: Enhanced setlist items supporting songs, breaks, and sections
+export interface SetlistItem {
+  id: string
+  type: 'song' | 'break' | 'section'
+  position: number
+
+  // Song fields (when type='song')
+  songId?: string
+  notes?: string  // Per-song notes in setlist
+
+  // Break fields (when type='break')
+  breakDuration?: number  // Duration in minutes
+  breakNotes?: string     // Break description
+
+  // Section fields (when type='section')
+  sectionTitle?: string   // Section header
 }
