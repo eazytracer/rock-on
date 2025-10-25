@@ -113,7 +113,7 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
     return `${minutes}m`
   }
 
-  const addSongToSetlist = (song: Song, position?: number) => {
+  const addSongToSetlist = useCallback((song: Song, position?: number) => {
     const newSetlistSong: SetlistSong = {
       songId: song.id,
       order: position || setlistSongs.length + 1
@@ -129,27 +129,17 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
     } else {
       setSetlistSongs([...setlistSongs, newSetlistSong])
     }
-  }
+  }, [setlistSongs])
 
-  const removeSongFromSetlist = (index: number) => {
+  const removeSongFromSetlist = useCallback((index: number) => {
     const updatedSongs = setlistSongs.filter((_, i) => i !== index)
     updatedSongs.forEach((song, i) => {
       song.order = i + 1
     })
     setSetlistSongs(updatedSongs)
-  }
+  }, [setlistSongs])
 
-  const moveSongUp = (index: number) => {
-    if (index === 0) return
-    reorderSongs(index, index - 1)
-  }
-
-  const moveSongDown = (index: number) => {
-    if (index === setlistSongs.length - 1) return
-    reorderSongs(index, index + 1)
-  }
-
-  const reorderSongs = (fromIndex: number, toIndex: number) => {
+  const reorderSongs = useCallback((fromIndex: number, toIndex: number) => {
     const updatedSongs = [...setlistSongs]
     const [movedSong] = updatedSongs.splice(fromIndex, 1)
     updatedSongs.splice(toIndex, 0, movedSong)
@@ -159,7 +149,17 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
     })
 
     setSetlistSongs(updatedSongs)
-  }
+  }, [setlistSongs])
+
+  const moveSongUp = useCallback((index: number) => {
+    if (index === 0) return
+    reorderSongs(index, index - 1)
+  }, [reorderSongs])
+
+  const moveSongDown = useCallback((index: number) => {
+    if (index === setlistSongs.length - 1) return
+    reorderSongs(index, index + 1)
+  }, [setlistSongs.length, reorderSongs])
 
   // Touch event handlers (non-passive)
   const handleTouchStartWrapper = useCallback((e: React.TouchEvent, index: number, fromAvailable: boolean = false) => {
@@ -168,6 +168,7 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
     const touch = e.touches[0]
     touchStartRef.current = { y: touch.clientY, time: Date.now() }
 
+    // Set initial drag state but don't set isDragging true yet (wait for threshold)
     setDragState({
       isDragging: false,
       draggedIndex: index,
@@ -179,9 +180,10 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
   }, [reorderMode])
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!dragState.draggedIndex && dragState.draggedIndex !== 0) return
+    if (dragState.draggedIndex === null) return
     if (!reorderMode && !dragState.draggedFromAvailable) return
 
+    // Prevent scrolling while dragging
     e.preventDefault()
     const touch = e.touches[0]
 
@@ -189,7 +191,8 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
       const deltaY = Math.abs(touch.clientY - touchStartRef.current.y)
       const deltaTime = Date.now() - touchStartRef.current.time
 
-      if (deltaY > 10 && deltaTime > 100) {
+      // Reduced threshold for better mobile responsiveness (was 10px/100ms, now 5px/50ms)
+      if (deltaY > 5 && deltaTime > 50) {
         // Find drop target
         const dropZone = document.elementFromPoint(touch.clientX, touch.clientY)
         const setlistElement = dropZone?.closest('[data-setlist-item]')
@@ -341,22 +344,28 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
     }
   }, [dragState.isDragging, handleMouseMove, handleMouseUp])
 
-  // Add non-passive touch event listeners
+  // Add non-passive touch event listeners only when we have a drag candidate
   React.useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
-    const touchMoveHandler = handleTouchMove
-    const touchEndHandler = handleTouchEnd
+    // Only attach touch listeners when we have a potential drag in progress
+    if (dragState.draggedIndex !== null) {
+      const touchMoveHandler = handleTouchMove
+      const touchEndHandler = handleTouchEnd
 
-    document.addEventListener('touchmove', touchMoveHandler, { passive: false })
-    document.addEventListener('touchend', touchEndHandler)
+      // Use { passive: false } to allow preventDefault for smooth dragging without page scroll
+      document.addEventListener('touchmove', touchMoveHandler, { passive: false })
+      document.addEventListener('touchend', touchEndHandler, { passive: false })
+      document.addEventListener('touchcancel', touchEndHandler, { passive: false })
 
-    return () => {
-      document.removeEventListener('touchmove', touchMoveHandler)
-      document.removeEventListener('touchend', touchEndHandler)
+      return () => {
+        document.removeEventListener('touchmove', touchMoveHandler)
+        document.removeEventListener('touchend', touchEndHandler)
+        document.removeEventListener('touchcancel', touchEndHandler)
+      }
     }
-  }, [handleTouchMove, handleTouchEnd])
+  }, [dragState.draggedIndex, handleTouchMove, handleTouchEnd])
 
   const handleSave = () => {
     if (!setlistName.trim()) {
@@ -567,6 +576,7 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
                     if (!song) return null
 
                     const isDraggedItem = dragState.isDragging && dragState.draggedIndex === index && !dragState.draggedFromAvailable
+                    const isPotentialDrag = !dragState.isDragging && dragState.draggedIndex === index && !dragState.draggedFromAvailable
                     const isDropTarget = dragState.isDragging && dragState.dropIndex === index
 
                     return (
@@ -577,7 +587,7 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
                         className={`p-3 rounded-lg transition-all duration-200 ${
                           getColorByField(song.id)
                         } ${
-                          isDraggedItem ? 'opacity-50 scale-95' : 'hover:shadow-md'
+                          isDraggedItem ? 'opacity-50 scale-95' : isPotentialDrag ? 'scale-105 shadow-lg' : 'hover:shadow-md'
                         } ${
                           reorderMode ? 'cursor-move' : ''
                         } ${

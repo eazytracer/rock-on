@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ModernLayout } from '../../components/layout/ModernLayout'
 import { TimePicker } from '../../components/common/TimePicker'
 import {
@@ -26,13 +26,21 @@ import {
   Activity
 } from 'lucide-react'
 
-// Types
-interface ShowContact {
-  name: string
-  role?: string
-  phone?: string
-  email?: string
-}
+// ============================================
+// DATABASE & UTILITIES - REAL IMPORTS
+// ============================================
+import { db } from '../../services/database'
+import { useUpcomingShows, useCreateShow, useUpdateShow, useDeleteShow } from '../../hooks/useShows'
+import { centsToDollars, dollarsToCents } from '../../utils/formatters'
+import { formatShowDate, formatTime12Hour, parseTime12Hour } from '../../utils/dateHelpers'
+import type { PracticeSession } from '../../models/PracticeSession'
+import type { Setlist } from '../../models/Setlist'
+
+// ============================================
+// TYPES - UPDATED FOR DATABASE INTEGRATION
+// ============================================
+// Import ShowContact from model
+import { ShowContact } from '../../models/PracticeSession'
 
 interface Song {
   id: string
@@ -49,7 +57,7 @@ interface SetlistSong extends Song {
   position: number
 }
 
-interface Setlist {
+interface SetlistWithSongs {
   id: string
   name: string
   songs: SetlistSong[]
@@ -57,416 +65,104 @@ interface Setlist {
   songCount: number
 }
 
-interface Show {
-  id: string
-  bandId: string
-  name: string
-  date: Date
+// Extended type for display purposes - combines PracticeSession with UI needs
+interface ShowDisplay extends PracticeSession {
+  // Add computed display fields
   time: string
-  venue?: string
   address?: string
-  setlistId?: string
   setlistName?: string
-  loadInTime?: string
-  soundcheckTime?: string
-  setLength?: number
   paymentAmount?: number
   paymentStatus?: 'unpaid' | 'partial' | 'paid'
-  contacts?: ShowContact[]
-  notes?: string
-  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
   createdDate: Date
   lastModified: Date
 }
 
 type FilterType = 'all' | 'upcoming' | 'past' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
 
-// Mock Songs Library
-const MOCK_SONGS: Song[] = [
-  {
-    id: 's1',
-    title: 'All Star',
-    artist: 'Smash Mouth',
-    duration: '3:14',
-    durationSeconds: 194,
-    key: 'F#',
-    tuning: 'Standard',
-    bpm: '104'
-  },
-  {
-    id: 's2',
-    title: 'Man in the Box',
-    artist: 'Alice In Chains',
-    duration: '4:47',
-    durationSeconds: 287,
-    key: 'Ebm',
-    tuning: 'Half-step down',
-    bpm: '108'
-  },
-  {
-    id: 's3',
-    title: 'No Rain',
-    artist: 'Blind Melon',
-    duration: '3:33',
-    durationSeconds: 213,
-    key: 'E',
-    tuning: 'Standard',
-    bpm: '150'
-  },
-  {
-    id: 's4',
-    title: 'Monkey Wrench',
-    artist: 'Foo Fighters',
-    duration: '3:51',
-    durationSeconds: 231,
-    key: 'B',
-    tuning: 'Drop D',
-    bpm: '175'
-  },
-  {
-    id: 's5',
-    title: 'Everlong',
-    artist: 'Foo Fighters',
-    duration: '4:10',
-    durationSeconds: 250,
-    key: 'D',
-    tuning: 'Drop D',
-    bpm: '158'
-  },
-  {
-    id: 's6',
-    title: 'Black Hole Sun',
-    artist: 'Soundgarden',
-    duration: '5:18',
-    durationSeconds: 318,
-    key: 'G',
-    tuning: 'Drop D',
-    bpm: '104'
-  },
-  {
-    id: 's7',
-    title: 'Come As You Are',
-    artist: 'Nirvana',
-    duration: '3:39',
-    durationSeconds: 219,
-    key: 'Em',
-    tuning: 'Standard',
-    bpm: '120'
-  },
-  {
-    id: 's8',
-    title: 'Plush',
-    artist: 'Stone Temple Pilots',
-    duration: '5:13',
-    durationSeconds: 313,
-    key: 'G',
-    tuning: 'Half-step down',
-    bpm: '78'
-  }
-]
-
-// Mock setlists with songs
-const mockSetlistsWithSongs: Record<string, Setlist> = {
-  'setlist1': {
-    id: 'setlist1',
-    name: 'Holiday Classics',
-    songCount: 6,
-    totalDuration: '25 min',
-    songs: [
-      { ...MOCK_SONGS[0], position: 1 },
-      { ...MOCK_SONGS[1], position: 2 },
-      { ...MOCK_SONGS[2], position: 3 },
-      { ...MOCK_SONGS[3], position: 4 },
-      { ...MOCK_SONGS[4], position: 5 },
-      { ...MOCK_SONGS[5], position: 6 }
-    ]
-  },
-  'setlist2': {
-    id: 'setlist2',
-    name: 'High Energy Set',
-    songCount: 7,
-    totalDuration: '30 min',
-    songs: [
-      { ...MOCK_SONGS[3], position: 1 },
-      { ...MOCK_SONGS[4], position: 2 },
-      { ...MOCK_SONGS[0], position: 3 },
-      { ...MOCK_SONGS[2], position: 4 },
-      { ...MOCK_SONGS[6], position: 5 },
-      { ...MOCK_SONGS[1], position: 6 },
-      { ...MOCK_SONGS[5], position: 7 }
-    ]
-  },
-  'setlist3': {
-    id: 'setlist3',
-    name: 'Acoustic Favorites',
-    songCount: 5,
-    totalDuration: '20 min',
-    songs: [
-      { ...MOCK_SONGS[7], position: 1 },
-      { ...MOCK_SONGS[2], position: 2 },
-      { ...MOCK_SONGS[5], position: 3 },
-      { ...MOCK_SONGS[6], position: 4 },
-      { ...MOCK_SONGS[0], position: 5 }
-    ]
-  },
-  'setlist4': {
-    id: 'setlist4',
-    name: 'Dark & Heavy',
-    songCount: 6,
-    totalDuration: '27 min',
-    songs: [
-      { ...MOCK_SONGS[1], position: 1 },
-      { ...MOCK_SONGS[5], position: 2 },
-      { ...MOCK_SONGS[6], position: 3 },
-      { ...MOCK_SONGS[7], position: 4 },
-      { ...MOCK_SONGS[3], position: 5 },
-      { ...MOCK_SONGS[4], position: 6 }
-    ]
-  }
-}
-
-// Mock data
-const mockShows: Show[] = [
-  {
-    id: '1',
-    bandId: 'band1',
-    name: 'Toys 4 Tots Benefit',
-    date: new Date('2025-12-08T20:00:00'),
-    time: '8:00 PM',
-    venue: "The Whiskey Room",
-    address: "123 Main St, Downtown, CA 90210",
-    setlistId: 'setlist1',
-    setlistName: 'Holiday Classics',
-    loadInTime: '6:00 PM',
-    soundcheckTime: '7:00 PM',
-    setLength: 90,
-    paymentAmount: 1500,
-    paymentStatus: 'paid',
-    contacts: [
-      { name: 'Sarah Johnson', role: 'Venue Manager', phone: '555-0123', email: 'sarah@whiskeyroom.com' },
-      { name: 'Mike Chen', role: 'Sound Engineer', phone: '555-0124' }
-    ],
-    notes: 'Charity event - bring extra merch. Load in through back entrance.',
-    status: 'confirmed',
-    createdDate: new Date('2025-10-15'),
-    lastModified: new Date('2025-10-20')
-  },
-  {
-    id: '2',
-    bandId: 'band1',
-    name: 'New Years Eve Bash',
-    date: new Date('2025-12-31T21:00:00'),
-    time: '9:00 PM',
-    venue: "The Roxy Theatre",
-    address: "9009 Sunset Blvd, West Hollywood, CA 90069",
-    setlistId: 'setlist2',
-    setlistName: 'High Energy Set',
-    loadInTime: '7:00 PM',
-    soundcheckTime: '8:00 PM',
-    setLength: 120,
-    paymentAmount: 3000,
-    paymentStatus: 'partial',
-    contacts: [
-      { name: 'David Lee', role: 'Promoter', phone: '555-0125', email: 'david@roxytheatre.com' }
-    ],
-    notes: 'Two sets - one before midnight, one after. Confetti cannons at midnight.',
-    status: 'confirmed',
-    createdDate: new Date('2025-09-10'),
-    lastModified: new Date('2025-10-18')
-  },
-  {
-    id: '3',
-    bandId: 'band1',
-    name: 'Saturday Night Live',
-    date: new Date('2025-11-15T22:00:00'),
-    time: '10:00 PM',
-    venue: "Blue Moon Bar",
-    address: "456 Ocean Ave, Santa Monica, CA 90401",
-    loadInTime: '8:30 PM',
-    soundcheckTime: '9:15 PM',
-    setLength: 60,
-    paymentAmount: 800,
-    paymentStatus: 'unpaid',
-    contacts: [
-      { name: 'Jessica Martinez', role: 'Bar Owner', phone: '555-0126', email: 'jessica@bluemoonbar.com' }
-    ],
-    status: 'scheduled',
-    createdDate: new Date('2025-10-01'),
-    lastModified: new Date('2025-10-01')
-  },
-  {
-    id: '4',
-    bandId: 'band1',
-    name: 'Spring Festival',
-    date: new Date('2026-03-21T15:00:00'),
-    time: '3:00 PM',
-    venue: "City Park Amphitheater",
-    address: "789 Park Lane, Los Angeles, CA 90012",
-    setlistId: 'setlist3',
-    setlistName: 'Acoustic Favorites',
-    setLength: 75,
-    paymentAmount: 2000,
-    paymentStatus: 'unpaid',
-    contacts: [
-      { name: 'Robert Kim', role: 'Festival Coordinator', phone: '555-0127', email: 'robert@springfest.org' }
-    ],
-    notes: 'Outdoor venue - bring covers for gear. Rain date is March 22nd.',
-    status: 'scheduled',
-    createdDate: new Date('2025-10-05'),
-    lastModified: new Date('2025-10-12')
-  },
-  {
-    id: '5',
-    bandId: 'band1',
-    name: 'Private Corporate Event',
-    date: new Date('2026-02-14T19:00:00'),
-    time: '7:00 PM',
-    venue: "Grand Ballroom Hotel",
-    address: "321 Luxury Dr, Beverly Hills, CA 90210",
-    loadInTime: '5:00 PM',
-    soundcheckTime: '6:00 PM',
-    setLength: 90,
-    paymentAmount: 5000,
-    paymentStatus: 'partial',
-    contacts: [
-      { name: 'Amanda Foster', role: 'Event Planner', phone: '555-0128', email: 'amanda@luxevents.com' }
-    ],
-    notes: 'Black tie event. Client requests mostly classic rock and Motown.',
-    status: 'confirmed',
-    createdDate: new Date('2025-10-08'),
-    lastModified: new Date('2025-10-19')
-  },
-  {
-    id: '6',
-    bandId: 'band1',
-    name: 'Halloween Spooktacular',
-    date: new Date('2025-10-31T20:00:00'),
-    time: '8:00 PM',
-    venue: "The Viper Room",
-    address: "8852 Sunset Blvd, West Hollywood, CA 90069",
-    setlistId: 'setlist4',
-    setlistName: 'Dark & Heavy',
-    loadInTime: '6:30 PM',
-    soundcheckTime: '7:30 PM',
-    setLength: 120,
-    paymentAmount: 1800,
-    paymentStatus: 'paid',
-    contacts: [
-      { name: 'Chris Anderson', role: 'Venue Manager', phone: '555-0129', email: 'chris@viperroom.com' }
-    ],
-    notes: 'Costume contest during break. Bring fog machine if available.',
-    status: 'completed',
-    createdDate: new Date('2025-08-15'),
-    lastModified: new Date('2025-11-01')
-  },
-  {
-    id: '7',
-    bandId: 'band1',
-    name: 'Summer Kick-Off Party',
-    date: new Date('2025-06-21T18:00:00'),
-    time: '6:00 PM',
-    venue: "Beach Bar & Grill",
-    address: "555 Pacific Coast Hwy, Malibu, CA 90265",
-    setLength: 60,
-    paymentAmount: 1200,
-    paymentStatus: 'paid',
-    contacts: [
-      { name: 'Tom Wilson', role: 'Owner', phone: '555-0130', email: 'tom@beachbar.com' }
-    ],
-    status: 'completed',
-    createdDate: new Date('2025-04-10'),
-    lastModified: new Date('2025-06-22')
-  },
-  {
-    id: '8',
-    bandId: 'band1',
-    name: 'Memorial Day BBQ',
-    date: new Date('2025-05-26T14:00:00'),
-    time: '2:00 PM',
-    venue: "Veterans Park",
-    address: "100 Memorial Ave, Pasadena, CA 91101",
-    setLength: 90,
-    paymentAmount: 0,
-    paymentStatus: 'unpaid',
-    notes: 'Free community event - no payment. Great exposure!',
-    status: 'completed',
-    createdDate: new Date('2025-03-20'),
-    lastModified: new Date('2025-05-27')
-  },
-  {
-    id: '9',
-    bandId: 'band1',
-    name: 'Battle of the Bands',
-    date: new Date('2025-04-15T19:00:00'),
-    time: '7:00 PM',
-    venue: "Rock Central",
-    address: "777 Music Row, Hollywood, CA 90028",
-    setLength: 30,
-    paymentAmount: 500,
-    paymentStatus: 'paid',
-    status: 'completed',
-    createdDate: new Date('2025-03-01'),
-    lastModified: new Date('2025-04-16')
-  },
-  {
-    id: '10',
-    bandId: 'band1',
-    name: "St. Patrick's Day Pub Crawl",
-    date: new Date('2025-03-17T16:00:00'),
-    time: '4:00 PM',
-    venue: "Irish Pub Downtown",
-    address: "234 Green St, Los Angeles, CA 90013",
-    setLength: 45,
-    paymentAmount: 600,
-    paymentStatus: 'paid',
-    status: 'completed',
-    createdDate: new Date('2025-02-01'),
-    lastModified: new Date('2025-03-18')
-  },
-  {
-    id: '11',
-    bandId: 'band1',
-    name: 'Jazz & Blues Night',
-    date: new Date('2025-01-20T20:00:00'),
-    time: '8:00 PM',
-    venue: "The Blue Note",
-    address: "888 Jazz Blvd, Los Angeles, CA 90015",
-    setLength: 75,
-    paymentAmount: 1000,
-    paymentStatus: 'paid',
-    status: 'cancelled',
-    notes: 'Cancelled due to venue flooding.',
-    createdDate: new Date('2024-12-10'),
-    lastModified: new Date('2025-01-15')
-  }
-]
-
-// Mock setlists for dropdown
-const mockSetlists = [
-  { id: 'setlist1', name: 'Holiday Classics', songCount: 15 },
-  { id: 'setlist2', name: 'High Energy Set', songCount: 18 },
-  { id: 'setlist3', name: 'Acoustic Favorites', songCount: 12 },
-  { id: 'setlist4', name: 'Dark & Heavy', songCount: 14 },
-  { id: 'setlist5', name: 'Summer Vibes', songCount: 16 }
-]
+// ============================================
+// MOCK DATA REMOVED - NOW USING REAL DATABASE
+// ============================================
+// All mock shows, setlists, and songs have been replaced with database operations
 
 export const ShowsPage: React.FC = () => {
-  const [shows, setShows] = useState<Show[]>(mockShows)
+  // ============================================
+  // DATABASE STATE & HOOKS - REAL INTEGRATION
+  // ============================================
+  const currentBandId = localStorage.getItem('currentBandId') || ''
+  const { upcomingShows, pastShows, loading, error } = useUpcomingShows(currentBandId)
+  const { createShow } = useCreateShow()
+  const { updateShow } = useUpdateShow()
+  const { deleteShow } = useDeleteShow()
+
+  // UI State
   const [filter, setFilter] = useState<FilterType>('upcoming')
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
-  const [selectedShow, setSelectedShow] = useState<Show | null>(null)
-  const [showToDelete, setShowToDelete] = useState<Show | null>(null)
+  const [selectedShow, setSelectedShow] = useState<PracticeSession | null>(null)
+  const [showToDelete, setShowToDelete] = useState<PracticeSession | null>(null)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Helper functions
-  const getFilteredShows = (): Show[] => {
+  // Setlist data for display (loaded dynamically)
+  const [setlistsData, setSetlistsData] = useState<Record<string, Setlist>>({})
+  const [availableSetlists, setAvailableSetlists] = useState<Setlist[]>([])
+
+  // ============================================
+  // LOAD SETLISTS FOR SHOWS - REAL DATABASE
+  // ============================================
+  useEffect(() => {
+    const loadSetlists = async () => {
+      try {
+        // Load all setlists for the current band
+        const allSetlists = await db.setlists
+          .where('bandId')
+          .equals(currentBandId)
+          .toArray()
+
+        setAvailableSetlists(allSetlists)
+
+        // Build a map of setlistId -> setlist for quick lookup
+        const setlistMap: Record<string, Setlist> = {}
+        for (const setlist of allSetlists) {
+          setlistMap[setlist.id] = setlist
+        }
+        setSetlistsData(setlistMap)
+      } catch (err) {
+        console.error('Error loading setlists:', err)
+      }
+    }
+
+    if (currentBandId) {
+      loadSetlists()
+    }
+  }, [currentBandId, upcomingShows, pastShows]) // Reload when shows change
+
+  // ============================================
+  // HELPER FUNCTIONS - UPDATED FOR DATABASE
+  // ============================================
+  const combineShows = (): PracticeSession[] => {
+    return [...upcomingShows, ...pastShows]
+  }
+
+  const getFilteredShows = (): PracticeSession[] => {
     const now = new Date()
+    let shows = combineShows()
 
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      shows = shows.filter(show =>
+        show.name?.toLowerCase().includes(query) ||
+        show.venue?.toLowerCase().includes(query) ||
+        show.location?.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply status filter
     switch (filter) {
       case 'upcoming':
-        return shows.filter(show => show.date > now && show.status !== 'cancelled')
+        return shows.filter(show => new Date(show.scheduledDate) >= now && show.status !== 'cancelled')
       case 'past':
-        return shows.filter(show => show.date <= now || show.status === 'completed')
+        return shows.filter(show => new Date(show.scheduledDate) < now || show.status === 'completed')
       case 'scheduled':
         return shows.filter(show => show.status === 'scheduled')
       case 'confirmed':
@@ -480,18 +176,24 @@ export const ShowsPage: React.FC = () => {
     }
   }
 
-  const getNextShow = (): Show | null => {
-    const now = new Date()
-    const upcomingShows = shows
-      .filter(show => show.date > now && show.status !== 'cancelled')
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-
-    return upcomingShows[0] || null
+  const getNextShow = (): PracticeSession | null => {
+    if (upcomingShows.length === 0) return null
+    // upcomingShows is already sorted ascending by the hook
+    return upcomingShows[0]
   }
 
-  const getDaysUntilShow = (date: Date): string => {
+  const getDaysUntilShow = (date: Date | string): string => {
+    if (!date) return 'Date TBD'
+
+    const showDate = typeof date === 'string' ? new Date(date) : date
+
+    // Check for invalid date
+    if (!showDate || isNaN(showDate.getTime())) {
+      return 'Date TBD'
+    }
+
     const now = new Date()
-    const diff = date.getTime() - now.getTime()
+    const diff = showDate.getTime() - now.getTime()
     const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
     if (days === 0) return 'Today'
@@ -500,35 +202,64 @@ export const ShowsPage: React.FC = () => {
     return `In ${days} days`
   }
 
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
+  const formatDate = (date: Date | string): string => {
+    return formatShowDate(date)
   }
 
-  const formatDateBadge = (date: Date) => {
-    const month = date.toLocaleDateString('en-US', { month: 'short' })
-    const day = date.getDate()
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' })
+  const formatDateBadge = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date
+    const month = d.toLocaleDateString('en-US', { month: 'short' })
+    const day = d.getDate()
+    const weekday = d.toLocaleDateString('en-US', { weekday: 'short' })
 
     return { month, day, weekday }
   }
 
-  const handleDeleteShow = (show: Show) => {
-    setShows(shows.filter(s => s.id !== show.id))
-    setShowToDelete(null)
+  // ============================================
+  // CRUD HANDLERS - REAL DATABASE OPERATIONS
+  // ============================================
+  const handleDeleteShow = async (show: PracticeSession) => {
+    try {
+      await deleteShow(show.id)
+      setShowToDelete(null)
+      // Show success toast
+      console.log('Show deleted successfully')
+    } catch (err) {
+      console.error('Failed to delete show:', err)
+      alert('Failed to delete show. Please try again.')
+    }
   }
 
-  const handleEditShow = (show: Show) => {
+  const handleEditShow = (show: PracticeSession) => {
     setSelectedShow(show)
     setIsScheduleModalOpen(true)
   }
 
   const nextShow = getNextShow()
   const filteredShows = getFilteredShows()
+
+  // ============================================
+  // LOADING & ERROR STATES
+  // ============================================
+  if (loading) {
+    return (
+      <ModernLayout bandName="Loading..." userEmail="">
+        <div className="flex items-center justify-center py-16">
+          <div className="text-white">Loading shows...</div>
+        </div>
+      </ModernLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <ModernLayout bandName="Error" userEmail="">
+        <div className="flex items-center justify-center py-16">
+          <div className="text-red-500">Error loading shows: {error.message}</div>
+        </div>
+      </ModernLayout>
+    )
+  }
 
   return (
     <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
@@ -587,7 +318,7 @@ export const ShowsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Next Show Preview Card */}
+      {/* Next Show Preview Card - UPDATED FOR DATABASE */}
       {nextShow && filter === 'upcoming' && (
         <div className="mb-6 p-6 bg-gradient-to-br from-[#f17827ff]/10 to-transparent border-2 border-[#f17827ff]/30 rounded-xl">
           <div className="flex items-start justify-between gap-4 mb-4">
@@ -595,9 +326,9 @@ export const ShowsPage: React.FC = () => {
               <div className="text-xs font-semibold text-[#f17827ff] uppercase tracking-wider mb-1">
                 Next Show
               </div>
-              <h2 className="text-2xl font-bold text-white mb-1">{nextShow.name}</h2>
+              <h2 className="text-2xl font-bold text-white mb-1">{nextShow.name || 'Untitled Show'}</h2>
               <div className="text-lg text-[#f17827ff] font-semibold">
-                {getDaysUntilShow(nextShow.date)}
+                {getDaysUntilShow(nextShow.scheduledDate)}
               </div>
             </div>
             <ShowStatusBadge status={nextShow.status} />
@@ -607,8 +338,10 @@ export const ShowsPage: React.FC = () => {
             <div className="flex items-center gap-3 text-white">
               <Calendar size={20} className="text-[#f17827ff]" />
               <div>
-                <div className="text-sm font-medium">{formatDate(nextShow.date)}</div>
-                <div className="text-xs text-[#a0a0a0]">{nextShow.time}</div>
+                <div className="text-sm font-medium">{formatDate(nextShow.scheduledDate)}</div>
+                <div className="text-xs text-[#a0a0a0]">
+                  {formatTime12Hour(nextShow.scheduledDate)}
+                </div>
               </div>
             </div>
 
@@ -617,29 +350,29 @@ export const ShowsPage: React.FC = () => {
                 <MapPin size={20} className="text-[#f17827ff]" />
                 <div>
                   <div className="text-sm font-medium">{nextShow.venue}</div>
-                  {nextShow.address && <div className="text-xs text-[#a0a0a0]">{nextShow.address}</div>}
+                  {nextShow.location && <div className="text-xs text-[#a0a0a0]">{nextShow.location}</div>}
                 </div>
               </div>
             )}
 
-            {nextShow.setlistName && (
+            {nextShow.setlistId && setlistsData[nextShow.setlistId] && (
               <div className="flex items-center gap-3 text-white">
                 <Music size={20} className="text-[#f17827ff]" />
                 <div>
-                  <div className="text-sm font-medium">{nextShow.setlistName}</div>
-                  <div className="text-xs text-[#a0a0a0]">Setlist</div>
+                  <div className="text-sm font-medium">{setlistsData[nextShow.setlistId].name}</div>
+                  <div className="text-xs text-[#a0a0a0]">
+                    {setlistsData[nextShow.setlistId].items.filter(i => i.type === 'song').length} songs
+                  </div>
                 </div>
               </div>
             )}
 
-            {nextShow.paymentAmount !== undefined && (
+            {nextShow.payment !== undefined && nextShow.payment > 0 && (
               <div className="flex items-center gap-3 text-white">
                 <DollarSign size={20} className="text-[#f17827ff]" />
                 <div>
-                  <div className="text-sm font-medium">${nextShow.paymentAmount.toLocaleString()}</div>
-                  {nextShow.paymentStatus && (
-                    <div className="text-xs text-[#a0a0a0] capitalize">{nextShow.paymentStatus}</div>
-                  )}
+                  <div className="text-sm font-medium">{centsToDollars(nextShow.payment)}</div>
+                  <div className="text-xs text-[#a0a0a0]">Payment</div>
                 </div>
               </div>
             )}
@@ -647,17 +380,23 @@ export const ShowsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Shows List */}
+      {/* Shows List - UPDATED FOR DATABASE */}
       {filteredShows.length === 0 ? (
         <EmptyState onSchedule={() => setIsScheduleModalOpen(true)} />
       ) : (
         <div className="space-y-3">
           {filteredShows
-            .sort((a, b) => b.date.getTime() - a.date.getTime())
+            .sort((a, b) => {
+              const dateA = new Date(a.scheduledDate).getTime()
+              const dateB = new Date(b.scheduledDate).getTime()
+              // Sort descending for display
+              return dateB - dateA
+            })
             .map((show) => (
               <ShowCard
                 key={show.id}
                 show={show}
+                setlist={show.setlistId ? setlistsData[show.setlistId] || null : null}
                 onEdit={() => handleEditShow(show)}
                 onDelete={() => setShowToDelete(show)}
                 formatDateBadge={formatDateBadge}
@@ -667,31 +406,36 @@ export const ShowsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Schedule/Edit Show Modal */}
+      {/* Schedule/Edit Show Modal - UPDATED FOR DATABASE */}
       {isScheduleModalOpen && (
         <ScheduleShowModal
           show={selectedShow}
+          availableSetlists={availableSetlists}
           onClose={() => {
             setIsScheduleModalOpen(false)
             setSelectedShow(null)
           }}
-          onSave={(showData) => {
-            if (selectedShow) {
-              // Edit existing show
-              setShows(shows.map(s => s.id === selectedShow.id ? { ...s, ...showData, lastModified: new Date() } : s))
-            } else {
-              // Create new show
-              const newShow: Show = {
-                ...showData,
-                id: `show-${Date.now()}`,
-                bandId: 'band1',
-                createdDate: new Date(),
-                lastModified: new Date()
+          onSave={async (showData) => {
+            try {
+              if (selectedShow) {
+                // Edit existing show
+                await updateShow(selectedShow.id, showData)
+                console.log('Show updated successfully')
+              } else {
+                // Create new show
+                await createShow({
+                  ...showData,
+                  bandId: currentBandId,
+                  type: 'gig'
+                })
+                console.log('Show created successfully')
               }
-              setShows([...shows, newShow])
+              setIsScheduleModalOpen(false)
+              setSelectedShow(null)
+            } catch (err) {
+              console.error('Failed to save show:', err)
+              alert('Failed to save show. Please try again.')
             }
-            setIsScheduleModalOpen(false)
-            setSelectedShow(null)
           }}
         />
       )}
@@ -708,23 +452,61 @@ export const ShowsPage: React.FC = () => {
   )
 }
 
-// Show Card Component
+// ============================================
+// SHOW CARD COMPONENT - UPDATED FOR DATABASE
+// ============================================
 const ShowCard: React.FC<{
-  show: Show
+  show: PracticeSession
+  setlist: Setlist | null
   onEdit: () => void
   onDelete: () => void
-  formatDateBadge: (date: Date) => { month: string; day: number; weekday: string }
-  getDaysUntilShow: (date: Date) => string
-}> = ({ show, onEdit, onDelete, formatDateBadge, getDaysUntilShow }) => {
+  formatDateBadge: (date: Date | string) => { month: string; day: number; weekday: string }
+  getDaysUntilShow: (date: Date | string) => string
+}> = ({ show, setlist, onEdit, onDelete, formatDateBadge, getDaysUntilShow }) => {
   const [isActionsOpen, setIsActionsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
-  const dateBadge = formatDateBadge(show.date)
-  const paymentConfig = show.paymentAmount ? getPaymentStatusConfig(show.paymentStatus) : null
+  const [setlistSongs, setSetlistSongs] = useState<any[]>([])
 
-  const isUpcoming = show.date > new Date() && show.status !== 'cancelled'
+  const dateBadge = formatDateBadge(show.scheduledDate)
 
-  // Get the setlist for this show
-  const setlist = show.setlistId ? mockSetlistsWithSongs[show.setlistId] : null
+  // Payment is stored as cents in database, no paymentStatus field
+  const paymentAmount = show.payment ? centsToDollars(show.payment) : null
+
+  const isUpcoming = new Date(show.scheduledDate) > new Date() && show.status !== 'cancelled'
+
+  // Contacts is ALWAYS an array of ShowContact objects
+  const contacts = show.contacts || []
+
+  // ============================================
+  // LOAD SETLIST SONGS FROM DATABASE
+  // ============================================
+  useEffect(() => {
+    const loadSetlistSongs = async () => {
+      if (!setlist) return
+
+      try {
+        const songs = []
+        for (const item of setlist.items) {
+          if (item.type === 'song' && item.songId) {
+            const song = await db.songs.get(item.songId)
+            if (song) {
+              songs.push({
+                ...song,
+                position: item.position
+              })
+            }
+          }
+        }
+        setSetlistSongs(songs)
+      } catch (err) {
+        console.error('Error loading setlist songs:', err)
+      }
+    }
+
+    if (isExpanded) {
+      loadSetlistSongs()
+    }
+  }, [isExpanded, setlist])
 
   return (
     <div className={`bg-[#1a1a1a] rounded-xl p-5 border transition-all ${
@@ -758,7 +540,7 @@ const ShowCard: React.FC<{
               </h3>
               {isUpcoming && (
                 <div className="text-sm text-[#f17827ff] font-medium">
-                  {getDaysUntilShow(show.date)}
+                  {getDaysUntilShow(show.scheduledDate)}
                 </div>
               )}
             </div>
@@ -803,11 +585,11 @@ const ShowCard: React.FC<{
             </div>
           </div>
 
-          {/* Details Grid */}
+          {/* Details Grid - UPDATED FOR DATABASE */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div className="flex items-center gap-2 text-[#a0a0a0]">
               <Clock size={16} />
-              <span>{show.time}</span>
+              <span>{formatTime12Hour(show.scheduledDate)}</span>
             </div>
 
             {show.venue && (
@@ -817,14 +599,14 @@ const ShowCard: React.FC<{
               </div>
             )}
 
-            {show.setlistName && (
+            {setlist && (
               <div className="flex items-center gap-2 text-[#a0a0a0]">
                 <Music size={16} />
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
                   className="text-[#f17827ff] hover:underline cursor-pointer flex items-center gap-1"
                 >
-                  {show.setlistName}
+                  {setlist.name}
                   <ChevronRight
                     size={14}
                     className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
@@ -833,32 +615,43 @@ const ShowCard: React.FC<{
               </div>
             )}
 
-            {show.paymentAmount !== undefined && paymentConfig && (
+            {paymentAmount && (
               <div className="flex items-center gap-2">
                 <DollarSign size={16} className="text-[#a0a0a0]" />
-                <span className="text-[#a0a0a0]">${show.paymentAmount.toLocaleString()}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full border ${paymentConfig.color}`}>
-                  {paymentConfig.label}
-                </span>
+                <span className="text-[#a0a0a0]">{paymentAmount}</span>
               </div>
             )}
 
-            {show.contacts && show.contacts.length > 0 && (
+            {contacts && contacts.length > 0 && (
               <div className="flex items-center gap-2 text-[#a0a0a0]">
                 <User size={16} />
-                <span className="truncate">{show.contacts[0].name}</span>
-                {show.contacts[0].phone && (
-                  <a href={`tel:${show.contacts[0].phone}`} className="text-[#f17827ff] hover:underline">
+                <span className="truncate">{contacts[0].name}</span>
+                {contacts[0].phone && (
+                  <a href={`tel:${contacts[0].phone}`} className="text-[#f17827ff] hover:underline">
                     <Phone size={14} />
                   </a>
                 )}
               </div>
             )}
 
-            {show.setLength && (
+            {show.duration && (
               <div className="flex items-center gap-2 text-[#a0a0a0]">
                 <Clock size={16} />
-                <span>{show.setLength} min set</span>
+                <span>{show.duration} min set</span>
+              </div>
+            )}
+
+            {show.loadInTime && (
+              <div className="flex items-center gap-2 text-[#a0a0a0]">
+                <Clock size={16} />
+                <span>Load-in: {show.loadInTime}</span>
+              </div>
+            )}
+
+            {show.soundcheckTime && (
+              <div className="flex items-center gap-2 text-[#a0a0a0]">
+                <Clock size={16} />
+                <span>Soundcheck: {show.soundcheckTime}</span>
               </div>
             )}
           </div>
@@ -873,17 +666,17 @@ const ShowCard: React.FC<{
             </div>
           )}
 
-          {/* Expanded Setlist View */}
+          {/* Expanded Setlist View - UPDATED FOR DATABASE */}
           {isExpanded && setlist && (
             <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-semibold text-white">Setlist Songs</h4>
                 <div className="text-xs text-[#a0a0a0]">
-                  {setlist.songCount} songs • {setlist.totalDuration}
+                  {setlistSongs.length} songs loaded
                 </div>
               </div>
               <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar-thin">
-                {setlist.songs.map((song) => (
+                {setlistSongs.map((song) => (
                   <SetlistSongMiniCard key={song.id} song={song} />
                 ))}
               </div>
@@ -936,7 +729,7 @@ const SetlistSongMiniCard: React.FC<{ song: SetlistSong }> = ({ song }) => {
 }
 
 // Status Badge Component
-const ShowStatusBadge: React.FC<{ status: Show['status'] }> = ({ status }) => {
+const ShowStatusBadge: React.FC<{ status: PracticeSession['status'] }> = ({ status }) => {
   const config = getStatusConfig(status)
   const Icon = config.icon
 
@@ -948,65 +741,101 @@ const ShowStatusBadge: React.FC<{ status: Show['status'] }> = ({ status }) => {
   )
 }
 
-// Schedule Show Modal Component
+// ============================================
+// SCHEDULE SHOW MODAL - UPDATED FOR DATABASE
+// ============================================
 const ScheduleShowModal: React.FC<{
-  show: Show | null
+  show: PracticeSession | null
+  availableSetlists: Setlist[]
   onClose: () => void
-  onSave: (show: Omit<Show, 'id' | 'bandId' | 'createdDate' | 'lastModified'>) => void
-}> = ({ show, onClose, onSave }) => {
+  onSave: (show: Partial<PracticeSession>) => void | Promise<void>
+}> = ({ show, availableSetlists, onClose, onSave }) => {
+  // Initialize form data from show or defaults
   const [formData, setFormData] = useState({
     name: show?.name || '',
-    date: show?.date ? show.date.toISOString().split('T')[0] : '',
-    time: show?.time || '',
+    date: show?.scheduledDate
+      ? new Date(show.scheduledDate).toISOString().split('T')[0]
+      : '',
+    time: show?.scheduledDate
+      ? formatTime12Hour(show.scheduledDate)
+      : '',
     venue: show?.venue || '',
-    address: show?.address || '',
+    location: show?.location || '',
     setlistId: show?.setlistId || '',
     loadInTime: show?.loadInTime || '',
     soundcheckTime: show?.soundcheckTime || '',
-    setLength: show?.setLength?.toString() || '',
-    paymentAmount: show?.paymentAmount?.toString() || '',
-    paymentStatus: show?.paymentStatus || 'unpaid',
+    duration: show?.duration?.toString() || '',
+    paymentAmount: show?.payment ? (show.payment / 100).toString() : '',
     notes: show?.notes || '',
     status: show?.status || 'scheduled'
   })
 
-  const [contacts, setContacts] = useState<ShowContact[]>(show?.contacts || [])
+  // Contacts is ALWAYS an array of ShowContact objects
+  const initialContacts = show?.contacts || []
+  const [contacts, setContacts] = useState<ShowContact[]>(initialContacts)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Create forked setlist name if setlist is selected
-    let forkedSetlistName: string | undefined
-    if (formData.setlistId) {
-      const originalSetlist = mockSetlists.find(s => s.id === formData.setlistId)
-      if (originalSetlist) {
-        forkedSetlistName = `${originalSetlist.name} - ${formData.name}`
+    try {
+      // Parse time and combine with date to create full scheduledDate
+      const baseDate = new Date(formData.date)
+      const scheduledDate = formData.time
+        ? parseTime12Hour(formData.time, baseDate)
+        : baseDate
+
+      // Convert payment from dollars to cents
+      const paymentInCents = formData.paymentAmount
+        ? dollarsToCents(formData.paymentAmount)
+        : 0
+
+      // Prepare show data for database
+      const showData: Partial<PracticeSession> = {
+        name: formData.name,
+        scheduledDate: scheduledDate,
+        venue: formData.venue || undefined,
+        location: formData.location || undefined,
+        setlistId: formData.setlistId || undefined,
+        loadInTime: formData.loadInTime || undefined,
+        soundcheckTime: formData.soundcheckTime || undefined,
+        duration: formData.duration ? parseInt(formData.duration) : undefined,
+        payment: paymentInCents || undefined,
+        contacts: contacts.length > 0 ? JSON.stringify(contacts) : undefined,
+        notes: formData.notes || undefined,
+        status: formData.status as PracticeSession['status'],
+        // Initialize required fields for new shows
+        songs: show?.songs || [],
+        attendees: show?.attendees || [],
+        objectives: show?.objectives || [],
+        completedObjectives: show?.completedObjectives || []
       }
-    }
 
-    const showData: Omit<Show, 'id' | 'bandId' | 'createdDate' | 'lastModified'> = {
-      name: formData.name,
-      date: new Date(formData.date + 'T' + (formData.time ? formData.time.replace(' PM', '').replace(' AM', '') : '00:00')),
-      time: formData.time,
-      venue: formData.venue || undefined,
-      address: formData.address || undefined,
-      setlistId: formData.setlistId || undefined,
-      setlistName: forkedSetlistName,
-      loadInTime: formData.loadInTime || undefined,
-      soundcheckTime: formData.soundcheckTime || undefined,
-      setLength: formData.setLength ? parseInt(formData.setLength) : undefined,
-      paymentAmount: formData.paymentAmount ? parseFloat(formData.paymentAmount) : undefined,
-      paymentStatus: formData.paymentAmount ? (formData.paymentStatus as 'unpaid' | 'partial' | 'paid') : undefined,
-      contacts: contacts.length > 0 ? contacts : undefined,
-      notes: formData.notes || undefined,
-      status: formData.status as Show['status']
-    }
+      // If associating with a setlist, also update the setlist's showId
+      if (formData.setlistId) {
+        try {
+          await db.setlists.update(formData.setlistId, {
+            showId: show?.id // This will be set after creation if it's a new show
+          })
+        } catch (err) {
+          console.error('Failed to update setlist reference:', err)
+        }
+      }
 
-    onSave(showData)
+      await onSave(showData)
+    } catch (err) {
+      console.error('Error saving show:', err)
+      alert('Failed to save show. Please try again.')
+    }
   }
 
   const addContact = () => {
-    setContacts([...contacts, { name: '', role: '', phone: '', email: '' }])
+    setContacts([...contacts, {
+      id: crypto.randomUUID(),
+      name: '',
+      role: '',
+      phone: '',
+      email: ''
+    }])
   }
 
   const updateContact = (index: number, field: keyof ShowContact, value: string) => {
@@ -1085,7 +914,7 @@ const ScheduleShowModal: React.FC<{
               <label className="block text-sm font-medium text-white mb-2">Status</label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as Show['status'] })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as PracticeSession['status'] })}
                 className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
               >
                 <option value="scheduled">Scheduled</option>
@@ -1112,11 +941,11 @@ const ScheduleShowModal: React.FC<{
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Address</label>
+              <label className="block text-sm font-medium text-white mb-2">Location/Address</label>
               <input
                 type="text"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                 placeholder="Full address"
               />
@@ -1147,11 +976,11 @@ const ScheduleShowModal: React.FC<{
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-2">Set Length (min)</label>
+                <label className="block text-sm font-medium text-white mb-2">Duration (min)</label>
                 <input
                   type="number"
-                  value={formData.setLength}
-                  onChange={(e) => setFormData({ ...formData, setLength: e.target.value })}
+                  value={formData.duration}
+                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                   className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                   placeholder="90"
                 />
@@ -1166,9 +995,9 @@ const ScheduleShowModal: React.FC<{
                 className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
               >
                 <option value="">No setlist assigned</option>
-                {mockSetlists.map((setlist) => (
+                {availableSetlists.map((setlist) => (
                   <option key={setlist.id} value={setlist.id}>
-                    {setlist.name} ({setlist.songCount} songs)
+                    {setlist.name} ({setlist.items.filter(i => i.type === 'song').length} songs)
                   </option>
                 ))}
               </select>
@@ -1176,43 +1005,28 @@ const ScheduleShowModal: React.FC<{
                 <div className="mt-2 p-3 bg-[#f17827ff]/10 border border-[#f17827ff]/30 rounded-lg">
                   <p className="text-xs text-[#f17827ff] flex items-center gap-2">
                     <AlertCircle size={14} className="flex-shrink-0" />
-                    <span>This will create a copy of the setlist for this show. Changes to the show's setlist won't affect the original.</span>
+                    <span>This will associate the setlist with this show.</span>
                   </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Payment Section */}
+          {/* Payment Section - UPDATED FOR DATABASE */}
           <div className="space-y-4 pt-6 border-t border-[#2a2a2a]">
             <h3 className="text-sm font-semibold text-[#a0a0a0] uppercase tracking-wider">Payment</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Amount ($)</label>
-                <input
-                  type="number"
-                  value={formData.paymentAmount}
-                  onChange={(e) => setFormData({ ...formData, paymentAmount: e.target.value })}
-                  className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  placeholder="0"
-                  step="0.01"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Payment Status</label>
-                <select
-                  value={formData.paymentStatus}
-                  onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value as 'unpaid' | 'partial' | 'paid' })}
-                  className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  disabled={!formData.paymentAmount}
-                >
-                  <option value="unpaid">Unpaid</option>
-                  <option value="partial">Partial</option>
-                  <option value="paid">Paid</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Amount ($)</label>
+              <input
+                type="number"
+                value={formData.paymentAmount}
+                onChange={(e) => setFormData({ ...formData, paymentAmount: e.target.value })}
+                className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                placeholder="0"
+                step="0.01"
+              />
+              <p className="mt-1 text-xs text-[#a0a0a0]">Enter amount in dollars (e.g., 500 for $500.00)</p>
             </div>
           </div>
 
@@ -1231,7 +1045,7 @@ const ScheduleShowModal: React.FC<{
             </div>
 
             {contacts.map((contact, index) => (
-              <div key={index} className="p-4 bg-[#121212] border border-[#2a2a2a] rounded-lg space-y-3">
+              <div key={contact.id} className="p-4 bg-[#121212] border border-[#2a2a2a] rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-semibold text-[#a0a0a0] uppercase">Contact {index + 1}</div>
                   <button
@@ -1312,9 +1126,11 @@ const ScheduleShowModal: React.FC<{
   )
 }
 
-// Delete Confirmation Modal
+// ============================================
+// DELETE CONFIRMATION MODAL - UPDATED FOR DATABASE
+// ============================================
 const DeleteConfirmationModal: React.FC<{
-  show: Show
+  show: PracticeSession
   onConfirm: () => void
   onCancel: () => void
 }> = ({ show, onConfirm, onCancel }) => {
@@ -1328,12 +1144,12 @@ const DeleteConfirmationModal: React.FC<{
           <div className="flex-1">
             <h3 className="text-lg font-bold text-white mb-2">Delete Show?</h3>
             <p className="text-sm text-[#a0a0a0]">
-              Are you sure you want to delete "<span className="text-white font-medium">{show.name}</span>"?
+              Are you sure you want to delete "<span className="text-white font-medium">{show.name || 'this show'}</span>"?
               This action cannot be undone.
             </p>
-            {show.setlistName && (
+            {show.setlistId && (
               <p className="text-xs text-[#707070] mt-2">
-                Note: The associated setlist "{show.setlistName}" will not be deleted.
+                Note: The associated setlist reference will be cleared but the setlist itself will not be deleted.
               </p>
             )}
           </div>
@@ -1380,8 +1196,10 @@ const EmptyState: React.FC<{ onSchedule: () => void }> = ({ onSchedule }) => {
   )
 }
 
-// Helper function (outside component to avoid re-definition)
-function getStatusConfig(status: Show['status']) {
+// ============================================
+// HELPER FUNCTIONS - STATUS CONFIGURATIONS
+// ============================================
+function getStatusConfig(status: PracticeSession['status']) {
   switch (status) {
     case 'scheduled':
       return {

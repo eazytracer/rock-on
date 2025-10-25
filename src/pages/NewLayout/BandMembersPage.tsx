@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ModernLayout } from '../../components/layout/ModernLayout'
 import {
   ArrowLeft,
@@ -18,6 +18,16 @@ import {
   AlertTriangle,
   Music2
 } from 'lucide-react'
+// DATABASE INTEGRATION: Import database and hooks
+import { db } from '../../services/database'
+import {
+  useBand,
+  useBandMembers,
+  useBandInviteCodes,
+  useGenerateInviteCode,
+  useRemoveBandMember,
+  useUpdateMemberRole
+} from '../../hooks/useBands'
 
 // Types
 interface Instrument {
@@ -35,103 +45,8 @@ interface BandMember {
   status: 'active' | 'inactive'
   initials: string
   avatarColor: string
+  membershipId: string // DATABASE INTEGRATION: Added to track membership record
 }
-
-interface Band {
-  id: string
-  name: string
-  description?: string
-  createdDate: Date
-  memberCount: number
-  inviteCode: string
-}
-
-// Mock Data
-const mockBand: Band = {
-  id: 'band-1',
-  name: 'iPod Shuffle',
-  description: 'A cover band bringing the hits from the 90s and 2000s',
-  createdDate: new Date('2024-01-15'),
-  memberCount: 5,
-  inviteCode: 'ROCK2025'
-}
-
-const mockMembers: BandMember[] = [
-  {
-    userId: 'user-1',
-    name: 'Eric Thompson',
-    email: 'eric@example.com',
-    role: 'owner',
-    instruments: [
-      { name: 'Guitar', isPrimary: true },
-      { name: 'Vocals' },
-      { name: 'Bass' }
-    ],
-    joinedDate: new Date('2024-01-15'),
-    status: 'active',
-    initials: 'ET',
-    avatarColor: '#f17827'
-  },
-  {
-    userId: 'user-2',
-    name: 'Sarah Martinez',
-    email: 'sarah.m@example.com',
-    role: 'admin',
-    instruments: [
-      { name: 'Drums', isPrimary: true },
-      { name: 'Keyboards' }
-    ],
-    joinedDate: new Date('2024-01-16'),
-    status: 'active',
-    initials: 'SM',
-    avatarColor: '#3b82f6'
-  },
-  {
-    userId: 'user-3',
-    name: 'Mike Johnson',
-    email: 'mike.j@example.com',
-    role: 'member',
-    instruments: [
-      { name: 'Bass', isPrimary: true },
-      { name: 'Harmonica' },
-      { name: 'Vocals' },
-      { name: 'Guitar' }
-    ],
-    joinedDate: new Date('2024-02-01'),
-    status: 'active',
-    initials: 'MJ',
-    avatarColor: '#8b5cf6'
-  },
-  {
-    userId: 'user-4',
-    name: 'Amanda Chen',
-    email: 'amanda@example.com',
-    role: 'member',
-    instruments: [
-      { name: 'Keyboards', isPrimary: true },
-      { name: 'Vocals' },
-      { name: 'Saxophone' }
-    ],
-    joinedDate: new Date('2024-02-10'),
-    status: 'active',
-    initials: 'AC',
-    avatarColor: '#ec4899'
-  },
-  {
-    userId: 'user-5',
-    name: 'David Park',
-    email: 'david.p@example.com',
-    role: 'member',
-    instruments: [
-      { name: 'Vocals', isPrimary: true },
-      { name: 'Guitar' }
-    ],
-    joinedDate: new Date('2024-03-05'),
-    status: 'active',
-    initials: 'DP',
-    avatarColor: '#f59e0b'
-  }
-]
 
 const instrumentPresets = [
   'Guitar',
@@ -147,17 +62,41 @@ const instrumentPresets = [
   'Cello'
 ]
 
-// Current user (for permission checks)
-const currentUser = {
-  userId: 'user-1',
-  role: 'owner' as const
+// Helper function to generate initials from name
+const getInitials = (name: string): string => {
+  const parts = name.split(' ')
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  }
+  return name.substring(0, 2).toUpperCase()
+}
+
+// Helper function to generate avatar color from user ID
+const getAvatarColor = (userId: string): string => {
+  const colors = ['#f17827', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4']
+  const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  return colors[hash % colors.length]
 }
 
 export const BandMembersPage: React.FC = () => {
-  const [band, setBand] = useState<Band>(mockBand)
-  const [members, setMembers] = useState<BandMember[]>(mockMembers)
+  // DATABASE INTEGRATION: Get current band ID and user ID from localStorage
+  const currentBandId = localStorage.getItem('currentBandId') || ''
+  const currentUserId = localStorage.getItem('currentUserId') || ''
+
+  // DATABASE INTEGRATION: Use database hooks
+  const { band, loading: bandLoading } = useBand(currentBandId)
+  const { members: dbMembers, loading: membersLoading } = useBandMembers(currentBandId)
+  const { inviteCodes, loading: _codesLoading } = useBandInviteCodes(currentBandId)
+  const { generateCode } = useGenerateInviteCode()
+  const { removeMember } = useRemoveBandMember()
+  const { updateRole } = useUpdateMemberRole()
+
+  // Local state for UI
   const [searchQuery, setSearchQuery] = useState('')
   const [copiedCode, setCopiedCode] = useState(false)
+  const [members, setMembers] = useState<BandMember[]>([])
+  const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'admin' | 'member'>('member')
+  const [toastMessage, setToastMessage] = useState<string>('')
 
   // Modal states
   const [showEditBandModal, setShowEditBandModal] = useState(false)
@@ -170,12 +109,79 @@ export const BandMembersPage: React.FC = () => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   // Edit states
-  const [editBandName, setEditBandName] = useState(band.name)
-  const [editBandDescription, setEditBandDescription] = useState(band.description || '')
+  const [editBandName, setEditBandName] = useState('')
+  const [editBandDescription, setEditBandDescription] = useState('')
   const [editInstruments, setEditInstruments] = useState<Instrument[]>([])
   const [transferConfirmText, setTransferConfirmText] = useState('')
   const [showCustomInstrumentInput, setShowCustomInstrumentInput] = useState(false)
   const [customInstrumentName, setCustomInstrumentName] = useState('')
+
+  // DATABASE INTEGRATION: Load and transform members from database
+  useEffect(() => {
+    const transformMembers = async () => {
+      if (!dbMembers || dbMembers.length === 0) {
+        setMembers([])
+        return
+      }
+
+      const transformedMembers: BandMember[] = await Promise.all(
+        dbMembers.map(async ({ membership, profile }) => {
+          // Get user info for email
+          const user = await db.users.get(membership.userId)
+
+          // Convert instruments from profile
+          const instruments: Instrument[] = profile?.instruments?.map((inst: string) => ({
+            name: inst,
+            isPrimary: inst === profile.primaryInstrument
+          })) || []
+
+          // Map role: database has 'admin'|'member'|'viewer', UI needs 'owner'|'admin'|'member'
+          // Check permissions array for 'owner' flag
+          const isOwner = membership.permissions?.includes('owner') || false
+          const role: 'owner' | 'admin' | 'member' = isOwner ? 'owner' : (membership.role === 'admin' ? 'admin' : 'member')
+
+          return {
+            userId: membership.userId,
+            membershipId: membership.id,
+            name: profile?.displayName || user?.name || 'Unknown User',
+            email: user?.email || '',
+            role,
+            instruments,
+            joinedDate: membership.joinedDate,
+            status: membership.status as 'active' | 'inactive',
+            initials: getInitials(profile?.displayName || user?.name || 'Unknown'),
+            avatarColor: getAvatarColor(membership.userId)
+          }
+        })
+      )
+
+      setMembers(transformedMembers)
+
+      // Set current user's role
+      const currentMembership = dbMembers.find(m => m.membership.userId === currentUserId)
+      if (currentMembership) {
+        const isOwner = currentMembership.membership.permissions?.includes('owner') || false
+        const role: 'owner' | 'admin' | 'member' = isOwner ? 'owner' : (currentMembership.membership.role === 'admin' ? 'admin' : 'member')
+        setCurrentUserRole(role)
+      }
+    }
+
+    transformMembers()
+  }, [dbMembers, currentUserId])
+
+  // DATABASE INTEGRATION: Update edit states when band loads
+  useEffect(() => {
+    if (band) {
+      setEditBandName(band.name)
+      setEditBandDescription(band.description || '')
+    }
+  }, [band])
+
+  // Show toast helper
+  const showToast = (message: string) => {
+    setToastMessage(message)
+    setTimeout(() => setToastMessage(''), 3000)
+  }
 
   // Filtered members
   const filteredMembers = members.filter(member =>
@@ -195,77 +201,179 @@ export const BandMembersPage: React.FC = () => {
 
   // Handlers
   const handleCopyInviteCode = async () => {
-    await navigator.clipboard.writeText(band.inviteCode)
-    setCopiedCode(true)
-    setTimeout(() => setCopiedCode(false), 2000)
+    const activeCode = inviteCodes[0]?.code
+    if (activeCode) {
+      await navigator.clipboard.writeText(activeCode)
+      setCopiedCode(true)
+      setTimeout(() => setCopiedCode(false), 2000)
+    }
   }
 
   const handleShareInviteCode = async () => {
-    if (navigator.share) {
+    const activeCode = inviteCodes[0]?.code
+    if (navigator.share && band && activeCode) {
       await navigator.share({
         title: `Join ${band.name} on Rock-On`,
-        text: `Join my band ${band.name} on Rock-On! Use invite code: ${band.inviteCode}`
+        text: `Join my band ${band.name} on Rock-On! Use invite code: ${activeCode}`
       })
     }
   }
 
-  const handleRegenerateCode = () => {
-    const newCode = 'ROCK' + Math.floor(1000 + Math.random() * 9000)
-    setBand({ ...band, inviteCode: newCode })
-    setShowRegenerateCodeDialog(false)
+  // DATABASE INTEGRATION: Generate new invite code
+  const handleRegenerateCode = async () => {
+    try {
+      const newCode = await generateCode(currentBandId, currentUserId)
+      setShowRegenerateCodeDialog(false)
+      showToast(`New invite code generated: ${newCode}`)
+    } catch (error) {
+      console.error('Error generating invite code:', error)
+      showToast('Failed to generate invite code')
+    }
   }
 
-  const handleSaveBandInfo = () => {
-    setBand({ ...band, name: editBandName, description: editBandDescription })
-    setShowEditBandModal(false)
+  // DATABASE INTEGRATION: Save band info
+  const handleSaveBandInfo = async () => {
+    try {
+      await db.bands.update(currentBandId, {
+        name: editBandName,
+        description: editBandDescription
+      })
+      setShowEditBandModal(false)
+      showToast('Band info updated successfully')
+    } catch (error) {
+      console.error('Error updating band:', error)
+      showToast('Failed to update band info')
+    }
   }
 
-  const handleSaveInstruments = () => {
+  // DATABASE INTEGRATION: Save instruments to user profile
+  const handleSaveInstruments = async () => {
     if (!selectedMember) return
-    const updatedMembers = members.map(m =>
-      m.userId === selectedMember.userId
-        ? { ...m, instruments: editInstruments }
-        : m
-    )
-    setMembers(updatedMembers)
-    setShowEditInstrumentsModal(false)
+
+    try {
+      // Get the user profile
+      const profile = await db.userProfiles
+        .where('userId')
+        .equals(selectedMember.userId)
+        .first()
+
+      if (profile) {
+        // Convert instruments back to array format
+        const instrumentNames = editInstruments.map(inst => inst.name)
+        const primaryInstrument = editInstruments.find(inst => inst.isPrimary)?.name
+
+        await db.userProfiles.update(profile.id, {
+          instruments: instrumentNames,
+          primaryInstrument: primaryInstrument || instrumentNames[0],
+          updatedDate: new Date()
+        })
+
+        // Update local state
+        const updatedMembers = members.map(m =>
+          m.userId === selectedMember.userId
+            ? { ...m, instruments: editInstruments }
+            : m
+        )
+        setMembers(updatedMembers)
+
+        setShowEditInstrumentsModal(false)
+        showToast('Instruments updated successfully')
+      }
+    } catch (error) {
+      console.error('Error updating instruments:', error)
+      showToast('Failed to update instruments')
+    }
   }
 
-  const handleRemoveMember = () => {
+  // DATABASE INTEGRATION: Remove member from band
+  const handleRemoveMember = async () => {
     if (!selectedMember) return
-    setMembers(members.filter(m => m.userId !== selectedMember.userId))
-    setBand({ ...band, memberCount: band.memberCount - 1 })
-    setShowRemoveMemberDialog(false)
-    setSelectedMember(null)
+
+    try {
+      await removeMember(selectedMember.membershipId)
+
+      // Update local state
+      setMembers(members.filter(m => m.userId !== selectedMember.userId))
+
+      setShowRemoveMemberDialog(false)
+      setSelectedMember(null)
+      showToast('Member removed successfully')
+    } catch (error) {
+      console.error('Error removing member:', error)
+      showToast('Failed to remove member')
+    }
   }
 
-  const handleMakeAdmin = (member: BandMember) => {
-    const updatedMembers = members.map(m =>
-      m.userId === member.userId ? { ...m, role: 'admin' as const } : m
-    )
-    setMembers(updatedMembers)
-    setOpenMenuId(null)
+  // DATABASE INTEGRATION: Make member admin
+  const handleMakeAdmin = async (member: BandMember) => {
+    try {
+      await updateRole(member.membershipId, 'admin')
+
+      // Update local state
+      const updatedMembers = members.map(m =>
+        m.userId === member.userId ? { ...m, role: 'admin' as const } : m
+      )
+      setMembers(updatedMembers)
+
+      setOpenMenuId(null)
+      showToast(`${member.name} is now an admin`)
+    } catch (error) {
+      console.error('Error updating role:', error)
+      showToast('Failed to update role')
+    }
   }
 
-  const handleRemoveAdmin = (member: BandMember) => {
-    const updatedMembers = members.map(m =>
-      m.userId === member.userId ? { ...m, role: 'member' as const } : m
-    )
-    setMembers(updatedMembers)
-    setOpenMenuId(null)
+  // DATABASE INTEGRATION: Remove admin privileges
+  const handleRemoveAdmin = async (member: BandMember) => {
+    try {
+      await updateRole(member.membershipId, 'member')
+
+      // Update local state
+      const updatedMembers = members.map(m =>
+        m.userId === member.userId ? { ...m, role: 'member' as const } : m
+      )
+      setMembers(updatedMembers)
+
+      setOpenMenuId(null)
+      showToast(`${member.name} is now a member`)
+    } catch (error) {
+      console.error('Error updating role:', error)
+      showToast('Failed to update role')
+    }
   }
 
-  const handleTransferOwnership = () => {
+  // DATABASE INTEGRATION: Transfer ownership
+  const handleTransferOwnership = async () => {
     if (!selectedMember || transferConfirmText !== 'TRANSFER') return
-    const updatedMembers = members.map(m => {
-      if (m.userId === selectedMember.userId) return { ...m, role: 'owner' as const }
-      if (m.userId === currentUser.userId) return { ...m, role: 'admin' as const }
-      return m
-    })
-    setMembers(updatedMembers)
-    setShowTransferOwnershipDialog(false)
-    setTransferConfirmText('')
-    setSelectedMember(null)
+
+    try {
+      // Find current owner membership
+      const currentOwnerMember = members.find(m => m.userId === currentUserId)
+      if (!currentOwnerMember) return
+
+      // Update new owner
+      await updateRole(selectedMember.membershipId, 'owner')
+
+      // Update old owner to admin
+      await updateRole(currentOwnerMember.membershipId, 'admin')
+
+      // Update local state
+      const updatedMembers = members.map(m => {
+        if (m.userId === selectedMember.userId) return { ...m, role: 'owner' as const }
+        if (m.userId === currentUserId) return { ...m, role: 'admin' as const }
+        return m
+      })
+      setMembers(updatedMembers)
+      setCurrentUserRole('admin')
+
+      setShowTransferOwnershipDialog(false)
+      setTransferConfirmText('')
+      setSelectedMember(null)
+      showToast('Ownership transferred successfully')
+    } catch (error) {
+      console.error('Error transferring ownership:', error)
+      showToast('Failed to transfer ownership')
+    }
   }
 
   const handleToggleInstrument = (instrumentName: string) => {
@@ -325,15 +433,42 @@ export const BandMembersPage: React.FC = () => {
     setOpenMenuId(null)
   }
 
-  const canEditBand = currentUser.role === 'owner' || currentUser.role === 'admin'
-  const canInviteMembers = currentUser.role === 'owner' || currentUser.role === 'admin'
+  // DATABASE INTEGRATION: Permission checks using current user role
+  const canEditBand = currentUserRole === 'owner' || currentUserRole === 'admin'
+  const canInviteMembers = currentUserRole === 'owner' || currentUserRole === 'admin'
   const canRemoveMember = (member: BandMember) => {
-    if (member.userId === currentUser.userId) return false
+    if (member.userId === currentUserId) return false
     if (member.role === 'owner') return false
-    if (currentUser.role === 'owner') return true
-    if (currentUser.role === 'admin' && member.role !== 'admin') return true
+    if (currentUserRole === 'owner') return true
+    if (currentUserRole === 'admin' && member.role !== 'admin') return true
     return false
   }
+
+  // DATABASE INTEGRATION: Show loading state
+  if (bandLoading || membersLoading) {
+    return (
+      <ModernLayout bandName="Loading..." userEmail="">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white text-lg">Loading band members...</div>
+        </div>
+      </ModernLayout>
+    )
+  }
+
+  // DATABASE INTEGRATION: Handle missing band
+  if (!band) {
+    return (
+      <ModernLayout bandName="Not Found" userEmail="">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white text-lg">Band not found</div>
+        </div>
+      </ModernLayout>
+    )
+  }
+
+  // Get active invite code
+  const activeInviteCode = inviteCodes[0]?.code || 'No active code'
+  const memberCount = members.length
 
   const getRoleBadge = (role: 'owner' | 'admin' | 'member') => {
     switch (role) {
@@ -396,7 +531,7 @@ export const BandMembersPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">Members</div>
-              <div className="text-white text-lg font-semibold">{band.memberCount}</div>
+              <div className="text-white text-lg font-semibold">{memberCount}</div>
             </div>
             <div>
               <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">Created</div>
@@ -420,7 +555,7 @@ export const BandMembersPage: React.FC = () => {
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex-1 min-w-[200px]">
                 <div className="text-[#707070] text-xs uppercase tracking-wider mb-2">Invite Code</div>
-                <div className="text-white text-2xl font-mono font-bold">{band.inviteCode}</div>
+                <div className="text-white text-2xl font-mono font-bold">{activeInviteCode}</div>
               </div>
               <div className="flex gap-2">
                 <button
@@ -539,7 +674,7 @@ export const BandMembersPage: React.FC = () => {
 
               {/* Actions Menu */}
               <div className="w-[60px] flex justify-end relative">
-                {canRemoveMember(member) || currentUser.role === 'owner' || member.userId === currentUser.userId ? (
+                {canRemoveMember(member) || currentUserRole === 'owner' || member.userId === currentUserId ? (
                   <>
                     <button
                       onClick={() => setOpenMenuId(openMenuId === member.userId ? null : member.userId)}
@@ -563,7 +698,7 @@ export const BandMembersPage: React.FC = () => {
                             Edit Instruments
                           </button>
 
-                          {currentUser.role === 'owner' && member.role === 'member' && (
+                          {currentUserRole === 'owner' && member.role === 'member' && (
                             <button
                               onClick={() => handleMakeAdmin(member)}
                               className="w-full px-4 py-2 text-left text-white text-sm hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
@@ -573,7 +708,7 @@ export const BandMembersPage: React.FC = () => {
                             </button>
                           )}
 
-                          {currentUser.role === 'owner' && member.role === 'admin' && (
+                          {currentUserRole === 'owner' && member.role === 'admin' && (
                             <button
                               onClick={() => handleRemoveAdmin(member)}
                               className="w-full px-4 py-2 text-left text-white text-sm hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
@@ -583,7 +718,7 @@ export const BandMembersPage: React.FC = () => {
                             </button>
                           )}
 
-                          {currentUser.role === 'owner' && member.role !== 'owner' && (
+                          {currentUserRole === 'owner' && member.role !== 'owner' && (
                             <button
                               onClick={() => openTransferOwnership(member)}
                               className="w-full px-4 py-2 text-left text-white text-sm hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
@@ -639,7 +774,7 @@ export const BandMembersPage: React.FC = () => {
                   {getRoleBadge(member.role)}
                 </div>
               </div>
-              {(canRemoveMember(member) || currentUser.role === 'owner' || member.userId === currentUser.userId) && (
+              {(canRemoveMember(member) || currentUserRole === 'owner' || member.userId === currentUserId) && (
                 <button
                   onClick={() => setOpenMenuId(openMenuId === member.userId ? null : member.userId)}
                   className="p-2 rounded-lg text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-white transition-colors flex-shrink-0"
@@ -823,7 +958,7 @@ export const BandMembersPage: React.FC = () => {
             </div>
 
             <div className="flex gap-3 p-6 border-t border-[#2a2a2a]">
-              {(canEditBand || selectedMember.userId === currentUser.userId) && (
+              {(canEditBand || selectedMember.userId === currentUserId) && (
                 <button
                   onClick={() => {
                     setShowMemberDetailModal(false)
@@ -1120,11 +1255,18 @@ export const BandMembersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Demo Banner */}
-      <div className="mt-8 p-4 bg-[#f17827]/10 border border-[#f17827]/20 rounded-lg">
-        <p className="text-[#f17827] text-sm">
-          <strong>Demo Page:</strong> This is a demonstration with mock data. All actions update local state only (no database).
-          Role-based permissions are enforced. Current user is Owner with full permissions.
+      {/* DATABASE INTEGRATION: Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-4 right-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl p-4 z-50 animate-slide-up">
+          <p className="text-white text-sm">{toastMessage}</p>
+        </div>
+      )}
+
+      {/* DATABASE INTEGRATION: Updated info banner */}
+      <div className="mt-8 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+        <p className="text-green-400 text-sm">
+          <strong>Database Integrated:</strong> This page is now connected to the database. All changes are persisted.
+          Current role: {currentUserRole}. Band ID: {currentBandId.substring(0, 8)}...
         </p>
       </div>
     </ModernLayout>

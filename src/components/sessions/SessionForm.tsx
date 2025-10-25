@@ -112,7 +112,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({
     onSubmit(sessionData)
   }
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number | SessionType | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))

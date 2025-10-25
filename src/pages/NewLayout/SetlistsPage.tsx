@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ModernLayout } from '../../components/layout/ModernLayout'
 import {
   ChevronDown,
@@ -20,7 +21,8 @@ import {
   ChevronRight,
   Coffee,
   Layers,
-  Play
+  Play,
+  Check
 } from 'lucide-react'
 import {
   DndContext,
@@ -40,33 +42,42 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-// Types
-interface Song {
+// DATABASE INTEGRATION: Import database hooks and utilities
+import { db } from '../../services/database'
+import { secondsToDuration } from '../../utils/formatters'
+import { formatShowDate } from '../../utils/dateHelpers'
+import type { SetlistItem as DBSetlistItem, Setlist as DBSetlist } from '../../models/Setlist'
+import type { Song as DBSong } from '../../models/Song'
+
+// DATABASE INTEGRATION: UI-specific types for display
+// These extend the database types with UI-specific fields
+interface UISong {
   id: string
   title: string
   artist: string
-  duration: string
-  durationSeconds: number
-  key: string
-  tuning: string
-  bpm: string
+  duration: string // Formatted duration (e.g., "3:14")
+  durationSeconds: number // Raw seconds from database
+  key?: string
+  tuning?: string
+  bpm?: string
   album?: string
   initials: string
   avatarColor: string
 }
 
-interface SetlistItem {
+interface UISetlistItem {
   id: string
   type: 'song' | 'break' | 'section'
   position: number
-  song?: Song
+  song?: UISong // Populated from database
+  songId?: string // From database
   breakDuration?: number // in minutes
   breakNotes?: string
   sectionTitle?: string
   notes?: string // notes for individual songs in setlist
 }
 
-interface Setlist {
+interface UISetlist {
   id: string
   name: string
   songCount: number
@@ -77,236 +88,64 @@ interface Setlist {
     name: string
     date: string
   }
-  items: SetlistItem[]
+  items: UISetlistItem[]
   lastModified: string
   notes: string
+  // Database fields
+  bandId: string
+  showId?: string
 }
 
-interface Show {
+interface UIShow {
   id: string
   name: string
   date: string
 }
 
-interface Practice {
+interface UIPractice {
   id: string
   name: string
   date: string
 }
 
-// Mock Songs Library
-const MOCK_SONGS: Song[] = [
-  {
-    id: 's1',
-    title: 'All Star',
-    artist: 'Smash Mouth',
-    album: 'Astro Lounge',
-    duration: '3:14',
-    durationSeconds: 194,
-    key: 'F#',
-    tuning: 'Standard',
-    bpm: '104',
-    initials: 'AS',
-    avatarColor: '#3b82f6'
-  },
-  {
-    id: 's2',
-    title: 'Man in the Box',
-    artist: 'Alice In Chains',
-    album: 'Facelift',
-    duration: '4:47',
-    durationSeconds: 287,
-    key: 'Ebm',
-    tuning: 'Half-step down',
-    bpm: '108',
-    initials: 'MB',
-    avatarColor: '#8b5cf6'
-  },
-  {
-    id: 's3',
-    title: 'No Rain',
-    artist: 'Blind Melon',
-    album: 'Blind Melon',
-    duration: '3:33',
-    durationSeconds: 213,
-    key: 'E',
-    tuning: 'Standard',
-    bpm: '150',
-    initials: 'NR',
-    avatarColor: '#ec4899'
-  },
-  {
-    id: 's4',
-    title: 'Monkey Wrench',
-    artist: 'Foo Fighters',
-    album: 'The Colour and the Shape',
-    duration: '3:51',
-    durationSeconds: 231,
-    key: 'B',
-    tuning: 'Drop D',
-    bpm: '175',
-    initials: 'MW',
-    avatarColor: '#f59e0b'
-  },
-  {
-    id: 's5',
-    title: 'Everlong',
-    artist: 'Foo Fighters',
-    album: 'The Colour and the Shape',
-    duration: '4:10',
-    durationSeconds: 250,
-    key: 'D',
-    tuning: 'Drop D',
-    bpm: '158',
-    initials: 'EV',
-    avatarColor: '#f43f5e'
-  },
-  {
-    id: 's6',
-    title: 'Wonderwall',
-    artist: 'Oasis',
-    album: '(What\'s the Story) Morning Glory?',
-    duration: '4:18',
-    durationSeconds: 258,
-    key: 'F#m',
-    tuning: 'Standard',
-    bpm: '87',
-    initials: 'WW',
-    avatarColor: '#14b8a6'
-  },
-  {
-    id: 's7',
-    title: 'Sweet Child O Mine',
-    artist: "Guns N' Roses",
-    album: 'Appetite for Destruction',
-    duration: '5:56',
-    durationSeconds: 356,
-    key: 'D',
-    tuning: 'Half-step down',
-    bpm: '125',
-    initials: 'SC',
-    avatarColor: '#ef4444'
-  },
-  {
-    id: 's8',
-    title: 'Black',
-    artist: 'Pearl Jam',
-    album: 'Ten',
-    duration: '5:44',
-    durationSeconds: 344,
-    key: 'E',
-    tuning: 'Standard',
-    bpm: '107',
-    initials: 'BL',
-    avatarColor: '#6366f1'
-  },
-  {
-    id: 's9',
-    title: 'Livin on a Prayer',
-    artist: 'Bon Jovi',
-    album: 'Slippery When Wet',
-    duration: '4:09',
-    durationSeconds: 249,
-    key: 'Em',
-    tuning: 'Standard',
-    bpm: '123',
-    initials: 'LP',
-    avatarColor: '#a855f7'
-  },
-  {
-    id: 's10',
-    title: 'Dont Stop Believin',
-    artist: 'Journey',
-    album: 'Escape',
-    duration: '4:11',
-    durationSeconds: 251,
-    key: 'E',
-    tuning: 'Standard',
-    bpm: '119',
-    initials: 'DS',
-    avatarColor: '#84cc16'
-  },
-  {
-    id: 's11',
-    title: 'I Want You to Want Me',
-    artist: 'Cheap Trick',
-    album: 'At Budokan',
-    duration: '3:03',
-    durationSeconds: 183,
-    key: 'A',
-    tuning: 'Standard',
-    bpm: '135',
-    initials: 'IW',
-    avatarColor: '#eab308'
-  },
-  {
-    id: 's12',
-    title: 'Brown Eyed Girl',
-    artist: 'Van Morrison',
-    album: 'Blowin\' Your Mind!',
-    duration: '3:05',
-    durationSeconds: 185,
-    key: 'G',
-    tuning: 'Standard',
-    bpm: '140',
-    initials: 'BE',
-    avatarColor: '#10b981'
-  },
-  {
-    id: 's13',
-    title: 'Thinking Out Loud',
-    artist: 'Ed Sheeran',
-    album: 'x',
-    duration: '4:41',
-    durationSeconds: 281,
-    key: 'D',
-    tuning: 'Standard',
-    bpm: '79',
-    initials: 'TO',
-    avatarColor: '#06b6d4'
-  },
-  {
-    id: 's14',
-    title: 'Perfect',
-    artist: 'Ed Sheeran',
-    album: 'Divide',
-    duration: '4:23',
-    durationSeconds: 263,
-    key: 'Ab',
-    tuning: 'Standard',
-    bpm: '63',
-    initials: 'PE',
-    avatarColor: '#d946ef'
-  },
-  {
-    id: 's15',
-    title: 'All of Me',
-    artist: 'John Legend',
-    album: 'Love in the Future',
-    duration: '4:29',
-    durationSeconds: 269,
-    key: 'Ab',
-    tuning: 'Standard',
-    bpm: '126',
-    initials: 'AO',
-    avatarColor: '#f97316'
+// DATABASE INTEGRATION: Helper function to generate avatar color from song title
+const generateAvatarColor = (title: string): string => {
+  const colors = [
+    '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#f43f5e',
+    '#14b8a6', '#ef4444', '#6366f1', '#a855f7', '#84cc16',
+    '#eab308', '#10b981', '#06b6d4', '#d946ef', '#f97316'
+  ]
+  const index = title.charCodeAt(0) % colors.length
+  return colors[index]
+}
+
+// DATABASE INTEGRATION: Helper function to generate initials from song title
+const generateInitials = (title: string): string => {
+  const words = title.split(' ').filter(w => w.length > 0)
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase()
   }
-]
+  return title.substring(0, 2).toUpperCase()
+}
 
-// Mock Shows
-const MOCK_SHOWS: Show[] = [
-  { id: 'sh1', name: 'Toys 4 Tots', date: 'Dec 8th, 2025' },
-  { id: 'sh2', name: 'The Wedding Barn', date: 'Jan 15th, 2026' },
-  { id: 'sh3', name: 'Downtown Brewery', date: 'Feb 3rd, 2026' },
-  { id: 'sh4', name: 'Summer Fest', date: 'Jul 12th, 2026' }
-]
+// DATABASE INTEGRATION: Convert database song to UI song
+const dbSongToUISong = (dbSong: DBSong): UISong => {
+  return {
+    id: dbSong.id!,
+    title: dbSong.title,
+    artist: dbSong.artist || '',
+    duration: secondsToDuration(dbSong.duration || 0),
+    durationSeconds: dbSong.duration || 0,
+    key: dbSong.key,
+    tuning: dbSong.guitarTuning,
+    bpm: dbSong.bpm ? `${dbSong.bpm}` : '',
+    album: dbSong.album,
+    initials: generateInitials(dbSong.title),
+    avatarColor: generateAvatarColor(dbSong.title)
+  }
+}
 
-// Mock Practices
-const MOCK_PRACTICES: Practice[] = [
-  { id: 'p1', name: 'Practice Session', date: 'Nov 1st, 2025' },
-  { id: 'p2', name: 'Band Practice', date: 'Nov 8th, 2025' },
-  { id: 'p3', name: 'Rehearsal', date: 'Nov 15th, 2025' }
-]
+// DATABASE INTEGRATION: Mock data removed - all data now comes from IndexedDB
 
 // Helper to convert seconds to readable duration
 const formatTotalDuration = (totalSeconds: number): string => {
@@ -330,78 +169,13 @@ const calculateSetlistDuration = (items: SetlistItem[]): number => {
   }, 0)
 }
 
-// Mock Setlists with Items
-const INITIAL_SETLISTS: Setlist[] = [
-  {
-    id: '1',
-    name: 'Rock Night at Brewery',
-    songCount: 8,
-    totalDuration: '35 min',
-    status: 'active',
-    associatedShow: MOCK_SHOWS[2],
-    items: [
-      { id: 'i1', type: 'song', position: 1, song: MOCK_SONGS[0] },
-      { id: 'i2', type: 'song', position: 2, song: MOCK_SONGS[1] },
-      { id: 'i3', type: 'song', position: 3, song: MOCK_SONGS[2] },
-      { id: 'i4', type: 'break', position: 4, breakDuration: 15 },
-      { id: 'i5', type: 'song', position: 5, song: MOCK_SONGS[3] },
-      { id: 'i6', type: 'song', position: 6, song: MOCK_SONGS[4] },
-      { id: 'i7', type: 'section', position: 7, sectionTitle: 'Classic Rock' },
-      { id: 'i8', type: 'song', position: 8, song: MOCK_SONGS[6] },
-      { id: 'i9', type: 'song', position: 9, song: MOCK_SONGS[7] }
-    ],
-    lastModified: '2 days ago',
-    notes: 'Start with high energy, slow down mid-set'
-  },
-  {
-    id: '2',
-    name: 'Wedding Reception Set',
-    songCount: 12,
-    totalDuration: '48 min',
-    status: 'active',
-    associatedShow: MOCK_SHOWS[1],
-    items: [
-      { id: 'i10', type: 'song', position: 1, song: MOCK_SONGS[12] },
-      { id: 'i11', type: 'song', position: 2, song: MOCK_SONGS[13] },
-      { id: 'i12', type: 'song', position: 3, song: MOCK_SONGS[14] }
-    ],
-    lastModified: '5 days ago',
-    notes: 'Keep it family-friendly, romantic vibe early on'
-  },
-  {
-    id: '3',
-    name: 'Toys 4 Tots Charity Show',
-    songCount: 10,
-    totalDuration: '42 min',
-    status: 'active',
-    associatedShow: MOCK_SHOWS[0],
-    items: [
-      { id: 'i13', type: 'song', position: 1, song: MOCK_SONGS[0] },
-      { id: 'i14', type: 'song', position: 2, song: MOCK_SONGS[2] }
-    ],
-    lastModified: '1 week ago',
-    notes: 'Holiday themed, upbeat and fun'
-  },
-  {
-    id: '4',
-    name: '90s Grunge Set',
-    songCount: 6,
-    totalDuration: '28 min',
-    status: 'draft',
-    items: [
-      { id: 'i15', type: 'song', position: 1, song: MOCK_SONGS[1] },
-      { id: 'i16', type: 'song', position: 2, song: MOCK_SONGS[2] }
-    ],
-    lastModified: '2 weeks ago',
-    notes: 'All 90s alternative/grunge'
-  }
-]
+// DATABASE INTEGRATION: Mock setlists removed - data loaded from database
 
 // Draggable Setlist Item Component
 interface SortableSetlistItemProps {
-  item: SetlistItem
+  item: UISetlistItem // DATABASE INTEGRATION: Updated to use UI type
   onRemove: (itemId: string) => void
-  onUpdateItem: (itemId: string, updates: Partial<SetlistItem>) => void
+  onUpdateItem: (itemId: string, updates: Partial<UISetlistItem>) => void
   onAddToPractice?: (songId: string) => void
 }
 
@@ -409,6 +183,8 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id
   })
+
+  const [isEditingNotes, setIsEditingNotes] = useState(false)
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -422,15 +198,62 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
       <div
         ref={setNodeRef}
         style={style}
-        className={`flex flex-col gap-2 p-4 bg-[#0f0f0f] border border-dashed border-[#3a3a3a] rounded-lg group hover:border-[#4a4a4a] transition-colors ${
+        className={`flex flex-col gap-2 p-3 sm:p-4 bg-[#0f0f0f] border border-dashed border-[#3a3a3a] rounded-lg group hover:border-[#4a4a4a] transition-colors ${
           isDragging ? 'shadow-lg shadow-black/50' : ''
         }`}
       >
-        <div className="flex items-center gap-3">
+        {/* Mobile: Stacked layout */}
+        <div className="flex sm:hidden items-center gap-2">
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing text-[#505050] hover:text-[#a0a0a0] transition-colors"
+            className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
+          >
+            <GripVertical size={18} />
+          </button>
+
+          <div className="w-6 text-center flex-shrink-0">
+            <Coffee size={18} className="text-[#707070]" />
+          </div>
+
+          <span className="text-sm font-medium text-[#a0a0a0] flex-shrink-0">Break</span>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <input
+              type="number"
+              placeholder="15"
+              value={item.breakDuration || ''}
+              onChange={(e) => onUpdateItem(item.id, { breakDuration: parseInt(e.target.value) || 0 })}
+              className="w-16 h-8 px-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none"
+            />
+            <span className="text-xs text-[#707070]">min</span>
+          </div>
+
+          <button
+            onClick={() => onRemove(item.id)}
+            className="ml-auto p-1.5 text-[#707070] hover:text-red-500 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Mobile: Notes on second row */}
+        <div className="sm:hidden pl-11">
+          <input
+            type="text"
+            placeholder="Break notes..."
+            value={item.breakNotes || ''}
+            onChange={(e) => onUpdateItem(item.id, { breakNotes: e.target.value })}
+            className="w-full h-8 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none"
+          />
+        </div>
+
+        {/* Desktop: Single row layout */}
+        <div className="hidden sm:flex items-center gap-3">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors"
           >
             <GripVertical size={18} />
           </button>
@@ -475,31 +298,32 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
       <div
         ref={setNodeRef}
         style={style}
-        className={`flex items-center gap-3 p-4 bg-gradient-to-r from-[#f17827ff]/10 to-transparent border border-[#f17827ff]/30 rounded-lg group hover:border-[#f17827ff]/50 transition-colors ${
+        className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-gradient-to-r from-[#f17827ff]/10 to-transparent border border-[#f17827ff]/30 rounded-lg group hover:border-[#f17827ff]/50 transition-colors ${
           isDragging ? 'shadow-lg shadow-black/50' : ''
         }`}
       >
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-[#505050] hover:text-[#a0a0a0] transition-colors"
+          className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
         >
           <GripVertical size={18} />
         </button>
 
-        <div className="w-6 text-center">
+        <div className="w-6 text-center flex-shrink-0">
           <Layers size={18} className="text-[#f17827ff]" />
         </div>
 
-        <div className="flex-1">
-          <div className="text-[#f17827ff] text-sm font-semibold">{item.sectionTitle}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[#f17827ff] text-sm font-semibold truncate">{item.sectionTitle}</div>
         </div>
 
         <button
           onClick={() => onRemove(item.id)}
-          className="opacity-0 group-hover:opacity-100 text-[#707070] hover:text-red-500 transition-all"
+          className="sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-[#707070] hover:text-red-500 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
         >
-          <X size={18} />
+          <X size={16} className="sm:hidden" />
+          <X size={18} className="hidden sm:block" />
         </button>
       </div>
     )
@@ -508,7 +332,6 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
   // Render Song Item (matching Songs page layout with notes on new line)
   if (item.type === 'song' && item.song) {
     const song = item.song
-    const [isEditingNotes, setIsEditingNotes] = useState(false)
 
     return (
       <div
@@ -519,36 +342,49 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
         }`}
       >
         {/* Main row */}
-        <div className="flex items-center gap-3 p-4">
+        <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
+            className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
           >
             <GripVertical size={18} />
           </button>
 
-          <div className="w-6 text-center text-[#707070] text-sm font-medium flex-shrink-0">{item.position}</div>
+          <div className="w-5 sm:w-6 text-center text-[#707070] text-sm font-medium flex-shrink-0">{item.position}</div>
 
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm uppercase flex-shrink-0"
             style={{ backgroundColor: song.avatarColor }}
           >
             {song.initials}
           </div>
 
-          <div className="flex-1 min-w-[200px]">
+          {/* Mobile: Title/Artist + Duration stacked */}
+          <div className="flex-1 min-w-0 sm:hidden">
+            <div className="text-white text-sm font-semibold truncate">{song.title}</div>
+            <div className="flex items-center gap-2 text-xs text-[#707070]">
+              <span className="truncate">{song.artist}</span>
+              <span className="text-[#505050]">•</span>
+              <span className="flex-shrink-0">{song.duration}</span>
+              <span className="text-[#505050]">•</span>
+              <span className="flex-shrink-0">{song.key}</span>
+            </div>
+          </div>
+
+          {/* Desktop: Full layout */}
+          <div className="hidden sm:block flex-1 min-w-[200px]">
             <div className="text-white text-sm font-semibold truncate">{song.title}</div>
             <div className="text-[#707070] text-xs truncate">{song.artist}</div>
           </div>
 
-          <div className="w-[90px] text-[#a0a0a0] text-sm flex-shrink-0">{song.duration}</div>
+          <div className="hidden sm:block w-[90px] text-[#a0a0a0] text-sm flex-shrink-0">{song.duration}</div>
 
-          <div className="w-[60px] text-[#a0a0a0] text-sm flex-shrink-0">{song.key}</div>
+          <div className="hidden sm:block w-[60px] text-[#a0a0a0] text-sm flex-shrink-0">{song.key}</div>
 
-          <div className="w-[130px] text-[#a0a0a0] text-sm flex-shrink-0">{song.tuning}</div>
+          <div className="hidden sm:block w-[130px] text-[#a0a0a0] text-sm flex-shrink-0">{song.tuning}</div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             {onAddToPractice && (
               <button
                 onClick={() => onAddToPractice(song.id)}
@@ -560,7 +396,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
             )}
             <button
               onClick={() => onRemove(item.id)}
-              className="opacity-0 group-hover:opacity-100 p-1.5 text-[#707070] hover:text-red-500 hover:bg-red-500/10 rounded transition-all"
+              className="sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-[#707070] hover:text-red-500 hover:bg-red-500/10 rounded transition-all"
               title="Remove from Setlist"
             >
               <X size={16} />
@@ -569,7 +405,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
         </div>
 
         {/* Notes row */}
-        <div className="px-4 pb-4 pt-0">
+        <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
           {isEditingNotes ? (
             <textarea
               value={item.notes || ''}
@@ -602,9 +438,9 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
 
 // Setlist Card Component (for grid view)
 interface SetlistCardProps {
-  setlist: Setlist
-  onEdit: (setlist: Setlist) => void
-  onDuplicate: (setlist: Setlist) => void
+  setlist: UISetlist // DATABASE INTEGRATION: Updated to use UI type
+  onEdit: (setlist: UISetlist) => void
+  onDuplicate: (setlist: UISetlist) => void
   onArchive: (setlistId: string) => void
   onDelete: (setlistId: string) => void
 }
@@ -782,12 +618,12 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
 
 // Full-Page Setlist Editor Component
 interface SetlistEditorPageProps {
-  setlist: Setlist
-  availableSongs: Song[]
-  availableShows: Show[]
-  availablePractices: Practice[]
+  setlist: UISetlist // DATABASE INTEGRATION: Updated to use UI type
+  availableSongs: UISong[] // DATABASE INTEGRATION: Updated to use UI type
+  availableShows: UIShow[] // DATABASE INTEGRATION: Updated to use UI type
+  availablePractices: UIPractice[] // DATABASE INTEGRATION: Updated to use UI type
   onBack: () => void
-  onSave: (setlist: Setlist) => void
+  onSave: (setlist: UISetlist) => void
 }
 
 const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
@@ -798,7 +634,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
   onBack,
   onSave
 }) => {
-  const [editedSetlist, setEditedSetlist] = useState<Setlist>(setlist)
+  const [editedSetlist, setEditedSetlist] = useState<UISetlist>(setlist)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTuning, setSelectedTuning] = useState<string>('')
@@ -806,7 +642,11 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
   const [showPracticeMenu, setShowPracticeMenu] = useState(false)
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before drag starts (prevents scrolling)
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates
     })
@@ -833,13 +673,14 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
     }
   }
 
-  const addSongToSetlist = (song: Song) => {
+  const addSongToSetlist = (song: UISong) => {
     const newPosition = editedSetlist.items.length + 1
-    const newItem: SetlistItem = {
-      id: `item-${Date.now()}-${Math.random()}`,
+    const newItem: UISetlistItem = {
+      id: crypto.randomUUID(), // DATABASE INTEGRATION: Use crypto.randomUUID()
       type: 'song',
       position: newPosition,
-      song: song
+      song: song,
+      songId: song.id // DATABASE INTEGRATION: Store songId for database
     }
 
     setEditedSetlist((prev) => ({
@@ -851,8 +692,8 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
 
   const addBreakToSetlist = () => {
     const newPosition = editedSetlist.items.length + 1
-    const newItem: SetlistItem = {
-      id: `break-${Date.now()}`,
+    const newItem: UISetlistItem = {
+      id: crypto.randomUUID(), // DATABASE INTEGRATION: Use crypto.randomUUID()
       type: 'break',
       position: newPosition,
       breakDuration: 15, // default 15 min
@@ -866,7 +707,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
     setShowAddMenu(false)
   }
 
-  const updateItemInSetlist = (itemId: string, updates: Partial<SetlistItem>) => {
+  const updateItemInSetlist = (itemId: string, updates: Partial<UISetlistItem>) => {
     setEditedSetlist((prev) => ({
       ...prev,
       items: prev.items.map((item) => (item.id === itemId ? { ...item, ...updates } : item))
@@ -878,8 +719,8 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
     if (!sectionTitle) return
 
     const newPosition = editedSetlist.items.length + 1
-    const newItem: SetlistItem = {
-      id: `section-${Date.now()}`,
+    const newItem: UISetlistItem = {
+      id: crypto.randomUUID(), // DATABASE INTEGRATION: Use crypto.randomUUID()
       type: 'section',
       position: newPosition,
       sectionTitle
@@ -947,110 +788,211 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
   const totalDuration = calculateSetlistDuration(editedSetlist.items)
   const songCount = editedSetlist.items.filter((i) => i.type === 'song').length
 
+  const [showDetails, setShowDetails] = useState(false)
+
   return (
     <div className="fixed inset-0 bg-[#121212] z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] bg-[#121212] flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="p-2 text-[#707070] hover:text-white transition-colors rounded-lg hover:bg-[#1a1a1a]"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <div className="flex items-center gap-2 text-xs text-[#707070] mb-1">
-              <span>Setlists</span>
-              <ChevronRight size={14} />
-              <span className="text-[#a0a0a0]">Edit</span>
+      <div className="border-b border-[#2a2a2a] bg-[#121212] flex-shrink-0">
+        {/* Main header row */}
+        <div className="flex items-center justify-between gap-3 px-3 sm:px-6 py-2 sm:py-4">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <button
+              onClick={onBack}
+              className="p-1.5 sm:p-2 text-[#707070] hover:text-white transition-colors rounded-lg hover:bg-[#1a1a1a] flex-shrink-0"
+            >
+              <ArrowLeft size={18} className="sm:hidden" />
+              <ArrowLeft size={20} className="hidden sm:block" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="hidden sm:flex items-center gap-2 text-xs text-[#707070] mb-1">
+                <span>Setlists</span>
+                <ChevronRight size={14} />
+                <span className="text-[#a0a0a0]">Edit</span>
+              </div>
+              <input
+                type="text"
+                value={editedSetlist.name}
+                onChange={(e) => setEditedSetlist({ ...editedSetlist, name: e.target.value })}
+                className="text-base sm:text-xl font-bold text-white bg-transparent border-0 outline-none focus:ring-0 p-0 w-full"
+              />
             </div>
-            <input
-              type="text"
-              value={editedSetlist.name}
-              onChange={(e) => setEditedSetlist({ ...editedSetlist, name: e.target.value })}
-              className="text-xl font-bold text-white bg-transparent border-0 outline-none focus:ring-0 p-0"
-            />
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+            {/* Mobile: Icon buttons */}
+            <button
+              onClick={onBack}
+              className="sm:hidden p-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f] transition-colors"
+              title="Cancel"
+            >
+              <X size={18} />
+            </button>
+            <button
+              onClick={handleSave}
+              className="sm:hidden p-2 rounded-lg bg-[#f17827ff] text-white hover:bg-[#d66920] transition-colors"
+              title="Save"
+            >
+              <Check size={18} />
+            </button>
+
+            {/* Desktop: Text buttons */}
+            <button
+              onClick={onBack}
+              className="hidden sm:block px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="hidden sm:block px-6 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+            >
+              Save Setlist
+            </button>
+
+            {/* Mobile: Details toggle */}
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className="sm:hidden p-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f] transition-colors"
+              title={showDetails ? "Hide Details" : "Show Details"}
+            >
+              <ChevronDown size={18} className={`transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-6 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
-          >
-            Save Setlist
-          </button>
-        </div>
-      </div>
+        {/* Mobile: Collapsible details */}
+        {showDetails && (
+          <div className="sm:hidden px-3 py-3 border-t border-[#2a2a2a] bg-[#0f0f0f] space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-[#a0a0a0] mb-1.5">Status</label>
+                <select
+                  value={editedSetlist.status}
+                  onChange={(e) =>
+                    setEditedSetlist({
+                      ...editedSetlist,
+                      status: e.target.value as 'draft' | 'active' | 'archived'
+                    })
+                  }
+                  className="w-full h-9 px-2.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
 
-      {/* Metadata Bar */}
-      <div className="px-6 py-4 border-b border-[#2a2a2a] bg-[#0f0f0f] flex-shrink-0">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-2">Status</label>
-            <select
-              value={editedSetlist.status}
-              onChange={(e) =>
-                setEditedSetlist({
-                  ...editedSetlist,
-                  status: e.target.value as 'draft' | 'active' | 'archived'
-                })
-              }
-              className="w-full h-10 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-            >
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </select>
+              <div>
+                <label className="block text-xs text-[#a0a0a0] mb-1.5">Statistics</label>
+                <div className="flex items-center gap-2 text-xs text-[#a0a0a0] h-9">
+                  <span className="flex items-center gap-1">
+                    <Music2 size={12} />
+                    {songCount}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock size={12} />
+                    {formatTotalDuration(totalDuration)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-[#a0a0a0] mb-1.5">Associated Show</label>
+              <select
+                value={editedSetlist.associatedShow?.id || ''}
+                onChange={(e) => {
+                  const show = availableShows.find((s) => s.id === e.target.value)
+                  setEditedSetlist({ ...editedSetlist, associatedShow: show })
+                }}
+                className="w-full h-9 px-2.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none"
+              >
+                <option value="">No show</option>
+                {availableShows.map((show) => (
+                  <option key={show.id} value={show.id}>
+                    {show.name} - {show.date}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-[#a0a0a0] mb-1.5">Notes</label>
+              <input
+                type="text"
+                value={editedSetlist.notes}
+                onChange={(e) => setEditedSetlist({ ...editedSetlist, notes: e.target.value })}
+                placeholder="Add notes..."
+                className="w-full h-9 px-2.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none"
+              />
+            </div>
           </div>
+        )}
 
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-2">Associated Show</label>
-            <select
-              value={editedSetlist.associatedShow?.id || ''}
-              onChange={(e) => {
-                const show = availableShows.find((s) => s.id === e.target.value)
-                setEditedSetlist({ ...editedSetlist, associatedShow: show })
-              }}
-              className="w-full h-10 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-            >
-              <option value="">No show</option>
-              {availableShows.map((show) => (
-                <option key={show.id} value={show.id}>
-                  {show.name} - {show.date}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Desktop: Metadata Bar */}
+        <div className="hidden sm:block px-6 py-4 border-t border-[#2a2a2a] bg-[#0f0f0f]">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-xs text-[#a0a0a0] mb-2">Status</label>
+              <select
+                value={editedSetlist.status}
+                onChange={(e) =>
+                  setEditedSetlist({
+                    ...editedSetlist,
+                    status: e.target.value as 'draft' | 'active' | 'archived'
+                  })
+                }
+                className="w-full h-10 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+              >
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-2">Notes</label>
-            <input
-              type="text"
-              value={editedSetlist.notes}
-              onChange={(e) => setEditedSetlist({ ...editedSetlist, notes: e.target.value })}
-              placeholder="Add notes..."
-              className="w-full h-10 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-            />
-          </div>
+            <div>
+              <label className="block text-xs text-[#a0a0a0] mb-2">Associated Show</label>
+              <select
+                value={editedSetlist.associatedShow?.id || ''}
+                onChange={(e) => {
+                  const show = availableShows.find((s) => s.id === e.target.value)
+                  setEditedSetlist({ ...editedSetlist, associatedShow: show })
+                }}
+                className="w-full h-10 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+              >
+                <option value="">No show</option>
+                {availableShows.map((show) => (
+                  <option key={show.id} value={show.id}>
+                    {show.name} - {show.date}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-2">Statistics</label>
-            <div className="flex items-center gap-3 text-sm text-[#a0a0a0] h-10">
-              <span className="flex items-center gap-1">
-                <Music2 size={14} />
-                {songCount} songs
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock size={14} />
-                {formatTotalDuration(totalDuration)}
-              </span>
+            <div>
+              <label className="block text-xs text-[#a0a0a0] mb-2">Notes</label>
+              <input
+                type="text"
+                value={editedSetlist.notes}
+                onChange={(e) => setEditedSetlist({ ...editedSetlist, notes: e.target.value })}
+                placeholder="Add notes..."
+                className="w-full h-10 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-[#a0a0a0] mb-2">Statistics</label>
+              <div className="flex items-center gap-3 text-sm text-[#a0a0a0] h-10">
+                <span className="flex items-center gap-1">
+                  <Music2 size={14} />
+                  {songCount} songs
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock size={14} />
+                  {formatTotalDuration(totalDuration)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -1063,11 +1005,11 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-white font-semibold text-lg">Setlist Items</h3>
-              <div className="flex items-center gap-2">
-                <div className="relative">
+              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
+                <div className="relative w-full sm:w-auto">
                   <button
                     onClick={() => setShowAddMenu(!showAddMenu)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors w-full sm:w-auto"
                   >
                     <Plus size={18} />
                     <span>Add Item</span>
@@ -1108,19 +1050,20 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
 
                 <button
                   onClick={() => setIsDrawerOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                  className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors w-full sm:w-auto"
                 >
                   <Plus size={18} />
                   <span>Add Songs</span>
                 </button>
 
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <button
                     onClick={() => setShowPracticeMenu(!showPracticeMenu)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#f17827ff] bg-[#f17827ff]/10 text-[#f17827ff] text-sm font-medium hover:bg-[#f17827ff]/20 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 rounded-lg border border-[#f17827ff] bg-[#f17827ff]/10 text-[#f17827ff] text-sm font-medium hover:bg-[#f17827ff]/20 transition-colors w-full sm:w-auto whitespace-nowrap"
                   >
                     <Play size={18} />
-                    <span>Add All to Practice</span>
+                    <span className="hidden sm:inline">Add All to Practice</span>
+                    <span className="sm:hidden">Add to Practice</span>
                   </button>
 
                   {showPracticeMenu && (
@@ -1273,21 +1216,167 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
 
 // Main Setlists Page Component
 export const SetlistsPage: React.FC = () => {
-  const [setlists, setSetlists] = useState<Setlist[]>(INITIAL_SETLISTS)
+  const navigate = useNavigate()
+
+  // DATABASE INTEGRATION: Get currentBandId from localStorage
+  const [currentBandId] = useState(() => localStorage.getItem('currentBandId') || '')
+
+  // DATABASE INTEGRATION: State for UI data
+  const [uiSetlists, setUISetlists] = useState<UISetlist[]>([])
+  const [availableSongs, setAvailableSongs] = useState<UISong[]>([])
+  const [availableShows, setAvailableShows] = useState<UIShow[]>([])
+  const [availablePractices, setAvailablePractices] = useState<UIPractice[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'active' | 'archived'>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
+  const [editingSetlist, setEditingSetlist] = useState<UISetlist | null>(null)
 
-  const filteredSetlists = setlists.filter((setlist) => {
+  // DATABASE INTEGRATION: Load all data from database
+  useEffect(() => {
+    const loadData = async () => {
+      if (!currentBandId) {
+        setError('No band selected')
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Load setlists for the band
+        const dbSetlists = await db.setlists
+          .where('bandId')
+          .equals(currentBandId)
+          .toArray()
+
+        // Load songs for the band
+        const dbSongs = await db.songs
+          .where('contextType')
+          .equals('band')
+          .and(s => s.contextId === currentBandId)
+          .toArray()
+
+        // Convert songs to UI format
+        const uiSongs: UISong[] = dbSongs.map(dbSongToUISong)
+
+        // Load shows (practice sessions with type='gig')
+        const dbShows = await db.practiceSessions
+          .where('bandId')
+          .equals(currentBandId)
+          .and(s => s.type === 'gig')
+          .toArray()
+
+        const uiShows: UIShow[] = dbShows.map(show => ({
+          id: show.id!,
+          name: show.name || 'Unnamed Show',
+          date: formatShowDate(show.scheduledDate)
+        }))
+
+        // Load practices (practice sessions with type='rehearsal')
+        const dbPractices = await db.practiceSessions
+          .where('bandId')
+          .equals(currentBandId)
+          .and(p => p.type === 'rehearsal')
+          .toArray()
+
+        const uiPractices: UIPractice[] = dbPractices.map(practice => ({
+          id: practice.id!,
+          name: practice.name || 'Practice Session',
+          date: formatShowDate(practice.scheduledDate)
+        }))
+
+        // Convert setlists to UI format with populated songs
+        const uiSetlists: UISetlist[] = await Promise.all(
+          dbSetlists.map(async (dbSetlist) => {
+            // Load associated show if exists
+            let associatedShow: { id: string; name: string; date: string } | undefined
+            if (dbSetlist.showId) {
+              const show = await db.practiceSessions.get(dbSetlist.showId)
+              if (show) {
+                associatedShow = {
+                  id: show.id!,
+                  name: show.name || 'Unnamed Show',
+                  date: formatShowDate(show.scheduledDate)
+                }
+              }
+            }
+
+            // Populate songs in items
+            const populatedItems: UISetlistItem[] = await Promise.all(
+              (dbSetlist.items || []).map(async (item) => {
+                if (item.type === 'song' && item.songId) {
+                  const song = await db.songs.get(item.songId)
+                  if (song) {
+                    return {
+                      ...item,
+                      song: dbSongToUISong(song)
+                    }
+                  }
+                }
+                return item as UISetlistItem
+              })
+            )
+
+            // Calculate song count and total duration
+            const songCount = populatedItems.filter(i => i.type === 'song').length
+            const totalDuration = formatTotalDuration(calculateSetlistDuration(populatedItems))
+
+            // Format last modified
+            const lastModified = dbSetlist.lastModified
+              ? new Date(dbSetlist.lastModified).toLocaleDateString()
+              : 'Never'
+
+            return {
+              id: dbSetlist.id!,
+              name: dbSetlist.name,
+              bandId: dbSetlist.bandId,
+              showId: dbSetlist.showId,
+              songCount,
+              totalDuration,
+              status: dbSetlist.status,
+              associatedShow,
+              items: populatedItems,
+              lastModified,
+              notes: dbSetlist.notes || ''
+            }
+          })
+        )
+
+        setUISetlists(uiSetlists)
+        setAvailableSongs(uiSongs)
+        setAvailableShows(uiShows)
+        setAvailablePractices(uiPractices)
+      } catch (err) {
+        console.error('Error loading setlists:', err)
+        setError('Failed to load setlists')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [currentBandId])
+
+  const filteredSetlists = uiSetlists.filter((setlist) => {
     const matchesStatus = filterStatus === 'all' || setlist.status === filterStatus
     const matchesSearch = setlist.name.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesStatus && matchesSearch
   })
 
-  const handleCreateNew = () => {
-    const newSetlist: Setlist = {
-      id: Date.now().toString(),
+  // DATABASE INTEGRATION: Create new setlist
+  const handleCreateNew = async () => {
+    if (!currentBandId) {
+      alert('No band selected')
+      return
+    }
+
+    const newSetlist: UISetlist = {
+      id: crypto.randomUUID(),
       name: 'New Setlist',
+      bandId: currentBandId,
       songCount: 0,
       totalDuration: '0 min',
       status: 'draft',
@@ -1298,41 +1387,267 @@ export const SetlistsPage: React.FC = () => {
     setEditingSetlist(newSetlist)
   }
 
-  const handleEdit = (setlist: Setlist) => {
+  // DATABASE INTEGRATION: Edit setlist
+  const handleEdit = (setlist: UISetlist) => {
     setEditingSetlist({ ...setlist })
   }
 
-  const handleDuplicate = (setlist: Setlist) => {
-    const duplicated: Setlist = {
-      ...setlist,
-      id: Date.now().toString(),
-      name: `${setlist.name} (Copy)`,
-      status: 'draft',
-      associatedShow: undefined,
-      lastModified: 'Just now',
-      items: setlist.items.map((item) => ({
-        ...item,
-        id: `${item.id}-copy-${Date.now()}`
+  // DATABASE INTEGRATION: Duplicate setlist
+  const handleDuplicate = async (setlist: UISetlist) => {
+    try {
+      // Create new UISetlist with duplicated items
+      const duplicated: UISetlist = {
+        ...setlist,
+        id: crypto.randomUUID(),
+        name: `${setlist.name} (Copy)`,
+        status: 'draft',
+        associatedShow: undefined,
+        showId: undefined,
+        lastModified: 'Just now',
+        items: setlist.items.map((item) => ({
+          ...item,
+          id: crypto.randomUUID()
+        }))
+      }
+
+      // Convert UI items to database items
+      const dbItems: DBSetlistItem[] = duplicated.items.map(item => ({
+        id: item.id,
+        type: item.type,
+        position: item.position,
+        songId: item.songId,
+        notes: item.notes,
+        breakDuration: item.breakDuration,
+        breakNotes: item.breakNotes,
+        sectionTitle: item.sectionTitle
       }))
+
+      // Save to database
+      await db.setlists.add({
+        id: duplicated.id,
+        name: duplicated.name,
+        bandId: duplicated.bandId,
+        status: duplicated.status,
+        items: dbItems,
+        notes: duplicated.notes,
+        createdDate: new Date(),
+        lastModified: new Date()
+      })
+
+      // Update UI state
+      setUISetlists([duplicated, ...uiSetlists])
+
+      alert('Setlist duplicated successfully!')
+    } catch (err) {
+      console.error('Error duplicating setlist:', err)
+      alert('Failed to duplicate setlist')
     }
-    setSetlists([duplicated, ...setlists])
   }
 
-  const handleArchive = (setlistId: string) => {
-    setSetlists(setlists.map((s) => (s.id === setlistId ? { ...s, status: 'archived' as const } : s)))
-  }
-
-  const handleDelete = (setlistId: string) => {
-    setSetlists(setlists.filter((s) => s.id !== setlistId))
-  }
-
-  const handleSave = (updatedSetlist: Setlist) => {
-    const exists = setlists.find((s) => s.id === updatedSetlist.id)
-    if (exists) {
-      setSetlists(setlists.map((s) => (s.id === updatedSetlist.id ? updatedSetlist : s)))
-    } else {
-      setSetlists([updatedSetlist, ...setlists])
+  // DATABASE INTEGRATION: Archive setlist
+  const handleArchive = async (setlistId: string) => {
+    try {
+      await db.setlists.update(setlistId, { status: 'archived' })
+      setUISetlists(uiSetlists.map((s) => (s.id === setlistId ? { ...s, status: 'archived' as const } : s)))
+      alert('Setlist archived successfully!')
+    } catch (err) {
+      console.error('Error archiving setlist:', err)
+      alert('Failed to archive setlist')
     }
+  }
+
+  // DATABASE INTEGRATION: Delete setlist
+  const handleDelete = async (setlistId: string) => {
+    try {
+      // Clear any show references
+      const shows = await db.practiceSessions
+        .where('setlistId')
+        .equals(setlistId)
+        .toArray()
+
+      for (const show of shows) {
+        await db.practiceSessions.update(show.id!, { setlistId: undefined })
+      }
+
+      // Delete the setlist
+      await db.setlists.delete(setlistId)
+
+      // Update UI state
+      setUISetlists(uiSetlists.filter((s) => s.id !== setlistId))
+
+      alert('Setlist deleted successfully!')
+    } catch (err) {
+      console.error('Error deleting setlist:', err)
+      alert('Failed to delete setlist')
+    }
+  }
+
+  // DATABASE INTEGRATION: Save setlist
+  const handleSave = async (updatedSetlist: UISetlist) => {
+    try {
+      // Convert UI items to database items
+      const dbItems: DBSetlistItem[] = updatedSetlist.items.map(item => ({
+        id: item.id,
+        type: item.type,
+        position: item.position,
+        songId: item.songId,
+        notes: item.notes,
+        breakDuration: item.breakDuration,
+        breakNotes: item.breakNotes,
+        sectionTitle: item.sectionTitle
+      }))
+
+      // Calculate total duration in seconds
+      const totalDurationSeconds = calculateSetlistDuration(updatedSetlist.items)
+
+      const dbSetlist: Partial<DBSetlist> = {
+        id: updatedSetlist.id,
+        name: updatedSetlist.name,
+        bandId: updatedSetlist.bandId,
+        status: updatedSetlist.status,
+        items: dbItems,
+        totalDuration: totalDurationSeconds,
+        notes: updatedSetlist.notes,
+        showId: updatedSetlist.showId
+      }
+
+      // Check if setlist exists
+      const exists = await db.setlists.get(updatedSetlist.id)
+
+      if (exists) {
+        // Update existing
+        await db.setlists.update(updatedSetlist.id, {
+          ...dbSetlist,
+          lastModified: new Date()
+        })
+      } else {
+        // Create new
+        await db.setlists.add({
+          ...dbSetlist as DBSetlist,
+          createdDate: new Date(),
+          lastModified: new Date()
+        })
+      }
+
+      // Update or add associated show if selected
+      if (updatedSetlist.associatedShow) {
+        await db.practiceSessions.update(updatedSetlist.associatedShow.id, {
+          setlistId: updatedSetlist.id
+        })
+      }
+
+      // Reload data to ensure UI is in sync
+      const dbSetlists = await db.setlists
+        .where('bandId')
+        .equals(currentBandId)
+        .toArray()
+
+      // Re-convert to UI format (reuse loading logic)
+      const reloadedSetlists: UISetlist[] = await Promise.all(
+        dbSetlists.map(async (dbSetlist) => {
+          let associatedShow: { id: string; name: string; date: string } | undefined
+          if (dbSetlist.showId) {
+            const show = await db.practiceSessions.get(dbSetlist.showId)
+            if (show) {
+              associatedShow = {
+                id: show.id!,
+                name: show.name || 'Unnamed Show',
+                date: formatShowDate(show.scheduledDate)
+              }
+            }
+          }
+
+          const populatedItems: UISetlistItem[] = await Promise.all(
+            (dbSetlist.items || []).map(async (item) => {
+              if (item.type === 'song' && item.songId) {
+                const song = await db.songs.get(item.songId)
+                if (song) {
+                  return {
+                    ...item,
+                    song: dbSongToUISong(song)
+                  }
+                }
+              }
+              return item as UISetlistItem
+            })
+          )
+
+          const songCount = populatedItems.filter(i => i.type === 'song').length
+          const totalDuration = formatTotalDuration(calculateSetlistDuration(populatedItems))
+          const lastModified = dbSetlist.lastModified
+            ? new Date(dbSetlist.lastModified).toLocaleDateString()
+            : 'Never'
+
+          return {
+            id: dbSetlist.id!,
+            name: dbSetlist.name,
+            bandId: dbSetlist.bandId,
+            showId: dbSetlist.showId,
+            songCount,
+            totalDuration,
+            status: dbSetlist.status,
+            associatedShow,
+            items: populatedItems,
+            lastModified,
+            notes: dbSetlist.notes || ''
+          }
+        })
+      )
+
+      setUISetlists(reloadedSetlists)
+
+      alert('Setlist saved successfully!')
+    } catch (err) {
+      console.error('Error saving setlist:', err)
+      alert('Failed to save setlist')
+    }
+  }
+
+  const handleSignOut = () => {
+    localStorage.removeItem('currentUserId')
+    localStorage.removeItem('currentBandId')
+    navigate('/auth')
+  }
+
+  // DATABASE INTEGRATION: Show loading state
+  if (loading) {
+    return (
+      <ModernLayout
+        bandName="iPod Shuffle"
+        userEmail="eric@example.com"
+        onSignOut={handleSignOut}
+      >
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f17827ff] mx-auto mb-4"></div>
+            <p className="text-[#a0a0a0] text-sm">Loading setlists...</p>
+          </div>
+        </div>
+      </ModernLayout>
+    )
+  }
+
+  // DATABASE INTEGRATION: Show error state
+  if (error) {
+    return (
+      <ModernLayout
+        bandName="iPod Shuffle"
+        userEmail="eric@example.com"
+        onSignOut={handleSignOut}
+      >
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-red-500 text-sm mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </ModernLayout>
+    )
   }
 
   // If editing, show full-page editor
@@ -1340,9 +1655,9 @@ export const SetlistsPage: React.FC = () => {
     return (
       <SetlistEditorPage
         setlist={editingSetlist}
-        availableSongs={MOCK_SONGS}
-        availableShows={MOCK_SHOWS}
-        availablePractices={MOCK_PRACTICES}
+        availableSongs={availableSongs}
+        availableShows={availableShows}
+        availablePractices={availablePractices}
         onBack={() => setEditingSetlist(null)}
         onSave={handleSave}
       />
@@ -1351,7 +1666,11 @@ export const SetlistsPage: React.FC = () => {
 
   // Otherwise, show grid view
   return (
-    <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
+    <ModernLayout
+      bandName="iPod Shuffle"
+      userEmail="eric@example.com"
+      onSignOut={handleSignOut}
+    >
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-6">
           <h1 className="text-2xl font-bold text-white">Setlists</h1>

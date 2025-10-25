@@ -1,12 +1,16 @@
+// Load polyfills first for older browsers (especially mobile)
+import './utils/polyfills'
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { initializePerformanceMonitoring } from './utils/performance'
 import { initializeMobilePerformance } from './utils/mobilePerformance'
+import { seedMvpData } from './database/seedMvpData'
 
 // Register Service Worker for offline functionality
-if ('serviceWorker' in navigator && (import.meta as any).env?.PROD) {
+if ('serviceWorker' in navigator && import.meta.env?.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
@@ -53,8 +57,56 @@ if ((import.meta as any).env?.PROD) {
 // Initialize mobile performance optimizations
 initializeMobilePerformance()
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+// Seed database with MVP data and then render app
+async function initializeApp() {
+  console.log('🚀 Initializing app...')
+  console.log('📱 Browser:', {
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    hasCryptoUUID: typeof crypto.randomUUID === 'function'
+  })
+  console.log('📍 Environment:', {
+    DEV: import.meta.env.DEV,
+    MODE: import.meta.env.MODE,
+    PROD: import.meta.env.PROD
+  })
+
+  // Always seed in dev mode OR if environment is development
+  const shouldSeed = import.meta.env.DEV || import.meta.env.MODE === 'development' || !import.meta.env.PROD
+
+  if (shouldSeed) {
+    console.log('🌱 Dev environment detected - preparing to seed database...')
+
+    // Import reset utility for easy dev access
+    import('./utils/resetDatabase').then(module => {
+      (window as any).resetDB = module.resetDatabase
+      console.log('💡 Dev Mode: Type resetDB() in console to clear and reseed database')
+    }).catch(err => {
+      console.warn('Could not load resetDatabase utility:', err)
+    })
+
+    try {
+      // Wait for seeding to complete before rendering
+      console.log('⏳ Calling seedMvpData()...')
+      await seedMvpData()
+      console.log('✅ Seeding complete, ready to render app')
+    } catch (error) {
+      console.error('❌ Failed to seed database:', error)
+      // Continue anyway - app might still work with existing data
+    }
+  } else {
+    console.log('📦 Production mode - skipping database seeding')
+  }
+
+  // Now render the app
+  console.log('🎨 Rendering React app...')
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  )
+  console.log('✅ App rendered')
+}
+
+// Start the app initialization
+initializeApp()

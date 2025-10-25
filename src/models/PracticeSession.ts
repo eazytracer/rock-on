@@ -1,5 +1,13 @@
 import { SessionType, SessionStatus, SessionSong, SessionAttendee } from '../types'
 
+export interface ShowContact {
+  id: string
+  name: string
+  role?: string
+  phone?: string
+  email?: string
+}
+
 export interface PracticeSession {
   id: string
   bandId: string
@@ -23,7 +31,7 @@ export interface PracticeSession {
   loadInTime?: string        // Load-in time (format: "6:00 PM" or ISO string)
   soundcheckTime?: string    // Soundcheck time (format: "7:00 PM" or ISO string)
   payment?: number           // Payment amount in cents
-  contacts?: string          // Contact information (JSON string or plain text)
+  contacts?: ShowContact[]   // Contact information - ALWAYS an array of contact objects
   setlistId?: string         // Associated setlist ID (for shows/gigs)
 }
 

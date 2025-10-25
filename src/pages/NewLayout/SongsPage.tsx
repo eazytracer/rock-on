@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ModernLayout } from '../../components/layout/ModernLayout'
 import {
   ChevronDown,
@@ -20,6 +21,11 @@ import {
   Play,
   Music2
 } from 'lucide-react'
+// DATABASE INTEGRATION: Import database hooks and utilities
+import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../../hooks/useSongs'
+import { secondsToDuration, durationToSeconds, formatBpm, parseBpm } from '../../utils/formatters'
+import { db } from '../../services/database'
+import type { Song as DBSong } from '../../models/Song'
 
 interface SongLink {
   id: string
@@ -28,15 +34,16 @@ interface SongLink {
   url: string
 }
 
+// DATABASE INTEGRATION: Extended Song interface for display
 interface Song {
   id: string
   title: string
   artist: string
   album?: string
-  duration: string
+  duration: string // Display format: "3:14"
   key: string
   tuning: string
-  bpm: string
+  bpm: string // Display format: "104 bpm"
   tempo: string
   tags: string[]
   nextShow?: {
@@ -49,9 +56,14 @@ interface Song {
   referenceLinks?: SongLink[]
   createdDate: string
   createdBy: string
+  difficulty?: number
+  confidenceLevel?: number
 }
 
-// Comprehensive mock data with varied songs
+// DATABASE INTEGRATION: Mock data removed - now loading from database
+
+// Comprehensive mock data with varied songs (REMOVED - using database)
+/*
 const mockSongs: Song[] = [
   {
     id: '1',
@@ -409,12 +421,26 @@ const mockSongs: Song[] = [
     createdBy: 'Mike'
   }
 ]
+*/
 
 // Sort options
 type SortOption = 'title-asc' | 'title-desc' | 'artist-asc' | 'artist-desc' | 'date-added-desc' | 'date-added-asc' | 'show-asc'
 
 export const SongsPage: React.FC = () => {
-  const [songs, setSongs] = useState<Song[]>(mockSongs)
+  const navigate = useNavigate()
+
+  // DATABASE INTEGRATION: Get currentBandId from localStorage
+  const currentBandId = localStorage.getItem('currentBandId') || ''
+  const currentUserId = localStorage.getItem('currentUserId') || ''
+
+  // DATABASE INTEGRATION: Use database hooks instead of mock state
+  const { songs: dbSongs, loading, error } = useSongs(currentBandId)
+  const { createSong, loading: creating } = useCreateSong()
+  const { updateSong, loading: updating } = useUpdateSong()
+  const { deleteSong, checkSongInSetlists, loading: deleting } = useDeleteSong()
+
+  // Display songs with transformed data
+  const [songs, setSongs] = useState<Song[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTuning, setSelectedTuning] = useState<string>('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -427,6 +453,124 @@ export const SongsPage: React.FC = () => {
   const [isSetlistMenuOpen, setIsSetlistMenuOpen] = useState(false)
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
+  const [songsInSetlists, setSongsInSetlists] = useState<string[]>([])
+
+  // DATABASE INTEGRATION: Transform database songs to display format and calculate "Next Show"
+  useEffect(() => {
+    const transformSongs = async () => {
+      if (!dbSongs || dbSongs.length === 0) {
+        setSongs([])
+        return
+      }
+
+      try {
+        const transformedSongs = await Promise.all(
+          dbSongs.map(async (dbSong) => {
+            // DATABASE INTEGRATION: Calculate "Next Show" for each song
+            let nextShow: { name: string; date: string } | undefined
+
+            try {
+              // Find setlists containing this song
+              const setlists = await db.setlists
+                .filter(setlist =>
+                  setlist.items?.some(item => item.type === 'song' && item.songId === dbSong.id)
+                )
+                .toArray()
+
+              if (setlists.length > 0) {
+                // For each setlist, check if it has a linked show
+                for (const setlist of setlists) {
+                  if (setlist.showId) {
+                    // Load the show (practiceSession with type='gig')
+                    const show = await db.practiceSessions.get(setlist.showId)
+
+                    if (show && show.type === 'gig' && show.scheduledDate) {
+                      const showDate = new Date(show.scheduledDate)
+                      const now = new Date()
+
+                      // Only consider upcoming shows
+                      if (showDate >= now) {
+                        // Use the nearest upcoming show
+                        if (!nextShow) {
+                          nextShow = {
+                            name: show.name || 'Upcoming Show',
+                            date: showDate.toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })
+                          }
+                        } else {
+                          const currentNextDate = new Date(nextShow.date)
+                          if (showDate < currentNextDate) {
+                            nextShow = {
+                              name: show.name || 'Upcoming Show',
+                              date: showDate.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (err) {
+              console.error('Error calculating next show for song:', dbSong.id, err)
+            }
+
+            // DATABASE INTEGRATION: Transform database format to display format
+            // Generate initials from title
+            const initials = dbSong.title
+              .split(' ')
+              .slice(0, 2)
+              .map(word => word[0])
+              .join('')
+              .toUpperCase()
+
+            // Random color (consistent for each song by using ID)
+            const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#14b8a6', '#ef4444', '#10b981', '#a855f7']
+            const colorIndex = parseInt(dbSong.id.replace(/\D/g, '').slice(0, 8), 10) % colors.length
+            const avatarColor = colors[colorIndex]
+
+            // Determine tempo from BPM
+            const tempo = dbSong.bpm > 140 ? 'fast' : dbSong.bpm < 90 ? 'slow' : 'moderate'
+
+            return {
+              id: dbSong.id,
+              title: dbSong.title,
+              artist: dbSong.artist,
+              album: dbSong.album,
+              duration: secondsToDuration(dbSong.duration), // Convert seconds to "3:14"
+              key: dbSong.key,
+              tuning: dbSong.guitarTuning || 'Standard',
+              bpm: formatBpm(dbSong.bpm), // Convert 104 to "104 bpm"
+              tempo,
+              tags: dbSong.tags || [],
+              nextShow,
+              initials,
+              avatarColor,
+              notes: dbSong.notes,
+              referenceLinks: dbSong.referenceLinks as SongLink[] | undefined,
+              createdDate: new Date(dbSong.createdDate).toISOString().split('T')[0],
+              createdBy: dbSong.createdBy,
+              difficulty: dbSong.difficulty,
+              confidenceLevel: dbSong.confidenceLevel
+            } as Song
+          })
+        )
+
+        setSongs(transformedSongs)
+      } catch (err) {
+        console.error('Error transforming songs:', err)
+      }
+    }
+
+    transformSongs()
+  }, [dbSongs])
 
   // Extract unique tunings, tags, and shows for filters
   const availableTunings = useMemo(() => {
@@ -509,29 +653,89 @@ export const SongsPage: React.FC = () => {
     setSelectedShow('')
   }
 
-  // Handle duplicate song
-  const handleDuplicate = (song: Song) => {
-    const duplicate: Song = {
-      ...song,
-      id: `${Date.now()}`,
-      title: `${song.title} (Copy)`,
-      createdDate: new Date().toISOString().split('T')[0],
-      createdBy: 'Current User'
+  // DATABASE INTEGRATION: Handle duplicate song
+  const handleDuplicate = async (song: Song) => {
+    try {
+      // Convert display formats back to database formats
+      const duration = durationToSeconds(song.duration)
+      const bpm = parseBpm(song.bpm)
+
+      await createSong({
+        title: `${song.title} (Copy)`,
+        artist: song.artist,
+        album: song.album,
+        duration,
+        key: song.key,
+        bpm,
+        difficulty: (song.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
+        guitarTuning: song.tuning,
+        structure: [],
+        chords: [],
+        tags: song.tags || [],
+        notes: song.notes,
+        referenceLinks: (song.referenceLinks?.map(link => ({
+          ...link,
+          type: link.type === 'ultimate-guitar' ? 'tabs' as const : link.type as 'spotify' | 'youtube' | 'tabs' | 'lyrics' | 'other'
+        })) || []),
+        contextType: 'band',
+        contextId: currentBandId,
+        createdBy: currentUserId,
+        visibility: 'band_only',
+        confidenceLevel: song.confidenceLevel || 1
+      })
+
+      // Show success toast (simple alert for now)
+      alert(`Successfully duplicated "${song.title}"`)
+    } catch (err) {
+      console.error('Error duplicating song:', err)
+      alert('Failed to duplicate song. Please try again.')
     }
-    setSongs([duplicate, ...songs])
     setOpenActionMenuId(null)
   }
 
-  // Handle delete song
-  const handleDelete = (song: Song) => {
-    setSelectedSong(song)
-    setIsDeleteDialogOpen(true)
+  // DATABASE INTEGRATION: Handle delete song
+  const handleDelete = async (song: Song) => {
+    try {
+      // Check if song is in any setlists
+      const setlists = await checkSongInSetlists(song.id)
+
+      if (setlists.length > 0) {
+        const setlistNames = setlists.map(s => s.name).join(', ')
+        const confirmed = window.confirm(
+          `This song is in ${setlists.length} setlist(s): ${setlistNames}.\n\nDeleting will remove it from all setlists. Continue?`
+        )
+
+        if (!confirmed) {
+          setOpenActionMenuId(null)
+          return
+        }
+      } else {
+        const confirmed = window.confirm(
+          `Are you sure you want to delete "${song.title}" by ${song.artist}?\n\nThis action cannot be undone.`
+        )
+
+        if (!confirmed) {
+          setOpenActionMenuId(null)
+          return
+        }
+      }
+
+      // Delete the song (hook handles setlist cleanup)
+      await deleteSong(song.id)
+
+      // Show success toast
+      alert(`Successfully deleted "${song.title}"`)
+    } catch (err) {
+      console.error('Error deleting song:', err)
+      alert('Failed to delete song. Please try again.')
+    }
     setOpenActionMenuId(null)
   }
 
-  const confirmDelete = () => {
+  // Legacy method for delete dialog (now unused but kept for compatibility)
+  const confirmDelete = async () => {
     if (selectedSong) {
-      setSongs(songs.filter(s => s.id !== selectedSong.id))
+      await handleDelete(selectedSong)
       setIsDeleteDialogOpen(false)
       setSelectedSong(null)
     }
@@ -558,14 +762,42 @@ export const SongsPage: React.FC = () => {
     )
   }
 
+  const handleSignOut = () => {
+    localStorage.removeItem('currentUserId')
+    localStorage.removeItem('currentBandId')
+    navigate('/auth')
+  }
+
   return (
-    <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
-      {/* Page Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-6">
-          <h1 className="text-2xl font-bold text-white">Songs</h1>
-          <ChevronDown size={20} className="text-[#a0a0a0]" />
+    <ModernLayout
+      bandName="iPod Shuffle"
+      userEmail="eric@example.com"
+      onSignOut={handleSignOut}
+    >
+      {/* DATABASE INTEGRATION: Show loading state */}
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <div className="text-white">Loading songs...</div>
         </div>
+      )}
+
+      {/* DATABASE INTEGRATION: Show error state */}
+      {error && (
+        <div className="flex items-center justify-center py-16">
+          <div className="text-red-500">Error loading songs: {error.message}</div>
+        </div>
+      )}
+
+      {/* Page Header */}
+      {!loading && !error && (
+        <>
+          <div className="mb-8">
+          <div className="flex items-center gap-2 mb-6">
+            <h1 className="text-2xl font-bold text-white">Songs</h1>
+            <ChevronDown size={20} className="text-[#a0a0a0]" />
+            {/* DATABASE INTEGRATION: Show song count */}
+            <span className="text-sm text-[#a0a0a0] ml-2">({songs.length} songs)</span>
+          </div>
 
         {/* Action Bar */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -1020,20 +1252,56 @@ export const SongsPage: React.FC = () => {
           ))}
         </div>
       )}
+        </>
+      )}
 
-      {/* Add Song Modal */}
+      {/* DATABASE INTEGRATION: Add Song Modal with database operations */}
       {isAddModalOpen && (
         <AddEditSongModal
           mode="add"
           onClose={() => setIsAddModalOpen(false)}
-          onSave={(newSong) => {
-            setSongs([newSong, ...songs])
-            setIsAddModalOpen(false)
+          onSave={async (newSong) => {
+            try {
+              // Convert display formats to database formats
+              const duration = durationToSeconds(newSong.duration)
+              const bpm = parseBpm(newSong.bpm)
+
+              await createSong({
+                title: newSong.title,
+                artist: newSong.artist,
+                album: newSong.album,
+                duration,
+                key: newSong.key,
+                bpm,
+                difficulty: (newSong.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
+                guitarTuning: newSong.tuning,
+                structure: [],
+                chords: [],
+                tags: newSong.tags || [],
+                notes: newSong.notes,
+                referenceLinks: (newSong.referenceLinks?.map(link => ({
+                  ...link,
+                  type: link.type === 'ultimate-guitar' ? 'tabs' as const : link.type as 'spotify' | 'youtube' | 'tabs' | 'lyrics' | 'other'
+                })) || []),
+                contextType: 'band',
+                contextId: currentBandId,
+                createdBy: currentUserId,
+                visibility: 'band_only',
+                confidenceLevel: newSong.confidenceLevel || 1
+              })
+
+              alert(`Successfully added "${newSong.title}"`)
+              setIsAddModalOpen(false)
+            } catch (err) {
+              console.error('Error creating song:', err)
+              alert('Failed to create song. Please try again.')
+            }
           }}
+          currentUserId={currentUserId}
         />
       )}
 
-      {/* Edit Song Modal */}
+      {/* DATABASE INTEGRATION: Edit Song Modal with database operations */}
       {isEditModalOpen && selectedSong && (
         <AddEditSongModal
           mode="edit"
@@ -1042,11 +1310,39 @@ export const SongsPage: React.FC = () => {
             setIsEditModalOpen(false)
             setSelectedSong(null)
           }}
-          onSave={(updatedSong) => {
-            setSongs(songs.map(s => (s.id === updatedSong.id ? updatedSong : s)))
-            setIsEditModalOpen(false)
-            setSelectedSong(null)
+          onSave={async (updatedSong) => {
+            try {
+              // Convert display formats to database formats
+              const duration = durationToSeconds(updatedSong.duration)
+              const bpm = parseBpm(updatedSong.bpm)
+
+              await updateSong(updatedSong.id, {
+                title: updatedSong.title,
+                artist: updatedSong.artist,
+                album: updatedSong.album,
+                duration,
+                key: updatedSong.key,
+                bpm,
+                difficulty: (updatedSong.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
+                guitarTuning: updatedSong.tuning,
+                tags: updatedSong.tags || [],
+                notes: updatedSong.notes,
+                referenceLinks: (updatedSong.referenceLinks?.map(link => ({
+                  ...link,
+                  type: link.type === 'ultimate-guitar' ? 'tabs' as const : link.type as 'spotify' | 'youtube' | 'tabs' | 'lyrics' | 'other'
+                })) || []),
+                confidenceLevel: updatedSong.confidenceLevel || 1
+              })
+
+              alert(`Successfully updated "${updatedSong.title}"`)
+              setIsEditModalOpen(false)
+              setSelectedSong(null)
+            } catch (err) {
+              console.error('Error updating song:', err)
+              alert('Failed to update song. Please try again.')
+            }
           }}
+          currentUserId={currentUserId}
         />
       )}
 
@@ -1076,15 +1372,16 @@ export const SongsPage: React.FC = () => {
   )
 }
 
-// Add/Edit Song Modal Component
+// DATABASE INTEGRATION: Add/Edit Song Modal Component with async save support
 interface AddEditSongModalProps {
   mode: 'add' | 'edit'
   song?: Song
   onClose: () => void
-  onSave: (song: Song) => void
+  onSave: (song: Song) => void | Promise<void>
+  currentUserId: string
 }
 
-const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose, onSave }) => {
+const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose, onSave, currentUserId }) => {
   const [formData, setFormData] = useState({
     title: song?.title || '',
     artist: song?.artist || '',
@@ -1198,7 +1495,8 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // DATABASE INTEGRATION: Async submit handler
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Validate required fields
@@ -1223,7 +1521,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
     const avatarColor = song?.avatarColor || colors[Math.floor(Math.random() * colors.length)]
 
     const savedSong: Song = {
-      id: song?.id || `${Date.now()}`,
+      id: song?.id || crypto.randomUUID(),
       title: formData.title,
       artist: formData.artist,
       album: formData.album || undefined,
@@ -1239,10 +1537,13 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
       notes: formData.notes || undefined,
       referenceLinks: links.length > 0 ? links : undefined,
       createdDate: song?.createdDate || new Date().toISOString().split('T')[0],
-      createdBy: song?.createdBy || 'Current User'
+      createdBy: song?.createdBy || currentUserId,
+      difficulty: song?.difficulty,
+      confidenceLevel: song?.confidenceLevel
     }
 
-    onSave(savedSong)
+    // DATABASE INTEGRATION: Call async onSave
+    await onSave(savedSong)
   }
 
   return (
