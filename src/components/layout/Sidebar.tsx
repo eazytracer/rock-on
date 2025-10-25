@@ -1,6 +1,5 @@
 import React from 'react'
 import {
-  Home,
   Calendar,
   ListMusic,
   Ticket,
@@ -36,12 +35,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate()
 
   const navItems: NavItem[] = [
-    { label: 'Home', path: '/', icon: <Home size={20} /> },
-    { label: 'Practices', path: '/sessions', icon: <Calendar size={20} /> },
+    { label: 'Songs', path: '/songs', icon: <Disc3 size={20} /> },
     { label: 'Setlists', path: '/setlists', icon: <ListMusic size={20} /> },
     { label: 'Shows', path: '/shows', icon: <Ticket size={20} /> },
-    { label: 'Songs', path: '/new-layout', icon: <Disc3 size={20} /> },
-    { label: 'Band Members', path: '/members', icon: <Users size={20} />, badge: 6 }
+    { label: 'Practices', path: '/practices', icon: <Calendar size={20} /> },
+    { label: 'Band Members', path: '/band-members', icon: <Users size={20} />, badge: 6 }
   ]
 
   const isActive = (path: string) => {

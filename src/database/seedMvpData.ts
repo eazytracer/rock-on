@@ -15,11 +15,24 @@ import type { SetlistItem } from '../types'
 export async function seedMvpData() {
   console.log('🌱 Starting MVP data seed...')
 
-  // Check if data already exists
-  const existingUsers = await db.users.count()
-  if (existingUsers > 0) {
-    console.log('✅ Database already seeded, skipping...')
-    return
+  try {
+    // Check if data already exists
+    const existingUsers = await db.users.count()
+    console.log(`📊 Existing users in database: ${existingUsers}`)
+
+    if (existingUsers > 0) {
+      console.log('✅ Database already seeded, skipping...')
+
+      // Log what users exist for debugging
+      const users = await db.users.toArray()
+      console.log('👥 Existing users:', users.map(u => u.email))
+      return
+    }
+
+    console.log('🚀 Database is empty, starting seeding process...')
+  } catch (error) {
+    console.error('❌ Error checking database state:', error)
+    throw error
   }
 
   try {
@@ -35,7 +48,7 @@ export async function seedMvpData() {
     await db.users.bulkAdd([
       {
         id: ericId,
-        email: 'eric@ipod shuffle.com',
+        email: 'eric@ipodshuffle.com',
         name: 'Eric Johnson',
         authProvider: 'mock',
         createdDate: new Date('2024-01-15'),
@@ -113,10 +126,10 @@ export async function seedMvpData() {
         id: crypto.randomUUID(),
         userId: ericId,
         bandId,
-        role: 'owner',
+        role: 'admin',
         joinedDate: new Date('2024-01-15'),
         status: 'active',
-        permissions: ['owner']
+        permissions: ['owner', 'admin']
       },
       {
         id: crypto.randomUUID(),
@@ -142,7 +155,7 @@ export async function seedMvpData() {
     await db.inviteCodes.add({
       id: crypto.randomUUID(),
       bandId,
-      code: 'ROCK2024',
+      code: 'ROCK2025',
       createdBy: ericId,
       createdDate: new Date(),
       currentUses: 2,
@@ -206,6 +219,8 @@ export async function seedMvpData() {
         visibility: 'band_only',
         createdDate: new Date(),
         confidenceLevel: 3,
+        structure: [],
+        chords: [],
         referenceLinks: [
           { type: 'youtube', url: `https://youtube.com/watch/${song.key}`, description: 'Tutorial' },
           { type: 'spotify', url: `https://spotify.com/track/${song.key}`, description: 'Original' }
@@ -243,7 +258,13 @@ export async function seedMvpData() {
       loadInTime: '6:00 PM',
       soundcheckTime: '7:00 PM',
       payment: 50000,  // $500 in cents
-      contacts: 'John Smith (Promoter) - 555-1234 - john@toys4tots.org'
+      contacts: [{
+        id: crypto.randomUUID(),
+        name: 'John Smith',
+        role: 'Promoter',
+        phone: '555-1234',
+        email: 'john@toys4tots.org'
+      }]
     })
 
     // Upcoming show 2
@@ -257,7 +278,7 @@ export async function seedMvpData() {
       duration: 120,
       location: '1426 1st Ave, Seattle, WA 98101',
       type: 'gig',
-      status: 'confirmed',
+      status: 'scheduled',
       songs: [],
       attendees: [],
       notes: 'Two sets. Midnight countdown. Confetti cannons.',
@@ -266,7 +287,12 @@ export async function seedMvpData() {
       loadInTime: '8:00 PM',
       soundcheckTime: '9:00 PM',
       payment: 120000,  // $1200
-      contacts: 'Sarah Johnson (Venue Manager) - 555-5678'
+      contacts: [{
+        id: crypto.randomUUID(),
+        name: 'Sarah Johnson',
+        role: 'Venue Manager',
+        phone: '555-5678'
+      }]
     })
 
     // Upcoming show 3
@@ -289,7 +315,12 @@ export async function seedMvpData() {
       loadInTime: '3:00 PM',
       soundcheckTime: '4:00 PM',
       payment: 75000,  // $750
-      contacts: 'Mike Davis (Festival Coordinator) - 555-9012'
+      contacts: [{
+        id: crypto.randomUUID(),
+        name: 'Mike Davis',
+        role: 'Festival Coordinator',
+        phone: '555-9012'
+      }]
     })
 
     // Past show 1
@@ -311,7 +342,11 @@ export async function seedMvpData() {
       loadInTime: '7:00 PM',
       soundcheckTime: '8:00 PM',
       payment: 60000,  // $600
-      contacts: 'Emily Brown - 555-3456'
+      contacts: [{
+        id: crypto.randomUUID(),
+        name: 'Emily Brown',
+        phone: '555-3456'
+      }]
     })
 
     // Past show 2
@@ -346,19 +381,19 @@ export async function seedMvpData() {
     setlistIds.toys4Tots = crypto.randomUUID()
     const toys4TotsItems: SetlistItem[] = [
       { id: crypto.randomUUID(), type: 'song', position: 1, songId: songIds.allStar, notes: 'Energy opener!' },
-      { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds.mr Bright },
+      { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds['mr Bright'] },
       { id: crypto.randomUUID(), type: 'song', position: 3, songId: songIds.livin },
-      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds.seven Nation },
+      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds['seven Nation'] },
       { id: crypto.randomUUID(), type: 'song', position: 5, songId: songIds.jump },
       { id: crypto.randomUUID(), type: 'break', position: 6, breakDuration: 15, breakNotes: 'Quick break - stay hydrated' },
       { id: crypto.randomUUID(), type: 'section', position: 7, sectionTitle: 'Acoustic Set' },
       { id: crypto.randomUUID(), type: 'song', position: 8, songId: songIds.wonderwall },
-      { id: crypto.randomUUID(), type: 'song', position: 9, songId: songIds.hey There },
+      { id: crypto.randomUUID(), type: 'song', position: 9, songId: songIds['hey There'] },
       { id: crypto.randomUUID(), type: 'section', position: 10, sectionTitle: 'Rock Out' },
       { id: crypto.randomUUID(), type: 'song', position: 11, songId: songIds.manInBox },
-      { id: crypto.randomUUID(), type: 'song', position: 12, songId: songIds.sweet Child },
+      { id: crypto.randomUUID(), type: 'song', position: 12, songId: songIds['sweet Child'] },
       { id: crypto.randomUUID(), type: 'song', position: 13, songId: songIds.smellsLike },
-      { id: crypto.randomUUID(), type: 'song', position: 14, songId: songIds.enter Sandman },
+      { id: crypto.randomUUID(), type: 'song', position: 14, songId: songIds['enter Sandman'] },
       { id: crypto.randomUUID(), type: 'song', position: 15, songId: songIds.hotel, notes: 'Extended solo for finale' },
     ]
 
@@ -379,25 +414,25 @@ export async function seedMvpData() {
     setlistIds.newYears = crypto.randomUUID()
     const newYearsItems: SetlistItem[] = [
       { id: crypto.randomUUID(), type: 'section', position: 1, sectionTitle: 'Set 1 - Party Starters' },
-      { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds.mr Bright },
+      { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds['mr Bright'] },
       { id: crypto.randomUUID(), type: 'song', position: 3, songId: songIds.allStar },
       { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds.jump },
       { id: crypto.randomUUID(), type: 'song', position: 5, songId: songIds.livin },
-      { id: crypto.randomUUID(), type: 'song', position: 6, songId: songIds.seven Nation },
+      { id: crypto.randomUUID(), type: 'song', position: 6, songId: songIds['seven Nation'] },
       { id: crypto.randomUUID(), type: 'song', position: 7, songId: songIds.yellowCard },
       { id: crypto.randomUUID(), type: 'song', position: 8, songId: songIds.remedy },
       { id: crypto.randomUUID(), type: 'song', position: 9, songId: songIds.smellsLike },
       { id: crypto.randomUUID(), type: 'song', position: 10, songId: songIds.black },
       { id: crypto.randomUUID(), type: 'break', position: 11, breakDuration: 30, breakNotes: 'Costume change + refreshments' },
       { id: crypto.randomUUID(), type: 'section', position: 12, sectionTitle: 'Set 2 - Countdown to Midnight' },
-      { id: crypto.randomUUID(), type: 'song', position: 13, songId: songIds.sweet Child },
-      { id: crypto.randomUUID(), type: 'song', position: 14, songId: songIds.dream On },
-      { id: crypto.randomUUID(), type: 'song', position: 15, songId: songIds.enter Sandman },
+      { id: crypto.randomUUID(), type: 'song', position: 13, songId: songIds['sweet Child'] },
+      { id: crypto.randomUUID(), type: 'song', position: 14, songId: songIds['dream On'] },
+      { id: crypto.randomUUID(), type: 'song', position: 15, songId: songIds['enter Sandman'] },
       { id: crypto.randomUUID(), type: 'song', position: 16, songId: songIds.manInBox },
       { id: crypto.randomUUID(), type: 'song', position: 17, songId: songIds.wonderwall },
-      { id: crypto.randomUUID(), type: 'song', position: 18, songId: songIds.hey There },
+      { id: crypto.randomUUID(), type: 'song', position: 18, songId: songIds['hey There'] },
       { id: crypto.randomUUID(), type: 'song', position: 19, songId: songIds.hotel, notes: 'Time for midnight countdown after this' },
-      { id: crypto.randomUUID(), type: 'song', position: 20, songId: songIds.free Bird, notes: 'Encore - extended jam' },
+      { id: crypto.randomUUID(), type: 'song', position: 20, songId: songIds['free Bird'], notes: 'Encore - extended jam' },
     ]
 
     await db.setlists.add({
@@ -416,17 +451,17 @@ export async function seedMvpData() {
     // Setlist 3: Summer Festival (shorter set)
     setlistIds.summerFest = crypto.randomUUID()
     const summerFestItems: SetlistItem[] = [
-      { id: crypto.randomUUID(), type: 'song', position: 1, songId: songIds.mr Bright },
+      { id: crypto.randomUUID(), type: 'song', position: 1, songId: songIds['mr Bright'] },
       { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds.allStar },
       { id: crypto.randomUUID(), type: 'song', position: 3, songId: songIds.remedy },
-      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds.seven Nation },
+      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds['seven Nation'] },
       { id: crypto.randomUUID(), type: 'song', position: 5, songId: songIds.wonderwall },
       { id: crypto.randomUUID(), type: 'song', position: 6, songId: songIds.jump },
       { id: crypto.randomUUID(), type: 'song', position: 7, songId: songIds.livin },
       { id: crypto.randomUUID(), type: 'song', position: 8, songId: songIds.smellsLike },
-      { id: crypto.randomUUID(), type: 'song', position: 9, songId: songIds.sweet Child },
-      { id: crypto.randomUUID(), type: 'song', position: 10, songId: songIds.hey There },
-      { id: crypto.randomUUID(), type: 'song', position: 11, songId: songIds.enter Sandman },
+      { id: crypto.randomUUID(), type: 'song', position: 9, songId: songIds['sweet Child'] },
+      { id: crypto.randomUUID(), type: 'song', position: 10, songId: songIds['hey There'] },
+      { id: crypto.randomUUID(), type: 'song', position: 11, songId: songIds['enter Sandman'] },
       { id: crypto.randomUUID(), type: 'song', position: 12, songId: songIds.hotel },
     ]
 
@@ -447,8 +482,8 @@ export async function seedMvpData() {
     const practiceItems: SetlistItem[] = [
       { id: crypto.randomUUID(), type: 'song', position: 1, songId: songIds.black },
       { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds.yellowCard },
-      { id: crypto.randomUUID(), type: 'song', position: 3, songId: songIds.free Bird },
-      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds.dream On },
+      { id: crypto.randomUUID(), type: 'song', position: 3, songId: songIds['free Bird'] },
+      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds['dream On'] },
     ]
 
     await db.setlists.add({
@@ -482,7 +517,7 @@ export async function seedMvpData() {
         { songId: songIds.wonderwall, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
         { songId: songIds.manInBox, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
         { songId: songIds.hotel, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.enter Sandman, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
+        { songId: songIds['enter Sandman'], timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
       ],
       attendees: [],
       notes: 'Focus on transitions. Run through full Toys 4 Tots set.',
@@ -501,7 +536,7 @@ export async function seedMvpData() {
       status: 'scheduled',
       songs: [
         { songId: songIds.black, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.free Bird, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
+        { songId: songIds['free Bird'], timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
         { songId: songIds.yellowCard, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
       ],
       attendees: [],
@@ -520,9 +555,9 @@ export async function seedMvpData() {
       type: 'rehearsal',
       status: 'completed',
       songs: [
-        { songId: songIds.mr Bright, timeSpent: 20, status: 'completed', sectionsWorked: ['intro', 'chorus'], improvements: [], needsWork: [], memberRatings: [] },
+        { songId: songIds['mr Bright'], timeSpent: 20, status: 'completed', sectionsWorked: ['intro', 'chorus'], improvements: [], needsWork: [], memberRatings: [] },
         { songId: songIds.smellsLike, timeSpent: 25, status: 'completed', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.sweet Child, timeSpent: 30, status: 'completed', sectionsWorked: [], improvements: [], needsWork: ['solo timing'], memberRatings: [] },
+        { songId: songIds['sweet Child'], timeSpent: 30, status: 'completed', sectionsWorked: [], improvements: [], needsWork: ['solo timing'], memberRatings: [] },
       ],
       attendees: [],
       notes: 'Great energy today. Sweet Child solo needs more practice.',
@@ -541,7 +576,7 @@ export async function seedMvpData() {
       status: 'completed',
       songs: [
         { songId: songIds.wonderwall, timeSpent: 25, status: 'completed', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.hey There, timeSpent: 20, status: 'completed', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
+        { songId: songIds['hey There'], timeSpent: 20, status: 'completed', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
         { songId: songIds.jump, timeSpent: 15, status: 'completed', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
       ],
       attendees: [],
@@ -561,7 +596,7 @@ export async function seedMvpData() {
       status: 'completed',
       songs: [
         { songId: songIds.hotel, timeSpent: 40, status: 'completed', sectionsWorked: ['intro', 'solo'], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.free Bird, timeSpent: 35, status: 'completed', sectionsWorked: ['solo'], improvements: [], needsWork: [], memberRatings: [] },
+        { songId: songIds['free Bird'], timeSpent: 35, status: 'completed', sectionsWorked: ['solo'], improvements: [], needsWork: [], memberRatings: [] },
       ],
       attendees: [],
       notes: 'Epic jam session. Long songs day.',

@@ -129,7 +129,7 @@ export class RockOnDB extends Dexie {
     })
 
     this.setlists.hook('updating', function(modifications, _primKey, _obj, _trans) {
-      ;(modifications as any).lastModified = new Date()
+      (modifications as any).lastModified = new Date()
     })
 
     this.members.hook('creating', function(_primKey, obj, _trans) {
@@ -148,7 +148,7 @@ export class RockOnDB extends Dexie {
     })
 
     this.userProfiles.hook('updating', function(modifications, _primKey, _obj, _trans) {
-      ;(modifications as any).updatedDate = new Date()
+      (modifications as any).updatedDate = new Date()
     })
 
     this.bandMemberships.hook('creating', function(_primKey, obj, _trans) {
@@ -176,7 +176,7 @@ export class RockOnDB extends Dexie {
     })
 
     this.songCastings.hook('updating', function(modifications, _primKey, _obj, _trans) {
-      ;(modifications as any).updatedDate = new Date()
+      (modifications as any).updatedDate = new Date()
     })
 
     this.songAssignments.hook('creating', function(_primKey, obj, _trans) {
@@ -184,7 +184,7 @@ export class RockOnDB extends Dexie {
     })
 
     this.songAssignments.hook('updating', function(modifications, _primKey, _obj, _trans) {
-      ;(modifications as any).updatedDate = new Date()
+      (modifications as any).updatedDate = new Date()
     })
 
     this.castingTemplates.hook('creating', function(_primKey, obj, _trans) {
@@ -192,7 +192,7 @@ export class RockOnDB extends Dexie {
     })
 
     this.castingTemplates.hook('updating', function(modifications, _primKey, _obj, _trans) {
-      ;(modifications as any).updatedDate = new Date()
+      (modifications as any).updatedDate = new Date()
     })
 
     this.memberCapabilities.hook('creating', function(_primKey, obj, _trans) {
@@ -200,7 +200,7 @@ export class RockOnDB extends Dexie {
     })
 
     this.memberCapabilities.hook('updating', function(modifications, _primKey, _obj, _trans) {
-      ;(modifications as any).updatedDate = new Date()
+      (modifications as any).updatedDate = new Date()
     })
   }
 }

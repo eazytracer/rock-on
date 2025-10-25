@@ -299,7 +299,7 @@ export class PracticeSessionService {
       departureTime: attendanceData.departureTime ? new Date(attendanceData.departureTime) : undefined
     }
 
-    let updatedAttendees = [...session.attendees]
+    const updatedAttendees = [...session.attendees]
     if (attendeeIndex >= 0) {
       updatedAttendees[attendeeIndex] = newAttendee
     } else {

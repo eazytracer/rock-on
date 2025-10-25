@@ -34,7 +34,15 @@
       "mcp__chrome__evaluate_script",
       "mcp__chrome__fill",
       "Bash(npm run type-check:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(npm run lint:*)",
+      "Bash(netstat:*)",
+      "Bash(ss:*)",
+      "Bash(pkill:*)",
+      "Read(//tmp/**)",
+      "mcp__chrome__resize_page"
     ],
     "deny": [],
     "ask": []

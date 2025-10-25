@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # Development mode
+  rock-on-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: rock-on-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    profiles:
+      - dev
+
+  # Production mode
+  rock-on-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: rock-on-prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    profiles:
+      - prod

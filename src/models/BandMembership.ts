@@ -14,9 +14,10 @@ export interface InviteCode {
   code: string
   createdBy: string
   expiresAt?: Date
-  maxUses: number
+  maxUses?: number
   currentUses: number
   createdDate: Date
+  isActive: boolean
 }
 
 export const BandMembershipSchema = {

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   User,
   Mail,
@@ -17,6 +18,22 @@ import {
 } from 'lucide-react'
 
 // ============================================================================
+// DATABASE IMPORTS - Added for Phase 2 Database Integration
+// ============================================================================
+// PHASE 2 CHANGES SUMMARY:
+// 1. Sign Up Form: Creates user in db.users and db.userProfiles, stores userId in localStorage
+// 2. Log In Form: Queries db.users by email, updates lastLogin, checks for bands
+// 3. Get Started - Create Band: Uses useCreateBand hook, creates invite code, stores bandId
+// 4. Get Started - Join Band: Queries db.inviteCodes, validates code, creates membership
+// 5. Create Band Modal: Same as Get Started create flow for modals
+// 6. Join Band Modal: Same as Get Started join flow for modals
+// All operations include proper error handling with try-catch blocks and error toasts
+// ============================================================================
+import { db } from '../../services/database'
+import { useCreateBand } from '../../hooks/useBands'
+import type { Band } from '../../models/Band'
+
+// ============================================================================
 // TYPES & INTERFACES
 // ============================================================================
 
@@ -27,7 +44,7 @@ interface UserData {
   password: string
 }
 
-interface Band {
+interface BandDisplay {
   id: string
   name: string
   memberCount: number
@@ -39,20 +56,11 @@ interface FormErrors {
   [key: string]: string
 }
 
-type AuthView = 'login' | 'signup' | 'get-started' | 'account-settings' | 'app'
-
 // ============================================================================
 // MOCK DATA
 // ============================================================================
 
-const MOCK_USER: UserData = {
-  id: 'user-1',
-  email: 'eric@example.com',
-  displayName: 'Eric Johnson',
-  password: 'password123'
-}
-
-const MOCK_BANDS: Band[] = [
+const MOCK_BANDS: BandDisplay[] = [
   {
     id: 'band-1',
     name: 'iPod Shuffle',
@@ -286,11 +294,11 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
 // ============================================================================
 
 interface SignUpPageProps {
-  onSuccess: () => void
   onSwitchToLogin: () => void
 }
 
-const SignUpPage: React.FC<SignUpPageProps> = ({ onSuccess, onSwitchToLogin }) => {
+const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -331,14 +339,46 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSuccess, onSwitchToLogin }) =
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (validate()) {
       setLoading(true)
-      setTimeout(() => {
+
+      try {
+        // PHASE 2 DATABASE INTEGRATION: Create user in database
+        const userId = crypto.randomUUID()
+
+        // Create user in db.users table
+        await db.users.add({
+          id: userId,
+          email,
+          name: displayName, // Using displayName as the user's name
+          authProvider: 'mock',
+          createdDate: new Date(),
+          lastLogin: new Date()
+        })
+
+        // Create user profile in db.userProfiles table
+        await db.userProfiles.add({
+          id: crypto.randomUUID(),
+          userId,
+          displayName,
+          instruments: [],
+          createdDate: new Date(),
+          updatedDate: new Date()
+        })
+
+        // Store authenticated user ID in localStorage
+        localStorage.setItem('currentUserId', userId)
+
         setLoading(false)
-        onSuccess()
-      }, 1000)
+        // Navigate to get started - user needs to create/join a band
+        navigate('/get-started')
+      } catch (err) {
+        console.error('Sign up error:', err)
+        setErrors({ email: 'Failed to create account. Please try again.' })
+        setLoading(false)
+      }
     }
   }
 
@@ -432,16 +472,18 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSuccess, onSwitchToLogin }) =
 }
 
 interface LoginPageProps {
-  onSuccess: (hasNoBands?: boolean) => void
+  onSuccess: () => void
   onSwitchToSignup: () => void
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onSwitchToSignup }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchToSignup }) => {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
+  const [showMockUsers, setShowMockUsers] = useState(false)
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {}
@@ -458,24 +500,105 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onSwitchToSignup }) =>
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (validate()) {
       setLoading(true)
-      setTimeout(() => {
-        setLoading(false)
-        // Check mock credentials
-        if (email === MOCK_USER.email && password === MOCK_USER.password) {
-          onSuccess(false) // Has bands
+
+      try {
+        // PHASE 2 DATABASE INTEGRATION: Query database for user
+        const user = await db.users
+          .where('email')
+          .equals(email.toLowerCase())
+          .first()
+
+        if (user) {
+          // User exists - set localStorage and update lastLogin
+          localStorage.setItem('currentUserId', user.id)
+
+          // Update user's lastLogin timestamp
+          await db.users.update(user.id, {
+            lastLogin: new Date()
+          })
+
+          // Check if user has any bands
+          const memberships = await db.bandMemberships
+            .where('userId')
+            .equals(user.id)
+            .toArray()
+
+          if (memberships.length > 0) {
+            // User has bands - set currentBandId to first band and navigate to app
+            localStorage.setItem('currentBandId', memberships[0].bandId)
+            setLoading(false)
+            navigate('/songs')
+          } else {
+            // User has no bands - navigate to get started
+            setLoading(false)
+            navigate('/get-started')
+          }
         } else {
+          setLoading(false)
           setErrors({ password: 'Invalid email or password' })
         }
-      }, 1000)
+      } catch (err) {
+        console.error('Login error:', err)
+        setErrors({ password: 'Login failed. Please try again.' })
+        setLoading(false)
+      }
     }
   }
 
   const handleGoogleSignIn = () => {
     console.log('Google auth not implemented yet')
+  }
+
+  const handleMockUserLogin = async (mockEmail: string) => {
+    setEmail(mockEmail)
+    setErrors({})
+    setLoading(true)
+
+    try {
+      // PHASE 2 DATABASE INTEGRATION: Query database for user
+      const user = await db.users
+        .where('email')
+        .equals(mockEmail.toLowerCase())
+        .first()
+
+      if (user) {
+        // User exists - set localStorage and update lastLogin
+        localStorage.setItem('currentUserId', user.id)
+
+        // Update user's lastLogin timestamp
+        await db.users.update(user.id, {
+          lastLogin: new Date()
+        })
+
+        // Check if user has any bands
+        const memberships = await db.bandMemberships
+          .where('userId')
+          .equals(user.id)
+          .toArray()
+
+        if (memberships.length > 0) {
+          // User has bands - set currentBandId to first band and navigate to app
+          localStorage.setItem('currentBandId', memberships[0].bandId)
+          setLoading(false)
+          navigate('/songs')
+        } else {
+          // User has no bands - navigate to get started
+          setLoading(false)
+          navigate('/get-started')
+        }
+      } else {
+        setLoading(false)
+        setErrors({ password: 'User not found in database. Try running resetDB() in console.' })
+      }
+    } catch (err) {
+      console.error('Mock login error:', err)
+      setErrors({ password: 'Login failed. Please try again.' })
+      setLoading(false)
+    }
   }
 
   return (
@@ -535,6 +658,49 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onSwitchToSignup }) =>
             </Button>
           </form>
 
+          {/* Quick Signon for Testing */}
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setShowMockUsers(!showMockUsers)}
+              className="text-sm text-[#f17827ff] hover:text-[#d96a1f] transition-colors"
+            >
+              {showMockUsers ? 'Hide' : 'Show'} Mock Users for Testing
+            </button>
+          </div>
+
+          {showMockUsers && (
+            <div className="mt-4 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+              <p className="text-xs text-[#707070] mb-3">Quick login with test users:</p>
+              <div className="space-y-2">
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => handleMockUserLogin('eric@ipodshuffle.com')}
+                  disabled={loading}
+                >
+                  Eric (Guitar, Vocals)
+                </Button>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => handleMockUserLogin('mike@ipodshuffle.com')}
+                  disabled={loading}
+                >
+                  Mike (Bass, Harmonica, Vocals)
+                </Button>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => handleMockUserLogin('sarah@ipodshuffle.com')}
+                  disabled={loading}
+                >
+                  Sarah (Drums, Percussion)
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 text-center">
             <button
               onClick={onSwitchToSignup}
@@ -550,17 +716,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onSwitchToSignup }) =>
 }
 
 interface GetStartedPageProps {
-  onComplete: () => void
+  // No props needed - will use navigate
 }
 
-const GetStartedPage: React.FC<GetStartedPageProps> = ({ onComplete }) => {
+const GetStartedPage: React.FC<GetStartedPageProps> = () => {
+  const navigate = useNavigate()
   const [bandName, setBandName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
-  const handleCreateBand = () => {
+  // PHASE 2 DATABASE INTEGRATION: Use the createBand hook
+  const { createBand } = useCreateBand()
+
+  const handleCreateBand = async () => {
     if (!bandName) {
       setErrors({ bandName: 'Band name is required' })
       return
@@ -571,42 +741,144 @@ const GetStartedPage: React.FC<GetStartedPageProps> = ({ onComplete }) => {
     }
 
     setLoading(true)
-    setTimeout(() => {
+
+    try {
+      // PHASE 2 DATABASE INTEGRATION: Create band with real database operations
+      const currentUserId = localStorage.getItem('currentUserId')
+      if (!currentUserId) {
+        throw new Error('No user logged in')
+      }
+
+      // Create band using the hook (this creates band + owner membership)
+      const bandId = await createBand({ name: bandName }, currentUserId)
+
+      if (!bandId) {
+        throw new Error('Failed to create band')
+      }
+
+      // Generate initial invite code with format 'ROCK' + random 4 digits
+      const randomDigits = Math.floor(1000 + Math.random() * 9000) // Generates 4-digit number
+      const generatedCode = 'ROCK' + randomDigits
+
+      await db.inviteCodes.add({
+        id: crypto.randomUUID(),
+        bandId,
+        code: generatedCode,
+        createdBy: currentUserId,
+        currentUses: 0,
+        maxUses: 999, // Allow many uses
+        createdDate: new Date(),
+        isActive: true
+      })
+
+      // Store bandId in localStorage as currentBandId
+      localStorage.setItem('currentBandId', bandId)
+
       setLoading(false)
-      const generatedCode = 'ROCK' + Math.floor(Math.random() * 10000)
       setToast({
         message: `Band created! Share this invite code: ${generatedCode}`,
         type: 'success'
       })
       setTimeout(() => {
-        onComplete()
+        navigate('/songs')
       }, 2000)
-    }, 1000)
+    } catch (err) {
+      console.error('Error creating band:', err)
+      setErrors({ bandName: 'Failed to create band. Please try again.' })
+      setLoading(false)
+    }
   }
 
-  const handleJoinBand = () => {
+  const handleJoinBand = async () => {
     if (!inviteCode) {
       setErrors({ inviteCode: 'Invite code is required' })
       return
     }
 
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      // Check if code exists in mock data
-      const band = MOCK_BANDS.find(b => b.inviteCode === inviteCode.toUpperCase())
-      if (band) {
+
+    try {
+      // PHASE 2 DATABASE INTEGRATION: Query database for invite code
+      const currentUserId = localStorage.getItem('currentUserId')
+      if (!currentUserId) {
+        throw new Error('No user logged in')
+      }
+
+      // Find the invite code in database
+      const foundCode = await db.inviteCodes
+        .where('code')
+        .equals(inviteCode.toUpperCase())
+        .first()
+
+      if (foundCode) {
+        // Check if code has reached max uses
+        if (foundCode.maxUses && foundCode.currentUses >= foundCode.maxUses) {
+          setLoading(false)
+          setErrors({ inviteCode: 'This invite code has reached its maximum uses' })
+          return
+        }
+
+        // Check if code is expired
+        if (foundCode.expiresAt && new Date() > foundCode.expiresAt) {
+          setLoading(false)
+          setErrors({ inviteCode: 'This invite code has expired' })
+          return
+        }
+
+        const bandId = foundCode.bandId
+
+        // Check if user is already a member
+        const existingMembership = await db.bandMemberships
+          .where('userId')
+          .equals(currentUserId)
+          .and(m => m.bandId === bandId)
+          .first()
+
+        if (existingMembership) {
+          setLoading(false)
+          setErrors({ inviteCode: 'You are already a member of this band' })
+          return
+        }
+
+        // Create membership with role='member'
+        await db.bandMemberships.add({
+          id: crypto.randomUUID(),
+          userId: currentUserId,
+          bandId,
+          role: 'member',
+          joinedDate: new Date(),
+          status: 'active',
+          permissions: ['member']
+        })
+
+        // Increment currentUses on the invite code
+        await db.inviteCodes.update(foundCode.id, {
+          currentUses: foundCode.currentUses + 1
+        })
+
+        // Store bandId in localStorage as currentBandId
+        localStorage.setItem('currentBandId', bandId)
+
+        // Get band name for toast message
+        const band = await db.bands.get(bandId)
+
+        setLoading(false)
         setToast({
-          message: `You joined ${band.name}!`,
+          message: `You joined ${band?.name || 'the band'}!`,
           type: 'success'
         })
         setTimeout(() => {
-          onComplete()
+          navigate('/songs')
         }, 2000)
       } else {
+        setLoading(false)
         setErrors({ inviteCode: 'Invalid invite code' })
       }
-    }, 1000)
+    } catch (err) {
+      console.error('Error joining band:', err)
+      setErrors({ inviteCode: 'Failed to join band. Please try again.' })
+      setLoading(false)
+    }
   }
 
   return (
@@ -724,302 +996,6 @@ const GetStartedPage: React.FC<GetStartedPageProps> = ({ onComplete }) => {
 }
 
 // ============================================================================
-// ACCOUNT SETTINGS PAGE
-// ============================================================================
-
-interface AccountSettingsPageProps {
-  user: UserData
-  onUpdateUser: (updates: Partial<UserData>) => void
-  onLogout: () => void
-}
-
-const AccountSettingsPage: React.FC<AccountSettingsPageProps> = ({ user, onUpdateUser, onLogout }) => {
-  const [displayName, setDisplayName] = useState(user.displayName)
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmNewPassword, setConfirmNewPassword] = useState('')
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [theme, setTheme] = useState('dark')
-  const [deleteConfirmation, setDeleteConfirmation] = useState('')
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
-
-  const handleSaveProfile = () => {
-    if (!displayName) {
-      setErrors({ displayName: 'Display name is required' })
-      return
-    }
-    if (displayName.length < 2) {
-      setErrors({ displayName: 'Display name must be at least 2 characters' })
-      return
-    }
-
-    onUpdateUser({ displayName })
-    setToast({ message: 'Profile updated', type: 'success' })
-  }
-
-  const handleChangePassword = () => {
-    const newErrors: FormErrors = {}
-
-    if (!currentPassword) {
-      newErrors.currentPassword = 'Current password is required'
-    } else if (currentPassword !== user.password) {
-      newErrors.currentPassword = 'Current password is incorrect'
-    }
-
-    if (!newPassword) {
-      newErrors.newPassword = 'New password is required'
-    } else if (!validatePassword(newPassword)) {
-      newErrors.newPassword = 'Password must be at least 8 characters'
-    }
-
-    if (!confirmNewPassword) {
-      newErrors.confirmNewPassword = 'Please confirm your password'
-    } else if (newPassword !== confirmNewPassword) {
-      newErrors.confirmNewPassword = 'Passwords do not match'
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
-
-    onUpdateUser({ password: newPassword })
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmNewPassword('')
-    setErrors({})
-    setToast({ message: 'Password changed', type: 'success' })
-  }
-
-  const handleDeleteAccount = () => {
-    if (deleteConfirmation === 'DELETE') {
-      setToast({ message: 'Account deleted', type: 'success' })
-      setTimeout(() => {
-        onLogout()
-      }, 1500)
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#121212] py-8 px-6">
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Account Settings</h1>
-          <p className="text-[#a0a0a0]">Manage your account information and preferences</p>
-        </div>
-
-        {/* Profile Section */}
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a] mb-6">
-          <h2 className="text-xl font-bold text-white mb-6">Profile</h2>
-
-          <div className="flex items-center gap-6 mb-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#f17827ff] to-[#d96a1f] flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">
-                {user.displayName.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1">
-              <button className="px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-[#707070] text-sm font-medium cursor-not-allowed">
-                Change Photo (Coming Soon)
-              </button>
-            </div>
-          </div>
-
-          <InputField
-            label="Display Name"
-            type="text"
-            value={displayName}
-            onChange={setDisplayName}
-            error={errors.displayName}
-            placeholder="Your name"
-          />
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-white mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={user.email}
-              disabled
-              className="w-full h-11 px-4 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-[#707070] text-sm cursor-not-allowed"
-            />
-            <p className="mt-1 text-xs text-[#707070]">Email cannot be changed at this time</p>
-          </div>
-
-          <Button variant="primary" onClick={handleSaveProfile}>
-            Save Changes
-          </Button>
-        </div>
-
-        {/* Security Section */}
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a] mb-6">
-          <h2 className="text-xl font-bold text-white mb-6">Security</h2>
-
-          <InputField
-            label="Current Password"
-            type="password"
-            value={currentPassword}
-            onChange={setCurrentPassword}
-            error={errors.currentPassword}
-            placeholder="Enter current password"
-            icon={<Lock size={18} />}
-            showPasswordToggle
-            showPassword={showCurrentPassword}
-            onTogglePassword={() => setShowCurrentPassword(!showCurrentPassword)}
-          />
-
-          <InputField
-            label="New Password"
-            type="password"
-            value={newPassword}
-            onChange={setNewPassword}
-            error={errors.newPassword}
-            placeholder="At least 8 characters"
-            icon={<Lock size={18} />}
-            showPasswordToggle
-            showPassword={showNewPassword}
-            onTogglePassword={() => setShowNewPassword(!showNewPassword)}
-          />
-
-          <InputField
-            label="Confirm New Password"
-            type="password"
-            value={confirmNewPassword}
-            onChange={setConfirmNewPassword}
-            error={errors.confirmNewPassword}
-            placeholder="Re-enter new password"
-            icon={<Lock size={18} />}
-            showPasswordToggle
-            showPassword={showConfirmNewPassword}
-            onTogglePassword={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-          />
-
-          <Button variant="primary" onClick={handleChangePassword}>
-            Change Password
-          </Button>
-        </div>
-
-        {/* Preferences Section */}
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a] mb-6">
-          <h2 className="text-xl font-bold text-white mb-6">Preferences</h2>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-[#2a2a2a]">
-              <div>
-                <label className="text-sm font-medium text-white">Theme</label>
-                <p className="text-xs text-[#707070] mt-1">Choose your preferred color scheme</p>
-              </div>
-              <select
-                value={theme}
-                onChange={(e) => setTheme(e.target.value)}
-                className="px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 focus:border-[#f17827ff]"
-              >
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-              </select>
-            </div>
-
-            <div className="flex items-center justify-between py-3">
-              <div>
-                <label className="text-sm font-medium text-white">Email Notifications</label>
-                <p className="text-xs text-[#707070] mt-1">Receive updates about your bands</p>
-              </div>
-              <button
-                onClick={() => setEmailNotifications(!emailNotifications)}
-                className={`
-                  relative w-12 h-6 rounded-full transition-colors
-                  ${emailNotifications ? 'bg-[#f17827ff]' : 'bg-[#2a2a2a]'}
-                `}
-              >
-                <div
-                  className={`
-                    absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform
-                    ${emailNotifications ? 'translate-x-6' : 'translate-x-0'}
-                  `}
-                />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Danger Zone */}
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border-2 border-[#D7263D]/30">
-          <h2 className="text-xl font-bold text-[#D7263D] mb-3">Danger Zone</h2>
-          <p className="text-[#a0a0a0] text-sm mb-4">
-            Once you delete your account, there is no going back. Please be certain.
-          </p>
-          <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
-            Delete Account
-          </Button>
-        </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
-          <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a] max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-4">Delete Account</h3>
-            <div className="mb-6">
-              <p className="text-[#a0a0a0] text-sm mb-3">
-                This will permanently delete your account and remove you from all bands.
-              </p>
-              <p className="text-[#D7263D] text-sm font-semibold mb-4">
-                This action cannot be undone.
-              </p>
-              <label className="block text-sm font-medium text-white mb-2">
-                Type <span className="font-mono text-[#D7263D]">DELETE</span> to confirm
-              </label>
-              <input
-                type="text"
-                value={deleteConfirmation}
-                onChange={(e) => setDeleteConfirmation(e.target.value)}
-                placeholder="DELETE"
-                className="w-full h-11 px-4 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D7263D]/20 focus:border-[#D7263D]"
-              />
-            </div>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                fullWidth
-                onClick={() => {
-                  setShowDeleteModal(false)
-                  setDeleteConfirmation('')
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                fullWidth
-                onClick={handleDeleteAccount}
-                disabled={deleteConfirmation !== 'DELETE'}
-              >
-                Delete My Account
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================================================
 // NAVIGATION DROPDOWNS
 // ============================================================================
 
@@ -1108,8 +1084,8 @@ const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onAccountSett
 }
 
 interface BandSelectorDropdownProps {
-  currentBand: Band
-  bands: Band[]
+  currentBand: BandDisplay
+  bands: BandDisplay[]
   onSwitchBand: (bandId: string) => void
   onManageBand: () => void
   onCreateBand: () => void
@@ -1247,9 +1223,12 @@ const CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onSu
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
 
+  // PHASE 2 DATABASE INTEGRATION: Use the createBand hook
+  const { createBand } = useCreateBand()
+
   if (!isOpen) return null
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!bandName) {
       setErrors({ bandName: 'Band name is required' })
       return
@@ -1260,13 +1239,45 @@ const CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onSu
     }
 
     setLoading(true)
-    setTimeout(() => {
+
+    try {
+      // PHASE 2 DATABASE INTEGRATION: Create band with real database
+      const currentUserId = localStorage.getItem('currentUserId')
+      if (!currentUserId) {
+        throw new Error('No user logged in')
+      }
+
+      const bandId = await createBand({ name: bandName, description }, currentUserId)
+
+      if (!bandId) {
+        throw new Error('Failed to create band')
+      }
+
+      // Generate invite code
+      const randomDigits = Math.floor(1000 + Math.random() * 9000)
+      const generatedCode = 'ROCK' + randomDigits
+
+      await db.inviteCodes.add({
+        id: crypto.randomUUID(),
+        bandId,
+        code: generatedCode,
+        createdBy: currentUserId,
+        currentUses: 0,
+        maxUses: 999,
+        createdDate: new Date(),
+        isActive: true
+      })
+
       setLoading(false)
       onSuccess(bandName)
       setBandName('')
       setDescription('')
       setErrors({})
-    }, 1000)
+    } catch (err) {
+      console.error('Error creating band:', err)
+      setErrors({ bandName: 'Failed to create band. Please try again.' })
+      setLoading(false)
+    }
   }
 
   return (
@@ -1325,24 +1336,87 @@ const JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSucces
 
   if (!isOpen) return null
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!inviteCode) {
       setErrors({ inviteCode: 'Invite code is required' })
       return
     }
 
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      const band = MOCK_BANDS.find(b => b.inviteCode === inviteCode.toUpperCase())
-      if (band) {
-        onSuccess(band.name)
+
+    try {
+      // PHASE 2 DATABASE INTEGRATION: Query database for invite code
+      const currentUserId = localStorage.getItem('currentUserId')
+      if (!currentUserId) {
+        throw new Error('No user logged in')
+      }
+
+      const foundCode = await db.inviteCodes
+        .where('code')
+        .equals(inviteCode.toUpperCase())
+        .first()
+
+      if (foundCode) {
+        // Validation checks
+        if (foundCode.maxUses && foundCode.currentUses >= foundCode.maxUses) {
+          setLoading(false)
+          setErrors({ inviteCode: 'This invite code has reached its maximum uses' })
+          return
+        }
+
+        if (foundCode.expiresAt && new Date() > foundCode.expiresAt) {
+          setLoading(false)
+          setErrors({ inviteCode: 'This invite code has expired' })
+          return
+        }
+
+        const bandId = foundCode.bandId
+
+        // Check if already a member
+        const existingMembership = await db.bandMemberships
+          .where('userId')
+          .equals(currentUserId)
+          .and(m => m.bandId === bandId)
+          .first()
+
+        if (existingMembership) {
+          setLoading(false)
+          setErrors({ inviteCode: 'You are already a member of this band' })
+          return
+        }
+
+        // Create membership
+        await db.bandMemberships.add({
+          id: crypto.randomUUID(),
+          userId: currentUserId,
+          bandId,
+          role: 'member',
+          joinedDate: new Date(),
+          status: 'active',
+          permissions: ['member']
+        })
+
+        // Increment uses
+        await db.inviteCodes.update(foundCode.id, {
+          currentUses: foundCode.currentUses + 1
+        })
+
+        // Get band name
+        const band = await db.bands.get(bandId)
+
+        setLoading(false)
+        onSuccess(band?.name || 'the band')
         setInviteCode('')
         setErrors({})
       } else {
+        setLoading(false)
         setErrors({ inviteCode: 'Invalid invite code' })
       }
-    }, 1000)
+    } catch (err) {
+      console.error('Error joining band:', err)
+      setErrors({ inviteCode: 'Failed to join band. Please try again.' })
+      setLoading(false)
+    }
   }
 
   return (
@@ -1398,227 +1472,35 @@ const JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSucces
 // DEMO APP WITH ALL COMPONENTS
 // ============================================================================
 
-interface DemoAppProps {
-  currentBand: Band
-  user: UserData
-  onAccountSettings: () => void
-  onLogout: () => void
-}
-
-const DemoApp: React.FC<DemoAppProps> = ({ currentBand, user, onAccountSettings, onLogout }) => {
-  const [showCreateBandModal, setShowCreateBandModal] = useState(false)
-  const [showJoinBandModal, setShowJoinBandModal] = useState(false)
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
-
-  return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
-      {/* Demo Header */}
-      <header className="bg-[#141414] border-b border-[#1f1f1f] p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Band Selector */}
-          <BandSelectorDropdown
-            currentBand={currentBand}
-            bands={MOCK_BANDS}
-            onSwitchBand={(bandId) => {
-              const band = MOCK_BANDS.find(b => b.id === bandId)
-              if (band) {
-                setToast({ message: `Switched to ${band.name}`, type: 'info' })
-              }
-            }}
-            onManageBand={() => setToast({ message: 'Navigate to Band Members page', type: 'info' })}
-            onCreateBand={() => setShowCreateBandModal(true)}
-            onJoinBand={() => setShowJoinBandModal(true)}
-          />
-
-          {/* User Menu */}
-          <UserMenuDropdown
-            user={user}
-            onAccountSettings={onAccountSettings}
-            onLogout={onLogout}
-          />
-        </div>
-      </header>
-
-      {/* Demo Content */}
-      <main className="p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-[#1a1a1a] rounded-xl p-8 border border-[#2a2a2a] text-center">
-            <h1 className="text-3xl font-bold text-white mb-4">Welcome to Rock-On!</h1>
-            <p className="text-[#a0a0a0] mb-6">
-              You're logged in as <span className="text-white font-semibold">{user.displayName}</span>
-            </p>
-            <p className="text-[#707070] text-sm mb-4">
-              Current Band: <span className="text-[#f17827ff] font-semibold">{currentBand.name}</span> ({currentBand.memberCount} members)
-            </p>
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              <Button variant="secondary" onClick={() => setShowCreateBandModal(true)}>
-                <UserPlus size={18} />
-                Create New Band
-              </Button>
-              <Button variant="secondary" onClick={() => setShowJoinBandModal(true)}>
-                <Ticket size={18} />
-                Join Band
-              </Button>
-              <Button variant="secondary" onClick={onAccountSettings}>
-                <Settings size={18} />
-                Account Settings
-              </Button>
-            </div>
-          </div>
-
-          {/* Info Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mt-8">
-            <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a]">
-              <h3 className="text-lg font-bold text-white mb-2">User Menu</h3>
-              <p className="text-[#a0a0a0] text-sm mb-4">Click your avatar (top-right) to access account settings and log out</p>
-              <div className="flex items-center gap-2 text-[#f17827ff] text-sm">
-                <User size={16} />
-                <span>Top-right corner</span>
-              </div>
-            </div>
-
-            <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a]">
-              <h3 className="text-lg font-bold text-white mb-2">Band Selector</h3>
-              <p className="text-[#a0a0a0] text-sm mb-4">Switch between your bands or create/join new ones</p>
-              <div className="flex items-center gap-2 text-[#f17827ff] text-sm">
-                <Users size={16} />
-                <span>Top-left corner</span>
-              </div>
-            </div>
-
-            <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a]">
-              <h3 className="text-lg font-bold text-white mb-2">Mock Data</h3>
-              <p className="text-[#a0a0a0] text-sm mb-4">All features use mock data - no database required</p>
-              <div className="flex items-center gap-2 text-[#f17827ff] text-sm">
-                <Check size={16} />
-                <span>Ready to test</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Modals */}
-      <CreateBandModal
-        isOpen={showCreateBandModal}
-        onClose={() => setShowCreateBandModal(false)}
-        onSuccess={(bandName) => {
-          setShowCreateBandModal(false)
-          setToast({ message: `Band "${bandName}" created!`, type: 'success' })
-        }}
-      />
-
-      <JoinBandModal
-        isOpen={showJoinBandModal}
-        onClose={() => setShowJoinBandModal(false)}
-        onSuccess={(bandName) => {
-          setShowJoinBandModal(false)
-          setToast({ message: `You joined ${bandName}!`, type: 'success' })
-        }}
-      />
-    </div>
-  )
-}
-
 // ============================================================================
 // MAIN COMPONENT - AuthPages Demo
 // ============================================================================
 
 export const AuthPages: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AuthView>('login')
-  const [user, setUser] = useState<UserData>(MOCK_USER)
-  const [currentBand] = useState<Band>(MOCK_BANDS[0])
+  const location = useLocation()
+  const [showSignup, setShowSignup] = useState(false)
 
-  const handleUpdateUser = (updates: Partial<UserData>) => {
-    setUser({ ...user, ...updates })
+  // Route based on URL path
+  const currentPath = location.pathname
+
+  if (currentPath === '/get-started') {
+    return <GetStartedPage />
   }
 
-  const handleLogout = () => {
-    setCurrentView('login')
-  }
-
-  const handleLoginSuccess = (hasNoBands?: boolean) => {
-    if (hasNoBands) {
-      setCurrentView('get-started')
-    } else {
-      setCurrentView('app')
-    }
-  }
-
-  const handleSignupSuccess = () => {
-    setCurrentView('get-started')
-  }
-
-  const handleGetStartedComplete = () => {
-    setCurrentView('app')
-  }
-
-  const handleAccountSettings = () => {
-    setCurrentView('account-settings')
-  }
-
-  const handleBackToApp = () => {
-    setCurrentView('app')
-  }
-
-  // Render based on current view
-  if (currentView === 'login') {
-    return (
-      <LoginPage
-        onSuccess={handleLoginSuccess}
-        onSwitchToSignup={() => setCurrentView('signup')}
-      />
-    )
-  }
-
-  if (currentView === 'signup') {
+  // /auth route - show login or signup
+  if (showSignup) {
     return (
       <SignUpPage
-        onSuccess={handleSignupSuccess}
-        onSwitchToLogin={() => setCurrentView('login')}
+        onSwitchToLogin={() => setShowSignup(false)}
       />
     )
   }
 
-  if (currentView === 'get-started') {
-    return (
-      <GetStartedPage onComplete={handleGetStartedComplete} />
-    )
-  }
-
-  if (currentView === 'account-settings') {
-    return (
-      <div className="relative">
-        {/* Back Button */}
-        <div className="fixed top-6 left-6 z-10">
-          <Button variant="secondary" onClick={handleBackToApp}>
-            Back to App
-          </Button>
-        </div>
-        <AccountSettingsPage
-          user={user}
-          onUpdateUser={handleUpdateUser}
-          onLogout={handleLogout}
-        />
-      </div>
-    )
-  }
-
-  // Default: app view
+  // Default: show login page
   return (
-    <DemoApp
-      currentBand={currentBand}
-      user={user}
-      onAccountSettings={handleAccountSettings}
-      onLogout={handleLogout}
+    <LoginPage
+      onSuccess={() => {/* Navigate handled in LoginPage */}}
+      onSwitchToSignup={() => setShowSignup(true)}
     />
   )
 }

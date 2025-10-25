@@ -109,7 +109,7 @@ export const SongList: React.FC<SongListProps> = ({
   }>({})
 
   const filteredAndSortedSongs = useMemo(() => {
-    let filtered = songs.filter(song => {
+    const filtered = songs.filter(song => {
       const matchesSearch =
         song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -143,11 +143,12 @@ export const SongList: React.FC<SongListProps> = ({
         case 'difficulty':
           comparison = a.difficulty - b.difficulty
           break
-        case 'lastPracticed':
+        case 'lastPracticed': {
           const aDate = a.lastPracticed ? new Date(a.lastPracticed).getTime() : 0
           const bDate = b.lastPracticed ? new Date(b.lastPracticed).getTime() : 0
           comparison = aDate - bDate
           break
+        }
         case 'confidence':
           comparison = a.confidenceLevel - b.confidenceLevel
           break

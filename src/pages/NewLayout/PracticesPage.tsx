@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ModernLayout } from '../../components/layout/ModernLayout'
 import { TimePicker } from '../../components/common/TimePicker'
 import { DurationPicker } from '../../components/common/DurationPicker'
@@ -17,242 +17,57 @@ import {
   Edit2,
   CheckCircle,
   XCircle,
-  Search
+  Search,
+  Loader2
 } from 'lucide-react'
+
+// ===== DATABASE IMPORTS =====
+import { db } from '../../services/database'
+import {
+  useUpcomingPractices,
+  useCreatePractice,
+  useUpdatePractice,
+  useDeletePractice,
+  useAutoSuggestSongs
+} from '../../hooks/usePractices'
+import { formatShowDate, formatTime12Hour, parseTime12Hour } from '../../utils/dateHelpers'
+import type { PracticeSession } from '../../models/PracticeSession'
+import type { Song } from '../../models/Song'
+import type { SessionSong } from '../../types'
 
 // ===== INTERFACES =====
 
-interface PracticeSong {
-  songId: string
-  position: number
+// Helper interface for song display with loaded data
+interface SongWithDetails extends Song {
+  displayDuration: string
 }
-
-interface Practice {
-  id: string
-  bandId: string
-  scheduledDate: Date
-  duration: number // minutes
-  location?: string
-  type: 'rehearsal'
-  status: 'scheduled' | 'completed' | 'cancelled'
-  songs: PracticeSong[]
-  notes?: string
-  createdDate: Date
-  lastModified: Date
-}
-
-interface Song {
-  id: string
-  title: string
-  artist: string
-  duration: string
-  key: string
-  tuning: string
-  bpm: string
-}
-
-interface Show {
-  id: string
-  name: string
-  date: Date
-  songs: string[]
-}
-
-// ===== MOCK DATA =====
-
-const mockSongs: Song[] = [
-  {
-    id: 's1',
-    title: 'All Star',
-    artist: 'Smash Mouth',
-    duration: '3:14',
-    key: 'F#',
-    tuning: 'Standard',
-    bpm: '104'
-  },
-  {
-    id: 's2',
-    title: 'Man in the Box',
-    artist: 'Alice In Chains',
-    duration: '4:47',
-    key: 'Ebm',
-    tuning: 'Half-step down',
-    bpm: '108'
-  },
-  {
-    id: 's3',
-    title: 'No Rain',
-    artist: 'Blind Melon',
-    duration: '3:33',
-    key: 'E',
-    tuning: 'Standard',
-    bpm: '150'
-  },
-  {
-    id: 's4',
-    title: 'Monkey Wrench',
-    artist: 'Foo Fighters',
-    duration: '3:51',
-    key: 'B',
-    tuning: 'Dropped D',
-    bpm: '175'
-  },
-  {
-    id: 's5',
-    title: 'Everlong',
-    artist: 'Foo Fighters',
-    duration: '4:10',
-    key: 'D',
-    tuning: 'Dropped D',
-    bpm: '158'
-  },
-  {
-    id: 's6',
-    title: 'Plush',
-    artist: 'Stone Temple Pilots',
-    duration: '5:13',
-    key: 'G',
-    tuning: 'Half-step down',
-    bpm: '78'
-  }
-]
-
-const mockShows: Show[] = [
-  {
-    id: 'sh1',
-    name: 'Toys 4 Tots',
-    date: new Date('2025-12-08'),
-    songs: ['s1', 's2', 's3', 's4']
-  },
-  {
-    id: 'sh2',
-    name: 'New Years Eve Bash',
-    date: new Date('2025-12-31'),
-    songs: ['s5', 's6', 's1']
-  }
-]
-
-const mockPractices: Practice[] = [
-  {
-    id: 'p1',
-    bandId: 'band1',
-    scheduledDate: new Date('2025-10-25T19:00:00'),
-    duration: 120,
-    location: 'Dave\'s Garage',
-    type: 'rehearsal',
-    status: 'scheduled',
-    songs: [
-      { songId: 's1', position: 0 },
-      { songId: 's2', position: 1 },
-      { songId: 's3', position: 2 },
-      { songId: 's4', position: 3 }
-    ],
-    notes: 'Focus on transitions between songs. Toys 4 Tots show prep!',
-    createdDate: new Date('2025-10-20'),
-    lastModified: new Date('2025-10-20')
-  },
-  {
-    id: 'p2',
-    bandId: 'band1',
-    scheduledDate: new Date('2025-10-28T18:30:00'),
-    duration: 150,
-    location: 'Studio B',
-    type: 'rehearsal',
-    status: 'scheduled',
-    songs: [
-      { songId: 's1', position: 0 },
-      { songId: 's2', position: 1 },
-      { songId: 's3', position: 2 },
-      { songId: 's4', position: 3 }
-    ],
-    notes: 'Full setlist run-through for Toys 4 Tots',
-    createdDate: new Date('2025-10-21'),
-    lastModified: new Date('2025-10-21')
-  },
-  {
-    id: 'p3',
-    bandId: 'band1',
-    scheduledDate: new Date('2025-11-02T19:00:00'),
-    duration: 120,
-    location: 'Dave\'s Garage',
-    type: 'rehearsal',
-    status: 'scheduled',
-    songs: [
-      { songId: 's5', position: 0 },
-      { songId: 's6', position: 1 }
-    ],
-    notes: 'Working on new material',
-    createdDate: new Date('2025-10-22'),
-    lastModified: new Date('2025-10-22')
-  },
-  {
-    id: 'p4',
-    bandId: 'band1',
-    scheduledDate: new Date('2025-10-18T19:00:00'),
-    duration: 120,
-    location: 'Studio B',
-    type: 'rehearsal',
-    status: 'completed',
-    songs: [
-      { songId: 's1', position: 0 },
-      { songId: 's4', position: 1 }
-    ],
-    notes: 'Worked on timing',
-    createdDate: new Date('2025-10-15'),
-    lastModified: new Date('2025-10-18')
-  },
-  {
-    id: 'p5',
-    bandId: 'band1',
-    scheduledDate: new Date('2025-10-15T18:00:00'),
-    duration: 90,
-    location: 'Dave\'s Garage',
-    type: 'rehearsal',
-    status: 'completed',
-    songs: [
-      { songId: 's2', position: 0 },
-      { songId: 's3', position: 1 },
-      { songId: 's5', position: 2 }
-    ],
-    notes: 'Great energy today!',
-    createdDate: new Date('2025-10-12'),
-    lastModified: new Date('2025-10-15')
-  },
-  {
-    id: 'p6',
-    bandId: 'band1',
-    scheduledDate: new Date('2025-10-12T19:30:00'),
-    duration: 120,
-    location: 'Studio B',
-    type: 'rehearsal',
-    status: 'cancelled',
-    songs: [
-      { songId: 's1', position: 0 }
-    ],
-    notes: 'Drummer was sick',
-    createdDate: new Date('2025-10-10'),
-    lastModified: new Date('2025-10-12')
-  }
-]
 
 // ===== MODAL COMPONENTS =====
 
 interface SchedulePracticeModalProps {
   isOpen: boolean
   onClose: () => void
-  practice?: Practice
-  onSave: (practice: Omit<Practice, 'id' | 'bandId' | 'createdDate' | 'lastModified'>) => void
+  practice?: PracticeSession
+  onSave: (practice: Partial<PracticeSession>) => Promise<void>
+  bandId: string
 }
 
 const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
   isOpen,
   onClose,
   practice,
-  onSave
+  onSave,
+  bandId
 }) => {
+  // DATABASE: Load all songs and upcoming shows for song suggestions
+  const [allSongs, setAllSongs] = useState<Song[]>([])
+  const [_suggestedSongIds, setSuggestedSongIds] = useState<string[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const { getSuggestions } = useAutoSuggestSongs(bandId)
+
   const [formData, setFormData] = useState({
-    date: practice?.scheduledDate.toISOString().split('T')[0] || '',
-    time: practice?.scheduledDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) || '',
+    date: practice?.scheduledDate ? new Date(practice.scheduledDate).toISOString().split('T')[0] : '',
+    time: practice?.scheduledDate ? formatTime12Hour(new Date(practice.scheduledDate)) : '',
     duration: practice?.duration || 120,
     location: practice?.location || '',
     notes: practice?.notes || '',
@@ -262,50 +77,82 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
   const [songSearchQuery, setShowSongSearch] = useState(false)
   const [songFilter, setSongFilter] = useState('')
 
-  if (!isOpen) return null
+  // DATABASE: Load songs on mount
+  useEffect(() => {
+    if (!isOpen) return
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // Parse time from 12-hour format to create proper Date
-    const timeMatch = formData.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
-    let datetime: Date
-
-    if (timeMatch) {
-      let hours = parseInt(timeMatch[1])
-      const minutes = parseInt(timeMatch[2])
-      const period = timeMatch[3].toUpperCase()
-
-      if (period === 'PM' && hours !== 12) hours += 12
-      if (period === 'AM' && hours === 12) hours = 0
-
-      datetime = new Date(formData.date)
-      datetime.setHours(hours, minutes, 0, 0)
-    } else {
-      // Fallback for 24-hour format or invalid input
-      datetime = new Date(`${formData.date}T${formData.time}`)
+    const loadSongs = async () => {
+      try {
+        const songs = await db.songs
+          .where('contextType')
+          .equals('band')
+          .and(s => s.contextId === bandId)
+          .toArray()
+        setAllSongs(songs)
+      } catch (error) {
+        console.error('Error loading songs:', error)
+      }
     }
 
-    onSave({
-      scheduledDate: datetime,
-      duration: formData.duration,
-      location: formData.location,
-      type: 'rehearsal',
-      status: 'scheduled',
-      songs: formData.selectedSongs.map((songId, index) => ({
-        songId,
-        position: index
-      })),
-      notes: formData.notes
-    })
-    onClose()
+    loadSongs()
+  }, [isOpen, bandId])
+
+  // DATABASE: Load song suggestions from upcoming shows
+  const loadSuggestionsFromShows = async () => {
+    try {
+      setLoadingSuggestions(true)
+      const songIds = await getSuggestions()
+      setSuggestedSongIds(songIds)
+
+      // Add suggested songs to selected songs
+      setFormData(prev => ({
+        ...prev,
+        selectedSongs: [...new Set([...prev.selectedSongs, ...songIds])]
+      }))
+    } catch (error) {
+      console.error('Error loading suggestions:', error)
+    } finally {
+      setLoadingSuggestions(false)
+    }
   }
 
-  const handleAddFromShow = (show: Show) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedSongs: [...new Set([...prev.selectedSongs, ...show.songs])]
-    }))
+  if (!isOpen) return null
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    try {
+      // DATABASE: Parse time and create proper Date
+      const baseDate = new Date(formData.date)
+      const datetime = parseTime12Hour(formData.time, baseDate)
+
+      // DATABASE: Create SessionSong objects with proper structure
+      const sessionSongs: SessionSong[] = formData.selectedSongs.map(songId => ({
+        songId,
+        timeSpent: 0,
+        status: 'not-started' as const,
+        sectionsWorked: [],
+        improvements: [],
+        needsWork: [],
+        memberRatings: []
+      }))
+
+      await onSave({
+        scheduledDate: datetime,
+        duration: formData.duration,
+        location: formData.location,
+        type: 'rehearsal',
+        status: 'scheduled',
+        songs: sessionSongs,
+        notes: formData.notes,
+        objectives: practice?.objectives || [],
+        completedObjectives: practice?.completedObjectives || []
+      })
+      onClose()
+    } catch (error) {
+      console.error('Error saving practice:', error)
+      alert('Failed to save practice. Please try again.')
+    }
   }
 
   const toggleSong = (songId: string) => {
@@ -324,15 +171,27 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
     }))
   }
 
+  // DATABASE: Format duration helper
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // DATABASE: Get selected songs with formatted data
   const selectedSongObjects = formData.selectedSongs
-    .map(id => mockSongs.find(s => s.id === id))
-    .filter(Boolean) as Song[]
+    .map(id => {
+      const song = allSongs.find(s => s.id === id)
+      if (!song) return null
+      return {
+        ...song,
+        displayDuration: formatDuration(song.duration)
+      }
+    })
+    .filter(Boolean) as SongWithDetails[]
 
-  const nextShow = mockShows
-    .filter(show => show.date > new Date())
-    .sort((a, b) => a.date.getTime() - b.date.getTime())[0]
-
-  const filteredSongs = mockSongs.filter(song =>
+  // DATABASE: Filter songs for search
+  const filteredSongs = allSongs.filter(song =>
     song.title.toLowerCase().includes(songFilter.toLowerCase()) ||
     song.artist.toLowerCase().includes(songFilter.toLowerCase())
   )
@@ -434,16 +293,25 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white font-semibold text-sm">Songs to Practice</h3>
-              {nextShow && (
-                <button
-                  type="button"
-                  onClick={() => handleAddFromShow(nextShow)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-[#f17827ff] text-xs font-medium hover:bg-[#252525] transition-colors"
-                >
-                  <Calendar size={14} />
-                  Add from {nextShow.name}
-                </button>
-              )}
+              {/* DATABASE: Auto-suggest button */}
+              <button
+                type="button"
+                onClick={loadSuggestionsFromShows}
+                disabled={loadingSuggestions}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-[#f17827ff] text-xs font-medium hover:bg-[#252525] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingSuggestions ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Calendar size={14} />
+                    Add from Upcoming Shows
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Selected Songs */}
@@ -459,7 +327,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                     </div>
                     <div className="flex-1">
                       <div className="text-white text-sm font-medium">{song.title}</div>
-                      <div className="text-[#707070] text-xs">{song.artist} • {song.duration}</div>
+                      <div className="text-[#707070] text-xs">{song.artist} • {song.displayDuration}</div>
                     </div>
                     <button
                       type="button"
@@ -519,7 +387,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                         <div className="text-white text-sm">{song.title}</div>
                         <div className="text-[#707070] text-xs">{song.artist}</div>
                       </div>
-                      <div className="text-[#707070] text-xs">{song.duration}</div>
+                      <div className="text-[#707070] text-xs">{formatDuration(song.duration)}</div>
                     </button>
                   ))}
                 </div>
@@ -558,7 +426,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
 interface DeleteConfirmModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: () => void
+  onConfirm: () => Promise<void>
   practiceName: string
 }
 
@@ -615,107 +483,156 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 // ===== MAIN COMPONENT =====
 
 export const PracticesPage: React.FC = () => {
-  const [practices, setPractices] = useState<Practice[]>(mockPractices)
+  // DATABASE: Get current band ID from localStorage
+  const [currentBandId] = useState(() => localStorage.getItem('currentBandId') || '')
+
+  // DATABASE: Use hooks to load and manage practices
+  const { upcomingPractices, pastPractices, loading, error } = useUpcomingPractices(currentBandId)
+  const { createPractice } = useCreatePractice()
+  const { updatePractice } = useUpdatePractice()
+  const { deletePractice } = useDeletePractice()
+
   const [filter, setFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming')
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
-  const [editingPractice, setEditingPractice] = useState<Practice | null>(null)
-  const [deleteConfirmPractice, setDeleteConfirmPractice] = useState<Practice | null>(null)
+  const [editingPractice, setEditingPractice] = useState<PracticeSession | null>(null)
+  const [deleteConfirmPractice, setDeleteConfirmPractice] = useState<PracticeSession | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+
+  // DATABASE: State for loaded song details
+  const [practiceSongs, setPracticeSongs] = useState<Map<string, SongWithDetails[]>>(new Map())
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const now = new Date()
 
-  // Filter practices
-  const filteredPractices = practices
+  // DATABASE: Combine and filter practices based on filter
+  const allPractices = [...upcomingPractices, ...pastPractices]
+  const filteredPractices = allPractices
     .filter(practice => {
-      if (filter === 'upcoming') return practice.scheduledDate > now && practice.status === 'scheduled'
-      if (filter === 'past') return practice.scheduledDate <= now || practice.status === 'completed'
+      if (filter === 'upcoming') return new Date(practice.scheduledDate) > now && practice.status === 'scheduled'
+      if (filter === 'past') return new Date(practice.scheduledDate) <= now || practice.status === 'completed' || practice.status === 'cancelled'
       return true
     })
-    .sort((a, b) => b.scheduledDate.getTime() - a.scheduledDate.getTime())
-
-  const upcomingPractices = practices.filter(
-    p => p.scheduledDate > now && p.status === 'scheduled'
-  ).sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
+    .sort((a, b) => {
+      const dateA = new Date(a.scheduledDate).getTime()
+      const dateB = new Date(b.scheduledDate).getTime()
+      return filter === 'upcoming' ? dateA - dateB : dateB - dateA
+    })
 
   const nextPractice = upcomingPractices[0]
 
-  const handleSavePractice = (practiceData: Omit<Practice, 'id' | 'bandId' | 'createdDate' | 'lastModified'>) => {
-    if (editingPractice) {
-      // Update existing
-      setPractices(prev =>
-        prev.map(p =>
-          p.id === editingPractice.id
-            ? {
-                ...p,
-                ...practiceData,
-                lastModified: new Date()
-              }
-            : p
-        )
-      )
-      setEditingPractice(null)
-    } else {
-      // Create new
-      const newPractice: Practice = {
-        ...practiceData,
-        id: `p${Date.now()}`,
-        bandId: 'band1',
-        createdDate: new Date(),
-        lastModified: new Date()
+  // DATABASE: Load songs for all visible practices
+  useEffect(() => {
+    const loadSongsForPractices = async () => {
+      const songsMap = new Map<string, SongWithDetails[]>()
+
+      for (const practice of filteredPractices) {
+        const songs: SongWithDetails[] = []
+
+        for (const sessionSong of practice.songs) {
+          try {
+            const song = await db.songs.get(sessionSong.songId)
+            if (song) {
+              songs.push({
+                ...song,
+                displayDuration: formatDuration(song.duration)
+              })
+            }
+          } catch (error) {
+            console.error(`Error loading song ${sessionSong.songId}:`, error)
+          }
+        }
+
+        songsMap.set(practice.id, songs)
       }
-      setPractices(prev => [...prev, newPractice])
+
+      setPracticeSongs(songsMap)
     }
-    setIsScheduleModalOpen(false)
-  }
 
-  const handleDeletePractice = (id: string) => {
-    setPractices(prev => prev.filter(p => p.id !== id))
-  }
-
-  const handleMarkComplete = (id: string) => {
-    setPractices(prev =>
-      prev.map(p =>
-        p.id === id
-          ? { ...p, status: 'completed' as const, lastModified: new Date() }
-          : p
-      )
-    )
-    setOpenMenuId(null)
-  }
-
-  const handleCancelPractice = (id: string) => {
-    setPractices(prev =>
-      prev.map(p =>
-        p.id === id
-          ? { ...p, status: 'cancelled' as const, lastModified: new Date() }
-          : p
-      )
-    )
-    setOpenMenuId(null)
-  }
-
-  const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    if (filteredPractices.length > 0) {
+      loadSongsForPractices()
     }
-    return date.toLocaleDateString('en-US', options)
+  }, [filteredPractices.length, refreshTrigger])
+
+  // DATABASE: Format duration helper
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  // DATABASE: Save practice (create or update)
+  const handleSavePractice = async (practiceData: Partial<PracticeSession>) => {
+    try {
+      if (editingPractice) {
+        // DATABASE: Update existing practice
+        await updatePractice(editingPractice.id, practiceData)
+        setEditingPractice(null)
+        alert('Practice updated successfully!')
+      } else {
+        // DATABASE: Create new practice
+        await createPractice({
+          ...practiceData,
+          bandId: currentBandId,
+          type: 'rehearsal',
+          status: 'scheduled',
+          attendees: [],
+          objectives: [],
+          completedObjectives: []
+        })
+        alert('Practice scheduled successfully!')
+      }
+      setIsScheduleModalOpen(false)
+      setRefreshTrigger(prev => prev + 1)
+    } catch (error) {
+      console.error('Error saving practice:', error)
+      alert('Failed to save practice. Please try again.')
+    }
   }
 
-  const getSongsForPractice = (practice: Practice) => {
-    return practice.songs
-      .sort((a, b) => a.position - b.position)
-      .map(ps => mockSongs.find(s => s.id === ps.songId))
-      .filter(Boolean) as Song[]
+  // DATABASE: Delete practice
+  const handleDeletePractice = async (id: string) => {
+    try {
+      await deletePractice(id)
+      setRefreshTrigger(prev => prev + 1)
+      alert('Practice deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting practice:', error)
+      alert('Failed to delete practice. Please try again.')
+    }
   }
 
-  const getStatusBadge = (status: Practice['status']) => {
+  // DATABASE: Mark practice as completed
+  const handleMarkComplete = async (id: string) => {
+    try {
+      await updatePractice(id, { status: 'completed' })
+      setOpenMenuId(null)
+      setRefreshTrigger(prev => prev + 1)
+      alert('Practice marked as completed!')
+    } catch (error) {
+      console.error('Error updating practice:', error)
+      alert('Failed to update practice. Please try again.')
+    }
+  }
+
+  // DATABASE: Cancel practice
+  const handleCancelPractice = async (id: string) => {
+    try {
+      await updatePractice(id, { status: 'cancelled' })
+      setOpenMenuId(null)
+      setRefreshTrigger(prev => prev + 1)
+      alert('Practice cancelled!')
+    } catch (error) {
+      console.error('Error updating practice:', error)
+      alert('Failed to cancel practice. Please try again.')
+    }
+  }
+
+  // DATABASE: Get songs for a practice from the loaded map
+  const getSongsForPractice = (practice: PracticeSession): SongWithDetails[] => {
+    return practiceSongs.get(practice.id) || []
+  }
+
+  const getStatusBadge = (status: PracticeSession['status']) => {
     switch (status) {
       case 'scheduled':
         return (
@@ -736,6 +653,30 @@ export const PracticesPage: React.FC = () => {
           </span>
         )
     }
+  }
+
+  // DATABASE: Show loading state
+  if (loading) {
+    return (
+      <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={48} className="text-[#f17827ff] animate-spin" />
+        </div>
+      </ModernLayout>
+    )
+  }
+
+  // DATABASE: Show error state
+  if (error) {
+    return (
+      <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
+        <div className="flex flex-col items-center justify-center py-20">
+          <AlertCircle size={48} className="text-red-500 mb-4" />
+          <h3 className="text-white font-semibold text-lg mb-2">Error Loading Practices</h3>
+          <p className="text-[#a0a0a0] text-sm">{error.message}</p>
+        </div>
+      </ModernLayout>
+    )
   }
 
   return (
@@ -789,7 +730,7 @@ export const PracticesPage: React.FC = () => {
                 </span>
               </div>
               <div className="text-white font-semibold text-lg mb-1">
-                {formatDate(nextPractice.scheduledDate)} at {formatTime(nextPractice.scheduledDate)}
+                {formatShowDate(new Date(nextPractice.scheduledDate))} at {formatTime12Hour(new Date(nextPractice.scheduledDate))}
               </div>
               <div className="flex items-center gap-4 text-sm text-[#a0a0a0]">
                 {nextPractice.location && (
@@ -868,7 +809,7 @@ export const PracticesPage: React.FC = () => {
                             : 'text-[#707070]'
                         }`}
                       >
-                        {practice.scheduledDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                        {new Date(practice.scheduledDate).toLocaleDateString('en-US', { weekday: 'short' })}
                       </div>
                       <div
                         className={`text-2xl font-bold ${
@@ -879,7 +820,7 @@ export const PracticesPage: React.FC = () => {
                             : 'text-[#707070]'
                         }`}
                       >
-                        {practice.scheduledDate.getDate()}
+                        {new Date(practice.scheduledDate).getDate()}
                       </div>
                     </div>
 
@@ -887,14 +828,14 @@ export const PracticesPage: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-white font-semibold text-base">
-                          {formatDate(practice.scheduledDate)}
+                          {formatShowDate(new Date(practice.scheduledDate))}
                         </h3>
                         {getStatusBadge(practice.status)}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#a0a0a0] mb-3">
                         <div className="flex items-center gap-1">
                           <Clock size={14} />
-                          {formatTime(practice.scheduledDate)} • {practice.duration} min
+                          {formatTime12Hour(new Date(practice.scheduledDate))} • {practice.duration} min
                         </div>
                         {practice.location && (
                           <div className="flex items-center gap-1">
@@ -998,6 +939,7 @@ export const PracticesPage: React.FC = () => {
         }}
         practice={editingPractice || undefined}
         onSave={handleSavePractice}
+        bandId={currentBandId}
       />
 
       {/* Delete Confirmation Modal */}
@@ -1012,7 +954,7 @@ export const PracticesPage: React.FC = () => {
         }}
         practiceName={
           deleteConfirmPractice
-            ? formatDate(deleteConfirmPractice.scheduledDate)
+            ? formatShowDate(new Date(deleteConfirmPractice.scheduledDate))
             : ''
         }
       />

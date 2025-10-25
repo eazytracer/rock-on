@@ -129,7 +129,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
     onSubmit(songData)
   }
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number | string[] | ReferenceLink[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
