@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { AuthCallback } from './pages/auth/AuthCallback'
@@ -100,7 +101,9 @@ function App() {
     <Router>
       <AuthProvider>
         <ToastProvider>
-          <AppContent />
+          <ItemSyncStatusProvider>
+            <AppContent />
+          </ItemSyncStatusProvider>
         </ToastProvider>
       </AuthProvider>
     </Router>
