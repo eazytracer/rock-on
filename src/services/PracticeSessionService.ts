@@ -2,6 +2,7 @@ import { db } from './database'
 import { PracticeSession } from '../models/PracticeSession'
 import { SessionType, SessionStatus, SessionSong, SessionAttendee } from '../types'
 import { castingService } from './CastingService'
+import { repository } from './data/RepositoryFactory'
 
 export interface SessionFilters {
   bandId: string
@@ -64,14 +65,15 @@ export interface AttendanceRequest {
 
 export class PracticeSessionService {
   static async getSessions(filters: SessionFilters): Promise<SessionListResponse> {
-    let query = db.practiceSessions
-      .where('bandId')
-      .equals(filters.bandId)
-      .reverse()
+    // Get all sessions for the band via repository
+    let sessions = await repository.getPracticeSessions(filters.bandId)
 
-    // Apply date range filter
+    // Reverse for most recent first
+    sessions = sessions.reverse()
+
+    // Apply date range filter (client-side)
     if (filters.startDate || filters.endDate) {
-      query = query.filter(session => {
+      sessions = sessions.filter(session => {
         const sessionDate = session.scheduledDate
         if (filters.startDate && sessionDate < new Date(filters.startDate)) {
           return false
@@ -83,13 +85,12 @@ export class PracticeSessionService {
       })
     }
 
-    // Apply status filter
+    // Apply status filter (client-side)
     if (filters.status) {
-      query = query.filter(session => this.getSessionStatus(session) === filters.status)
+      sessions = sessions.filter(session => this.getSessionStatus(session) === filters.status)
     }
 
-    const sessions = await query.toArray()
-    const total = await db.practiceSessions.where('bandId').equals(filters.bandId).count()
+    const total = sessions.length
 
     return {
       sessions,
@@ -104,10 +105,11 @@ export class PracticeSessionService {
       id: crypto.randomUUID(),
       bandId: sessionData.bandId,
       scheduledDate: new Date(sessionData.scheduledDate),
-      duration: sessionData.duration,
+      duration: sessionData.duration || 60,
       location: sessionData.location,
       type: sessionData.type,
       status: 'scheduled',
+      createdDate: new Date(),
       songs: sessionData.songs?.map(songId => ({
         songId,
         timeSpent: 0,
@@ -127,12 +129,13 @@ export class PracticeSessionService {
       completedObjectives: []
     }
 
-    await db.practiceSessions.add(newSession)
-    return newSession
+    return await repository.addPracticeSession(newSession)
   }
 
   static async getSessionById(sessionId: string): Promise<PracticeSession | null> {
-    const session = await db.practiceSessions.get(sessionId)
+    // Get all sessions and find the one we need (repository doesn't have getById for sessions)
+    const allSessions = await repository.getPracticeSessions('')
+    const session = allSessions.find(s => s.id === sessionId)
     return session || null
   }
 
@@ -159,7 +162,7 @@ export class PracticeSessionService {
       updates.notes = updateData.notes
     }
 
-    await db.practiceSessions.update(sessionId, updates)
+    await repository.updatePracticeSession(sessionId, updates)
     return await this.getSessionById(sessionId) as PracticeSession
   }
 
@@ -169,7 +172,7 @@ export class PracticeSessionService {
       throw new Error('Session not found')
     }
 
-    await db.practiceSessions.delete(sessionId)
+    await repository.deletePracticeSession(sessionId)
   }
 
   static async startSession(sessionId: string): Promise<PracticeSession> {
@@ -183,7 +186,7 @@ export class PracticeSessionService {
       throw new Error('Session cannot be started')
     }
 
-    await db.practiceSessions.update(sessionId, {
+    await repository.updatePracticeSession(sessionId, {
       startTime: new Date()
     })
 
@@ -214,7 +217,7 @@ export class PracticeSessionService {
       updates.sessionRating = endData.sessionRating
     }
 
-    await db.practiceSessions.update(sessionId, updates)
+    await repository.updatePracticeSession(sessionId, updates)
     return await this.getSessionById(sessionId) as PracticeSession
   }
 
@@ -236,7 +239,7 @@ export class PracticeSessionService {
     }
 
     const updatedSongs = [...session.songs, newSessionSong]
-    await db.practiceSessions.update(sessionId, { songs: updatedSongs })
+    await repository.updatePracticeSession(sessionId, { songs: updatedSongs })
 
     return newSessionSong
   }
@@ -279,7 +282,7 @@ export class PracticeSessionService {
     }
 
     updatedSongs[songIndex] = songToUpdate
-    await db.practiceSessions.update(sessionId, { songs: updatedSongs })
+    await repository.updatePracticeSession(sessionId, { songs: updatedSongs })
 
     return songToUpdate
   }
@@ -306,7 +309,7 @@ export class PracticeSessionService {
       updatedAttendees.push(newAttendee)
     }
 
-    await db.practiceSessions.update(sessionId, { attendees: updatedAttendees })
+    await repository.updatePracticeSession(sessionId, { attendees: updatedAttendees })
     return newAttendee
   }
 

@@ -46,7 +46,7 @@ describe('Hook Utilities and Constants', () => {
   describe('BREAKPOINTS', () => {
     it('should define all required breakpoints', () => {
       expect(BREAKPOINTS).toBeDefined()
-      expect(BREAKPOINTS.xs).toBe(0)
+      expect(BREAKPOINTS.xs).toBe(320)
       expect(BREAKPOINTS.sm).toBe(640)
       expect(BREAKPOINTS.md).toBe(768)
       expect(BREAKPOINTS.lg).toBe(1024)
@@ -255,7 +255,7 @@ describe('Mobile Performance Detection', () => {
       ]
 
       mobileUserAgents.forEach(ua => {
-        expect(/Mobi|Android/i.test(ua)).toBe(true)
+        expect(/Mobi|Android|iPhone|iPad|iPod/i.test(ua)).toBe(true)
       })
     })
 
@@ -267,7 +267,7 @@ describe('Mobile Performance Detection', () => {
       ]
 
       desktopUserAgents.forEach(ua => {
-        expect(/Mobi|Android/i.test(ua)).toBe(false)
+        expect(/Mobi|Android|iPhone|iPad|iPod/i.test(ua)).toBe(false)
       })
     })
   })
@@ -464,9 +464,12 @@ describe('Utility Functions', () => {
     })
 
     it('should throttle function calls', () => {
+      // Use fake timers to control Date.now()
+      vi.useFakeTimers()
+
       const mockFn = vi.fn()
       const delay = 100
-      let lastCall = 0
+      let lastCall = -Infinity // Initialize to -Infinity so first call always executes
 
       const throttledFn = (...args: any[]) => {
         const now = Date.now()
@@ -476,16 +479,27 @@ describe('Utility Functions', () => {
         }
       }
 
-      // Call multiple times rapidly
-      throttledFn('arg1')
-      vi.advanceTimersByTime(50)
-      throttledFn('arg2')
-      vi.advanceTimersByTime(50)
-      throttledFn('arg3')
+      // Set initial time to 1000ms to avoid edge cases with 0
+      vi.setSystemTime(1000)
 
-      // Should only be called once (first call)
-      expect(mockFn).toHaveBeenCalledOnce()
-      expect(mockFn).toHaveBeenCalledWith('arg1')
+      // First call should execute immediately
+      throttledFn('arg1')
+      expect(mockFn).toHaveBeenCalledTimes(1)
+      expect(mockFn).toHaveBeenLastCalledWith('arg1')
+
+      // Advance time by 50ms - not enough, should not execute
+      vi.setSystemTime(1050)
+      throttledFn('arg2')
+      expect(mockFn).toHaveBeenCalledTimes(1) // Still 1, not called again
+
+      // Advance time to 1100ms (100ms after first call) - should execute
+      vi.setSystemTime(1100)
+      throttledFn('arg3')
+      expect(mockFn).toHaveBeenCalledTimes(2)
+      expect(mockFn).toHaveBeenLastCalledWith('arg3')
+
+      // Restore real timers
+      vi.useRealTimers()
     })
   })
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Sidebar } from './Sidebar'
 import { MobileHeader } from './MobileHeader'
 import { MobileDrawer } from './MobileDrawer'
+import { SyncStatusIndicator, OfflineIndicator } from '../sync'
 import { useLocation } from 'react-router-dom'
 
 interface ModernLayoutProps {
@@ -22,6 +23,9 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
+      {/* Offline Banner */}
+      <OfflineIndicator />
+
       {/* Sidebar - Desktop Only */}
       <div className="hidden md:block">
         <Sidebar
@@ -47,6 +51,11 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
         userEmail={userEmail}
         onSignOut={onSignOut}
       />
+
+      {/* Sync Status Indicator - Fixed position */}
+      <div className="fixed bottom-4 right-4 z-50 md:bottom-6 md:right-6">
+        <SyncStatusIndicator />
+      </div>
 
       {/* Main Content */}
       <main className="md:ml-60 min-h-screen pt-16 md:pt-0">

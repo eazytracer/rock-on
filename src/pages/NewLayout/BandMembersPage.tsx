@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ModernLayout } from '../../components/layout/ModernLayout'
+import { useAuth } from '../../contexts/AuthContext'
 import {
   ArrowLeft,
   Edit,
@@ -26,7 +28,8 @@ import {
   useBandInviteCodes,
   useGenerateInviteCode,
   useRemoveBandMember,
-  useUpdateMemberRole
+  useUpdateMemberRole,
+  useUpdateBand
 } from '../../hooks/useBands'
 
 // Types
@@ -79,6 +82,11 @@ const getAvatarColor = (userId: string): string => {
 }
 
 export const BandMembersPage: React.FC = () => {
+  const navigate = useNavigate()
+
+  // Get auth context for user info and sign out
+  const { currentUser, signOut, logout } = useAuth()
+
   // DATABASE INTEGRATION: Get current band ID and user ID from localStorage
   const currentBandId = localStorage.getItem('currentBandId') || ''
   const currentUserId = localStorage.getItem('currentUserId') || ''
@@ -90,6 +98,7 @@ export const BandMembersPage: React.FC = () => {
   const { generateCode } = useGenerateInviteCode()
   const { removeMember } = useRemoveBandMember()
   const { updateRole } = useUpdateMemberRole()
+  const { updateBand } = useUpdateBand()
 
   // Local state for UI
   const [searchQuery, setSearchQuery] = useState('')
@@ -115,6 +124,13 @@ export const BandMembersPage: React.FC = () => {
   const [transferConfirmText, setTransferConfirmText] = useState('')
   const [showCustomInstrumentInput, setShowCustomInstrumentInput] = useState(false)
   const [customInstrumentName, setCustomInstrumentName] = useState('')
+
+  const handleSignOut = async () => {
+    // Call both logout methods to clear all state
+    logout() // Clear database state
+    await signOut() // Clear auth session
+    navigate('/auth')
+  }
 
   // DATABASE INTEGRATION: Load and transform members from database
   useEffect(() => {
@@ -234,7 +250,7 @@ export const BandMembersPage: React.FC = () => {
   // DATABASE INTEGRATION: Save band info
   const handleSaveBandInfo = async () => {
     try {
-      await db.bands.update(currentBandId, {
+      await updateBand(currentBandId, {
         name: editBandName,
         description: editBandDescription
       })
@@ -447,7 +463,7 @@ export const BandMembersPage: React.FC = () => {
   // DATABASE INTEGRATION: Show loading state
   if (bandLoading || membersLoading) {
     return (
-      <ModernLayout bandName="Loading..." userEmail="">
+      <ModernLayout bandName="Loading..." userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
         <div className="flex items-center justify-center h-64">
           <div className="text-white text-lg">Loading band members...</div>
         </div>
@@ -458,7 +474,7 @@ export const BandMembersPage: React.FC = () => {
   // DATABASE INTEGRATION: Handle missing band
   if (!band) {
     return (
-      <ModernLayout bandName="Not Found" userEmail="">
+      <ModernLayout bandName="Not Found" userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
         <div className="flex items-center justify-center h-64">
           <div className="text-white text-lg">Band not found</div>
         </div>
@@ -497,7 +513,7 @@ export const BandMembersPage: React.FC = () => {
   }
 
   return (
-    <ModernLayout bandName={band.name} userEmail="eric@example.com">
+    <ModernLayout bandName={band.name} userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">

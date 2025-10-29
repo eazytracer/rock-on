@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { db } from '../services/database'
+import { PracticeSessionService } from '../services/PracticeSessionService'
+import { getSyncRepository } from '../services/data/SyncRepository'
 import type { PracticeSession } from '../models/PracticeSession'
 
 /**
@@ -20,20 +21,19 @@ export function usePractices(bandId: string) {
     const fetchPractices = async () => {
       try {
         setLoading(true)
-        const bandPractices = await db.practiceSessions
-          .where('bandId')
-          .equals(bandId)
-          .and(p => p.type === 'rehearsal')
-          .toArray()
+        const response = await PracticeSessionService.getSessions({ bandId })
 
-        // Sort by date
-        bandPractices.sort((a, b) => {
+        // Filter to only rehearsals
+        const rehearsals = response.sessions.filter(p => p.type === 'rehearsal')
+
+        // Sort by date (ascending)
+        rehearsals.sort((a, b) => {
           const dateA = new Date(a.scheduledDate).getTime()
           const dateB = new Date(b.scheduledDate).getTime()
           return dateA - dateB
         })
 
-        setPractices(bandPractices)
+        setPractices(rehearsals)
         setError(null)
       } catch (err) {
         console.error('Error fetching practices:', err)
@@ -44,6 +44,14 @@ export function usePractices(bandId: string) {
     }
 
     fetchPractices()
+
+    // Subscribe to sync changes for live updates
+    const repo = getSyncRepository()
+    const unsubscribe = repo.onSyncStatusChange(() => {
+      fetchPractices()
+    })
+
+    return unsubscribe
   }, [bandId])
 
   return { practices, loading, error }
@@ -74,24 +82,19 @@ export function useCreatePractice() {
       setLoading(true)
       setError(null)
 
-      const practiceId = crypto.randomUUID()
-      const newPractice: PracticeSession = {
-        id: practiceId,
+      const newPractice = await PracticeSessionService.createSession({
         bandId: practiceData.bandId || '',
         type: 'rehearsal',
-        scheduledDate: practiceData.scheduledDate || new Date(),
+        scheduledDate: (practiceData.scheduledDate || new Date()).toISOString(),
         duration: practiceData.duration || 120,
-        status: practiceData.status || 'scheduled',
-        songs: [],
-        attendees: [],
-        objectives: [],
-        completedObjectives: [],
-        ...practiceData
-      } as PracticeSession
+        location: practiceData.location,
+        songs: practiceData.songs?.map(s => typeof s === 'string' ? s : s.songId),
+        invitees: practiceData.attendees?.map(a => typeof a === 'string' ? a : a.memberId),
+        objectives: practiceData.objectives || [],
+        notes: practiceData.notes
+      })
 
-      await db.practiceSessions.add(newPractice)
-
-      return practiceId
+      return newPractice.id
     } catch (err) {
       console.error('Error creating practice:', err)
       setError(err as Error)
@@ -116,7 +119,13 @@ export function useUpdatePractice() {
       setLoading(true)
       setError(null)
 
-      await db.practiceSessions.update(practiceId, updates)
+      await PracticeSessionService.updateSession(practiceId, {
+        scheduledDate: updates.scheduledDate ? new Date(updates.scheduledDate).toISOString() : undefined,
+        duration: updates.duration,
+        location: updates.location,
+        objectives: updates.objectives,
+        notes: updates.notes
+      })
 
       return true
     } catch (err) {
@@ -143,7 +152,7 @@ export function useDeletePractice() {
       setLoading(true)
       setError(null)
 
-      await db.practiceSessions.delete(practiceId)
+      await PracticeSessionService.deleteSession(practiceId)
 
       return true
     } catch (err) {
@@ -160,6 +169,9 @@ export function useDeletePractice() {
 
 /**
  * Hook to get song suggestions from upcoming shows
+ *
+ * NOTE: This hook still uses direct database access for setlists.
+ * Full migration requires SetlistService integration which is tracked separately.
  */
 export function useAutoSuggestSongs(bandId: string) {
   const [suggestedSongs, setSuggestedSongs] = useState<string[]>([])
@@ -171,19 +183,24 @@ export function useAutoSuggestSongs(bandId: string) {
       setLoading(true)
       setError(null)
 
-      // Get upcoming shows
+      // Get upcoming shows (gigs) using PracticeSessionService
       const now = new Date()
-      const upcomingShows = await db.practiceSessions
-        .where('bandId')
-        .equals(bandId)
-        .and(s => s.type === 'gig' && new Date(s.scheduledDate) >= now)
-        .toArray()
+      const response = await PracticeSessionService.getSessions({
+        bandId,
+        startDate: now.toISOString()
+      })
+
+      // Filter to only shows/gigs
+      const upcomingShows = response.sessions.filter(s => s.type === 'gig')
 
       // Get setlists for those shows
       const songIds = new Set<string>()
 
+      // Note: This still requires direct database access for setlists
+      // until SetlistService provides the necessary methods
       for (const show of upcomingShows) {
         if (show.setlistId) {
+          const { db } = await import('../services/database')
           const setlist = await db.setlists.get(show.setlistId)
           if (setlist?.items) {
             setlist.items.forEach(item => {

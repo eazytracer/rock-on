@@ -1,38 +1,31 @@
 import { SessionType, SessionStatus, SessionSong, SessionAttendee } from '../types'
 
-export interface ShowContact {
-  id: string
-  name: string
-  role?: string
-  phone?: string
-  email?: string
-}
-
+/**
+ * PracticeSession Model
+ *
+ * Represents rehearsals, writing sessions, recording sessions, etc.
+ * NOTE: Shows/gigs are now in the separate Show model (see src/models/Show.ts)
+ *
+ * Based on: .claude/specifications/proposed-unified-schema-v2.md (lines 250-298)
+ */
 export interface PracticeSession {
   id: string
   bandId: string
+  setlistId?: string         // Associated setlist ID for practices
   scheduledDate: Date
   startTime?: Date
   endTime?: Date
-  duration?: number
+  duration: number           // Planned duration in minutes
   location?: string
-  type: SessionType
-  status: SessionStatus
-  songs: SessionSong[]
-  attendees: SessionAttendee[]
+  type: SessionType          // 'rehearsal' | 'writing' | 'recording' | 'audition' | 'lesson'
+  status: SessionStatus      // 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
   notes?: string
-  objectives: string[]
+  objectives: string[]       // Practice goals
   completedObjectives: string[]
-  sessionRating?: number
-
-  // Version 5: Show-specific fields (only used when type='gig')
-  name?: string              // Show/event name (e.g., "Toys 4 Tots Benefit")
-  venue?: string             // Venue name (e.g., "The Crocodile")
-  loadInTime?: string        // Load-in time (format: "6:00 PM" or ISO string)
-  soundcheckTime?: string    // Soundcheck time (format: "7:00 PM" or ISO string)
-  payment?: number           // Payment amount in cents
-  contacts?: ShowContact[]   // Contact information - ALWAYS an array of contact objects
-  setlistId?: string         // Associated setlist ID (for shows/gigs)
+  sessionRating?: number     // Rating 1-5
+  songs: SessionSong[]       // Songs practiced
+  attendees: SessionAttendee[]
+  createdDate: Date
 }
 
 export const PracticeSessionSchema = {

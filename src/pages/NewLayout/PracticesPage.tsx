@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ModernLayout } from '../../components/layout/ModernLayout'
+import { useAuth } from '../../contexts/AuthContext'
 import { TimePicker } from '../../components/common/TimePicker'
 import { DurationPicker } from '../../components/common/DurationPicker'
 import {
@@ -22,7 +24,6 @@ import {
 } from 'lucide-react'
 
 // ===== DATABASE IMPORTS =====
-import { db } from '../../services/database'
 import {
   useUpcomingPractices,
   useCreatePractice,
@@ -30,6 +31,7 @@ import {
   useDeletePractice,
   useAutoSuggestSongs
 } from '../../hooks/usePractices'
+import { useSongs } from '../../hooks/useSongs'
 import { formatShowDate, formatTime12Hour, parseTime12Hour } from '../../utils/dateHelpers'
 import type { PracticeSession } from '../../models/PracticeSession'
 import type { Song } from '../../models/Song'
@@ -59,8 +61,8 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
   onSave,
   bandId
 }) => {
-  // DATABASE: Load all songs and upcoming shows for song suggestions
-  const [allSongs, setAllSongs] = useState<Song[]>([])
+  // DATABASE: Load songs using useSongs hook instead of direct queries
+  const { songs: allSongs } = useSongs(bandId)
   const [_suggestedSongIds, setSuggestedSongIds] = useState<string[]>([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const { getSuggestions } = useAutoSuggestSongs(bandId)
@@ -77,25 +79,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
   const [songSearchQuery, setShowSongSearch] = useState(false)
   const [songFilter, setSongFilter] = useState('')
 
-  // DATABASE: Load songs on mount
-  useEffect(() => {
-    if (!isOpen) return
-
-    const loadSongs = async () => {
-      try {
-        const songs = await db.songs
-          .where('contextType')
-          .equals('band')
-          .and(s => s.contextId === bandId)
-          .toArray()
-        setAllSongs(songs)
-      } catch (error) {
-        console.error('Error loading songs:', error)
-      }
-    }
-
-    loadSongs()
-  }, [isOpen, bandId])
+  // Songs are now loaded via useSongs hook above - no need for useEffect
 
   // DATABASE: Load song suggestions from upcoming shows
   const loadSuggestionsFromShows = async () => {
@@ -483,6 +467,11 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 // ===== MAIN COMPONENT =====
 
 export const PracticesPage: React.FC = () => {
+  const navigate = useNavigate()
+
+  // Get auth context for user info and sign out
+  const { currentUser, currentBand, signOut, logout } = useAuth()
+
   // DATABASE: Get current band ID from localStorage
   const [currentBandId] = useState(() => localStorage.getItem('currentBandId') || '')
 
@@ -492,17 +481,23 @@ export const PracticesPage: React.FC = () => {
   const { updatePractice } = useUpdatePractice()
   const { deletePractice } = useDeletePractice()
 
+  // DATABASE: Load songs using hook instead of direct queries
+  const { songs: allBandSongs } = useSongs(currentBandId)
+
   const [filter, setFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming')
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
   const [editingPractice, setEditingPractice] = useState<PracticeSession | null>(null)
   const [deleteConfirmPractice, setDeleteConfirmPractice] = useState<PracticeSession | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
-  // DATABASE: State for loaded song details
-  const [practiceSongs, setPracticeSongs] = useState<Map<string, SongWithDetails[]>>(new Map())
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-
   const now = new Date()
+
+  const handleSignOut = async () => {
+    // Call both logout methods to clear all state
+    logout() // Clear database state
+    await signOut() // Clear auth session
+    navigate('/auth')
+  }
 
   // DATABASE: Combine and filter practices based on filter
   const allPractices = [...upcomingPractices, ...pastPractices]
@@ -520,38 +515,7 @@ export const PracticesPage: React.FC = () => {
 
   const nextPractice = upcomingPractices[0]
 
-  // DATABASE: Load songs for all visible practices
-  useEffect(() => {
-    const loadSongsForPractices = async () => {
-      const songsMap = new Map<string, SongWithDetails[]>()
-
-      for (const practice of filteredPractices) {
-        const songs: SongWithDetails[] = []
-
-        for (const sessionSong of practice.songs) {
-          try {
-            const song = await db.songs.get(sessionSong.songId)
-            if (song) {
-              songs.push({
-                ...song,
-                displayDuration: formatDuration(song.duration)
-              })
-            }
-          } catch (error) {
-            console.error(`Error loading song ${sessionSong.songId}:`, error)
-          }
-        }
-
-        songsMap.set(practice.id, songs)
-      }
-
-      setPracticeSongs(songsMap)
-    }
-
-    if (filteredPractices.length > 0) {
-      loadSongsForPractices()
-    }
-  }, [filteredPractices.length, refreshTrigger])
+  // DATABASE: Songs are now loaded via useSongs hook - no need for separate useEffect
 
   // DATABASE: Format duration helper
   const formatDuration = (seconds: number): string => {
@@ -582,7 +546,7 @@ export const PracticesPage: React.FC = () => {
         alert('Practice scheduled successfully!')
       }
       setIsScheduleModalOpen(false)
-      setRefreshTrigger(prev => prev + 1)
+      // Hook automatically updates practice list - no manual refresh needed
     } catch (error) {
       console.error('Error saving practice:', error)
       alert('Failed to save practice. Please try again.')
@@ -593,8 +557,8 @@ export const PracticesPage: React.FC = () => {
   const handleDeletePractice = async (id: string) => {
     try {
       await deletePractice(id)
-      setRefreshTrigger(prev => prev + 1)
       alert('Practice deleted successfully!')
+      // Hook automatically updates practice list - no manual refresh needed
     } catch (error) {
       console.error('Error deleting practice:', error)
       alert('Failed to delete practice. Please try again.')
@@ -606,8 +570,8 @@ export const PracticesPage: React.FC = () => {
     try {
       await updatePractice(id, { status: 'completed' })
       setOpenMenuId(null)
-      setRefreshTrigger(prev => prev + 1)
       alert('Practice marked as completed!')
+      // Hook automatically updates practice list - no manual refresh needed
     } catch (error) {
       console.error('Error updating practice:', error)
       alert('Failed to update practice. Please try again.')
@@ -619,17 +583,26 @@ export const PracticesPage: React.FC = () => {
     try {
       await updatePractice(id, { status: 'cancelled' })
       setOpenMenuId(null)
-      setRefreshTrigger(prev => prev + 1)
       alert('Practice cancelled!')
+      // Hook automatically updates practice list - no manual refresh needed
     } catch (error) {
       console.error('Error updating practice:', error)
       alert('Failed to cancel practice. Please try again.')
     }
   }
 
-  // DATABASE: Get songs for a practice from the loaded map
+  // DATABASE: Get songs for a practice using hook data
   const getSongsForPractice = (practice: PracticeSession): SongWithDetails[] => {
-    return practiceSongs.get(practice.id) || []
+    return practice.songs
+      .map(sessionSong => {
+        const song = allBandSongs.find(s => s.id === sessionSong.songId)
+        if (!song) return null
+        return {
+          ...song,
+          displayDuration: formatDuration(song.duration)
+        }
+      })
+      .filter(Boolean) as SongWithDetails[]
   }
 
   const getStatusBadge = (status: PracticeSession['status']) => {
@@ -658,7 +631,7 @@ export const PracticesPage: React.FC = () => {
   // DATABASE: Show loading state
   if (loading) {
     return (
-      <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
+      <ModernLayout bandName={currentBand?.name || 'No Band Selected'} userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
         <div className="flex items-center justify-center py-20">
           <Loader2 size={48} className="text-[#f17827ff] animate-spin" />
         </div>
@@ -669,7 +642,7 @@ export const PracticesPage: React.FC = () => {
   // DATABASE: Show error state
   if (error) {
     return (
-      <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
+      <ModernLayout bandName={currentBand?.name || 'No Band Selected'} userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
         <div className="flex flex-col items-center justify-center py-20">
           <AlertCircle size={48} className="text-red-500 mb-4" />
           <h3 className="text-white font-semibold text-lg mb-2">Error Loading Practices</h3>
@@ -680,7 +653,7 @@ export const PracticesPage: React.FC = () => {
   }
 
   return (
-    <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
+    <ModernLayout bandName={currentBand?.name || 'No Band Selected'} userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-6">

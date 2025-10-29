@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { db } from '../services/database'
-import type { PracticeSession } from '../models/PracticeSession'
+import { ShowService } from '../services/ShowService'
+import { getSyncRepository } from '../services/data/SyncRepository'
+import type { Show } from '../models/Show'
 
 /**
- * Hook to fetch shows (gigs) for a band
+ * Hook to fetch shows for a band
  */
 export function useShows(bandId: string) {
-  const [shows, setShows] = useState<PracticeSession[]>([])
+  const [shows, setShows] = useState<Show[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
@@ -20,20 +21,14 @@ export function useShows(bandId: string) {
     const fetchShows = async () => {
       try {
         setLoading(true)
-        const bandShows = await db.practiceSessions
-          .where('bandId')
-          .equals(bandId)
-          .and(s => s.type === 'gig')
-          .toArray()
+        const response = await ShowService.getShows({ bandId })
 
-        // Sort by date
-        bandShows.sort((a, b) => {
-          const dateA = new Date(a.scheduledDate).getTime()
-          const dateB = new Date(b.scheduledDate).getTime()
-          return dateA - dateB
+        // Sort by date (ascending)
+        const sortedShows = [...response.shows].sort((a, b) => {
+          return a.scheduledDate.getTime() - b.scheduledDate.getTime()
         })
 
-        setShows(bandShows)
+        setShows(sortedShows)
         setError(null)
       } catch (err) {
         console.error('Error fetching shows:', err)
@@ -44,6 +39,14 @@ export function useShows(bandId: string) {
     }
 
     fetchShows()
+
+    // Subscribe to sync changes for live updates
+    const repo = getSyncRepository()
+    const unsubscribe = repo.onSyncStatusChange(() => {
+      fetchShows()
+    })
+
+    return unsubscribe
   }, [bandId])
 
   return { shows, loading, error }
@@ -56,8 +59,8 @@ export function useUpcomingShows(bandId: string) {
   const { shows, loading, error } = useShows(bandId)
 
   const now = new Date()
-  const upcomingShows = shows.filter(show => new Date(show.scheduledDate) >= now)
-  const pastShows = shows.filter(show => new Date(show.scheduledDate) < now)
+  const upcomingShows = shows.filter(show => show.scheduledDate >= now && show.status !== 'cancelled')
+  const pastShows = shows.filter(show => show.scheduledDate < now || show.status === 'completed')
 
   return { upcomingShows, pastShows, loading, error }
 }
@@ -69,29 +72,28 @@ export function useCreateShow() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const createShow = async (showData: Partial<PracticeSession>) => {
+  const createShow = async (showData: Partial<Show>) => {
     try {
       setLoading(true)
       setError(null)
 
-      const showId = crypto.randomUUID()
-      const newShow: PracticeSession = {
-        id: showId,
+      const newShow = await ShowService.createShow({
         bandId: showData.bandId || '',
-        type: 'gig',
+        name: showData.name || 'Untitled Show',
         scheduledDate: showData.scheduledDate || new Date(),
-        duration: showData.duration || 90,
-        status: showData.status || 'scheduled',
-        songs: [],
-        attendees: [],
-        objectives: [],
-        completedObjectives: [],
-        ...showData
-      } as PracticeSession
+        duration: showData.duration || 120,
+        venue: showData.venue,
+        location: showData.location,
+        loadInTime: showData.loadInTime,
+        soundcheckTime: showData.soundcheckTime,
+        payment: showData.payment,
+        contacts: showData.contacts,
+        setlistId: showData.setlistId,
+        status: showData.status,
+        notes: showData.notes
+      })
 
-      await db.practiceSessions.add(newShow)
-
-      return showId
+      return newShow
     } catch (err) {
       console.error('Error creating show:', err)
       setError(err as Error)
@@ -111,12 +113,12 @@ export function useUpdateShow() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const updateShow = async (showId: string, updates: Partial<PracticeSession>) => {
+  const updateShow = async (showId: string, updates: Partial<Show>) => {
     try {
       setLoading(true)
       setError(null)
 
-      await db.practiceSessions.update(showId, updates)
+      await ShowService.updateShow(showId, updates)
 
       return true
     } catch (err) {
@@ -143,19 +145,7 @@ export function useDeleteShow() {
       setLoading(true)
       setError(null)
 
-      // Get the show to find associated setlist
-      const show = await db.practiceSessions.get(showId)
-
-      if (show?.setlistId) {
-        // Clear the showId reference in the setlist
-        const setlist = await db.setlists.get(show.setlistId)
-        if (setlist && setlist.showId === showId) {
-          await db.setlists.update(show.setlistId, { showId: undefined })
-        }
-      }
-
-      // Delete the show
-      await db.practiceSessions.delete(showId)
+      await ShowService.deleteShow(showId)
 
       return true
     } catch (err) {

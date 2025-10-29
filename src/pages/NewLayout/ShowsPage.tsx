@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ModernLayout } from '../../components/layout/ModernLayout'
+import { useAuth } from '../../contexts/AuthContext'
 import { TimePicker } from '../../components/common/TimePicker'
 import {
   Plus,
@@ -31,16 +33,16 @@ import {
 // ============================================
 import { db } from '../../services/database'
 import { useUpcomingShows, useCreateShow, useUpdateShow, useDeleteShow } from '../../hooks/useShows'
+import { SetlistService } from '../../services/SetlistService'
 import { centsToDollars, dollarsToCents } from '../../utils/formatters'
 import { formatShowDate, formatTime12Hour, parseTime12Hour } from '../../utils/dateHelpers'
-import type { PracticeSession } from '../../models/PracticeSession'
 import type { Setlist } from '../../models/Setlist'
 
 // ============================================
 // TYPES - UPDATED FOR DATABASE INTEGRATION
 // ============================================
-// Import ShowContact from model
-import { ShowContact } from '../../models/PracticeSession'
+// Import Show and ShowContact from correct model
+import { Show, ShowContact } from '../../models/Show'
 
 interface Song {
   id: string
@@ -57,7 +59,8 @@ interface SetlistSong extends Song {
   position: number
 }
 
-interface SetlistWithSongs {
+// Reserved for future use
+interface _SetlistWithSongs {
   id: string
   name: string
   songs: SetlistSong[]
@@ -65,17 +68,7 @@ interface SetlistWithSongs {
   songCount: number
 }
 
-// Extended type for display purposes - combines PracticeSession with UI needs
-interface ShowDisplay extends PracticeSession {
-  // Add computed display fields
-  time: string
-  address?: string
-  setlistName?: string
-  paymentAmount?: number
-  paymentStatus?: 'unpaid' | 'partial' | 'paid'
-  createdDate: Date
-  lastModified: Date
-}
+// Show is already properly typed in the Show model, no need for extension
 
 type FilterType = 'all' | 'upcoming' | 'past' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
 
@@ -85,6 +78,11 @@ type FilterType = 'all' | 'upcoming' | 'past' | 'scheduled' | 'confirmed' | 'com
 // All mock shows, setlists, and songs have been replaced with database operations
 
 export const ShowsPage: React.FC = () => {
+  const navigate = useNavigate()
+
+  // Get auth context for user info and sign out
+  const { currentUser, currentBand, signOut, logout } = useAuth()
+
   // ============================================
   // DATABASE STATE & HOOKS - REAL INTEGRATION
   // ============================================
@@ -97,14 +95,21 @@ export const ShowsPage: React.FC = () => {
   // UI State
   const [filter, setFilter] = useState<FilterType>('upcoming')
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
-  const [selectedShow, setSelectedShow] = useState<PracticeSession | null>(null)
-  const [showToDelete, setShowToDelete] = useState<PracticeSession | null>(null)
+  const [selectedShow, setSelectedShow] = useState<Show | null>(null)
+  const [showToDelete, setShowToDelete] = useState<Show | null>(null)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery] = useState('')
 
   // Setlist data for display (loaded dynamically)
   const [setlistsData, setSetlistsData] = useState<Record<string, Setlist>>({})
   const [availableSetlists, setAvailableSetlists] = useState<Setlist[]>([])
+
+  const handleSignOut = async () => {
+    // Call both logout methods to clear all state
+    logout() // Clear database state
+    await signOut() // Clear auth session
+    navigate('/auth')
+  }
 
   // ============================================
   // LOAD SETLISTS FOR SHOWS - REAL DATABASE
@@ -139,11 +144,11 @@ export const ShowsPage: React.FC = () => {
   // ============================================
   // HELPER FUNCTIONS - UPDATED FOR DATABASE
   // ============================================
-  const combineShows = (): PracticeSession[] => {
+  const combineShows = (): Show[] => {
     return [...upcomingShows, ...pastShows]
   }
 
-  const getFilteredShows = (): PracticeSession[] => {
+  const getFilteredShows = (): Show[] => {
     const now = new Date()
     let shows = combineShows()
 
@@ -176,7 +181,7 @@ export const ShowsPage: React.FC = () => {
     }
   }
 
-  const getNextShow = (): PracticeSession | null => {
+  const getNextShow = (): Show | null => {
     if (upcomingShows.length === 0) return null
     // upcomingShows is already sorted ascending by the hook
     return upcomingShows[0]
@@ -218,7 +223,7 @@ export const ShowsPage: React.FC = () => {
   // ============================================
   // CRUD HANDLERS - REAL DATABASE OPERATIONS
   // ============================================
-  const handleDeleteShow = async (show: PracticeSession) => {
+  const handleDeleteShow = async (show: Show) => {
     try {
       await deleteShow(show.id)
       setShowToDelete(null)
@@ -230,7 +235,7 @@ export const ShowsPage: React.FC = () => {
     }
   }
 
-  const handleEditShow = (show: PracticeSession) => {
+  const handleEditShow = (show: Show) => {
     setSelectedShow(show)
     setIsScheduleModalOpen(true)
   }
@@ -243,7 +248,7 @@ export const ShowsPage: React.FC = () => {
   // ============================================
   if (loading) {
     return (
-      <ModernLayout bandName="Loading..." userEmail="">
+      <ModernLayout bandName="Loading..." userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
         <div className="flex items-center justify-center py-16">
           <div className="text-white">Loading shows...</div>
         </div>
@@ -253,7 +258,7 @@ export const ShowsPage: React.FC = () => {
 
   if (error) {
     return (
-      <ModernLayout bandName="Error" userEmail="">
+      <ModernLayout bandName="Error" userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
         <div className="flex items-center justify-center py-16">
           <div className="text-red-500">Error loading shows: {error.message}</div>
         </div>
@@ -262,7 +267,7 @@ export const ShowsPage: React.FC = () => {
   }
 
   return (
-    <ModernLayout bandName="iPod Shuffle" userEmail="eric@example.com">
+    <ModernLayout bandName={currentBand?.name || 'No Band Selected'} userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
@@ -422,12 +427,44 @@ export const ShowsPage: React.FC = () => {
                 await updateShow(selectedShow.id, showData)
                 console.log('Show updated successfully')
               } else {
-                // Create new show
-                await createShow({
+                // Create new show with optional setlist forking
+                let forkedSetlistId: string | undefined = undefined
+
+                // If a setlist was selected, fork it for this show
+                if (showData.setlistId) {
+                  try {
+                    const forkedSetlist = await SetlistService.forkSetlist(
+                      showData.setlistId,
+                      showData.name || 'Show'
+                    )
+                    forkedSetlistId = forkedSetlist.id
+                    console.log('Setlist forked successfully:', forkedSetlist.name)
+                  } catch (forkError) {
+                    console.error('Failed to fork setlist:', forkError)
+                    // Continue creating show without setlist if fork fails
+                  }
+                }
+
+                // Create the show with the forked setlist (if available)
+                const newShow = await createShow({
                   ...showData,
-                  bandId: currentBandId,
-                  type: 'gig'
+                  setlistId: forkedSetlistId, // Use forked setlist instead of original
+                  bandId: currentBandId
                 })
+
+                // Update the forked setlist to reference the show (bidirectional link)
+                if (forkedSetlistId && newShow?.id) {
+                  try {
+                    await SetlistService.updateSetlist(forkedSetlistId, {
+                      showId: newShow.id
+                    })
+                    console.log('Setlist linked to show successfully')
+                  } catch (linkError) {
+                    console.warn('Failed to link setlist to show:', linkError)
+                    // Non-critical - show is created, just missing bidirectional link
+                  }
+                }
+
                 console.log('Show created successfully')
               }
               setIsScheduleModalOpen(false)
@@ -456,7 +493,7 @@ export const ShowsPage: React.FC = () => {
 // SHOW CARD COMPONENT - UPDATED FOR DATABASE
 // ============================================
 const ShowCard: React.FC<{
-  show: PracticeSession
+  show: Show
   setlist: Setlist | null
   onEdit: () => void
   onDelete: () => void
@@ -729,7 +766,7 @@ const SetlistSongMiniCard: React.FC<{ song: SetlistSong }> = ({ song }) => {
 }
 
 // Status Badge Component
-const ShowStatusBadge: React.FC<{ status: PracticeSession['status'] }> = ({ status }) => {
+const ShowStatusBadge: React.FC<{ status: Show['status'] }> = ({ status }) => {
   const config = getStatusConfig(status)
   const Icon = config.icon
 
@@ -745,10 +782,10 @@ const ShowStatusBadge: React.FC<{ status: PracticeSession['status'] }> = ({ stat
 // SCHEDULE SHOW MODAL - UPDATED FOR DATABASE
 // ============================================
 const ScheduleShowModal: React.FC<{
-  show: PracticeSession | null
+  show: Show | null
   availableSetlists: Setlist[]
   onClose: () => void
-  onSave: (show: Partial<PracticeSession>) => void | Promise<void>
+  onSave: (show: Partial<Show>) => void | Promise<void>
 }> = ({ show, availableSetlists, onClose, onSave }) => {
   // Initialize form data from show or defaults
   const [formData, setFormData] = useState({
@@ -790,7 +827,7 @@ const ScheduleShowModal: React.FC<{
         : 0
 
       // Prepare show data for database
-      const showData: Partial<PracticeSession> = {
+      const showData: Partial<Show> = {
         name: formData.name,
         scheduledDate: scheduledDate,
         venue: formData.venue || undefined,
@@ -800,26 +837,14 @@ const ScheduleShowModal: React.FC<{
         soundcheckTime: formData.soundcheckTime || undefined,
         duration: formData.duration ? parseInt(formData.duration) : undefined,
         payment: paymentInCents || undefined,
-        contacts: contacts.length > 0 ? JSON.stringify(contacts) : undefined,
+        contacts: contacts.length > 0 ? contacts : undefined,
         notes: formData.notes || undefined,
-        status: formData.status as PracticeSession['status'],
-        // Initialize required fields for new shows
-        songs: show?.songs || [],
-        attendees: show?.attendees || [],
-        objectives: show?.objectives || [],
-        completedObjectives: show?.completedObjectives || []
+        status: formData.status as Show['status']
       }
 
-      // If associating with a setlist, also update the setlist's showId
-      if (formData.setlistId) {
-        try {
-          await db.setlists.update(formData.setlistId, {
-            showId: show?.id // This will be set after creation if it's a new show
-          })
-        } catch (err) {
-          console.error('Failed to update setlist reference:', err)
-        }
-      }
+      // NOTE: Setlist relationship is handled by passing setlistId in showData
+      // The service layer will handle the bidirectional relationship
+      // TODO: Once SetlistService is refactored, this should use useUpdateSetlist hook
 
       await onSave(showData)
     } catch (err) {
@@ -914,7 +939,7 @@ const ScheduleShowModal: React.FC<{
               <label className="block text-sm font-medium text-white mb-2">Status</label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as PracticeSession['status'] })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as Show['status'] })}
                 className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
               >
                 <option value="scheduled">Scheduled</option>
@@ -1130,7 +1155,7 @@ const ScheduleShowModal: React.FC<{
 // DELETE CONFIRMATION MODAL - UPDATED FOR DATABASE
 // ============================================
 const DeleteConfirmationModal: React.FC<{
-  show: PracticeSession
+  show: Show
   onConfirm: () => void
   onCancel: () => void
 }> = ({ show, onConfirm, onCancel }) => {
@@ -1199,7 +1224,7 @@ const EmptyState: React.FC<{ onSchedule: () => void }> = ({ onSchedule }) => {
 // ============================================
 // HELPER FUNCTIONS - STATUS CONFIGURATIONS
 // ============================================
-function getStatusConfig(status: PracticeSession['status']) {
+function getStatusConfig(status: Show['status']) {
   switch (status) {
     case 'scheduled':
       return {
@@ -1228,7 +1253,8 @@ function getStatusConfig(status: PracticeSession['status']) {
   }
 }
 
-function getPaymentStatusConfig(status?: 'unpaid' | 'partial' | 'paid') {
+// Reserved for future payment tracking feature
+function _getPaymentStatusConfig(status?: 'unpaid' | 'partial' | 'paid') {
   switch (status) {
     case 'paid':
       return { color: 'text-green-500 bg-green-500/10 border-green-500/20', label: 'Paid' }

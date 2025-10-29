@@ -1,0 +1,15 @@
+{
+  "$comment": "This is a REFERENCE FILE showing the MCP server configuration format.",
+  "$comment2": "It is NOT used directly by Claude Code. MCP servers are configured via:",
+  "$comment3": "  claude mcp add chrome-devtools -- chrome-devtools-mcp --browserUrl http://127.0.0.1:9222",
+  "$comment4": "The actual configuration is stored in ~/.claude.json in the devcontainer home directory.",
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "chrome-devtools-mcp",
+      "args": [
+        "--browserUrl",
+        "http://127.0.0.1:9222"
+      ]
+    }
+  }
+}

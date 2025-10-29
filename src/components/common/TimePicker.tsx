@@ -33,7 +33,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         setSelectedHour(parseInt(match12h[1]))
         setSelectedMinute(parseInt(match12h[2]))
         setSelectedPeriod(match12h[3].toUpperCase() as 'AM' | 'PM')
-      } else if (match24h && format === '24h') {
+      } else if (match24h) {
         let hour = parseInt(match24h[1])
         setSelectedMinute(parseInt(match24h[2]))
         if (format === '12h') {

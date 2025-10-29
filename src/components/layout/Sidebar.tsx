@@ -39,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Setlists', path: '/setlists', icon: <ListMusic size={20} /> },
     { label: 'Shows', path: '/shows', icon: <Ticket size={20} /> },
     { label: 'Practices', path: '/practices', icon: <Calendar size={20} /> },
-    { label: 'Band Members', path: '/band-members', icon: <Users size={20} />, badge: 6 }
+    { label: 'Band Members', path: '/band-members', icon: <Users size={20} /> }
   ]
 
   const isActive = (path: string) => {

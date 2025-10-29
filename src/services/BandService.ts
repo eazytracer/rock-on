@@ -1,4 +1,5 @@
 import { db } from './database'
+import { repository } from './data/RepositoryFactory'
 import { Band } from '../models/Band'
 import { Member } from '../models/Member'
 import { BandSettings, MemberRole } from '../types'
@@ -36,17 +37,17 @@ export interface UpdateMemberRequest {
 
 export class BandService {
   static async getAllBands(): Promise<Band[]> {
-    return await db.bands.orderBy('name').toArray()
+    const bands = await repository.getBands()
+    // Client-side sorting by name (repository doesn't support orderBy yet)
+    return bands.sort((a, b) => a.name.localeCompare(b.name))
   }
 
   static async createBand(bandData: CreateBandRequest): Promise<Band> {
     this.validateBandData(bandData)
 
     // Check for duplicate band name
-    const existingBand = await db.bands
-      .where('name')
-      .equals(bandData.name)
-      .first()
+    const allBands = await repository.getBands()
+    const existingBand = allBands.find(b => b.name === bandData.name)
 
     if (existingBand) {
       throw new Error('Band name already exists')
@@ -67,13 +68,11 @@ export class BandService {
       memberIds: []
     }
 
-    await db.bands.add(newBand)
-    return newBand
+    return await repository.addBand(newBand)
   }
 
   static async getBandById(bandId: string): Promise<Band | null> {
-    const band = await db.bands.get(bandId)
-    return band || null
+    return await repository.getBand(bandId)
   }
 
   static async updateBand(bandId: string, updateData: UpdateBandRequest): Promise<Band> {
@@ -86,10 +85,8 @@ export class BandService {
       this.validateBandName(updateData.name)
 
       // Check for duplicate name (excluding current band)
-      const existingBandWithName = await db.bands
-        .where('name')
-        .equals(updateData.name)
-        .first()
+      const allBands = await repository.getBands()
+      const existingBandWithName = allBands.find(b => b.name === updateData.name)
 
       if (existingBandWithName && existingBandWithName.id !== bandId) {
         throw new Error('Band name already exists')
@@ -103,7 +100,7 @@ export class BandService {
       updates.settings = { ...existingBand.settings, ...updateData.settings }
     }
 
-    await db.bands.update(bandId, updates)
+    await repository.updateBand(bandId, updates)
     return await this.getBandById(bandId) as Band
   }
 
@@ -115,16 +112,16 @@ export class BandService {
 
     // Check if band has any associated data
     const [songs, sessions, setlists] = await Promise.all([
-      db.songs.where('bandId').equals(bandId).count(),
-      db.practiceSessions.where('bandId').equals(bandId).count(),
-      db.setlists.where('bandId').equals(bandId).count()
+      repository.getSongs({ contextId: bandId }),
+      repository.getPracticeSessions(bandId),
+      repository.getSetlists(bandId)
     ])
 
-    if (songs > 0 || sessions > 0 || setlists > 0) {
+    if (songs.length > 0 || sessions.length > 0 || setlists.length > 0) {
       throw new Error('Cannot delete band: has associated songs, sessions, or setlists')
     }
 
-    await db.bands.delete(bandId)
+    await repository.deleteBand(bandId)
   }
 
   static async getBandMembers(bandId: string): Promise<Member[]> {

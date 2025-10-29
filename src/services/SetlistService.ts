@@ -2,6 +2,7 @@ import { db } from './database'
 import { Setlist } from '../models/Setlist'
 import { SetlistStatus, SetlistSong } from '../types'
 import { castingService } from './CastingService'
+import { repository } from './data/RepositoryFactory'
 
 export interface SetlistFilters {
   bandId: string
@@ -29,6 +30,7 @@ export interface UpdateSetlistRequest {
   venue?: string
   notes?: string
   status?: SetlistStatus
+  showId?: string
 }
 
 export interface AddSetlistSongRequest {
@@ -74,28 +76,28 @@ export interface SongReadiness {
 
 export class SetlistService {
   static async getSetlists(filters: SetlistFilters): Promise<SetlistListResponse> {
-    let query = db.setlists
-      .where('bandId')
-      .equals(filters.bandId)
-      .reverse()
+    // Get all setlists for the band from repository
+    let setlists = await repository.getSetlists(filters.bandId)
 
-    // Apply status filter
+    // Apply status filter (client-side)
     if (filters.status) {
-      query = query.filter(setlist => setlist.status === filters.status)
+      setlists = setlists.filter(setlist => setlist.status === filters.status)
     }
 
-    // Apply show date filter
+    // Apply show date filter (client-side)
     if (filters.showDate) {
       const targetDate = new Date(filters.showDate)
-      query = query.filter(setlist => {
+      setlists = setlists.filter(setlist => {
         if (!setlist.showDate) return false
         const showDate = new Date(setlist.showDate)
         return showDate.toDateString() === targetDate.toDateString()
       })
     }
 
-    const setlists = await query.toArray()
-    const total = await db.setlists.where('bandId').equals(filters.bandId).count()
+    // Sort by creation date (most recent first) to mimic .reverse()
+    setlists.sort((a, b) => b.createdDate.getTime() - a.createdDate.getTime())
+
+    const total = setlists.length
 
     return {
       setlists,
@@ -118,6 +120,7 @@ export class SetlistService {
       showDate: setlistData.showDate ? new Date(setlistData.showDate) : undefined,
       venue: setlistData.venue,
       songs,
+      items: [], // Required by Setlist model
       totalDuration: await this.calculateTotalDuration(songs),
       notes: setlistData.notes,
       status: 'draft',
@@ -125,13 +128,44 @@ export class SetlistService {
       lastModified: new Date()
     }
 
-    await db.setlists.add(newSetlist)
-    return newSetlist
+    return await repository.addSetlist(newSetlist)
+  }
+
+  /**
+   * Fork (copy) an existing setlist for use with a show
+   * Creates a new setlist with all items copied, maintaining a reference to the original
+   * @param sourceSetlistId - ID of the setlist to fork
+   * @param showName - Name of the show (used to name the forked setlist)
+   * @returns The newly created forked setlist
+   */
+  static async forkSetlist(sourceSetlistId: string, showName: string): Promise<Setlist> {
+    const sourceSetlist = await this.getSetlistById(sourceSetlistId)
+    if (!sourceSetlist) {
+      throw new Error('Source setlist not found')
+    }
+
+    const forkedSetlist: Setlist = {
+      id: crypto.randomUUID(),
+      name: `${sourceSetlist.name} (${showName})`,
+      bandId: sourceSetlist.bandId,
+      sourceSetlistId: sourceSetlistId, // Reference to original
+      showId: undefined, // Will be set when show is created
+      showDate: undefined,
+      venue: undefined,
+      songs: [...(sourceSetlist.songs || [])], // Copy songs array
+      items: JSON.parse(JSON.stringify(sourceSetlist.items)), // Deep copy items
+      totalDuration: sourceSetlist.totalDuration,
+      notes: sourceSetlist.notes ? `Forked from "${sourceSetlist.name}"\n\n${sourceSetlist.notes}` : `Forked from "${sourceSetlist.name}"`,
+      status: 'draft', // New fork starts as draft
+      createdDate: new Date(),
+      lastModified: new Date()
+    }
+
+    return await repository.addSetlist(forkedSetlist)
   }
 
   static async getSetlistById(setlistId: string): Promise<Setlist | null> {
-    const setlist = await db.setlists.get(setlistId)
-    return setlist || null
+    return await repository.getSetlist(setlistId)
   }
 
   static async updateSetlist(setlistId: string, updateData: UpdateSetlistRequest): Promise<Setlist> {
@@ -158,8 +192,9 @@ export class SetlistService {
     if (updateData.venue !== undefined) updates.venue = updateData.venue
     if (updateData.notes !== undefined) updates.notes = updateData.notes
     if (updateData.status) updates.status = updateData.status
+    if (updateData.showId !== undefined) updates.showId = updateData.showId
 
-    await db.setlists.update(setlistId, updates)
+    await repository.updateSetlist(setlistId, updates)
     return await this.getSetlistById(setlistId) as Setlist
   }
 
@@ -169,7 +204,7 @@ export class SetlistService {
       throw new Error('Setlist not found')
     }
 
-    await db.setlists.delete(setlistId)
+    await repository.deleteSetlist(setlistId)
   }
 
   static async addSongToSetlist(setlistId: string, songData: AddSetlistSongRequest): Promise<Setlist> {
@@ -187,15 +222,15 @@ export class SetlistService {
 
     const newSong: SetlistSong = {
       songId: songData.songId,
-      order: songData.position || setlist.songs.length + 1,
+      order: songData.position || (setlist.songs || []).length + 1,
       keyChange: songData.keyChange,
       tempoChange: songData.tempoChange,
       specialInstructions: songData.specialInstructions
     }
 
     // Reorder existing songs if inserting at specific position
-    const updatedSongs = [...setlist.songs]
-    if (songData.position && songData.position <= setlist.songs.length) {
+    const updatedSongs = [...(setlist.songs || [])]
+    if (songData.position && songData.position <= (setlist.songs || []).length) {
       updatedSongs.splice(songData.position - 1, 0, newSong)
       // Renumber all songs
       updatedSongs.forEach((song, index) => {
@@ -206,7 +241,7 @@ export class SetlistService {
     }
 
     const totalDuration = await this.calculateTotalDuration(updatedSongs)
-    await db.setlists.update(setlistId, {
+    await repository.updateSetlist(setlistId, {
       songs: updatedSongs,
       totalDuration,
       lastModified: new Date()
@@ -221,7 +256,7 @@ export class SetlistService {
       throw new Error('Setlist not found')
     }
 
-    const songIndex = setlist.songs.findIndex(s => s.songId === songId)
+    const songIndex = (setlist.songs || []).findIndex(s => s.songId === songId)
     if (songIndex === -1) {
       throw new Error('Song not found in setlist')
     }
@@ -233,7 +268,7 @@ export class SetlistService {
       throw new Error('Tempo change must be between -50 and +50')
     }
 
-    const updatedSongs = [...setlist.songs]
+    const updatedSongs = [...(setlist.songs || [])]
     const songToUpdate = { ...updatedSongs[songIndex] }
 
     if (updateData.transitionNotes !== undefined) {
@@ -250,7 +285,7 @@ export class SetlistService {
     }
 
     updatedSongs[songIndex] = songToUpdate
-    await db.setlists.update(setlistId, {
+    await repository.updateSetlist(setlistId, {
       songs: updatedSongs,
       lastModified: new Date()
     })
@@ -264,19 +299,19 @@ export class SetlistService {
       throw new Error('Setlist not found')
     }
 
-    const songIndex = setlist.songs.findIndex(s => s.songId === songId)
+    const songIndex = (setlist.songs || []).findIndex(s => s.songId === songId)
     if (songIndex === -1) {
       throw new Error('Song not found in setlist')
     }
 
-    const updatedSongs = setlist.songs.filter(s => s.songId !== songId)
+    const updatedSongs = (setlist.songs || []).filter(s => s.songId !== songId)
     // Renumber remaining songs
     updatedSongs.forEach((song, index) => {
       song.order = index + 1
     })
 
     const totalDuration = await this.calculateTotalDuration(updatedSongs)
-    await db.setlists.update(setlistId, {
+    await repository.updateSetlist(setlistId, {
       songs: updatedSongs,
       totalDuration,
       lastModified: new Date()
@@ -292,7 +327,7 @@ export class SetlistService {
     }
 
     const reorderedSongs: SetlistSong[] = reorderData.songOrder.map((songId, index) => {
-      const existingSong = setlist.songs.find(s => s.songId === songId)
+      const existingSong = (setlist.songs || []).find(s => s.songId === songId)
       if (!existingSong) {
         throw new Error(`Song ${songId} not found in setlist`)
       }
@@ -302,7 +337,7 @@ export class SetlistService {
       }
     })
 
-    await db.setlists.update(setlistId, {
+    await repository.updateSetlist(setlistId, {
       songs: reorderedSongs,
       lastModified: new Date()
     })
@@ -321,7 +356,7 @@ export class SetlistService {
     let readySongs = 0
     let needsPracticeSongs = 0
 
-    for (const setlistSong of setlist.songs) {
+    for (const setlistSong of (setlist.songs || [])) {
       const song = await db.songs.get(setlistSong.songId)
       if (!song) continue
 
@@ -368,22 +403,22 @@ export class SetlistService {
       totalConfidence += song.confidenceLevel
     }
 
-    const overallReadiness = setlist.songs.length > 0 ? totalConfidence / setlist.songs.length : 0
+    const overallReadiness = (setlist.songs || []).length > 0 ? totalConfidence / (setlist.songs || []).length : 0
 
     const recommendations: string[] = []
     if (needsPracticeSongs > 0) {
       recommendations.push(`Practice ${needsPracticeSongs} songs that need work`)
     }
-    if (readySongs < setlist.songs.length * 0.8) {
+    if (readySongs < (setlist.songs || []).length * 0.8) {
       recommendations.push('Schedule additional practice sessions')
     }
 
-    const estimatedPracticeTime = needsPracticeSongs * 30 + (setlist.songs.length - readySongs - needsPracticeSongs) * 15
+    const estimatedPracticeTime = needsPracticeSongs * 30 + ((setlist.songs || []).length - readySongs - needsPracticeSongs) * 15
 
     return {
       setlistId,
       overallReadiness,
-      totalSongs: setlist.songs.length,
+      totalSongs: (setlist.songs || []).length,
       readySongs,
       needsPracticeSongs,
       songReadiness,
@@ -407,7 +442,9 @@ export class SetlistService {
   private static async calculateTotalDuration(songs: SetlistSong[]): Promise<number> {
     let total = 0
     for (const setlistSong of songs) {
-      const song = await db.songs.get(setlistSong.songId)
+      // Get songs from repository
+      const allSongs = await repository.getSongs({ id: setlistSong.songId })
+      const song = allSongs[0]
       if (song) {
         total += song.duration
       }
@@ -499,7 +536,7 @@ export class SetlistService {
     const castings = await castingService.getCastingsForContext('setlist', setlistId)
 
     const songsWithCasting = await Promise.all(
-      setlist.songs.map(async (setlistSong) => {
+      (setlist.songs || []).map(async (setlistSong) => {
         const song = await db.songs.get(setlistSong.songId)
         const casting = castings.find(c => c.songId === parseInt(setlistSong.songId))
 

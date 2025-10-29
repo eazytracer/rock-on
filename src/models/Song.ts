@@ -24,7 +24,7 @@ export interface Song {
   contextType: 'personal' | 'band'
   contextId: string // userId for personal, bandId for band
   createdBy: string // userId who created this song
-  visibility: 'private' | 'band_only' | 'public'
+  visibility: 'personal' | 'band' | 'public' // Matches Supabase constraint
 
   // Song variant linking (for Phase 2)
   songGroupId?: string // Links related versions of the same song

@@ -31,7 +31,8 @@ import {
 // ============================================================================
 import { db } from '../../services/database'
 import { useCreateBand } from '../../hooks/useBands'
-import type { Band } from '../../models/Band'
+import { useAuth } from '../../contexts/AuthContext'
+// Band type not currently used but may be needed for future features
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -60,7 +61,8 @@ interface FormErrors {
 // MOCK DATA
 // ============================================================================
 
-const MOCK_BANDS: BandDisplay[] = [
+// Mock data for testing - not currently used in production
+const _MOCK_BANDS: BandDisplay[] = [
   {
     id: 'band-1',
     name: 'iPod Shuffle',
@@ -478,6 +480,7 @@ interface LoginPageProps {
 
 const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchToSignup }) => {
   const navigate = useNavigate()
+  const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -554,46 +557,32 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
   }
 
   const handleMockUserLogin = async (mockEmail: string) => {
+    // Use REAL Supabase auth instead of mock localStorage-only auth
+    // All test users have password "test123"
     setEmail(mockEmail)
+    setPassword('test123')
     setErrors({})
     setLoading(true)
 
     try {
-      // PHASE 2 DATABASE INTEGRATION: Query database for user
-      const user = await db.users
-        .where('email')
-        .equals(mockEmail.toLowerCase())
-        .first()
+      // Sign in with Supabase (this will trigger all the auth syncing)
+      const { error } = await signIn({
+        email: mockEmail,
+        password: 'test123'
+      })
 
-      if (user) {
-        // User exists - set localStorage and update lastLogin
-        localStorage.setItem('currentUserId', user.id)
-
-        // Update user's lastLogin timestamp
-        await db.users.update(user.id, {
-          lastLogin: new Date()
-        })
-
-        // Check if user has any bands
-        const memberships = await db.bandMemberships
-          .where('userId')
-          .equals(user.id)
-          .toArray()
-
-        if (memberships.length > 0) {
-          // User has bands - set currentBandId to first band and navigate to app
-          localStorage.setItem('currentBandId', memberships[0].bandId)
-          setLoading(false)
-          navigate('/songs')
-        } else {
-          // User has no bands - navigate to get started
-          setLoading(false)
-          navigate('/get-started')
-        }
-      } else {
+      if (error) {
         setLoading(false)
-        setErrors({ password: 'User not found in database. Try running resetDB() in console.' })
+        setErrors({ password: error })
+        return
       }
+
+      // Success! Auth context will handle the rest
+      // Wait a moment for sync to complete
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      setLoading(false)
+      navigate('/songs')
     } catch (err) {
       console.error('Mock login error:', err)
       setErrors({ password: 'Login failed. Please try again.' })
@@ -1005,7 +994,8 @@ interface UserMenuDropdownProps {
   onLogout: () => void
 }
 
-const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onAccountSettings, onLogout }) => {
+// Component reserved for future use
+const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onAccountSettings, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -1092,7 +1082,8 @@ interface BandSelectorDropdownProps {
   onJoinBand: () => void
 }
 
-const BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
+// Component reserved for future use
+const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
   currentBand,
   bands,
   onSwitchBand,
@@ -1217,7 +1208,8 @@ interface CreateBandModalProps {
   onSuccess: (bandName: string) => void
 }
 
-const CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onSuccess }) => {
+// Component reserved for future use
+const _CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [bandName, setBandName] = useState('')
   const [description, setDescription] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
@@ -1329,7 +1321,8 @@ interface JoinBandModalProps {
   onSuccess: (bandName: string) => void
 }
 
-const JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSuccess }) => {
+// Component reserved for future use
+const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [inviteCode, setInviteCode] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
