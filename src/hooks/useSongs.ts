@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
+import { SongService } from '../services/SongService'
+import { getSyncRepository } from '../services/data/SyncRepository'
 import { db } from '../services/database'
 import type { Song } from '../models/Song'
 
 /**
  * Hook to fetch songs for a band
+ * Uses SongService with sync event listening for real-time updates
  */
 export function useSongs(bandId: string) {
   const [songs, setSongs] = useState<Song[]>([])
@@ -17,33 +20,56 @@ export function useSongs(bandId: string) {
       return
     }
 
+    // Initial fetch
     const fetchSongs = async () => {
       try {
+        console.log('[useSongs] Fetching songs for band:', bandId)
         setLoading(true)
-        const bandSongs = await db.songs
-          .where('contextType')
-          .equals('band')
-          .and(s => s.contextId === bandId)
-          .toArray()
-
-        setSongs(bandSongs)
+        const response = await SongService.getBandSongs(bandId)
+        console.log('[useSongs] Fetched songs count:', response.songs.length)
+        setSongs(response.songs)
         setError(null)
       } catch (err) {
-        console.error('Error fetching songs:', err)
+        console.error('[useSongs] Error fetching songs:', err)
         setError(err as Error)
+        setSongs([])
       } finally {
         setLoading(false)
       }
     }
 
+    console.log('[useSongs] Mounting hook for band:', bandId)
     fetchSongs()
 
+    // Listen for sync status changes to trigger refetch
+    const repo = getSyncRepository()
+    const handleSyncChange = () => {
+      // Refetch when sync completes (data may have changed)
+      console.log('[useSongs] Sync status changed, refetching songs...')
+      fetchSongs()
+    }
+
+    const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
+
+    // Cleanup
     return () => {
-      // Cleanup if needed
+      console.log('[useSongs] Unmounting hook for band:', bandId)
+      unsubscribe()
     }
   }, [bandId])
 
-  return { songs, loading, error, refetch: () => {} }
+  return { songs, loading, error, refetch: async () => {
+    setLoading(true)
+    try {
+      const response = await SongService.getBandSongs(bandId)
+      setSongs(response.songs)
+      setError(null)
+    } catch (err) {
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }}
 }
 
 /**
@@ -66,13 +92,14 @@ export function useCreateSong() {
         contextType: songData.contextType || 'band',
         contextId: songData.contextId || '',
         createdBy: songData.createdBy || '',
-        visibility: songData.visibility || 'band_only',
+        visibility: songData.visibility || 'band', // Fixed: use 'band' to match Supabase constraint
         createdDate: new Date(),
         confidenceLevel: songData.confidenceLevel || 1,
         ...songData
       } as Song
 
-      await db.songs.add(newSong)
+      // Use SyncRepository instead of direct db access - this will queue for sync!
+      await getSyncRepository().addSong(newSong)
 
       return songId
     } catch (err) {
@@ -99,7 +126,8 @@ export function useUpdateSong() {
       setLoading(true)
       setError(null)
 
-      await db.songs.update(songId, updates)
+      // Use SyncRepository instead of direct db access - this will queue for sync!
+      await getSyncRepository().updateSong(songId, updates)
 
       return true
     } catch (err) {
@@ -145,8 +173,8 @@ export function useDeleteSong() {
         }
       }
 
-      // Delete the song
-      await db.songs.delete(songId)
+      // Use SyncRepository instead of direct db access - this will queue for sync!
+      await getSyncRepository().deleteSong(songId)
 
       return true
     } catch (err) {

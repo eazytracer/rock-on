@@ -41,4 +41,20 @@ sudo rm -rf /var/lib/apt/lists/*
 echo "🌐 Installing Chrome..."
 npx -y @puppeteer/browsers install chrome@stable --path ~/chrome
 
+# Install Chrome DevTools MCP server
+echo "🔌 Installing Chrome DevTools MCP server..."
+npm install -g chrome-devtools-mcp
+
+# Configure Chrome MCP server using Claude CLI
+echo "⚙️  Configuring Chrome MCP server..."
+if command -v claude &> /dev/null; then
+  # Add Chrome MCP server to Claude Code configuration
+  claude mcp add chrome-devtools -- chrome-devtools-mcp --browserUrl http://127.0.0.1:9222 2>/dev/null || true
+  echo "✓ Chrome MCP server configured"
+else
+  echo "⚠ Claude CLI not found - MCP server will need to be configured manually"
+  echo "  Run: claude mcp add chrome-devtools -- chrome-devtools-mcp --browserUrl http://127.0.0.1:9222"
+fi
+
 echo "✅ Devcontainer setup complete!"
+echo "ℹ️  Note: Run 'claude mcp list' to verify MCP server is connected"

@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Development mode
+  # Development mode with local Supabase
   rock-on-dev:
     build:
       context: .
@@ -15,8 +15,18 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      # Supabase local connection (requires 'npx supabase start' running on host)
+      - VITE_MOCK_AUTH=${VITE_MOCK_AUTH:-false}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-http://host.docker.internal:54321}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID:-mock}
+    extra_hosts:
+      # Allow container to access host's Supabase instance
+      - "host.docker.internal:host-gateway"
     profiles:
       - dev
+    networks:
+      - rock-on-network
 
   # Production mode
   rock-on-prod:
@@ -29,5 +39,14 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     profiles:
       - prod
+    networks:
+      - rock-on-network
+
+networks:
+  rock-on-network:
+    driver: bridge

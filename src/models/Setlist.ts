@@ -1,5 +1,8 @@
 import { SetlistStatus, SetlistSong, SetlistItem } from '../types'
 
+// Re-export SetlistItem for convenience
+export type { SetlistItem } from '../types'
+
 export interface Setlist {
   id: string
   name: string
@@ -7,6 +10,7 @@ export interface Setlist {
   /** @deprecated Use showId instead */
   showDate?: Date
   showId?: string  // Version 5: Reference to show (practiceSessions with type='gig')
+  sourceSetlistId?: string  // Version 6: Reference to original setlist this was forked from
   /** @deprecated Venue is now on show (practiceSessions.venue) */
   venue?: string
   /** @deprecated Use items instead */

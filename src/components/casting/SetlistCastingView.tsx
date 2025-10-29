@@ -76,7 +76,7 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
   }
 
   const getSetlistSongs = (): Song[] => {
-    return setlist.songs
+    return (setlist.songs || [])
       .map(ss => songs.find(s => s.id === ss.songId))
       .filter(Boolean) as Song[]
   }
@@ -160,9 +160,9 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
               <h2 className="text-xl font-semibold text-gray-900">Casting: {setlist.name}</h2>
               {setlist.status && (
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  setlist.status === 'performed' ? 'bg-green-100 text-green-800' :
-                  setlist.status === 'rehearsed' ? 'bg-blue-100 text-blue-800' :
-                  'bg-gray-100 text-gray-800'
+                  setlist.status === 'active' ? 'bg-green-100 text-green-800' :
+                  setlist.status === 'archived' ? 'bg-gray-100 text-gray-800' :
+                  'bg-blue-100 text-blue-800'
                 }`}>
                   {setlist.status}
                 </span>

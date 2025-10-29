@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ModernLayout } from '../../components/layout/ModernLayout'
+import { useAuth } from '../../contexts/AuthContext'
 import {
   ChevronDown,
   Plus,
@@ -48,6 +49,11 @@ import { secondsToDuration } from '../../utils/formatters'
 import { formatShowDate } from '../../utils/dateHelpers'
 import type { SetlistItem as DBSetlistItem, Setlist as DBSetlist } from '../../models/Setlist'
 import type { Song as DBSong } from '../../models/Song'
+import {
+  useCreateSetlist,
+  useUpdateSetlist,
+  useDeleteSetlist
+} from '../../hooks/useSetlists'
 
 // DATABASE INTEGRATION: UI-specific types for display
 // These extend the database types with UI-specific fields
@@ -158,7 +164,7 @@ const formatTotalDuration = (totalSeconds: number): string => {
 }
 
 // Helper to calculate setlist duration
-const calculateSetlistDuration = (items: SetlistItem[]): number => {
+const calculateSetlistDuration = (items: UISetlistItem[]): number => {
   return items.reduce((total, item) => {
     if (item.type === 'song' && item.song) {
       return total + item.song.durationSeconds
@@ -1218,8 +1224,16 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
 export const SetlistsPage: React.FC = () => {
   const navigate = useNavigate()
 
+  // Get auth context for user info and sign out
+  const { currentUser, currentBand, signOut, logout } = useAuth()
+
   // DATABASE INTEGRATION: Get currentBandId from localStorage
   const [currentBandId] = useState(() => localStorage.getItem('currentBandId') || '')
+
+  // DATABASE INTEGRATION: Use hooks for setlist operations
+  const { createSetlist } = useCreateSetlist()
+  const { updateSetlist } = useUpdateSetlist()
+  const { deleteSetlist } = useDeleteSetlist()
 
   // DATABASE INTEGRATION: State for UI data
   const [uiSetlists, setUISetlists] = useState<UISetlist[]>([])
@@ -1262,11 +1276,10 @@ export const SetlistsPage: React.FC = () => {
         // Convert songs to UI format
         const uiSongs: UISong[] = dbSongs.map(dbSongToUISong)
 
-        // Load shows (practice sessions with type='gig')
-        const dbShows = await db.practiceSessions
+        // Load shows from dedicated shows table
+        const dbShows = await db.shows
           .where('bandId')
           .equals(currentBandId)
-          .and(s => s.type === 'gig')
           .toArray()
 
         const uiShows: UIShow[] = dbShows.map(show => ({
@@ -1284,7 +1297,7 @@ export const SetlistsPage: React.FC = () => {
 
         const uiPractices: UIPractice[] = dbPractices.map(practice => ({
           id: practice.id!,
-          name: practice.name || 'Practice Session',
+          name: `Practice - ${formatShowDate(practice.scheduledDate)}`,
           date: formatShowDate(practice.scheduledDate)
         }))
 
@@ -1294,7 +1307,7 @@ export const SetlistsPage: React.FC = () => {
             // Load associated show if exists
             let associatedShow: { id: string; name: string; date: string } | undefined
             if (dbSetlist.showId) {
-              const show = await db.practiceSessions.get(dbSetlist.showId)
+              const show = await db.shows.get(dbSetlist.showId)
               if (show) {
                 associatedShow = {
                   id: show.id!,
@@ -1392,7 +1405,7 @@ export const SetlistsPage: React.FC = () => {
     setEditingSetlist({ ...setlist })
   }
 
-  // DATABASE INTEGRATION: Duplicate setlist
+  // DATABASE INTEGRATION: Duplicate setlist (using hook)
   const handleDuplicate = async (setlist: UISetlist) => {
     try {
       // Create new UISetlist with duplicated items
@@ -1422,16 +1435,18 @@ export const SetlistsPage: React.FC = () => {
         sectionTitle: item.sectionTitle
       }))
 
-      // Save to database
-      await db.setlists.add({
+      // Calculate total duration
+      const totalDurationSeconds = calculateSetlistDuration(duplicated.items)
+
+      // Save to database using hook
+      await createSetlist({
         id: duplicated.id,
         name: duplicated.name,
         bandId: duplicated.bandId,
         status: duplicated.status,
         items: dbItems,
-        notes: duplicated.notes,
-        createdDate: new Date(),
-        lastModified: new Date()
+        totalDuration: totalDurationSeconds,
+        notes: duplicated.notes
       })
 
       // Update UI state
@@ -1444,10 +1459,10 @@ export const SetlistsPage: React.FC = () => {
     }
   }
 
-  // DATABASE INTEGRATION: Archive setlist
+  // DATABASE INTEGRATION: Archive setlist (using hook)
   const handleArchive = async (setlistId: string) => {
     try {
-      await db.setlists.update(setlistId, { status: 'archived' })
+      await updateSetlist(setlistId, { status: 'archived' })
       setUISetlists(uiSetlists.map((s) => (s.id === setlistId ? { ...s, status: 'archived' as const } : s)))
       alert('Setlist archived successfully!')
     } catch (err) {
@@ -1456,10 +1471,10 @@ export const SetlistsPage: React.FC = () => {
     }
   }
 
-  // DATABASE INTEGRATION: Delete setlist
+  // DATABASE INTEGRATION: Delete setlist (using hook)
   const handleDelete = async (setlistId: string) => {
     try {
-      // Clear any show references
+      // Clear any show references (still need db for this query, but it's read-only)
       const shows = await db.practiceSessions
         .where('setlistId')
         .equals(setlistId)
@@ -1469,8 +1484,8 @@ export const SetlistsPage: React.FC = () => {
         await db.practiceSessions.update(show.id!, { setlistId: undefined })
       }
 
-      // Delete the setlist
-      await db.setlists.delete(setlistId)
+      // Delete the setlist using hook
+      await deleteSetlist(setlistId)
 
       // Update UI state
       setUISetlists(uiSetlists.filter((s) => s.id !== setlistId))
@@ -1482,7 +1497,7 @@ export const SetlistsPage: React.FC = () => {
     }
   }
 
-  // DATABASE INTEGRATION: Save setlist
+  // DATABASE INTEGRATION: Save setlist (using hooks)
   const handleSave = async (updatedSetlist: UISetlist) => {
     try {
       // Convert UI items to database items
@@ -1500,8 +1515,7 @@ export const SetlistsPage: React.FC = () => {
       // Calculate total duration in seconds
       const totalDurationSeconds = calculateSetlistDuration(updatedSetlist.items)
 
-      const dbSetlist: Partial<DBSetlist> = {
-        id: updatedSetlist.id,
+      const setlistData: Partial<DBSetlist> = {
         name: updatedSetlist.name,
         bandId: updatedSetlist.bandId,
         status: updatedSetlist.status,
@@ -1511,21 +1525,17 @@ export const SetlistsPage: React.FC = () => {
         showId: updatedSetlist.showId
       }
 
-      // Check if setlist exists
+      // Check if setlist exists (read-only operation)
       const exists = await db.setlists.get(updatedSetlist.id)
 
       if (exists) {
-        // Update existing
-        await db.setlists.update(updatedSetlist.id, {
-          ...dbSetlist,
-          lastModified: new Date()
-        })
+        // Update existing using hook
+        await updateSetlist(updatedSetlist.id, setlistData)
       } else {
-        // Create new
-        await db.setlists.add({
-          ...dbSetlist as DBSetlist,
-          createdDate: new Date(),
-          lastModified: new Date()
+        // Create new using hook
+        await createSetlist({
+          ...setlistData,
+          id: updatedSetlist.id
         })
       }
 
@@ -1547,7 +1557,7 @@ export const SetlistsPage: React.FC = () => {
         dbSetlists.map(async (dbSetlist) => {
           let associatedShow: { id: string; name: string; date: string } | undefined
           if (dbSetlist.showId) {
-            const show = await db.practiceSessions.get(dbSetlist.showId)
+            const show = await db.shows.get(dbSetlist.showId)
             if (show) {
               associatedShow = {
                 id: show.id!,
@@ -1603,9 +1613,10 @@ export const SetlistsPage: React.FC = () => {
     }
   }
 
-  const handleSignOut = () => {
-    localStorage.removeItem('currentUserId')
-    localStorage.removeItem('currentBandId')
+  const handleSignOut = async () => {
+    // Call both logout methods to clear all state
+    logout() // Clear database state
+    await signOut() // Clear auth session
     navigate('/auth')
   }
 
@@ -1613,8 +1624,8 @@ export const SetlistsPage: React.FC = () => {
   if (loading) {
     return (
       <ModernLayout
-        bandName="iPod Shuffle"
-        userEmail="eric@example.com"
+        bandName={currentBand?.name || 'No Band Selected'}
+        userEmail={currentUser?.email || 'Not logged in'}
         onSignOut={handleSignOut}
       >
         <div className="flex items-center justify-center py-20">
@@ -1631,8 +1642,8 @@ export const SetlistsPage: React.FC = () => {
   if (error) {
     return (
       <ModernLayout
-        bandName="iPod Shuffle"
-        userEmail="eric@example.com"
+        bandName={currentBand?.name || 'No Band Selected'}
+        userEmail={currentUser?.email || 'Not logged in'}
         onSignOut={handleSignOut}
       >
         <div className="flex items-center justify-center py-20">
@@ -1667,8 +1678,8 @@ export const SetlistsPage: React.FC = () => {
   // Otherwise, show grid view
   return (
     <ModernLayout
-      bandName="iPod Shuffle"
-      userEmail="eric@example.com"
+      bandName={currentBand?.name || 'No Band Selected'}
+      userEmail={currentUser?.email || 'Not logged in'}
       onSignOut={handleSignOut}
     >
       <div className="mb-8">

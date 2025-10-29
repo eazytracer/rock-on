@@ -1,4 +1,5 @@
-import { db } from './database'
+import { db } from './database' // Keep for entities not yet in repository (bandMemberships)
+import { repository } from './data/RepositoryFactory'
 import { Song } from '../models/Song'
 
 export interface SongFilters {
@@ -36,7 +37,7 @@ export interface CreateSongRequest {
   createdBy: string
   contextType?: 'personal' | 'band'
   contextId?: string
-  visibility?: 'private' | 'band_only' | 'public'
+  visibility?: 'personal' | 'band' | 'public'
 }
 
 export interface ConfidenceRating {
@@ -47,50 +48,47 @@ export interface ConfidenceRating {
 
 export class SongService {
   static async getAllSongs(filters: SongFilters): Promise<SongListResponse> {
-    let query = db.songs.orderBy('title')
-
-    // Apply context type filter
+    // Use repository with supported filters (contextType, contextId)
+    const repoFilter: any = {}
     if (filters.contextType) {
-      query = query.filter(song => song.contextType === filters.contextType)
+      repoFilter.contextType = filters.contextType
     }
-
-    // Apply context ID filter
     if (filters.contextId) {
-      query = query.filter(song => song.contextId === filters.contextId)
+      repoFilter.contextId = filters.contextId
     }
 
-    // Apply search filter
+    // Fetch from repository
+    let songs = await repository.getSongs(repoFilter)
+
+    // Apply client-side filters for unsupported filters
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase()
-      query = query.filter(song =>
+      songs = songs.filter(song =>
         song.title.toLowerCase().includes(searchTerm) ||
         song.artist.toLowerCase().includes(searchTerm)
       )
     }
 
-    // Apply key filter
     if (filters.key) {
-      query = query.filter(song => song.key === filters.key)
+      songs = songs.filter(song => song.key === filters.key)
     }
 
-    // Apply difficulty filter
     if (filters.difficulty) {
-      query = query.filter(song => song.difficulty === filters.difficulty)
+      songs = songs.filter(song => song.difficulty === filters.difficulty)
     }
 
-    // Apply tags filter
     if (filters.tags && filters.tags.length > 0) {
-      query = query.filter(song =>
+      songs = songs.filter(song =>
         filters.tags!.some(tag => song.tags.includes(tag))
       )
     }
 
-    const songs = await query.toArray()
-    const total = await db.songs.count()
+    // Sort by title (repository doesn't guarantee order)
+    songs.sort((a, b) => a.title.localeCompare(b.title))
 
     return {
       songs,
-      total,
+      total: songs.length,
       filtered: songs.length
     }
   }
@@ -123,7 +121,7 @@ export class SongService {
    * Get all songs accessible by a user (personal + bands they're in)
    */
   static async getUserAccessibleSongs(userId: string): Promise<SongListResponse> {
-    // Get user's band memberships
+    // Get user's band memberships (keep using db.bandMemberships until it's in repository)
     const memberships = await db.bandMemberships
       .where('userId')
       .equals(userId)
@@ -132,23 +130,29 @@ export class SongService {
 
     const bandIds = memberships.map(m => m.bandId)
 
-    // Get all songs for this user (personal + all their bands)
-    const songs = await db.songs
-      .filter(song => {
-        // Personal songs
-        if (song.contextType === 'personal' && song.contextId === userId) {
-          return true
-        }
-        // Band songs from bands the user is in
-        if (song.contextType === 'band' && bandIds.includes(song.contextId)) {
-          return true
-        }
-        return false
+    // Get personal songs from repository
+    const personalSongs = await repository.getSongs({
+      contextType: 'personal',
+      contextId: userId
+    })
+
+    // Get band songs from repository
+    const bandSongsPromises = bandIds.map(bandId =>
+      repository.getSongs({
+        contextType: 'band',
+        contextId: bandId
       })
-      .toArray()
+    )
+    const bandSongsArrays = await Promise.all(bandSongsPromises)
+    const bandSongs = bandSongsArrays.flat()
+
+    // Combine and sort
+    const songs = [...personalSongs, ...bandSongs].sort((a, b) =>
+      a.title.localeCompare(b.title)
+    )
 
     return {
-      songs: songs.sort((a, b) => a.title.localeCompare(b.title)),
+      songs,
       total: songs.length,
       filtered: songs.length
     }
@@ -158,18 +162,18 @@ export class SongService {
     // Validate required fields
     this.validateSongData(songData)
 
-    // Check for duplicate song
-    const existingSong = await db.songs
-      .where('title')
-      .equals(songData.title)
-      .and(song => song.artist === songData.artist)
-      .first()
+    // Check for duplicate song (fetch all and check client-side for now)
+    const allSongs = await repository.getSongs({})
+    const existingSong = allSongs.find(
+      song => song.title === songData.title && song.artist === songData.artist
+    )
 
     if (existingSong) {
       throw new Error('Song already exists')
     }
 
-    const newSong: Song = {
+    // Create song via repository
+    const newSong = await repository.addSong({
       id: crypto.randomUUID(),
       title: songData.title,
       artist: songData.artist,
@@ -190,16 +194,15 @@ export class SongService {
       contextType: songData.contextType || 'band',
       contextId: songData.contextId || songData.bandId,
       createdBy: songData.createdBy,
-      visibility: songData.visibility || 'band_only'
-    }
+      visibility: songData.visibility || 'band' // Default to 'band' for MVP
+    })
 
-    await db.songs.add(newSong)
     return newSong
   }
 
   static async getSongById(songId: string): Promise<Song | null> {
-    const song = await db.songs.get(songId)
-    return song || null
+    const songs = await repository.getSongs({ id: songId })
+    return songs[0] || null
   }
 
   static async updateSong(songId: string, updateData: Partial<Song>): Promise<Song> {
@@ -219,7 +222,7 @@ export class SongService {
       this.validateKey(updateData.key)
     }
 
-    await db.songs.update(songId, updateData)
+    await repository.updateSong(songId, updateData)
     return await this.getSongById(songId) as Song
   }
 
@@ -230,15 +233,16 @@ export class SongService {
     }
 
     // Check if song is used in any setlists
-    const setlistsWithSong = await db.setlists
-      .filter(setlist => setlist.songs.some(s => s.songId === songId))
-      .toArray()
+    const allSetlists = await repository.getSetlists(song.contextId)
+    const setlistsWithSong = allSetlists.filter(setlist =>
+      setlist.items.some(item => item.type === 'song' && item.songId === songId)
+    )
 
     if (setlistsWithSong.length > 0) {
       throw new Error('Cannot delete song: used in setlists')
     }
 
-    await db.songs.delete(songId)
+    await repository.deleteSong(songId)
   }
 
   static async submitConfidenceRating(songId: string, rating: ConfidenceRating): Promise<{ averageConfidence: number, totalRatings: number }> {
@@ -255,7 +259,7 @@ export class SongService {
     // For now, we'll update the song's overall confidence level
     // In a real implementation, we'd store individual member ratings
     const newConfidence = rating.confidence
-    await db.songs.update(songId, {
+    await repository.updateSong(songId, {
       confidenceLevel: newConfidence,
       lastPracticed: new Date()
     })

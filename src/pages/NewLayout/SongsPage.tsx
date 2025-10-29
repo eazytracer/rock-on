@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ModernLayout } from '../../components/layout/ModernLayout'
+import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../contexts/ToastContext'
 import {
   ChevronDown,
   Plus,
@@ -25,7 +27,8 @@ import {
 import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../../hooks/useSongs'
 import { secondsToDuration, durationToSeconds, formatBpm, parseBpm } from '../../utils/formatters'
 import { db } from '../../services/database'
-import type { Song as DBSong } from '../../models/Song'
+// DBSong type imported but not currently used directly
+import CircleOfFifths from '../../components/songs/CircleOfFifths'
 
 interface SongLink {
   id: string
@@ -428,16 +431,17 @@ type SortOption = 'title-asc' | 'title-desc' | 'artist-asc' | 'artist-desc' | 'd
 
 export const SongsPage: React.FC = () => {
   const navigate = useNavigate()
+  const { showToast } = useToast()
 
   // DATABASE INTEGRATION: Get currentBandId from localStorage
   const currentBandId = localStorage.getItem('currentBandId') || ''
   const currentUserId = localStorage.getItem('currentUserId') || ''
 
   // DATABASE INTEGRATION: Use database hooks instead of mock state
-  const { songs: dbSongs, loading, error } = useSongs(currentBandId)
-  const { createSong, loading: creating } = useCreateSong()
-  const { updateSong, loading: updating } = useUpdateSong()
-  const { deleteSong, checkSongInSetlists, loading: deleting } = useDeleteSong()
+  const { songs: dbSongs, loading, error, refetch } = useSongs(currentBandId)
+  const { createSong } = useCreateSong()
+  const { updateSong } = useUpdateSong()
+  const { deleteSong, checkSongInSetlists } = useDeleteSong()
 
   // Display songs with transformed data
   const [songs, setSongs] = useState<Song[]>([])
@@ -453,7 +457,7 @@ export const SongsPage: React.FC = () => {
   const [isSetlistMenuOpen, setIsSetlistMenuOpen] = useState(false)
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
-  const [songsInSetlists, setSongsInSetlists] = useState<string[]>([])
+  // State for tracking songs in setlists - reserved for future feature
 
   // DATABASE INTEGRATION: Transform database songs to display format and calculate "Next Show"
   useEffect(() => {
@@ -481,10 +485,10 @@ export const SongsPage: React.FC = () => {
                 // For each setlist, check if it has a linked show
                 for (const setlist of setlists) {
                   if (setlist.showId) {
-                    // Load the show (practiceSession with type='gig')
-                    const show = await db.practiceSessions.get(setlist.showId)
+                    // Load the show from dedicated shows table
+                    const show = await db.shows.get(setlist.showId)
 
-                    if (show && show.type === 'gig' && show.scheduledDate) {
+                    if (show && show.scheduledDate) {
                       const showDate = new Date(show.scheduledDate)
                       const now = new Date()
 
@@ -680,15 +684,18 @@ export const SongsPage: React.FC = () => {
         contextType: 'band',
         contextId: currentBandId,
         createdBy: currentUserId,
-        visibility: 'band_only',
+        visibility: 'band',
         confidenceLevel: song.confidenceLevel || 1
       })
 
-      // Show success toast (simple alert for now)
-      alert(`Successfully duplicated "${song.title}"`)
+      // Refetch songs to update UI
+      await refetch()
+
+      // Show success toast
+      showToast(`Successfully duplicated "${song.title}"`, 'success')
     } catch (err) {
       console.error('Error duplicating song:', err)
-      alert('Failed to duplicate song. Please try again.')
+      showToast('Failed to duplicate song. Please try again.', 'error')
     }
     setOpenActionMenuId(null)
   }
@@ -723,11 +730,14 @@ export const SongsPage: React.FC = () => {
       // Delete the song (hook handles setlist cleanup)
       await deleteSong(song.id)
 
+      // Refetch songs to update UI
+      await refetch()
+
       // Show success toast
-      alert(`Successfully deleted "${song.title}"`)
+      showToast(`Successfully deleted "${song.title}"`, 'success')
     } catch (err) {
       console.error('Error deleting song:', err)
-      alert('Failed to delete song. Please try again.')
+      showToast('Failed to delete song. Please try again.', 'error')
     }
     setOpenActionMenuId(null)
   }
@@ -762,16 +772,20 @@ export const SongsPage: React.FC = () => {
     )
   }
 
-  const handleSignOut = () => {
-    localStorage.removeItem('currentUserId')
-    localStorage.removeItem('currentBandId')
+  // Get auth context for user info and sign out
+  const { currentUser, currentBand, signOut, logout } = useAuth()
+
+  const handleSignOut = async () => {
+    // Call both logout methods to clear all state
+    logout() // Clear database state
+    await signOut() // Clear auth session
     navigate('/auth')
   }
 
   return (
     <ModernLayout
-      bandName="iPod Shuffle"
-      userEmail="eric@example.com"
+      bandName={currentBand?.name || 'No Band Selected'}
+      userEmail={currentUser?.email || 'Not logged in'}
       onSignOut={handleSignOut}
     >
       {/* DATABASE INTEGRATION: Show loading state */}
@@ -1016,7 +1030,7 @@ export const SongsPage: React.FC = () => {
 
       {/* Desktop Table View */}
       {filteredAndSortedSongs.length > 0 && (
-        <div className="hidden md:block">
+        <div className="hidden xl:block">
           {/* Table Header */}
           <div className="flex items-center gap-4 px-4 pb-3 mb-2 border-b border-[#2a2a2a]">
             <div className="flex-1 min-w-[220px] text-xs font-semibold text-[#707070] uppercase tracking-wider">
@@ -1071,7 +1085,7 @@ export const SongsPage: React.FC = () => {
                 <div className="w-[130px] text-[#a0a0a0] text-sm">{song.tuning}</div>
 
                 {/* BPM */}
-                <div className="w-[80px] text-[#a0a0a0] text-sm">{song.bpm} bpm</div>
+                <div className="w-[80px] text-[#a0a0a0] text-sm">{song.bpm}</div>
 
                 {/* Next Show */}
                 <div className="w-[180px]">
@@ -1142,7 +1156,7 @@ export const SongsPage: React.FC = () => {
 
       {/* Mobile Card View */}
       {filteredAndSortedSongs.length > 0 && (
-        <div className="md:hidden space-y-3">
+        <div className="xl:hidden space-y-3 min-w-[280px]">
           {filteredAndSortedSongs.map((song) => (
             <div key={song.id} className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]">
               {/* Song Info */}
@@ -1206,8 +1220,8 @@ export const SongsPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Metadata Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              {/* Metadata Grid - 2 columns on wider mobile, 1 column on very small */}
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 mb-3">
                 <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
                   <Clock size={16} className="flex-shrink-0" />
                   <span>{song.duration}</span>
@@ -1218,11 +1232,11 @@ export const SongsPage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
                   <Guitar size={16} className="flex-shrink-0" />
-                  <span>{song.tuning}</span>
+                  <span className="truncate">{song.tuning}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
                   <Activity size={16} className="flex-shrink-0" />
-                  <span>{song.bpm} bpm</span>
+                  <span className="whitespace-nowrap">{song.bpm}</span>
                 </div>
               </div>
 
@@ -1244,8 +1258,14 @@ export const SongsPage: React.FC = () => {
               {song.nextShow && (
                 <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
                   <Calendar size={16} className="text-[#707070] flex-shrink-0" />
-                  <span className="text-white">{song.nextShow.name}</span>
-                  <span className="text-[#a0a0a0]">{song.nextShow.date}</span>
+                  <span className="text-white truncate">{song.nextShow.name}</span>
+                  <span className="text-[#a0a0a0] whitespace-nowrap">{song.nextShow.date}</span>
+                </div>
+              )}
+              {!song.nextShow && (
+                <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
+                  <Calendar size={16} className="text-[#707070] flex-shrink-0" />
+                  <span className="text-[#707070]">No shows scheduled</span>
                 </div>
               )}
             </div>
@@ -1286,15 +1306,18 @@ export const SongsPage: React.FC = () => {
                 contextType: 'band',
                 contextId: currentBandId,
                 createdBy: currentUserId,
-                visibility: 'band_only',
+                visibility: 'band',
                 confidenceLevel: newSong.confidenceLevel || 1
               })
 
-              alert(`Successfully added "${newSong.title}"`)
+              // Refetch songs to update UI
+              await refetch()
+
+              showToast(`Successfully added "${newSong.title}"`, 'success')
               setIsAddModalOpen(false)
             } catch (err) {
               console.error('Error creating song:', err)
-              alert('Failed to create song. Please try again.')
+              showToast('Failed to create song. Please try again.', 'error')
             }
           }}
           currentUserId={currentUserId}
@@ -1334,12 +1357,15 @@ export const SongsPage: React.FC = () => {
                 confidenceLevel: updatedSong.confidenceLevel || 1
               })
 
-              alert(`Successfully updated "${updatedSong.title}"`)
+              // Refetch songs to update UI
+              await refetch()
+
+              showToast(`Successfully updated "${updatedSong.title}"`, 'success')
               setIsEditModalOpen(false)
               setSelectedSong(null)
             } catch (err) {
               console.error('Error updating song:', err)
-              alert('Failed to update song. Please try again.')
+              showToast('Failed to update song. Please try again.', 'error')
             }
           }}
           currentUserId={currentUserId}
@@ -1394,6 +1420,9 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
     tags: song?.tags.join(', ') || '',
     notes: song?.notes || ''
   })
+
+  // Circle of Fifths visibility state
+  const [showCircleOfFifths, setShowCircleOfFifths] = useState(false)
 
   // Link management state
   const [links, setLinks] = useState<SongLink[]>(song?.referenceLinks || [])
@@ -1660,14 +1689,16 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                   <label className="block text-sm text-[#a0a0a0] mb-2">
                     Key <span className="text-[#D7263D]">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={formData.key}
-                    onChange={(e) => setFormData({ ...formData, key: e.target.value })}
-                    placeholder="C"
-                    className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                    required
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCircleOfFifths(true)}
+                    className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm flex items-center justify-between hover:border-[#f17827ff] transition-colors group"
+                  >
+                    <span className={formData.key ? 'text-white font-medium' : 'text-[#505050]'}>
+                      {formData.key || 'Select key'}
+                    </span>
+                    <Music size={18} className="text-[#707070] group-hover:text-[#f17827ff] transition-colors" />
+                  </button>
                 </div>
               </div>
 
@@ -1856,6 +1887,39 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
           </div>
         </form>
       </div>
+
+      {/* Circle of Fifths Modal */}
+      {showCircleOfFifths && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+          onClick={() => setShowCircleOfFifths(false)}
+        >
+          <div
+            className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-4 sm:p-6 w-full max-w-[min(90vw,500px)] max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-white">Select Key</h3>
+              <button
+                onClick={() => setShowCircleOfFifths(false)}
+                className="p-1 text-[#707070] hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Circle of Fifths */}
+            <CircleOfFifths
+              selectedKey={formData.key}
+              onKeySelect={(key) => {
+                setFormData({ ...formData, key })
+                setShowCircleOfFifths(false)
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1922,6 +1986,8 @@ interface AddToSetlistMenuProps {
 }
 
 const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({ song, onClose }) => {
+  const { showToast } = useToast()
+
   // Mock setlists
   const mockSetlists = [
     { id: '1', name: 'Toys 4 Tots', songCount: 15, hasSong: false },
@@ -1930,7 +1996,7 @@ const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({ song, onClose }) =>
   ]
 
   const handleAddToSetlist = (setlistName: string) => {
-    alert(`Added "${song.title}" to ${setlistName}`)
+    showToast(`Added "${song.title}" to ${setlistName}`, 'success')
     onClose()
   }
 
@@ -1981,7 +2047,7 @@ const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({ song, onClose }) =>
         {/* Create New Setlist */}
         <div className="p-4 border-t border-[#2a2a2a]">
           <button
-            onClick={() => alert('Create new setlist functionality')}
+            onClick={() => showToast('Create new setlist functionality coming soon', 'info')}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f17827ff] text-white text-sm font-medium rounded-lg hover:bg-[#d66620] transition-colors"
           >
             <Plus size={20} />

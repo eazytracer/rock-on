@@ -671,11 +671,104 @@ While the primary design is dark, support for light mode:
 - Toggle `data-theme` attribute on `<html>`
 - Provide theme context/hook
 
+## Toast Notification System
+
+### Overview
+Toast notifications provide non-intrusive feedback for user actions. They appear in the top-right corner of the screen with smooth animations and auto-dismiss after 4 seconds.
+
+### Visual Design
+**Container**:
+- Position: `fixed`, top-right (16px from edges)
+- Z-index: `100` (above all other content)
+- Min width: `300px`
+- Max width: `400px`
+- Background: `#1a1a1a`
+- Border: `1px solid #2a2a2a`
+- Border radius: `8px`
+- Box shadow: `0 10px 40px rgba(0, 0, 0, 0.4)`
+- Animation: Slide in from right
+
+**Layout**:
+- Padding: `16px`
+- Display: `flex`
+- Gap: `12px`
+- Align items: `flex-start`
+
+**Icon** (left):
+- Size: `20px`
+- Colors:
+  - Success: `#10b981` (green)
+  - Error: `#ef4444` (red)
+  - Info: `#3b82f6` (blue)
+
+**Message** (center):
+- Font size: `14px`
+- Color: `#ffffff`
+- Line height: `1.5`
+- Flex: `1`
+
+**Close Button** (right):
+- Size: `32px × 32px`
+- Icon: `16px` X
+- Color: `#707070`
+- Hover color: `#ffffff`
+- Hover background: `#2a2a2a`
+- Border radius: `4px`
+
+**Progress Bar** (bottom):
+- Height: `4px`
+- Background: `#2a2a2a`
+- Progress fill colors:
+  - Success: `#10b981`
+  - Error: `#ef4444`
+  - Info: `#3b82f6`
+- Animation: Width 100% → 0% over 4 seconds
+
+### Animations
+**Slide In**:
+- Duration: `300ms`
+- Easing: `ease-out`
+- Transform: `translateX(100%)` → `translateX(0)`
+- Opacity: `0` → `1`
+
+**Progress Bar**:
+- Duration: `4s` (auto-dismiss timer)
+- Easing: `linear`
+- Width: `100%` → `0%`
+
+### Usage
+```tsx
+import { useToast } from '@/contexts/ToastContext'
+
+const Component = () => {
+  const { showToast } = useToast()
+
+  // Success notification
+  showToast('Song added successfully', 'success')
+
+  // Error notification
+  showToast('Failed to save changes', 'error')
+
+  // Info notification
+  showToast('Feature coming soon', 'info')
+}
+```
+
+### Stacking Behavior
+- Multiple toasts stack vertically
+- Gap between toasts: `8px`
+- Maximum 3 visible at once (oldest auto-dismisses)
+
+### Accessibility
+- ARIA live region for screen readers
+- Keyboard dismissible (Escape key)
+- High contrast colors for visibility
+- Does not block content or require interaction
+
 ## Future Considerations
 
 ### Potential Enhancements
 - Skeleton loading states
-- Toast notifications system
 - Modal/dialog patterns
 - Contextual menus
 - Drag-and-drop interactions

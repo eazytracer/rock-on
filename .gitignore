@@ -130,6 +130,11 @@ docs/build/
 yarn.lock
 pnpm-lock.yaml
 
+# Supabase
+supabase/.temp/
+supabase/.branches/
+.supabase/
+
 # Rock On! specific
 # Add any project-specific files to ignore here
 *.rock-on-backup

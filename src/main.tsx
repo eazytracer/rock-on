@@ -8,6 +8,8 @@ import './index.css'
 import { initializePerformanceMonitoring } from './utils/performance'
 import { initializeMobilePerformance } from './utils/mobilePerformance'
 import { seedMvpData } from './database/seedMvpData'
+import './utils/testSupabaseConnection'
+import './utils/debugSync'
 
 // Register Service Worker for offline functionality
 if ('serviceWorker' in navigator && import.meta.env?.PROD) {
@@ -76,14 +78,6 @@ async function initializeApp() {
 
   if (shouldSeed) {
     console.log('🌱 Dev environment detected - preparing to seed database...')
-
-    // Import reset utility for easy dev access
-    import('./utils/resetDatabase').then(module => {
-      (window as any).resetDB = module.resetDatabase
-      console.log('💡 Dev Mode: Type resetDB() in console to clear and reseed database')
-    }).catch(err => {
-      console.warn('Could not load resetDatabase utility:', err)
-    })
 
     try {
       // Wait for seeding to complete before rendering

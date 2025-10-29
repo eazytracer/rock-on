@@ -73,10 +73,10 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
     if (showDate !== originalDate) return true
 
     // Check if songs have changed
-    if (setlistSongs.length !== setlist.songs.length) return true
+    if (setlistSongs.length !== (setlist.songs || []).length) return true
 
     const songsChanged = setlistSongs.some((song, index) => {
-      const originalSong = setlist.songs[index]
+      const originalSong = (setlist.songs || [])[index]
       return !originalSong || song.songId !== originalSong.songId || song.order !== originalSong.order
     })
 

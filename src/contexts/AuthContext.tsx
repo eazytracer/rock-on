@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User, UserProfile } from '../models/User'
 import { Band } from '../models/Band'
 import { db } from '../services/database'
-import { mockAuthService } from '../services/auth/MockAuthService'
+import { authService as defaultAuthService } from '../services/auth/AuthFactory'
 import { AuthSession, SignUpCredentials, SignInCredentials, IAuthService } from '../services/auth/types'
 import { SessionManager } from '../services/auth/SessionManager'
 
@@ -26,6 +26,9 @@ interface AuthContextType {
   login: (userId: string) => Promise<void>
   logout: () => void
   switchBand: (bandId: string) => Promise<void>
+
+  // Sync state
+  syncing: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -37,7 +40,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({
   children,
-  authService = mockAuthService
+  authService = defaultAuthService
 }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<AuthSession | null>(null)
@@ -50,6 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [currentBandId, setCurrentBandId] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'member' | 'viewer' | null>(null)
   const [userBands, setUserBands] = useState<Band[]>([])
+  const [syncing, setSyncing] = useState(false)
 
   useEffect(() => {
     // Load initial session
@@ -67,6 +71,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         const storedBandId = localStorage.getItem('currentBandId')
 
         if (storedUserId) {
+          // Import repository for sync operations
+          const { repository } = await import('../services/data/RepositoryFactory')
+
+          // Set current user ID on sync engine
+          repository.setCurrentUser(storedUserId)
+
+          // Check if initial sync is needed
+          const needsSync = await repository.isInitialSyncNeeded()
+
+          if (needsSync) {
+            console.log('🔄 Initial sync needed on page load - downloading data from cloud...')
+            setSyncing(true)
+
+            try {
+              await repository.performInitialSync(storedUserId)
+              console.log('✅ Initial sync complete')
+            } catch (error) {
+              console.error('❌ Initial sync failed:', error)
+            } finally {
+              setSyncing(false)
+            }
+          }
+
           await loadUserData(storedUserId, storedBandId)
         }
       } catch (error) {
@@ -79,10 +106,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     loadInitialSession()
 
     // Subscribe to auth state changes
-    const unsubscribe = authService.onAuthStateChange((newSession) => {
+    const unsubscribe = authService.onAuthStateChange(async (newSession) => {
       setSession(newSession)
       setUser(newSession?.user || null)
       SessionManager.saveSession(newSession)
+
+      // When user signs in, also load their database data
+      if (newSession?.user?.id) {
+        const userId = newSession.user.id
+
+        // Import repository for sync operations
+        const { repository } = await import('../services/data/RepositoryFactory')
+
+        // Set current user ID on sync engine (enables periodic pull sync)
+        repository.setCurrentUser(userId)
+
+        // Check if initial sync is needed (first login or > 30 days)
+        const needsSync = await repository.isInitialSyncNeeded()
+
+        if (needsSync) {
+          console.log('🔄 Initial sync needed - downloading data from cloud...')
+          setSyncing(true)
+
+          try {
+            // Perform initial sync: download all data from Supabase to IndexedDB
+            await repository.performInitialSync(userId)
+            console.log('✅ Initial sync complete')
+          } catch (error) {
+            console.error('❌ Initial sync failed:', error)
+            // Continue anyway - user can manually refresh or data will sync incrementally
+            // We don't want to block login if sync fails
+          } finally {
+            setSyncing(false)
+          }
+        }
+
+        // Load user data from IndexedDB
+        const storedBandId = localStorage.getItem('currentBandId')
+        await loadUserData(userId, storedBandId)
+        localStorage.setItem('currentUserId', userId)
+      } else {
+        // User signed out, clear database state
+        logout()
+      }
     })
 
     return () => {
@@ -103,12 +169,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         .first()
       setCurrentUserProfile(profile || null)
 
-      // Load all bands user is a member of
-      const memberships = await db.bandMemberships
+      // Load all bands user is a member of from IndexedDB
+      let memberships = await db.bandMemberships
         .where('userId')
         .equals(userId)
         .filter(m => m.status === 'active')
         .toArray()
+
+      // TEMP FIX: If no band memberships in IndexedDB, this is a fresh sign-in
+      // The pull-from-Supabase sync isn't implemented yet, so we need to manually
+      // fetch the user's bands from Supabase
+      if (memberships.length === 0) {
+        console.log('No band memberships found in IndexedDB - user may need to be added to a band')
+        // For now, we'll just show "No Band Selected"
+        // TODO: Implement initial sync from Supabase when pull sync is ready
+      }
 
       const bands = await Promise.all(
         memberships.map(async (membership) => {
@@ -253,7 +328,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     userBands,
     login,
     logout,
-    switchBand
+    switchBand,
+
+    // Sync state
+    syncing
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

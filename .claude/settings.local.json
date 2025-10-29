@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(find:*)",
       "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
@@ -42,7 +43,8 @@
       "Bash(ss:*)",
       "Bash(pkill:*)",
       "Read(//tmp/**)",
-      "mcp__chrome__resize_page"
+      "mcp__chrome__resize_page",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

@@ -29,7 +29,7 @@ const initialSongs: Song[] = [
     contextType: 'band',
     contextId: 'band1',
     createdBy: '1',
-    visibility: 'band_only'
+    visibility: 'band'
   },
   {
     id: '2',
@@ -50,7 +50,7 @@ const initialSongs: Song[] = [
     contextType: 'band',
     contextId: 'band1',
     createdBy: '1',
-    visibility: 'band_only'
+    visibility: 'band'
   },
   {
     id: '3',
@@ -70,7 +70,7 @@ const initialSongs: Song[] = [
     contextType: 'band',
     contextId: 'band1',
     createdBy: '1',
-    visibility: 'band_only'
+    visibility: 'band'
   }
 ]
 
@@ -116,7 +116,8 @@ const initialSessions: PracticeSession[] = [
     ],
     notes: 'Focus on transitions between songs',
     objectives: ['Work on song transitions', 'Practice harmonies'],
-    completedObjectives: []
+    completedObjectives: [],
+    createdDate: new Date('2024-09-25')
   }
 ]
 
@@ -125,12 +126,10 @@ const initialSetlists: Setlist[] = [
     id: '1',
     name: 'Coffee Shop Gig',
     bandId: 'band1',
-    showDate: new Date('2024-10-15T20:00:00'),
-    venue: 'Downtown Coffee',
-    songs: [
-      { songId: '1', order: 1 },
-      { songId: '3', order: 2 },
-      { songId: '2', order: 3 }
+    items: [
+      { id: crypto.randomUUID(), type: 'song', position: 1, songId: '1' },
+      { id: crypto.randomUUID(), type: 'song', position: 2, songId: '3' },
+      { id: crypto.randomUUID(), type: 'song', position: 3, songId: '2' }
     ],
     totalDuration: 1005,
     notes: 'Acoustic setup, intimate venue',

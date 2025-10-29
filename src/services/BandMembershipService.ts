@@ -1,5 +1,6 @@
 import { db } from './database'
 import { BandMembership, InviteCode } from '../models/BandMembership'
+import { repository } from './data/RepositoryFactory'
 
 export interface CreateInviteCodeRequest {
   bandId: string
@@ -41,6 +42,7 @@ export class BandMembershipService {
       createdBy: request.createdBy,
       expiresAt: request.expiresAt,
       maxUses: request.maxUses || 10,
+      isActive: true,
       currentUses: 0,
       createdDate: new Date()
     }
@@ -74,7 +76,7 @@ export class BandMembershipService {
       return { valid: false, error: 'Invite code has expired' }
     }
 
-    if (inviteCode.currentUses >= inviteCode.maxUses) {
+    if (inviteCode.maxUses && inviteCode.currentUses >= inviteCode.maxUses) {
       return { valid: false, error: 'Invite code has reached maximum uses' }
     }
 
@@ -96,17 +98,17 @@ export class BandMembershipService {
 
     const inviteCode = validation.inviteCode
 
-    // Check if user is already a member
-    const existingMembership = await db.bandMemberships
-      .where(['userId', 'bandId'])
-      .equals([userId, inviteCode.bandId])
-      .first()
+    // Check if user is already a member via repository
+    const userMemberships = await repository.getUserMemberships(userId)
+    const existingMembership = userMemberships.find(
+      (m) => m.bandId === inviteCode.bandId
+    )
 
     if (existingMembership) {
       return { success: false, error: 'You are already a member of this band' }
     }
 
-    // Create band membership
+    // Create band membership via repository
     const membership: BandMembership = {
       id: crypto.randomUUID(),
       userId,
@@ -117,9 +119,9 @@ export class BandMembershipService {
       permissions: ['member']
     }
 
-    await db.bandMemberships.add(membership)
+    await repository.addBandMembership(membership)
 
-    // Increment invite code usage
+    // Increment invite code usage (still using db.inviteCodes - not yet in repository)
     await db.inviteCodes.update(inviteCode.id, {
       currentUses: inviteCode.currentUses + 1
     })
@@ -131,32 +133,29 @@ export class BandMembershipService {
    * Get all bands a user is a member of
    */
   static async getUserBands(userId: string): Promise<BandMembership[]> {
-    return db.bandMemberships
-      .where('userId')
-      .equals(userId)
-      .filter((m) => m.status === 'active')
-      .toArray()
+    const memberships = await repository.getUserMemberships(userId)
+    // Filter for active memberships (client-side)
+    return memberships.filter((m) => m.status === 'active')
   }
 
   /**
    * Get all members of a band
    */
   static async getBandMembers(bandId: string): Promise<BandMembership[]> {
-    return db.bandMemberships
-      .where('bandId')
-      .equals(bandId)
-      .filter((m) => m.status === 'active')
-      .toArray()
+    const memberships = await repository.getBandMemberships(bandId)
+    // Filter for active memberships (client-side)
+    return memberships.filter((m) => m.status === 'active')
   }
 
   /**
    * Leave a band
    */
   static async leaveBand(userId: string, bandId: string): Promise<void> {
-    const membership = await db.bandMemberships
-      .where(['userId', 'bandId'])
-      .equals([userId, bandId])
-      .first()
+    // Get user memberships via repository
+    const userMemberships = await repository.getUserMemberships(userId)
+    const membership = userMemberships.find(
+      (m) => m.userId === userId && m.bandId === bandId
+    )
 
     if (!membership) {
       throw new Error('Membership not found')
@@ -172,7 +171,7 @@ export class BandMembershipService {
       }
     }
 
-    await db.bandMemberships.update(membership.id, { status: 'inactive' })
+    await repository.updateBandMembership(membership.id, { status: 'inactive' })
   }
 
   /**
@@ -182,7 +181,7 @@ export class BandMembershipService {
     membershipId: string,
     role: 'admin' | 'member' | 'viewer'
   ): Promise<void> {
-    await db.bandMemberships.update(membershipId, { role })
+    await repository.updateBandMembership(membershipId, { role })
   }
 
   /**
