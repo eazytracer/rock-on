@@ -15,32 +15,51 @@ export function AuthCallback() {
       // Only process callback in production mode
       if (!config.enableSupabaseAuth) {
         console.error('OAuth callback received in mock auth mode')
-        navigate('/login?error=oauth_not_configured')
+        navigate('/auth?error=oauth_not_configured')
         return
       }
 
       try {
         const supabase = getSupabaseClient()
 
-        // Exchange the code for a session
-        const { data, error } = await supabase.auth.getSession()
+        // PKCE Flow: Extract auth code from URL and exchange it for a session
+        const params = new URLSearchParams(window.location.search)
+        const code = params.get('code')
+
+        if (!code) {
+          console.error('No auth code in callback URL')
+          navigate('/auth?error=no_auth_code')
+          return
+        }
+
+        console.log('🔄 Exchanging OAuth code for session...')
+
+        // Exchange the code for a session (PKCE flow)
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (error) {
-          console.error('Auth callback error:', error)
-          navigate('/login?error=' + encodeURIComponent(error.message))
+          console.error('Failed to exchange code for session:', error)
+          navigate('/auth?error=' + encodeURIComponent(error.message))
           return
         }
 
         if (data.session) {
-          // Success! Redirect to home
+          console.log('✅ OAuth session established successfully')
+          // The onAuthStateChange listener in AuthContext will handle:
+          // - Syncing user to local DB
+          // - Loading bands/memberships
+          // - Initial sync if needed
+          // - Setting up realtime subscriptions
+
+          // Navigate to home page
           navigate('/')
         } else {
-          // No session created
-          navigate('/login?error=no_session')
+          console.warn('⚠️ Code exchange succeeded but no session created')
+          navigate('/auth?error=no_session')
         }
       } catch (error) {
         console.error('Auth callback error:', error)
-        navigate('/login?error=unexpected_error')
+        navigate('/auth?error=unexpected_error')
       }
     }
 

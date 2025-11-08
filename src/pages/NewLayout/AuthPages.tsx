@@ -527,8 +527,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
           setLoading(false)
           setErrors({ password: error })
         } else {
-          // signIn handles navigation via AuthContext
-          // No need to navigate here
+          // Success - navigate to home page
+          console.log('✅ Login successful, navigating to home')
+          navigate('/')
         }
       } catch (err) {
         console.error('Login error:', err)
