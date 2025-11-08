@@ -1,6 +1,7 @@
 ---
 title: Unified Database Schema Reference
 created: 2025-10-25T21:50
+updated: 2025-10-31T01:18 (Phase 4a - Added Audit Tracking Fields)
 status: Authoritative Source of Truth
 description: Single unified reference for ALL database operations (IndexedDB + Supabase)
 ---
@@ -254,6 +255,8 @@ All tables with both naming conventions:
 | `createdBy` | `createdBy` | `created_by` | UUID | Yes | - | Creator user ID |
 | `visibility` | `visibility` | `visibility` | enum | Yes | 'band_only' | Visibility level |
 | `songGroupId` | `songGroupId` | `song_group_id` | UUID | No | - | Linked song group |
+| `version` | `version` | `version` | number | No | 0 | Version for conflict detection |
+| `lastModifiedBy` | `lastModifiedBy` | `last_modified_by` | UUID | No | - | Last modifier user ID |
 
 **CRITICAL Naming Differences:**
 - **BPM field:** IndexedDB uses `bpm`, Supabase uses `tempo`
@@ -325,6 +328,8 @@ All tables with both naming conventions:
 | `songs` | `songs` | `songs` | object[]/JSONB | Yes | [] | Songs list |
 | `attendees` | `attendees` | `attendees` | object[]/JSONB | Yes | [] | Attendance |
 | `createdDate` | - | `created_date` | Date/TIMESTAMPTZ | Yes | NOW() | Creation (Supabase only) |
+| `version` | `version` | `version` | number | No | 0 | Version for conflict detection |
+| `lastModifiedBy` | `lastModifiedBy` | `last_modified_by` | UUID | No | - | Last modifier user ID |
 
 **Enums:**
 - `type` (Supabase): 'rehearsal' | 'writing' | 'recording' | 'audition' | 'lesson' (⚠️ NO 'gig' - use shows table)
@@ -371,6 +376,8 @@ All tables with both naming conventions:
 | `createdDate` | `createdDate` | `created_date` | Date/TIMESTAMPTZ | Yes | NOW() | Creation timestamp |
 | `updatedDate` | `updatedDate` | `updated_date` | Date/TIMESTAMPTZ | Yes | NOW() | Last modification |
 | `createdBy` | - | `created_by` | UUID | Yes | - | Creator user ID (Supabase only) |
+| `version` | `version` | `version` | number | No | 0 | Version for conflict detection |
+| `lastModifiedBy` | `lastModifiedBy` | `last_modified_by` | UUID | No | - | Last modifier user ID |
 
 **ShowContact Interface:**
 ```typescript
@@ -430,6 +437,8 @@ All tables with both naming conventions:
 | `createdDate` | `createdDate` | `created_date` | Date/TIMESTAMPTZ | Yes | NOW() | Creation date |
 | `lastModified` | `lastModified` | `last_modified` | Date/TIMESTAMPTZ | Yes | NOW() | Last modification |
 | `createdBy` | - | `created_by` | UUID | Yes | - | Creator user ID (Supabase only) |
+| `version` | `version` | `version` | number | No | 0 | Version for conflict detection |
+| `lastModifiedBy` | `lastModifiedBy` | `last_modified_by` | UUID | No | - | Last modifier user ID |
 
 **Enums:**
 - `status`: 'draft' | 'active' | 'archived'
@@ -732,6 +741,107 @@ When validating database operations:
 
 ---
 
+---
+
+## Audit & Version Control
+
+### audit_log (Supabase Only)
+
+**Purpose:** Complete change history for all records (like git history)
+
+**Table Names:**
+- IndexedDB: N/A (not needed locally)
+- Supabase: `audit_log`
+
+**Fields:**
+
+| Application | IndexedDB | Supabase | Type | Required | Default | Description |
+|-------------|-----------|----------|------|----------|---------|-------------|
+| N/A | N/A | `id` | UUID | Yes | auto | Unique identifier |
+| N/A | N/A | `table_name` | TEXT | Yes | - | Which table was modified |
+| N/A | N/A | `record_id` | TEXT | Yes | - | ID of the modified record |
+| N/A | N/A | `action` | TEXT | Yes | - | INSERT, UPDATE, or DELETE |
+| N/A | N/A | `user_id` | UUID | Yes | - | Who made the change (FK) |
+| N/A | N/A | `user_name` | TEXT | Yes | - | Denormalized user name (fast queries) |
+| N/A | N/A | `changed_at` | TIMESTAMPTZ | Yes | NOW() | When the change occurred |
+| N/A | N/A | `old_values` | JSONB | No | - | Previous record state (NULL for INSERT) |
+| N/A | N/A | `new_values` | JSONB | No | - | New record state (NULL for DELETE) |
+| N/A | N/A | `band_id` | UUID | Yes | - | Band context (for RLS filtering) |
+| N/A | N/A | `client_info` | JSONB | No | - | Optional metadata (browser, IP, etc.) |
+
+**Purpose:**
+- Track every change to every record
+- Never delete from this table (permanent history)
+- Populated automatically via triggers
+- Used for debugging, revert functionality, activity feeds
+
+**Indexes:**
+- `idx_audit_log_table_record` on (`table_name`, `record_id`, `changed_at DESC`)
+- `idx_audit_log_band_date` on (`band_id`, `changed_at DESC`)
+- `idx_audit_log_user_date` on (`user_id`, `changed_at DESC`)
+- `idx_audit_log_changed_at` on (`changed_at DESC`)
+
+**Realtime Configuration:**
+- **REQUIRED**: `audit_log` must be added to `supabase_realtime` publication
+- **REQUIRED**: Replica identity must be set to FULL
+- Migration: `20251101000001_enable_audit_log_realtime.sql`
+- Used by RealtimeManager to subscribe to changes
+
+**Row-Level Security:**
+- Band members can view audit logs for their bands
+- Only system (via triggers) can INSERT
+- No one can UPDATE or DELETE
+
+**Example Queries:**
+
+```sql
+-- Get complete history of a song
+SELECT changed_at, action, user_name,
+       old_values->>'title' as old_title,
+       new_values->>'title' as new_title
+FROM audit_log
+WHERE table_name = 'songs' AND record_id = 'song-id'
+ORDER BY changed_at DESC;
+
+-- Get recent band activity
+SELECT changed_at, table_name, action, user_name
+FROM audit_log
+WHERE band_id = 'band-id'
+ORDER BY changed_at DESC
+LIMIT 50;
+
+-- See what a user changed today
+SELECT changed_at, table_name, action,
+       new_values->>'title' || new_values->>'name' as item
+FROM audit_log
+WHERE user_id = 'user-id'
+  AND changed_at > CURRENT_DATE
+ORDER BY changed_at DESC;
+```
+
+### Version Tracking
+
+All main tables (songs, setlists, shows, practice_sessions) include:
+- `version` (number): Auto-incremented on each UPDATE for conflict detection
+- `lastModifiedBy` / `last_modified_by` (UUID): User who last modified the record
+
+**Conflict Resolution:**
+- When updating a record, check if version matches expected
+- If version mismatch detected, fetch latest from server
+- Currently: Last-write-wins (Post-MVP will add conflict UI)
+
+**User Filtering:**
+- RealtimeManager checks `last_modified_by` field
+- Skips real-time events if `last_modified_by === currentUserId`
+- Prevents redundant toasts/refetches for own changes
+
+**Migration:**
+- Added in migration `20251031000001_add_audit_tracking.sql`
+- Triggers automatically set `last_modified_by` on UPDATE
+- Triggers automatically populate `audit_log` on all operations
+
+---
+
 ## Deprecated Schemas
 
 **DO NOT USE:**
@@ -743,6 +853,6 @@ When validating database operations:
 
 ---
 
-**Last Updated:** 2025-10-25T21:50
+**Last Updated:** 2025-10-31T01:18 (Added Phase 4a audit tracking fields)
 **Maintained By:** Claude Code Development Team
 **Status:** Authoritative Source of Truth

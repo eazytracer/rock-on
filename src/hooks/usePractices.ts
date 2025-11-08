@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { PracticeSessionService } from '../services/PracticeSessionService'
 import { getSyncRepository } from '../services/data/SyncRepository'
+import { useAuth } from '../contexts/AuthContext'
 import type { PracticeSession } from '../models/PracticeSession'
 
 /**
@@ -10,6 +11,35 @@ export function usePractices(bandId: string) {
   const [practices, setPractices] = useState<PracticeSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const { realtimeManager } = useAuth()
+
+  // Memoize fetchPractices to use in effect dependencies
+  const fetchPractices = useCallback(async () => {
+    try {
+      console.log('[usePractices] Fetching practices for band:', bandId)
+      setLoading(true)
+      const response = await PracticeSessionService.getSessions({ bandId })
+
+      // Filter to only rehearsals
+      const rehearsals = response.sessions.filter(p => p.type === 'rehearsal')
+
+      // Sort by date (ascending)
+      rehearsals.sort((a, b) => {
+        const dateA = new Date(a.scheduledDate).getTime()
+        const dateB = new Date(b.scheduledDate).getTime()
+        return dateA - dateB
+      })
+
+      console.log('[usePractices] Fetched practices count:', rehearsals.length)
+      setPractices(rehearsals)
+      setError(null)
+    } catch (err) {
+      console.error('[usePractices] Error fetching practices:', err)
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [bandId])
 
   useEffect(() => {
     if (!bandId) {
@@ -18,41 +48,36 @@ export function usePractices(bandId: string) {
       return
     }
 
-    const fetchPractices = async () => {
-      try {
-        setLoading(true)
-        const response = await PracticeSessionService.getSessions({ bandId })
-
-        // Filter to only rehearsals
-        const rehearsals = response.sessions.filter(p => p.type === 'rehearsal')
-
-        // Sort by date (ascending)
-        rehearsals.sort((a, b) => {
-          const dateA = new Date(a.scheduledDate).getTime()
-          const dateB = new Date(b.scheduledDate).getTime()
-          return dateA - dateB
-        })
-
-        setPractices(rehearsals)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching practices:', err)
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
+    console.log('[usePractices] Mounting hook for band:', bandId)
     fetchPractices()
 
     // Subscribe to sync changes for live updates
     const repo = getSyncRepository()
-    const unsubscribe = repo.onSyncStatusChange(() => {
+    const handleSyncChange = () => {
+      console.log('[usePractices] Sync status changed, refetching...')
       fetchPractices()
-    })
+    }
 
-    return unsubscribe
-  }, [bandId])
+    const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
+
+    // Listen for real-time changes from RealtimeManager
+    const handleRealtimeChange = ({ bandId: changedBandId }: { bandId: string; action: string; recordId: string }) => {
+      // Only refetch if the change is for the current band
+      if (changedBandId === bandId) {
+        console.log('[usePractices] Realtime change detected for band, refetching...')
+        fetchPractices()
+      }
+    }
+
+    realtimeManager?.on('practices:changed', handleRealtimeChange)
+
+    // Cleanup
+    return () => {
+      console.log('[usePractices] Unmounting hook for band:', bandId)
+      unsubscribe()
+      realtimeManager?.off('practices:changed', handleRealtimeChange)
+    }
+  }, [bandId, realtimeManager, fetchPractices])
 
   return { practices, loading, error }
 }

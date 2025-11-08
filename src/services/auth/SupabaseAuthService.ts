@@ -74,18 +74,22 @@ export class SupabaseAuthService implements IAuthService {
         // Update last login
         await db.users.update(user.id, { lastLogin: new Date() })
       } else {
-        // Add user to local DB
-        await db.users.add(user)
+        // Add user to local DB using put (upsert) to handle race conditions
+        await db.users.put(user)
 
-        // Create user profile
-        await db.userProfiles.add({
-          id: crypto.randomUUID(),
-          userId: user.id,
-          displayName: user.name,
-          instruments: [],
-          createdDate: new Date(),
-          updatedDate: new Date()
-        })
+        // Check if profile exists before creating
+        const existingProfile = await db.userProfiles.where('userId').equals(user.id).first()
+        if (!existingProfile) {
+          // Create user profile only if it doesn't exist
+          await db.userProfiles.add({
+            id: crypto.randomUUID(),
+            userId: user.id,
+            displayName: user.name,
+            instruments: [],
+            createdDate: new Date(),
+            updatedDate: new Date()
+          })
+        }
       }
 
       // CRITICAL: Sync user's bands and memberships from Supabase to IndexedDB

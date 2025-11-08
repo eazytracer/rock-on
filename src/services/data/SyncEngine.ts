@@ -9,13 +9,25 @@ export class SyncEngine {
   private isOnline: boolean = navigator.onLine
   private listeners: Set<SyncStatusListener> = new Set()
   private currentUserId: string | null = null
+  private immediateSyncTimer: NodeJS.Timeout | null = null
+  private readonly IMMEDIATE_SYNC_DELAY = 100 // 100ms debounce for immediate sync
 
   constructor(
     private local: LocalRepository,
     private remote: RemoteRepository
   ) {
-    this.startPeriodicSync()
+    // REMOVED - Periodic sync disabled in favor of real-time WebSocket sync
+    // this.startPeriodicSync()
+    // Rationale:
+    // - Causes UI "blinking" every 30 seconds
+    // - Redundant with RealtimeManager WebSocket subscriptions
+    // - Conflicts with immediate sync strategy
+    // - Battery drain from constant polling
+    // See: .claude/specifications/2025-10-30T13:25_bidirectional-sync-specification.md
+
     this.setupOnlineListener()
+
+    console.log('✅ SyncEngine initialized (real-time mode)')
   }
 
   /**
@@ -43,6 +55,9 @@ export class SyncEngine {
 
     await db.syncQueue.add(item)
     this.notifyListeners()
+
+    // Trigger immediate sync (Phase 3.2)
+    this.scheduleImmediateSync()
   }
 
   async queueUpdate(table: string, recordId: string, data: any): Promise<void> {
@@ -77,6 +92,9 @@ export class SyncEngine {
     }
 
     this.notifyListeners()
+
+    // Trigger immediate sync (Phase 3.2)
+    this.scheduleImmediateSync()
   }
 
   async queueDelete(table: string, recordId: string): Promise<void> {
@@ -95,6 +113,30 @@ export class SyncEngine {
 
     await db.syncQueue.add(item)
     this.notifyListeners()
+
+    // Trigger immediate sync (Phase 3.2)
+    this.scheduleImmediateSync()
+  }
+
+  /**
+   * Schedule immediate sync with debouncing (Phase 3.2)
+   * Triggers sync after 100ms delay, debouncing multiple rapid queue operations
+   */
+  private scheduleImmediateSync(): void {
+    // Only sync if online
+    if (!this.isOnline) {
+      return
+    }
+
+    // Clear existing timer (debouncing)
+    if (this.immediateSyncTimer) {
+      clearTimeout(this.immediateSyncTimer)
+    }
+
+    // Schedule sync after debounce delay
+    this.immediateSyncTimer = setTimeout(() => {
+      this.pushQueuedChanges()
+    }, this.IMMEDIATE_SYNC_DELAY)
   }
 
   // ========== PHASE 2: SYNC OPERATIONS ==========
@@ -274,14 +316,7 @@ export class SyncEngine {
     })
   }
 
-  private async getLastSyncTime(): Promise<Date> {
-    if (!db.syncMetadata) {
-      return new Date(0)
-    }
-
-    const syncMeta = await db.syncMetadata.get('lastSync')
-    return syncMeta?.value || new Date(0)
-  }
+  // Removed unused getLastSyncTime - using updateLastSyncTime() instead
 
   // ========== PHASE 3: CONFLICT RESOLUTION ==========
 
@@ -306,6 +341,7 @@ export class SyncEngine {
   }
 
   // ========== PHASE 4: ONLINE/OFFLINE HANDLING ==========
+  // @ts-ignore - Intentionally unused
 
   private startPeriodicSync(): void {
     this.syncInterval = window.setInterval(() => {
@@ -386,6 +422,58 @@ export class SyncEngine {
 
       // Download all entities for user's bands
       let totalRecords = 0
+
+      // 0. Bands - sync band data for all user's bands
+      for (const bandId of bandIds) {
+        const band = await this.remote.getBand(bandId)
+        if (band) {
+          await this.local.addBand(band).catch(() => {
+            return this.local.updateBand(band.id, band)
+          })
+          totalRecords++
+        }
+      }
+      console.log(`  ✓ Bands: ${bandIds.length}`)
+
+      // 0.5. Band Memberships - sync ALL memberships for each band (not just user's own)
+      for (const bandId of bandIds) {
+        const bandMemberships = await this.remote.getBandMemberships(bandId)
+        for (const membership of bandMemberships) {
+          await this.local.addBandMembership(membership).catch(() => {
+            return this.local.updateBandMembership(membership.id, membership)
+          })
+        }
+        totalRecords += bandMemberships.length
+        console.log(`  ✓ Band memberships for ${bandId}: ${bandMemberships.length}`)
+      }
+
+      // 0.6. Users - sync user profiles for all band members
+      const allUserIds = new Set<string>()
+      for (const membership of memberships) {
+        allUserIds.add(membership.userId)
+      }
+      // Also fetch memberships for each band to get all member user IDs
+      for (const bandId of bandIds) {
+        const bandMemberships = await this.remote.getBandMemberships(bandId)
+        for (const membership of bandMemberships) {
+          allUserIds.add(membership.userId)
+        }
+      }
+
+      for (const uid of allUserIds) {
+        try {
+          const user = await this.remote.getUser(uid)
+          if (user) {
+            await this.local.addUser(user).catch(() => {
+              return this.local.updateUser(user.id, user)
+            })
+            totalRecords++
+          }
+        } catch (error) {
+          console.warn(`  ⚠️ Could not fetch user ${uid}:`, error)
+        }
+      }
+      console.log(`  ✓ Users: ${allUserIds.size}`)
 
       // 1. Songs
       for (const bandId of bandIds) {
@@ -550,8 +638,9 @@ export class SyncEngine {
           await this.local.addSong(remoteSong)
         } else {
           // Check timestamps (Last-Write-Wins)
-          const localTime = localSong.lastModified || localSong.createdDate
-          const remoteTime = remoteSong.lastModified || remoteSong.createdDate
+          // Note: Song model doesn't have lastModified, only createdDate
+          const localTime = localSong.createdDate
+          const remoteTime = remoteSong.createdDate
 
           if (new Date(remoteTime) > new Date(localTime)) {
             // Remote is newer, update local
@@ -688,6 +777,10 @@ export class SyncEngine {
   destroy(): void {
     if (this.syncInterval !== null) {
       window.clearInterval(this.syncInterval)
+    }
+
+    if (this.immediateSyncTimer !== null) {
+      clearTimeout(this.immediateSyncTimer)
     }
 
     this.listeners.clear()

@@ -30,9 +30,18 @@ export async function resetDatabase() {
     localStorage.removeItem('currentBandId')
     console.log('✅ LocalStorage cleared!')
 
-    // Use the force flag to clear and re-seed
-    console.log('🌱 Force re-seeding database...')
-    await seedMvpData(true)
+    // Clear all data and re-seed
+    console.log('🧹 Clearing database tables...')
+    await db.songs.clear()
+    await db.bands.clear()
+    await db.users.clear()
+    await db.setlists.clear()
+    await db.practiceSessions.clear()
+    await db.shows.clear()
+    await db.bandMemberships.clear()
+
+    console.log('🌱 Re-seeding database...')
+    await seedMvpData()
 
     console.log('✅ Database reset complete!')
     console.log('')

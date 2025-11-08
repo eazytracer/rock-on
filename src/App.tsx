@@ -1,7 +1,7 @@
-import React, { Suspense, lazy } from 'react'
+import React, { Suspense, lazy, useEffect, useRef } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { ToastProvider } from './contexts/ToastContext'
+import { ToastProvider, useToast } from './contexts/ToastContext'
 import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
@@ -18,9 +18,47 @@ const SetlistsPageNew = lazy(() => import('./pages/NewLayout/SetlistsPage').then
 const ShowsPage = lazy(() => import('./pages/NewLayout/ShowsPage').then(module => ({ default: module.ShowsPage })))
 const PracticesPage = lazy(() => import('./pages/NewLayout/PracticesPage').then(module => ({ default: module.PracticesPage })))
 
+// Dev-only pages
+const DevDashboard = lazy(() => import('./pages/DevDashboard/DevDashboard').then(module => ({ default: module.DevDashboard })))
+
 
 const AppContent: React.FC = () => {
-  const { syncing } = useAuth()
+  const { syncing, realtimeManager } = useAuth()
+  const { showToast } = useToast()
+
+  // Listen for toast events from RealtimeManager
+  // CRITICAL: We must use a ref to the listener so we can properly clean it up
+  // Using the realtimeManager directly in the dependency causes issues
+  const toastHandlerRef = useRef<((event: { message: string; type: 'info' | 'success' | 'error' }) => void) | null>(null)
+
+  useEffect(() => {
+    if (!realtimeManager) {
+      console.warn('[AppContent] No realtimeManager, toast listener not registered')
+      return
+    }
+
+    // Remove old listener if exists
+    if (toastHandlerRef.current) {
+      realtimeManager.off('toast', toastHandlerRef.current)
+    }
+
+    // Create new listener
+    const handleToast = ({ message, type }: { message: string; type: 'info' | 'success' | 'error' }) => {
+      console.log('[AppContent] Realtime toast received:', message, type)
+      showToast(message, type)
+    }
+    toastHandlerRef.current = handleToast
+
+    console.log('[AppContent] Registering toast listener')
+    realtimeManager.on('toast', handleToast)
+
+    return () => {
+      if (realtimeManager && toastHandlerRef.current) {
+        console.log('[AppContent] Unregistering toast listener')
+        realtimeManager.off('toast', toastHandlerRef.current)
+      }
+    }
+  }, [realtimeManager, showToast])
 
   return (
     <div className="min-h-screen bg-surface">
@@ -87,6 +125,9 @@ const AppContent: React.FC = () => {
 
           {/* Default route - redirect to songs */}
           <Route path="/" element={<Navigate to="/songs" replace />} />
+
+          {/* Dev Dashboard - accessible in development only */}
+          <Route path="/dev/dashboard" element={<DevDashboard />} />
 
           {/* New layout demo route */}
           <Route path="/new-layout/*" element={<NewLayout />} />

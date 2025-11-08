@@ -7,7 +7,6 @@ import App from './App.tsx'
 import './index.css'
 import { initializePerformanceMonitoring } from './utils/performance'
 import { initializeMobilePerformance } from './utils/mobilePerformance'
-import { seedMvpData } from './database/seedMvpData'
 import './utils/testSupabaseConnection'
 import './utils/debugSync'
 
@@ -73,26 +72,11 @@ async function initializeApp() {
     PROD: import.meta.env.PROD
   })
 
-  // Always seed in dev mode OR if environment is development
-  const shouldSeed = import.meta.env.DEV || import.meta.env.MODE === 'development' || !import.meta.env.PROD
+  // IndexedDB is populated via sync from Supabase on first login
+  // See: .claude/specifications/2025-10-27T18:16_test-data-and-seeding-specification.md
+  console.log('📦 IndexedDB will be populated from Supabase on first login')
 
-  if (shouldSeed) {
-    console.log('🌱 Dev environment detected - preparing to seed database...')
-
-    try {
-      // Wait for seeding to complete before rendering
-      console.log('⏳ Calling seedMvpData()...')
-      await seedMvpData()
-      console.log('✅ Seeding complete, ready to render app')
-    } catch (error) {
-      console.error('❌ Failed to seed database:', error)
-      // Continue anyway - app might still work with existing data
-    }
-  } else {
-    console.log('📦 Production mode - skipping database seeding')
-  }
-
-  // Now render the app
+  // Render the app
   console.log('🎨 Rendering React app...')
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

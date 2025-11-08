@@ -54,6 +54,9 @@ import {
   useUpdateSetlist,
   useDeleteSetlist
 } from '../../hooks/useSetlists'
+// PHASE 2: Sync status visualization
+import { SyncIcon } from '../../components/sync/SyncIcon'
+import { useItemStatus } from '../../hooks/useItemSyncStatus'
 
 // DATABASE INTEGRATION: UI-specific types for display
 // These extend the database types with UI-specific fields
@@ -458,6 +461,9 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
   onArchive,
   onDelete
 }) => {
+  // PHASE 2: Get sync status for this setlist
+  const syncStatus = useItemStatus(setlist.id)
+
   const [showActions, setShowActions] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -479,18 +485,24 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
   return (
     <div className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors">
       <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-white font-semibold text-base mb-1 truncate">{setlist.name}</h3>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(setlist.status)}`}>
-              {setlist.status.charAt(0).toUpperCase() + setlist.status.slice(1)}
-            </span>
-            {setlist.associatedShow && (
-              <div className="flex items-center gap-1 text-[#a0a0a0] text-xs">
-                <Calendar size={12} />
-                <span>{setlist.associatedShow.name}</span>
-              </div>
-            )}
+        {/* PHASE 2: Sync Icon */}
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="flex-shrink-0 mt-1">
+            <SyncIcon status={syncStatus} size="sm" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-white font-semibold text-base mb-1 truncate">{setlist.name}</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(setlist.status)}`}>
+                {setlist.status.charAt(0).toUpperCase() + setlist.status.slice(1)}
+              </span>
+              {setlist.associatedShow && (
+                <div className="flex items-center gap-1 text-[#a0a0a0] text-xs">
+                  <Calendar size={12} />
+                  <span>{setlist.associatedShow.name}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

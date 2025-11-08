@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, ReactNode, useRef, useMemo } from 'react'
 import { User, UserProfile } from '../models/User'
 import { Band } from '../models/Band'
 import { db } from '../services/database'
 import { authService as defaultAuthService } from '../services/auth/AuthFactory'
 import { AuthSession, SignUpCredentials, SignInCredentials, IAuthService } from '../services/auth/types'
 import { SessionManager } from '../services/auth/SessionManager'
+import { RealtimeManager } from '../services/data/RealtimeManager'
 
 interface AuthContextType {
   // Legacy auth fields (keep for backward compatibility)
@@ -29,6 +30,9 @@ interface AuthContextType {
 
   // Sync state
   syncing: boolean
+
+  // Real-time sync manager (Phase 4 - Event Emitter pattern)
+  realtimeManager: RealtimeManager | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -54,6 +58,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'member' | 'viewer' | null>(null)
   const [userBands, setUserBands] = useState<Band[]>([])
   const [syncing, setSyncing] = useState(false)
+
+  // Real-time sync manager (Phase 4) - Use ref for stable instance, state for reactivity
+  const realtimeManagerRef = useRef<RealtimeManager | null>(null)
+  const [realtimeManagerReady, setRealtimeManagerReady] = useState(false)
 
   useEffect(() => {
     // Load initial session
@@ -95,6 +103,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           }
 
           await loadUserData(storedUserId, storedBandId)
+
+          // Start real-time sync if user has bands
+          const bands = await db.bandMemberships
+            .where('userId')
+            .equals(storedUserId)
+            .filter(m => m.status === 'active')
+            .toArray()
+
+          if (bands.length > 0) {
+            try {
+              // 🔥 SET REALTIME AUTH ON SESSION RESTORATION
+              const { getSupabaseClient } = await import('../services/supabase/client')
+              const supabase = getSupabaseClient()
+              const storedSession = SessionManager.loadSession()
+              if (storedSession?.accessToken) {
+                supabase.realtime.setAuth(storedSession.accessToken)
+                console.log('🔐 Realtime auth restored from session')
+              } else {
+                console.warn('⚠️ No session token found - realtime may fail')
+              }
+
+              console.log('🔌 Starting real-time WebSocket sync...')
+              // Only create if doesn't exist yet
+              if (!realtimeManagerRef.current) {
+                console.log('[AuthContext] Creating new RealtimeManager instance')
+                realtimeManagerRef.current = new RealtimeManager()
+                setRealtimeManagerReady(true)
+              } else {
+                console.log('[AuthContext] RealtimeManager already exists, reusing')
+              }
+
+              // Subscribe using the manager instance
+              const bandIds = bands.map(m => m.bandId)
+              await realtimeManagerRef.current.subscribeToUserBands(storedUserId, bandIds)
+              console.log('✅ Real-time sync connected')
+            } catch (error) {
+              console.error('❌ Failed to start real-time sync:', error)
+              if (error instanceof Error) {
+                console.error('Error details:', error.message, error.stack)
+              }
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to load initial session:', error)
@@ -145,6 +195,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         const storedBandId = localStorage.getItem('currentBandId')
         await loadUserData(userId, storedBandId)
         localStorage.setItem('currentUserId', userId)
+
+        // Start real-time sync for user's bands
+        const memberships = await db.bandMemberships
+          .where('userId')
+          .equals(userId)
+          .filter(m => m.status === 'active')
+          .toArray()
+
+        if (memberships.length > 0) {
+          try {
+            // 🔥 SET REALTIME AUTH BEFORE ANY SUBSCRIPTIONS
+            const { getSupabaseClient } = await import('../services/supabase/client')
+            const supabase = getSupabaseClient()
+            supabase.realtime.setAuth(newSession.accessToken)
+            console.log('🔐 Realtime auth configured with user JWT')
+
+            console.log('🔌 Starting real-time WebSocket sync...')
+            // Only create if doesn't exist yet
+            if (!realtimeManagerRef.current) {
+              console.log('[AuthContext] Creating new RealtimeManager instance')
+              realtimeManagerRef.current = new RealtimeManager()
+              setRealtimeManagerReady(true)
+            } else {
+              console.log('[AuthContext] RealtimeManager already exists, reusing')
+            }
+
+            // Subscribe using the manager instance
+            const bandIds = memberships.map(m => m.bandId)
+            await realtimeManagerRef.current.subscribeToUserBands(userId, bandIds)
+            console.log('✅ Real-time sync connected')
+          } catch (error) {
+            console.error('❌ Failed to start real-time sync:', error)
+            if (error instanceof Error) {
+              console.error('Error details:', error.message, error.stack)
+            }
+          }
+        }
       } else {
         // User signed out, clear database state
         logout()
@@ -153,6 +240,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
     return () => {
       unsubscribe()
+
+      // Cleanup real-time subscriptions
+      if (realtimeManagerRef.current) {
+        console.log('🔌 Disconnecting real-time sync...')
+        realtimeManagerRef.current.unsubscribeAll()
+        realtimeManagerRef.current = null
+        setRealtimeManagerReady(false)
+      }
     }
   }, [authService])
 
@@ -267,6 +362,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   }
 
   const logout = () => {
+    // Disconnect real-time sync
+    if (realtimeManagerRef.current) {
+      console.log('🔌 Disconnecting real-time sync...')
+      realtimeManagerRef.current.unsubscribeAll()
+      realtimeManagerRef.current = null
+      setRealtimeManagerReady(false)
+    }
+
     localStorage.removeItem('currentUserId')
     localStorage.removeItem('currentBandId')
     setCurrentUser(null)
@@ -309,7 +412,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     }
   }
 
-  const value: AuthContextType = {
+  // Create a stable context value using useMemo to prevent unnecessary re-renders
+  // BUT ensure it updates when realtimeManagerReady changes
+  const value: AuthContextType = useMemo(() => ({
     // Legacy fields
     user,
     session,
@@ -331,8 +436,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     switchBand,
 
     // Sync state
-    syncing
-  }
+    syncing,
+
+    // Real-time sync manager (expose the ref's current value)
+    // Include realtimeManagerReady in deps to trigger re-render when manager is created
+    realtimeManager: realtimeManagerRef.current
+  }), [
+    user,
+    session,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+    currentUser,
+    currentUserProfile,
+    currentBand,
+    currentBandId,
+    currentUserRole,
+    userBands,
+    login,
+    logout,
+    switchBand,
+    syncing,
+    realtimeManagerReady // This ensures re-render when manager is created
+  ])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

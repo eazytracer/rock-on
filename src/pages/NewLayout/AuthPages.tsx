@@ -62,6 +62,7 @@ interface FormErrors {
 // ============================================================================
 
 // Mock data for testing - not currently used in production
+// @ts-expect-error - Intentionally unused, kept for reference
 const _MOCK_BANDS: BandDisplay[] = [
   {
     id: 'band-1',
@@ -995,6 +996,7 @@ interface UserMenuDropdownProps {
 }
 
 // Component reserved for future use
+// @ts-ignore - Intentionally unused
 const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onAccountSettings, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -1083,6 +1085,7 @@ interface BandSelectorDropdownProps {
 }
 
 // Component reserved for future use
+// @ts-ignore - Intentionally unused
 const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
   currentBand,
   bands,
@@ -1209,6 +1212,7 @@ interface CreateBandModalProps {
 }
 
 // Component reserved for future use
+// @ts-ignore - Intentionally unused
 const _CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [bandName, setBandName] = useState('')
   const [description, setDescription] = useState('')
@@ -1322,6 +1326,7 @@ interface JoinBandModalProps {
 }
 
 // Component reserved for future use
+// @ts-ignore - Intentionally unused
 const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [inviteCode, setInviteCode] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})

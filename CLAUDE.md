@@ -29,7 +29,7 @@ tests/
 **Run tests before AND after all code changes:**
 
 ```bash
-# Run all tests
+# Run application tests (unit, integration)
 npm test
 
 # Run specific test file
@@ -43,6 +43,12 @@ npm test -- --watch
 
 # Run tests with coverage
 npm test -- --coverage
+
+# Run database tests (pgTAP schema validation)
+npm run test:db
+
+# Run all tests (application + database)
+npm run test:all
 ```
 
 ### Other Commands
@@ -56,6 +62,93 @@ npm run build      # Build for production
 ## Code Style
 TypeScript 5.x with React 18+: Follow standard conventions
 
+## Database Setup & Migration Policy
+
+### Fresh Installation (New Supabase Project)
+
+```bash
+# 1. Start local Supabase (or link to remote)
+supabase start
+# OR
+supabase link --project-ref your-project-ref
+
+# 2. Apply baseline migration (single file)
+supabase db push
+
+# 3. Verify
+psql <connection-string> -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"
+# Should see: 17 tables
+
+# That's it! Single migration creates complete schema.
+```
+
+**What's included in baseline migration:**
+- ✅ All 17 tables (users, bands, songs, setlists, shows, etc.)
+- ✅ Version tracking (`version`, `last_modified_by` columns)
+- ✅ Audit log system (complete change history)
+- ✅ RLS policies (security)
+- ✅ Realtime sync (5 tables enabled)
+- ✅ All triggers and indexes
+
+**Migration file:** `supabase/migrations/20251106000000_baseline_schema.sql`
+
+### Existing Database (Already Migrated)
+
+**Do nothing!** Old migrations already applied. Continue using incremental migrations for future changes.
+
+### Migration Policy: Pre-1.0 vs Post-1.0
+
+**🚨 CRITICAL: Pre-1.0 Development (Current State)**
+
+**DO NOT create new migration files for schema changes during pre-1.0 development!**
+
+Instead, modify the baseline migration directly:
+```bash
+# For schema changes during pre-1.0 development:
+# 1. Edit the baseline migration file directly
+vim supabase/migrations/20251106000000_baseline_schema.sql
+
+# 2. Test locally
+supabase db reset  # Applies baseline from scratch
+
+# 3. Run tests
+npm run test:db    # Verify schema is correct
+
+# 4. Commit the updated baseline
+git add supabase/migrations/20251106000000_baseline_schema.sql
+git commit -m "Update baseline schema: [description]"
+```
+
+**Why?** During pre-1.0 development:
+- No production database exists yet
+- Every `supabase db reset` applies migrations from scratch
+- Multiple patch migrations slow down development and testing
+- Easier to maintain one canonical schema file
+- New team members get working schema immediately
+
+**After 1.0 Release:**
+
+Once version 1.0 is released and production databases exist, switch to incremental migrations:
+```bash
+# For schema changes after 1.0 release:
+supabase migration new add_feature_name
+# Edit the new migration file
+supabase db reset  # Test locally
+supabase db push   # Deploy to remote
+```
+
+### Migration Archive
+
+**Archived incremental migrations:**
+- `archive/` - Original 1-17 migrations (2025-10-25 to 2025-11-05)
+- `archive/patches-2025-11-07/` - Patch migrations (5 files) consolidated into baseline
+
+**Archive contents:**
+- Kept for historical reference
+- Shows schema evolution during development
+- Can be referenced to understand why changes were made
+- DO NOT apply these - all changes are in the baseline
+
 ## Database Schema Reference
 
 **CRITICAL**: When working with database tables and columns, ALWAYS reference the authoritative schema documentation. Never guess table or column names.
@@ -65,12 +158,12 @@ TypeScript 5.x with React 18+: Follow standard conventions
 **BEFORE making any schema changes, you MUST:**
 
 1. **Read the schema spec**: `.claude/specifications/unified-database-schema.md`
-2. **Check actual Supabase tables**:
+2. **Check baseline migration**: `supabase/migrations/20251106000000_baseline_schema.sql`
+3. **Check actual Supabase tables**:
    - Use Supabase Studio UI (if local Supabase is running)
-   - Check existing migrations in `supabase/migrations/`
    - Look at RemoteRepository field mappings
-3. **Test locally first** (if Supabase local is set up - see `.claude/setup/SUPABASE-LOCAL-SETUP.md`)
-4. **Validate field names match**:
+4. **Test locally first**: `supabase db reset` to verify migration works
+5. **Validate field names match**:
    - IndexedDB: `camelCase`
    - Supabase: `snake_case`
    - Example: `lastModified` ↔ `last_modified` (NOT `updated_date`)
@@ -80,6 +173,7 @@ TypeScript 5.x with React 18+: Follow standard conventions
 - ❌ Use `updated_date` for setlists (use `last_modified`)
 - ❌ Copy field mappings from one table to another without verification
 - ❌ Create a trigger without checking column names
+- ❌ Modify the baseline migration (create new incremental migrations instead)
 
 ### Unified Database Schema
 **File:** `.claude/specifications/unified-database-schema.md` ⭐ **USE THIS**
@@ -122,7 +216,7 @@ TypeScript 5.x with React 18+: Follow standard conventions
 
 1. **Before starting work**: Run `npm test` to ensure all tests pass
 2. **After making changes**: Run tests for affected areas
-3. **Before committing**: Run full test suite (`npm test`)
+3. **Before committing**: Run full test suite (`npm test` and `npm run test:db`)
 
 **Current Test Status**: 73 passing (sync infrastructure), 13 failing (hooks/utils - unrelated to sync)
 
@@ -131,13 +225,95 @@ TypeScript 5.x with React 18+: Follow standard conventions
 - Unit tests mirror `src/` structure
 - Integration tests in `tests/integration/`
 - E2E tests in `tests/e2e/`
+- Database tests in `supabase/tests/` (pgTAP)
+
+### Database Testing (pgTAP)
+
+Rock-On uses pgTAP for comprehensive database schema validation. Tests validate:
+- ✅ Schema integrity (tables, columns, indexes, constraints)
+- ✅ RLS policies (row-level security)
+- ✅ Triggers & functions (version tracking, audit logging)
+- ✅ Data integrity (foreign keys, check constraints)
+- ✅ Realtime configuration
+
+**Running Database Tests:**
+```bash
+npm run test:db           # Run database tests only
+npm run test:all          # Run all tests (app + database)
+supabase test db          # Direct command
+```
+
+**Test Files:** `supabase/tests/*.test.sql`
+- `000-setup-test-helpers.sql` - Helper functions for testing
+- `001-schema-tables.test.sql` - Table existence (17 tests)
+- `002-schema-columns.test.sql` - Column validation (81 tests)
+- `003-schema-indexes.test.sql` - Index validation (29 tests)
+- `004-schema-constraints.test.sql` - Constraint validation (42 tests)
+- `005-functions-triggers.test.sql` - Function/trigger validation (29 tests)
+- `006-rls-policies.test.sql` - RLS policy existence (71 tests)
+- `007-011` - RLS behavior, audit logging, realtime, data integrity
+
+**Test Status:** Schema validation tests (001-005) passing. RLS and integration tests (006-011) have known issues due to:
+- Seed data contamination (existing test data interfering with tests)
+- Schema design issues (audit_log FK constraints, trigger on columns that don't exist)
+- Personal songs + audit_log FK incompatibility
+
+**When to Run Database Tests:**
+- ✅ After modifying migrations
+- ✅ After schema changes
+- ✅ Before deploying to production
+- ✅ When RLS policies change
+- ✅ When adding/modifying triggers
 
 ## Recent Changes
+- 2025-11-07: Implemented pgTAP database test suite (269 tests covering schema, RLS, triggers, audit logging)
+- 2025-11-06: Consolidated 17 migrations into single baseline (supabase/migrations/20251106000000_baseline_schema.sql)
 - 2025-10-25: Phase 1 Supabase sync complete (73 tests passing)
 - 2025-10-25: All remaining tasks planned with detailed implementation guides
 - 001-use-this-prd: Added TypeScript 5.x with React 18+ + React, TailwindCSS, client-side database
 
 <!-- MANUAL ADDITIONS START -->
-## Artifact creation
-Whenever instructed to generate an artifact, assume the file will be stored in @.claude/artifacts unless explicitly stated otherwise. Create every artifact by running the bash command to get the current datetime and prepend the filename with a timestamp in the "YYYY-MM-DDTHH:mm_{filename}.md" format. Include frontmatter in the artifact that also includes the timestamp and a brief summary of the prompt you were given to make the artifact. When modifying an existing artifact, update the timestamp in the filename and add the new timestamp to the frontmatter as an "appended time" and provide secondary context as the nature of what was updated, do not overwrite the original frontmatter
+## Artifact Creation
+
+**Artifacts are documentation files only - NOT code, scripts, or configuration files.**
+
+### What Gets Timestamped (Artifacts)
+Artifacts are stored in `.claude/artifacts/` and include:
+- Design documents
+- Architecture specifications
+- Implementation summaries
+- Planning documents
+- PRDs and feature specs
+- Status reports and summaries
+
+**Naming convention:** `YYYY-MM-DDTHH:mm_{filename}.md`
+
+**Creation process:**
+1. Run `date +%Y-%m-%dT%H:%M` to get current timestamp
+2. Create file with timestamp prefix (e.g., `2025-11-07T21:30_migration-consolidation-summary.md`)
+3. Include frontmatter with timestamp and prompt summary
+4. When updating, add new timestamp to frontmatter as "appended time"
+
+### What DOES NOT Get Timestamped (Code/Scripts)
+The following should use standard naming conventions WITHOUT datetime prefixes:
+- ✅ Source code files (`.ts`, `.tsx`, `.js`, etc.)
+- ✅ Test files (`.test.ts`, `.test.sql`, etc.)
+- ✅ Configuration files (`.json`, `.yml`, `.toml`, etc.)
+- ✅ Scripts (`.sh`, `.sql`, utility scripts)
+- ✅ SQL seed files (`seed-mvp-data.sql`)
+
+**Note on Migration Files:**
+Migration files DO use timestamps, but in Supabase's special format (`YYYYMMDDHHmmss_description.sql`) for ordering purposes. This is a Supabase convention, not the artifact datetime prefix pattern. During pre-1.0 development, modify the baseline directly rather than creating new migrations.
+
+**Example:**
+```
+✅ Correct (artifact):     .claude/artifacts/2025-11-07T21:30_consolidation-summary.md
+✅ Correct (test):         supabase/tests/007-rls-band-isolation.test.sql
+✅ Correct (code):         src/services/data/SyncEngine.ts
+✅ Correct (script):       scripts/setup-dev.sh
+✅ Correct (seed):         supabase/seed-mvp-data.sql
+❌ Wrong (code):           src/services/data/2025-11-07T21:30_SyncEngine.ts
+❌ Wrong (test):           supabase/tests/2025-11-07T21:30_rls-test.test.sql
+```
 <!-- MANUAL ADDITIONS END -->
+- please do not suggest skipping tests or addressing them later. If it was important enough to make the test case then it should pass. If they are truly frivolous we should delete them. When asked to address test findings you should always work to fix the source code after validating the test is correct and necessary.

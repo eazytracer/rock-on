@@ -1,3 +1,18 @@
+/**
+ * @deprecated DO NOT USE - Legacy seeding file with outdated data structure.
+ *
+ * **PROBLEM:** Contains hardcoded IDs and outdated data that doesn't match current schema.
+ *
+ * **SOLUTION:** Use Supabase seeding instead: `supabase db reset`
+ *
+ * IndexedDB is now populated via SyncEngine.performInitialSync() on first login.
+ *
+ * See: .claude/specifications/2025-10-27T18:16_test-data-and-seeding-specification.md
+ * See: .claude/artifacts/2025-10-31T13:20_seed-data-consolidation-plan.md
+ *
+ * @deprecated Since 2025-10-31
+ */
+
 import { db } from '../services/database'
 import { Song } from '../models/Song'
 import { Member } from '../models/Member'
@@ -7,6 +22,7 @@ import { Band } from '../models/Band'
 import { BandMembership } from '../models/BandMembership'
 import { User } from '../models/User'
 
+// @deprecated - See file header for details
 // Initial seed data for the application
 const initialSongs: Song[] = [
   {

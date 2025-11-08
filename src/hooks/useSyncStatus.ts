@@ -61,27 +61,50 @@ export function useSyncStatus(): UseSyncStatusReturn {
 
     // Subscribe to sync engine status changes
     const unsubscribe = repo.onSyncStatusChange((engineStatus: SyncEngineStatus) => {
-      setStatus(prevStatus => ({
-        ...prevStatus,
-        isSyncing: engineStatus.isSyncing,
-        pendingCount: engineStatus.pendingCount,
-        lastSyncTime: engineStatus.lastSyncTime || null,
-      }))
+      setStatus(prevStatus => {
+        // Only update if values have actually changed to prevent unnecessary re-renders
+        const newLastSyncTime = engineStatus.lastSyncTime || null
+        const hasChanged =
+          prevStatus.isSyncing !== engineStatus.isSyncing ||
+          prevStatus.pendingCount !== engineStatus.pendingCount ||
+          prevStatus.lastSyncTime?.getTime() !== newLastSyncTime?.getTime()
+
+        if (!hasChanged) {
+          return prevStatus // Return same reference to prevent re-render
+        }
+
+        return {
+          ...prevStatus,
+          isSyncing: engineStatus.isSyncing,
+          pendingCount: engineStatus.pendingCount,
+          lastSyncTime: newLastSyncTime,
+        }
+      })
     })
 
     // Handle online/offline events
     const handleOnline = () => {
-      setStatus(prevStatus => ({
-        ...prevStatus,
-        isOnline: true,
-      }))
+      setStatus(prevStatus => {
+        if (prevStatus.isOnline) {
+          return prevStatus // Already online, don't re-render
+        }
+        return {
+          ...prevStatus,
+          isOnline: true,
+        }
+      })
     }
 
     const handleOffline = () => {
-      setStatus(prevStatus => ({
-        ...prevStatus,
-        isOnline: false,
-      }))
+      setStatus(prevStatus => {
+        if (!prevStatus.isOnline) {
+          return prevStatus // Already offline, don't re-render
+        }
+        return {
+          ...prevStatus,
+          isOnline: false,
+        }
+      })
     }
 
     window.addEventListener('online', handleOnline)
