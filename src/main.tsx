@@ -9,6 +9,7 @@ import { initializePerformanceMonitoring } from './utils/performance'
 import { initializeMobilePerformance } from './utils/mobilePerformance'
 import './utils/testSupabaseConnection'
 import './utils/debugSync'
+import { BUILD_ID } from './config/buildInfo'
 
 // Register Service Worker for offline functionality
 if ('serviceWorker' in navigator && import.meta.env?.PROD) {
@@ -61,6 +62,7 @@ initializeMobilePerformance()
 // Seed database with MVP data and then render app
 async function initializeApp() {
   console.log('🚀 Initializing app...')
+  console.log(`📦 BUILD: ${BUILD_ID}`)
   console.log('📱 Browser:', {
     userAgent: navigator.userAgent,
     platform: navigator.platform,
