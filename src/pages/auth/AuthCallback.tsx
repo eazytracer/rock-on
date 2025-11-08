@@ -51,7 +51,33 @@ export function AuthCallback() {
           // - Initial sync if needed
           // - Setting up realtime subscriptions
 
-          // Navigate to home page
+          // Wait for AuthContext to set up user and band in localStorage
+          // before navigating (to avoid ProtectedRoute race condition)
+          console.log('⏳ Waiting for auth state to be ready...')
+
+          const waitForAuthState = () => {
+            return new Promise<void>((resolve) => {
+              const checkInterval = setInterval(() => {
+                const currentUserId = localStorage.getItem('currentUserId')
+                const currentBandId = localStorage.getItem('currentBandId')
+
+                if (currentUserId && currentBandId) {
+                  console.log('✅ Auth state ready, navigating to home')
+                  clearInterval(checkInterval)
+                  resolve()
+                }
+              }, 100) // Check every 100ms
+
+              // Timeout after 10 seconds
+              setTimeout(() => {
+                clearInterval(checkInterval)
+                console.warn('⚠️ Auth state setup timeout')
+                resolve()
+              }, 10000)
+            })
+          }
+
+          await waitForAuthState()
           navigate('/')
         } else {
           console.warn('⚠️ Code exchange succeeded but no session created')
