@@ -303,6 +303,7 @@ interface SignUpPageProps {
 
 const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
   const navigate = useNavigate()
+  const { signUp } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -347,37 +348,24 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
     e.preventDefault()
     if (validate()) {
       setLoading(true)
+      setErrors({})
 
       try {
-        // PHASE 2 DATABASE INTEGRATION: Create user in database
-        const userId = crypto.randomUUID()
-
-        // Create user in db.users table
-        await db.users.add({
-          id: userId,
+        // Use actual Supabase authentication
+        const { error } = await signUp({
           email,
-          name: displayName, // Using displayName as the user's name
-          authProvider: 'mock',
-          createdDate: new Date(),
-          lastLogin: new Date()
+          password,
+          name: displayName
         })
 
-        // Create user profile in db.userProfiles table
-        await db.userProfiles.add({
-          id: crypto.randomUUID(),
-          userId,
-          displayName,
-          instruments: [],
-          createdDate: new Date(),
-          updatedDate: new Date()
-        })
-
-        // Store authenticated user ID in localStorage
-        localStorage.setItem('currentUserId', userId)
-
-        setLoading(false)
-        // Navigate to get started - user needs to create/join a band
-        navigate('/get-started')
+        if (error) {
+          setLoading(false)
+          setErrors({ email: error })
+        } else {
+          // signUp handles navigation via AuthContext
+          setLoading(false)
+          navigate('/get-started')
+        }
       } catch (err) {
         console.error('Sign up error:', err)
         setErrors({ email: 'Failed to create account. Please try again.' })
@@ -386,8 +374,28 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
     }
   }
 
-  const handleGoogleSignUp = () => {
-    console.log('Google auth not implemented yet')
+  const handleGoogleSignUp = async () => {
+    setLoading(true)
+    setErrors({})
+
+    try {
+      // Access Supabase auth service directly for OAuth
+      const supabaseService = authService as any
+      if (supabaseService.signInWithGoogle) {
+        const { error } = await supabaseService.signInWithGoogle()
+        if (error) {
+          setErrors({ form: error })
+        }
+        // OAuth flow will redirect, so no need to navigate here
+      } else {
+        setErrors({ form: 'Google sign-in not available' })
+      }
+    } catch (err) {
+      console.error('Google sign-up error:', err)
+      setErrors({ form: 'Failed to sign up with Google' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -509,42 +517,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
     e.preventDefault()
     if (validate()) {
       setLoading(true)
+      setErrors({})
 
       try {
-        // PHASE 2 DATABASE INTEGRATION: Query database for user
-        const user = await db.users
-          .where('email')
-          .equals(email.toLowerCase())
-          .first()
+        // Use actual Supabase authentication
+        const { error } = await signIn({ email, password })
 
-        if (user) {
-          // User exists - set localStorage and update lastLogin
-          localStorage.setItem('currentUserId', user.id)
-
-          // Update user's lastLogin timestamp
-          await db.users.update(user.id, {
-            lastLogin: new Date()
-          })
-
-          // Check if user has any bands
-          const memberships = await db.bandMemberships
-            .where('userId')
-            .equals(user.id)
-            .toArray()
-
-          if (memberships.length > 0) {
-            // User has bands - set currentBandId to first band and navigate to app
-            localStorage.setItem('currentBandId', memberships[0].bandId)
-            setLoading(false)
-            navigate('/songs')
-          } else {
-            // User has no bands - navigate to get started
-            setLoading(false)
-            navigate('/get-started')
-          }
-        } else {
+        if (error) {
           setLoading(false)
-          setErrors({ password: 'Invalid email or password' })
+          setErrors({ password: error })
+        } else {
+          // signIn handles navigation via AuthContext
+          // No need to navigate here
         }
       } catch (err) {
         console.error('Login error:', err)
