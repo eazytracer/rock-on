@@ -5,6 +5,7 @@ import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
 import { BandMembership } from '../../models/BandMembership'
+import { User } from '../../models/User'
 import { supabase } from '../supabase/client'
 
 /**
@@ -63,7 +64,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('songs')
-      .insert(this.mapSongToSupabase(song))
+      .insert(this.mapSongToSupabase(song) as any)
       .select()
       .single()
 
@@ -77,6 +78,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('songs')
+      // @ts-expect-error - Supabase generated types are overly strict, using Record<string, any> for field mapping
       .update(this.mapSongToSupabase(updates))
       .eq('id', id)
       .select()
@@ -100,7 +102,7 @@ export class RemoteRepository implements IDataRepository {
 
   // ========== FIELD MAPPING ==========
 
-  private mapSongToSupabase(song: Partial<Song>): any {
+  private mapSongToSupabase(song: Partial<Song>): Record<string, any> {
     // Note: Only include fields that exist in Supabase schema
     // Fields like album, guitarTuning, lyrics, chords, tags, structure, referenceLinks
     // are IndexedDB-only and should NOT be sent to Supabase
@@ -122,7 +124,8 @@ export class RemoteRepository implements IDataRepository {
       context_id: song.contextId,
       created_by: song.createdBy,
       visibility: song.visibility,
-      song_group_id: song.songGroupId
+      song_group_id: song.songGroupId,
+      last_modified_by: song.lastModifiedBy ?? null
     }
   }
 
@@ -152,7 +155,8 @@ export class RemoteRepository implements IDataRepository {
       contextId: row.context_id,
       createdBy: row.created_by,
       visibility: row.visibility ?? 'band', // Default to 'band' for MVP
-      songGroupId: row.song_group_id
+      songGroupId: row.song_group_id,
+      lastModifiedBy: row.last_modified_by ?? undefined
     }
   }
 
@@ -217,7 +221,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('bands')
-      .insert(this.mapBandToSupabase(band))
+      .insert(this.mapBandToSupabase(band) as any)
       .select()
       .single()
 
@@ -231,6 +235,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('bands')
+      // @ts-expect-error - Supabase generated types are overly strict, using Record<string, any> for field mapping
       .update(this.mapBandToSupabase(updates))
       .eq('id', id)
       .select()
@@ -254,7 +259,7 @@ export class RemoteRepository implements IDataRepository {
 
   // ========== BAND FIELD MAPPING ==========
 
-  private mapBandToSupabase(band: Partial<Band>): any {
+  private mapBandToSupabase(band: Partial<Band>): Record<string, any> {
     return {
       id: band.id,
       name: band.name,
@@ -322,7 +327,7 @@ export class RemoteRepository implements IDataRepository {
       .insert({
         ...this.mapSetlistToSupabase(setlist),
         created_by: userData.user.id
-      })
+      } as any)
       .select()
       .single()
 
@@ -336,6 +341,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('setlists')
+      // @ts-expect-error - Supabase generated types are overly strict, using Record<string, any> for field mapping
       .update(this.mapSetlistToSupabase(updates))
       .eq('id', id)
       .select()
@@ -359,7 +365,7 @@ export class RemoteRepository implements IDataRepository {
 
   // ========== SETLIST FIELD MAPPING ==========
 
-  private mapSetlistToSupabase(setlist: Partial<Setlist>): any {
+  private mapSetlistToSupabase(setlist: Partial<Setlist>): Record<string, any> {
     return {
       id: setlist.id,
       name: setlist.name,
@@ -370,7 +376,8 @@ export class RemoteRepository implements IDataRepository {
       status: setlist.status,
       created_date: setlist.createdDate,
       last_modified: setlist.lastModified || new Date(),
-      items: setlist.items || [] // Store items as JSONB in Supabase
+      items: setlist.items || [], // Store items as JSONB in Supabase
+      last_modified_by: setlist.lastModifiedBy ?? null
     }
   }
 
@@ -389,7 +396,8 @@ export class RemoteRepository implements IDataRepository {
       notes: row.notes ?? '',
       status: row.status ?? 'draft',
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
-      lastModified: row.last_modified ? new Date(row.last_modified) : new Date()
+      lastModified: row.last_modified ? new Date(row.last_modified) : new Date(),
+      lastModifiedBy: row.last_modified_by ?? undefined
     }
   }
 
@@ -431,7 +439,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('practice_sessions')
-      .insert(this.mapPracticeSessionToSupabase(session))
+      .insert(this.mapPracticeSessionToSupabase(session) as any)
       .select()
       .single()
 
@@ -445,6 +453,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('practice_sessions')
+      // @ts-expect-error - Supabase generated types are overly strict, using Record<string, any> for field mapping
       .update(this.mapPracticeSessionToSupabase(updates))
       .eq('id', id)
       .select()
@@ -468,7 +477,7 @@ export class RemoteRepository implements IDataRepository {
 
   // ========== PRACTICE SESSION FIELD MAPPING ==========
 
-  private mapPracticeSessionToSupabase(session: Partial<PracticeSession>): any {
+  private mapPracticeSessionToSupabase(session: Partial<PracticeSession>): Record<string, any> {
     return {
       id: session.id,
       band_id: session.bandId,
@@ -481,7 +490,8 @@ export class RemoteRepository implements IDataRepository {
       objectives: session.objectives ?? [],
       completed_objectives: session.completedObjectives ?? [],
       songs: session.songs ?? [],
-      attendees: session.attendees ?? []
+      attendees: session.attendees ?? [],
+      last_modified_by: session.lastModifiedBy ?? null
       // Note: status exists in IndexedDB only, not in Supabase
       // Note: Supabase has created_date but NOT updated_date
       // Note: Show-specific fields (name, venue, etc.) are now in the Show model
@@ -503,7 +513,8 @@ export class RemoteRepository implements IDataRepository {
       completedObjectives: row.completed_objectives ?? [],
       songs: row.songs ?? [],
       attendees: row.attendees ?? [],
-      createdDate: row.created_date ? new Date(row.created_date) : new Date()
+      createdDate: row.created_date ? new Date(row.created_date) : new Date(),
+      lastModifiedBy: row.last_modified_by ?? undefined
     }
   }
 
@@ -545,7 +556,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error} = await supabase
       .from('shows')
-      .insert(this.mapShowToSupabase(show))
+      .insert(this.mapShowToSupabase(show) as any)
       .select()
       .single()
 
@@ -559,6 +570,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('shows')
+      // @ts-expect-error - Supabase generated types are overly strict, using Record<string, any> for field mapping
       .update(this.mapShowToSupabase(updates))
       .eq('id', id)
       .select()
@@ -582,7 +594,7 @@ export class RemoteRepository implements IDataRepository {
 
   // ========== SHOW FIELD MAPPING ==========
 
-  private mapShowToSupabase(show: Partial<Show>): any {
+  private mapShowToSupabase(show: Partial<Show>): Record<string, any> {
     return {
       id: show.id,
       band_id: show.bandId,
@@ -599,7 +611,8 @@ export class RemoteRepository implements IDataRepository {
       status: show.status,
       notes: show.notes ?? null,
       created_date: show.createdDate,
-      updated_date: show.updatedDate
+      updated_date: show.updatedDate,
+      last_modified_by: show.lastModifiedBy ?? null
     }
   }
 
@@ -620,7 +633,8 @@ export class RemoteRepository implements IDataRepository {
       status: row.status,
       notes: row.notes ?? undefined,
       createdDate: new Date(row.created_date),
-      updatedDate: new Date(row.updated_date)
+      updatedDate: new Date(row.updated_date),
+      lastModifiedBy: row.last_modified_by ?? undefined
     }
   }
 
@@ -657,7 +671,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('band_memberships')
-      .insert(this.mapBandMembershipToSupabase(membership))
+      .insert(this.mapBandMembershipToSupabase(membership) as any)
       .select()
       .single()
 
@@ -677,6 +691,7 @@ export class RemoteRepository implements IDataRepository {
 
     const { data, error } = await supabase
       .from('band_memberships')
+      // @ts-expect-error - Supabase generated types are overly strict, using Record<string, any> for field mapping
       .update(this.mapBandMembershipToSupabase(updates))
       .eq('id', id)
       .select()
@@ -698,9 +713,39 @@ export class RemoteRepository implements IDataRepository {
     if (error) throw error
   }
 
-  // ========== BAND MEMBERSHIP FIELD MAPPING ==========
+  // ========== USER OPERATIONS ==========
 
-  private mapBandMembershipToSupabase(membership: Partial<BandMembership>): any {
+  async getUser(id: string): Promise<User | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) return null
+
+    return this.mapUserFromSupabase(data)
+  }
+
+  // ========== USER FIELD MAPPING ==========
+
+  private mapUserFromSupabase(row: any): User {
+    return {
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      createdDate: row.created_date ? new Date(row.created_date) : new Date(),
+      lastLogin: row.last_login ? new Date(row.last_login) : undefined,
+      authProvider: row.auth_provider ?? 'email'
+    }
+  }
+
+// ========== BAND MEMBERSHIP FIELD MAPPING ==========
+
+  private mapBandMembershipToSupabase(membership: Partial<BandMembership>): Record<string, any> {
     return {
       id: membership.id,
       user_id: membership.userId,

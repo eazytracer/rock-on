@@ -140,6 +140,14 @@ export const BandMembersPage: React.FC = () => {
         return
       }
 
+      // DEBUG: Check for duplicates in dbMembers
+      const userIds = dbMembers.map(m => m.membership.userId)
+      const duplicateIds = userIds.filter((id, index) => userIds.indexOf(id) !== index)
+      if (duplicateIds.length > 0) {
+        console.error('[BandMembersPage] DUPLICATE user IDs in dbMembers:', duplicateIds)
+        console.error('[BandMembersPage] dbMembers count:', dbMembers.length)
+      }
+
       const transformedMembers: BandMember[] = await Promise.all(
         dbMembers.map(async ({ membership, profile }) => {
           // Get user info for email
@@ -171,7 +179,16 @@ export const BandMembersPage: React.FC = () => {
         })
       )
 
-      setMembers(transformedMembers)
+      // Deduplicate by userId (defensive programming - shouldn't be needed but prevents UI errors)
+      const uniqueMembers = transformedMembers.filter((member, index, self) =>
+        index === self.findIndex(m => m.userId === member.userId)
+      )
+
+      if (uniqueMembers.length !== transformedMembers.length) {
+        console.warn('[BandMembersPage] Removed duplicate members:', transformedMembers.length - uniqueMembers.length)
+      }
+
+      setMembers(uniqueMembers)
 
       // Set current user's role
       const currentMembership = dbMembers.find(m => m.membership.userId === currentUserId)

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { SetlistService } from '../services/SetlistService'
 import { getSyncRepository } from '../services/data/SyncRepository'
+import { useAuth } from '../contexts/AuthContext'
 import type { Setlist } from '../models/Setlist'
 import type { SetlistItem } from '../types'
 
@@ -11,6 +12,27 @@ export function useSetlists(bandId: string) {
   const [setlists, setSetlists] = useState<Setlist[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const { realtimeManager } = useAuth()
+
+  // Memoize fetchSetlists to use in effect dependencies
+  const fetchSetlists = useCallback(async () => {
+    try {
+      console.log('[useSetlists] Fetching setlists for band:', bandId)
+      setLoading(true)
+      const response = await SetlistService.getSetlists({ bandId })
+      console.log('[useSetlists] Fetched setlists count:', response.setlists.length)
+      setSetlists(response.setlists)
+      setError(null)
+    } catch (err) {
+      console.error('[useSetlists] Error fetching setlists:', err)
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [bandId])
+
+  // Store the handler ref to properly clean up listeners
+  const realtimeHandlerRef = useRef<((event: { bandId: string; action: string; recordId: string }) => void) | null>(null)
 
   useEffect(() => {
     if (!bandId) {
@@ -19,30 +41,48 @@ export function useSetlists(bandId: string) {
       return
     }
 
-    const fetchSetlists = async () => {
-      try {
-        setLoading(true)
-        const response = await SetlistService.getSetlists({ bandId })
-        setSetlists(response.setlists)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching setlists:', err)
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
+    console.log('[useSetlists] Mounting hook for band:', bandId)
     fetchSetlists()
 
     // Subscribe to sync events for live updates
     const repo = getSyncRepository()
-    const unsubscribe = repo.onSyncStatusChange(() => {
+    const handleSyncChange = () => {
+      console.log('[useSetlists] Sync status changed, refetching...')
       fetchSetlists()
-    })
+    }
 
-    return unsubscribe
-  }, [bandId])
+    const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
+
+    // Listen for real-time changes from RealtimeManager
+    if (realtimeManager) {
+      // Remove old listener if exists
+      if (realtimeHandlerRef.current) {
+        realtimeManager.off('setlists:changed', realtimeHandlerRef.current)
+      }
+
+      // Create new listener
+      const handleRealtimeChange = ({ bandId: changedBandId }: { bandId: string; action: string; recordId: string }) => {
+        // Only refetch if the change is for the current band
+        if (changedBandId === bandId) {
+          console.log('[useSetlists] Realtime change detected for band, refetching...')
+          fetchSetlists()
+        }
+      }
+      realtimeHandlerRef.current = handleRealtimeChange
+
+      console.log('[useSetlists] Registering realtime listener for band:', bandId)
+      realtimeManager.on('setlists:changed', handleRealtimeChange)
+    }
+
+    // Cleanup
+    return () => {
+      console.log('[useSetlists] Unmounting hook for band:', bandId)
+      unsubscribe()
+      if (realtimeManager && realtimeHandlerRef.current) {
+        realtimeManager.off('setlists:changed', realtimeHandlerRef.current)
+      }
+    }
+  }, [bandId, realtimeManager, fetchSetlists])
 
   return { setlists, loading, error }
 }

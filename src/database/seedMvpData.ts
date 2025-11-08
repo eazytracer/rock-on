@@ -1,7 +1,25 @@
+/**
+ * @deprecated DO NOT USE - This file seeds IndexedDB directly and causes data duplication.
+ *
+ * **PROBLEM:** Creates random UUIDs that don't match Supabase, causing "user bubble" isolation
+ * where band members can't see each other's data.
+ *
+ * **SOLUTION:** Use Supabase seeding instead: `supabase db reset`
+ *
+ * IndexedDB is now populated via SyncEngine.performInitialSync() on first login.
+ *
+ * See: .claude/specifications/2025-10-27T18:16_test-data-and-seeding-specification.md
+ * See: .claude/artifacts/2025-10-31T13:20_seed-data-consolidation-plan.md
+ *
+ * @deprecated Since 2025-10-31
+ */
+
 import { db } from '../services/database'
 import type { SetlistItem } from '../types'
 
 /**
+ * @deprecated - See file header for details
+ *
  * Seed database with realistic MVP test data
  *
  * Includes:

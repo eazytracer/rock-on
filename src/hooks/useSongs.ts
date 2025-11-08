@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { SongService } from '../services/SongService'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import { db } from '../services/database'
+import { useAuth } from '../contexts/AuthContext'
 import type { Song } from '../models/Song'
 
 /**
@@ -12,30 +13,31 @@ export function useSongs(bandId: string) {
   const [songs, setSongs] = useState<Song[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const { realtimeManager } = useAuth()
+
+  // Memoize fetchSongs to use in effect dependencies
+  const fetchSongs = useCallback(async () => {
+    try {
+      console.log('[useSongs] Fetching songs for band:', bandId)
+      setLoading(true)
+      const response = await SongService.getBandSongs(bandId)
+      console.log('[useSongs] Fetched songs count:', response.songs.length)
+      setSongs(response.songs)
+      setError(null)
+    } catch (err) {
+      console.error('[useSongs] Error fetching songs:', err)
+      setError(err as Error)
+      setSongs([])
+    } finally {
+      setLoading(false)
+    }
+  }, [bandId])
 
   useEffect(() => {
     if (!bandId) {
       setSongs([])
       setLoading(false)
       return
-    }
-
-    // Initial fetch
-    const fetchSongs = async () => {
-      try {
-        console.log('[useSongs] Fetching songs for band:', bandId)
-        setLoading(true)
-        const response = await SongService.getBandSongs(bandId)
-        console.log('[useSongs] Fetched songs count:', response.songs.length)
-        setSongs(response.songs)
-        setError(null)
-      } catch (err) {
-        console.error('[useSongs] Error fetching songs:', err)
-        setError(err as Error)
-        setSongs([])
-      } finally {
-        setLoading(false)
-      }
     }
 
     console.log('[useSongs] Mounting hook for band:', bandId)
@@ -51,12 +53,32 @@ export function useSongs(bandId: string) {
 
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
 
+    // Listen for real-time changes from RealtimeManager
+    const handleRealtimeChange = ({ bandId: changedBandId }: { bandId: string; action: string; recordId: string }) => {
+      console.log('[useSongs] Realtime event received:', { changedBandId, currentBandId: bandId })
+      // Only refetch if the change is for the current band
+      if (changedBandId === bandId) {
+        console.log('[useSongs] Realtime change detected for band, refetching...')
+        fetchSongs()
+      } else {
+        console.log('[useSongs] Ignoring change for different band')
+      }
+    }
+
+    if (realtimeManager) {
+      console.log('[useSongs] Registering realtime listener for band:', bandId)
+      realtimeManager.on('songs:changed', handleRealtimeChange)
+    } else {
+      console.warn('[useSongs] No realtimeManager available, real-time updates disabled')
+    }
+
     // Cleanup
     return () => {
       console.log('[useSongs] Unmounting hook for band:', bandId)
       unsubscribe()
+      realtimeManager?.off('songs:changed', handleRealtimeChange)
     }
-  }, [bandId])
+  }, [bandId, realtimeManager, fetchSongs])
 
   return { songs, loading, error, refetch: async () => {
     setLoading(true)

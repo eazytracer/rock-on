@@ -36,12 +36,196 @@ import { formatShowDate, formatTime12Hour, parseTime12Hour } from '../../utils/d
 import type { PracticeSession } from '../../models/PracticeSession'
 import type { Song } from '../../models/Song'
 import type { SessionSong } from '../../types'
+// PHASE 2: Sync status visualization
+import { SyncIcon } from '../../components/sync/SyncIcon'
+import { useItemStatus } from '../../hooks/useItemSyncStatus'
 
 // ===== INTERFACES =====
 
 // Helper interface for song display with loaded data
 interface SongWithDetails extends Song {
   displayDuration: string
+}
+
+// ===== CARD COMPONENTS =====
+
+// PHASE 2: Practice card component with sync status
+interface PracticeCardProps {
+  practice: PracticeSession
+  songs: SongWithDetails[]
+  isNextPractice: boolean
+  getStatusBadge: (status: PracticeSession['status']) => JSX.Element
+  formatShowDate: (date: Date) => string
+  formatTime12Hour: (date: Date) => string
+  openMenuId: string | null
+  setOpenMenuId: (id: string | null) => void
+  onEdit: () => void
+  onMarkComplete: () => void | Promise<void>
+  onCancel: () => void | Promise<void>
+  onDelete: () => void
+}
+
+const PracticeCard: React.FC<PracticeCardProps> = ({
+  practice,
+  songs,
+  isNextPractice,
+  getStatusBadge,
+  formatShowDate,
+  formatTime12Hour,
+  openMenuId,
+  setOpenMenuId,
+  onEdit,
+  onMarkComplete,
+  onCancel,
+  onDelete
+}) => {
+  // PHASE 2: Get sync status for this practice
+  const syncStatus = useItemStatus(practice.id)
+
+  return (
+    <div
+      className={`p-5 bg-[#1a1a1a] rounded-xl border transition-all ${
+        isNextPractice
+          ? 'border-[#f17827ff]/30'
+          : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4 mb-4">
+        {/* Left: Date Badge */}
+        <div className="flex items-start gap-4">
+          {/* PHASE 2: Sync Icon */}
+          <div className="flex-shrink-0 mt-1">
+            <SyncIcon status={syncStatus} size="sm" />
+          </div>
+
+          <div
+            className={`flex flex-col items-center justify-center min-w-[60px] h-[60px] rounded-lg ${
+              practice.status === 'scheduled'
+                ? 'bg-[#f17827ff]/10 border border-[#f17827ff]/20'
+                : practice.status === 'completed'
+                ? 'bg-green-500/10 border border-green-500/20'
+                : 'bg-[#2a2a2a] border border-[#3a3a3a]'
+            }`}
+          >
+            <div
+              className={`text-xs font-semibold uppercase ${
+                practice.status === 'scheduled'
+                  ? 'text-[#f17827ff]'
+                  : practice.status === 'completed'
+                  ? 'text-green-500'
+                  : 'text-[#707070]'
+              }`}
+            >
+              {new Date(practice.scheduledDate).toLocaleDateString('en-US', { weekday: 'short' })}
+            </div>
+            <div
+              className={`text-2xl font-bold ${
+                practice.status === 'scheduled'
+                  ? 'text-[#f17827ff]'
+                  : practice.status === 'completed'
+                  ? 'text-green-500'
+                  : 'text-[#707070]'
+              }`}
+            >
+              {new Date(practice.scheduledDate).getDate()}
+            </div>
+          </div>
+
+          {/* Practice Info */}
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-white font-semibold text-base">
+                {formatShowDate(new Date(practice.scheduledDate))}
+              </h3>
+              {getStatusBadge(practice.status)}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#a0a0a0] mb-3">
+              <div className="flex items-center gap-1">
+                <Clock size={14} />
+                {formatTime12Hour(new Date(practice.scheduledDate))} • {practice.duration} min
+              </div>
+              {practice.location && (
+                <div className="flex items-center gap-1">
+                  <MapPin size={14} />
+                  {practice.location}
+                </div>
+              )}
+              <div className="flex items-center gap-1">
+                <Music size={14} />
+                {songs.length} song{songs.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+            {practice.notes && (
+              <p className="text-sm text-[#a0a0a0] mb-3">{practice.notes}</p>
+            )}
+
+            {/* Song List */}
+            {songs.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {songs.map((song, index) => (
+                  <div
+                    key={`${practice.id}-${song.id}`}
+                    className="flex items-center gap-2 px-2 py-1 bg-[#0f0f0f] border border-[#2a2a2a] rounded-md text-xs"
+                  >
+                    <span className="text-[#707070] font-semibold">{index + 1}.</span>
+                    <span className="text-white">{song.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Actions Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setOpenMenuId(openMenuId === practice.id ? null : practice.id)}
+            className="p-2 text-[#707070] hover:text-white hover:bg-[#252525] rounded-lg transition-colors"
+          >
+            <MoreVertical size={20} />
+          </button>
+
+          {/* Dropdown Menu */}
+          {openMenuId === practice.id && (
+            <div className="absolute right-0 top-full mt-1 w-48 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-10">
+              <button
+                onClick={onEdit}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors"
+              >
+                <Edit2 size={16} />
+                Edit
+              </button>
+              {practice.status === 'scheduled' && (
+                <button
+                  onClick={onMarkComplete}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors"
+                >
+                  <CheckCircle size={16} />
+                  Mark as Completed
+                </button>
+              )}
+              {practice.status === 'scheduled' && (
+                <button
+                  onClick={onCancel}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors border-t border-[#2a2a2a]"
+                >
+                  <XCircle size={16} />
+                  Cancel Practice
+                </button>
+              )}
+              <button
+                onClick={onDelete}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-500 text-sm hover:bg-[#252525] transition-colors border-t border-[#2a2a2a]"
+              >
+                <Trash2 size={16} />
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ===== MODAL COMPONENTS =====
@@ -605,7 +789,7 @@ export const PracticesPage: React.FC = () => {
       .filter(Boolean) as SongWithDetails[]
   }
 
-  const getStatusBadge = (status: PracticeSession['status']) => {
+  const getStatusBadge = (status: PracticeSession['status']): JSX.Element => {
     switch (status) {
       case 'scheduled':
         return (
@@ -623,6 +807,12 @@ export const PracticesPage: React.FC = () => {
         return (
           <span className="px-2 py-1 bg-red-500/10 text-red-500 text-xs font-medium rounded-md">
             Cancelled
+          </span>
+        )
+      default:
+        return (
+          <span className="px-2 py-1 bg-[#505050]/10 text-[#505050] text-xs font-medium rounded-md">
+            Unknown
           </span>
         )
     }
@@ -753,151 +943,28 @@ export const PracticesPage: React.FC = () => {
             const isNextPractice = practice.id === nextPractice?.id
 
             return (
-              <div
+              <PracticeCard
                 key={practice.id}
-                className={`p-5 bg-[#1a1a1a] rounded-xl border transition-all ${
-                  isNextPractice
-                    ? 'border-[#f17827ff]/30'
-                    : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  {/* Left: Date Badge */}
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={`flex flex-col items-center justify-center min-w-[60px] h-[60px] rounded-lg ${
-                        practice.status === 'scheduled'
-                          ? 'bg-[#f17827ff]/10 border border-[#f17827ff]/20'
-                          : practice.status === 'completed'
-                          ? 'bg-green-500/10 border border-green-500/20'
-                          : 'bg-[#2a2a2a] border border-[#3a3a3a]'
-                      }`}
-                    >
-                      <div
-                        className={`text-xs font-semibold uppercase ${
-                          practice.status === 'scheduled'
-                            ? 'text-[#f17827ff]'
-                            : practice.status === 'completed'
-                            ? 'text-green-500'
-                            : 'text-[#707070]'
-                        }`}
-                      >
-                        {new Date(practice.scheduledDate).toLocaleDateString('en-US', { weekday: 'short' })}
-                      </div>
-                      <div
-                        className={`text-2xl font-bold ${
-                          practice.status === 'scheduled'
-                            ? 'text-[#f17827ff]'
-                            : practice.status === 'completed'
-                            ? 'text-green-500'
-                            : 'text-[#707070]'
-                        }`}
-                      >
-                        {new Date(practice.scheduledDate).getDate()}
-                      </div>
-                    </div>
-
-                    {/* Practice Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-white font-semibold text-base">
-                          {formatShowDate(new Date(practice.scheduledDate))}
-                        </h3>
-                        {getStatusBadge(practice.status)}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#a0a0a0] mb-3">
-                        <div className="flex items-center gap-1">
-                          <Clock size={14} />
-                          {formatTime12Hour(new Date(practice.scheduledDate))} • {practice.duration} min
-                        </div>
-                        {practice.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin size={14} />
-                            {practice.location}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <Music size={14} />
-                          {songs.length} song{songs.length !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                      {practice.notes && (
-                        <p className="text-sm text-[#a0a0a0] mb-3">{practice.notes}</p>
-                      )}
-
-                      {/* Song List */}
-                      {songs.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {songs.map((song, index) => (
-                            <div
-                              key={`${practice.id}-${song.id}`}
-                              className="flex items-center gap-2 px-2 py-1 bg-[#0f0f0f] border border-[#2a2a2a] rounded-md text-xs"
-                            >
-                              <span className="text-[#707070] font-semibold">{index + 1}.</span>
-                              <span className="text-white">{song.title}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: Actions Menu */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setOpenMenuId(openMenuId === practice.id ? null : practice.id)}
-                      className="p-2 text-[#707070] hover:text-white hover:bg-[#252525] rounded-lg transition-colors"
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {openMenuId === practice.id && (
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-10">
-                        <button
-                          onClick={() => {
-                            setEditingPractice(practice)
-                            setIsScheduleModalOpen(true)
-                            setOpenMenuId(null)
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors"
-                        >
-                          <Edit2 size={16} />
-                          Edit
-                        </button>
-                        {practice.status === 'scheduled' && (
-                          <button
-                            onClick={() => handleMarkComplete(practice.id)}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors"
-                          >
-                            <CheckCircle size={16} />
-                            Mark as Completed
-                          </button>
-                        )}
-                        {practice.status === 'scheduled' && (
-                          <button
-                            onClick={() => handleCancelPractice(practice.id)}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors border-t border-[#2a2a2a]"
-                          >
-                            <XCircle size={16} />
-                            Cancel Practice
-                          </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            setDeleteConfirmPractice(practice)
-                            setOpenMenuId(null)
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-500 text-sm hover:bg-[#252525] transition-colors border-t border-[#2a2a2a]"
-                        >
-                          <Trash2 size={16} />
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+                practice={practice}
+                songs={songs}
+                isNextPractice={isNextPractice}
+                getStatusBadge={getStatusBadge}
+                formatShowDate={formatShowDate}
+                formatTime12Hour={formatTime12Hour}
+                openMenuId={openMenuId}
+                setOpenMenuId={setOpenMenuId}
+                onEdit={() => {
+                  setEditingPractice(practice)
+                  setIsScheduleModalOpen(true)
+                  setOpenMenuId(null)
+                }}
+                onMarkComplete={() => handleMarkComplete(practice.id)}
+                onCancel={() => handleCancelPractice(practice.id)}
+                onDelete={() => {
+                  setDeleteConfirmPractice(practice)
+                  setOpenMenuId(null)
+                }}
+              />
             )
           })}
         </div>
@@ -919,9 +986,9 @@ export const PracticesPage: React.FC = () => {
       <DeleteConfirmModal
         isOpen={deleteConfirmPractice !== null}
         onClose={() => setDeleteConfirmPractice(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (deleteConfirmPractice) {
-            handleDeletePractice(deleteConfirmPractice.id)
+            await handleDeletePractice(deleteConfirmPractice.id)
             setDeleteConfirmPractice(null)
           }
         }}

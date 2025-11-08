@@ -178,7 +178,10 @@ export class RockOnDB extends Dexie {
     })
 
     this.songs.hook('creating', function(_primKey, obj, _trans) {
-      obj.createdDate = new Date()
+      // Only set createdDate if not already provided (for sync operations)
+      if (!obj.createdDate) {
+        obj.createdDate = new Date()
+      }
       obj.confidenceLevel = obj.confidenceLevel || 1
     })
 

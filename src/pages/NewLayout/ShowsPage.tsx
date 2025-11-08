@@ -37,6 +37,9 @@ import { SetlistService } from '../../services/SetlistService'
 import { centsToDollars, dollarsToCents } from '../../utils/formatters'
 import { formatShowDate, formatTime12Hour, parseTime12Hour } from '../../utils/dateHelpers'
 import type { Setlist } from '../../models/Setlist'
+// PHASE 2: Sync status visualization
+import { SyncIcon } from '../../components/sync/SyncIcon'
+import { useItemStatus } from '../../hooks/useItemSyncStatus'
 
 // ============================================
 // TYPES - UPDATED FOR DATABASE INTEGRATION
@@ -59,6 +62,7 @@ interface SetlistSong extends Song {
   position: number
 }
 
+// @ts-ignore - Intentionally unused
 // Reserved for future use
 interface _SetlistWithSongs {
   id: string
@@ -500,6 +504,9 @@ const ShowCard: React.FC<{
   formatDateBadge: (date: Date | string) => { month: string; day: number; weekday: string }
   getDaysUntilShow: (date: Date | string) => string
 }> = ({ show, setlist, onEdit, onDelete, formatDateBadge, getDaysUntilShow }) => {
+  // PHASE 2: Get sync status for this show
+  const syncStatus = useItemStatus(show.id)
+
   const [isActionsOpen, setIsActionsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [setlistSongs, setSetlistSongs] = useState<any[]>([])
@@ -550,6 +557,11 @@ const ShowCard: React.FC<{
       show.status === 'cancelled' ? 'border-[#2a2a2a] opacity-60' : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
     }`}>
       <div className="flex items-start gap-4">
+        {/* PHASE 2: Sync Icon */}
+        <div className="flex-shrink-0 mt-1">
+          <SyncIcon status={syncStatus} size="sm" />
+        </div>
+
         {/* Date Badge */}
         <div className={`flex-shrink-0 w-16 h-16 rounded-lg flex flex-col items-center justify-center border-2 ${
           isUpcoming ? 'bg-[#f17827ff]/10 border-[#f17827ff]' : 'bg-[#2a2a2a] border-[#3a3a3a]'
@@ -1253,6 +1265,7 @@ function getStatusConfig(status: Show['status']) {
   }
 }
 
+// @ts-ignore - Intentionally unused
 // Reserved for future payment tracking feature
 function _getPaymentStatusConfig(status?: 'unpaid' | 'partial' | 'paid') {
   switch (status) {

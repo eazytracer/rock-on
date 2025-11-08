@@ -3,6 +3,15 @@ import { SyncEngine } from '../../../../src/services/data/SyncEngine'
 import { LocalRepository } from '../../../../src/services/data/LocalRepository'
 import { RemoteRepository } from '../../../../src/services/data/RemoteRepository'
 import { db } from '../../../../src/services/database'
+import { v4 as uuidv4 } from 'uuid'
+import {
+  createTestIds,
+  createTestMembership,
+  createSupabaseSong,
+  createTestSetlist,
+  createTestPractice,
+  type TestIds
+} from '../../../helpers/testFixtures'
 
 describe('SyncEngine - Queue Management', () => {
   let syncEngine: SyncEngine
@@ -249,10 +258,14 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
   let syncEngine: SyncEngine
   let localRepo: LocalRepository
   let remoteRepo: RemoteRepository
+  let testIds: TestIds
 
   beforeEach(async () => {
     localRepo = new LocalRepository()
     remoteRepo = new RemoteRepository()
+
+    // Generate consistent test IDs using shared fixtures
+    testIds = createTestIds()
 
     // Clear all local data
     await db.songs.clear()
@@ -262,75 +275,21 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
     await db.bandMemberships.clear()
     await db.syncMetadata?.clear()
 
-    // Mock remote repository to return test data
+    // Mock ALL RemoteRepository methods to prevent real Supabase calls
     vi.spyOn(remoteRepo, 'getUserMemberships').mockResolvedValue([
-      {
-        id: 'membership-1',
-        userId: 'user-1',
-        bandId: 'band-1',
-        role: 'admin',
-        permissions: ['read', 'write'],
-        joinedDate: new Date('2025-01-01'),
-        status: 'active'
-      }
+      createTestMembership(testIds)
     ])
 
     vi.spyOn(remoteRepo, 'getSongs').mockResolvedValue([
-      {
-        id: 'song-1',
-        title: 'Test Song 1',
-        artist: 'Test Artist',
-        album: '',
-        duration: 180,
-        key: 'C',
-        bpm: 120,
-        difficulty: 3,
-        guitarTuning: 'Standard',
-        structure: [],
-        lyrics: '',
-        chords: [],
-        referenceLinks: [],
-        tags: [],
-        notes: 'Test notes',
-        createdDate: new Date('2025-01-01'),
-        confidenceLevel: 3,
-        contextType: 'band',
-        contextId: 'band-1',
-        createdBy: 'user-1',
-        visibility: 'band'
-      }
+      createSupabaseSong(testIds, { id: testIds.song1 })
     ])
 
     vi.spyOn(remoteRepo, 'getSetlists').mockResolvedValue([
-      {
-        id: 'setlist-1',
-        name: 'Test Setlist',
-        bandId: 'band-1',
-        songs: [],
-        items: [],
-        totalDuration: 0,
-        notes: '',
-        status: 'draft',
-        createdDate: new Date('2025-01-01'),
-        lastModified: new Date('2025-01-01')
-      }
+      createTestSetlist(testIds)
     ])
 
     vi.spyOn(remoteRepo, 'getPracticeSessions').mockResolvedValue([
-      {
-        id: 'practice-1',
-        bandId: 'band-1',
-        scheduledDate: new Date('2025-01-10'),
-        duration: 120,
-        location: 'Studio A',
-        type: 'rehearsal',
-        status: 'scheduled',
-        notes: 'Test practice',
-        objectives: ['Practice new songs'],
-        completedObjectives: [],
-        songs: [],
-        attendees: []
-      }
+      createTestPractice(testIds)
     ])
 
     syncEngine = new SyncEngine(localRepo, remoteRepo)
@@ -348,7 +307,7 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
   })
 
   it('should download all data on initial sync', async () => {
-    await syncEngine.performInitialSync('user-1')
+    await syncEngine.performInitialSync(testIds.user1)
 
     // Verify songs were downloaded
     const songs = await db.songs.toArray()
@@ -367,7 +326,7 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
   })
 
   it('should set last full sync timestamp', async () => {
-    await syncEngine.performInitialSync('user-1')
+    await syncEngine.performInitialSync(testIds.user1)
 
     const lastFullSync = localStorage.getItem('last_full_sync')
     expect(lastFullSync).toBeTruthy()
@@ -418,10 +377,14 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
   let syncEngine: SyncEngine
   let localRepo: LocalRepository
   let remoteRepo: RemoteRepository
+  let testIds: TestIds
 
   beforeEach(async () => {
     localRepo = new LocalRepository()
     remoteRepo = new RemoteRepository()
+
+    // Generate consistent test IDs using shared fixtures
+    testIds = createTestIds()
 
     // Clear all local data
     await db.songs.clear()
@@ -429,93 +392,31 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
     await db.practiceSessions.clear()
     await db.syncMetadata?.clear()
 
-    // Add existing local song (older timestamp)
-    await db.songs.add({
-      id: 'song-1',
+    // Add existing local song (older timestamp) using fixtures
+    // Songs use createdDate for conflict resolution, not lastModified
+    const oldSong = createSupabaseSong(testIds, {
+      id: testIds.song1,
       title: 'Old Title',
-      artist: 'Test Artist',
-      album: '',
-      duration: 180,
-      key: 'C',
-      bpm: 120,
-      difficulty: 3,
-      guitarTuning: 'Standard',
-      structure: [],
-      lyrics: '',
-      chords: [],
-      referenceLinks: [],
-      tags: [],
       notes: 'Old notes',
-      createdDate: new Date('2025-01-01'),
-      lastModified: new Date('2025-01-01T10:00:00Z'),
-      confidenceLevel: 3,
-      contextType: 'band',
-      contextId: 'band-1',
-      createdBy: 'user-1',
-      visibility: 'band'
+      createdDate: new Date('2025-01-01T10:00:00Z') // Older timestamp
     })
+    await db.songs.add(oldSong as any)
 
-    // Mock remote to return newer version
+    // Mock ALL RemoteRepository methods to prevent real Supabase calls
     vi.spyOn(remoteRepo, 'getUserMemberships').mockResolvedValue([
-      {
-        id: 'membership-1',
-        userId: 'user-1',
-        bandId: 'band-1',
-        role: 'admin',
-        permissions: ['read', 'write'],
-        joinedDate: new Date('2025-01-01'),
-        status: 'active'
-      }
+      createTestMembership(testIds)
     ])
 
+    // Mock to return new song2 only (tests will override for specific scenarios)
     vi.spyOn(remoteRepo, 'getSongs').mockResolvedValue([
-      {
-        id: 'song-1',
-        title: 'Updated Title', // Changed
-        artist: 'Test Artist',
-        album: '',
-        duration: 180,
-        key: 'C',
-        bpm: 120,
-        difficulty: 3,
-        guitarTuning: 'Standard',
-        structure: [],
-        lyrics: '',
-        chords: [],
-        referenceLinks: [],
-        tags: [],
-        notes: 'Updated notes', // Changed
-        createdDate: new Date('2025-01-01'),
-        lastModified: new Date('2025-01-01T12:00:00Z'), // Newer timestamp
-        confidenceLevel: 3,
-        contextType: 'band',
-        contextId: 'band-1',
-        createdBy: 'user-1',
-        visibility: 'band'
-      },
-      {
-        id: 'song-2',
+      createSupabaseSong(testIds, {
+        id: testIds.song2,
         title: 'New Song', // New record
         artist: 'New Artist',
-        album: '',
-        duration: 200,
+        bpm: 140, // Use 'bpm', not 'tempo'
         key: 'D',
-        bpm: 140,
-        difficulty: 2,
-        guitarTuning: 'Standard',
-        structure: [],
-        lyrics: '',
-        chords: [],
-        referenceLinks: [],
-        tags: [],
-        notes: '',
-        createdDate: new Date('2025-01-02'),
-        confidenceLevel: 1,
-        contextType: 'band',
-        contextId: 'band-1',
-        createdBy: 'user-1',
-        visibility: 'band'
-      }
+        createdDate: new Date('2025-01-02')
+      })
     ])
 
     vi.spyOn(remoteRepo, 'getSetlists').mockResolvedValue([])
@@ -533,86 +434,64 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
   })
 
   it('should update existing records with newer remote versions', async () => {
-    await syncEngine.pullFromRemote('user-1')
+    // Override the mock from beforeEach with mockResolvedValueOnce
+    // This returns song1 with NEWER createdDate (Song model uses createdDate for conflict resolution)
+    const getSongsSpy = vi.spyOn(remoteRepo, 'getSongs')
+    getSongsSpy.mockResolvedValueOnce([
+      createSupabaseSong(testIds, {
+        id: testIds.song1,
+        title: 'Updated Title',
+        notes: 'Updated notes',
+        createdDate: new Date('2025-01-01T12:00:00Z') // Newer timestamp
+      })
+    ])
 
-    const song = await db.songs.get('song-1')
+    await syncEngine.pullFromRemote(testIds.user1)
+
+    const song = await db.songs.get(testIds.song1)
     expect(song?.title).toBe('Updated Title')
     expect(song?.notes).toBe('Updated notes')
   })
 
   it('should insert new records from remote', async () => {
-    await syncEngine.pullFromRemote('user-1')
+    await syncEngine.pullFromRemote(testIds.user1)
 
     const songs = await db.songs.toArray()
     expect(songs).toHaveLength(2)
 
-    const newSong = await db.songs.get('song-2')
+    const newSong = await db.songs.get(testIds.song2)
     expect(newSong?.title).toBe('New Song')
   })
 
   it('should not overwrite local records that are newer', async () => {
-    // Add a local song with a newer timestamp
-    await db.songs.put({
-      id: 'song-3',
+    // Add a local song with a newer timestamp using fixtures
+    // Songs use createdDate for conflict resolution
+    const localNewerSong = createSupabaseSong(testIds, {
+      id: testIds.song3,
       title: 'Local Newer',
-      artist: 'Artist',
-      album: '',
-      duration: 180,
-      key: 'C',
-      bpm: 120,
-      difficulty: 3,
-      guitarTuning: 'Standard',
-      structure: [],
-      lyrics: '',
-      chords: [],
-      referenceLinks: [],
-      tags: [],
       notes: 'Local is newer',
-      createdDate: new Date('2025-01-01'),
-      lastModified: new Date('2025-01-01T14:00:00Z'), // Very recent
-      confidenceLevel: 3,
-      contextType: 'band',
-      contextId: 'band-1',
-      createdBy: 'user-1',
-      visibility: 'band'
+      createdDate: new Date('2025-01-01T14:00:00Z') // Very recent
     })
+    await db.songs.put(localNewerSong as any)
 
     // Mock remote to return older version
     vi.spyOn(remoteRepo, 'getSongs').mockResolvedValue([
-      {
-        id: 'song-3',
+      createSupabaseSong(testIds, {
+        id: testIds.song3,
         title: 'Remote Older',
-        artist: 'Artist',
-        album: '',
-        duration: 180,
-        key: 'C',
-        bpm: 120,
-        difficulty: 3,
-        guitarTuning: 'Standard',
-        structure: [],
-        lyrics: '',
-        chords: [],
-        referenceLinks: [],
-        tags: [],
         notes: 'Remote is older',
-        createdDate: new Date('2025-01-01'),
-        lastModified: new Date('2025-01-01T10:00:00Z'), // Older timestamp
-        confidenceLevel: 3,
-        contextType: 'band',
-        contextId: 'band-1',
-        createdBy: 'user-1',
-        visibility: 'band'
-      }
+        createdDate: new Date('2025-01-01T10:00:00Z') // Older timestamp
+      })
     ])
 
-    await syncEngine.pullFromRemote('user-1')
+    await syncEngine.pullFromRemote(testIds.user1)
 
-    const song = await db.songs.get('song-3')
+    const song = await db.songs.get(testIds.song3)
     expect(song?.title).toBe('Local Newer') // Should keep local version
   })
 
   it('should update sync metadata after pull', async () => {
-    await syncEngine.pullFromRemote('user-1')
+    await syncEngine.pullFromRemote(testIds.user1)
 
     const meta = await db.syncMetadata?.get('songs_lastSync')
     expect(meta).toBeTruthy()

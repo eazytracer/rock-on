@@ -10,10 +10,10 @@
 -- Hashed using crypt() with bcrypt
 DO $$
 DECLARE
-  v_eric_id UUID := '7e75840e-9d91-422e-a949-849f0b8e2ea4'::uuid;
-  v_mike_id UUID := '0c9c3e47-a4e0-4b70-99db-3e14c89ba9b3'::uuid;
-  v_sarah_id UUID := 'b7e6bb62-5c26-4a78-be6b-2e7a1cbe5f77'::uuid;
-  v_band_id UUID := 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d'::uuid;
+  v_eric_id UUID := gen_random_uuid();
+  v_mike_id UUID := gen_random_uuid();
+  v_sarah_id UUID := gen_random_uuid();
+  v_band_id UUID := gen_random_uuid();
 BEGIN
 
   -- Create auth users (if they don't exist)

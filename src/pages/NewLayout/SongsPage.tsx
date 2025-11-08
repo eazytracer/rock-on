@@ -29,6 +29,9 @@ import { secondsToDuration, durationToSeconds, formatBpm, parseBpm } from '../..
 import { db } from '../../services/database'
 // DBSong type imported but not currently used directly
 import CircleOfFifths from '../../components/songs/CircleOfFifths'
+// PHASE 2: Sync status visualization
+import { SyncIcon } from '../../components/sync/SyncIcon'
+import { useItemStatus } from '../../hooks/useItemSyncStatus'
 
 interface SongLink {
   id: string
@@ -428,6 +431,260 @@ const mockSongs: Song[] = [
 
 // Sort options
 type SortOption = 'title-asc' | 'title-desc' | 'artist-asc' | 'artist-desc' | 'date-added-desc' | 'date-added-asc' | 'show-asc'
+
+// PHASE 2: Song row component with sync status
+interface SongRowProps {
+  song: Song
+  onEdit: (song: Song) => void
+  onDelete: (song: Song) => void
+  onDuplicate: (song: Song) => void
+  onAddToSetlist: (song: Song) => void
+  openActionMenuId: string | null
+  setOpenActionMenuId: (id: string | null) => void
+}
+
+const SongRow: React.FC<SongRowProps> = ({
+  song,
+  onEdit,
+  onDelete,
+  onDuplicate,
+  onAddToSetlist,
+  openActionMenuId,
+  setOpenActionMenuId
+}) => {
+  // PHASE 2: Get sync status for this specific song
+  const syncStatus = useItemStatus(song.id)
+
+  return (
+    <div className="flex items-center gap-4 p-4 bg-[#1a1a1a] rounded-xl hover:bg-[#252525] transition-colors group">
+      {/* PHASE 2: Sync Icon */}
+      <div className="flex-shrink-0">
+        <SyncIcon status={syncStatus} size="sm" />
+      </div>
+
+      {/* Song Info */}
+      <div className="flex items-center gap-3 flex-1 min-w-[220px] cursor-pointer">
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
+          style={{ backgroundColor: song.avatarColor }}
+        >
+          {song.initials}
+        </div>
+        <div className="min-w-0">
+          <div className="text-white font-semibold text-sm truncate">{song.title}</div>
+          <div className="text-[#a0a0a0] text-xs truncate">{song.artist}</div>
+        </div>
+      </div>
+
+      {/* Duration */}
+      <div className="w-[90px] text-[#a0a0a0] text-sm">{song.duration}</div>
+
+      {/* Key */}
+      <div className="w-[60px] text-[#a0a0a0] text-sm">{song.key}</div>
+
+      {/* Tuning */}
+      <div className="w-[130px] text-[#a0a0a0] text-sm">{song.tuning}</div>
+
+      {/* BPM */}
+      <div className="w-[80px] text-[#a0a0a0] text-sm">{song.bpm}</div>
+
+      {/* Next Show */}
+      <div className="w-[180px]">
+        {song.nextShow ? (
+          <>
+            <div className="text-white text-sm">{song.nextShow.name}</div>
+            <div className="text-[#a0a0a0] text-xs">{song.nextShow.date}</div>
+          </>
+        ) : (
+          <div className="text-[#707070] text-sm">No shows scheduled</div>
+        )}
+      </div>
+
+      {/* Actions Menu */}
+      <div className="w-[40px] relative">
+        <button
+          onClick={() => setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)}
+          className="p-1 text-[#707070] hover:text-white transition-colors"
+        >
+          <MoreVertical size={20} />
+        </button>
+
+        {openActionMenuId === song.id && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setOpenActionMenuId(null)}
+            />
+            <div className="absolute right-0 top-8 z-20 w-48 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
+              <button
+                onClick={() => onEdit(song)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+              >
+                <Edit size={16} />
+                <span>Edit Song</span>
+              </button>
+              <button
+                onClick={() => onAddToSetlist(song)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+              >
+                <ListPlus size={16} />
+                <span>Add to Setlist</span>
+              </button>
+              <button
+                onClick={() => onDuplicate(song)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+              >
+                <Copy size={16} />
+                <span>Duplicate Song</span>
+              </button>
+              <div className="h-px bg-[#2a2a2a]" />
+              <button
+                onClick={() => onDelete(song)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
+              >
+                <Trash2 size={16} />
+                <span>Delete Song</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// PHASE 2: Mobile song card component with sync status
+const SongCard: React.FC<SongRowProps> = ({
+  song,
+  onEdit,
+  onDelete,
+  onDuplicate,
+  onAddToSetlist,
+  openActionMenuId,
+  setOpenActionMenuId
+}) => {
+  // PHASE 2: Get sync status for this specific song
+  const syncStatus = useItemStatus(song.id)
+
+  return (
+    <div className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]">
+      {/* Song Info */}
+      <div className="flex items-start gap-3 mb-3">
+        {/* PHASE 2: Sync Icon */}
+        <div className="flex-shrink-0 mt-1">
+          <SyncIcon status={syncStatus} size="sm" />
+        </div>
+
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
+          style={{ backgroundColor: song.avatarColor }}
+        >
+          {song.initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-white font-semibold text-sm">{song.title}</div>
+          <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
+        </div>
+        <button
+          onClick={() => setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)}
+          className="p-1 text-[#707070] hover:text-white transition-colors"
+        >
+          <MoreVertical size={20} />
+        </button>
+
+        {/* Mobile Actions Menu */}
+        {openActionMenuId === song.id && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setOpenActionMenuId(null)}
+            />
+            <div className="absolute right-4 z-20 w-48 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
+              <button
+                onClick={() => onEdit(song)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+              >
+                <Edit size={16} />
+                <span>Edit Song</span>
+              </button>
+              <button
+                onClick={() => onAddToSetlist(song)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+              >
+                <ListPlus size={16} />
+                <span>Add to Setlist</span>
+              </button>
+              <button
+                onClick={() => onDuplicate(song)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+              >
+                <Copy size={16} />
+                <span>Duplicate Song</span>
+              </button>
+              <div className="h-px bg-[#2a2a2a]" />
+              <button
+                onClick={() => onDelete(song)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
+              >
+                <Trash2 size={16} />
+                <span>Delete Song</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Metadata Grid - 2 columns on wider mobile, 1 column on very small */}
+      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 mb-3">
+        <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+          <Clock size={16} className="flex-shrink-0" />
+          <span>{song.duration}</span>
+        </div>
+        <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+          <Music size={16} className="flex-shrink-0" />
+          <span>{song.key}</span>
+        </div>
+        <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+          <Guitar size={16} className="flex-shrink-0" />
+          <span className="truncate">{song.tuning}</span>
+        </div>
+        <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+          <Activity size={16} className="flex-shrink-0" />
+          <span className="whitespace-nowrap">{song.bpm}</span>
+        </div>
+      </div>
+
+      {/* Tags */}
+      {song.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {song.tags.map(tag => (
+            <span
+              key={tag}
+              className="px-2 py-0.5 bg-[#2a2a2a] text-[#a0a0a0] text-xs rounded"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Next Show */}
+      {song.nextShow && (
+        <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
+          <Calendar size={16} className="text-[#707070] flex-shrink-0" />
+          <span className="text-white truncate">{song.nextShow.name}</span>
+          <span className="text-[#a0a0a0] whitespace-nowrap">{song.nextShow.date}</span>
+        </div>
+      )}
+      {!song.nextShow && (
+        <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
+          <Calendar size={16} className="text-[#707070] flex-shrink-0" />
+          <span className="text-[#707070]">No shows scheduled</span>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export const SongsPage: React.FC = () => {
   const navigate = useNavigate()
@@ -1054,221 +1311,38 @@ export const SongsPage: React.FC = () => {
             <div className="w-[40px]"></div>
           </div>
 
-          {/* Table Rows */}
+          {/* Table Rows - PHASE 2: Using SongRow component with sync status */}
           <div className="space-y-2">
             {filteredAndSortedSongs.map((song) => (
-              <div
+              <SongRow
                 key={song.id}
-                className="flex items-center gap-4 p-4 bg-[#1a1a1a] rounded-xl hover:bg-[#252525] transition-colors group"
-              >
-                {/* Song Info */}
-                <div className="flex items-center gap-3 flex-1 min-w-[220px] cursor-pointer">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
-                    style={{ backgroundColor: song.avatarColor }}
-                  >
-                    {song.initials}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-white font-semibold text-sm truncate">{song.title}</div>
-                    <div className="text-[#a0a0a0] text-xs truncate">{song.artist}</div>
-                  </div>
-                </div>
-
-                {/* Duration */}
-                <div className="w-[90px] text-[#a0a0a0] text-sm">{song.duration}</div>
-
-                {/* Key */}
-                <div className="w-[60px] text-[#a0a0a0] text-sm">{song.key}</div>
-
-                {/* Tuning */}
-                <div className="w-[130px] text-[#a0a0a0] text-sm">{song.tuning}</div>
-
-                {/* BPM */}
-                <div className="w-[80px] text-[#a0a0a0] text-sm">{song.bpm}</div>
-
-                {/* Next Show */}
-                <div className="w-[180px]">
-                  {song.nextShow ? (
-                    <>
-                      <div className="text-white text-sm">{song.nextShow.name}</div>
-                      <div className="text-[#a0a0a0] text-xs">{song.nextShow.date}</div>
-                    </>
-                  ) : (
-                    <div className="text-[#707070] text-sm">No shows scheduled</div>
-                  )}
-                </div>
-
-                {/* Actions Menu */}
-                <div className="w-[40px] relative">
-                  <button
-                    onClick={() => setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)}
-                    className="p-1 text-[#707070] hover:text-white transition-colors"
-                  >
-                    <MoreVertical size={20} />
-                  </button>
-
-                  {openActionMenuId === song.id && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setOpenActionMenuId(null)}
-                      />
-                      <div className="absolute right-0 top-8 z-20 w-48 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
-                        <button
-                          onClick={() => handleEdit(song)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
-                        >
-                          <Edit size={16} />
-                          <span>Edit Song</span>
-                        </button>
-                        <button
-                          onClick={() => handleAddToSetlist(song)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
-                        >
-                          <ListPlus size={16} />
-                          <span>Add to Setlist</span>
-                        </button>
-                        <button
-                          onClick={() => handleDuplicate(song)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
-                        >
-                          <Copy size={16} />
-                          <span>Duplicate Song</span>
-                        </button>
-                        <div className="h-px bg-[#2a2a2a]" />
-                        <button
-                          onClick={() => handleDelete(song)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
-                        >
-                          <Trash2 size={16} />
-                          <span>Delete Song</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+                song={song}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
+                onAddToSetlist={handleAddToSetlist}
+                openActionMenuId={openActionMenuId}
+                setOpenActionMenuId={setOpenActionMenuId}
+              />
             ))}
           </div>
         </div>
       )}
 
-      {/* Mobile Card View */}
+      {/* Mobile Card View - PHASE 2: Using SongCard component with sync status */}
       {filteredAndSortedSongs.length > 0 && (
         <div className="xl:hidden space-y-3 min-w-[280px]">
           {filteredAndSortedSongs.map((song) => (
-            <div key={song.id} className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]">
-              {/* Song Info */}
-              <div className="flex items-start gap-3 mb-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
-                  style={{ backgroundColor: song.avatarColor }}
-                >
-                  {song.initials}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-white font-semibold text-sm">{song.title}</div>
-                  <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
-                </div>
-                <button
-                  onClick={() => setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)}
-                  className="p-1 text-[#707070] hover:text-white transition-colors"
-                >
-                  <MoreVertical size={20} />
-                </button>
-
-                {/* Mobile Actions Menu */}
-                {openActionMenuId === song.id && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setOpenActionMenuId(null)}
-                    />
-                    <div className="absolute right-4 z-20 w-48 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
-                      <button
-                        onClick={() => handleEdit(song)}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
-                      >
-                        <Edit size={16} />
-                        <span>Edit Song</span>
-                      </button>
-                      <button
-                        onClick={() => handleAddToSetlist(song)}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
-                      >
-                        <ListPlus size={16} />
-                        <span>Add to Setlist</span>
-                      </button>
-                      <button
-                        onClick={() => handleDuplicate(song)}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
-                      >
-                        <Copy size={16} />
-                        <span>Duplicate Song</span>
-                      </button>
-                      <div className="h-px bg-[#2a2a2a]" />
-                      <button
-                        onClick={() => handleDelete(song)}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
-                      >
-                        <Trash2 size={16} />
-                        <span>Delete Song</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Metadata Grid - 2 columns on wider mobile, 1 column on very small */}
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 mb-3">
-                <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
-                  <Clock size={16} className="flex-shrink-0" />
-                  <span>{song.duration}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
-                  <Music size={16} className="flex-shrink-0" />
-                  <span>{song.key}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
-                  <Guitar size={16} className="flex-shrink-0" />
-                  <span className="truncate">{song.tuning}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
-                  <Activity size={16} className="flex-shrink-0" />
-                  <span className="whitespace-nowrap">{song.bpm}</span>
-                </div>
-              </div>
-
-              {/* Tags */}
-              {song.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {song.tags.map(tag => (
-                    <span
-                      key={tag}
-                      className="px-2 py-0.5 bg-[#2a2a2a] text-[#a0a0a0] text-xs rounded"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Next Show */}
-              {song.nextShow && (
-                <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
-                  <Calendar size={16} className="text-[#707070] flex-shrink-0" />
-                  <span className="text-white truncate">{song.nextShow.name}</span>
-                  <span className="text-[#a0a0a0] whitespace-nowrap">{song.nextShow.date}</span>
-                </div>
-              )}
-              {!song.nextShow && (
-                <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
-                  <Calendar size={16} className="text-[#707070] flex-shrink-0" />
-                  <span className="text-[#707070]">No shows scheduled</span>
-                </div>
-              )}
-            </div>
+            <SongCard
+              key={song.id}
+              song={song}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
+              onAddToSetlist={handleAddToSetlist}
+              openActionMenuId={openActionMenuId}
+              setOpenActionMenuId={setOpenActionMenuId}
+            />
           ))}
         </div>
       )}

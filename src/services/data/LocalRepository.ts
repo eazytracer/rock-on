@@ -6,6 +6,7 @@ import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
 import { BandMembership } from '../../models/BandMembership'
+import { User } from '../../models/User'
 
 /**
  * Local repository implementation using Dexie (IndexedDB)
@@ -317,6 +318,37 @@ export class LocalRepository implements IDataRepository {
 
   async deleteBandMembership(id: string): Promise<void> {
     await db.bandMemberships.delete(id)
+  }
+
+  // ========== USERS ==========
+
+  async getUsers(): Promise<User[]> {
+    return db.users.toArray()
+  }
+
+  async getUser(id: string): Promise<User | null> {
+    const user = await db.users.get(id)
+    return user || null
+  }
+
+  async addUser(user: User): Promise<User> {
+    await db.users.add(user)
+    return user
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    await db.users.update(id, updates)
+
+    const updated = await db.users.get(id)
+    if (!updated) {
+      throw new Error(`User ${id} not found after update`)
+    }
+
+    return updated
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.users.delete(id)
   }
 
   // ========== SYNC OPERATIONS ==========

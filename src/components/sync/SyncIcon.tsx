@@ -1,4 +1,4 @@
-import { CloudCheck, CloudUpload, CloudOff, Clock, Loader2 } from 'lucide-react'
+import { CloudCheck, CloudOff, Clock, Loader2 } from 'lucide-react'
 
 export type SyncStatus = 'synced' | 'syncing' | 'pending' | 'error' | 'unread'
 

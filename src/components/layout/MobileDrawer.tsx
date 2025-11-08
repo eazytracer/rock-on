@@ -65,7 +65,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-lg bg-[#1f1f1f] text-[#a0a0a0] hover:text-white hover:bg-[#252525] transition-colors"
+          className="absolute top-4 right-4 z-[60] w-10 h-10 flex items-center justify-center rounded-lg bg-[#1f1f1f] text-[#a0a0a0] hover:text-white hover:bg-[#252525] transition-colors shadow-lg"
           aria-label="Close menu"
         >
           <X size={20} />

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ShowService } from '../services/ShowService'
 import { getSyncRepository } from '../services/data/SyncRepository'
+import { useAuth } from '../contexts/AuthContext'
 import type { Show } from '../models/Show'
 
 /**
@@ -10,6 +11,30 @@ export function useShows(bandId: string) {
   const [shows, setShows] = useState<Show[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const { realtimeManager } = useAuth()
+
+  // Memoize fetchShows to use in effect dependencies
+  const fetchShows = useCallback(async () => {
+    try {
+      console.log('[useShows] Fetching shows for band:', bandId)
+      setLoading(true)
+      const response = await ShowService.getShows({ bandId })
+
+      // Sort by date (ascending)
+      const sortedShows = [...response.shows].sort((a, b) => {
+        return a.scheduledDate.getTime() - b.scheduledDate.getTime()
+      })
+
+      console.log('[useShows] Fetched shows count:', sortedShows.length)
+      setShows(sortedShows)
+      setError(null)
+    } catch (err) {
+      console.error('[useShows] Error fetching shows:', err)
+      setError(err as Error)
+    } finally {
+      setLoading(false)
+    }
+  }, [bandId])
 
   useEffect(() => {
     if (!bandId) {
@@ -18,36 +43,36 @@ export function useShows(bandId: string) {
       return
     }
 
-    const fetchShows = async () => {
-      try {
-        setLoading(true)
-        const response = await ShowService.getShows({ bandId })
-
-        // Sort by date (ascending)
-        const sortedShows = [...response.shows].sort((a, b) => {
-          return a.scheduledDate.getTime() - b.scheduledDate.getTime()
-        })
-
-        setShows(sortedShows)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching shows:', err)
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
+    console.log('[useShows] Mounting hook for band:', bandId)
     fetchShows()
 
     // Subscribe to sync changes for live updates
     const repo = getSyncRepository()
-    const unsubscribe = repo.onSyncStatusChange(() => {
+    const handleSyncChange = () => {
+      console.log('[useShows] Sync status changed, refetching...')
       fetchShows()
-    })
+    }
 
-    return unsubscribe
-  }, [bandId])
+    const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
+
+    // Listen for real-time changes from RealtimeManager
+    const handleRealtimeChange = ({ bandId: changedBandId }: { bandId: string; action: string; recordId: string }) => {
+      // Only refetch if the change is for the current band
+      if (changedBandId === bandId) {
+        console.log('[useShows] Realtime change detected for band, refetching...')
+        fetchShows()
+      }
+    }
+
+    realtimeManager?.on('shows:changed', handleRealtimeChange)
+
+    // Cleanup
+    return () => {
+      console.log('[useShows] Unmounting hook for band:', bandId)
+      unsubscribe()
+      realtimeManager?.off('shows:changed', handleRealtimeChange)
+    }
+  }, [bandId, realtimeManager, fetchShows])
 
   return { shows, loading, error }
 }

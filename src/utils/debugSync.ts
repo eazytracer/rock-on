@@ -54,8 +54,9 @@ export async function debugSync() {
     const syncMeta = await db.syncMetadata.toArray()
     if (syncMeta.length > 0) {
       syncMeta.forEach(meta => {
-        const lastSync = meta.lastSyncTime ? new Date(meta.lastSyncTime).toLocaleString() : 'Never'
-        console.log(`  ${meta.table}: ${lastSync}`)
+        // SyncMetadata stores value as Date, id contains the entity name
+        const lastSync = meta.value ? new Date(meta.value).toLocaleString() : 'Never'
+        console.log(`  ${meta.id}: ${lastSync}`)
       })
     } else {
       console.log('  No sync metadata found')
