@@ -33,6 +33,7 @@ import { db } from '../../services/database'
 import { useCreateBand } from '../../hooks/useBands'
 import { useAuth } from '../../contexts/AuthContext'
 import { authService } from '../../services/auth/AuthFactory'
+import { BUILD_ID } from '../../config/buildInfo'
 // Band type not currently used but may be needed for future features
 
 // ============================================================================
@@ -706,6 +707,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
             >
               Don't have an account? <span className="font-semibold">Sign up</span>
             </button>
+          </div>
+
+          <div className="mt-8 text-center">
+            <span className="text-xs text-gray-500 font-mono">
+              Build: {BUILD_ID}
+            </span>
           </div>
         </div>
       </div>
