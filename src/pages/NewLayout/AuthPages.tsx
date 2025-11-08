@@ -32,6 +32,7 @@ import {
 import { db } from '../../services/database'
 import { useCreateBand } from '../../hooks/useBands'
 import { useAuth } from '../../contexts/AuthContext'
+import { authService } from '../../services/auth/AuthFactory'
 // Band type not currently used but may be needed for future features
 
 // ============================================================================
@@ -553,8 +554,28 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
     }
   }
 
-  const handleGoogleSignIn = () => {
-    console.log('Google auth not implemented yet')
+  const handleGoogleSignIn = async () => {
+    setLoading(true)
+    setErrors({})
+
+    try {
+      // Access Supabase auth service directly for OAuth
+      const supabaseService = authService as any
+      if (supabaseService.signInWithGoogle) {
+        const { error } = await supabaseService.signInWithGoogle()
+        if (error) {
+          setErrors({ form: error })
+        }
+        // OAuth flow will redirect, so no need to navigate here
+      } else {
+        setErrors({ form: 'Google sign-in not available' })
+      }
+    } catch (err) {
+      console.error('Google sign-in error:', err)
+      setErrors({ form: 'Failed to sign in with Google' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleMockUserLogin = async (mockEmail: string) => {
@@ -648,18 +669,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
             </Button>
           </form>
 
-          {/* Quick Signon for Testing */}
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setShowMockUsers(!showMockUsers)}
-              className="text-sm text-[#f17827ff] hover:text-[#d96a1f] transition-colors"
-            >
-              {showMockUsers ? 'Hide' : 'Show'} Mock Users for Testing
-            </button>
-          </div>
+          {/* Quick Signon for Testing - Only show in development */}
+          {import.meta.env.MODE === 'development' && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => setShowMockUsers(!showMockUsers)}
+                className="text-sm text-[#f17827ff] hover:text-[#d96a1f] transition-colors"
+              >
+                {showMockUsers ? 'Hide' : 'Show'} Mock Users for Testing
+              </button>
+            </div>
+          )}
 
-          {showMockUsers && (
+          {showMockUsers && import.meta.env.MODE === 'development' && (
             <div className="mt-4 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
               <p className="text-xs text-[#707070] mb-3">Quick login with test users:</p>
               <div className="space-y-2">
