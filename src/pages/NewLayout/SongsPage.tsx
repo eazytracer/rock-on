@@ -1030,12 +1030,11 @@ export const SongsPage: React.FC = () => {
   }
 
   // Get auth context for user info and sign out
-  const { currentUser, currentBand, signOut, logout } = useAuth()
+  const { currentUser, currentBand, signOut } = useAuth()
 
   const handleSignOut = async () => {
-    // Call both logout methods to clear all state
-    logout() // Clear database state
-    await signOut() // Clear auth session
+    // signOut() now calls logout() internally to clear all state
+    await signOut()
     navigate('/auth')
   }
 

@@ -1237,7 +1237,7 @@ export const SetlistsPage: React.FC = () => {
   const navigate = useNavigate()
 
   // Get auth context for user info and sign out
-  const { currentUser, currentBand, signOut, logout } = useAuth()
+  const { currentUser, currentBand, signOut } = useAuth()
 
   // DATABASE INTEGRATION: Get currentBandId from localStorage
   const [currentBandId] = useState(() => localStorage.getItem('currentBandId') || '')
@@ -1626,9 +1626,8 @@ export const SetlistsPage: React.FC = () => {
   }
 
   const handleSignOut = async () => {
-    // Call both logout methods to clear all state
-    logout() // Clear database state
-    await signOut() // Clear auth session
+    // signOut() now calls logout() internally to clear all state
+    await signOut()
     navigate('/auth')
   }
 
