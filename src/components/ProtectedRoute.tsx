@@ -36,8 +36,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return null
   }
 
-  // Redirect to auth if not authorized
+  // Redirect based on what's missing
   if (!isAuthorized) {
+    const currentUserId = localStorage.getItem('currentUserId')
+    const currentBandId = localStorage.getItem('currentBandId')
+
+    // If user is logged in but has no band, send them to get-started
+    if (currentUserId && !currentBandId) {
+      return <Navigate to="/auth?view=get-started" replace />
+    }
+
+    // If no user at all, send them to login
     return <Navigate to="/auth" replace />
   }
 
