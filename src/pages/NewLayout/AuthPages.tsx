@@ -1493,10 +1493,13 @@ export const AuthPages: React.FC = () => {
   const location = useLocation()
   const [showSignup, setShowSignup] = useState(false)
 
-  // Route based on URL path
+  // Route based on URL path and query params
   const currentPath = location.pathname
+  const searchParams = new URLSearchParams(location.search)
+  const view = searchParams.get('view')
 
-  if (currentPath === '/get-started') {
+  // Check for /get-started route or ?view=get-started
+  if (currentPath === '/get-started' || view === 'get-started') {
     return <GetStartedPage />
   }
 
