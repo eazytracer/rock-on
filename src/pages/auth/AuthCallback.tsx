@@ -51,34 +51,48 @@ export function AuthCallback() {
           // - Initial sync if needed
           // - Setting up realtime subscriptions
 
-          // Wait for AuthContext to set up user and band in localStorage
+          // Wait for AuthContext to set up user in localStorage
           // before navigating (to avoid ProtectedRoute race condition)
           console.log('⏳ Waiting for auth state to be ready...')
 
           const waitForAuthState = () => {
-            return new Promise<void>((resolve) => {
+            return new Promise<{ userId: string | null; bandId: string | null }>((resolve) => {
               const checkInterval = setInterval(() => {
                 const currentUserId = localStorage.getItem('currentUserId')
                 const currentBandId = localStorage.getItem('currentBandId')
 
-                if (currentUserId && currentBandId) {
-                  console.log('✅ Auth state ready, navigating to home')
+                if (currentUserId) {
+                  // User is synced - check if they have a band
+                  console.log(`✅ Auth state ready (userId: ${currentUserId}, bandId: ${currentBandId || 'none'})`)
                   clearInterval(checkInterval)
-                  resolve()
+                  resolve({ userId: currentUserId, bandId: currentBandId })
                 }
               }, 100) // Check every 100ms
 
               // Timeout after 10 seconds
               setTimeout(() => {
                 clearInterval(checkInterval)
+                const currentUserId = localStorage.getItem('currentUserId')
+                const currentBandId = localStorage.getItem('currentBandId')
                 console.warn('⚠️ Auth state setup timeout')
-                resolve()
+                resolve({ userId: currentUserId, bandId: currentBandId })
               }, 10000)
             })
           }
 
-          await waitForAuthState()
-          navigate('/')
+          const { userId, bandId } = await waitForAuthState()
+
+          // If user has a band, go to home. Otherwise, go to get-started flow
+          if (bandId) {
+            console.log('🏠 User has band, navigating to home')
+            navigate('/')
+          } else if (userId) {
+            console.log('👋 New user without band, navigating to get-started')
+            navigate('/auth?view=get-started')
+          } else {
+            console.error('❌ No user ID found after auth - redirecting to sign in')
+            navigate('/auth')
+          }
         } else {
           console.warn('⚠️ Code exchange succeeded but no session created')
           navigate('/auth?error=no_session')
