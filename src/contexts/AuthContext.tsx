@@ -59,6 +59,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [userBands, setUserBands] = useState<Band[]>([])
   const [syncing, setSyncing] = useState(false)
 
+  // Auth ready state - tracks when full auth setup is complete
+  const [authReady, setAuthReady] = useState(false)
+  const authReadyResolveRef = useRef<(() => void) | null>(null)
+
   // Real-time sync manager (Phase 4) - Use ref for stable instance, state for reactivity
   const realtimeManagerRef = useRef<RealtimeManager | null>(null)
   const [realtimeManagerReady, setRealtimeManagerReady] = useState(false)
@@ -232,8 +236,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             }
           }
         }
+
+        // CRITICAL: Signal that auth setup is complete
+        console.log('🎯 Auth setup complete - signaling readiness')
+        setAuthReady(true)
+        if (authReadyResolveRef.current) {
+          authReadyResolveRef.current()
+          authReadyResolveRef.current = null
+        }
       } else {
         // User signed out, clear database state
+        setAuthReady(false)
         logout()
       }
     })
@@ -329,26 +342,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
   const signIn = async (credentials: SignInCredentials) => {
     setLoading(true)
+    setAuthReady(false)
+
     try {
+      // Create promise that will resolve when auth is ready
+      const authReadyPromise = new Promise<void>((resolve, reject) => {
+        authReadyResolveRef.current = resolve
+
+        // Set timeout to prevent hanging indefinitely
+        setTimeout(() => {
+          if (!authReady) {
+            reject(new Error('Authentication setup timeout - please try again'))
+          }
+        }, 15000) // 15 second timeout
+      })
+
+      // Call auth service to sign in
       const response = await authService.signIn(credentials)
       if (response.error) {
+        authReadyResolveRef.current = null
         return { error: response.error }
       }
+
+      // Wait for onAuthStateChange handler to complete setup
+      console.log('⏳ Waiting for authentication setup to complete...')
+      await authReadyPromise
+      console.log('✅ Authentication setup complete')
+
       return {}
     } catch (error) {
       console.error('Sign in error:', error)
-      return { error: 'An unexpected error occurred' }
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      return { error: errorMessage }
     } finally {
       setLoading(false)
+      authReadyResolveRef.current = null
     }
   }
 
   const signOut = async () => {
     setLoading(true)
     try {
+      console.log('🚪 Signing out...')
+
+      // 1. Sign out from Supabase (clears auth session)
       await authService.signOut()
+
+      // 2. Clear all local state
+      logout()
+
+      console.log('✅ Sign out complete')
     } catch (error) {
       console.error('Sign out error:', error)
+      // Still try to clear local state even if Supabase signOut fails
+      logout()
     } finally {
       setLoading(false)
     }
@@ -362,6 +409,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   }
 
   const logout = () => {
+    console.log('🧹 Clearing local auth state...')
+
     // Disconnect real-time sync
     if (realtimeManagerRef.current) {
       console.log('🔌 Disconnecting real-time sync...')
@@ -370,14 +419,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setRealtimeManagerReady(false)
     }
 
+    // Clear localStorage
     localStorage.removeItem('currentUserId')
     localStorage.removeItem('currentBandId')
+
+    // Clear React state
     setCurrentUser(null)
     setCurrentUserProfile(null)
     setCurrentBand(null)
     setCurrentBandId(null)
     setCurrentUserRole(null)
     setUserBands([])
+
+    console.log('✅ Local state cleared')
   }
 
   const switchBand = async (bandId: string) => {

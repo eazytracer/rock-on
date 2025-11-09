@@ -207,7 +207,8 @@ export class SupabaseAuthService implements IAuthService {
       }
 
       const session = await this.mapSupabaseSession(data.session)
-      await this.syncUserToLocalDB(session.user)
+      // NOTE: Removed direct call to syncUserToLocalDB - this will be handled by
+      // the onAuthStateChange handler to avoid race conditions
 
       return {
         user: session.user,
@@ -247,7 +248,8 @@ export class SupabaseAuthService implements IAuthService {
       }
 
       const session = await this.mapSupabaseSession(data.session)
-      await this.syncUserToLocalDB(session.user)
+      // NOTE: Removed direct call to syncUserToLocalDB - this will be handled by
+      // the onAuthStateChange handler to avoid race conditions
 
       return {
         user: session.user,
@@ -264,10 +266,38 @@ export class SupabaseAuthService implements IAuthService {
   }
 
   async signOut(): Promise<void> {
+    console.log('🔓 Signing out from Supabase...')
+
+    let signOutError: Error | null = null
+
     try {
+      // Sign out from Supabase (clears session from their storage)
       await this.supabase.auth.signOut()
     } catch (error) {
-      console.error('Sign out error:', error)
+      console.error('Supabase sign out error:', error)
+      signOutError = error as Error
+      // Don't throw yet - still need to clear localStorage
+    }
+
+    // ALWAYS clear localStorage, even if Supabase signOut failed
+    // This ensures we don't leave stale auth tokens
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith('sb-')) {
+        keysToRemove.push(key)
+      }
+    }
+    keysToRemove.forEach(key => {
+      console.log(`🗑️  Removing localStorage key: ${key}`)
+      localStorage.removeItem(key)
+    })
+
+    console.log('✅ Supabase sign out complete')
+
+    // Now throw if there was an error
+    if (signOutError) {
+      throw signOutError
     }
   }
 
