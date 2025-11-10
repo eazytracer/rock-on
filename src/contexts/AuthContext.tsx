@@ -494,7 +494,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   }
 
   const logout = () => {
-    console.log('🧹 Clearing local auth state...')
+    console.log('🧹 Clearing session state (preserving offline data)...')
 
     // Disconnect real-time sync
     if (realtimeManagerRef.current) {
@@ -504,19 +504,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setRealtimeManagerReady(false)
     }
 
-    // Clear localStorage
-    localStorage.removeItem('currentUserId')
-    localStorage.removeItem('currentBandId')
-
-    // Clear React state
+    // Clear React state (session context)
     setCurrentUser(null)
     setCurrentUserProfile(null)
     setCurrentBand(null)
     setCurrentBandId(null)
     setCurrentUserRole(null)
     setUserBands([])
+    setSession(null)
+    setUser(null)
+    setAuthReady(false)
 
-    console.log('✅ Local state cleared')
+    // Clear localStorage (session identifiers only)
+    localStorage.removeItem('currentUserId')
+    localStorage.removeItem('currentBandId')
+
+    // Clear Supabase session from localStorage
+    // Keys like 'sb-khzeuxxhigqcmrytsfux-auth-token'
+    const keys = Object.keys(localStorage)
+    keys.forEach(key => {
+      if (key.startsWith('sb-')) {
+        localStorage.removeItem(key)
+      }
+    })
+
+    // IMPORTANT: Do NOT clear IndexedDB!
+    // This preserves offline data for multi-user scenarios
+    // Each user's data is isolated by queries filtering on user_id
+
+    console.log('✅ Session cleared (offline data preserved for multi-user support)')
   }
 
   const switchBand = async (bandId: string) => {
