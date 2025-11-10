@@ -94,7 +94,7 @@ export const BandMembersPage: React.FC = () => {
   // DATABASE INTEGRATION: Use database hooks
   const { band, loading: bandLoading } = useBand(currentBandId)
   const { members: dbMembers, loading: membersLoading } = useBandMembers(currentBandId)
-  const { inviteCodes, loading: _codesLoading } = useBandInviteCodes(currentBandId)
+  const { inviteCodes, loading: _codesLoading, refetch: refetchInviteCodes } = useBandInviteCodes(currentBandId)
   const { generateCode } = useGenerateInviteCode()
   const { removeMember } = useRemoveBandMember()
   const { updateRole } = useUpdateMemberRole()
@@ -256,6 +256,8 @@ export const BandMembersPage: React.FC = () => {
     try {
       const newCode = await generateCode(currentBandId, currentUserId)
       setShowRegenerateCodeDialog(false)
+      // Refetch invite codes to update UI immediately
+      await refetchInviteCodes()
       showToast(`New invite code generated: ${newCode}`)
     } catch (error) {
       console.error('Error generating invite code:', error)

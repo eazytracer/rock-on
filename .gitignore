@@ -13,14 +13,14 @@ build/
 *.local
 
 # Environment variables
-.env
+# Ignore active environment (auto-generated)
 .env.local
-.env.local.production
-.env.local.staging
-.env.development.local
-.env.test.local
-.env.production.local
-# But allow example/template files
+
+# But track environment templates
+!.env.development
+!.env.staging
+!.env.test
+!.env.production
 !.env*.example
 !.env*.template
 

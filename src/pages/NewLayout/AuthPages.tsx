@@ -734,6 +734,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
   // PHASE 2 DATABASE INTEGRATION: Use the createBand hook
   const { createBand } = useCreateBand()
+  const { switchBand } = useAuth()
 
   const handleCreateBand = async () => {
     if (!bandName) {
@@ -778,6 +779,9 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
       // Store bandId in localStorage as currentBandId
       localStorage.setItem('currentBandId', bandId)
+
+      // Update AuthContext state to reflect the new current band
+      await switchBand(bandId)
 
       setLoading(false)
       setToast({
@@ -863,6 +867,9 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
         // Store bandId in localStorage as currentBandId
         localStorage.setItem('currentBandId', bandId)
+
+        // Update AuthContext state to reflect the new current band
+        await switchBand(bandId)
 
         // Get band name for toast message
         const band = await db.bands.get(bandId)
@@ -1492,32 +1499,69 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSucce
 export const AuthPages: React.FC = () => {
   const location = useLocation()
   const [showSignup, setShowSignup] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   // Route based on URL path and query params
   const currentPath = location.pathname
   const searchParams = new URLSearchParams(location.search)
   const view = searchParams.get('view')
+  const errorParam = searchParams.get('error')
+
+  // Display OAuth error if present
+  useEffect(() => {
+    if (errorParam) {
+      const errorMessage = decodeURIComponent(errorParam)
+      // Map error codes to user-friendly messages
+      let displayMessage = errorMessage
+      if (errorMessage === 'no_auth_code') {
+        displayMessage = 'Sign-in was cancelled or incomplete. Please try again.'
+      } else if (errorMessage === 'oauth_not_configured') {
+        displayMessage = 'OAuth is not configured in development mode. Please use email/password sign-in.'
+      } else if (errorMessage === 'no_session') {
+        displayMessage = 'Failed to create session. Please try signing in again.'
+      } else if (errorMessage === 'unexpected_error') {
+        displayMessage = 'An unexpected error occurred. Please try again.'
+      }
+
+      setToast({ message: displayMessage, type: 'error' })
+
+      // Auto-dismiss after 8 seconds
+      const timer = setTimeout(() => setToast(null), 8000)
+      return () => clearTimeout(timer)
+    }
+  }, [errorParam])
 
   // Check for /get-started route or ?view=get-started
   if (currentPath === '/get-started' || view === 'get-started') {
-    return <GetStartedPage />
+    return (
+      <>
+        {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+        <GetStartedPage />
+      </>
+    )
   }
 
   // /auth route - show login or signup
   if (showSignup) {
     return (
-      <SignUpPage
-        onSwitchToLogin={() => setShowSignup(false)}
-      />
+      <>
+        {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+        <SignUpPage
+          onSwitchToLogin={() => setShowSignup(false)}
+        />
+      </>
     )
   }
 
   // Default: show login page
   return (
-    <LoginPage
-      onSuccess={() => {/* Navigate handled in LoginPage */}}
-      onSwitchToSignup={() => setShowSignup(true)}
-    />
+    <>
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+      <LoginPage
+        onSuccess={() => {/* Navigate handled in LoginPage */}}
+        onSwitchToSignup={() => setShowSignup(true)}
+      />
+    </>
   )
 }
 

@@ -1,6 +1,7 @@
 import { db } from './database'
 import { BandMembership, InviteCode } from '../models/BandMembership'
 import { repository } from './data/RepositoryFactory'
+import { supabase } from './supabase/client'
 
 export interface CreateInviteCodeRequest {
   bandId: string
@@ -60,13 +61,49 @@ export class BandMembershipService {
 
   /**
    * Validate an invite code
+   * Queries Supabase (server) first, falls back to IndexedDB for offline support
    */
   static async validateInviteCode(code: string): Promise<{
     valid: boolean
     inviteCode?: InviteCode
     error?: string
   }> {
-    const inviteCode = await db.inviteCodes.where('code').equals(code.toUpperCase()).first()
+    const upperCode = code.toUpperCase()
+    let inviteCode: InviteCode | null = null
+
+    // Try to query Supabase first (server-side, allows cross-user validation)
+    try {
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('invite_codes')
+          .select('*')
+          .eq('code', upperCode)
+          .eq('is_active', true)
+          .single()
+
+        if (!error && data) {
+          // Map from Supabase snake_case to application camelCase
+          inviteCode = {
+            id: (data as any).id,
+            bandId: (data as any).band_id,
+            code: (data as any).code,
+            createdBy: (data as any).created_by,
+            expiresAt: (data as any).expires_at ? new Date((data as any).expires_at) : undefined,
+            maxUses: (data as any).max_uses,
+            currentUses: (data as any).current_uses,
+            createdDate: new Date((data as any).created_date),
+            isActive: (data as any).is_active
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to query Supabase for invite code, falling back to IndexedDB:', error)
+    }
+
+    // Fallback to IndexedDB if Supabase query failed or returned no results
+    if (!inviteCode) {
+      inviteCode = await db.inviteCodes.where('code').equals(upperCode).first() || null
+    }
 
     if (!inviteCode) {
       return { valid: false, error: 'Invalid invite code' }

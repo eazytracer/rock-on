@@ -165,29 +165,29 @@ export function useBandInviteCodes(bandId: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
-  useEffect(() => {
+  const fetchInviteCodes = async () => {
     if (!bandId) {
       setInviteCodes([])
       setLoading(false)
       return
     }
 
-    const fetchInviteCodes = async () => {
-      try {
-        setLoading(true)
-        const codes = await BandMembershipService.getBandInviteCodes(bandId)
-        // Filter for active codes only (client-side filtering)
-        const activeCodes = codes.filter(code => code.isActive === true)
-        setInviteCodes(activeCodes)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching invite codes:', err)
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
+    try {
+      setLoading(true)
+      const codes = await BandMembershipService.getBandInviteCodes(bandId)
+      // Filter for active codes only (client-side filtering)
+      const activeCodes = codes.filter(code => code.isActive === true)
+      setInviteCodes(activeCodes)
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching invite codes:', err)
+      setError(err as Error)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchInviteCodes()
 
     // Listen for sync events to refetch data
@@ -199,7 +199,7 @@ export function useBandInviteCodes(bandId: string) {
     }
   }, [bandId])
 
-  return { inviteCodes, loading, error }
+  return { inviteCodes, loading, error, refetch: fetchInviteCodes }
 }
 
 /**
