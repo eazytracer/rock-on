@@ -199,10 +199,16 @@ export class SupabaseAuthService implements IAuthService {
       }
 
       if (!data.session) {
+        // Check if user was created but session wasn't returned
+        // This can happen if email confirmations are enabled or if there's an error
+        const errorMessage = data.user
+          ? 'Account created but session not available. Please try signing in.'
+          : 'Failed to create account. The email may already be registered.'
+
         return {
           user: null,
           session: null,
-          error: 'Please check your email to confirm your account'
+          error: errorMessage
         }
       }
 

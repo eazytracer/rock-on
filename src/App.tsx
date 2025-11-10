@@ -6,6 +6,7 @@ import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { AuthCallback } from './pages/auth/AuthCallback'
+import { SessionExpiredModal } from './components/auth/SessionExpiredModal'
 
 // Lazy load pages for better performance
 const NewLayout = lazy(() => import('./pages/NewLayout/NewLayout').then(module => ({ default: module.NewLayout })))
@@ -62,6 +63,9 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface">
+      {/* Session expiry modal */}
+      <SessionExpiredModal />
+
       {/* Sync indicator overlay */}
       {syncing && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600 text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2">

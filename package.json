@@ -18,7 +18,19 @@
     "schema:check": "npm run schema:validate",
     "generate-seed": "tsx scripts/generateSeedSQL.ts full",
     "generate-seed:min": "tsx scripts/generateSeedSQL.ts minimal",
-    "generate-seed:med": "tsx scripts/generateSeedSQL.ts medium"
+    "generate-seed:med": "tsx scripts/generateSeedSQL.ts medium",
+    "env:dev": "./scripts/env-setup.sh development",
+    "env:staging": "./scripts/env-setup.sh staging",
+    "env:test": "./scripts/env-setup.sh test",
+    "env:status": "echo 'Current environment:' && grep '^VITE_' .env.local 2>/dev/null || echo 'No environment configured'",
+    "start:dev": "./scripts/start-dev.sh",
+    "start:staging": "./scripts/start-staging.sh",
+    "start:test": "./scripts/start-test.sh",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:reset": "supabase db reset",
+    "supabase:studio": "echo 'Opening Supabase Studio...' && open http://127.0.0.1:54323 || xdg-open http://127.0.0.1:54323"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

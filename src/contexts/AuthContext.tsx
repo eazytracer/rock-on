@@ -17,6 +17,9 @@ interface AuthContextType {
   signOut: () => Promise<void>
   isAuthenticated: boolean
 
+  // Session management
+  sessionExpired: boolean
+
   // New database-connected auth fields
   currentUser: User | null
   currentUserProfile: UserProfile | null
@@ -66,6 +69,88 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   // Real-time sync manager (Phase 4) - Use ref for stable instance, state for reactivity
   const realtimeManagerRef = useRef<RealtimeManager | null>(null)
   const [realtimeManagerReady, setRealtimeManagerReady] = useState(false)
+
+  // Session expiry monitoring
+  const [sessionExpired, setSessionExpired] = useState(false)
+  const sessionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Check session expiry periodically
+  useEffect(() => {
+    if (!session) {
+      // No session, clear interval if exists
+      if (sessionCheckIntervalRef.current) {
+        clearInterval(sessionCheckIntervalRef.current)
+        sessionCheckIntervalRef.current = null
+      }
+      setSessionExpired(false)
+      return
+    }
+
+    // Check session validity immediately
+    const checkSession = () => {
+      const currentSession = SessionManager.loadSession()
+      if (!currentSession || !SessionManager.isSessionValid(currentSession)) {
+        console.warn('⚠️ Session expired - user needs to re-authenticate')
+        setSessionExpired(true)
+        setSession(null)
+        setUser(null)
+        // Clear interval since session is expired
+        if (sessionCheckIntervalRef.current) {
+          clearInterval(sessionCheckIntervalRef.current)
+          sessionCheckIntervalRef.current = null
+        }
+      }
+    }
+
+    // Check immediately
+    checkSession()
+
+    // Then check every 30 seconds
+    sessionCheckIntervalRef.current = setInterval(checkSession, 30000)
+
+    return () => {
+      if (sessionCheckIntervalRef.current) {
+        clearInterval(sessionCheckIntervalRef.current)
+        sessionCheckIntervalRef.current = null
+      }
+    }
+  }, [session])
+
+  // Multi-tab session sync - listen for auth changes in other tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      // Check if auth-related localStorage keys changed
+      if (e.key === 'currentUserId') {
+        if (e.newValue === null && e.oldValue !== null) {
+          // User signed out in another tab
+          console.log('🔄 Sign out detected in another tab')
+          logout()
+          setSession(null)
+          setUser(null)
+          setSessionExpired(false)
+        } else if (e.newValue !== null && e.oldValue === null) {
+          // User signed in in another tab
+          console.log('🔄 Sign in detected in another tab - reloading')
+          window.location.reload()
+        }
+      } else if (e.key?.startsWith('sb-')) {
+        // Supabase session changed in another tab
+        if (e.newValue === null && e.oldValue !== null) {
+          // Session cleared in another tab
+          console.log('🔄 Session cleared in another tab')
+          logout()
+          setSession(null)
+          setUser(null)
+        }
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [])
 
   useEffect(() => {
     // Load initial session
@@ -478,6 +563,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     signOut,
     isAuthenticated: !!user,
 
+    // Session management
+    sessionExpired,
+
     // New database-connected fields
     currentUser,
     currentUserProfile,
@@ -502,6 +590,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     signUp,
     signIn,
     signOut,
+    sessionExpired,
     currentUser,
     currentUserProfile,
     currentBand,
