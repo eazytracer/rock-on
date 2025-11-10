@@ -2,30 +2,60 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/assets/(.*)",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      },
-      "continue": true
+      "source": "/:path((?!assets/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
-      "src": "/sw.js",
-      "headers": {
-        "Service-Worker-Allowed": "/",
-        "Cache-Control": "no-cache, no-store, must-revalidate"
-      },
-      "continue": true
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
     },
     {
-      "src": "/(.*)",
-      "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0"
-      },
-      "dest": "/index.html"
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ]
 }
