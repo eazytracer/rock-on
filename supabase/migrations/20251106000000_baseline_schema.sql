@@ -71,6 +71,7 @@ CREATE TABLE public.bands (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   description TEXT,
+  created_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_date TIMESTAMPTZ,
   settings JSONB DEFAULT '{}'::jsonb,
@@ -99,7 +100,7 @@ CREATE TABLE public.invite_codes (
   code TEXT UNIQUE NOT NULL,
   created_by UUID NOT NULL REFERENCES public.users(id),
   created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  expires_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ,  -- Nullable - allows permanent invite codes
   max_uses INTEGER DEFAULT 1,
   current_uses INTEGER DEFAULT 0,
   is_active BOOLEAN DEFAULT true,
@@ -428,16 +429,24 @@ CREATE INDEX idx_audit_log_changed_at ON audit_log(changed_at DESC);
 
 -- Function to update updated_date timestamp
 CREATE OR REPLACE FUNCTION update_updated_date_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   NEW.updated_date = NOW();
   RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$;
 
 -- Function to increment version on UPDATE (Phase 3)
 CREATE OR REPLACE FUNCTION increment_version()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   -- Auto-increment version on every UPDATE
   NEW.version = COALESCE(OLD.version, 0) + 1;
@@ -456,38 +465,50 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 COMMENT ON FUNCTION increment_version() IS 'Auto-increments version number and updates timestamp on UPDATE operations';
 
 -- Function to set last_modified_by on UPDATE (Phase 4a)
 CREATE OR REPLACE FUNCTION set_last_modified_by()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   NEW.last_modified_by = auth.uid();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 COMMENT ON FUNCTION set_last_modified_by() IS 'Auto-set last_modified_by column on UPDATE';
 
 -- Function to set created_by on INSERT (Phase 4a)
 CREATE OR REPLACE FUNCTION set_created_by()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   IF NEW.created_by IS NULL THEN
     NEW.created_by = auth.uid();
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 COMMENT ON FUNCTION set_created_by() IS 'Auto-set created_by column on INSERT if not provided';
 
 -- Function to log all changes to audit_log (Phase 4a)
 -- Updated to handle NULL band_id for personal songs
 CREATE OR REPLACE FUNCTION log_audit_trail()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_user_id UUID;
   v_user_name TEXT;
@@ -587,13 +608,17 @@ BEGIN
 
   RETURN COALESCE(NEW, OLD);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 COMMENT ON FUNCTION log_audit_trail() IS 'Log all INSERT/UPDATE/DELETE operations to audit_log table - handles NULL band_id for personal songs';
 
 -- Function to auto-add band creator as admin (from patch 003)
 CREATE OR REPLACE FUNCTION auto_add_band_creator()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_user_id UUID;
 BEGIN
@@ -611,7 +636,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 COMMENT ON FUNCTION auto_add_band_creator() IS 'Automatically add band creator as admin when band is created';
 
@@ -688,6 +713,12 @@ CREATE TRIGGER shows_audit_log AFTER INSERT OR UPDATE OR DELETE ON shows
 CREATE TRIGGER practice_sessions_audit_log AFTER INSERT OR UPDATE OR DELETE ON practice_sessions
   FOR EACH ROW EXECUTE FUNCTION log_audit_trail();
 
+-- Set created_by on band creation
+CREATE TRIGGER bands_set_created_by
+  BEFORE INSERT ON public.bands
+  FOR EACH ROW
+  EXECUTE FUNCTION set_created_by();
+
 -- Auto-add band creator trigger (from patch 003)
 CREATE TRIGGER bands_auto_add_creator
   AFTER INSERT ON public.bands
@@ -699,43 +730,57 @@ CREATE TRIGGER bands_auto_add_creator
 -- ============================================================================
 
 -- Helper function: Check if user is band admin (bypasses RLS to prevent recursion)
+-- Uses direct table access without RLS by being owned by postgres with SECURITY DEFINER
 CREATE OR REPLACE FUNCTION is_band_admin(p_band_id UUID, p_user_id UUID)
-RETURNS BOOLEAN AS $$
-BEGIN
-  -- SECURITY DEFINER means this runs with the privileges of the function owner
-  -- This bypasses RLS policies, preventing recursion
-  RETURN EXISTS (
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  -- Direct table query - SECURITY DEFINER means this runs as function owner (postgres)
+  -- who has BYPASSRLS privilege, preventing infinite recursion
+  SELECT EXISTS (
     SELECT 1 FROM public.band_memberships
     WHERE band_id = p_band_id
       AND user_id = p_user_id
       AND role IN ('admin', 'owner')
       AND status = 'active'
   );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
+
+-- Ensure function is owned by postgres (superuser with BYPASSRLS)
+ALTER FUNCTION is_band_admin(UUID, UUID) OWNER TO postgres;
 
 GRANT EXECUTE ON FUNCTION is_band_admin(UUID, UUID) TO authenticated;
 
-COMMENT ON FUNCTION is_band_admin IS 'Check if user is band admin - uses SECURITY DEFINER to bypass RLS and prevent recursion';
+COMMENT ON FUNCTION is_band_admin IS 'Check if user is band admin - uses SECURITY DEFINER owned by postgres to bypass RLS and prevent recursion';
 
 -- Helper function: Check if user is band member (bypasses RLS to prevent recursion)
+-- Uses direct table access without RLS by being owned by postgres with SECURITY DEFINER
 CREATE OR REPLACE FUNCTION is_band_member(p_band_id UUID, p_user_id UUID)
-RETURNS BOOLEAN AS $$
-BEGIN
-  -- SECURITY DEFINER means this runs with the privileges of the function owner
-  -- This bypasses RLS policies, preventing recursion
-  RETURN EXISTS (
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  -- Direct table query - SECURITY DEFINER means this runs as function owner (postgres)
+  -- who has BYPASSRLS privilege, preventing infinite recursion
+  SELECT EXISTS (
     SELECT 1 FROM public.band_memberships
     WHERE band_id = p_band_id
       AND user_id = p_user_id
       AND status = 'active'
   );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
+
+-- Ensure function is owned by postgres (superuser with BYPASSRLS)
+ALTER FUNCTION is_band_member(UUID, UUID) OWNER TO postgres;
 
 GRANT EXECUTE ON FUNCTION is_band_member(UUID, UUID) TO authenticated;
 
-COMMENT ON FUNCTION is_band_member IS 'Check if user is band member - uses SECURITY DEFINER to bypass RLS and prevent recursion';
+COMMENT ON FUNCTION is_band_member IS 'Check if user is band member - uses SECURITY DEFINER owned by postgres to bypass RLS and prevent recursion';
 
 -- ============================================================================
 -- SECTION 8: Row-Level Security (RLS) Policies
@@ -771,178 +816,201 @@ ALTER TABLE public.setlists FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.shows FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.practice_sessions FORCE ROW LEVEL SECURITY;
 
--- Users policies
+-- Users policies (optimized with subquery)
 CREATE POLICY "users_select_authenticated"
   ON public.users FOR SELECT TO authenticated
   USING (true);
 
 CREATE POLICY "users_update_own"
   ON public.users FOR UPDATE TO authenticated
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
+  USING ((select auth.uid()) = id)
+  WITH CHECK ((select auth.uid()) = id);
 
--- User profiles policies
+-- User profiles policies (optimized with subquery)
 CREATE POLICY "user_profiles_select_own"
   ON public.user_profiles FOR SELECT TO authenticated
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "user_profiles_insert_own"
   ON public.user_profiles FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "user_profiles_update_own"
   ON public.user_profiles FOR UPDATE TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
--- Bands policies (updated to use helper functions)
+-- Bands policies (optimized with subquery for helper functions)
 CREATE POLICY "bands_insert_any_authenticated"
   ON public.bands FOR INSERT TO authenticated
   WITH CHECK (true);
 
 CREATE POLICY "bands_select_members"
   ON public.bands FOR SELECT TO authenticated
-  USING (is_band_member(bands.id, auth.uid()));
+  USING (is_band_member(bands.id, (select auth.uid())));
 
 CREATE POLICY "bands_update_admins"
   ON public.bands FOR UPDATE TO authenticated
-  USING (is_band_admin(bands.id, auth.uid()));
+  USING (is_band_admin(bands.id, (select auth.uid())));
 
--- Band memberships policies (updated to use helper functions and prevent recursion)
-CREATE POLICY "memberships_select_if_member"
+-- Band memberships policies (non-recursive, optimized with subquery)
+-- CRITICAL: These policies MUST NOT call is_band_member/is_band_admin to avoid infinite recursion
+-- band_memberships is the auth source - it can only use direct auth.uid() checks
+
+-- SELECT: Users can only see their own memberships (most secure, non-recursive)
+CREATE POLICY "memberships_select_own"
   ON public.band_memberships FOR SELECT TO authenticated
   USING (
-    is_band_member(band_memberships.band_id, auth.uid())
+    user_id = (select auth.uid()) AND
+    status = 'active'
   );
 
--- Split INSERT into two policies: self-join and admin-adds-others
+-- INSERT: Self-join (user adding themselves)
 CREATE POLICY "memberships_insert_self"
   ON public.band_memberships FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (user_id = (select auth.uid()));
 
-CREATE POLICY "memberships_insert_by_admin"
+-- INSERT: Band creator can add others (non-recursive - checks bands table, not band_memberships)
+CREATE POLICY "memberships_insert_by_creator"
   ON public.band_memberships FOR INSERT TO authenticated
   WITH CHECK (
-    user_id != auth.uid() AND
-    is_band_admin(band_memberships.band_id, auth.uid())
+    user_id != (select auth.uid()) AND
+    EXISTS (
+      SELECT 1 FROM public.bands
+      WHERE id = band_memberships.band_id
+        AND created_by = (select auth.uid())
+    )
   );
 
-CREATE POLICY "memberships_update_if_admin"
+-- UPDATE: Only band creator can update memberships
+CREATE POLICY "memberships_update_by_creator"
   ON public.band_memberships FOR UPDATE TO authenticated
-  USING (is_band_admin(band_memberships.band_id, auth.uid()));
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.bands
+      WHERE id = band_memberships.band_id
+        AND created_by = (select auth.uid())
+    )
+  );
 
-CREATE POLICY "memberships_delete_if_admin_or_self"
+-- DELETE: Self-delete OR band creator can delete
+CREATE POLICY "memberships_delete_self_or_creator"
   ON public.band_memberships FOR DELETE TO authenticated
   USING (
-    user_id = auth.uid() OR
-    is_band_admin(band_memberships.band_id, auth.uid())
+    user_id = (select auth.uid()) OR
+    EXISTS (
+      SELECT 1 FROM public.bands
+      WHERE id = band_memberships.band_id
+        AND created_by = (select auth.uid())
+    )
   );
 
--- Invite codes policies (updated to use helper functions)
-CREATE POLICY "invite_codes_select_if_member"
+-- Invite codes policies
+-- SELECT: Allow all authenticated users to read invite codes (needed to join bands)
+CREATE POLICY "invite_codes_select_authenticated"
   ON public.invite_codes FOR SELECT TO authenticated
-  USING (is_band_member(invite_codes.band_id, auth.uid()));
+  USING (true);
 
 CREATE POLICY "invite_codes_insert_if_admin"
   ON public.invite_codes FOR INSERT TO authenticated
-  WITH CHECK (is_band_admin(invite_codes.band_id, auth.uid()));
+  WITH CHECK (is_band_admin(invite_codes.band_id, (select auth.uid())));
 
 CREATE POLICY "invite_codes_update_if_admin"
   ON public.invite_codes FOR UPDATE TO authenticated
-  USING (is_band_admin(invite_codes.band_id, auth.uid()));
+  USING (is_band_admin(invite_codes.band_id, (select auth.uid())));
 
--- Songs policies (MVP: band-only, updated to use helper functions)
+-- Songs policies (MVP: band-only, optimized with subquery)
 CREATE POLICY "songs_select_band_members_only"
   ON public.songs FOR SELECT TO authenticated
   USING (
     context_type = 'band' AND
-    is_band_member(songs.context_id::uuid, auth.uid())
+    is_band_member(songs.context_id::uuid, (select auth.uid()))
   );
 
 CREATE POLICY "songs_insert_band_members_only"
   ON public.songs FOR INSERT TO authenticated
   WITH CHECK (
-    created_by = auth.uid() AND
+    created_by = (select auth.uid()) AND
     context_type = 'band' AND
-    is_band_member(songs.context_id::uuid, auth.uid())
+    is_band_member(songs.context_id::uuid, (select auth.uid()))
   );
 
 CREATE POLICY "songs_update_band_members_only"
   ON public.songs FOR UPDATE TO authenticated
   USING (
     context_type = 'band' AND
-    is_band_member(songs.context_id::uuid, auth.uid())
+    is_band_member(songs.context_id::uuid, (select auth.uid()))
   )
   WITH CHECK (
     context_type = 'band' AND
-    is_band_member(songs.context_id::uuid, auth.uid())
+    is_band_member(songs.context_id::uuid, (select auth.uid()))
   );
 
 CREATE POLICY "songs_delete_band_admins_only"
   ON public.songs FOR DELETE TO authenticated
   USING (
     context_type = 'band' AND
-    is_band_admin(songs.context_id::uuid, auth.uid())
+    is_band_admin(songs.context_id::uuid, (select auth.uid()))
   );
 
--- Setlists policies (updated to use helper functions)
+-- Setlists policies (optimized with subquery)
 CREATE POLICY "setlists_select_if_member"
   ON public.setlists FOR SELECT TO authenticated
-  USING (is_band_member(setlists.band_id, auth.uid()));
+  USING (is_band_member(setlists.band_id, (select auth.uid())));
 
 CREATE POLICY "setlists_insert_if_member"
   ON public.setlists FOR INSERT TO authenticated
-  WITH CHECK (is_band_member(setlists.band_id, auth.uid()));
+  WITH CHECK (is_band_member(setlists.band_id, (select auth.uid())));
 
 CREATE POLICY "setlists_update_if_member"
   ON public.setlists FOR UPDATE TO authenticated
-  USING (is_band_member(setlists.band_id, auth.uid()));
+  USING (is_band_member(setlists.band_id, (select auth.uid())));
 
 CREATE POLICY "setlists_delete_if_creator_or_admin"
   ON public.setlists FOR DELETE TO authenticated
   USING (
-    created_by = auth.uid() OR
-    is_band_admin(setlists.band_id, auth.uid())
+    created_by = (select auth.uid()) OR
+    is_band_admin(setlists.band_id, (select auth.uid()))
   );
 
--- Shows policies (updated to use helper functions)
+-- Shows policies (optimized with subquery)
 CREATE POLICY "shows_select_if_member"
   ON public.shows FOR SELECT TO authenticated
-  USING (is_band_member(shows.band_id, auth.uid()));
+  USING (is_band_member(shows.band_id, (select auth.uid())));
 
 CREATE POLICY "shows_insert_if_member"
   ON public.shows FOR INSERT TO authenticated
-  WITH CHECK (is_band_member(shows.band_id, auth.uid()));
+  WITH CHECK (is_band_member(shows.band_id, (select auth.uid())));
 
 CREATE POLICY "shows_update_if_member"
   ON public.shows FOR UPDATE TO authenticated
-  USING (is_band_member(shows.band_id, auth.uid()));
+  USING (is_band_member(shows.band_id, (select auth.uid())));
 
 CREATE POLICY "shows_delete_if_creator"
   ON public.shows FOR DELETE TO authenticated
-  USING (created_by = auth.uid());
+  USING (created_by = (select auth.uid()));
 
--- Practice sessions policies (updated to use helper functions)
+-- Practice sessions policies (optimized with subquery)
 CREATE POLICY "sessions_select_if_member"
   ON public.practice_sessions FOR SELECT TO authenticated
-  USING (is_band_member(practice_sessions.band_id, auth.uid()));
+  USING (is_band_member(practice_sessions.band_id, (select auth.uid())));
 
 CREATE POLICY "sessions_insert_if_member"
   ON public.practice_sessions FOR INSERT TO authenticated
-  WITH CHECK (is_band_member(practice_sessions.band_id, auth.uid()));
+  WITH CHECK (is_band_member(practice_sessions.band_id, (select auth.uid())));
 
 CREATE POLICY "sessions_update_if_member"
   ON public.practice_sessions FOR UPDATE TO authenticated
-  USING (is_band_member(practice_sessions.band_id, auth.uid()));
+  USING (is_band_member(practice_sessions.band_id, (select auth.uid())));
 
 CREATE POLICY "sessions_delete_if_member"
   ON public.practice_sessions FOR DELETE TO authenticated
-  USING (is_band_member(practice_sessions.band_id, auth.uid()));
+  USING (is_band_member(practice_sessions.band_id, (select auth.uid())));
 
--- Audit log policies (updated to use helper functions)
+-- Audit log policies (optimized with subquery)
 CREATE POLICY "audit_log_select_if_member"
   ON audit_log FOR SELECT TO authenticated
-  USING (is_band_member(audit_log.band_id, auth.uid()));
+  USING (is_band_member(audit_log.band_id, (select auth.uid())));
 
 CREATE POLICY "audit_log_no_insert"
   ON audit_log FOR INSERT

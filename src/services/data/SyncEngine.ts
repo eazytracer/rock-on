@@ -301,6 +301,20 @@ export class SyncEngine {
         }
         break
 
+      case 'invite_codes':
+        switch (operation) {
+          case 'create':
+            await this.remote.addInviteCode(data)
+            break
+          case 'update':
+            await this.remote.updateInviteCode(data.id, data)
+            break
+          case 'delete':
+            await this.remote.deleteInviteCode(data.id)
+            break
+        }
+        break
+
       default:
         throw new Error(`Unknown table: ${table}`)
     }
@@ -445,6 +459,18 @@ export class SyncEngine {
         }
         totalRecords += bandMemberships.length
         console.log(`  ✓ Band memberships for ${bandId}: ${bandMemberships.length}`)
+      }
+
+      // 0.55. Invite Codes - sync all invite codes for each band
+      for (const bandId of bandIds) {
+        const inviteCodes = await this.remote.getInviteCodes(bandId)
+        for (const inviteCode of inviteCodes) {
+          await this.local.addInviteCode(inviteCode).catch(() => {
+            return this.local.updateInviteCode(inviteCode.id, inviteCode)
+          })
+        }
+        totalRecords += inviteCodes.length
+        console.log(`  ✓ Invite codes for ${bandId}: ${inviteCodes.length}`)
       }
 
       // 0.6. Users - sync user profiles for all band members
@@ -613,6 +639,7 @@ export class SyncEngine {
       await this.pullSetlists(bandIds)
       await this.pullPracticeSessions(bandIds)
       await this.pullShows(bandIds)
+      await this.pullInviteCodes(bandIds)
 
       console.log('✅ Pull from remote complete')
       this.notifyListeners()
@@ -767,6 +794,41 @@ export class SyncEngine {
     // Update sync metadata
     await db.syncMetadata?.put({
       id: 'shows_lastSync',
+      value: new Date(),
+      updatedAt: new Date()
+    })
+  }
+
+  /**
+   * Pull invite codes from remote
+   */
+  private async pullInviteCodes(bandIds: string[]): Promise<void> {
+    for (const bandId of bandIds) {
+      const remoteInviteCodes = await this.remote.getInviteCodes(bandId)
+
+      for (const remoteInviteCode of remoteInviteCodes) {
+        const localInviteCode = await this.local.getInviteCode(remoteInviteCode.id)
+
+        if (!localInviteCode) {
+          // New record from remote, add to local
+          await this.local.addInviteCode(remoteInviteCode)
+        } else {
+          // Check timestamps (Last-Write-Wins)
+          const localTime = localInviteCode.createdDate
+          const remoteTime = remoteInviteCode.createdDate
+
+          if (new Date(remoteTime) > new Date(localTime)) {
+            // Remote is newer, update local
+            await this.local.updateInviteCode(remoteInviteCode.id, remoteInviteCode)
+          }
+          // else: local is newer, keep local (will be pushed on next push)
+        }
+      }
+    }
+
+    // Update sync metadata
+    await db.syncMetadata?.put({
+      id: 'invite_codes_lastSync',
       value: new Date(),
       updatedAt: new Date()
     })

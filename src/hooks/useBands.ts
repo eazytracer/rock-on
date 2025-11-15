@@ -5,7 +5,7 @@ import { BandMembershipService } from '../services/BandMembershipService'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import type { Band } from '../models/Band'
 import type { BandMembership, InviteCode } from '../models/BandMembership'
-import type { UserProfile } from '../models/User'
+import type { User, UserProfile } from '../models/User'
 
 /**
  * Hook to fetch a band by ID
@@ -95,10 +95,12 @@ export function useBandMemberships(bandId: string) {
 
 /**
  * Hook to get band members with their profile info
+ * Fetches User data from Supabase (cloud-first) to ensure all band members are visible
  */
 export function useBandMembers(bandId: string) {
   const [members, setMembers] = useState<Array<{
     membership: BandMembership
+    user: User | null
     profile: UserProfile | null
   }>>([])
   const [loading, setLoading] = useState(true)
@@ -115,12 +117,19 @@ export function useBandMembers(bandId: string) {
       try {
         setLoading(true)
 
-        // Get memberships via service
+        // Get repository for cloud-first queries
+        const repo = getSyncRepository()
+
+        // Get memberships via service (already cloud-first)
         const memberships = await BandMembershipService.getBandMembers(bandId)
 
-        // Get profiles for each member (still using db directly as there's no UserService yet)
-        const membersWithProfiles = await Promise.all(
+        // Get user and profile data for each member (cloud-first to see all band members)
+        const membersWithData = await Promise.all(
           memberships.map(async (membership) => {
+            // Cloud-first: Get user from Supabase so User 2 can see User 1's data
+            const user = await repo.getUser(membership.userId)
+
+            // Also try to get profile (instruments, etc.) - still local for now
             const profile = await db.userProfiles
               .where('userId')
               .equals(membership.userId)
@@ -128,12 +137,13 @@ export function useBandMembers(bandId: string) {
 
             return {
               membership,
+              user: user || null,
               profile: profile || null
             }
           })
         )
 
-        setMembers(membersWithProfiles)
+        setMembers(membersWithData)
         setError(null)
       } catch (err) {
         console.error('Error fetching band members:', err)

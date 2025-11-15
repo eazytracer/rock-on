@@ -31,7 +31,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-sm">R</span>
         </div>
-        <h1 className="text-white font-semibold text-base">{bandName}</h1>
+        <h1 className="text-white font-semibold text-base" data-testid="sidebar-band-name">{bandName}</h1>
       </div>
 
       {/* PHASE 2: User & Connection Status (Right Side) */}

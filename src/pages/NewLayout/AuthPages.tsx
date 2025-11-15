@@ -30,6 +30,7 @@ import {
 // All operations include proper error handling with try-catch blocks and error toasts
 // ============================================================================
 import { db } from '../../services/database'
+import { BandMembershipService } from '../../services/BandMembershipService'
 import { useCreateBand } from '../../hooks/useBands'
 import { useAuth } from '../../contexts/AuthContext'
 import { authService } from '../../services/auth/AuthFactory'
@@ -157,6 +158,9 @@ interface InputFieldProps {
   showPasswordToggle?: boolean
   onTogglePassword?: () => void
   showPassword?: boolean
+  name?: string // For form functionality and testing
+  id?: string // For label association and testing
+  'data-testid'?: string // For E2E testing
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -169,11 +173,17 @@ const InputField: React.FC<InputFieldProps> = ({
   icon,
   showPasswordToggle,
   onTogglePassword,
-  showPassword
+  showPassword,
+  name,
+  id,
+  'data-testid': dataTestId
 }) => {
+  // Generate id from name if not provided (for label association)
+  const inputId = id || name
+
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-white mb-2">
+      <label htmlFor={inputId} className="block text-sm font-medium text-white mb-2">
         {label}
       </label>
       <div className="relative">
@@ -183,6 +193,9 @@ const InputField: React.FC<InputFieldProps> = ({
           </div>
         )}
         <input
+          id={inputId}
+          name={name}
+          data-testid={dataTestId}
           type={showPasswordToggle && showPassword ? 'text' : type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -226,6 +239,7 @@ interface ButtonProps {
   fullWidth?: boolean
   disabled?: boolean
   loading?: boolean
+  'data-testid'?: string
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -235,7 +249,8 @@ const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   fullWidth = false,
   disabled = false,
-  loading = false
+  loading = false,
+  'data-testid': dataTestId
 }) => {
   const baseStyles = 'h-11 px-6 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2'
 
@@ -250,6 +265,7 @@ const Button: React.FC<ButtonProps> = ({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
+      data-testid={dataTestId}
       className={`${baseStyles} ${variants[variant]} ${fullWidth ? 'w-full' : ''}`}
     >
       {loading ? (
@@ -421,6 +437,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
           <form onSubmit={handleSubmit}>
             <InputField
               label="Display Name"
+              name="name"
+              id="name"
+              data-testid="signup-name-input"
               type="text"
               value={displayName}
               onChange={setDisplayName}
@@ -431,6 +450,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
 
             <InputField
               label="Email"
+              name="email"
+              id="email"
+              data-testid="signup-email-input"
               type="email"
               value={email}
               onChange={setEmail}
@@ -441,6 +463,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
 
             <InputField
               label="Password"
+              name="password"
+              id="password"
+              data-testid="signup-password-input"
               type="password"
               value={password}
               onChange={setPassword}
@@ -454,6 +479,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
 
             <InputField
               label="Confirm Password"
+              name="confirmPassword"
+              id="confirmPassword"
+              data-testid="signup-confirm-password-input"
               type="password"
               value={confirmPassword}
               onChange={setConfirmPassword}
@@ -620,6 +648,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
           <form onSubmit={handleSubmit}>
             <InputField
               label="Email"
+              name="email"
+              id="login-email"
+              data-testid="login-email-input"
               type="email"
               value={email}
               onChange={setEmail}
@@ -630,6 +661,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
 
             <InputField
               label="Password"
+              name="password"
+              id="login-password"
+              data-testid="login-password-input"
               type="password"
               value={password}
               onChange={setPassword}
@@ -734,7 +768,19 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
   // PHASE 2 DATABASE INTEGRATION: Use the createBand hook
   const { createBand } = useCreateBand()
-  const { switchBand } = useAuth()
+  const { switchBand, user } = useAuth()
+
+  // Wait for user to be loaded before showing the form
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-8 h-8 border-4 border-[#f17827ff]/30 border-t-[#f17827ff] rounded-full animate-spin mb-4" />
+          <p className="text-[#a0a0a0]">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleCreateBand = async () => {
     if (!bandName) {
@@ -750,31 +796,22 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
     try {
       // PHASE 2 DATABASE INTEGRATION: Create band with real database operations
-      const currentUserId = localStorage.getItem('currentUserId')
-      if (!currentUserId) {
+      if (!user) {
         throw new Error('No user logged in')
       }
 
       // Create band using the hook (this creates band + owner membership)
-      const bandId = await createBand({ name: bandName }, currentUserId)
+      const bandId = await createBand({ name: bandName }, user.id)
 
       if (!bandId) {
         throw new Error('Failed to create band')
       }
 
-      // Generate initial invite code with format 'ROCK' + random 4 digits
-      const randomDigits = Math.floor(1000 + Math.random() * 9000) // Generates 4-digit number
-      const generatedCode = 'ROCK' + randomDigits
-
-      await db.inviteCodes.add({
-        id: crypto.randomUUID(),
+      // Generate initial invite code using BandMembershipService
+      const inviteCode = await BandMembershipService.createInviteCode({
         bandId,
-        code: generatedCode,
-        createdBy: currentUserId,
-        currentUses: 0,
-        maxUses: 999, // Allow many uses
-        createdDate: new Date(),
-        isActive: true
+        createdBy: user.id,
+        maxUses: 999 // Allow many uses
       })
 
       // Store bandId in localStorage as currentBandId
@@ -785,7 +822,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
       setLoading(false)
       setToast({
-        message: `Band created! Share this invite code: ${generatedCode}`,
+        message: `Band created! Share this invite code: ${inviteCode.code}`,
         type: 'success'
       })
       setTimeout(() => {
@@ -799,6 +836,8 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
   }
 
   const handleJoinBand = async () => {
+    console.log('[handleJoinBand] Starting join flow:', { inviteCode, user: user?.id })
+
     if (!inviteCode) {
       setErrors({ inviteCode: 'Invite code is required' })
       return
@@ -807,87 +846,55 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
     setLoading(true)
 
     try {
-      // PHASE 2 DATABASE INTEGRATION: Query database for invite code
-      const currentUserId = localStorage.getItem('currentUserId')
-      if (!currentUserId) {
+      // Use BandMembershipService for multi-user invite code validation
+      if (!user) {
         throw new Error('No user logged in')
       }
 
-      // Find the invite code in database
-      const foundCode = await db.inviteCodes
-        .where('code')
-        .equals(inviteCode.toUpperCase())
-        .first()
+      console.log('[handleJoinBand] Calling joinBandWithCode')
+      // Join band using service (validates code, creates membership, increments usage)
+      const result = await BandMembershipService.joinBandWithCode(user.id, inviteCode)
+      console.log('[handleJoinBand] Join result:', result)
 
-      if (foundCode) {
-        // Check if code has reached max uses
-        if (foundCode.maxUses && foundCode.currentUses >= foundCode.maxUses) {
-          setLoading(false)
-          setErrors({ inviteCode: 'This invite code has reached its maximum uses' })
-          return
-        }
-
-        // Check if code is expired
-        if (foundCode.expiresAt && new Date() > foundCode.expiresAt) {
-          setLoading(false)
-          setErrors({ inviteCode: 'This invite code has expired' })
-          return
-        }
-
-        const bandId = foundCode.bandId
-
-        // Check if user is already a member
-        const existingMembership = await db.bandMemberships
-          .where('userId')
-          .equals(currentUserId)
-          .and(m => m.bandId === bandId)
-          .first()
-
-        if (existingMembership) {
-          setLoading(false)
-          setErrors({ inviteCode: 'You are already a member of this band' })
-          return
-        }
-
-        // Create membership with role='member'
-        await db.bandMemberships.add({
-          id: crypto.randomUUID(),
-          userId: currentUserId,
-          bandId,
-          role: 'member',
-          joinedDate: new Date(),
-          status: 'active',
-          permissions: ['member']
-        })
-
-        // Increment currentUses on the invite code
-        await db.inviteCodes.update(foundCode.id, {
-          currentUses: foundCode.currentUses + 1
-        })
-
-        // Store bandId in localStorage as currentBandId
-        localStorage.setItem('currentBandId', bandId)
-
-        // Update AuthContext state to reflect the new current band
-        await switchBand(bandId)
-
-        // Get band name for toast message
-        const band = await db.bands.get(bandId)
-
+      if (!result.success) {
+        console.log('[handleJoinBand] Join failed:', result.error)
         setLoading(false)
-        setToast({
-          message: `You joined ${band?.name || 'the band'}!`,
-          type: 'success'
-        })
-        setTimeout(() => {
-          navigate('/songs')
-        }, 2000)
-      } else {
-        setLoading(false)
-        setErrors({ inviteCode: 'Invalid invite code' })
+        setErrors({ inviteCode: result.error || 'Failed to join band' })
+        return
       }
+
+      // Get the band ID from the membership
+      const bandId = result.membership!.bandId
+      console.log('[handleJoinBand] Join successful, band ID:', bandId)
+
+      // Store bandId in localStorage as currentBandId
+      localStorage.setItem('currentBandId', bandId)
+      console.log('[handleJoinBand] Stored currentBandId in localStorage')
+
+      // Update AuthContext state to reflect the new current band
+      console.log('[handleJoinBand] Calling switchBand')
+      await switchBand(bandId)
+      console.log('[handleJoinBand] switchBand completed')
+
+      // Get band name for toast message (query via repository to ensure we have it)
+      console.log('[handleJoinBand] Fetching band details')
+      const { repository } = await import('../../services/data/RepositoryFactory')
+      const band = await repository.getBand(bandId)
+      console.log('[handleJoinBand] Band details:', band)
+
+      setLoading(false)
+      console.log('[handleJoinBand] Showing success toast')
+      setToast({
+        message: `You joined ${band?.name || 'the band'}!`,
+        type: 'success'
+      })
+      console.log('[handleJoinBand] Navigating to /songs in 2 seconds')
+      setTimeout(() => {
+        console.log('[handleJoinBand] Navigating now')
+        navigate('/songs')
+      }, 2000)
     } catch (err) {
-      console.error('Error joining band:', err)
+      console.error('[handleJoinBand] Error caught:', err)
       setErrors({ inviteCode: 'Failed to join band. Please try again.' })
       setLoading(false)
     }
@@ -924,6 +931,9 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
             <InputField
               label="Band Name"
+              name="bandName"
+              id="band-name"
+              data-testid="create-band-name-input"
               type="text"
               value={bandName}
               onChange={(value) => {
@@ -939,6 +949,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
               fullWidth
               onClick={handleCreateBand}
               loading={loading}
+              data-testid="create-band-button"
             >
               Create Band
             </Button>
@@ -955,11 +966,14 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="invite-code" className="block text-sm font-medium text-white mb-2">
                 Invite Code
               </label>
               <input
                 type="text"
+                id="invite-code"
+                name="inviteCode"
+                data-testid="join-band-invite-code-input"
                 value={inviteCode}
                 onChange={(e) => {
                   setInviteCode(e.target.value.toUpperCase())
@@ -990,6 +1004,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
               fullWidth
               onClick={handleJoinBand}
               loading={loading}
+              data-testid="join-band-button"
             >
               Join Band
             </Button>
@@ -1141,7 +1156,7 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 hover:bg-[#1f1f1f] px-3 py-2 rounded-lg transition-colors"
       >
-        <span className="text-white font-semibold text-base">{currentBand.name}</span>
+        <span className="text-white font-semibold text-base" data-testid="sidebar-band-name">{currentBand.name}</span>
         <ChevronDown size={18} className="text-[#a0a0a0]" />
       </button>
 
@@ -1271,19 +1286,11 @@ const _CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onS
         throw new Error('Failed to create band')
       }
 
-      // Generate invite code
-      const randomDigits = Math.floor(1000 + Math.random() * 9000)
-      const generatedCode = 'ROCK' + randomDigits
-
-      await db.inviteCodes.add({
-        id: crypto.randomUUID(),
+      // Generate invite code using BandMembershipService
+      await BandMembershipService.createInviteCode({
         bandId,
-        code: generatedCode,
         createdBy: currentUserId,
-        currentUses: 0,
-        maxUses: 999,
-        createdDate: new Date(),
-        isActive: true
+        maxUses: 999
       })
 
       setLoading(false)

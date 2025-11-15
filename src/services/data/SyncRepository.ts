@@ -7,7 +7,8 @@ import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
-import { BandMembership } from '../../models/BandMembership'
+import { BandMembership, InviteCode } from '../../models/BandMembership'
+import { User } from '../../models/User'
 import type { SyncStatus, SyncStatusListener } from './syncTypes'
 
 /**
@@ -123,13 +124,27 @@ export class SyncRepository implements IDataRepository {
   }
 
   // ========== BANDS ==========
-  // READ: Always from local
+  // READ: getBand() is cloud-first for multi-user access; getBands() and getBandsForUser() are local-only
 
   async getBands(filter?: BandFilter): Promise<Band[]> {
     return this.local.getBands(filter)
   }
 
   async getBand(id: string): Promise<Band | null> {
+    // Cloud-first read: try remote first, fallback to local
+    // This ensures users joining via invite code can access band data
+    if (this.isOnline && this.remote) {
+      try {
+        const remoteBand = await this.remote.getBand(id)
+        if (remoteBand) {
+          // Cache in local for offline access
+          await this.local.addBand(remoteBand)
+          return remoteBand
+        }
+      } catch (error) {
+        console.warn('[SyncRepository] Remote fetch failed for band, using local:', error)
+      }
+    }
     return this.local.getBand(id)
   }
 
@@ -293,13 +308,42 @@ export class SyncRepository implements IDataRepository {
   }
 
   // ========== BAND MEMBERSHIPS ==========
-  // Basic implementation - reads from local, writes with sync (stubbed for now)
+  // READ: Both getUserMemberships() and getBandMemberships() are cloud-first for fresh data
+  // WRITE: Local first, then sync
 
   async getBandMemberships(bandId: string): Promise<BandMembership[]> {
+    // Cloud-first read: try remote first, fallback to local
+    // This ensures all band members can see each other after joining
+    if (this.isOnline && this.remote) {
+      try {
+        const remoteMemberships = await this.remote.getBandMemberships(bandId)
+        // Cache in local for offline access (uses atomic upsert to prevent race condition duplicates)
+        for (const membership of remoteMemberships) {
+          await this.local.addBandMembership(membership)
+        }
+        return remoteMemberships
+      } catch (error) {
+        console.warn('[SyncRepository] Remote fetch failed for band memberships, using local:', error)
+      }
+    }
     return this.local.getBandMemberships(bandId)
   }
 
   async getUserMemberships(userId: string): Promise<BandMembership[]> {
+    // Cloud-first read: try remote first, fallback to local
+    // This ensures fresh membership data after joining bands
+    if (this.isOnline && this.remote) {
+      try {
+        const remoteMemberships = await this.remote.getUserMemberships(userId)
+        // Cache in local for offline access
+        for (const membership of remoteMemberships) {
+          await this.local.addBandMembership(membership)
+        }
+        return remoteMemberships
+      } catch (error) {
+        console.warn('[SyncRepository] Remote fetch failed for memberships, using local:', error)
+      }
+    }
     return this.local.getUserMemberships(userId)
   }
 
@@ -324,6 +368,109 @@ export class SyncRepository implements IDataRepository {
   async deleteBandMembership(id: string): Promise<void> {
     await this.local.deleteBandMembership(id)
     await this.syncEngine.queueDelete('band_memberships', id)
+    if (this.isOnline) {
+      this.syncEngine.syncNow()
+    }
+  }
+
+  // ========== INVITE CODES ==========
+
+  async getInviteCodes(bandId: string): Promise<InviteCode[]> {
+    // Local-first read: read from IndexedDB for immediate consistency
+    // This ensures user sees their own invite codes immediately after creation
+    // even before Supabase sync completes
+    return this.local.getInviteCodes(bandId)
+  }
+
+  async getInviteCode(id: string): Promise<InviteCode | null> {
+    // Cloud-first read: try remote first, fallback to local
+    if (this.isOnline && this.remote) {
+      try {
+        return await this.remote.getInviteCode(id)
+      } catch (error) {
+        console.warn('[SyncRepository] Remote fetch failed, using local:', error)
+      }
+    }
+    return this.local.getInviteCode(id)
+  }
+
+  async getInviteCodeByCode(code: string): Promise<InviteCode | null> {
+    // CRITICAL: Must query Supabase for multi-user validation
+    if (this.isOnline && this.remote) {
+      try {
+        return await this.remote.getInviteCodeByCode(code)
+      } catch (error) {
+        console.warn('[SyncRepository] Remote fetch failed, using local:', error)
+      }
+    }
+    return this.local.getInviteCodeByCode(code)
+  }
+
+  async addInviteCode(inviteCode: InviteCode): Promise<InviteCode> {
+    // 1. Write to local first (instant response)
+    const created = await this.local.addInviteCode(inviteCode)
+
+    // 2. Queue for immediate sync to Supabase
+    await this.syncEngine.queueCreate('invite_codes', created)
+    if (this.isOnline) {
+      this.syncEngine.syncNow()
+    }
+
+    return created
+  }
+
+  async updateInviteCode(id: string, updates: Partial<InviteCode>): Promise<InviteCode> {
+    // Check if invite code exists locally first
+    const localCode = await this.local.getInviteCode(id)
+
+    // 1. If user doesn't have local copy (e.g., joining someone else's band),
+    //    use cloud-first update directly
+    if (!localCode) {
+      // Update remote directly
+      const updated = await this.remote.updateInviteCode(id, updates)
+      return updated
+    }
+
+    // 2. User has local copy - update local and queue for sync
+    await this.local.updateInviteCode(id, updates)
+
+    // 3. Queue for remote sync
+    await this.syncEngine.queueUpdate('invite_codes', id, updates)
+    if (this.isOnline) {
+      this.syncEngine.syncNow()
+    }
+
+    // 4. Return updated local copy
+    const updated = await this.local.getInviteCode(id)
+    if (!updated) {
+      throw new Error(`InviteCode ${id} not found after update`)
+    }
+    return updated
+  }
+
+  /**
+   * Increment invite code usage using secure Postgres function
+   * This method always uses the remote (cloud) directly to bypass RLS restrictions
+   */
+  async incrementInviteCodeUsage(id: string): Promise<InviteCode> {
+    // Always use remote to increment usage (bypasses RLS via Postgres function)
+    const updated = await this.remote.incrementInviteCodeUsage(id)
+
+    // Update local copy if it exists (for band admins who created the code)
+    const localCode = await this.local.getInviteCode(id)
+    if (localCode) {
+      await this.local.updateInviteCode(id, { currentUses: updated.currentUses })
+    }
+
+    return updated
+  }
+
+  async deleteInviteCode(id: string): Promise<void> {
+    // 1. Delete from local
+    await this.local.deleteInviteCode(id)
+
+    // 2. Queue delete operation
+    await this.syncEngine.queueDelete('invite_codes', id)
     if (this.isOnline) {
       this.syncEngine.syncNow()
     }
@@ -420,6 +567,27 @@ export class SyncRepository implements IDataRepository {
    */
   async performInitialSync(userId: string): Promise<void> {
     await this.syncEngine.performInitialSync(userId)
+  }
+
+  // ========== USERS ==========
+  // READ: getUser() is cloud-first for multi-user access
+
+  async getUser(id: string): Promise<User | null> {
+    // Cloud-first read: try remote first, fallback to local
+    // This ensures users can see other band members' profiles
+    if (this.isOnline && this.remote) {
+      try {
+        const remoteUser = await this.remote.getUser(id)
+        if (remoteUser) {
+          // Cache in local for offline access
+          await this.local.addUser(remoteUser)
+          return remoteUser
+        }
+      } catch (error) {
+        console.warn('[SyncRepository] Remote fetch failed for user, using local:', error)
+      }
+    }
+    return this.local.getUser(id)
   }
 
   /**

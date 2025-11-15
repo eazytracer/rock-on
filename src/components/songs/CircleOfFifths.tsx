@@ -103,6 +103,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ selectedKey, onKeySelec
                   style={{
                     filter: isHovered || isClicked ? 'brightness(1.2)' : 'none',
                   }}
+                  data-testid={`key-picker-${keyWithMode}`}
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                   onClick={() => {
@@ -180,6 +181,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ selectedKey, onKeySelec
 
         {previewKey && (
           <button
+            data-testid="key-picker-confirm"
             onClick={() => onKeySelect(previewKey)}
             className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#f17827ff] hover:bg-[#d66620] text-white text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
           >

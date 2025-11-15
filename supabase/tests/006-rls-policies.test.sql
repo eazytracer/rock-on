@@ -6,7 +6,7 @@
 begin;
 
 -- Declare how many tests will run
-select plan(72);
+select plan(73);
 
 -- ============================================================================
 -- RLS Enabled Tests (17 tables)
@@ -98,12 +98,17 @@ select ok(
 );
 
 -- ============================================================================
--- Users Policies (2 policies)
+-- Users Policies (3 policies)
 -- ============================================================================
 
 select ok(
   tests.policy_exists('users', 'users_select_authenticated'),
   'users_select_authenticated policy should exist'
+);
+
+select ok(
+  tests.policy_exists('users', 'users_insert_own'),
+  'users_insert_own policy should exist (allows signup)'
 );
 
 select ok(
@@ -140,8 +145,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('bands', 'bands_select_members'),
-  'bands_select_members policy should exist'
+  tests.policy_exists('bands', 'bands_select_members_or_creator'),
+  'bands_select_members_or_creator policy should exist (allows viewing created bands)'
 );
 
 select ok(
@@ -154,8 +159,8 @@ select ok(
 -- ============================================================================
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_select_if_member'),
-  'memberships_select_if_member policy should exist'
+  tests.policy_exists('band_memberships', 'memberships_select_own'),
+  'memberships_select_own policy should exist (non-recursive)'
 );
 
 select ok(
@@ -164,18 +169,18 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_insert_by_admin'),
-  'memberships_insert_by_admin policy should exist'
+  tests.policy_exists('band_memberships', 'memberships_insert_by_creator'),
+  'memberships_insert_by_creator policy should exist (non-recursive)'
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_update_if_admin'),
-  'memberships_update_if_admin policy should exist'
+  tests.policy_exists('band_memberships', 'memberships_update_by_creator'),
+  'memberships_update_by_creator policy should exist (non-recursive)'
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_delete_if_admin_or_self'),
-  'memberships_delete_if_admin_or_self policy should exist'
+  tests.policy_exists('band_memberships', 'memberships_delete_self_or_creator'),
+  'memberships_delete_self_or_creator policy should exist (non-recursive)'
 );
 
 -- ============================================================================
@@ -323,8 +328,8 @@ select ok(
 
 select is(
   tests.policy_count('users'),
-  2,
-  'users table should have exactly 2 policies'
+  3,
+  'users table should have exactly 3 policies'
 );
 
 select is(

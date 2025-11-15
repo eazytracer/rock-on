@@ -14,11 +14,13 @@ export function useSetlists(bandId: string) {
   const [error, setError] = useState<Error | null>(null)
   const { realtimeManager } = useAuth()
 
-  // Memoize fetchSetlists to use in effect dependencies
-  const fetchSetlists = useCallback(async () => {
+  // Memoize fetchSetlists with optional silent mode (no loading state change)
+  const fetchSetlists = useCallback(async (silent = false) => {
     try {
-      console.log('[useSetlists] Fetching setlists for band:', bandId)
-      setLoading(true)
+      console.log('[useSetlists] Fetching setlists for band:', bandId, silent ? '(silent)' : '')
+      if (!silent) {
+        setLoading(true)
+      }
       const response = await SetlistService.getSetlists({ bandId })
       console.log('[useSetlists] Fetched setlists count:', response.setlists.length)
       setSetlists(response.setlists)
@@ -27,7 +29,9 @@ export function useSetlists(bandId: string) {
       console.error('[useSetlists] Error fetching setlists:', err)
       setError(err as Error)
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [bandId])
 
@@ -42,13 +46,13 @@ export function useSetlists(bandId: string) {
     }
 
     console.log('[useSetlists] Mounting hook for band:', bandId)
-    fetchSetlists()
+    fetchSetlists() // Initial load - show loading state
 
     // Subscribe to sync events for live updates
     const repo = getSyncRepository()
     const handleSyncChange = () => {
       console.log('[useSetlists] Sync status changed, refetching...')
-      fetchSetlists()
+      fetchSetlists(true) // Silent mode
     }
 
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
@@ -65,7 +69,7 @@ export function useSetlists(bandId: string) {
         // Only refetch if the change is for the current band
         if (changedBandId === bandId) {
           console.log('[useSetlists] Realtime change detected for band, refetching...')
-          fetchSetlists()
+          fetchSetlists(true) // Silent mode - update list without loading state
         }
       }
       realtimeHandlerRef.current = handleRealtimeChange

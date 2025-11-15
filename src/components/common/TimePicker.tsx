@@ -7,6 +7,9 @@ interface TimePickerProps {
   format?: '12h' | '24h'
   className?: string
   placeholder?: string
+  name?: string
+  id?: string
+  'data-testid'?: string
 }
 
 export const TimePicker: React.FC<TimePickerProps> = ({
@@ -14,7 +17,10 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   onChange,
   format = '12h',
   className = '',
-  placeholder = 'Select time'
+  placeholder = 'Select time',
+  name,
+  id,
+  'data-testid': dataTestId
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedHour, setSelectedHour] = useState<number | null>(null)
@@ -112,6 +118,9 @@ export const TimePicker: React.FC<TimePickerProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        name={name}
+        id={id}
+        data-testid={dataTestId}
         className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 flex items-center justify-between"
       >
         <span className={selectedHour === null ? 'text-[#707070]' : 'text-white'}>

@@ -960,6 +960,15 @@ export const SongsPage: React.FC = () => {
   // DATABASE INTEGRATION: Handle delete song
   const handleDelete = async (song: Song) => {
     try {
+      console.log(`
+┌─────────────────────────────────────────────────────────────┐
+│ 🗑️  DELETE FLOW STARTED                                      │
+│ Song ID: ${song.id.substring(0, 8)}...                        │
+│ Song Title: "${song.title}"                                   │
+│ Current song count: ${songs.length}                            │
+└─────────────────────────────────────────────────────────────┘
+      `)
+
       // Check if song is in any setlists
       const setlists = await checkSongInSetlists(song.id)
 
@@ -985,15 +994,20 @@ export const SongsPage: React.FC = () => {
       }
 
       // Delete the song (hook handles setlist cleanup)
+      console.log('[SongsPage] Step 1: Calling deleteSong()...')
       await deleteSong(song.id)
+      console.log('[SongsPage] Step 1: deleteSong() completed')
 
       // Refetch songs to update UI
+      console.log('[SongsPage] Step 2: Calling refetch()...')
       await refetch()
+      console.log('[SongsPage] Step 2: refetch() completed, new song count:', songs.length)
 
       // Show success toast
       showToast(`Successfully deleted "${song.title}"`, 'success')
+      console.log('✅ DELETE FLOW COMPLETED')
     } catch (err) {
-      console.error('Error deleting song:', err)
+      console.error('❌ DELETE FLOW FAILED:', err)
       showToast('Failed to delete song. Please try again.', 'error')
     }
     setOpenActionMenuId(null)
@@ -1679,11 +1693,14 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
             <div className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">
+                <label htmlFor="song-title" className="block text-sm text-[#a0a0a0] mb-2">
                   Title <span className="text-[#D7263D]">*</span>
                 </label>
                 <input
                   type="text"
+                  name="title"
+                  id="song-title"
+                  data-testid="song-title-input"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Enter song title"
@@ -1694,11 +1711,14 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
               {/* Artist */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">
+                <label htmlFor="song-artist" className="block text-sm text-[#a0a0a0] mb-2">
                   Artist <span className="text-[#D7263D]">*</span>
                 </label>
                 <input
                   type="text"
+                  name="artist"
+                  id="song-artist"
+                  data-testid="song-artist-input"
                   value={formData.artist}
                   onChange={(e) => setFormData({ ...formData, artist: e.target.value })}
                   placeholder="Enter artist name"
@@ -1709,9 +1729,12 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
               {/* Album */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">Album</label>
+                <label htmlFor="song-album" className="block text-sm text-[#a0a0a0] mb-2">Album</label>
                 <input
                   type="text"
+                  name="album"
+                  id="song-album"
+                  data-testid="song-album-input"
                   value={formData.album}
                   onChange={(e) => setFormData({ ...formData, album: e.target.value })}
                   placeholder="Enter album name"
@@ -1727,6 +1750,9 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                   <div className="flex gap-1">
                     <input
                       type="text"
+                      name="durationMinutes"
+                      id="song-duration-minutes"
+                      data-testid="song-duration-minutes-input"
                       value={formData.durationMin}
                       onChange={(e) => setFormData({ ...formData, durationMin: e.target.value.replace(/\D/g, '') })}
                       placeholder="0"
@@ -1736,6 +1762,9 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                     <span className="flex items-center text-[#505050]">:</span>
                     <input
                       type="text"
+                      name="durationSeconds"
+                      id="song-duration-seconds"
+                      data-testid="song-duration-seconds-input"
                       value={formData.durationSec}
                       onChange={(e) => setFormData({ ...formData, durationSec: e.target.value.replace(/\D/g, '') })}
                       placeholder="00"
@@ -1747,9 +1776,12 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
                 {/* BPM */}
                 <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">BPM</label>
+                  <label htmlFor="song-bpm" className="block text-sm text-[#a0a0a0] mb-2">BPM</label>
                   <input
                     type="text"
+                    name="bpm"
+                    id="song-bpm"
+                    data-testid="song-bpm-input"
                     value={formData.bpm}
                     onChange={(e) => setFormData({ ...formData, bpm: e.target.value.replace(/\D/g, '') })}
                     placeholder="120"
@@ -1764,6 +1796,8 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                   </label>
                   <button
                     type="button"
+                    id="song-key"
+                    data-testid="song-key-button"
                     onClick={() => setShowCircleOfFifths(true)}
                     className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm flex items-center justify-between hover:border-[#f17827ff] transition-colors group"
                   >
@@ -1777,11 +1811,14 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
               {/* Tags */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">
+                <label htmlFor="song-tags" className="block text-sm text-[#a0a0a0] mb-2">
                   Tags (comma-separated)
                 </label>
                 <input
                   type="text"
+                  name="tags"
+                  id="song-tags"
+                  data-testid="song-tags-input"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   placeholder="Rock, Cover, 90s"
@@ -1794,8 +1831,11 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
             <div className="space-y-4">
               {/* Guitar Tuning */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">Guitar Tuning</label>
+                <label htmlFor="song-tuning" className="block text-sm text-[#a0a0a0] mb-2">Guitar Tuning</label>
                 <select
+                  name="tuning"
+                  id="song-tuning"
+                  data-testid="song-tuning-select"
                   value={formData.tuning}
                   onChange={(e) => setFormData({ ...formData, tuning: e.target.value })}
                   className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
@@ -1814,8 +1854,11 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
               {/* Notes */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">Notes</label>
+                <label htmlFor="song-notes" className="block text-sm text-[#a0a0a0] mb-2">Notes</label>
                 <textarea
+                  name="notes"
+                  id="song-notes"
+                  data-testid="song-notes-textarea"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Add notes about the song..."
@@ -1953,6 +1996,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
             </button>
             <button
               type="submit"
+              data-testid="song-submit-button"
               className="px-6 py-2.5 bg-[#f17827ff] text-white text-sm font-medium rounded-lg hover:bg-[#d66620] transition-colors"
             >
               {mode === 'add' ? 'Create Song' : 'Save Changes'}

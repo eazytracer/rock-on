@@ -15,11 +15,13 @@ export function useSongs(bandId: string) {
   const [error, setError] = useState<Error | null>(null)
   const { realtimeManager } = useAuth()
 
-  // Memoize fetchSongs to use in effect dependencies
-  const fetchSongs = useCallback(async () => {
+  // Memoize fetchSongs with optional silent mode (no loading state change)
+  const fetchSongs = useCallback(async (silent = false) => {
     try {
-      console.log('[useSongs] Fetching songs for band:', bandId)
-      setLoading(true)
+      console.log('[useSongs] Fetching songs for band:', bandId, silent ? '(silent)' : '')
+      if (!silent) {
+        setLoading(true)
+      }
       const response = await SongService.getBandSongs(bandId)
       console.log('[useSongs] Fetched songs count:', response.songs.length)
       setSongs(response.songs)
@@ -29,7 +31,9 @@ export function useSongs(bandId: string) {
       setError(err as Error)
       setSongs([])
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [bandId])
 
@@ -41,14 +45,19 @@ export function useSongs(bandId: string) {
     }
 
     console.log('[useSongs] Mounting hook for band:', bandId)
-    fetchSongs()
+    fetchSongs() // Initial load - show loading state
 
     // Listen for sync status changes to trigger refetch
     const repo = getSyncRepository()
-    const handleSyncChange = () => {
-      // Refetch when sync completes (data may have changed)
-      console.log('[useSongs] Sync status changed, refetching songs...')
-      fetchSongs()
+    const handleSyncChange = (status: any) => {
+      // Only refetch when sync COMPLETES, not when it starts
+      // This prevents double-fetching during deletion
+      if (status.status === 'idle' || status.status === 'synced') {
+        console.log('[useSongs] Sync completed, refetching songs...')
+        fetchSongs(true) // Silent mode
+      } else {
+        console.log('[useSongs] Sync status changed to:', status.status, '- not refetching')
+      }
     }
 
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
@@ -59,7 +68,7 @@ export function useSongs(bandId: string) {
       // Only refetch if the change is for the current band
       if (changedBandId === bandId) {
         console.log('[useSongs] Realtime change detected for band, refetching...')
-        fetchSongs()
+        fetchSongs(true) // Silent mode - update list without loading state
       } else {
         console.log('[useSongs] Ignoring change for different band')
       }
@@ -81,12 +90,18 @@ export function useSongs(bandId: string) {
   }, [bandId, realtimeManager, fetchSongs])
 
   return { songs, loading, error, refetch: async () => {
+    console.log('[useSongs.refetch] Starting manual refetch for band:', bandId)
+    console.log('[useSongs.refetch] Current songs in state:', songs.length, 'songs')
     setLoading(true)
     try {
       const response = await SongService.getBandSongs(bandId)
+      console.log('[useSongs.refetch] Fetched from DB:', response.songs.length, 'songs')
+      console.log('[useSongs.refetch] Song IDs from DB:', response.songs.map(s => `${s.id.substring(0, 8)}:${s.title}`).join(', '))
       setSongs(response.songs)
       setError(null)
+      console.log('[useSongs.refetch] setSongs called with', response.songs.length, 'songs')
     } catch (err) {
+      console.error('[useSongs.refetch] Error:', err)
       setError(err as Error)
     } finally {
       setLoading(false)

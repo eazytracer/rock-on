@@ -786,3 +786,240 @@ const Component = () => {
 - Works without JavaScript (where possible)
 - Graceful degradation
 - Offline support (future)
+
+## Testability Standards
+
+**Added: 2025-11-10**
+
+### Purpose
+All UI components must be designed with testability in mind. Proper attributes make E2E testing reliable, improve accessibility, enable browser autofill, and support password managers.
+
+### Required Attributes for Form Inputs
+
+Every form input (`<input>`, `<textarea>`, `<select>`) must include:
+
+1. **`name` attribute** - For form functionality, accessibility, and testing
+   ```tsx
+   <input name="email" type="email" />
+   ```
+
+2. **`id` attribute** - For label association (`<label htmlFor="id">`)
+   ```tsx
+   <input id="email" name="email" type="email" />
+   <label htmlFor="email">Email</label>
+   ```
+
+3. **`data-testid` attribute** - For E2E test selectors (prevents brittle placeholder-based tests)
+   ```tsx
+   <input 
+     id="email" 
+     name="email" 
+     data-testid="login-email-input" 
+     type="email" 
+   />
+   ```
+
+### Required Attributes for Buttons
+
+Interactive buttons should include:
+
+- **`data-testid` attribute** - For reliable E2E testing
+  ```tsx
+  <button type="submit" data-testid="login-submit-button">
+    Log In
+  </button>
+  ```
+
+### InputField Component Pattern
+
+The `InputField` reusable component supports all testability attributes:
+
+```tsx
+<InputField
+  label="Email"
+  name="email"           // Form functionality
+  id="login-email"       // Label association
+  data-testid="login-email-input"  // E2E testing
+  type="email"
+  value={email}
+  onChange={setEmail}
+  placeholder="you@example.com"
+  error={errors.email}
+/>
+```
+
+### Benefits
+
+- ✅ **Stable E2E tests** - Tests don't break when copy changes
+- ✅ **Better accessibility** - Screen readers can associate labels with inputs
+- ✅ **Browser autofill** - Browsers recognize form fields correctly
+- ✅ **Password managers** - 1Password, LastPass, etc. work properly
+- ✅ **Form libraries** - Works with Formik, React Hook Form, etc.
+
+### Naming Conventions
+
+#### `id` Attributes
+- Use kebab-case: `login-email`, `signup-password`, `band-name`
+- Be specific to avoid collisions: `login-email` vs `signup-email`
+
+#### `name` Attributes
+- Use camelCase (matches JavaScript conventions): `email`, `password`, `bandName`
+- Should match the state variable name when possible
+
+#### `data-testid` Attributes
+- Format: `{context}-{field}-{type}`
+- Examples:
+  - `login-email-input`
+  - `signup-password-input`
+  - `create-band-button`
+  - `join-band-invite-code-input`
+
+### Examples
+
+#### Authentication Forms
+
+**Login Form:**
+```tsx
+<InputField
+  label="Email"
+  name="email"
+  id="login-email"
+  data-testid="login-email-input"
+  type="email"
+  value={email}
+  onChange={setEmail}
+/>
+
+<InputField
+  label="Password"
+  name="password"
+  id="login-password"
+  data-testid="login-password-input"
+  type="password"
+  value={password}
+  onChange={setPassword}
+/>
+
+<Button 
+  type="submit" 
+  data-testid="login-submit-button"
+>
+  Log In
+</Button>
+```
+
+**Signup Form:**
+```tsx
+<InputField
+  label="Display Name"
+  name="name"
+  id="name"
+  data-testid="signup-name-input"
+  type="text"
+  value={displayName}
+  onChange={setDisplayName}
+/>
+
+<InputField
+  label="Email"
+  name="email"
+  id="email"
+  data-testid="signup-email-input"
+  type="email"
+  value={email}
+  onChange={setEmail}
+/>
+
+<InputField
+  label="Password"
+  name="password"
+  id="password"
+  data-testid="signup-password-input"
+  type="password"
+  value={password}
+  onChange={setPassword}
+/>
+
+<InputField
+  label="Confirm Password"
+  name="confirmPassword"
+  id="confirmPassword"
+  data-testid="signup-confirm-password-input"
+  type="password"
+  value={confirmPassword}
+  onChange={setConfirmPassword}
+/>
+
+<Button 
+  type="submit" 
+  data-testid="signup-submit-button"
+>
+  Create Account
+</Button>
+```
+
+#### Band Management Forms
+
+**Create Band:**
+```tsx
+<InputField
+  label="Band Name"
+  name="bandName"
+  id="band-name"
+  data-testid="create-band-name-input"
+  type="text"
+  value={bandName}
+  onChange={setBandName}
+/>
+
+<Button 
+  onClick={handleCreateBand} 
+  data-testid="create-band-button"
+>
+  Create Band
+</Button>
+```
+
+**Join Band:**
+```tsx
+<input
+  type="text"
+  id="invite-code"
+  name="inviteCode"
+  data-testid="join-band-invite-code-input"
+  value={inviteCode}
+  onChange={(e) => setInviteCode(e.target.value)}
+  placeholder="ROCK2025"
+/>
+
+<Button 
+  onClick={handleJoinBand} 
+  data-testid="join-band-button"
+>
+  Join Band
+</Button>
+```
+
+### Implementation Checklist
+
+When creating new forms or interactive components:
+
+- [ ] All inputs have `name` attribute
+- [ ] All inputs have `id` attribute
+- [ ] All labels use `htmlFor` pointing to input `id`
+- [ ] All inputs have `data-testid` following naming convention
+- [ ] All interactive buttons have `data-testid`
+- [ ] IDs are unique within the page
+- [ ] Test selectors use `data-testid` (not placeholders or text content)
+
+### References
+
+- InputField component: `/src/pages/NewLayout/AuthPages.tsx` (lines 149-231)
+- Button component: `/src/pages/NewLayout/AuthPages.tsx` (lines 233-277)
+- Testability selectors: `/tests/helpers/selectors.ts`
+- E2E test fixtures: `/tests/fixtures/auth.ts`
+
+---
+
+**Last Updated:** 2025-11-10
+**Status:** Active Standard - All new components must follow these patterns

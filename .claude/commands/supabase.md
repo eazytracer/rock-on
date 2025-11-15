@@ -124,65 +124,64 @@ psql postgresql://postgres:postgres@127.0.0.1:54322/postgres \
 
 ## Current Migration Status
 
-Run this to see which migrations have been applied:
+Check applied migrations (local and remote):
 
 ```bash
+# Local migrations
 supabase migration list
+
+# Remote migrations
+source .env.supabase && supabase migration list
 ```
 
-Expected migrations:
-- ✅ `20251029000001_add_version_tracking.sql`
-- ✅ `20251030000001_enable_realtime.sql`
-- ✅ `20251030000002_enable_realtime_replica_identity.sql`
-- ✅ `20251031000001_add_audit_tracking.sql`
-- 🆕 `20251101000001_enable_audit_log_realtime.sql` (NEW - needs to be applied)
+Current migrations:
+- ✅ `20251106000000_baseline_schema.sql` (Consolidated baseline - all 17 tables)
+- ✅ `20251110060100_fix_bands_insert_policy.sql` (RLS policy fix)
 
-## Applying the Latest Migration
+## Remote Supabase (Production/Staging)
 
-To fix the current audit_log realtime error:
+### Setup Remote Connection
+
+**Prerequisites:**
+1. Valid Supabase access token in `.env.supabase`
+2. Project reference ID (e.g., `khzeuxxhigqcmrytsfux`)
+
+**Authentication:**
+```bash
+# Load token from .env.supabase
+source .env.supabase
+export SUPABASE_ACCESS_TOKEN
+
+# Link to remote project
+supabase link --project-ref khzeuxxhigqcmrytsfux
+```
+
+### Remote Operations
 
 ```bash
-# Reset database (recommended - ensures clean state)
-supabase db reset
+# Check migration status (local vs remote)
+export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase | cut -d '=' -f2) && supabase migration list
 
-# This will:
-# 1. Drop all tables
-# 2. Re-run ALL migrations in order
-# 3. Run seed data
-# 4. Give you a fresh, consistent database
+# Push migrations to remote
+export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase | cut -d '=' -f2) && supabase db push --linked
+
+# Mark a manually-applied migration as applied
+export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase | cut -d '=' -f2) && supabase migration repair --status applied <migration_id>
+
+# Pull remote schema to compare with local
+export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase | cut -d '=' -f2) && supabase db pull --schema public
 ```
 
-Or if you prefer to just add the new migration:
+### Manual SQL Execution via Dashboard
 
-```bash
-# Push the new migration only
-supabase db push
+For complex migrations or RLS policy fixes:
 
-# Verify it worked
-psql postgresql://postgres:postgres@127.0.0.1:54322/postgres \
-  -c "SELECT tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'audit_log';"
-
-# Should return one row with 'audit_log'
-```
-
-## Production Migrations
-
-**DO NOT** run these against production manually. Use Supabase Dashboard:
-
-1. Go to your project in Supabase Dashboard
-2. Navigate to Database → Migrations
-3. Upload migration file or paste SQL
-4. Review and apply
-
-Or use `supabase link` to connect CLI to production:
-
-```bash
-# Link to production project
-supabase link --project-ref <your-project-ref>
-
-# Push migrations to production
-supabase db push --linked
-```
+1. Go to: https://supabase.com/dashboard/project/khzeuxxhigqcmrytsfux
+2. Navigate to **SQL Editor** (left sidebar)
+3. Click **"+ New query"**
+4. Paste SQL from `.claude/scripts/supabase/*.sql`
+5. Click **"Run"** (Ctrl+Enter)
+6. Mark migration as applied: `supabase migration repair --status applied <id>`
 
 ⚠️ **WARNING**: Always test migrations locally first!
 
@@ -191,12 +190,16 @@ supabase db push --linked
 | Task | Command |
 |------|---------|
 | Fresh start | `supabase db reset` |
-| Apply new migration | `supabase db push` |
+| Apply new migration (local) | `supabase db push` |
+| Apply new migration (remote) | `source .env.supabase && supabase db push --linked` |
 | Create migration | `supabase migration new <name>` |
 | Check status | `supabase status` |
-| View Studio | `open http://127.0.0.1:54323` |
+| View Studio (local) | `open http://127.0.0.1:54323` |
+| View Studio (remote) | `open https://supabase.com/dashboard/project/khzeuxxhigqcmrytsfux` |
 | View logs | `supabase logs` |
-| Connect to DB | `psql postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+| Connect to DB (local) | `psql postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+| Link to remote | `source .env.supabase && supabase link --project-ref khzeuxxhigqcmrytsfux` |
+| Check remote migrations | `source .env.supabase && supabase migration list` |
 
 ## Pro Tips
 

@@ -5,7 +5,7 @@ import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
-import { BandMembership } from '../../models/BandMembership'
+import { BandMembership, InviteCode } from '../../models/BandMembership'
 import { User } from '../../models/User'
 
 /**
@@ -16,25 +16,35 @@ export class LocalRepository implements IDataRepository {
   // ========== SONGS ==========
 
   async getSongs(filter?: SongFilter): Promise<Song[]> {
+    console.log('[LocalRepository.getSongs] Filter:', filter)
     let query = db.songs.toCollection()
 
     if (filter?.contextType) {
       query = db.songs.where('contextType').equals(filter.contextType)
 
       if (filter.contextId) {
-        return query.filter(s => s.contextId === filter.contextId).toArray()
+        const results = await query.filter(s => s.contextId === filter.contextId).toArray()
+        console.log('[LocalRepository.getSongs] Returning', results.length, 'songs for contextId:', filter.contextId)
+        console.log('[LocalRepository.getSongs] Song IDs:', results.map(s => s.id.substring(0, 8) + '...').join(', '))
+        return results
       }
     }
 
     if (filter?.createdBy) {
-      return query.filter(s => s.createdBy === filter.createdBy).toArray()
+      const results = await query.filter(s => s.createdBy === filter.createdBy).toArray()
+      console.log('[LocalRepository.getSongs] Returning', results.length, 'songs for createdBy:', filter.createdBy)
+      return results
     }
 
     if (filter?.songGroupId) {
-      return query.filter(s => s.songGroupId === filter.songGroupId).toArray()
+      const results = await query.filter(s => s.songGroupId === filter.songGroupId).toArray()
+      console.log('[LocalRepository.getSongs] Returning', results.length, 'songs for songGroupId:', filter.songGroupId)
+      return results
     }
 
-    return query.toArray()
+    const results = await query.toArray()
+    console.log('[LocalRepository.getSongs] Returning', results.length, 'songs (no filter)')
+    return results
   }
 
   async getSong(id: string): Promise<Song | null> {
@@ -301,7 +311,9 @@ export class LocalRepository implements IDataRepository {
       membership.id = crypto.randomUUID()
     }
 
-    await db.bandMemberships.add(membership)
+    // Use Dexie's .put() for atomic upsert to prevent race condition duplicates
+    // .put() will add if not exists, or update if exists (by primary key)
+    await db.bandMemberships.put(membership)
     return membership
   }
 
@@ -318,6 +330,63 @@ export class LocalRepository implements IDataRepository {
 
   async deleteBandMembership(id: string): Promise<void> {
     await db.bandMemberships.delete(id)
+  }
+
+  // ========== INVITE CODES ==========
+
+  async getInviteCodes(bandId: string): Promise<InviteCode[]> {
+    return db.inviteCodes
+      .where('bandId')
+      .equals(bandId)
+      .toArray()
+  }
+
+  async getInviteCode(id: string): Promise<InviteCode | null> {
+    const code = await db.inviteCodes.get(id)
+    return code || null
+  }
+
+  async getInviteCodeByCode(code: string): Promise<InviteCode | null> {
+    const upperCode = code.toUpperCase()
+    const inviteCode = await db.inviteCodes
+      .where('code')
+      .equals(upperCode)
+      .first()
+    return inviteCode || null
+  }
+
+  async addInviteCode(inviteCode: InviteCode): Promise<InviteCode> {
+    if (!inviteCode.id) {
+      inviteCode.id = crypto.randomUUID()
+    }
+
+    await db.inviteCodes.add(inviteCode)
+    return inviteCode
+  }
+
+  async updateInviteCode(id: string, updates: Partial<InviteCode>): Promise<InviteCode> {
+    await db.inviteCodes.update(id, updates)
+
+    const updated = await db.inviteCodes.get(id)
+    if (!updated) {
+      throw new Error(`InviteCode ${id} not found after update`)
+    }
+
+    return updated
+  }
+
+  async incrementInviteCodeUsage(id: string): Promise<InviteCode> {
+    // For local repository, just increment the usage count
+    const inviteCode = await db.inviteCodes.get(id)
+    if (!inviteCode) {
+      throw new Error(`InviteCode ${id} not found`)
+    }
+
+    return this.updateInviteCode(id, { currentUses: inviteCode.currentUses + 1 })
+  }
+
+  async deleteInviteCode(id: string): Promise<void> {
+    await db.inviteCodes.delete(id)
   }
 
   // ========== USERS ==========

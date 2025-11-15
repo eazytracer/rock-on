@@ -99,16 +99,17 @@ BEGIN
   RAISE NOTICE '🎵 Seeding band...';
 
   INSERT INTO public.bands (
-    id, name, description, created_date, updated_date,
+    id, name, description, created_by, created_date, updated_date,
     settings
   ) VALUES (
     v_band_id,
     'iPod Shuffle',
     'A rockin'' cover band playing hits from every decade',
+    v_eric_id,
     '2024-01-15',
     NOW(),
     '{"defaultPracticeTime":120,"reminderMinutes":[60,30,10],"autoSaveInterval":30}'::jsonb
-  ) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
+  ) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, created_by = EXCLUDED.created_by;
 
   -- ========================================
   -- 5. BAND MEMBERSHIPS

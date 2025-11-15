@@ -3,7 +3,7 @@ import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
-import { BandMembership } from '../../models/BandMembership'
+import { BandMembership, InviteCode } from '../../models/BandMembership'
 
 export interface SongFilter {
   id?: string
@@ -66,6 +66,45 @@ export interface IDataRepository {
   addBandMembership(membership: BandMembership): Promise<BandMembership>
   updateBandMembership(id: string, updates: Partial<BandMembership>): Promise<BandMembership>
   deleteBandMembership(id: string): Promise<void>
+
+  // ========== INVITE CODES ==========
+  /**
+   * Get all invite codes for a band
+   */
+  getInviteCodes(bandId: string): Promise<InviteCode[]>
+
+  /**
+   * Get a specific invite code by ID
+   */
+  getInviteCode(id: string): Promise<InviteCode | null>
+
+  /**
+   * Get an invite code by its code string
+   * Used for validation during band joining
+   */
+  getInviteCodeByCode(code: string): Promise<InviteCode | null>
+
+  /**
+   * Create a new invite code
+   * Automatically syncs to Supabase via SyncEngine
+   */
+  addInviteCode(inviteCode: InviteCode): Promise<InviteCode>
+
+  /**
+   * Update an invite code (e.g., increment currentUses)
+   */
+  updateInviteCode(id: string, updates: Partial<InviteCode>): Promise<InviteCode>
+
+  /**
+   * Increment invite code usage count
+   * Uses secure Postgres function to bypass RLS restrictions
+   */
+  incrementInviteCodeUsage(id: string): Promise<InviteCode>
+
+  /**
+   * Delete/deactivate an invite code
+   */
+  deleteInviteCode(id: string): Promise<void>
 
   // ========== SYNC OPERATIONS ==========
   /**

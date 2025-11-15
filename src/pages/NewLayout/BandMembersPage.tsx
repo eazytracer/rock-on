@@ -139,18 +139,14 @@ export const BandMembersPage: React.FC = () => {
         return
       }
 
-      // DEBUG: Check for duplicates in dbMembers
-      const userIds = dbMembers.map(m => m.membership.userId)
-      const duplicateIds = userIds.filter((id, index) => userIds.indexOf(id) !== index)
-      if (duplicateIds.length > 0) {
-        console.error('[BandMembersPage] DUPLICATE user IDs in dbMembers:', duplicateIds)
-        console.error('[BandMembersPage] dbMembers count:', dbMembers.length)
-      }
+      // Deduplicate members by userId (in case of race conditions during sync)
+      const uniqueMembers = dbMembers.filter((member, index, self) =>
+        index === self.findIndex((m) => m.membership.userId === member.membership.userId)
+      )
 
       const transformedMembers: BandMember[] = await Promise.all(
-        dbMembers.map(async ({ membership, profile }) => {
-          // Get user info for email
-          const user = await db.users.get(membership.userId)
+        uniqueMembers.map(async ({ membership, user, profile }): Promise<BandMember> => {
+          // User data now comes from the hook (cloud-first), no need to query db.users
 
           // Convert instruments from profile
           const instruments: Instrument[] = profile?.instruments?.map((inst: string) => ({
@@ -178,16 +174,7 @@ export const BandMembersPage: React.FC = () => {
         })
       )
 
-      // Deduplicate by userId (defensive programming - shouldn't be needed but prevents UI errors)
-      const uniqueMembers = transformedMembers.filter((member, index, self) =>
-        index === self.findIndex(m => m.userId === member.userId)
-      )
-
-      if (uniqueMembers.length !== transformedMembers.length) {
-        console.warn('[BandMembersPage] Removed duplicate members:', transformedMembers.length - uniqueMembers.length)
-      }
-
-      setMembers(uniqueMembers)
+      setMembers(transformedMembers)
 
       // Set current user's role
       const currentMembership = dbMembers.find(m => m.membership.userId === currentUserId)
@@ -552,6 +539,7 @@ export const BandMembersPage: React.FC = () => {
                 setEditBandDescription(band.description || '')
                 setShowEditBandModal(true)
               }}
+              data-testid="edit-band-info-button"
               className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
             >
               <Edit size={16} />
@@ -589,11 +577,18 @@ export const BandMembersPage: React.FC = () => {
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex-1 min-w-[200px]">
                 <div className="text-[#707070] text-xs uppercase tracking-wider mb-2">Invite Code</div>
-                <div className="text-white text-2xl font-mono font-bold">{activeInviteCode}</div>
+                <div
+                  className="text-white text-2xl font-mono font-bold"
+                  data-testid="invite-code"
+                  id="band-invite-code"
+                >
+                  {activeInviteCode}
+                </div>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleCopyInviteCode}
+                  data-testid="copy-invite-code-button"
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827] text-white text-sm font-medium hover:bg-[#d96820] transition-colors"
                 >
                   <Copy size={16} />
@@ -610,6 +605,7 @@ export const BandMembersPage: React.FC = () => {
                 )}
                 <button
                   onClick={() => setShowRegenerateCodeDialog(true)}
+                  data-testid="regenerate-invite-code-button"
                   className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-[#a0a0a0] text-sm font-medium hover:bg-[#1f1f1f] hover:text-white transition-colors"
                 >
                   <RefreshCw size={16} />
@@ -625,6 +621,9 @@ export const BandMembersPage: React.FC = () => {
           <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]" />
           <input
             type="text"
+            name="memberSearch"
+            id="member-search-input"
+            data-testid="member-search-input"
             placeholder="Search members..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -655,6 +654,7 @@ export const BandMembersPage: React.FC = () => {
           {sortedMembers.map((member) => (
             <div
               key={member.userId}
+              data-testid={`member-row-${member.email}`}
               className="flex items-center gap-4 p-4 bg-[#1a1a1a] rounded-xl hover:bg-[#252525] transition-colors"
             >
               {/* Member Info */}
@@ -677,7 +677,7 @@ export const BandMembersPage: React.FC = () => {
               </div>
 
               {/* Role */}
-              <div className="w-[140px]">
+              <div className="w-[140px]" data-testid="member-role">
                 {getRoleBadge(member.role)}
               </div>
 
@@ -788,7 +788,11 @@ export const BandMembersPage: React.FC = () => {
       {/* Members List - Mobile Cards */}
       <div className="md:hidden space-y-3">
         {sortedMembers.map((member) => (
-          <div key={member.userId} className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]">
+          <div
+            key={member.userId}
+            data-testid={`member-row-${member.email}`}
+            className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]"
+          >
             <div className="flex items-start gap-3 mb-3">
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
@@ -866,6 +870,9 @@ export const BandMembersPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
+                  name="bandName"
+                  id="edit-band-name"
+                  data-testid="edit-band-name-input"
                   value={editBandName}
                   onChange={(e) => setEditBandName(e.target.value)}
                   className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827] focus:outline-none focus:ring-2 focus:ring-[#f17827]/20"
@@ -878,6 +885,9 @@ export const BandMembersPage: React.FC = () => {
                   Description
                 </label>
                 <textarea
+                  name="bandDescription"
+                  id="edit-band-description"
+                  data-testid="edit-band-description-input"
                   value={editBandDescription}
                   onChange={(e) => setEditBandDescription(e.target.value)}
                   rows={3}
@@ -896,6 +906,7 @@ export const BandMembersPage: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveBandInfo}
+                data-testid="save-band-info-button"
                 disabled={!editBandName.trim()}
                 className="flex-1 px-4 py-2 rounded-lg bg-[#f17827] text-white text-sm font-medium hover:bg-[#d96820] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

@@ -47,9 +47,31 @@ npm test -- --coverage
 # Run database tests (pgTAP schema validation)
 npm run test:db
 
-# Run all tests (application + database)
+# Run E2E tests (Playwright)
+npm run test:e2e              # Run all E2E tests
+npm run test:e2e:ui           # Run with interactive UI
+npm run test:e2e:debug        # Run in debug mode
+npm run test:e2e:report       # View test report
+
+# Run all tests (application + database + E2E)
 npm run test:all
 ```
+
+**E2E Test Prerequisites:**
+- ✅ Local Supabase must be running: `supabase start`
+- ✅ Development environment must be active: `npm run env:dev`
+- ✅ Dev server should be running: `npm run dev` (Playwright starts it automatically)
+
+**Quick E2E Setup:**
+```bash
+# Ensure local Supabase is running and environment is configured
+npm run start:dev  # Starts Supabase + sets dev env + runs dev server
+
+# In another terminal, run E2E tests
+npm run test:e2e
+```
+
+**See `/workspaces/rock-on/ENVIRONMENTS.md` for full environment management guide**
 
 ### Other Commands
 ```bash
@@ -59,27 +81,94 @@ npm run dev        # Start development server
 npm run build      # Build for production
 ```
 
+### Supabase Commands
+```bash
+# See /supabase command for full reference
+supabase start     # Start local Supabase
+supabase db reset  # Reset local database
+supabase db push   # Apply migrations locally
+
+# Remote operations (requires .env.supabase with SUPABASE_ACCESS_TOKEN)
+source .env.supabase && supabase link --project-ref khzeuxxhigqcmrytsfux
+source .env.supabase && supabase migration list  # Check remote status
+source .env.supabase && supabase db push --linked  # Apply to remote
+```
+
 ## Code Style
 TypeScript 5.x with React 18+: Follow standard conventions
+
+### Testability Standards (REQUIRED)
+
+**All form inputs and interactive elements must include testability attributes:**
+
+**Form Inputs (`<input>`, `<textarea>`, `<select>`):**
+- `name` attribute - For form functionality
+- `id` attribute - For label association (`<label htmlFor="id">`)
+- `data-testid` attribute - For E2E testing
+
+**Buttons and Interactive Elements:**
+- `data-testid` attribute - For E2E testing
+
+**Example:**
+```tsx
+<InputField
+  label="Email"
+  name="email"                    // Form functionality
+  id="login-email"                // Label association
+  data-testid="login-email-input" // E2E testing
+  type="email"
+  value={email}
+  onChange={setEmail}
+/>
+
+<Button
+  type="submit"
+  data-testid="login-submit-button"
+>
+  Log In
+</Button>
+```
+
+**Naming Conventions:**
+- `id`: kebab-case (`login-email`, `band-name`)
+- `name`: camelCase (`email`, `bandName`)
+- `data-testid`: `{context}-{field}-{type}` (`login-email-input`, `create-band-button`)
+
+**Benefits:** Stable E2E tests, better accessibility, browser autofill, password manager support
+
+**Full Reference:** `.claude/specifications/2025-10-22T14:01_design-style-guide.md` (Testability Standards section)
 
 ## Database Setup & Migration Policy
 
 ### Fresh Installation (New Supabase Project)
 
+**Local Development:**
 ```bash
-# 1. Start local Supabase (or link to remote)
+# 1. Start local Supabase
 supabase start
-# OR
-supabase link --project-ref your-project-ref
 
-# 2. Apply baseline migration (single file)
+# 2. Apply baseline migration
 supabase db push
 
 # 3. Verify
-psql <connection-string> -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"
+psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"
 # Should see: 17 tables
+```
 
-# That's it! Single migration creates complete schema.
+**Remote (Production/Staging):**
+```bash
+# 1. Ensure .env.supabase exists with valid SUPABASE_ACCESS_TOKEN
+# Token expires: Check file for expiration date
+# Get new token: https://supabase.com/dashboard/account/tokens
+
+# 2. Link to remote project
+source .env.supabase && supabase link --project-ref khzeuxxhigqcmrytsfux
+
+# 3. Apply baseline migration
+source .env.supabase && supabase db push --linked
+
+# 4. Verify via Supabase Studio
+# Go to: https://supabase.com/dashboard/project/khzeuxxhigqcmrytsfux/editor
 ```
 
 **What's included in baseline migration:**
@@ -317,3 +406,4 @@ Migration files DO use timestamps, but in Supabase's special format (`YYYYMMDDHH
 ```
 <!-- MANUAL ADDITIONS END -->
 - please do not suggest skipping tests or addressing them later. If it was important enough to make the test case then it should pass. If they are truly frivolous we should delete them. When asked to address test findings you should always work to fix the source code after validating the test is correct and necessary.
+- We need to be using unique and logical identifiers for our viewport elements to assist in e2e testing and observability. If you are working on e2e tests and find an element that you need to check for that does not have an id, do not use alternative methods to find it, instead add an id to the element. If this causes significant changes, draft an artifact explaining what needs to be changed and prompt the user to have another agent apply the fixes
