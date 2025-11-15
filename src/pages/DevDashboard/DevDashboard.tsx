@@ -10,8 +10,9 @@ import { DatabaseInspector } from './tabs/DatabaseInspector'
 import { SyncQueueViewer } from './tabs/SyncQueueViewer'
 import { NetworkInspector } from './tabs/NetworkInspector'
 import { DevTools } from './tabs/DevTools'
+import { Documentation } from './tabs/Documentation'
 
-type TabId = 'database' | 'sync-queue' | 'network' | 'tools'
+type TabId = 'database' | 'sync-queue' | 'network' | 'tools' | 'docs'
 
 interface Tab {
   id: TabId
@@ -24,6 +25,7 @@ const tabs: Tab[] = [
   { id: 'sync-queue', label: 'Sync Queue', icon: '⏳' },
   { id: 'network', label: 'Network', icon: '🌐' },
   { id: 'tools', label: 'Dev Tools', icon: '🛠️' },
+  { id: 'docs', label: 'Documentation', icon: '📚' },
 ]
 
 export const DevDashboard: React.FC = () => {
@@ -74,11 +76,12 @@ export const DevDashboard: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="p-6">
+      <div className={activeTab === 'docs' ? '' : 'p-6'}>
         {activeTab === 'database' && <DatabaseInspector />}
         {activeTab === 'sync-queue' && <SyncQueueViewer />}
         {activeTab === 'network' && <NetworkInspector />}
         {activeTab === 'tools' && <DevTools />}
+        {activeTab === 'docs' && <Documentation />}
       </div>
 
       {/* Footer */}

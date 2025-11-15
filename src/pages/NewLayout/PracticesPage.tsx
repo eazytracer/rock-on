@@ -84,6 +84,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
 
   return (
     <div
+      data-testid={`practice-item-${practice.id}`}
       className={`p-5 bg-[#1a1a1a] rounded-xl border transition-all ${
         isNextPractice
           ? 'border-[#f17827ff]/30'
@@ -190,6 +191,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
             <div className="absolute right-0 top-full mt-1 w-48 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-10">
               <button
                 onClick={onEdit}
+                data-testid={`edit-practice-${practice.id}`}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors"
               >
                 <Edit2 size={16} />
@@ -198,6 +200,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
               {practice.status === 'scheduled' && (
                 <button
                   onClick={onMarkComplete}
+                  data-testid={`complete-practice-${practice.id}`}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors"
                 >
                   <CheckCircle size={16} />
@@ -207,6 +210,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
               {practice.status === 'scheduled' && (
                 <button
                   onClick={onCancel}
+                  data-testid={`cancel-practice-${practice.id}`}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors border-t border-[#2a2a2a]"
                 >
                   <XCircle size={16} />
@@ -215,6 +219,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
               )}
               <button
                 onClick={onDelete}
+                data-testid={`delete-practice-${practice.id}`}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-500 text-sm hover:bg-[#252525] transition-colors border-t border-[#2a2a2a]"
               >
                 <Trash2 size={16} />
@@ -370,6 +375,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
       onClick={onClose}
     >
       <div
+        data-testid="practice-modal"
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-3xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -401,6 +407,9 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                 </label>
                 <input
                   type="date"
+                  name="practiceDate"
+                  id="practice-date"
+                  data-testid="practice-date-input"
                   required
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
@@ -414,6 +423,9 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                   Time <span className="text-[#f17827ff]">*</span>
                 </label>
                 <TimePicker
+                  name="practiceTime"
+                  id="practice-time"
+                  data-testid="practice-time-input"
                   value={formData.time}
                   onChange={(time) => setFormData(prev => ({ ...prev, time }))}
                   placeholder="Select time"
@@ -436,6 +448,9 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                 <label className="block text-sm text-[#a0a0a0] mb-2">Location</label>
                 <input
                   type="text"
+                  name="location"
+                  id="practice-location"
+                  data-testid="practice-location-input"
                   value={formData.location}
                   onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                   placeholder="e.g., Dave's Garage"
@@ -448,6 +463,9 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
             <div className="mt-4">
               <label className="block text-sm text-[#a0a0a0] mb-2">Notes</label>
               <textarea
+                name="notes"
+                id="practice-notes"
+                data-testid="practice-notes-textarea"
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Add any notes about this practice..."
@@ -484,10 +502,11 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
 
             {/* Selected Songs */}
             {selectedSongObjects.length > 0 && (
-              <div className="mb-3 space-y-2">
+              <div data-testid="selected-songs-list" className="mb-3 space-y-2">
                 {selectedSongObjects.map((song, index) => (
                   <div
                     key={song.id}
+                    data-testid={`selected-song-${song.id}`}
                     className="flex items-center gap-3 p-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg"
                   >
                     <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#2a2a2a] text-[#a0a0a0] text-xs font-semibold">
@@ -500,6 +519,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                     <button
                       type="button"
                       onClick={() => removeSong(song.id)}
+                      data-testid={`remove-song-${song.id}`}
                       className="p-1 text-[#707070] hover:text-red-500 transition-colors"
                     >
                       <X size={16} />
@@ -540,6 +560,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                       key={song.id}
                       type="button"
                       onClick={() => toggleSong(song.id)}
+                      data-testid={`available-song-${song.id}`}
                       className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a1a] transition-colors text-left"
                     >
                       <div className={`flex items-center justify-center w-5 h-5 rounded border ${
@@ -574,12 +595,14 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
             <button
               type="button"
               onClick={onClose}
+              data-testid="cancel-practice-button"
               className="px-6 py-2.5 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
+              data-testid="save-practice-button"
               className="px-6 py-2.5 bg-[#f17827ff] text-white text-sm font-medium rounded-lg hover:bg-[#d66920] transition-colors"
             >
               {practice ? 'Save Changes' : 'Schedule Practice'}
@@ -612,6 +635,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
       onClick={onClose}
     >
       <div
+        data-testid="delete-practice-modal"
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
@@ -628,6 +652,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           <div className="flex items-center justify-end gap-3">
             <button
               onClick={onClose}
+              data-testid="cancel-delete-practice"
               className="px-4 py-2 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors"
             >
               Cancel
@@ -637,6 +662,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
                 onConfirm()
                 onClose()
               }}
+              data-testid="confirm-delete-practice"
               className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors"
             >
               Delete
@@ -872,6 +898,7 @@ export const PracticesPage: React.FC = () => {
               setEditingPractice(null)
               setIsScheduleModalOpen(true)
             }}
+            data-testid="create-practice-button"
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors ml-auto"
           >
             <Plus size={20} />
@@ -918,7 +945,7 @@ export const PracticesPage: React.FC = () => {
       {/* Practices List */}
       {filteredPractices.length === 0 ? (
         /* Empty State */
-        <div className="flex flex-col items-center justify-center py-20">
+        <div data-testid="practice-empty-state" className="flex flex-col items-center justify-center py-20">
           <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[#1a1a1a] mb-4">
             <Calendar size={32} className="text-[#707070]" />
           </div>
@@ -929,6 +956,7 @@ export const PracticesPage: React.FC = () => {
               setEditingPractice(null)
               setIsScheduleModalOpen(true)
             }}
+            data-testid="create-practice-button"
             className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
           >
             <Plus size={20} />
@@ -936,7 +964,7 @@ export const PracticesPage: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div data-testid="practice-list" className="space-y-3">
           {filteredPractices.map((practice) => {
             const songs = getSongsForPractice(practice)
             const isNextPractice = practice.id === nextPractice?.id

@@ -12,14 +12,18 @@ Start Chrome with remote debugging enabled for UI testing via Chrome MCP Server.
 
 1. **Dev server must be running**: `npm run dev` on port 5173
 2. **Chrome MCP server must be configured** in Claude Code settings
-3. **Chrome binary must be available** at `/home/vscode/chrome/chrome/linux-141.0.7390.122/chrome-linux64/chrome`
+3. **Chrome binary must be available** (installed via Puppeteer in devcontainer setup)
 
 ## Basic Command
 
-Run this command in the terminal:
+**IMPORTANT:** Use dynamic path finding to locate Chrome (version changes with updates):
 
 ```bash
-/home/vscode/chrome/chrome/linux-141.0.7390.122/chrome-linux64/chrome \
+# Find Chrome binary (works across version updates)
+CHROME_BIN=$(find ~/chrome -name chrome -type f 2>/dev/null | head -1)
+
+# Start Chrome with remote debugging
+${CHROME_BIN} \
   --headless=new \
   --remote-debugging-port=9222 \
   --no-sandbox \
@@ -32,12 +36,19 @@ Run this command in the terminal:
   > /tmp/chrome.log 2>&1 &
 ```
 
+**One-liner version:**
+
+```bash
+$(find ~/chrome -name chrome -type f 2>/dev/null | head -1) --headless=new --remote-debugging-port=9222 --no-sandbox --disable-gpu --disable-dev-shm-usage --no-first-run --no-default-browser-check --user-data-dir=/tmp/chrome-profile http://localhost:5173 > /tmp/chrome.log 2>&1 &
+```
+
 ## Command Variations
 
 ### Desktop Testing (Default 1280x720)
 
 ```bash
-/home/vscode/chrome/chrome/linux-141.0.7390.122/chrome-linux64/chrome \
+CHROME_BIN=$(find ~/chrome -name chrome -type f 2>/dev/null | head -1)
+${CHROME_BIN} \
   --headless=new \
   --remote-debugging-port=9222 \
   --no-sandbox \
@@ -50,7 +61,8 @@ Run this command in the terminal:
 ### Mobile Testing (iPhone X: 375x812)
 
 ```bash
-/home/vscode/chrome/chrome/linux-141.0.7390.122/chrome-linux64/chrome \
+CHROME_BIN=$(find ~/chrome -name chrome -type f 2>/dev/null | head -1)
+${CHROME_BIN} \
   --headless=new \
   --remote-debugging-port=9222 \
   --no-sandbox \
@@ -63,7 +75,8 @@ Run this command in the terminal:
 ### Tablet Testing (iPad: 768x1024)
 
 ```bash
-/home/vscode/chrome/chrome/linux-141.0.7390.122/chrome-linux64/chrome \
+CHROME_BIN=$(find ~/chrome -name chrome -type f 2>/dev/null | head -1)
+${CHROME_BIN} \
   --headless=new \
   --remote-debugging-port=9222 \
   --no-sandbox \
@@ -76,7 +89,8 @@ Run this command in the terminal:
 ### With DevTools (Non-headless)
 
 ```bash
-/home/vscode/chrome/chrome/linux-141.0.7390.122/chrome-linux64/chrome \
+CHROME_BIN=$(find ~/chrome -name chrome -type f 2>/dev/null | head -1)
+${CHROME_BIN} \
   --remote-debugging-port=9222 \
   --no-sandbox \
   --disable-gpu \

@@ -13,11 +13,13 @@ export function usePractices(bandId: string) {
   const [error, setError] = useState<Error | null>(null)
   const { realtimeManager } = useAuth()
 
-  // Memoize fetchPractices to use in effect dependencies
-  const fetchPractices = useCallback(async () => {
+  // Memoize fetchPractices with optional silent mode (no loading state change)
+  const fetchPractices = useCallback(async (silent = false) => {
     try {
-      console.log('[usePractices] Fetching practices for band:', bandId)
-      setLoading(true)
+      console.log('[usePractices] Fetching practices for band:', bandId, silent ? '(silent)' : '')
+      if (!silent) {
+        setLoading(true)
+      }
       const response = await PracticeSessionService.getSessions({ bandId })
 
       // Filter to only rehearsals
@@ -37,7 +39,9 @@ export function usePractices(bandId: string) {
       console.error('[usePractices] Error fetching practices:', err)
       setError(err as Error)
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [bandId])
 
@@ -49,13 +53,13 @@ export function usePractices(bandId: string) {
     }
 
     console.log('[usePractices] Mounting hook for band:', bandId)
-    fetchPractices()
+    fetchPractices() // Initial load - show loading state
 
     // Subscribe to sync changes for live updates
     const repo = getSyncRepository()
     const handleSyncChange = () => {
       console.log('[usePractices] Sync status changed, refetching...')
-      fetchPractices()
+      fetchPractices(true) // Silent mode
     }
 
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
@@ -65,7 +69,7 @@ export function usePractices(bandId: string) {
       // Only refetch if the change is for the current band
       if (changedBandId === bandId) {
         console.log('[usePractices] Realtime change detected for band, refetching...')
-        fetchPractices()
+        fetchPractices(true) // Silent mode - update list without loading state
       }
     }
 

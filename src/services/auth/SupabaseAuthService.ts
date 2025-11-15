@@ -65,8 +65,41 @@ export class SupabaseAuthService implements IAuthService {
     }
   }
 
+  private async ensureUserInSupabase(user: User): Promise<void> {
+    try {
+      // Use upsert (INSERT ... ON CONFLICT UPDATE) to handle race conditions
+      const { error } = await this.supabase
+        .from('users')
+        // @ts-expect-error - Supabase generated types are overly strict
+        .upsert({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          created_date: user.createdDate || new Date(),
+          last_login: new Date(),
+          auth_provider: user.authProvider || 'email'
+        }, {
+          onConflict: 'id',
+          ignoreDuplicates: false // Update on conflict
+        })
+
+      if (error) {
+        console.error('⚠️ Failed to sync user to Supabase public.users:', error)
+        // Don't throw - log and continue. User can still use the app offline.
+        // Band creation will fail until this succeeds, but app should still load.
+      }
+    } catch (error) {
+      console.error('⚠️ Error ensuring user in Supabase:', error)
+      // Don't throw - this shouldn't block app initialization
+    }
+  }
+
   private async syncUserToLocalDB(user: User): Promise<void> {
     try {
+      // CRITICAL: First, ensure user exists in Supabase public.users table
+      // This is required for foreign key constraints (bands.created_by references users.id)
+      await this.ensureUserInSupabase(user)
+
       // Check if user exists in local DB
       const existingUser = await db.users.get(user.id)
 

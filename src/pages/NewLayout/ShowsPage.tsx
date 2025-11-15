@@ -317,6 +317,7 @@ export const ShowsPage: React.FC = () => {
                 setSelectedShow(null)
                 setIsScheduleModalOpen(true)
               }}
+              data-testid="create-show-button"
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
             >
               <Plus size={20} />
@@ -392,7 +393,7 @@ export const ShowsPage: React.FC = () => {
       {filteredShows.length === 0 ? (
         <EmptyState onSchedule={() => setIsScheduleModalOpen(true)} />
       ) : (
-        <div className="space-y-3">
+        <div data-testid="show-list" className="space-y-3">
           {filteredShows
             .sort((a, b) => {
               const dateA = new Date(a.scheduledDate).getTime()
@@ -552,7 +553,7 @@ const ShowCard: React.FC<{
   }, [isExpanded, setlist])
 
   return (
-    <div className={`bg-[#1a1a1a] rounded-xl p-5 border transition-all ${
+    <div data-testid={`show-item-${show.id}`} className={`bg-[#1a1a1a] rounded-xl p-5 border transition-all ${
       show.status === 'cancelled' ? 'border-[#2a2a2a] opacity-60' : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
     }`}>
       <div className="flex items-start gap-4">
@@ -581,7 +582,7 @@ const ShowCard: React.FC<{
           {/* Header Row */}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex-1 min-w-0">
-              <h3 className={`text-lg font-bold mb-1 ${
+              <h3 data-testid={`show-name-${show.id}`} className={`text-lg font-bold mb-1 ${
                 show.status === 'cancelled' ? 'line-through text-[#707070]' : 'text-white'
               }`}>
                 {show.name}
@@ -612,6 +613,7 @@ const ShowCard: React.FC<{
                         onEdit()
                         setIsActionsOpen(false)
                       }}
+                      data-testid={`edit-show-${show.id}`}
                       className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#252525] transition-colors flex items-center gap-2"
                     >
                       <Edit2 size={16} />
@@ -622,6 +624,7 @@ const ShowCard: React.FC<{
                         onDelete()
                         setIsActionsOpen(false)
                       }}
+                      data-testid={`delete-show-${show.id}`}
                       className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2"
                     >
                       <Trash2 size={16} />
@@ -886,7 +889,7 @@ const ScheduleShowModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div data-testid="show-modal" className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Modal Header */}
         <div className="sticky top-0 bg-[#1a1a1a] border-b border-[#2a2a2a] p-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">
@@ -912,6 +915,9 @@ const ScheduleShowModal: React.FC<{
               </label>
               <input
                 type="text"
+                name="showName"
+                id="show-name"
+                data-testid="show-name-input"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -927,6 +933,9 @@ const ScheduleShowModal: React.FC<{
                 </label>
                 <input
                   type="date"
+                  name="showDate"
+                  id="show-date"
+                  data-testid="show-date-input"
                   required
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -939,6 +948,9 @@ const ScheduleShowModal: React.FC<{
                   Time <span className="text-red-500">*</span>
                 </label>
                 <TimePicker
+                  name="showTime"
+                  id="show-time"
+                  data-testid="show-time-input"
                   value={formData.time}
                   onChange={(time) => setFormData({ ...formData, time })}
                   placeholder="Select time"
@@ -969,6 +981,9 @@ const ScheduleShowModal: React.FC<{
               <label className="block text-sm font-medium text-white mb-2">Venue Name</label>
               <input
                 type="text"
+                name="venue"
+                id="show-venue"
+                data-testid="show-venue-input"
                 value={formData.venue}
                 onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
                 className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
@@ -980,6 +995,9 @@ const ScheduleShowModal: React.FC<{
               <label className="block text-sm font-medium text-white mb-2">Location/Address</label>
               <input
                 type="text"
+                name="location"
+                id="show-location"
+                data-testid="show-location-input"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
@@ -1026,6 +1044,9 @@ const ScheduleShowModal: React.FC<{
             <div>
               <label className="block text-sm font-medium text-white mb-2">Setlist</label>
               <select
+                name="setlist"
+                id="show-setlist"
+                data-testid="show-setlist-select"
                 value={formData.setlistId}
                 onChange={(e) => setFormData({ ...formData, setlistId: e.target.value })}
                 className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
@@ -1132,6 +1153,9 @@ const ScheduleShowModal: React.FC<{
             <h3 className="text-sm font-semibold text-[#a0a0a0] uppercase tracking-wider">Notes</h3>
 
             <textarea
+              name="notes"
+              id="show-notes"
+              data-testid="show-notes-textarea"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={4}
@@ -1145,12 +1169,14 @@ const ScheduleShowModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
+              data-testid="cancel-show-button"
               className="px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
+              data-testid="save-show-button"
               className="px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
             >
               {show ? 'Save Changes' : 'Schedule Show'}
@@ -1172,7 +1198,7 @@ const DeleteConfirmationModal: React.FC<{
 }> = ({ show, onConfirm, onCancel }) => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md p-6">
+      <div data-testid="delete-show-modal" className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md p-6">
         <div className="flex items-start gap-4 mb-6">
           <div className="p-3 rounded-full bg-red-500/10">
             <AlertCircle size={24} className="text-red-500" />
@@ -1194,12 +1220,14 @@ const DeleteConfirmationModal: React.FC<{
         <div className="flex items-center justify-end gap-3">
           <button
             onClick={onCancel}
+            data-testid="cancel-delete-show"
             className="px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
+            data-testid="confirm-delete-show"
             className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors"
           >
             Delete Show
@@ -1213,7 +1241,7 @@ const DeleteConfirmationModal: React.FC<{
 // Empty State Component
 const EmptyState: React.FC<{ onSchedule: () => void }> = ({ onSchedule }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4">
+    <div data-testid="show-empty-state" className="flex flex-col items-center justify-center py-16 px-4">
       <div className="w-16 h-16 rounded-full bg-[#f17827ff]/10 flex items-center justify-center mb-4">
         <Calendar size={32} className="text-[#f17827ff]" />
       </div>
@@ -1223,6 +1251,7 @@ const EmptyState: React.FC<{ onSchedule: () => void }> = ({ onSchedule }) => {
       </p>
       <button
         onClick={onSchedule}
+        data-testid="create-show-button"
         className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white font-medium hover:bg-[#d66920] transition-colors"
       >
         <Plus size={20} />

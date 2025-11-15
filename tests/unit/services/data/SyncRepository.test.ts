@@ -98,7 +98,10 @@ describe('SyncRepository', () => {
       getBandsForUser: vi.fn(),
       addBand: vi.fn(),
       updateBand: vi.fn(),
-      deleteBand: vi.fn()
+      deleteBand: vi.fn(),
+      getBandMemberships: vi.fn(),
+      getUserMemberships: vi.fn(),
+      addBandMembership: vi.fn()
     }
 
     mockSyncEngine = {
@@ -175,14 +178,19 @@ describe('SyncRepository', () => {
       expect(result).toEqual(expectedBands)
     })
 
-    it('should get a single band from local repository', async () => {
-      mockLocal.getBand.mockResolvedValue(testBand)
+    it('should get a single band cloud-first (remote, then local)', async () => {
+      // Mock remote to return band
+      mockRemote.getBand.mockResolvedValue(testBand)
+      // Mock local addBand for caching
+      mockLocal.addBand.mockResolvedValue(testBand)
 
       syncRepository = new SyncRepository()
       const result = await syncRepository.getBand('test-band-1')
 
-      expect(mockLocal.getBand).toHaveBeenCalledWith('test-band-1')
-      expect(mockRemote.getBand).not.toHaveBeenCalled()
+      // Should try remote first when online
+      expect(mockRemote.getBand).toHaveBeenCalledWith('test-band-1')
+      // Should cache the result in local
+      expect(mockLocal.addBand).toHaveBeenCalledWith(testBand)
       expect(result).toEqual(testBand)
     })
 
@@ -494,14 +502,17 @@ describe('SyncRepository', () => {
       expect(result).toEqual([])
     })
 
-    it('should implement getUserMemberships', async () => {
-      mockLocal.getUserMemberships.mockResolvedValue([])
+    it('should implement getUserMemberships cloud-first (remote, then local)', async () => {
+      const mockMemberships = []
+      // Mock remote to return memberships
+      mockRemote.getUserMemberships.mockResolvedValue(mockMemberships)
 
       syncRepository = new SyncRepository()
       const result = await syncRepository.getUserMemberships('user-1')
 
-      expect(mockLocal.getUserMemberships).toHaveBeenCalledWith('user-1')
-      expect(result).toEqual([])
+      // Should try remote first when online
+      expect(mockRemote.getUserMemberships).toHaveBeenCalledWith('user-1')
+      expect(result).toEqual(mockMemberships)
     })
   })
 })

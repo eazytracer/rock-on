@@ -6,6 +6,7 @@ import { authService as defaultAuthService } from '../services/auth/AuthFactory'
 import { AuthSession, SignUpCredentials, SignInCredentials, IAuthService } from '../services/auth/types'
 import { SessionManager } from '../services/auth/SessionManager'
 import { RealtimeManager } from '../services/data/RealtimeManager'
+import { setupRealtimeDebug, cleanupRealtimeDebug } from '../utils/debugRealtime'
 
 interface AuthContextType {
   // Legacy auth fields (keep for backward compatibility)
@@ -202,13 +203,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
           if (bands.length > 0) {
             try {
+              // Add unique tab identifier for multi-session debugging
+              if (!sessionStorage.getItem('tabId')) {
+                sessionStorage.setItem('tabId', crypto.randomUUID())
+              }
+              const tabId = sessionStorage.getItem('tabId')
+
               // 🔥 SET REALTIME AUTH ON SESSION RESTORATION
               const { getSupabaseClient } = await import('../services/supabase/client')
               const supabase = getSupabaseClient()
               const storedSession = SessionManager.loadSession()
               if (storedSession?.accessToken) {
                 supabase.realtime.setAuth(storedSession.accessToken)
-                console.log('🔐 Realtime auth restored from session')
+                console.log(`
+┌─────────────────────────────────────────────────────────────┐
+│ 🔄 Session Restored                                           │
+│ User ID: ${storedUserId.substring(0, 8)}...                   │
+│ Tab ID: ${tabId?.substring(0, 8)}...                          │
+│ Session ID: ${storedSession.accessToken.substring(0, 12)}...  │
+│ Bands: ${bands.length}                                        │
+└─────────────────────────────────────────────────────────────┘
+                `)
               } else {
                 console.warn('⚠️ No session token found - realtime may fail')
               }
@@ -218,6 +233,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
               if (!realtimeManagerRef.current) {
                 console.log('[AuthContext] Creating new RealtimeManager instance')
                 realtimeManagerRef.current = new RealtimeManager()
+                setupRealtimeDebug(realtimeManagerRef.current)
                 setRealtimeManagerReady(true)
               } else {
                 console.log('[AuthContext] RealtimeManager already exists, reusing')
@@ -294,6 +310,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
         if (memberships.length > 0) {
           try {
+            // Add unique tab identifier for multi-session debugging
+            if (!sessionStorage.getItem('tabId')) {
+              sessionStorage.setItem('tabId', crypto.randomUUID())
+            }
+            const tabId = sessionStorage.getItem('tabId')
+
+            console.log(`
+┌─────────────────────────────────────────────────────────────┐
+│ 🔐 Auth Session Established                                  │
+│ User ID: ${userId.substring(0, 8)}...                        │
+│ Tab ID: ${tabId?.substring(0, 8)}...                          │
+│ Session ID: ${newSession.accessToken.substring(0, 12)}...    │
+│ Bands: ${memberships.length}                                  │
+└─────────────────────────────────────────────────────────────┘
+            `)
+
             // 🔥 SET REALTIME AUTH BEFORE ANY SUBSCRIPTIONS
             const { getSupabaseClient } = await import('../services/supabase/client')
             const supabase = getSupabaseClient()
@@ -305,6 +337,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             if (!realtimeManagerRef.current) {
               console.log('[AuthContext] Creating new RealtimeManager instance')
               realtimeManagerRef.current = new RealtimeManager()
+              setupRealtimeDebug(realtimeManagerRef.current)
               setRealtimeManagerReady(true)
             } else {
               console.log('[AuthContext] RealtimeManager already exists, reusing')
@@ -343,6 +376,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       if (realtimeManagerRef.current) {
         console.log('🔌 Disconnecting real-time sync...')
         realtimeManagerRef.current.unsubscribeAll()
+        cleanupRealtimeDebug()
         realtimeManagerRef.current = null
         setRealtimeManagerReady(false)
       }
@@ -537,7 +571,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
   const switchBand = async (bandId: string) => {
     try {
-      const band = await db.bands.get(bandId)
+      // Import repository to query Supabase (cloud-first read)
+      const { repository } = await import('../services/data/RepositoryFactory')
+
+      // Query Supabase for band details (User 2 might not have it in IndexedDB yet)
+      const band = await repository.getBand(bandId)
       if (!band) {
         throw new Error('Band not found')
       }
@@ -547,11 +585,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         throw new Error('No current user')
       }
 
-      const membership = await db.bandMemberships
-        .where('userId')
-        .equals(currentUser.id)
-        .filter(m => m.bandId === bandId && m.status === 'active')
-        .first()
+      // Query memberships via repository (cloud-first read)
+      const userMemberships = await repository.getUserMemberships(currentUser.id)
+      const membership = userMemberships.find(
+        m => m.bandId === bandId && m.status === 'active'
+      )
 
       if (!membership) {
         throw new Error('User is not a member of this band')

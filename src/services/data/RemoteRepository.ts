@@ -4,7 +4,7 @@ import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
-import { BandMembership } from '../../models/BandMembership'
+import { BandMembership, InviteCode } from '../../models/BandMembership'
 import { User } from '../../models/User'
 import { supabase } from '../supabase/client'
 
@@ -219,9 +219,9 @@ export class RemoteRepository implements IDataRepository {
   async addBand(band: Band): Promise<Band> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from('bands')
-      .insert(this.mapBandToSupabase(band) as any)
+      .upsert(this.mapBandToSupabase(band) as any, { onConflict: 'id' })
       .select()
       .single()
 
@@ -656,12 +656,21 @@ export class RemoteRepository implements IDataRepository {
   async getUserMemberships(userId: string): Promise<BandMembership[]> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
+    console.log('[RemoteRepository.getUserMemberships] Querying for userId:', userId)
     const { data, error } = await supabase
       .from('band_memberships')
       .select('*')
       .eq('user_id', userId)
 
-    if (error) throw error
+    if (error) {
+      console.error('[RemoteRepository.getUserMemberships] Error:', error)
+      throw error
+    }
+
+    console.log('[RemoteRepository.getUserMemberships] Found memberships:', data?.length || 0)
+    if (data && data.length > 0) {
+      console.log('[RemoteRepository.getUserMemberships] Memberships:', data)
+    }
 
     return data.map((row) => this.mapBandMembershipFromSupabase(row))
   }
@@ -669,20 +678,28 @@ export class RemoteRepository implements IDataRepository {
   async addBandMembership(membership: BandMembership): Promise<BandMembership> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
+    console.log('[RemoteRepository.addBandMembership] Creating membership:', {
+      id: membership.id,
+      userId: membership.userId,
+      bandId: membership.bandId,
+      status: membership.status
+    })
+
+    const mapped = this.mapBandMembershipToSupabase(membership) as any
+    console.log('[RemoteRepository.addBandMembership] Mapped to Supabase:', mapped)
+
     const { data, error } = await supabase
       .from('band_memberships')
-      .insert(this.mapBandMembershipToSupabase(membership) as any)
+      .upsert(mapped, { onConflict: 'id' })
       .select()
       .single()
 
     if (error) {
-      // Handle unique constraint violation
-      if (error.code === '23505') {
-        throw new Error('User is already a member of this band')
-      }
+      console.error('[RemoteRepository.addBandMembership] Error:', error)
       throw error
     }
 
+    console.log('[RemoteRepository.addBandMembership] Successfully created:', data)
     return this.mapBandMembershipFromSupabase(data)
   }
 
@@ -711,6 +728,113 @@ export class RemoteRepository implements IDataRepository {
       .eq('id', id)
 
     if (error) throw error
+  }
+
+  // ========== INVITE CODES ==========
+
+  async getInviteCodes(bandId: string): Promise<InviteCode[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('invite_codes')
+      .select('*')
+      .eq('band_id', bandId)
+      .eq('is_active', true)
+
+    if (error) throw error
+
+    return data.map((row) => this.mapInviteCodeFromSupabase(row))
+  }
+
+  async getInviteCode(id: string): Promise<InviteCode | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('invite_codes')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) return null
+
+    return this.mapInviteCodeFromSupabase(data)
+  }
+
+  async getInviteCodeByCode(code: string): Promise<InviteCode | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const upperCode = code.toUpperCase()
+    const { data, error } = await supabase
+      .from('invite_codes')
+      .select('*')
+      .eq('code', upperCode)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) return null
+
+    return this.mapInviteCodeFromSupabase(data)
+  }
+
+  async addInviteCode(inviteCode: InviteCode): Promise<InviteCode> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const supabaseData = this.mapInviteCodeToSupabase(inviteCode)
+
+    const { data, error } = await supabase
+      .from('invite_codes')
+      .insert(supabaseData as any)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return this.mapInviteCodeFromSupabase(data)
+  }
+
+  async updateInviteCode(id: string, updates: Partial<InviteCode>): Promise<InviteCode> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('invite_codes')
+      // @ts-expect-error - invite_codes table exists but not in generated Supabase types yet
+      .update(this.mapInviteCodeToSupabase(updates))
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return this.mapInviteCodeFromSupabase(data)
+  }
+
+  async deleteInviteCode(id: string): Promise<void> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { error } = await supabase
+      .from('invite_codes')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+  }
+
+  /**
+   * Increment invite code usage count using Postgres function
+   * This bypasses RLS restrictions and allows non-admins to increment usage when joining
+   */
+  async incrementInviteCodeUsage(id: string): Promise<InviteCode> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .rpc('increment_invite_code_usage', { p_invite_code_id: id })
+
+    if (error) throw error
+    if (!data) throw new Error(`Failed to increment invite code usage for ${id}`)
+
+    return this.mapInviteCodeFromSupabase(data)
   }
 
   // ========== USER OPERATIONS ==========
@@ -769,6 +893,38 @@ export class RemoteRepository implements IDataRepository {
       joinedDate: row.joined_date ? new Date(row.joined_date) : new Date(),
       status: row.status ?? 'active'
       // Note: nickname, customRole not in Supabase
+    }
+  }
+
+  // ========== INVITE CODE FIELD MAPPING ==========
+
+  private mapInviteCodeToSupabase(inviteCode: Partial<InviteCode>): Record<string, any> {
+    const result: Record<string, any> = {}
+
+    if (inviteCode.id !== undefined) result.id = inviteCode.id
+    if (inviteCode.bandId !== undefined) result.band_id = inviteCode.bandId
+    if (inviteCode.code !== undefined) result.code = inviteCode.code
+    if (inviteCode.createdBy !== undefined) result.created_by = inviteCode.createdBy
+    if (inviteCode.createdDate !== undefined) result.created_date = inviteCode.createdDate
+    if (inviteCode.expiresAt !== undefined) result.expires_at = inviteCode.expiresAt
+    if (inviteCode.maxUses !== undefined) result.max_uses = inviteCode.maxUses
+    if (inviteCode.currentUses !== undefined) result.current_uses = inviteCode.currentUses
+    if (inviteCode.isActive !== undefined) result.is_active = inviteCode.isActive
+
+    return result
+  }
+
+  private mapInviteCodeFromSupabase(row: any): InviteCode {
+    return {
+      id: row.id,
+      bandId: row.band_id,
+      code: row.code,
+      createdBy: row.created_by,
+      createdDate: new Date(row.created_date),
+      expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
+      maxUses: row.max_uses,
+      currentUses: row.current_uses,
+      isActive: row.is_active
     }
   }
 

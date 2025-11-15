@@ -346,6 +346,8 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
       <div
         ref={setNodeRef}
         style={style}
+        data-testid={`setlist-item-${item.position - 1}`}
+        data-song-id={item.songId}
         className={`flex flex-col bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg group hover:border-[#3a3a3a] transition-colors ${
           isDragging ? 'shadow-lg shadow-black/50' : ''
         }`}
@@ -405,6 +407,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({ item, onRemov
             )}
             <button
               onClick={() => onRemove(item.id)}
+              data-testid={`remove-item-${item.position - 1}`}
               className="sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-[#707070] hover:text-red-500 hover:bg-red-500/10 rounded transition-all"
               title="Remove from Setlist"
             >
@@ -483,7 +486,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
   const songItems = setlist.items.filter((item) => item.type === 'song')
 
   return (
-    <div className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors">
+    <div data-testid={`setlist-card-${setlist.name}`} className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors">
       <div className="flex items-start justify-between mb-3">
         {/* PHASE 2: Sync Icon */}
         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -491,7 +494,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
             <SyncIcon status={syncStatus} size="sm" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-white font-semibold text-base mb-1 truncate">{setlist.name}</h3>
+            <h3 data-testid="setlist-name" className="text-white font-semibold text-base mb-1 truncate">{setlist.name}</h3>
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(setlist.status)}`}>
                 {setlist.status.charAt(0).toUpperCase() + setlist.status.slice(1)}
@@ -523,6 +526,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
                     onEdit(setlist)
                     setShowActions(false)
                   }}
+                  data-testid={`edit-setlist-${setlist.id}`}
                   className="w-full px-3 py-2 text-left text-sm text-white hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
                 >
                   <Edit2 size={14} />
@@ -533,6 +537,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
                     onDuplicate(setlist)
                     setShowActions(false)
                   }}
+                  data-testid={`duplicate-setlist-${setlist.id}`}
                   className="w-full px-3 py-2 text-left text-sm text-white hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
                 >
                   <Copy size={14} />
@@ -544,6 +549,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
                       onArchive(setlist.id)
                       setShowActions(false)
                     }}
+                    data-testid={`archive-setlist-${setlist.id}`}
                     className="w-full px-3 py-2 text-left text-sm text-white hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
                   >
                     <Archive size={14} />
@@ -555,6 +561,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
                     setShowDeleteConfirm(true)
                     setShowActions(false)
                   }}
+                  data-testid={`delete-setlist-${setlist.id}`}
                   className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
                 >
                   <Trash2 size={14} />
@@ -569,11 +576,11 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
       <div className="flex items-center gap-4 text-[#a0a0a0] text-sm mb-3">
         <div className="flex items-center gap-1">
           <Music2 size={14} />
-          <span>{songItems.length} songs</span>
+          <span data-testid={`setlist-song-count-${setlist.id}`}>{songItems.length} songs</span>
         </div>
         <div className="flex items-center gap-1">
           <Clock size={14} />
-          <span>{formatTotalDuration(calculateSetlistDuration(setlist.items))}</span>
+          <span data-testid={`setlist-duration-${setlist.id}`}>{formatTotalDuration(calculateSetlistDuration(setlist.items))}</span>
         </div>
       </div>
 
@@ -603,6 +610,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
           onClick={() => setShowDeleteConfirm(false)}
         >
           <div
+            data-testid="delete-setlist-modal"
             className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] p-6 max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
@@ -613,6 +621,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
+                data-testid="cancel-delete-setlist"
                 className="px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
               >
                 Cancel
@@ -622,6 +631,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
                   onDelete(setlist.id)
                   setShowDeleteConfirm(false)
                 }}
+                data-testid="confirm-delete-setlist"
                 className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
               >
                 Delete
@@ -809,7 +819,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
   const [showDetails, setShowDetails] = useState(false)
 
   return (
-    <div className="fixed inset-0 bg-[#121212] z-50 flex flex-col">
+    <div data-testid="setlist-modal" className="fixed inset-0 bg-[#121212] z-50 flex flex-col">
       {/* Header */}
       <div className="border-b border-[#2a2a2a] bg-[#121212] flex-shrink-0">
         {/* Main header row */}
@@ -830,6 +840,9 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
               </div>
               <input
                 type="text"
+                name="setlistName"
+                id="setlist-name"
+                data-testid="setlist-name-input"
                 value={editedSetlist.name}
                 onChange={(e) => setEditedSetlist({ ...editedSetlist, name: e.target.value })}
                 className="text-base sm:text-xl font-bold text-white bg-transparent border-0 outline-none focus:ring-0 p-0 w-full"
@@ -857,12 +870,14 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
             {/* Desktop: Text buttons */}
             <button
               onClick={onBack}
+              data-testid="cancel-setlist-button"
               className="hidden sm:block px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
+              data-testid="save-setlist-button"
               className="hidden sm:block px-6 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
             >
               Save Setlist
@@ -886,6 +901,9 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
               <div>
                 <label className="block text-xs text-[#a0a0a0] mb-1.5">Status</label>
                 <select
+                  name="status"
+                  id="setlist-status"
+                  data-testid="setlist-status-select"
                   value={editedSetlist.status}
                   onChange={(e) =>
                     setEditedSetlist({
@@ -919,6 +937,9 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
             <div>
               <label className="block text-xs text-[#a0a0a0] mb-1.5">Associated Show</label>
               <select
+                name="associatedShow"
+                id="setlist-show"
+                data-testid="setlist-show-select"
                 value={editedSetlist.associatedShow?.id || ''}
                 onChange={(e) => {
                   const show = availableShows.find((s) => s.id === e.target.value)
@@ -939,6 +960,9 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
               <label className="block text-xs text-[#a0a0a0] mb-1.5">Notes</label>
               <input
                 type="text"
+                name="notes"
+                id="setlist-notes"
+                data-testid="setlist-notes-input"
                 value={editedSetlist.notes}
                 onChange={(e) => setEditedSetlist({ ...editedSetlist, notes: e.target.value })}
                 placeholder="Add notes..."
@@ -954,6 +978,9 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
             <div>
               <label className="block text-xs text-[#a0a0a0] mb-2">Status</label>
               <select
+                name="status"
+                id="setlist-status"
+                data-testid="setlist-status-select"
                 value={editedSetlist.status}
                 onChange={(e) =>
                   setEditedSetlist({
@@ -972,6 +999,9 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
             <div>
               <label className="block text-xs text-[#a0a0a0] mb-2">Associated Show</label>
               <select
+                name="associatedShow"
+                id="setlist-show"
+                data-testid="setlist-show-select"
                 value={editedSetlist.associatedShow?.id || ''}
                 onChange={(e) => {
                   const show = availableShows.find((s) => s.id === e.target.value)
@@ -992,6 +1022,9 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
               <label className="block text-xs text-[#a0a0a0] mb-2">Notes</label>
               <input
                 type="text"
+                name="notes"
+                id="setlist-notes"
+                data-testid="setlist-notes-input"
                 value={editedSetlist.notes}
                 onChange={(e) => setEditedSetlist({ ...editedSetlist, notes: e.target.value })}
                 placeholder="Add notes..."
@@ -1121,7 +1154,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={editedSetlist.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-2">
+                  <div data-testid="setlist-items-list" className="space-y-2">
                     {editedSetlist.items.map((item) => (
                       <SortableSetlistItem
                         key={item.id}
@@ -1183,7 +1216,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
 
               {/* Songs List */}
               <div className="flex-1 overflow-y-auto custom-scrollbar-thin px-6 py-4">
-                <div className="space-y-2">
+                <div data-testid="available-songs-list" className="space-y-2">
                   {filteredSongs.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-[#707070] text-sm">No songs available</p>
@@ -1196,6 +1229,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
                       <button
                         key={song.id}
                         onClick={() => addSongToSetlist(song)}
+                        data-testid={`available-song-${song.id}`}
                         className="w-full flex items-center gap-3 p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg hover:border-[#f17827ff] hover:bg-[#1f1f1f] transition-colors text-left group"
                       >
                         <div
@@ -1726,6 +1760,7 @@ export const SetlistsPage: React.FC = () => {
 
           <button
             onClick={handleCreateNew}
+            data-testid="create-setlist-button"
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
           >
             <Plus size={20} />
@@ -1735,12 +1770,13 @@ export const SetlistsPage: React.FC = () => {
       </div>
 
       {filteredSetlists.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20">
+        <div data-testid="setlist-empty-state" className="flex flex-col items-center justify-center py-20">
           <ListMusic size={64} className="text-[#2a2a2a] mb-4" />
           <h3 className="text-white font-semibold text-lg mb-2">No setlists yet</h3>
           <p className="text-[#707070] text-sm mb-6">Create your first setlist to get started</p>
           <button
             onClick={handleCreateNew}
+            data-testid="create-setlist-button"
             className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
           >
             <Plus size={20} />
@@ -1748,7 +1784,7 @@ export const SetlistsPage: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div data-testid="setlist-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSetlists.map((setlist) => (
             <SetlistCard
               key={setlist.id}

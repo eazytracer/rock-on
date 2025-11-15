@@ -1,7 +1,7 @@
-import { db } from './database'
 import { BandMembership, InviteCode } from '../models/BandMembership'
 import { repository } from './data/RepositoryFactory'
-import { supabase } from './supabase/client'
+import { LocalRepository } from './data/LocalRepository'
+import { RemoteRepository } from './data/RemoteRepository'
 
 export interface CreateInviteCodeRequest {
   bandId: string
@@ -30,7 +30,7 @@ export class BandMembershipService {
     const code = this.generateCode()
 
     // Check if code already exists (very unlikely but possible)
-    const existingCode = await db.inviteCodes.where('code').equals(code).first()
+    const existingCode = await repository.getInviteCodeByCode(code)
     if (existingCode) {
       // Try again with a different code
       return this.createInviteCode(request)
@@ -48,7 +48,7 @@ export class BandMembershipService {
       createdDate: new Date()
     }
 
-    await db.inviteCodes.add(inviteCode)
+    await repository.addInviteCode(inviteCode)
     return inviteCode
   }
 
@@ -56,57 +56,27 @@ export class BandMembershipService {
    * Get all invite codes for a band
    */
   static async getBandInviteCodes(bandId: string): Promise<InviteCode[]> {
-    return db.inviteCodes.where('bandId').equals(bandId).toArray()
+    return repository.getInviteCodes(bandId)
   }
 
   /**
    * Validate an invite code
-   * Queries Supabase (server) first, falls back to IndexedDB for offline support
+   * Uses repository pattern (cloud-first read with local fallback)
    */
   static async validateInviteCode(code: string): Promise<{
     valid: boolean
     inviteCode?: InviteCode
     error?: string
   }> {
-    const upperCode = code.toUpperCase()
-    let inviteCode: InviteCode | null = null
-
-    // Try to query Supabase first (server-side, allows cross-user validation)
-    try {
-      if (supabase) {
-        const { data, error } = await supabase
-          .from('invite_codes')
-          .select('*')
-          .eq('code', upperCode)
-          .eq('is_active', true)
-          .single()
-
-        if (!error && data) {
-          // Map from Supabase snake_case to application camelCase
-          inviteCode = {
-            id: (data as any).id,
-            bandId: (data as any).band_id,
-            code: (data as any).code,
-            createdBy: (data as any).created_by,
-            expiresAt: (data as any).expires_at ? new Date((data as any).expires_at) : undefined,
-            maxUses: (data as any).max_uses,
-            currentUses: (data as any).current_uses,
-            createdDate: new Date((data as any).created_date),
-            isActive: (data as any).is_active
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to query Supabase for invite code, falling back to IndexedDB:', error)
-    }
-
-    // Fallback to IndexedDB if Supabase query failed or returned no results
-    if (!inviteCode) {
-      inviteCode = await db.inviteCodes.where('code').equals(upperCode).first() || null
-    }
+    // Repository handles Supabase-first → IndexedDB fallback automatically
+    const inviteCode = await repository.getInviteCodeByCode(code)
 
     if (!inviteCode) {
       return { valid: false, error: 'Invalid invite code' }
+    }
+
+    if (!inviteCode.isActive) {
+      return { valid: false, error: 'Invite code is no longer active' }
     }
 
     if (inviteCode.expiresAt && inviteCode.expiresAt < new Date()) {
@@ -127,21 +97,30 @@ export class BandMembershipService {
     userId: string,
     code: string
   ): Promise<{ success: boolean; membership?: BandMembership; error?: string }> {
+    console.log('[BandMembershipService] joinBandWithCode called:', { userId, code })
+
     const validation = await this.validateInviteCode(code)
+    console.log('[BandMembershipService] Validation result:', validation)
 
     if (!validation.valid || !validation.inviteCode) {
+      console.log('[BandMembershipService] Validation failed:', validation.error)
       return { success: false, error: validation.error }
     }
 
     const inviteCode = validation.inviteCode
+    console.log('[BandMembershipService] Invite code valid:', inviteCode)
 
     // Check if user is already a member via repository
+    console.log('[BandMembershipService] Checking existing memberships for user:', userId)
     const userMemberships = await repository.getUserMemberships(userId)
+    console.log('[BandMembershipService] User memberships:', userMemberships)
+
     const existingMembership = userMemberships.find(
       (m) => m.bandId === inviteCode.bandId
     )
 
     if (existingMembership) {
+      console.log('[BandMembershipService] User already member')
       return { success: false, error: 'You are already a member of this band' }
     }
 
@@ -156,13 +135,43 @@ export class BandMembershipService {
       permissions: ['member']
     }
 
-    await repository.addBandMembership(membership)
+    console.log('[BandMembershipService] Creating membership:', membership)
+    try {
+      // CRITICAL: Create in Supabase directly (bypass queue)
+      // This ensures the membership exists in Supabase before subsequent queries
+      // We DON'T add to LocalRepository here to avoid duplicates when pullFromRemote runs
+      const remote = new RemoteRepository()
 
-    // Increment invite code usage (still using db.inviteCodes - not yet in repository)
-    await db.inviteCodes.update(inviteCode.id, {
-      currentUses: inviteCode.currentUses + 1
-    })
+      // Create in remote Supabase (synchronously, not queued)
+      await remote.addBandMembership(membership)
+      console.log('[BandMembershipService] Membership created in Supabase')
+    } catch (error) {
+      console.error('[BandMembershipService] Failed to create membership:', error)
+      throw error
+    }
 
+    // Increment invite code usage via repository (uses secure Postgres function)
+    console.log('[BandMembershipService] Incrementing invite code usage')
+    try {
+      await repository.incrementInviteCodeUsage(inviteCode.id)
+      console.log('[BandMembershipService] Invite code usage incremented')
+    } catch (error) {
+      console.error('[BandMembershipService] Failed to increment usage:', error)
+      throw error
+    }
+
+    // Now pull from remote to get the band data
+    // The membership is already in Supabase, so getUserMemberships() will find it
+    console.log('[BandMembershipService] Pulling band data from remote')
+    try {
+      await repository.pullFromRemote(userId)
+      console.log('[BandMembershipService] Band data pulled successfully')
+    } catch (error) {
+      console.error('[BandMembershipService] Failed to pull band data:', error)
+      // Don't fail the join if pull fails - membership is already created
+    }
+
+    console.log('[BandMembershipService] Join successful, returning membership')
     return { success: true, membership }
   }
 
@@ -225,6 +234,6 @@ export class BandMembershipService {
    * Delete an invite code
    */
   static async deleteInviteCode(inviteCodeId: string): Promise<void> {
-    await db.inviteCodes.delete(inviteCodeId)
+    await repository.deleteInviteCode(inviteCodeId)
   }
 }

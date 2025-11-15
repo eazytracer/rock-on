@@ -53,12 +53,18 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
   }
 
   const handleJoin = async () => {
+    console.log('[JoinBandForm] handleJoin called')
+    console.log('[JoinBandForm] user:', user ? { id: user.id, email: user.email } : 'null')
+    console.log('[JoinBandForm] inviteCode:', inviteCode)
+
     if (!user) {
+      console.error('[JoinBandForm] No user - cannot join')
       setError('You must be logged in to join a band')
       return
     }
 
     if (!inviteCode.trim()) {
+      console.error('[JoinBandForm] No invite code provided')
       setError('Please enter an invite code')
       return
     }
@@ -67,20 +73,31 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
     setError(null)
 
     try {
+      console.log('[JoinBandForm] Calling BandMembershipService.joinBandWithCode...')
+      console.log('[JoinBandForm] Parameters:', { userId: user.id, code: inviteCode })
+
       const result = await BandMembershipService.joinBandWithCode(user.id, inviteCode)
 
+      console.log('[JoinBandForm] Result received:', result)
+
       if (!result.success) {
+        console.error('[JoinBandForm] Join failed:', result.error)
         setError(result.error || 'Failed to join band')
         return
       }
 
+      console.log('[JoinBandForm] Join successful!', result.membership)
       if (result.membership) {
         onSuccess?.(result.membership.bandId)
       }
     } catch (err) {
-      console.error('Error joining band:', err)
+      console.error('[JoinBandForm] Exception caught:', err)
+      console.error('[JoinBandForm] Error type:', err?.constructor?.name)
+      console.error('[JoinBandForm] Error message:', err instanceof Error ? err.message : 'Unknown error')
+      console.error('[JoinBandForm] Error stack:', err instanceof Error ? err.stack : 'No stack trace')
       setError(err instanceof Error ? err.message : 'Failed to join band')
     } finally {
+      console.log('[JoinBandForm] Cleaning up, setting loading to false')
       setLoading(false)
     }
   }

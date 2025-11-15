@@ -7,6 +7,21 @@ echo "🚀 Setting up devcontainer..."
 echo "📦 Installing npm global packages..."
 npm install -g @anthropic-ai/claude-code ccusage
 
+# Install Supabase CLI
+echo "🗄️  Installing Supabase CLI..."
+curl -L -o /tmp/supabase.tar.gz "https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz"
+tar -xzf /tmp/supabase.tar.gz -C /tmp
+sudo mv /tmp/supabase /usr/local/bin/
+rm /tmp/supabase.tar.gz
+supabase --version
+echo "✓ Supabase CLI installed"
+
+# Install Vercel CLI
+echo "🔺 Installing Vercel CLI..."
+npm install -g vercel
+vercel --version
+echo "✓ Vercel CLI installed"
+
 # Install Chrome dependencies for headless mode
 echo "🔧 Installing Chrome dependencies..."
 sudo apt-get update

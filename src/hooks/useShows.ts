@@ -13,11 +13,13 @@ export function useShows(bandId: string) {
   const [error, setError] = useState<Error | null>(null)
   const { realtimeManager } = useAuth()
 
-  // Memoize fetchShows to use in effect dependencies
-  const fetchShows = useCallback(async () => {
+  // Memoize fetchShows with optional silent mode (no loading state change)
+  const fetchShows = useCallback(async (silent = false) => {
     try {
-      console.log('[useShows] Fetching shows for band:', bandId)
-      setLoading(true)
+      console.log('[useShows] Fetching shows for band:', bandId, silent ? '(silent)' : '')
+      if (!silent) {
+        setLoading(true)
+      }
       const response = await ShowService.getShows({ bandId })
 
       // Sort by date (ascending)
@@ -32,7 +34,9 @@ export function useShows(bandId: string) {
       console.error('[useShows] Error fetching shows:', err)
       setError(err as Error)
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [bandId])
 
@@ -44,13 +48,13 @@ export function useShows(bandId: string) {
     }
 
     console.log('[useShows] Mounting hook for band:', bandId)
-    fetchShows()
+    fetchShows() // Initial load - show loading state
 
     // Subscribe to sync changes for live updates
     const repo = getSyncRepository()
     const handleSyncChange = () => {
       console.log('[useShows] Sync status changed, refetching...')
-      fetchShows()
+      fetchShows(true) // Silent mode
     }
 
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
@@ -60,7 +64,7 @@ export function useShows(bandId: string) {
       // Only refetch if the change is for the current band
       if (changedBandId === bandId) {
         console.log('[useShows] Realtime change detected for band, refetching...')
-        fetchShows()
+        fetchShows(true) // Silent mode - update list without loading state
       }
     }
 

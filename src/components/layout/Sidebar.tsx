@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-white font-bold text-lg">R</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-white font-semibold text-base leading-tight">
+            <h1 className="text-white font-semibold text-base leading-tight" data-testid="sidebar-band-name">
               {bandName}
             </h1>
             <p className="text-[#707070] text-xs truncate">{userEmail}</p>

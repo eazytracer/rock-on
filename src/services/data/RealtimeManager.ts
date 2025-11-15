@@ -81,13 +81,42 @@ export class RealtimeManager extends EventEmitter {
   private toastBatchTimeout: NodeJS.Timeout | null = null
   private readonly TOAST_BATCH_DELAY = 2000  // 2 seconds
 
+  // Connection tracking for diagnostics
+  private connectionId: string = crypto.randomUUID()
+  private connectionStartTime: number = 0
+  private connectionMetrics = {
+    subscriptionAttempts: 0,
+    subscriptionSuccesses: 0,
+    subscriptionFailures: 0,
+    messagesReceived: 0,
+    lastMessageTime: 0
+  }
+
   constructor() {
     super() // Initialize EventEmitter
 
     // Use the main Supabase client singleton which already has the user's session
     // The session must be set BEFORE creating RealtimeManager
     this.supabase = getSupabaseClient()
-    console.log('🔌 RealtimeManager initialized - using main Supabase client with EventEmitter')
+
+    console.log(`
+┌─────────────────────────────────────────────────────────────┐
+│ 🔌 RealtimeManager Instance Created                         │
+│ Connection ID: ${this.connectionId.substring(0, 8)}...                           │
+│ Timestamp: ${new Date().toISOString()}                      │
+└─────────────────────────────────────────────────────────────┘
+    `)
+    this.logEnvironmentInfo()
+  }
+
+  private logEnvironmentInfo(): void {
+    console.log('[RealtimeManager] Environment:', {
+      userAgent: navigator.userAgent.substring(0, 100) + '...',
+      connectionType: (navigator as any).connection?.effectiveType || 'unknown',
+      online: navigator.onLine,
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+      timestamp: Date.now()
+    })
   }
 
   /**
@@ -96,8 +125,17 @@ export class RealtimeManager extends EventEmitter {
    */
   async subscribeToUserBands(userId: string, bandIds: string[]): Promise<void> {
     this.currentUserId = userId
+    this.connectionStartTime = Date.now()
 
-    console.log(`[RealtimeManager] Subscribing to ${bandIds.length} bands (audit-first)`)
+    console.log(`
+┌─────────────────────────────────────────────────────────────┐
+│ 📡 Subscribing to User Bands                                 │
+│ Connection ID: ${this.connectionId.substring(0, 8)}...                           │
+│ User ID: ${userId.substring(0, 8)}...                                    │
+│ Band Count: ${bandIds.length}                                                │
+│ Band IDs: ${bandIds.map(id => id.substring(0, 8)).join(', ')}           │
+└─────────────────────────────────────────────────────────────┘
+    `)
 
     for (const bandId of bandIds) {
       await this.subscribeToAuditLog(userId, bandId)
@@ -106,7 +144,15 @@ export class RealtimeManager extends EventEmitter {
     // Mark as connected if at least one subscription succeeded
     if (this.channels.size > 0) {
       this.connected = true
-      console.log(`✅ Real-time sync connected (${this.channels.size} channels)`)
+      const elapsed = Date.now() - this.connectionStartTime
+      console.log(`
+✅ Subscription Successful
+   Connection ID: ${this.connectionId.substring(0, 8)}...
+   Time elapsed: ${elapsed}ms
+   Total channels: ${this.channels.size}
+   Successes: ${this.connectionMetrics.subscriptionSuccesses}
+   Failures: ${this.connectionMetrics.subscriptionFailures}
+      `)
     }
   }
 
@@ -115,6 +161,8 @@ export class RealtimeManager extends EventEmitter {
    * This replaces subscribeToBand() which created 4 subscriptions
    */
   private async subscribeToAuditLog(_userId: string, bandId: string): Promise<void> {
+    this.connectionMetrics.subscriptionAttempts++
+
     try {
       const channelName = `audit-${bandId}`
 
@@ -124,7 +172,7 @@ export class RealtimeManager extends EventEmitter {
         return
       }
 
-      console.log(`[RealtimeManager] Subscribing to audit log for band: ${bandId}`)
+      console.log(`[RealtimeManager] Subscribing to audit log for band: ${bandId} (attempt #${this.connectionMetrics.subscriptionAttempts})`)
 
       const channel = this.supabase
         .channel(channelName)
@@ -141,12 +189,18 @@ export class RealtimeManager extends EventEmitter {
         })
         .subscribe(async (status, err) => {
           if (err) {
+            this.connectionMetrics.subscriptionFailures++
             console.error(`❌ Failed to subscribe to ${channelName}:`, err)
+            console.error(`   Connection ID: ${this.connectionId.substring(0, 8)}`)
+            console.error(`   Failures: ${this.connectionMetrics.subscriptionFailures}`)
             this.connected = false
           } else if (status === 'SUBSCRIBED') {
+            this.connectionMetrics.subscriptionSuccesses++
             console.log(`✅ Subscribed to ${channelName} (audit-first)`)
+            console.log(`   Connection ID: ${this.connectionId.substring(0, 8)}`)
             this.connected = true
           } else if (status === 'CHANNEL_ERROR') {
+            this.connectionMetrics.subscriptionFailures++
             console.error(`❌ Channel error for ${channelName}`)
             this.connected = false
           }
@@ -154,6 +208,7 @@ export class RealtimeManager extends EventEmitter {
 
       this.channels.set(channelName, channel)
     } catch (error) {
+      this.connectionMetrics.subscriptionFailures++
       console.error(`Error subscribing to audit_log for band ${bandId}:`, error)
     }
   }
@@ -591,6 +646,10 @@ export class RealtimeManager extends EventEmitter {
    * Single unified handler for all entity types
    */
   private async handleAuditChange(payload: any): Promise<void> {
+    // Track message received
+    this.connectionMetrics.messagesReceived++
+    this.connectionMetrics.lastMessageTime = Date.now()
+
     // Supabase realtime sends: { new: AuditLogEntry, old: ..., eventType: 'INSERT', ... }
     const audit = payload.new as AuditLogEntry
 
@@ -599,11 +658,13 @@ export class RealtimeManager extends EventEmitter {
       return
     }
 
-    console.log(`📡 Received audit event:`, {
+    console.log(`📡 Received audit event (#${this.connectionMetrics.messagesReceived}):`, {
+      connectionId: this.connectionId.substring(0, 8),
       table: audit.table_name,
       action: audit.action,
       user: audit.user_name,
-      recordId: audit.record_id
+      recordId: audit.record_id.substring(0, 8),
+      timeSinceStart: Date.now() - this.connectionStartTime
     })
 
     // Skip if current user made this change (avoid redundant refetches and toasts)
@@ -866,7 +927,15 @@ export class RealtimeManager extends EventEmitter {
     table: string,
     itemName: string
   ): Promise<void> {
-    // Add to pending toasts
+    // DELETE actions get immediate toast (visual change is instant)
+    if (eventType === 'DELETE') {
+      const action = 'deleted'
+      const message = `${userName} ${action} "${itemName}"`
+      this.showToast(message, 'info')
+      return
+    }
+
+    // INSERT/UPDATE actions are batched to avoid spam
     let pending = this.pendingToasts.get(userName)
     if (!pending) {
       pending = {
@@ -1011,6 +1080,34 @@ export class RealtimeManager extends EventEmitter {
    */
   isConnected(): boolean {
     return this.connected
+  }
+
+  /**
+   * Get diagnostics information for debugging
+   * Exposed for manual debugging via window.debugRealtime()
+   */
+  getDiagnostics() {
+    return {
+      connectionId: this.connectionId,
+      uptime: this.connectionStartTime ? Date.now() - this.connectionStartTime : 0,
+      metrics: {
+        ...this.connectionMetrics,
+        messagesPerMinute: this.connectionMetrics.messagesReceived > 0 && this.connectionStartTime > 0
+          ? (this.connectionMetrics.messagesReceived / ((Date.now() - this.connectionStartTime) / 60000)).toFixed(2)
+          : '0.00'
+      },
+      channels: {
+        count: this.channels.size,
+        names: Array.from(this.channels.keys())
+      },
+      state: {
+        connected: this.connected,
+        currentUserId: this.currentUserId?.substring(0, 8) + '...',
+        isOnline: navigator.onLine
+      },
+      pendingToasts: this.pendingToasts.size,
+      timestamp: new Date().toISOString()
+    }
   }
 
   /**
