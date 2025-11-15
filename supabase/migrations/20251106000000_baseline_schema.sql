@@ -440,6 +440,10 @@ BEGIN
 END;
 $$;
 
+ALTER FUNCTION update_updated_date_column() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION update_updated_date_column() TO authenticated;
+COMMENT ON FUNCTION update_updated_date_column() IS 'Update updated_date timestamp - owned by postgres to bypass RLS';
+
 -- Function to increment version on UPDATE (Phase 3)
 CREATE OR REPLACE FUNCTION increment_version()
 RETURNS TRIGGER
@@ -467,7 +471,9 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION increment_version() IS 'Auto-increments version number and updates timestamp on UPDATE operations';
+ALTER FUNCTION increment_version() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION increment_version() TO authenticated;
+COMMENT ON FUNCTION increment_version() IS 'Auto-increments version number and updates timestamp on UPDATE operations - owned by postgres to bypass RLS';
 
 -- Function to set last_modified_by on UPDATE (Phase 4a)
 CREATE OR REPLACE FUNCTION set_last_modified_by()
@@ -482,7 +488,9 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION set_last_modified_by() IS 'Auto-set last_modified_by column on UPDATE';
+ALTER FUNCTION set_last_modified_by() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION set_last_modified_by() TO authenticated;
+COMMENT ON FUNCTION set_last_modified_by() IS 'Auto-set last_modified_by column on UPDATE - owned by postgres to bypass RLS';
 
 -- Function to set created_by on INSERT (Phase 4a)
 CREATE OR REPLACE FUNCTION set_created_by()
@@ -499,7 +507,9 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION set_created_by() IS 'Auto-set created_by column on INSERT if not provided';
+ALTER FUNCTION set_created_by() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION set_created_by() TO authenticated;
+COMMENT ON FUNCTION set_created_by() IS 'Auto-set created_by column on INSERT if not provided - owned by postgres to bypass RLS';
 
 -- Function to log all changes to audit_log (Phase 4a)
 -- Updated to handle NULL band_id for personal songs
@@ -610,7 +620,9 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION log_audit_trail() IS 'Log all INSERT/UPDATE/DELETE operations to audit_log table - handles NULL band_id for personal songs';
+ALTER FUNCTION log_audit_trail() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION log_audit_trail() TO authenticated;
+COMMENT ON FUNCTION log_audit_trail() IS 'Log all INSERT/UPDATE/DELETE operations to audit_log table - handles NULL band_id for personal songs - owned by postgres to bypass RLS';
 
 -- Function to auto-add band creator as admin (from patch 003)
 CREATE OR REPLACE FUNCTION auto_add_band_creator()
@@ -638,7 +650,9 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION auto_add_band_creator() IS 'Automatically add band creator as admin when band is created';
+ALTER FUNCTION auto_add_band_creator() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION auto_add_band_creator() TO authenticated;
+COMMENT ON FUNCTION auto_add_band_creator() IS 'Automatically add band creator as admin when band is created - owned by postgres to bypass RLS';
 
 -- Apply updated_date triggers
 CREATE TRIGGER update_bands_updated_date BEFORE UPDATE ON public.bands
@@ -782,6 +796,65 @@ GRANT EXECUTE ON FUNCTION is_band_member(UUID, UUID) TO authenticated;
 
 COMMENT ON FUNCTION is_band_member IS 'Check if user is band member - uses SECURITY DEFINER owned by postgres to bypass RLS and prevent recursion';
 
+-- Helper function: Check if user belongs to a band (for RLS policies)
+-- Uses SECURITY DEFINER to bypass RLS and prevent recursion
+CREATE OR REPLACE FUNCTION public.user_belongs_to_band(check_band_id uuid, check_user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.band_memberships
+    WHERE band_id = check_band_id
+      AND user_id = check_user_id
+      AND status = 'active'
+  );
+$$;
+
+ALTER FUNCTION public.user_belongs_to_band(uuid, uuid) OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION public.user_belongs_to_band(uuid, uuid) TO authenticated;
+COMMENT ON FUNCTION public.user_belongs_to_band IS 'Security-definer function to check if a user belongs to a band. Used by RLS policies to avoid infinite recursion.';
+
+-- Function: increment_invite_code_usage
+-- Allows authenticated users to increment invite code usage when joining bands
+CREATE OR REPLACE FUNCTION public.increment_invite_code_usage(p_invite_code_id UUID)
+RETURNS invite_codes
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_result invite_codes;
+BEGIN
+  -- Check if user is authenticated
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  -- Increment current_uses atomically
+  UPDATE public.invite_codes
+  SET current_uses = current_uses + 1
+  WHERE id = p_invite_code_id
+    AND is_active = true
+    AND (expires_at IS NULL OR expires_at > NOW())
+    AND (max_uses IS NULL OR current_uses < max_uses)
+  RETURNING * INTO v_result;
+
+  -- Check if update succeeded
+  IF v_result IS NULL THEN
+    RAISE EXCEPTION 'Invite code not found, expired, inactive, or at max uses';
+  END IF;
+
+  RETURN v_result;
+END;
+$$;
+
+ALTER FUNCTION public.increment_invite_code_usage(UUID) OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION public.increment_invite_code_usage(UUID) TO authenticated;
+COMMENT ON FUNCTION public.increment_invite_code_usage(UUID) IS 'Securely increments invite code usage count. Can be called by any authenticated user when joining a band via invite code. Validates code is active, not expired, and under max uses before incrementing.';
+
 -- ============================================================================
 -- SECTION 8: Row-Level Security (RLS) Policies
 -- ============================================================================
@@ -826,6 +899,11 @@ CREATE POLICY "users_update_own"
   USING ((select auth.uid()) = id)
   WITH CHECK ((select auth.uid()) = id);
 
+-- INSERT: Users can only insert their own record during signup
+CREATE POLICY "users_insert_own"
+  ON public.users FOR INSERT TO authenticated
+  WITH CHECK (id = (select auth.uid()));
+
 -- User profiles policies (optimized with subquery)
 CREATE POLICY "user_profiles_select_own"
   ON public.user_profiles FOR SELECT TO authenticated
@@ -845,9 +923,14 @@ CREATE POLICY "bands_insert_any_authenticated"
   ON public.bands FOR INSERT TO authenticated
   WITH CHECK (true);
 
-CREATE POLICY "bands_select_members"
+-- SELECT: Users can see bands they are members of OR bands they created
+-- This fixes the RETURNING clause issue when creating bands
+CREATE POLICY "bands_select_members_or_creator"
   ON public.bands FOR SELECT TO authenticated
-  USING (is_band_member(bands.id, (select auth.uid())));
+  USING (
+    is_band_member(bands.id, (select auth.uid())) OR
+    created_by = (select auth.uid())
+  );
 
 CREATE POLICY "bands_update_admins"
   ON public.bands FOR UPDATE TO authenticated
@@ -857,12 +940,16 @@ CREATE POLICY "bands_update_admins"
 -- CRITICAL: These policies MUST NOT call is_band_member/is_band_admin to avoid infinite recursion
 -- band_memberships is the auth source - it can only use direct auth.uid() checks
 
--- SELECT: Users can only see their own memberships (most secure, non-recursive)
-CREATE POLICY "memberships_select_own"
+-- SELECT: Users can see their own memberships and all members of bands they belong to
+CREATE POLICY "memberships_select_for_band_members"
   ON public.band_memberships FOR SELECT TO authenticated
   USING (
-    user_id = (select auth.uid()) AND
-    status = 'active'
+    -- Can see own memberships
+    user_id = (select auth.uid())
+    OR
+    -- Can see other members for bands you belong to
+    -- Uses SECURITY DEFINER function to avoid infinite recursion
+    public.user_belongs_to_band(band_id, (select auth.uid()))
   );
 
 -- INSERT: Self-join (user adding themselves)

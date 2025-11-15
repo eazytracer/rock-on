@@ -159,8 +159,8 @@ select ok(
 -- ============================================================================
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_select_own'),
-  'memberships_select_own policy should exist (non-recursive)'
+  tests.policy_exists('band_memberships', 'memberships_select_for_band_members'),
+  'memberships_select_for_band_members policy should exist (allows seeing band members)'
 );
 
 select ok(
@@ -188,8 +188,8 @@ select ok(
 -- ============================================================================
 
 select ok(
-  tests.policy_exists('invite_codes', 'invite_codes_select_if_member'),
-  'invite_codes_select_if_member policy should exist'
+  tests.policy_exists('invite_codes', 'invite_codes_select_authenticated'),
+  'invite_codes_select_authenticated policy should exist'
 );
 
 select ok(
