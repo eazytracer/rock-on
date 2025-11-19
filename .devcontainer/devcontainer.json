@@ -7,14 +7,55 @@
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {},
 		"ghcr.io/devcontainers/features/python:1": {},
-		"ghcr.io/va-h/devcontainers-features/uv:1": {}
+		"ghcr.io/va-h/devcontainers-features/uv:1": {},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"moby": false
+		}
 	},
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	// Vite dev server (5173), Chrome debugging (9222), Supabase services (54321-54324)
+	"forwardPorts": [
+		"5173:5173",
+		"9222:9222",
+		"54321:54321",
+		"54322:54322",
+		"54323:54323",
+		"54324:54324"
+	],
+	// Configure port forwarding behavior
+	"portsAttributes": {
+		"5173": {
+			"label": "Vite Dev Server",
+			"onAutoForward": "notify"
+		},
+		"9222": {
+			"label": "Chrome Debug",
+			"onAutoForward": "ignore"
+		},
+		"54321": {
+			"label": "Supabase API",
+			"onAutoForward": "openBrowser",
+			"protocol": "http"
+		},
+		"54322": {
+			"label": "PostgreSQL",
+			"onAutoForward": "silent"
+		},
+		"54323": {
+			"label": "Supabase Studio",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		},
+		"54324": {
+			"label": "Mailpit",
+			"onAutoForward": "silent",
+			"protocol": "http"
+		}
+	},
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "npm install -g @anthropic-ai/claude-code ccusage"
+	"postCreateCommand": "bash .devcontainer/setup.sh"
 	// Configure tool-specific properties.
 	// "customizations": {},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.

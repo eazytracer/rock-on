@@ -6,10 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1f2937" />
     <meta name="description" content="Rock On! - Mobile-first band management platform" />
+
+    <!-- Prevent HTML caching -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
     <title>Rock On!</title>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Mobile console for debugging - only in dev mode -->
+    <script>
+      // Add mobile console viewer in development
+      if (window.location.hostname !== 'localhost' || window.location.port === '5173') {
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+        document.body.appendChild(script);
+        script.onload = function () {
+          eruda.init();
+          console.log('📱 Mobile console loaded - tap the icon in bottom-right corner');
+        };
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

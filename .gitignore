@@ -13,11 +13,16 @@ build/
 *.local
 
 # Environment variables
-.env
+# Ignore active environment (auto-generated)
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+
+# But track environment templates
+!.env.development
+!.env.staging
+!.env.test
+!.env.production
+!.env*.example
+!.env*.template
 
 # Logs
 logs
@@ -130,9 +135,15 @@ docs/build/
 yarn.lock
 pnpm-lock.yaml
 
+# Supabase
+supabase/.temp/
+supabase/.branches/
+.supabase/
+
 # Rock On! specific
 # Add any project-specific files to ignore here
 *.rock-on-backup
 *.band-data
 user-data/
 exports/
+.env.supabase

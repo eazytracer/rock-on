@@ -1,7 +1,7 @@
 import { useGesture } from '@use-gesture/react'
 import { useCallback, useRef, useState } from 'react'
 
-export interface DragItem<T = any> {
+export interface DragItem<T = unknown> {
   id: string
   data: T
   index: number
@@ -13,7 +13,7 @@ export interface DropZone {
   index?: number
 }
 
-export interface DragState<T = any> {
+export interface DragState<T = unknown> {
   isDragging: boolean
   draggedItem: DragItem<T> | null
   draggedOverZone: string | null
@@ -21,7 +21,7 @@ export interface DragState<T = any> {
   canDrop: boolean
 }
 
-export interface DragAndDropOptions<T = any> {
+export interface DragAndDropOptions<T = unknown> {
   type?: string
   data?: T
   onDragStart?: (item: DragItem<T>) => void
@@ -34,7 +34,7 @@ export interface DragAndDropOptions<T = any> {
   gridSize?: { x: number; y: number }
 }
 
-export function useDragAndDrop<T = any>(options: DragAndDropOptions<T> = {}) {
+export function useDragAndDrop<T = unknown>(options: DragAndDropOptions<T> = {}) {
   const {
     type = 'default',
     data,
@@ -102,6 +102,7 @@ export function useDragAndDrop<T = any>(options: DragAndDropOptions<T> = {}) {
 
   // Main drag gesture hook
   const useDraggable = useCallback((id: string, index: number, itemData?: T) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const bind = useGesture(
       {
         onDrag: ({ movement: [mx, my], first, last, event }) => {

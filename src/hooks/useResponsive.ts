@@ -244,9 +244,11 @@ export function useMediaQuery(query: string): boolean {
 
 // Hook for device orientation
 export function useOrientation() {
+  type OrientationType = 'portrait-primary' | 'portrait-secondary' | 'landscape-primary' | 'landscape-secondary'
+
   const [orientation, setOrientation] = useState<{
     angle: number
-    type: 'portrait-primary' | 'portrait-secondary' | 'landscape-primary' | 'landscape-secondary'
+    type: OrientationType
   }>(() => {
     if (typeof window === 'undefined' || !window.screen?.orientation) {
       return { angle: 0, type: 'portrait-primary' }
@@ -254,7 +256,7 @@ export function useOrientation() {
 
     return {
       angle: window.screen.orientation.angle,
-      type: window.screen.orientation.type as any
+      type: window.screen.orientation.type as OrientationType
     }
   })
 
@@ -263,7 +265,7 @@ export function useOrientation() {
       if (window.screen?.orientation) {
         setOrientation({
           angle: window.screen.orientation.angle,
-          type: window.screen.orientation.type as any
+          type: window.screen.orientation.type as OrientationType
         })
       }
     }

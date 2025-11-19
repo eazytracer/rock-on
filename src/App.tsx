@@ -1,147 +1,62 @@
-import React, { Suspense, lazy, useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
-import { BottomNavigation, defaultNavigationItems } from './components/common/BottomNavigation'
+import React, { Suspense, lazy, useEffect, useRef } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ToastProvider, useToast } from './contexts/ToastContext'
+import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
+import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
-import { Header } from './components/common/Header'
-import { Song } from './models/Song'
-import { PracticeSession } from './models/PracticeSession'
-import { Setlist } from './models/Setlist'
-import { Member } from './models/Member'
-import { SetlistSong } from './types'
-import { seedDatabase } from './database/seedData'
-import { songService, memberService, sessionService, setlistService } from './database/services'
+import { AuthCallback } from './pages/auth/AuthCallback'
+import { SessionExpiredModal } from './components/auth/SessionExpiredModal'
 
 // Lazy load pages for better performance
-const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard').then(module => ({ default: module.Dashboard })))
-const Songs = lazy(() => import('./pages/Songs/Songs').then(module => ({ default: module.Songs })))
-const Sessions = lazy(() => import('./pages/Sessions/Sessions').then(module => ({ default: module.Sessions })))
-const SetlistsPage = lazy(() => import('./pages/Setlists/Setlists').then(module => ({ default: module.Setlists })))
+const NewLayout = lazy(() => import('./pages/NewLayout/NewLayout').then(module => ({ default: module.NewLayout })))
+
+// Pages with database integration
+const AuthPages = lazy(() => import('./pages/NewLayout/AuthPages').then(module => ({ default: module.AuthPages })))
+const BandMembersPage = lazy(() => import('./pages/NewLayout/BandMembersPage').then(module => ({ default: module.BandMembersPage })))
+const SongsPageNew = lazy(() => import('./pages/NewLayout/SongsPage').then(module => ({ default: module.SongsPage })))
+const SetlistsPageNew = lazy(() => import('./pages/NewLayout/SetlistsPage').then(module => ({ default: module.SetlistsPage })))
+const ShowsPage = lazy(() => import('./pages/NewLayout/ShowsPage').then(module => ({ default: module.ShowsPage })))
+const PracticesPage = lazy(() => import('./pages/NewLayout/PracticesPage').then(module => ({ default: module.PracticesPage })))
+
+// Dev-only pages
+const DevDashboard = lazy(() => import('./pages/DevDashboard/DevDashboard').then(module => ({ default: module.DevDashboard })))
 
 
 const AppContent: React.FC = () => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [songs, setSongs] = useState<Song[]>([])
-  const [members, setMembers] = useState<Member[]>([])
-  const [sessions, setSessions] = useState<PracticeSession[]>([])
-  const [setlists, setSetlists] = useState<Setlist[]>([])
+  const { syncing, realtimeManager } = useAuth()
+  const { showToast } = useToast()
 
-  // Initialize database and load data
+  // Listen for toast events from RealtimeManager
+  // CRITICAL: We must use a ref to the listener so we can properly clean it up
+  // Using the realtimeManager directly in the dependency causes issues
+  const toastHandlerRef = useRef<((event: { message: string; type: 'info' | 'success' | 'error' }) => void) | null>(null)
+
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        setLoading(true)
-
-        // Seed the database with initial data if it's empty
-        await seedDatabase()
-
-        // Load data from database
-        const [songsData, membersData, sessionsData, setlistsData] = await Promise.all([
-          songService.getAll(),
-          memberService.getAll(),
-          sessionService.getAll(),
-          setlistService.getAll()
-        ])
-
-        setSongs(songsData)
-        setMembers(membersData)
-        setSessions(sessionsData)
-        setSetlists(setlistsData)
-      } catch (error) {
-        console.error('Error initializing app:', error)
-      } finally {
-        setLoading(false)
-      }
+    if (!realtimeManager) {
+      console.warn('[AppContent] No realtimeManager, toast listener not registered')
+      return
     }
 
-    initializeApp()
-  }, [])
+    // Remove old listener if exists
+    if (toastHandlerRef.current) {
+      realtimeManager.off('toast', toastHandlerRef.current)
+    }
 
-  const handleNavigation = (path: string) => {
-    navigate(path)
-  }
+    // Create new listener
+    const handleToast = ({ message, type }: { message: string; type: 'info' | 'success' | 'error' }) => {
+      console.log('[AppContent] Realtime toast received:', message, type)
+      showToast(message, type)
+    }
+    toastHandlerRef.current = handleToast
 
-  // Database handlers
-  const handlers = {
-    onAddSong: async (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel'>) => {
-      try {
-        setLoading(true)
-        await songService.add(songData)
-        const updatedSongs = await songService.getAll()
-        setSongs(updatedSongs)
-      } catch (error) {
-        console.error('Error adding song:', error)
-        throw error
-      } finally {
-        setLoading(false)
-      }
-    },
-    onEditSong: async (songId: string, songData: Partial<Song>) => {
-      try {
-        setLoading(true)
-        await songService.update(songId, songData)
-        const updatedSongs = await songService.getAll()
-        setSongs(updatedSongs)
-      } catch (error) {
-        console.error('Error editing song:', error)
-        throw error
-      } finally {
-        setLoading(false)
-      }
-    },
-    onDeleteSong: async (songId: string) => {
-      try {
-        setLoading(true)
-        await songService.delete(songId)
-        const updatedSongs = await songService.getAll()
-        setSongs(updatedSongs)
-      } catch (error) {
-        console.error('Error deleting song:', error)
-        throw error
-      } finally {
-        setLoading(false)
-      }
-    },
-    onCreateSession: async (sessionData: Omit<PracticeSession, 'id'>) => {
-      try {
-        setLoading(true)
-        await sessionService.add(sessionData)
-        const updatedSessions = await sessionService.getAll()
-        setSessions(updatedSessions)
-      } catch (error) {
-        console.error('Error creating session:', error)
-        throw error
-      } finally {
-        setLoading(false)
-      }
-    },
-    onCreateSetlist: async (setlistData: {
-      name: string
-      songs: SetlistSong[]
-      showDate?: Date
-      venue?: string
-      notes?: string
-    }) => {
-      try {
-        setLoading(true)
-        const fullSetlistData = {
-          ...setlistData,
-          bandId: 'band1', // Default band ID
-          status: 'draft' as const,
-          totalDuration: setlistData.songs.reduce((total, song) => {
-            const foundSong = songs.find(s => s.id === song.songId)
-            return total + (foundSong?.duration || 0)
-          }, 0)
-        }
-        await setlistService.add(fullSetlistData)
-        const updatedSetlists = await setlistService.getAll()
-        setSetlists(updatedSetlists)
-      } catch (error) {
-        console.error('Error creating setlist:', error)
-        throw error
-      } finally {
-        setLoading(false)
+    console.log('[AppContent] Registering toast listener')
+    realtimeManager.on('toast', handleToast)
+
+    return () => {
+      if (realtimeManager && toastHandlerRef.current) {
+        console.log('[AppContent] Unregistering toast listener')
+        realtimeManager.off('toast', toastHandlerRef.current)
       }
     },
     onEditSetlist: async (setlistId: string, setlistData: Partial<Setlist>) => {
@@ -203,84 +118,84 @@ const AppContent: React.FC = () => {
         setLoading(false)
       }
     }
-  }
+  }, [realtimeManager, showToast])
 
   return (
-    <div className="min-h-screen bg-surface pb-20 pt-16">
-      <Header onLogoClick={() => navigate('/')} />
-      <main className="relative">
-        <Suspense fallback={
-          <div className="flex items-center justify-center min-h-screen">
-            <LoadingSpinner size="lg" text="Loading..." />
-          </div>
-        }>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <Dashboard
-                  songs={songs}
-                  sessions={sessions}
-                  setlists={setlists}
-                  members={members}
-                  loading={loading}
-                  onAddSong={() => navigate('/songs')}
-                  onScheduleSession={() => navigate('/sessions')}
-                  onCreateSetlist={() => navigate('/setlists')}
-                  onStartPractice={() => navigate('/sessions')}
-                  onViewSongs={() => navigate('/songs')}
-                  onViewSessions={() => navigate('/sessions')}
-                  onViewSetlists={() => navigate('/setlists')}
-                />
-              }
-            />
-            <Route
-              path="/songs/*"
-              element={
-                <Songs
-                  songs={songs}
-                  loading={loading}
-                  onAddSong={handlers.onAddSong}
-                  onEditSong={handlers.onEditSong}
-                  onDeleteSong={handlers.onDeleteSong}
-                />
-              }
-            />
-            <Route
-              path="/sessions/*"
-              element={
-                <Sessions
-                  sessions={sessions}
-                  songs={songs}
-                  members={members}
-                  loading={loading}
-                  onCreateSession={handlers.onCreateSession}
-                />
-              }
-            />
-            <Route
-              path="/setlists/*"
-              element={
-                <SetlistsPage
-                  setlists={setlists}
-                  songs={songs}
-                  loading={loading}
-                  onCreateSetlist={handlers.onCreateSetlist}
-                  onEditSetlist={handlers.onEditSetlist}
-                  onDeleteSetlist={handlers.onDeleteSetlist}
-                  onDuplicateSetlist={handlers.onDuplicateSetlist}
-                />
-              }
-            />
-          </Routes>
-        </Suspense>
-      </main>
+    <div className="min-h-screen bg-surface">
+      {/* Session expiry modal */}
+      <SessionExpiredModal />
 
-      <BottomNavigation
-        currentPath={location.pathname}
-        onNavigate={handleNavigation}
-        items={defaultNavigationItems}
-      />
+      {/* Sync indicator overlay */}
+      {syncing && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600 text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+          <span>Syncing your data from cloud...</span>
+        </div>
+      )}
+
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingSpinner size="lg" text="Loading..." />
+        </div>
+      }>
+        <Routes>
+          {/* Auth routes - public */}
+          <Route path="/auth" element={<AuthPages />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/get-started" element={<AuthPages />} />
+
+          {/* Protected routes - new database-connected pages (primary) */}
+          <Route
+            path="/songs"
+            element={
+              <ProtectedRoute>
+                <SongsPageNew />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/setlists"
+            element={
+              <ProtectedRoute>
+                <SetlistsPageNew />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shows"
+            element={
+              <ProtectedRoute>
+                <ShowsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practices"
+            element={
+              <ProtectedRoute>
+                <PracticesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/band-members"
+            element={
+              <ProtectedRoute>
+                <BandMembersPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Default route - redirect to songs */}
+          <Route path="/" element={<Navigate to="/songs" replace />} />
+
+          {/* Dev Dashboard - accessible in development only */}
+          <Route path="/dev/dashboard" element={<DevDashboard />} />
+
+          {/* New layout demo route */}
+          <Route path="/new-layout/*" element={<NewLayout />} />
+        </Routes>
+      </Suspense>
     </div>
   )
 }
@@ -288,7 +203,13 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <Router>
-      <AppContent />
+      <AuthProvider>
+        <ToastProvider>
+          <ItemSyncStatusProvider>
+            <AppContent />
+          </ItemSyncStatusProvider>
+        </ToastProvider>
+      </AuthProvider>
     </Router>
   )
 }
