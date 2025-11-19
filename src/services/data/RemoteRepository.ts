@@ -678,15 +678,10 @@ export class RemoteRepository implements IDataRepository {
   async addBandMembership(membership: BandMembership): Promise<BandMembership> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    console.log('[RemoteRepository.addBandMembership] Creating membership:', {
-      id: membership.id,
-      userId: membership.userId,
-      bandId: membership.bandId,
-      status: membership.status
-    })
+    // Removed: console.log with user/band IDs (security)
 
     const mapped = this.mapBandMembershipToSupabase(membership) as any
-    console.log('[RemoteRepository.addBandMembership] Mapped to Supabase:', mapped)
+    // Removed: console.log with membership data (security)
 
     const { data, error } = await supabase
       .from('band_memberships')
@@ -699,7 +694,7 @@ export class RemoteRepository implements IDataRepository {
       throw error
     }
 
-    console.log('[RemoteRepository.addBandMembership] Successfully created:', data)
+    // Removed: console.log with membership data (security)
     return this.mapBandMembershipFromSupabase(data)
   }
 

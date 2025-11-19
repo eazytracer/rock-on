@@ -179,12 +179,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           const needsSync = await repository.isInitialSyncNeeded()
 
           if (needsSync) {
-            console.log('🔄 Initial sync needed on page load - downloading data from cloud...')
+            // Removed: console.log (security)
             setSyncing(true)
 
             try {
               await repository.performInitialSync(storedUserId)
-              console.log('✅ Initial sync complete')
+              // Removed: console.log (security)
             } catch (error) {
               console.error('❌ Initial sync failed:', error)
             } finally {
@@ -203,11 +203,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
           if (bands.length > 0) {
             try {
-              // Add unique tab identifier for multi-session debugging
-              if (!sessionStorage.getItem('tabId')) {
-                sessionStorage.setItem('tabId', crypto.randomUUID())
-              }
-              const tabId = sessionStorage.getItem('tabId')
+              // Removed: tab ID generation (was only used for logging)
 
               // 🔥 SET REALTIME AUTH ON SESSION RESTORATION
               const { getSupabaseClient } = await import('../services/supabase/client')
@@ -215,34 +211,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
               const storedSession = SessionManager.loadSession()
               if (storedSession?.accessToken) {
                 supabase.realtime.setAuth(storedSession.accessToken)
-                console.log(`
-┌─────────────────────────────────────────────────────────────┐
-│ 🔄 Session Restored                                           │
-│ User ID: ${storedUserId.substring(0, 8)}...                   │
-│ Tab ID: ${tabId?.substring(0, 8)}...                          │
-│ Session ID: ${storedSession.accessToken.substring(0, 12)}...  │
-│ Bands: ${bands.length}                                        │
-└─────────────────────────────────────────────────────────────┘
-                `)
+                // Removed: console.log with sensitive data (CRITICAL SECURITY)
               } else {
                 console.warn('⚠️ No session token found - realtime may fail')
               }
 
-              console.log('🔌 Starting real-time WebSocket sync...')
+              // Removed: console.log (security)
               // Only create if doesn't exist yet
               if (!realtimeManagerRef.current) {
-                console.log('[AuthContext] Creating new RealtimeManager instance')
+                // Removed: console.log (security)
                 realtimeManagerRef.current = new RealtimeManager()
                 setupRealtimeDebug(realtimeManagerRef.current)
                 setRealtimeManagerReady(true)
               } else {
-                console.log('[AuthContext] RealtimeManager already exists, reusing')
+                // Removed: console.log (security)
               }
 
               // Subscribe using the manager instance
               const bandIds = bands.map(m => m.bandId)
               await realtimeManagerRef.current.subscribeToUserBands(storedUserId, bandIds)
-              console.log('✅ Real-time sync connected')
+              // Removed: console.log (security)
             } catch (error) {
               console.error('❌ Failed to start real-time sync:', error)
               if (error instanceof Error) {
@@ -280,13 +268,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         const needsSync = await repository.isInitialSyncNeeded()
 
         if (needsSync) {
-          console.log('🔄 Initial sync needed - downloading data from cloud...')
+          // Removed: console.log (security)
           setSyncing(true)
 
           try {
             // Perform initial sync: download all data from Supabase to IndexedDB
             await repository.performInitialSync(userId)
-            console.log('✅ Initial sync complete')
+            // Removed: console.log (security)
           } catch (error) {
             console.error('❌ Initial sync failed:', error)
             // Continue anyway - user can manually refresh or data will sync incrementally
@@ -310,43 +298,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
         if (memberships.length > 0) {
           try {
-            // Add unique tab identifier for multi-session debugging
-            if (!sessionStorage.getItem('tabId')) {
-              sessionStorage.setItem('tabId', crypto.randomUUID())
-            }
-            const tabId = sessionStorage.getItem('tabId')
+            // Removed: tab ID generation (was only used for logging)
 
-            console.log(`
-┌─────────────────────────────────────────────────────────────┐
-│ 🔐 Auth Session Established                                  │
-│ User ID: ${userId.substring(0, 8)}...                        │
-│ Tab ID: ${tabId?.substring(0, 8)}...                          │
-│ Session ID: ${newSession.accessToken.substring(0, 12)}...    │
-│ Bands: ${memberships.length}                                  │
-└─────────────────────────────────────────────────────────────┘
-            `)
+            // Removed: console.log with sensitive data (CRITICAL SECURITY)
 
             // 🔥 SET REALTIME AUTH BEFORE ANY SUBSCRIPTIONS
             const { getSupabaseClient } = await import('../services/supabase/client')
             const supabase = getSupabaseClient()
             supabase.realtime.setAuth(newSession.accessToken)
-            console.log('🔐 Realtime auth configured with user JWT')
+            // Removed: console.log (security)
 
-            console.log('🔌 Starting real-time WebSocket sync...')
+            // Removed: console.log (security)
             // Only create if doesn't exist yet
             if (!realtimeManagerRef.current) {
-              console.log('[AuthContext] Creating new RealtimeManager instance')
+              // Removed: console.log (security)
               realtimeManagerRef.current = new RealtimeManager()
               setupRealtimeDebug(realtimeManagerRef.current)
               setRealtimeManagerReady(true)
             } else {
-              console.log('[AuthContext] RealtimeManager already exists, reusing')
+              // Removed: console.log (security)
             }
 
             // Subscribe using the manager instance
             const bandIds = memberships.map(m => m.bandId)
             await realtimeManagerRef.current.subscribeToUserBands(userId, bandIds)
-            console.log('✅ Real-time sync connected')
+            // Removed: console.log (security)
           } catch (error) {
             console.error('❌ Failed to start real-time sync:', error)
             if (error instanceof Error) {
@@ -356,7 +332,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
 
         // CRITICAL: Signal that auth setup is complete
-        console.log('🎯 Auth setup complete - signaling readiness')
+        // Removed: console.log (security)
         setAuthReady(true)
         if (authReadyResolveRef.current) {
           authReadyResolveRef.current()

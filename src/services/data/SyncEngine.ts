@@ -426,10 +426,10 @@ export class SyncEngine {
       const memberships = await this.remote.getUserMemberships(userId)
       const bandIds = memberships.map(m => m.bandId)
 
-      console.log(`📥 Syncing data for ${bandIds.length} bands`)
+      // Removed: console.log with band count (security)
 
       if (bandIds.length === 0) {
-        console.log('ℹ️ No bands found, skipping entity sync')
+        // Removed: console.log (security)
         await this.markInitialSyncComplete()
         return
       }
@@ -447,7 +447,7 @@ export class SyncEngine {
           totalRecords++
         }
       }
-      console.log(`  ✓ Bands: ${bandIds.length}`)
+      // Removed: console.log with band count (security)
 
       // 0.5. Band Memberships - sync ALL memberships for each band (not just user's own)
       for (const bandId of bandIds) {
@@ -458,7 +458,7 @@ export class SyncEngine {
           })
         }
         totalRecords += bandMemberships.length
-        console.log(`  ✓ Band memberships for ${bandId}: ${bandMemberships.length}`)
+        // Removed: console.log with band ID (security)
       }
 
       // 0.55. Invite Codes - sync all invite codes for each band
@@ -470,7 +470,7 @@ export class SyncEngine {
           })
         }
         totalRecords += inviteCodes.length
-        console.log(`  ✓ Invite codes for ${bandId}: ${inviteCodes.length}`)
+        // Removed: console.log with band ID (security)
       }
 
       // 0.6. Users - sync user profiles for all band members
@@ -496,10 +496,10 @@ export class SyncEngine {
             totalRecords++
           }
         } catch (error) {
-          console.warn(`  ⚠️ Could not fetch user ${uid}:`, error)
+          // Removed: console.warn with user ID (security)
         }
       }
-      console.log(`  ✓ Users: ${allUserIds.size}`)
+      // Removed: console.log with user count (security)
 
       // 1. Songs
       for (const bandId of bandIds) {
@@ -511,7 +511,7 @@ export class SyncEngine {
           })
         }
         totalRecords += songs.length
-        console.log(`  ✓ Songs for band ${bandId}: ${songs.length}`)
+        // Removed: console.log with band ID (security)
       }
 
       // 2. Setlists
@@ -523,7 +523,7 @@ export class SyncEngine {
           })
         }
         totalRecords += setlists.length
-        console.log(`  ✓ Setlists for band ${bandId}: ${setlists.length}`)
+        // Removed: console.log with band ID (security)
       }
 
       // 3. Practice Sessions
@@ -535,7 +535,7 @@ export class SyncEngine {
           })
         }
         totalRecords += practices.length
-        console.log(`  ✓ Practices for band ${bandId}: ${practices.length}`)
+        // Removed: console.log with band ID (security)
       }
 
       // 4. Shows
@@ -548,11 +548,11 @@ export class SyncEngine {
             })
           }
           totalRecords += shows.length
-          console.log(`  ✓ Shows for band ${bandId}: ${shows.length}`)
+          // Removed: console.log with band ID (security)
         } catch (error: any) {
-          // Gracefully handle missing shows table (dev mode)
+          // Gracefully handle missing shows table (dev mode) - silently skip
           if (error?.code === 'PGRST204' || error?.code === 'PGRST205' || error?.message?.includes('Could not find the table')) {
-            console.log(`  ℹ️ Shows table not available in remote database (skipping)`)
+            // Removed: console.log (security)
           } else {
             throw error
           }
@@ -622,7 +622,7 @@ export class SyncEngine {
    * Implements Last-Write-Wins conflict resolution
    */
   async pullFromRemote(userId: string): Promise<void> {
-    console.log('🔄 Pulling changes from remote for user:', userId)
+    // Removed: console.log with user ID (security)
 
     try {
       // Get user's band IDs
@@ -630,7 +630,7 @@ export class SyncEngine {
       const bandIds = memberships.map(m => m.bandId)
 
       if (bandIds.length === 0) {
-        console.log('ℹ️ No bands found, skipping pull')
+        // Removed: console.log (security)
         return
       }
 
