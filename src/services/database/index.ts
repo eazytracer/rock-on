@@ -213,7 +213,7 @@ export class RockOnDB extends Dexie {
 
       // Remove duplicates, keeping the most recent one
       let duplicatesRemoved = 0
-      for (const [key, dupes] of grouped) {
+      for (const [_key, dupes] of grouped) {
         if (dupes.length > 1) {
           // Sort by joinedDate (most recent first)
           dupes.sort((a, b) => {

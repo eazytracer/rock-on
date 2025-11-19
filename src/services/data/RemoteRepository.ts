@@ -829,7 +829,7 @@ export class RemoteRepository implements IDataRepository {
     if (!supabase) throw new Error('Supabase client not initialized')
 
     const { data, error } = await supabase
-      .rpc('increment_invite_code_usage', { p_invite_code_id: id })
+      .rpc('increment_invite_code_usage', { p_invite_code_id: id } as any)
 
     if (error) throw error
     if (!data) throw new Error(`Failed to increment invite code usage for ${id}`)
