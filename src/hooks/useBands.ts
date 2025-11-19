@@ -3,9 +3,99 @@ import { db } from '../services/database'
 import { BandService } from '../services/BandService'
 import { BandMembershipService } from '../services/BandMembershipService'
 import { getSyncRepository } from '../services/data/SyncRepository'
+import { getSupabaseClient } from '../services/supabase/client'
 import type { Band } from '../models/Band'
 import type { BandMembership, InviteCode } from '../models/BandMembership'
 import type { User, UserProfile } from '../models/User'
+
+/**
+ * Helper: Create band directly in Supabase (server-side creation)
+ * This ensures the auto_add_band_creator trigger creates the membership atomically
+ *
+ * NOTE: The trigger uses auth.uid() to determine creator, so we don't set created_by
+ */
+async function createBandInSupabase(bandInput: {
+  name: string
+  description?: string
+  settings?: Record<string, any>
+}): Promise<Band> {
+  const supabase = getSupabaseClient()
+
+  const newBand = {
+    id: crypto.randomUUID(),
+    name: bandInput.name,
+    description: bandInput.description || '',
+    created_date: new Date().toISOString(),
+    updated_date: new Date().toISOString(),
+    settings: bandInput.settings || {}
+  }
+
+  // Use 'as any' to bypass TypeScript's overly strict Supabase types
+  const { data, error } = await supabase
+    .from('bands')
+    .insert(newBand as any)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('[createBandInSupabase] Failed to create band:', error)
+    throw new Error(`Failed to create band: ${error.message}`)
+  }
+
+  if (!data) {
+    throw new Error('Band created but no data returned from Supabase')
+  }
+
+  // Cast to any to work around TypeScript's overly strict types
+  const bandData = data as any
+
+  // Convert snake_case to camelCase for application use
+  return {
+    id: bandData.id,
+    name: bandData.name,
+    description: bandData.description || '',
+    createdDate: new Date(bandData.created_date),
+    memberIds: [], // Not stored in bands table anymore (use band_memberships)
+    settings: bandData.settings || {}
+  }
+}
+
+/**
+ * Helper: Wait for band membership to be created by Supabase trigger and synced to IndexedDB
+ * Polls IndexedDB until membership appears or timeout is reached
+ */
+async function waitForMembership(
+  bandId: string,
+  userId: string,
+  options = { timeout: 5000, interval: 500 }
+): Promise<BandMembership> {
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < options.timeout) {
+    // Check if membership synced to IndexedDB using compound unique index
+    const membership = await db.bandMemberships
+      .where('[userId+bandId]')
+      .equals([userId, bandId])
+      .first()
+
+    if (membership) {
+      console.log('[waitForMembership] Membership found:', membership)
+      return membership
+    }
+
+    // Trigger sync engine to pull from Supabase
+    const repo = getSyncRepository()
+    await repo.syncAll()
+
+    // Wait before retry
+    await new Promise(resolve => setTimeout(resolve, options.interval))
+  }
+
+  throw new Error(
+    `Timeout waiting for band membership (${options.timeout}ms). ` +
+    'The band was created successfully, but membership sync failed. Please refresh the page.'
+  )
+}
 
 /**
  * Hook to fetch a band by ID
@@ -214,6 +304,12 @@ export function useBandInviteCodes(bandId: string) {
 
 /**
  * Hook to create a band
+ *
+ * IMPORTANT: Uses server-side creation pattern to prevent duplicate memberships
+ * - Creates band directly in Supabase (not IndexedDB)
+ * - auto_add_band_creator trigger creates membership atomically
+ * - Polls until membership syncs to IndexedDB
+ * - No manual membership creation (prevents duplicates)
  */
 export function useCreateBand() {
   const [loading, setLoading] = useState(false)
@@ -224,34 +320,45 @@ export function useCreateBand() {
       setLoading(true)
       setError(null)
 
-      // Create band via service
-      const newBand = await BandService.createBand({
+      console.log('[useCreateBand] Creating band in Supabase:', bandData.name)
+
+      // Step 1: Create band directly in Supabase
+      // This triggers auto_add_band_creator which creates the membership
+      // The trigger uses auth.uid() to determine the creator automatically
+      const newBand = await createBandInSupabase({
         name: bandData.name || 'My Band',
         description: bandData.description || '',
         settings: bandData.settings
       })
 
-      // Add owner membership
-      await BandMembershipService.getUserBands(ownerId) // Ensure user context exists
+      console.log('[useCreateBand] Band created in Supabase:', newBand.id)
 
-      // Create owner membership (role is 'admin' but permissions include 'owner')
-      const membership: BandMembership = {
-        id: crypto.randomUUID(),
-        userId: ownerId,
-        bandId: newBand.id,
-        role: 'admin',
-        joinedDate: new Date(),
-        status: 'active',
-        permissions: ['owner', 'admin']
-      }
+      // Step 2: Add band to IndexedDB immediately (don't wait for sync)
+      await db.bands.add({
+        id: newBand.id,
+        name: newBand.name,
+        description: newBand.description,
+        createdDate: newBand.createdDate,
+        memberIds: newBand.memberIds,
+        settings: newBand.settings
+      })
 
-      // Note: BandMembershipService doesn't expose addMembership directly yet
-      // For now, we'll use the repository directly for this operation
-      await db.bandMemberships.add(membership)
+      console.log('[useCreateBand] Band added to IndexedDB')
+
+      // Step 3: Wait for trigger to create membership and sync to IndexedDB
+      // The auto_add_band_creator trigger creates the membership in Supabase
+      // We poll until the sync engine pulls it to IndexedDB
+      console.log('[useCreateBand] Waiting for membership to sync...')
+      await waitForMembership(newBand.id, ownerId, {
+        timeout: 5000,
+        interval: 500
+      })
+
+      console.log('[useCreateBand] Membership synced successfully')
 
       return newBand.id
     } catch (err) {
-      console.error('Error creating band:', err)
+      console.error('[useCreateBand] Error creating band:', err)
       setError(err as Error)
       throw err
     } finally {

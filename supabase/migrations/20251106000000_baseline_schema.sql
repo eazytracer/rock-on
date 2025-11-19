@@ -52,6 +52,43 @@ CREATE TABLE public.users (
   CONSTRAINT users_email_check CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
+-- ============================================================================
+-- CRITICAL: Auto-sync auth.users → public.users
+-- ============================================================================
+-- This trigger ensures every auth.users entry has a matching public.users entry
+-- Prevents FK constraint violations when application-level sync fails (RLS, network, etc.)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.users (id, email, name, created_date, last_login, auth_provider)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    NEW.created_at,
+    NOW(),
+    COALESCE(NEW.raw_app_meta_data->>'provider', 'email')
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    last_login = NOW(),
+    email = EXCLUDED.email,
+    name = COALESCE(EXCLUDED.name, public.users.name),
+    auth_provider = COALESCE(EXCLUDED.auth_provider, public.users.auth_provider);
+
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger on new auth.users inserts (and updates for re-activation)
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT OR UPDATE ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
 -- User profiles (extended information)
 CREATE TABLE public.user_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -144,7 +181,7 @@ CREATE TABLE public.songs (
 
   -- Version tracking & audit (Phase 3)
   version INTEGER DEFAULT 1 NOT NULL,
-  last_modified_by UUID REFERENCES auth.users(id),
+  last_modified_by UUID REFERENCES public.users(id),
 
   CONSTRAINT song_difficulty_check CHECK (difficulty BETWEEN 1 AND 5),
   CONSTRAINT song_confidence_check CHECK (confidence_level BETWEEN 1 AND 5),
@@ -192,7 +229,7 @@ CREATE TABLE public.setlists (
 
   -- Version tracking & audit (Phase 3)
   version INTEGER DEFAULT 1 NOT NULL,
-  last_modified_by UUID REFERENCES auth.users(id),
+  last_modified_by UUID REFERENCES public.users(id),
 
   CONSTRAINT setlist_status_check CHECK (status IN ('draft', 'active', 'archived'))
 );
@@ -225,11 +262,11 @@ CREATE TABLE public.shows (
   status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'confirmed', 'completed', 'cancelled')),
   created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_by UUID NOT NULL REFERENCES auth.users(id),
+  created_by UUID NOT NULL REFERENCES public.users(id),
 
   -- Version tracking & audit (Phase 3)
   version INTEGER DEFAULT 1 NOT NULL,
-  last_modified_by UUID REFERENCES auth.users(id)
+  last_modified_by UUID REFERENCES public.users(id)
 );
 
 -- Practice sessions
@@ -254,7 +291,7 @@ CREATE TABLE public.practice_sessions (
   -- Version tracking & audit (Phase 3)
   -- NOTE: Practice sessions track version and last_modified_by but NOT created_by
   version INTEGER DEFAULT 1 NOT NULL,
-  last_modified_by UUID REFERENCES auth.users(id),
+  last_modified_by UUID REFERENCES public.users(id),
 
   CONSTRAINT session_type_check CHECK (type IN ('rehearsal', 'writing', 'recording', 'audition', 'lesson')),
   CONSTRAINT session_rating_check CHECK (session_rating IS NULL OR (session_rating BETWEEN 1 AND 5))
@@ -341,7 +378,7 @@ CREATE TABLE audit_log (
   action TEXT NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE')),
 
   -- Who changed it
-  user_id UUID REFERENCES auth.users(id),
+  user_id UUID REFERENCES public.users(id),
   user_name TEXT NOT NULL,
 
   -- When it was changed

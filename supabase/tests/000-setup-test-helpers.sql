@@ -60,9 +60,9 @@ begin
     ''
   );
 
-  -- Create user in public schema (application users table)
-  insert into public.users (id, email, name, created_date)
-  values (user_id, email, split_part(email, '@', 1), now());
+  -- NOTE: public.users entry is auto-created by handle_new_user() trigger
+  -- No need to manually insert - trigger handles it automatically
+  -- This ensures tests match production behavior
 
   return user_id;
 end;
