@@ -1,6 +1,5 @@
 import { BandMembership, InviteCode } from '../models/BandMembership'
 import { repository } from './data/RepositoryFactory'
-import { LocalRepository } from './data/LocalRepository'
 import { RemoteRepository } from './data/RemoteRepository'
 
 export interface CreateInviteCodeRequest {
