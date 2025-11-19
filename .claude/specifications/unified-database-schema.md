@@ -204,11 +204,15 @@ All tables with both naming conventions:
 - `status`: 'active' | 'inactive' | 'pending'
 
 **Indexes:**
-- Dexie: `++id, userId, bandId, role, joinedDate, status, *permissions`
+- Dexie: `++id, [userId+bandId], userId, bandId, role, joinedDate, status, *permissions`
+  - **CRITICAL:** `[userId+bandId]` is a compound unique index (Version 8+)
+  - Prevents duplicate memberships for same user+band combination
+  - Mirrors Supabase UNIQUE constraint
 - Supabase: `idx_band_memberships_user_id`, `idx_band_memberships_band_id`, `idx_band_memberships_status`
 
-**Constraints (Supabase only):**
-- UNIQUE(`user_id`, `band_id`) - One membership per user per band
+**Constraints:**
+- **IndexedDB (Version 8+):** Compound unique index on `[userId+bandId]`
+- **Supabase:** UNIQUE(`user_id`, `band_id`) - One membership per user per band
 - FK `user_id` → `users(id)` CASCADE
 - FK `band_id` → `bands(id)` CASCADE
 
