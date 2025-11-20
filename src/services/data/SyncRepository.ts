@@ -396,14 +396,16 @@ export class SyncRepository implements IDataRepository {
 
   async getInviteCodeByCode(code: string): Promise<InviteCode | null> {
     // CRITICAL: Must query Supabase for multi-user validation
-    if (this.isOnline && this.remote) {
-      try {
-        return await this.remote.getInviteCodeByCode(code)
-      } catch (error) {
-        console.warn('[SyncRepository] Remote fetch failed, using local:', error)
-      }
+    // Never use IndexedDB cache for validation - always use source of truth
+
+    try {
+      // Query Supabase ONLY (no fallback to local)
+      return await this.remote.getInviteCodeByCode(code)
+    } catch (error) {
+      // If Supabase query fails, provide helpful error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Cannot validate invite code: ${errorMessage}. Please check your internet connection and try again.`)
     }
-    return this.local.getInviteCodeByCode(code)
   }
 
   async addInviteCode(inviteCode: InviteCode): Promise<InviteCode> {
