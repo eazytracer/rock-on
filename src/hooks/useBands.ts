@@ -5,7 +5,7 @@ import { BandMembershipService } from '../services/BandMembershipService'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import { getSupabaseClient } from '../services/supabase/client'
 import type { Band } from '../models/Band'
-import type { BandMembership, InviteCode } from '../models/BandMembership'
+import type { BandMembership, BandMembershipRow, InviteCode } from '../models/BandMembership'
 import type { User, UserProfile } from '../models/User'
 
 /**
@@ -61,31 +61,56 @@ async function createBandInSupabase(bandInput: {
 }
 
 /**
- * Helper: Wait for band membership to be created by Supabase trigger and synced to IndexedDB
- * Polls IndexedDB until membership appears or timeout is reached
+ * Helper: Wait for band membership to be created by Supabase trigger
+ * Queries Supabase directly (not IndexedDB) to avoid sync race conditions
  */
 async function waitForMembership(
   bandId: string,
   userId: string,
   options = { timeout: 5000, interval: 500 }
 ): Promise<BandMembership> {
+  const supabase = getSupabaseClient()
   const startTime = Date.now()
 
   while (Date.now() - startTime < options.timeout) {
-    // Check if membership synced to IndexedDB using compound unique index
-    const membership = await db.bandMemberships
-      .where('[userId+bandId]')
-      .equals([userId, bandId])
-      .first()
+    // Query Supabase directly for the membership (source of truth)
+    const { data, error } = await supabase
+      .from('band_memberships')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('band_id', bandId)
+      .single()
 
-    if (membership) {
-      console.log('[waitForMembership] Membership found:', membership)
+    if (data) {
+      console.log('[waitForMembership] Membership found in Supabase:', data)
+
+      // Type the Supabase row data properly
+      const row = data as BandMembershipRow
+
+      // Convert snake_case to camelCase for application use
+      const membership: BandMembership = {
+        id: row.id,
+        userId: row.user_id,
+        bandId: row.band_id,
+        role: row.role,
+        joinedDate: new Date(row.joined_date),
+        status: row.status,
+        permissions: row.permissions || []
+      }
+
+      // Add to IndexedDB for caching (fire and forget)
+      db.bandMemberships.put(membership).catch(err => {
+        console.warn('[waitForMembership] Failed to cache membership in IndexedDB:', err)
+      })
+
       return membership
     }
 
-    // Trigger sync engine to pull from Supabase
-    const repo = getSyncRepository()
-    await repo.syncAll()
+    // If error is not "not found", throw immediately
+    if (error && error.code !== 'PGRST116') {
+      console.error('[waitForMembership] Supabase query error:', error)
+      throw new Error(`Failed to query membership: ${error.message}`)
+    }
 
     // Wait before retry
     await new Promise(resolve => setTimeout(resolve, options.interval))
@@ -93,7 +118,8 @@ async function waitForMembership(
 
   throw new Error(
     `Timeout waiting for band membership (${options.timeout}ms). ` +
-    'The band was created successfully, but membership sync failed. Please refresh the page.'
+    'The band was created successfully, but the membership was not created by the database trigger. ' +
+    'Please contact support.'
   )
 }
 
