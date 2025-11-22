@@ -280,6 +280,15 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
       createTestMembership(testIds)
     ])
 
+    vi.spyOn(remoteRepo, 'getBand').mockResolvedValue({
+      id: testIds.band1,
+      name: 'Test Band',
+      createdDate: new Date().toISOString(),
+      updatedDate: new Date().toISOString(),
+    } as any)
+
+    vi.spyOn(remoteRepo, 'getBandMemberships').mockResolvedValue([])
+
     vi.spyOn(remoteRepo, 'getSongs').mockResolvedValue([
       createSupabaseSong(testIds, { id: testIds.song1 })
     ])
@@ -291,6 +300,8 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
     vi.spyOn(remoteRepo, 'getPracticeSessions').mockResolvedValue([
       createTestPractice(testIds)
     ])
+
+    vi.spyOn(remoteRepo, 'getShows').mockResolvedValue([])
 
     syncEngine = new SyncEngine(localRepo, remoteRepo)
   })

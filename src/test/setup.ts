@@ -1,12 +1,34 @@
 import '@testing-library/jest-dom'
 import 'fake-indexeddb/auto'
-import { beforeAll, afterAll, afterEach } from 'vitest'
+import { beforeAll, afterAll, afterEach, vi } from 'vitest'
 import { db } from '../services/database'
 import { resetTestDatabase } from '../../tests/helpers/testDatabase'
 import {
   verifySupabaseSchema,
   isSupabaseAvailable,
 } from '../../tests/helpers/testSupabase'
+
+// Mock fetch for Supabase calls in tests
+global.fetch = vi.fn((url, options) => {
+  // Mock successful empty responses for Supabase endpoints
+  if (typeof url === 'string' && url.includes('supabase')) {
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: new Headers({ 'content-type': 'application/json' }),
+      // Return empty array for list endpoints, null for single item endpoints
+      json: async () => ({ data: [], error: null }),
+      text: async () => JSON.stringify({ data: [], error: null }),
+      blob: async () => new Blob(),
+      arrayBuffer: async () => new ArrayBuffer(0),
+      clone: () => mockResponse,
+    }
+    return Promise.resolve(mockResponse as Response)
+  }
+  // For other URLs, return 404
+  return Promise.reject(new Error(`Unmocked fetch call to ${url}`))
+}) as any
 
 // Global test setup
 beforeAll(async () => {
