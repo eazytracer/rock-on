@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, InputHTMLAttributes } from 'react'
 
-interface SearchBarProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
+interface SearchBarProps
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   value: string
   onChange: (value: string) => void
   onClear?: () => void
@@ -53,20 +54,20 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     'placeholder-gray-500',
     'transition-all duration-200',
     'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-    'disabled:bg-gray-50 disabled:text-gray-500'
+    'disabled:bg-gray-50 disabled:text-gray-500',
   ]
 
-  const focusClasses = isFocused ? 'ring-2 ring-blue-500 border-transparent' : ''
+  const focusClasses = isFocused
+    ? 'ring-2 ring-blue-500 border-transparent'
+    : ''
 
-  const wrapperClasses = [
-    'relative flex items-center w-full'
-  ].join(' ')
+  const wrapperClasses = ['relative flex items-center w-full'].join(' ')
 
   const inputClasses = [
     ...baseClasses,
     focusClasses,
     showClearButton && value ? 'pr-12' : '',
-    className
+    className,
   ].join(' ')
 
   return (

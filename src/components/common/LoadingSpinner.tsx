@@ -13,21 +13,21 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   color = 'primary',
   centered = false,
   text,
-  className = ''
+  className = '',
 }) => {
   const sizeClasses = {
     xs: 'h-3 w-3',
     sm: 'h-4 w-4',
     md: 'h-6 w-6',
     lg: 'h-8 w-8',
-    xl: 'h-12 w-12'
+    xl: 'h-12 w-12',
   }
 
   const colorClasses = {
     primary: 'text-blue-600',
     secondary: 'text-gray-600',
     white: 'text-white',
-    gray: 'text-gray-400'
+    gray: 'text-gray-400',
   }
 
   const textSizeClasses = {
@@ -35,20 +35,20 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     sm: 'text-sm',
     md: 'text-base',
     lg: 'text-lg',
-    xl: 'text-xl'
+    xl: 'text-xl',
   }
 
   const spinnerClasses = [
     'animate-spin',
     sizeClasses[size],
     colorClasses[color],
-    className
+    className,
   ].join(' ')
 
   const wrapperClasses = [
     'flex items-center',
     centered ? 'justify-center' : '',
-    text ? 'space-x-2' : ''
+    text ? 'space-x-2' : '',
   ].join(' ')
 
   const Spinner = () => (
@@ -78,7 +78,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     return (
       <div className={wrapperClasses}>
         <Spinner />
-        <span className={`${textSizeClasses[size]} ${colorClasses[color]} font-medium`}>
+        <span
+          className={`${textSizeClasses[size]} ${colorClasses[color]} font-medium`}
+        >
           {text}
         </span>
       </div>
@@ -96,7 +98,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   return <Spinner />
 }
 
-export const FullPageSpinner: React.FC<{ text?: string }> = ({ text = 'Loading...' }) => (
+export const FullPageSpinner: React.FC<{ text?: string }> = ({
+  text = 'Loading...',
+}) => (
   <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 z-50">
     <div className="flex flex-col items-center space-y-4">
       <LoadingSpinner size="xl" color="primary" />
@@ -105,7 +109,9 @@ export const FullPageSpinner: React.FC<{ text?: string }> = ({ text = 'Loading..
   </div>
 )
 
-export const InlineSpinner: React.FC<{ text?: string }> = ({ text = 'Loading...' }) => (
+export const InlineSpinner: React.FC<{ text?: string }> = ({
+  text = 'Loading...',
+}) => (
   <div className="flex items-center justify-center py-8">
     <LoadingSpinner size="lg" color="primary" text={text} />
   </div>

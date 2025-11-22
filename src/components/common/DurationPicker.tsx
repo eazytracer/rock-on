@@ -15,7 +15,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
   onChange,
   className = '',
   placeholder = 'Select duration',
-  mode = 'duration'
+  mode = 'duration',
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [customDuration, setCustomDuration] = useState('')
@@ -33,13 +33,16 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
     { label: '2 hours', value: 120 },
     { label: '2.5 hours', value: 150 },
     { label: '3 hours', value: 180 },
-    { label: '4 hours', value: 240 }
+    { label: '4 hours', value: 240 },
   ]
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -108,7 +111,8 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
   const applyCustomDuration = () => {
     if (customDuration) {
       const minutes = parseInt(customDuration)
-      if (minutes > 0 && minutes <= 1440) { // Max 24 hours
+      if (minutes > 0 && minutes <= 1440) {
+        // Max 24 hours
         onChange(minutes)
         setIsOpen(false)
         setCustomDuration('')
@@ -127,7 +131,10 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
           <Clock size={16} className="inline mr-2" />
           {formatDuration(value)}
         </span>
-        <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          size={16}
+          className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {isOpen && (
@@ -180,13 +187,15 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
 
               {/* Custom Duration */}
               <div className="pt-3 border-t border-[#2a2a2a]">
-                <div className="text-xs text-[#707070] mb-2 font-medium">Custom Duration (minutes)</div>
+                <div className="text-xs text-[#707070] mb-2 font-medium">
+                  Custom Duration (minutes)
+                </div>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={customDuration}
                     onChange={handleCustomDuration}
-                    onKeyDown={(e) => e.key === 'Enter' && applyCustomDuration()}
+                    onKeyDown={e => e.key === 'Enter' && applyCustomDuration()}
                     placeholder="e.g., 75"
                     className="flex-1 px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded text-white text-sm focus:border-[#f17827ff] focus:outline-none"
                   />
@@ -205,7 +214,9 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
             /* Time Range Mode */
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-[#707070] mb-2 font-medium">Start Time</label>
+                <label className="block text-xs text-[#707070] mb-2 font-medium">
+                  Start Time
+                </label>
                 <TimePicker
                   value={startTime}
                   onChange={setStartTime}
@@ -213,7 +224,9 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#707070] mb-2 font-medium">End Time</label>
+                <label className="block text-xs text-[#707070] mb-2 font-medium">
+                  End Time
+                </label>
                 <TimePicker
                   value={endTime}
                   onChange={setEndTime}
@@ -224,7 +237,10 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
               {startTime && endTime && (
                 <div className="pt-3 border-t border-[#2a2a2a] text-center">
                   <div className="text-sm text-[#a0a0a0]">
-                    Duration: <span className="text-white font-medium">{formatDuration(value)}</span>
+                    Duration:{' '}
+                    <span className="text-white font-medium">
+                      {formatDuration(value)}
+                    </span>
                   </div>
                 </div>
               )}

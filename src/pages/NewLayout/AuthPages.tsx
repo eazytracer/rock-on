@@ -14,7 +14,7 @@ import {
   Settings,
   Check,
   X,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react'
 
 // ============================================================================
@@ -72,22 +72,22 @@ const _MOCK_BANDS: BandDisplay[] = [
     name: 'iPod Shuffle',
     memberCount: 6,
     role: 'Owner',
-    inviteCode: 'ROCK2025'
+    inviteCode: 'ROCK2025',
   },
   {
     id: 'band-2',
     name: 'The Electric Dreams',
     memberCount: 4,
     role: 'Member',
-    inviteCode: 'DREAM99'
+    inviteCode: 'DREAM99',
   },
   {
     id: 'band-3',
     name: 'Midnight Riders',
     memberCount: 5,
     role: 'Owner',
-    inviteCode: 'RIDE42'
-  }
+    inviteCode: 'RIDE42',
+  },
 ]
 
 // ============================================================================
@@ -113,7 +113,8 @@ interface GoogleButtonProps {
 }
 
 const GoogleButton: React.FC<GoogleButtonProps> = ({ onClick, variant }) => {
-  const text = variant === 'signin' ? 'Sign in with Google' : 'Sign up with Google'
+  const text =
+    variant === 'signin' ? 'Sign in with Google' : 'Sign up with Google'
 
   return (
     <button
@@ -122,11 +123,29 @@ const GoogleButton: React.FC<GoogleButtonProps> = ({ onClick, variant }) => {
       className="w-full h-12 bg-white border border-[#2a2a2a] rounded-lg text-[#1a1a1a] font-medium text-base hover:bg-[#f5f5f5] transition-colors flex items-center justify-center gap-3"
     >
       {/* Google Logo SVG */}
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M19.6 10.227c0-.709-.064-1.39-.182-2.045H10v3.868h5.382a4.6 4.6 0 01-1.996 3.018v2.51h3.232c1.891-1.742 2.982-4.305 2.982-7.35z" fill="#4285F4"/>
-        <path d="M10 20c2.7 0 4.964-.895 6.618-2.423l-3.232-2.509c-.895.6-2.04.955-3.386.955-2.605 0-4.81-1.76-5.595-4.123H1.064v2.59A9.996 9.996 0 0010 20z" fill="#34A853"/>
-        <path d="M4.405 11.9c-.2-.6-.314-1.24-.314-1.9 0-.66.114-1.3.314-1.9V5.51H1.064A9.996 9.996 0 000 10c0 1.614.386 3.141 1.064 4.49L4.405 11.9z" fill="#FBBC05"/>
-        <path d="M10 3.977c1.468 0 2.786.505 3.823 1.496l2.868-2.868C14.959.99 12.695 0 10 0 6.09 0 2.71 2.24 1.064 5.51l3.34 2.59C5.192 5.736 7.396 3.977 10 3.977z" fill="#EA4335"/>
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 20 20"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M19.6 10.227c0-.709-.064-1.39-.182-2.045H10v3.868h5.382a4.6 4.6 0 01-1.996 3.018v2.51h3.232c1.891-1.742 2.982-4.305 2.982-7.35z"
+          fill="#4285F4"
+        />
+        <path
+          d="M10 20c2.7 0 4.964-.895 6.618-2.423l-3.232-2.509c-.895.6-2.04.955-3.386.955-2.605 0-4.81-1.76-5.595-4.123H1.064v2.59A9.996 9.996 0 0010 20z"
+          fill="#34A853"
+        />
+        <path
+          d="M4.405 11.9c-.2-.6-.314-1.24-.314-1.9 0-.66.114-1.3.314-1.9V5.51H1.064A9.996 9.996 0 000 10c0 1.614.386 3.141 1.064 4.49L4.405 11.9z"
+          fill="#FBBC05"
+        />
+        <path
+          d="M10 3.977c1.468 0 2.786.505 3.823 1.496l2.868-2.868C14.959.99 12.695 0 10 0 6.09 0 2.71 2.24 1.064 5.51l3.34 2.59C5.192 5.736 7.396 3.977 10 3.977z"
+          fill="#EA4335"
+        />
       </svg>
       {text}
     </button>
@@ -176,14 +195,17 @@ const InputField: React.FC<InputFieldProps> = ({
   showPassword,
   name,
   id,
-  'data-testid': dataTestId
+  'data-testid': dataTestId,
 }) => {
   // Generate id from name if not provided (for label association)
   const inputId = id || name
 
   return (
     <div className="mb-4">
-      <label htmlFor={inputId} className="block text-sm font-medium text-white mb-2">
+      <label
+        htmlFor={inputId}
+        className="block text-sm font-medium text-white mb-2"
+      >
         {label}
       </label>
       <div className="relative">
@@ -198,16 +220,17 @@ const InputField: React.FC<InputFieldProps> = ({
           data-testid={dataTestId}
           type={showPasswordToggle && showPassword ? 'text' : type}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className={`
             w-full h-11 ${icon ? 'pl-11' : 'pl-4'} ${showPasswordToggle ? 'pr-11' : 'pr-4'}
             bg-[#1a1a1a] border rounded-lg text-white text-sm
             placeholder-[#707070] transition-colors
             focus:outline-none focus:ring-2
-            ${error
-              ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
-              : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
+            ${
+              error
+                ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
+                : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
             }
           `}
         />
@@ -250,14 +273,18 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   disabled = false,
   loading = false,
-  'data-testid': dataTestId
+  'data-testid': dataTestId,
 }) => {
-  const baseStyles = 'h-11 px-6 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2'
+  const baseStyles =
+    'h-11 px-6 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2'
 
   const variants = {
-    primary: 'bg-[#f17827ff] text-white hover:bg-[#d96a1f] disabled:bg-[#f17827ff]/50 disabled:cursor-not-allowed',
-    secondary: 'bg-transparent border border-[#2a2a2a] text-white hover:bg-[#1f1f1f] disabled:opacity-50 disabled:cursor-not-allowed',
-    danger: 'bg-[#D7263D] text-white hover:bg-[#b51f31] disabled:bg-[#D7263D]/50 disabled:cursor-not-allowed'
+    primary:
+      'bg-[#f17827ff] text-white hover:bg-[#d96a1f] disabled:bg-[#f17827ff]/50 disabled:cursor-not-allowed',
+    secondary:
+      'bg-transparent border border-[#2a2a2a] text-white hover:bg-[#1f1f1f] disabled:opacity-50 disabled:cursor-not-allowed',
+    danger:
+      'bg-[#D7263D] text-white hover:bg-[#b51f31] disabled:bg-[#D7263D]/50 disabled:cursor-not-allowed',
   }
 
   return (
@@ -295,11 +322,13 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
   const colors = {
     success: 'bg-[#4ade80] border-[#4ade80]/20',
     error: 'bg-[#D7263D] border-[#D7263D]/20',
-    info: 'bg-[#3b82f6] border-[#3b82f6]/20'
+    info: 'bg-[#3b82f6] border-[#3b82f6]/20',
   }
 
   return (
-    <div className={`fixed top-6 right-6 ${colors[type]} text-white px-4 py-3 rounded-lg border shadow-lg z-50 animate-slide-in-right`}>
+    <div
+      className={`fixed top-6 right-6 ${colors[type]} text-white px-4 py-3 rounded-lg border shadow-lg z-50 animate-slide-in-right`}
+    >
       <div className="flex items-center gap-2">
         {type === 'success' && <Check size={18} />}
         {type === 'error' && <X size={18} />}
@@ -372,7 +401,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
         const { error } = await signUp({
           email,
           password,
-          name: displayName
+          name: displayName,
         })
 
         if (error) {
@@ -424,7 +453,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
             <span className="text-white font-bold text-2xl">R</span>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-[#a0a0a0] text-sm">Join Rock-On and start managing your band</p>
+          <p className="text-[#a0a0a0] text-sm">
+            Join Rock-On and start managing your band
+          </p>
         </div>
 
         {/* Form Card */}
@@ -490,7 +521,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
               icon={<Lock size={18} />}
               showPasswordToggle
               showPassword={showConfirmPassword}
-              onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+              onTogglePassword={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
             />
 
             <Button type="submit" variant="primary" fullWidth loading={loading}>
@@ -503,7 +536,8 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
               onClick={onSwitchToLogin}
               className="text-sm text-[#f17827ff] hover:text-[#d96a1f] transition-colors"
             >
-              Already have an account? <span className="font-semibold">Log in</span>
+              Already have an account?{' '}
+              <span className="font-semibold">Log in</span>
             </button>
           </div>
         </div>
@@ -517,7 +551,10 @@ interface LoginPageProps {
   onSwitchToSignup: () => void
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchToSignup }) => {
+const LoginPage: React.FC<LoginPageProps> = ({
+  onSuccess: _onSuccess,
+  onSwitchToSignup,
+}) => {
   const navigate = useNavigate()
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
@@ -604,7 +641,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
       // Sign in with Supabase (this will trigger all the auth syncing)
       const { error } = await signIn({
         email: mockEmail,
-        password: 'test123'
+        password: 'test123',
       })
 
       if (error) {
@@ -635,7 +672,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
             <span className="text-white font-bold text-2xl">R</span>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-[#a0a0a0] text-sm">Log in to continue to Rock-On</p>
+          <p className="text-[#a0a0a0] text-sm">
+            Log in to continue to Rock-On
+          </p>
         </div>
 
         {/* Form Card */}
@@ -704,7 +743,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
 
           {showMockUsers && import.meta.env.MODE === 'development' && (
             <div className="mt-4 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-              <p className="text-xs text-[#707070] mb-3">Quick login with test users:</p>
+              <p className="text-xs text-[#707070] mb-3">
+                Quick login with test users:
+              </p>
               <div className="space-y-2">
                 <Button
                   variant="secondary"
@@ -739,7 +780,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSuccess: _onSuccess, onSwitchTo
               onClick={onSwitchToSignup}
               className="text-sm text-[#f17827ff] hover:text-[#d96a1f] transition-colors"
             >
-              Don't have an account? <span className="font-semibold">Sign up</span>
+              Don't have an account?{' '}
+              <span className="font-semibold">Sign up</span>
             </button>
           </div>
 
@@ -764,7 +806,10 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
   const [inviteCode, setInviteCode] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [toast, setToast] = useState<{
+    message: string
+    type: 'success' | 'error' | 'info'
+  } | null>(null)
 
   // PHASE 2 DATABASE INTEGRATION: Use the createBand hook
   const { createBand } = useCreateBand()
@@ -811,7 +856,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
       const inviteCode = await BandMembershipService.createInviteCode({
         bandId,
         createdBy: user.id,
-        maxUses: 999 // Allow many uses
+        maxUses: 999, // Allow many uses
       })
 
       // Store bandId in localStorage as currentBandId
@@ -823,7 +868,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
       setLoading(false)
       setToast({
         message: `Band created! Share this invite code: ${inviteCode.code}`,
-        type: 'success'
+        type: 'success',
       })
       setTimeout(() => {
         navigate('/songs')
@@ -836,7 +881,10 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
   }
 
   const handleJoinBand = async () => {
-    console.log('[handleJoinBand] Starting join flow:', { inviteCode, user: user?.id })
+    console.log('[handleJoinBand] Starting join flow:', {
+      inviteCode,
+      user: user?.id,
+    })
 
     if (!inviteCode) {
       setErrors({ inviteCode: 'Invite code is required' })
@@ -853,7 +901,10 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
       console.log('[handleJoinBand] Calling joinBandWithCode')
       // Join band using service (validates code, creates membership, increments usage)
-      const result = await BandMembershipService.joinBandWithCode(user.id, inviteCode)
+      const result = await BandMembershipService.joinBandWithCode(
+        user.id,
+        inviteCode
+      )
       console.log('[handleJoinBand] Join result:', result)
 
       if (!result.success) {
@@ -878,7 +929,9 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
       // Get band name for toast message (query via repository to ensure we have it)
       console.log('[handleJoinBand] Fetching band details')
-      const { repository } = await import('../../services/data/RepositoryFactory')
+      const { repository } = await import(
+        '../../services/data/RepositoryFactory'
+      )
       const band = await repository.getBand(bandId)
       console.log('[handleJoinBand] Band details:', band)
 
@@ -886,7 +939,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
       console.log('[handleJoinBand] Showing success toast')
       setToast({
         message: `You joined ${band?.name || 'the band'}!`,
-        type: 'success'
+        type: 'success',
       })
       console.log('[handleJoinBand] Navigating to /songs in 2 seconds')
       setTimeout(() => {
@@ -913,8 +966,12 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-white mb-3">Get Started with Rock-On</h1>
-          <p className="text-[#a0a0a0] text-base">Create your first band or join an existing one</p>
+          <h1 className="text-3xl font-bold text-white mb-3">
+            Get Started with Rock-On
+          </h1>
+          <p className="text-[#a0a0a0] text-base">
+            Create your first band or join an existing one
+          </p>
         </div>
 
         {/* Cards */}
@@ -925,8 +982,12 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-[#f17827ff]/10 rounded-full mb-4">
                 <Users size={24} className="text-[#f17827ff]" />
               </div>
-              <h2 className="text-xl font-bold text-white mb-2">Create Your First Band</h2>
-              <p className="text-[#a0a0a0] text-sm">Start your own band and invite members</p>
+              <h2 className="text-xl font-bold text-white mb-2">
+                Create Your First Band
+              </h2>
+              <p className="text-[#a0a0a0] text-sm">
+                Start your own band and invite members
+              </p>
             </div>
 
             <InputField
@@ -936,7 +997,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
               data-testid="create-band-name-input"
               type="text"
               value={bandName}
-              onChange={(value) => {
+              onChange={value => {
                 setBandName(value)
                 setErrors({})
               }}
@@ -961,12 +1022,19 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-[#f17827ff]/10 rounded-full mb-4">
                 <Ticket size={24} className="text-[#f17827ff]" />
               </div>
-              <h2 className="text-xl font-bold text-white mb-2">Join an Existing Band</h2>
-              <p className="text-[#a0a0a0] text-sm">Enter an invite code from your bandmates</p>
+              <h2 className="text-xl font-bold text-white mb-2">
+                Join an Existing Band
+              </h2>
+              <p className="text-[#a0a0a0] text-sm">
+                Enter an invite code from your bandmates
+              </p>
             </div>
 
             <div className="mb-4">
-              <label htmlFor="invite-code" className="block text-sm font-medium text-white mb-2">
+              <label
+                htmlFor="invite-code"
+                className="block text-sm font-medium text-white mb-2"
+              >
                 Invite Code
               </label>
               <input
@@ -975,7 +1043,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
                 name="inviteCode"
                 data-testid="join-band-invite-code-input"
                 value={inviteCode}
-                onChange={(e) => {
+                onChange={e => {
                   setInviteCode(e.target.value.toUpperCase())
                   setErrors({})
                 }}
@@ -985,9 +1053,10 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
                   font-mono text-center tracking-wider uppercase
                   placeholder-[#707070] transition-colors
                   focus:outline-none focus:ring-2
-                  ${errors.inviteCode
-                    ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
-                    : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
+                  ${
+                    errors.inviteCode
+                      ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
+                      : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
                   }
                 `}
               />
@@ -1014,7 +1083,9 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
         {/* Helper Text */}
         <div className="mt-8 text-center">
           <p className="text-[#707070] text-sm">
-            Try using invite code <span className="font-mono text-[#f17827ff]">ROCK2025</span> to join iPod Shuffle
+            Try using invite code{' '}
+            <span className="font-mono text-[#f17827ff]">ROCK2025</span> to join
+            iPod Shuffle
           </p>
         </div>
       </div>
@@ -1034,13 +1105,20 @@ interface UserMenuDropdownProps {
 
 // Component reserved for future use
 // @ts-ignore - Intentionally unused
-const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onAccountSettings, onLogout }) => {
+const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({
+  user,
+  onAccountSettings,
+  onLogout,
+}) => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -1079,7 +1157,9 @@ const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onAccountSet
         <div className="absolute top-full right-0 mt-2 w-64 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl z-50">
           {/* User Info */}
           <div className="px-4 py-3 border-b border-[#2a2a2a]">
-            <p className="text-white font-semibold text-sm">{user.displayName}</p>
+            <p className="text-white font-semibold text-sm">
+              {user.displayName}
+            </p>
             <p className="text-[#707070] text-xs mt-1">{user.email}</p>
           </div>
 
@@ -1129,14 +1209,17 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
   onSwitchBand,
   onManageBand,
   onCreateBand,
-  onJoinBand
+  onJoinBand,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -1156,7 +1239,12 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 hover:bg-[#1f1f1f] px-3 py-2 rounded-lg transition-colors"
       >
-        <span className="text-white font-semibold text-base" data-testid="sidebar-band-name">{currentBand.name}</span>
+        <span
+          className="text-white font-semibold text-base"
+          data-testid="sidebar-band-name"
+        >
+          {currentBand.name}
+        </span>
         <ChevronDown size={18} className="text-[#a0a0a0]" />
       </button>
 
@@ -1166,10 +1254,12 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
           {bands.length > 1 && (
             <>
               <div className="px-4 py-2 border-b border-[#2a2a2a]">
-                <p className="text-[#707070] text-xs font-semibold uppercase tracking-wider">Your Bands</p>
+                <p className="text-[#707070] text-xs font-semibold uppercase tracking-wider">
+                  Your Bands
+                </p>
               </div>
               <div className="py-2">
-                {bands.map((band) => (
+                {bands.map(band => (
                   <button
                     key={band.id}
                     onClick={() => {
@@ -1183,7 +1273,9 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
                   >
                     <div className="flex-1 text-left">
                       <div className="flex items-center gap-2">
-                        <span className="text-white font-medium text-sm">{band.name}</span>
+                        <span className="text-white font-medium text-sm">
+                          {band.name}
+                        </span>
                         {band.id === currentBand.id && (
                           <Check size={16} className="text-[#f17827ff]" />
                         )}
@@ -1250,7 +1342,11 @@ interface CreateBandModalProps {
 
 // Component reserved for future use
 // @ts-ignore - Intentionally unused
-const _CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const _CreateBandModal: React.FC<CreateBandModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}) => {
   const [bandName, setBandName] = useState('')
   const [description, setDescription] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
@@ -1280,7 +1376,10 @@ const _CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onS
         throw new Error('No user logged in')
       }
 
-      const bandId = await createBand({ name: bandName, description }, currentUserId)
+      const bandId = await createBand(
+        { name: bandName, description },
+        currentUserId
+      )
 
       if (!bandId) {
         throw new Error('Failed to create band')
@@ -1290,7 +1389,7 @@ const _CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onS
       await BandMembershipService.createInviteCode({
         bandId,
         createdBy: currentUserId,
-        maxUses: 999
+        maxUses: 999,
       })
 
       setLoading(false)
@@ -1314,7 +1413,7 @@ const _CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onS
           label="Band Name"
           type="text"
           value={bandName}
-          onChange={(value) => {
+          onChange={value => {
             setBandName(value)
             setErrors({})
           }}
@@ -1328,7 +1427,7 @@ const _CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onS
           </label>
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={e => setDescription(e.target.value)}
             placeholder="Tell us about your band..."
             rows={3}
             className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 focus:border-[#f17827ff] resize-none"
@@ -1339,7 +1438,12 @@ const _CreateBandModal: React.FC<CreateBandModalProps> = ({ isOpen, onClose, onS
           <Button variant="secondary" fullWidth onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" fullWidth onClick={handleSubmit} loading={loading}>
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={handleSubmit}
+            loading={loading}
+          >
             Create Band
           </Button>
         </div>
@@ -1356,7 +1460,11 @@ interface JoinBandModalProps {
 
 // Component reserved for future use
 // @ts-ignore - Intentionally unused
-const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const _JoinBandModal: React.FC<JoinBandModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}) => {
   const [inviteCode, setInviteCode] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
@@ -1387,7 +1495,9 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSucce
         // Validation checks
         if (foundCode.maxUses && foundCode.currentUses >= foundCode.maxUses) {
           setLoading(false)
-          setErrors({ inviteCode: 'This invite code has reached its maximum uses' })
+          setErrors({
+            inviteCode: 'This invite code has reached its maximum uses',
+          })
           return
         }
 
@@ -1420,12 +1530,12 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSucce
           role: 'member',
           joinedDate: new Date(),
           status: 'active',
-          permissions: ['member']
+          permissions: ['member'],
         })
 
         // Increment uses
         await db.inviteCodes.update(foundCode.id, {
-          currentUses: foundCode.currentUses + 1
+          currentUses: foundCode.currentUses + 1,
         })
 
         // Get band name
@@ -1458,7 +1568,7 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSucce
           <input
             type="text"
             value={inviteCode}
-            onChange={(e) => {
+            onChange={e => {
               setInviteCode(e.target.value.toUpperCase())
               setErrors({})
             }}
@@ -1468,9 +1578,10 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSucce
               font-mono text-center tracking-wider uppercase
               placeholder-[#707070] transition-colors
               focus:outline-none focus:ring-2
-              ${errors.inviteCode
-                ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
-                : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
+              ${
+                errors.inviteCode
+                  ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
+                  : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
               }
             `}
           />
@@ -1486,7 +1597,12 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSucce
           <Button variant="secondary" fullWidth onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" fullWidth onClick={handleSubmit} loading={loading}>
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={handleSubmit}
+            loading={loading}
+          >
             Join Band
           </Button>
         </div>
@@ -1506,7 +1622,10 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({ isOpen, onClose, onSucce
 export const AuthPages: React.FC = () => {
   const location = useLocation()
   const [showSignup, setShowSignup] = useState(false)
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [toast, setToast] = useState<{
+    message: string
+    type: 'success' | 'error' | 'info'
+  } | null>(null)
 
   // Route based on URL path and query params
   const currentPath = location.pathname
@@ -1521,11 +1640,14 @@ export const AuthPages: React.FC = () => {
       // Map error codes to user-friendly messages
       let displayMessage = errorMessage
       if (errorMessage === 'no_auth_code') {
-        displayMessage = 'Sign-in was cancelled or incomplete. Please try again.'
+        displayMessage =
+          'Sign-in was cancelled or incomplete. Please try again.'
       } else if (errorMessage === 'oauth_not_configured') {
-        displayMessage = 'OAuth is not configured in development mode. Please use email/password sign-in.'
+        displayMessage =
+          'OAuth is not configured in development mode. Please use email/password sign-in.'
       } else if (errorMessage === 'no_session') {
-        displayMessage = 'Failed to create session. Please try signing in again.'
+        displayMessage =
+          'Failed to create session. Please try signing in again.'
       } else if (errorMessage === 'unexpected_error') {
         displayMessage = 'An unexpected error occurred. Please try again.'
       }
@@ -1553,9 +1675,7 @@ export const AuthPages: React.FC = () => {
     return (
       <>
         {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-        <SignUpPage
-          onSwitchToLogin={() => setShowSignup(false)}
-        />
+        <SignUpPage onSwitchToLogin={() => setShowSignup(false)} />
       </>
     )
   }
@@ -1565,7 +1685,9 @@ export const AuthPages: React.FC = () => {
     <>
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
       <LoginPage
-        onSuccess={() => {/* Navigate handled in LoginPage */}}
+        onSuccess={() => {
+          /* Navigate handled in LoginPage */
+        }}
         onSwitchToSignup={() => setShowSignup(true)}
       />
     </>

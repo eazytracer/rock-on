@@ -23,37 +23,37 @@ export const TouchButton: React.FC<TouchButtonProps> = ({
     'font-medium rounded-lg transition-all duration-200',
     'focus:outline-none focus:ring-2 focus:ring-offset-2',
     'active:scale-95 touch-manipulation',
-    'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100'
+    'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
   ]
 
   const variantClasses = {
     primary: [
       'bg-energy-orange text-white',
       'hover:bg-energy-orange/90 focus:ring-energy-orange',
-      'active:bg-energy-orange/80'
+      'active:bg-energy-orange/80',
     ],
     secondary: [
       'bg-smoke-white text-steel-gray border border-steel-gray',
       'hover:bg-steel-gray hover:text-smoke-white focus:ring-steel-gray',
-      'active:bg-steel-gray/80'
+      'active:bg-steel-gray/80',
     ],
     danger: [
       'bg-amp-red text-white',
       'hover:bg-amp-red/90 focus:ring-amp-red',
-      'active:bg-amp-red/80'
+      'active:bg-amp-red/80',
     ],
     ghost: [
       'bg-transparent text-steel-gray border border-steel-gray/30',
       'hover:bg-steel-gray/10 focus:ring-steel-gray',
-      'active:bg-steel-gray/20'
-    ]
+      'active:bg-steel-gray/20',
+    ],
   }
 
   const sizeClasses = {
     sm: 'min-h-[44px] px-3 py-2 text-sm',
     md: 'min-h-[48px] px-4 py-3 text-base',
     lg: 'min-h-[52px] px-6 py-4 text-lg',
-    xl: 'min-h-[56px] px-8 py-4 text-xl'
+    xl: 'min-h-[56px] px-8 py-4 text-xl',
   }
 
   const widthClasses = fullWidth ? 'w-full' : ''
@@ -63,15 +63,11 @@ export const TouchButton: React.FC<TouchButtonProps> = ({
     ...variantClasses[variant],
     sizeClasses[size],
     widthClasses,
-    className
+    className,
   ].join(' ')
 
   return (
-    <button
-      className={allClasses}
-      disabled={disabled || loading}
-      {...props}
-    >
+    <button className={allClasses} disabled={disabled || loading} {...props}>
       {loading && (
         <svg
           className="animate-spin -ml-1 mr-3 h-5 w-5"

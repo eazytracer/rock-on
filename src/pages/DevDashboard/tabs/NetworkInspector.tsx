@@ -23,7 +23,7 @@ export const NetworkInspector: React.FC = () => {
     websocketConnected: false,
     lastHeartbeat: null,
     connectionErrors: [],
-    uptime: 0
+    uptime: 0,
   })
   const [isSimulatingOffline, setIsSimulatingOffline] = useState(false)
 
@@ -34,7 +34,7 @@ export const NetworkInspector: React.FC = () => {
       websocketConnected: isOnline && !isSyncing,
       lastHeartbeat: lastSyncTime || null,
       connectionErrors: [],
-      uptime: 0
+      uptime: 0,
     })
   }, [isOnline, isSyncing, lastSyncTime])
 
@@ -42,18 +42,22 @@ export const NetworkInspector: React.FC = () => {
     // TODO: Implement actual offline simulation
     // This would disconnect WebSocket and prevent HTTP requests
     setIsSimulatingOffline(!isSimulatingOffline)
-    alert('Offline simulation not yet implemented. This will disconnect WebSocket and queue operations.')
+    alert(
+      'Offline simulation not yet implemented. This will disconnect WebSocket and queue operations.'
+    )
   }
 
   const forceReconnect = () => {
     // TODO: Implement WebSocket reconnection
-    alert('Force reconnect not yet implemented. This will close and reopen the WebSocket connection.')
+    alert(
+      'Force reconnect not yet implemented. This will close and reopen the WebSocket connection.'
+    )
   }
 
   const clearConnectionErrors = () => {
     setConnectionStatus(prev => ({
       ...prev,
-      connectionErrors: []
+      connectionErrors: [],
     }))
   }
 
@@ -79,16 +83,24 @@ export const NetworkInspector: React.FC = () => {
         <>
           {/* Connection Status */}
           <div className="bg-white rounded-lg border border-divider p-6 mb-6">
-            <h3 className="text-lg font-medium text-text mb-4">Connection Status</h3>
+            <h3 className="text-lg font-medium text-text mb-4">
+              Connection Status
+            </h3>
 
             <div className="grid grid-cols-2 gap-6">
               {/* WebSocket Status */}
               <div>
                 <div className="text-sm text-muted mb-2">WebSocket</div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${connectionStatus.websocketConnected ? 'bg-success animate-pulse' : 'bg-error'}`} />
-                  <span className={`text-lg font-medium ${connectionStatus.websocketConnected ? 'text-success' : 'text-error'}`}>
-                    {connectionStatus.websocketConnected ? 'Connected' : 'Disconnected'}
+                  <div
+                    className={`w-3 h-3 rounded-full ${connectionStatus.websocketConnected ? 'bg-success animate-pulse' : 'bg-error'}`}
+                  />
+                  <span
+                    className={`text-lg font-medium ${connectionStatus.websocketConnected ? 'text-success' : 'text-error'}`}
+                  >
+                    {connectionStatus.websocketConnected
+                      ? 'Connected'
+                      : 'Disconnected'}
                   </span>
                 </div>
               </div>
@@ -128,7 +140,9 @@ export const NetworkInspector: React.FC = () => {
             {connectionStatus.connectionErrors.length > 0 && (
               <div className="mt-4 p-3 bg-error/10 border border-error rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-error">Connection Errors</span>
+                  <span className="text-sm font-medium text-error">
+                    Connection Errors
+                  </span>
                   <button
                     onClick={clearConnectionErrors}
                     className="text-xs text-error hover:underline"
@@ -147,13 +161,17 @@ export const NetworkInspector: React.FC = () => {
 
           {/* Network Controls */}
           <div className="bg-white rounded-lg border border-divider p-6 mb-6">
-            <h3 className="text-lg font-medium text-text mb-4">Network Controls</h3>
+            <h3 className="text-lg font-medium text-text mb-4">
+              Network Controls
+            </h3>
 
             <div className="space-y-4">
               {/* Simulate Offline */}
               <div className="flex items-center justify-between p-4 bg-surface rounded-lg">
                 <div>
-                  <div className="text-sm font-medium text-text">Simulate Offline Mode</div>
+                  <div className="text-sm font-medium text-text">
+                    Simulate Offline Mode
+                  </div>
                   <div className="text-xs text-muted mt-1">
                     Disconnect WebSocket and queue all operations locally
                   </div>
@@ -173,7 +191,9 @@ export const NetworkInspector: React.FC = () => {
               {/* Force Reconnect */}
               <div className="flex items-center justify-between p-4 bg-surface rounded-lg">
                 <div>
-                  <div className="text-sm font-medium text-text">Force Reconnect</div>
+                  <div className="text-sm font-medium text-text">
+                    Force Reconnect
+                  </div>
                   <div className="text-xs text-muted mt-1">
                     Close and reopen WebSocket connection
                   </div>
@@ -190,7 +210,9 @@ export const NetworkInspector: React.FC = () => {
               {/* Simulate Slow Network (TODO) */}
               <div className="flex items-center justify-between p-4 bg-surface rounded-lg opacity-50">
                 <div>
-                  <div className="text-sm font-medium text-text">Simulate Slow Network</div>
+                  <div className="text-sm font-medium text-text">
+                    Simulate Slow Network
+                  </div>
                   <div className="text-xs text-muted mt-1">
                     Add artificial latency to sync operations (Coming Soon)
                   </div>
@@ -207,11 +229,16 @@ export const NetworkInspector: React.FC = () => {
 
           {/* WebSocket Events Log (TODO) */}
           <div className="bg-white rounded-lg border border-divider p-6">
-            <h3 className="text-lg font-medium text-text mb-4">WebSocket Events</h3>
+            <h3 className="text-lg font-medium text-text mb-4">
+              WebSocket Events
+            </h3>
             <div className="text-center py-8">
-              <div className="text-muted mb-2">📡 Event logging coming soon</div>
+              <div className="text-muted mb-2">
+                📡 Event logging coming soon
+              </div>
               <div className="text-xs text-muted">
-                Will show real-time WebSocket events (connect, disconnect, messages, errors)
+                Will show real-time WebSocket events (connect, disconnect,
+                messages, errors)
               </div>
             </div>
           </div>
@@ -220,11 +247,22 @@ export const NetworkInspector: React.FC = () => {
 
       {/* Help Text */}
       <div className="mt-6 p-4 bg-surface rounded-lg border border-divider">
-        <h3 className="text-sm font-medium text-text mb-2">💡 Network Controls Usage</h3>
+        <h3 className="text-sm font-medium text-text mb-2">
+          💡 Network Controls Usage
+        </h3>
         <ul className="text-xs text-muted space-y-1">
-          <li>• <strong>Simulate Offline:</strong> Test how the app behaves without network connectivity</li>
-          <li>• <strong>Force Reconnect:</strong> Useful for debugging WebSocket connection issues</li>
-          <li>• <strong>WebSocket Events:</strong> Monitor real-time sync events (coming soon)</li>
+          <li>
+            • <strong>Simulate Offline:</strong> Test how the app behaves
+            without network connectivity
+          </li>
+          <li>
+            • <strong>Force Reconnect:</strong> Useful for debugging WebSocket
+            connection issues
+          </li>
+          <li>
+            • <strong>WebSocket Events:</strong> Monitor real-time sync events
+            (coming soon)
+          </li>
         </ul>
       </div>
     </div>

@@ -15,7 +15,7 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
   children,
   bandName,
   userEmail,
-  onSignOut
+  onSignOut,
 }) => {
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -51,9 +51,7 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
 
       {/* Main Content */}
       <main className="md:ml-60 min-h-screen pt-16 md:pt-0">
-        <div className="p-6 md:p-8 lg:p-10">
-          {children}
-        </div>
+        <div className="p-6 md:p-8 lg:p-10">{children}</div>
       </main>
     </div>
   )

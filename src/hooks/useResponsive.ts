@@ -2,16 +2,16 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 
 // Tailwind CSS breakpoints
 export const BREAKPOINTS = {
-  xs: 320,   // Extra small devices
-  sm: 640,   // Small devices (landscape phones)
-  md: 768,   // Medium devices (tablets)
-  lg: 1024,  // Large devices (desktops)
-  xl: 1280,  // Extra large devices
-  '2xl': 1536 // 2X Extra large devices
+  xs: 320, // Extra small devices
+  sm: 640, // Small devices (landscape phones)
+  md: 768, // Medium devices (tablets)
+  lg: 1024, // Large devices (desktops)
+  xl: 1280, // Extra large devices
+  '2xl': 1536, // 2X Extra large devices
 } as const
 
 export type Breakpoint = keyof typeof BREAKPOINTS
-export type BreakpointValue = typeof BREAKPOINTS[Breakpoint]
+export type BreakpointValue = (typeof BREAKPOINTS)[Breakpoint]
 
 export interface ViewportInfo {
   width: number
@@ -49,7 +49,7 @@ export function useViewport(): ViewportInfo {
         isLandscape: true,
         isPortrait: false,
         pixelRatio: 1,
-        isRetina: false
+        isRetina: false,
       }
     }
 
@@ -67,7 +67,7 @@ export function useViewport(): ViewportInfo {
       isLandscape: width > height,
       isPortrait: height >= width,
       pixelRatio,
-      isRetina: pixelRatio > 1
+      isRetina: pixelRatio > 1,
     }
   })
 
@@ -86,7 +86,7 @@ export function useViewport(): ViewportInfo {
       isLandscape: width > height,
       isPortrait: height >= width,
       pixelRatio,
-      isRetina: pixelRatio > 1
+      isRetina: pixelRatio > 1,
     })
   }, [])
 
@@ -189,7 +189,7 @@ export function useMobile() {
     prefersReducedMotion: useMemo(() => {
       if (typeof window === 'undefined') return false
       return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    }, [])
+    }, []),
   }
 }
 
@@ -200,7 +200,7 @@ export function useContainerSize(containerRef: React.RefObject<HTMLElement>) {
   useEffect(() => {
     if (!containerRef.current) return
 
-    const resizeObserver = new ResizeObserver((entries) => {
+    const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect
         setContainerSize({ width, height })
@@ -244,7 +244,11 @@ export function useMediaQuery(query: string): boolean {
 
 // Hook for device orientation
 export function useOrientation() {
-  type OrientationType = 'portrait-primary' | 'portrait-secondary' | 'landscape-primary' | 'landscape-secondary'
+  type OrientationType =
+    | 'portrait-primary'
+    | 'portrait-secondary'
+    | 'landscape-primary'
+    | 'landscape-secondary'
 
   const [orientation, setOrientation] = useState<{
     angle: number
@@ -256,7 +260,7 @@ export function useOrientation() {
 
     return {
       angle: window.screen.orientation.angle,
-      type: window.screen.orientation.type as OrientationType
+      type: window.screen.orientation.type as OrientationType,
     }
   })
 
@@ -265,7 +269,7 @@ export function useOrientation() {
       if (window.screen?.orientation) {
         setOrientation({
           angle: window.screen.orientation.angle,
-          type: window.screen.orientation.type as OrientationType
+          type: window.screen.orientation.type as OrientationType,
         })
       }
     }
@@ -288,7 +292,7 @@ export function useResponsiveGrid(
     md: 3,
     lg: 4,
     xl: 5,
-    '2xl': 6
+    '2xl': 6,
   }
 ): number {
   return useResponsiveValue(columns)
@@ -300,7 +304,7 @@ export function useSafeArea() {
     top: 0,
     right: 0,
     bottom: 0,
-    left: 0
+    left: 0,
   })
 
   useEffect(() => {
@@ -308,10 +312,18 @@ export function useSafeArea() {
       const computedStyle = getComputedStyle(document.documentElement)
 
       setSafeArea({
-        top: parseInt(computedStyle.getPropertyValue('env(safe-area-inset-top)') || '0'),
-        right: parseInt(computedStyle.getPropertyValue('env(safe-area-inset-right)') || '0'),
-        bottom: parseInt(computedStyle.getPropertyValue('env(safe-area-inset-bottom)') || '0'),
-        left: parseInt(computedStyle.getPropertyValue('env(safe-area-inset-left)') || '0')
+        top: parseInt(
+          computedStyle.getPropertyValue('env(safe-area-inset-top)') || '0'
+        ),
+        right: parseInt(
+          computedStyle.getPropertyValue('env(safe-area-inset-right)') || '0'
+        ),
+        bottom: parseInt(
+          computedStyle.getPropertyValue('env(safe-area-inset-bottom)') || '0'
+        ),
+        left: parseInt(
+          computedStyle.getPropertyValue('env(safe-area-inset-left)') || '0'
+        ),
       })
     }
 
@@ -333,9 +345,7 @@ export function useSafeArea() {
 // Utility functions for responsive design
 export const responsive = {
   // Generate responsive classes for Tailwind
-  classes: <T extends string>(
-    values: ResponsiveValue<T>
-  ): string => {
+  classes: <T extends string>(values: ResponsiveValue<T>): string => {
     return Object.entries(values)
       .map(([breakpoint, value]) => {
         const prefix = breakpoint === 'xs' ? '' : `${breakpoint}:`
@@ -352,5 +362,5 @@ export const responsive = {
   // Get current breakpoint from width
   getBreakpoint: (width: number): Breakpoint => {
     return getBreakpoint(width)
-  }
+  },
 }

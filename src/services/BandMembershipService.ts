@@ -25,7 +25,9 @@ export class BandMembershipService {
   /**
    * Create an invite code for a band
    */
-  static async createInviteCode(request: CreateInviteCodeRequest): Promise<InviteCode> {
+  static async createInviteCode(
+    request: CreateInviteCodeRequest
+  ): Promise<InviteCode> {
     const code = this.generateCode()
 
     // Check if code already exists (very unlikely but possible)
@@ -44,7 +46,7 @@ export class BandMembershipService {
       maxUses: request.maxUses || 10,
       isActive: true,
       currentUses: 0,
-      createdDate: new Date()
+      createdDate: new Date(),
     }
 
     await repository.addInviteCode(inviteCode)
@@ -68,7 +70,8 @@ export class BandMembershipService {
     error?: string
   }> {
     // Repository handles Supabase-first → IndexedDB fallback automatically
-    const inviteCode = await repository.getInviteCodeByCode(code)
+    // Normalize code to uppercase for case-insensitive matching
+    const inviteCode = await repository.getInviteCodeByCode(code.toUpperCase())
 
     if (!inviteCode) {
       return { valid: false, error: 'Invalid invite code' }
@@ -95,14 +98,24 @@ export class BandMembershipService {
   static async joinBandWithCode(
     userId: string,
     code: string
-  ): Promise<{ success: boolean; membership?: BandMembership; error?: string }> {
-    console.log('[BandMembershipService] joinBandWithCode called:', { userId, code })
+  ): Promise<{
+    success: boolean
+    membership?: BandMembership
+    error?: string
+  }> {
+    console.log('[BandMembershipService] joinBandWithCode called:', {
+      userId,
+      code,
+    })
 
     const validation = await this.validateInviteCode(code)
     console.log('[BandMembershipService] Validation result:', validation)
 
     if (!validation.valid || !validation.inviteCode) {
-      console.log('[BandMembershipService] Validation failed:', validation.error)
+      console.log(
+        '[BandMembershipService] Validation failed:',
+        validation.error
+      )
       return { success: false, error: validation.error }
     }
 
@@ -110,12 +123,15 @@ export class BandMembershipService {
     console.log('[BandMembershipService] Invite code valid:', inviteCode)
 
     // Check if user is already a member via repository
-    console.log('[BandMembershipService] Checking existing memberships for user:', userId)
+    console.log(
+      '[BandMembershipService] Checking existing memberships for user:',
+      userId
+    )
     const userMemberships = await repository.getUserMemberships(userId)
     console.log('[BandMembershipService] User memberships:', userMemberships)
 
     const existingMembership = userMemberships.find(
-      (m) => m.bandId === inviteCode.bandId
+      m => m.bandId === inviteCode.bandId
     )
 
     if (existingMembership) {
@@ -131,7 +147,7 @@ export class BandMembershipService {
       role: 'member',
       joinedDate: new Date(),
       status: 'active',
-      permissions: ['member']
+      permissions: ['member'],
     }
 
     console.log('[BandMembershipService] Creating membership:', membership)
@@ -145,7 +161,10 @@ export class BandMembershipService {
       await remote.addBandMembership(membership)
       console.log('[BandMembershipService] Membership created in Supabase')
     } catch (error) {
-      console.error('[BandMembershipService] Failed to create membership:', error)
+      console.error(
+        '[BandMembershipService] Failed to create membership:',
+        error
+      )
       throw error
     }
 
@@ -180,7 +199,7 @@ export class BandMembershipService {
   static async getUserBands(userId: string): Promise<BandMembership[]> {
     const memberships = await repository.getUserMemberships(userId)
     // Filter for active memberships (client-side)
-    return memberships.filter((m) => m.status === 'active')
+    return memberships.filter(m => m.status === 'active')
   }
 
   /**
@@ -189,7 +208,7 @@ export class BandMembershipService {
   static async getBandMembers(bandId: string): Promise<BandMembership[]> {
     const memberships = await repository.getBandMemberships(bandId)
     // Filter for active memberships (client-side)
-    return memberships.filter((m) => m.status === 'active')
+    return memberships.filter(m => m.status === 'active')
   }
 
   /**
@@ -199,7 +218,7 @@ export class BandMembershipService {
     // Get user memberships via repository
     const userMemberships = await repository.getUserMemberships(userId)
     const membership = userMemberships.find(
-      (m) => m.userId === userId && m.bandId === bandId
+      m => m.userId === userId && m.bandId === bandId
     )
 
     if (!membership) {
@@ -209,10 +228,12 @@ export class BandMembershipService {
     // Check if user is the last admin
     if (membership.role === 'admin') {
       const allMembers = await this.getBandMembers(bandId)
-      const admins = allMembers.filter((m) => m.role === 'admin')
+      const admins = allMembers.filter(m => m.role === 'admin')
 
       if (admins.length <= 1) {
-        throw new Error('Cannot leave: you are the last admin. Please promote another member first.')
+        throw new Error(
+          'Cannot leave: you are the last admin. Please promote another member first.'
+        )
       }
     }
 

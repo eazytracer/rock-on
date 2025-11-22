@@ -28,7 +28,7 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
   initialTime = 0,
   autoStart = false,
   showLaps = true,
-  compact = false
+  compact = false,
 }) => {
   const [time, setTime] = useState(initialTime)
   const [isRunning, setIsRunning] = useState(false)
@@ -52,7 +52,8 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
 
   const updateTimer = useCallback(() => {
     const now = Date.now()
-    const elapsed = Math.floor((now - startTimeRef.current) / 1000) + elapsedRef.current
+    const elapsed =
+      Math.floor((now - startTimeRef.current) / 1000) + elapsedRef.current
     setTime(elapsed)
     onTimeUpdate?.(elapsed)
   }, [onTimeUpdate])
@@ -106,7 +107,7 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
     const newLap: LapTime = {
       id: Date.now(),
       time: lapTime,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
     setLaps(prev => [newLap, ...prev])
     setLastLapTime(time)
@@ -194,7 +195,11 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
             aria-label="Start practice session"
           >
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                clipRule="evenodd"
+              />
             </svg>
           </TouchButton>
         ) : (
@@ -206,7 +211,11 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
             aria-label="Pause practice session"
           >
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
             </svg>
           </TouchButton>
         )}
@@ -247,9 +256,7 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="px-6 py-8 text-center">
-        {getTimerDisplay()}
-      </div>
+      <div className="px-6 py-8 text-center">{getTimerDisplay()}</div>
 
       <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
         {getControls()}
@@ -286,8 +293,16 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
       {time > 0 && (
         <div className="px-6 py-3 bg-blue-50 border-t border-blue-200">
           <div className="flex items-center text-sm text-blue-700">
-            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                clipRule="evenodd"
+              />
             </svg>
             Total practice time: {formatTime(time)}
           </div>

@@ -60,27 +60,29 @@ export function useSyncStatus(): UseSyncStatusReturn {
     const repo = SyncRepository.getInstance()
 
     // Subscribe to sync engine status changes
-    const unsubscribe = repo.onSyncStatusChange((engineStatus: SyncEngineStatus) => {
-      setStatus(prevStatus => {
-        // Only update if values have actually changed to prevent unnecessary re-renders
-        const newLastSyncTime = engineStatus.lastSyncTime || null
-        const hasChanged =
-          prevStatus.isSyncing !== engineStatus.isSyncing ||
-          prevStatus.pendingCount !== engineStatus.pendingCount ||
-          prevStatus.lastSyncTime?.getTime() !== newLastSyncTime?.getTime()
+    const unsubscribe = repo.onSyncStatusChange(
+      (engineStatus: SyncEngineStatus) => {
+        setStatus(prevStatus => {
+          // Only update if values have actually changed to prevent unnecessary re-renders
+          const newLastSyncTime = engineStatus.lastSyncTime || null
+          const hasChanged =
+            prevStatus.isSyncing !== engineStatus.isSyncing ||
+            prevStatus.pendingCount !== engineStatus.pendingCount ||
+            prevStatus.lastSyncTime?.getTime() !== newLastSyncTime?.getTime()
 
-        if (!hasChanged) {
-          return prevStatus // Return same reference to prevent re-render
-        }
+          if (!hasChanged) {
+            return prevStatus // Return same reference to prevent re-render
+          }
 
-        return {
-          ...prevStatus,
-          isSyncing: engineStatus.isSyncing,
-          pendingCount: engineStatus.pendingCount,
-          lastSyncTime: newLastSyncTime,
-        }
-      })
-    })
+          return {
+            ...prevStatus,
+            isSyncing: engineStatus.isSyncing,
+            pendingCount: engineStatus.pendingCount,
+            lastSyncTime: newLastSyncTime,
+          }
+        })
+      }
+    )
 
     // Handle online/offline events
     const handleOnline = () => {
@@ -133,7 +135,8 @@ export function useSyncStatus(): UseSyncStatusReturn {
       // Set error message
       setStatus(prevStatus => ({
         ...prevStatus,
-        syncError: error instanceof Error ? error.message : 'Unknown sync error',
+        syncError:
+          error instanceof Error ? error.message : 'Unknown sync error',
       }))
 
       // Re-throw so calling code can handle if needed

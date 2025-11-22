@@ -75,7 +75,9 @@ export interface SongReadiness {
 }
 
 export class SetlistService {
-  static async getSetlists(filters: SetlistFilters): Promise<SetlistListResponse> {
+  static async getSetlists(
+    filters: SetlistFilters
+  ): Promise<SetlistListResponse> {
     // Get all setlists for the band from repository
     let setlists = await repository.getSetlists(filters.bandId)
 
@@ -101,23 +103,28 @@ export class SetlistService {
 
     return {
       setlists,
-      total
+      total,
     }
   }
 
-  static async createSetlist(setlistData: CreateSetlistRequest): Promise<Setlist> {
+  static async createSetlist(
+    setlistData: CreateSetlistRequest
+  ): Promise<Setlist> {
     this.validateSetlistData(setlistData)
 
-    const songs: SetlistSong[] = setlistData.songs?.map((songId, index) => ({
-      songId,
-      order: index + 1
-    })) || []
+    const songs: SetlistSong[] =
+      setlistData.songs?.map((songId, index) => ({
+        songId,
+        order: index + 1,
+      })) || []
 
     const newSetlist: Setlist = {
       id: crypto.randomUUID(),
       name: setlistData.name,
       bandId: setlistData.bandId,
-      showDate: setlistData.showDate ? new Date(setlistData.showDate) : undefined,
+      showDate: setlistData.showDate
+        ? new Date(setlistData.showDate)
+        : undefined,
       venue: setlistData.venue,
       songs,
       items: [], // Required by Setlist model
@@ -125,7 +132,7 @@ export class SetlistService {
       notes: setlistData.notes,
       status: 'draft',
       createdDate: new Date(),
-      lastModified: new Date()
+      lastModified: new Date(),
     }
 
     return await repository.addSetlist(newSetlist)
@@ -138,7 +145,10 @@ export class SetlistService {
    * @param showName - Name of the show (used to name the forked setlist)
    * @returns The newly created forked setlist
    */
-  static async forkSetlist(sourceSetlistId: string, showName: string): Promise<Setlist> {
+  static async forkSetlist(
+    sourceSetlistId: string,
+    showName: string
+  ): Promise<Setlist> {
     const sourceSetlist = await this.getSetlistById(sourceSetlistId)
     if (!sourceSetlist) {
       throw new Error('Source setlist not found')
@@ -155,10 +165,12 @@ export class SetlistService {
       songs: [...(sourceSetlist.songs || [])], // Copy songs array
       items: JSON.parse(JSON.stringify(sourceSetlist.items)), // Deep copy items
       totalDuration: sourceSetlist.totalDuration,
-      notes: sourceSetlist.notes ? `Forked from "${sourceSetlist.name}"\n\n${sourceSetlist.notes}` : `Forked from "${sourceSetlist.name}"`,
+      notes: sourceSetlist.notes
+        ? `Forked from "${sourceSetlist.name}"\n\n${sourceSetlist.notes}`
+        : `Forked from "${sourceSetlist.name}"`,
       status: 'draft', // New fork starts as draft
       createdDate: new Date(),
-      lastModified: new Date()
+      lastModified: new Date(),
     }
 
     return await repository.addSetlist(forkedSetlist)
@@ -168,7 +180,10 @@ export class SetlistService {
     return await repository.getSetlist(setlistId)
   }
 
-  static async updateSetlist(setlistId: string, updateData: UpdateSetlistRequest): Promise<Setlist> {
+  static async updateSetlist(
+    setlistId: string,
+    updateData: UpdateSetlistRequest
+  ): Promise<Setlist> {
     const existingSetlist = await this.getSetlistById(setlistId)
     if (!existingSetlist) {
       throw new Error('Setlist not found')
@@ -180,14 +195,19 @@ export class SetlistService {
     if (updateData.name && updateData.name.length > 100) {
       throw new Error('Setlist name cannot exceed 100 characters')
     }
-    if (updateData.status && !['draft', 'rehearsed', 'performed'].includes(updateData.status)) {
+    if (
+      updateData.status &&
+      !['draft', 'rehearsed', 'performed'].includes(updateData.status)
+    ) {
       throw new Error('Invalid setlist status')
     }
 
     const updates: Partial<Setlist> = { lastModified: new Date() }
     if (updateData.name !== undefined) updates.name = updateData.name
     if (updateData.showDate !== undefined) {
-      updates.showDate = updateData.showDate ? new Date(updateData.showDate) : undefined
+      updates.showDate = updateData.showDate
+        ? new Date(updateData.showDate)
+        : undefined
     }
     if (updateData.venue !== undefined) updates.venue = updateData.venue
     if (updateData.notes !== undefined) updates.notes = updateData.notes
@@ -195,7 +215,7 @@ export class SetlistService {
     if (updateData.showId !== undefined) updates.showId = updateData.showId
 
     await repository.updateSetlist(setlistId, updates)
-    return await this.getSetlistById(setlistId) as Setlist
+    return (await this.getSetlistById(setlistId)) as Setlist
   }
 
   static async deleteSetlist(setlistId: string): Promise<void> {
@@ -207,7 +227,10 @@ export class SetlistService {
     await repository.deleteSetlist(setlistId)
   }
 
-  static async addSongToSetlist(setlistId: string, songData: AddSetlistSongRequest): Promise<Setlist> {
+  static async addSongToSetlist(
+    setlistId: string,
+    songData: AddSetlistSongRequest
+  ): Promise<Setlist> {
     const setlist = await this.getSetlistById(setlistId)
     if (!setlist) {
       throw new Error('Setlist not found')
@@ -216,7 +239,10 @@ export class SetlistService {
     if (songData.keyChange && !this.isValidMusicalKey(songData.keyChange)) {
       throw new Error('Invalid musical key format')
     }
-    if (songData.tempoChange && (songData.tempoChange < -50 || songData.tempoChange > 50)) {
+    if (
+      songData.tempoChange &&
+      (songData.tempoChange < -50 || songData.tempoChange > 50)
+    ) {
       throw new Error('Tempo change must be between -50 and +50')
     }
 
@@ -225,12 +251,15 @@ export class SetlistService {
       order: songData.position || (setlist.songs || []).length + 1,
       keyChange: songData.keyChange,
       tempoChange: songData.tempoChange,
-      specialInstructions: songData.specialInstructions
+      specialInstructions: songData.specialInstructions,
     }
 
     // Reorder existing songs if inserting at specific position
     const updatedSongs = [...(setlist.songs || [])]
-    if (songData.position && songData.position <= (setlist.songs || []).length) {
+    if (
+      songData.position &&
+      songData.position <= (setlist.songs || []).length
+    ) {
       updatedSongs.splice(songData.position - 1, 0, newSong)
       // Renumber all songs
       updatedSongs.forEach((song, index) => {
@@ -244,13 +273,17 @@ export class SetlistService {
     await repository.updateSetlist(setlistId, {
       songs: updatedSongs,
       totalDuration,
-      lastModified: new Date()
+      lastModified: new Date(),
     })
 
-    return await this.getSetlistById(setlistId) as Setlist
+    return (await this.getSetlistById(setlistId)) as Setlist
   }
 
-  static async updateSongInSetlist(setlistId: string, songId: string, updateData: UpdateSetlistSongRequest): Promise<Setlist> {
+  static async updateSongInSetlist(
+    setlistId: string,
+    songId: string,
+    updateData: UpdateSetlistSongRequest
+  ): Promise<Setlist> {
     const setlist = await this.getSetlistById(setlistId)
     if (!setlist) {
       throw new Error('Setlist not found')
@@ -264,7 +297,10 @@ export class SetlistService {
     if (updateData.keyChange && !this.isValidMusicalKey(updateData.keyChange)) {
       throw new Error('Invalid musical key format')
     }
-    if (updateData.tempoChange && (updateData.tempoChange < -50 || updateData.tempoChange > 50)) {
+    if (
+      updateData.tempoChange &&
+      (updateData.tempoChange < -50 || updateData.tempoChange > 50)
+    ) {
       throw new Error('Tempo change must be between -50 and +50')
     }
 
@@ -287,13 +323,16 @@ export class SetlistService {
     updatedSongs[songIndex] = songToUpdate
     await repository.updateSetlist(setlistId, {
       songs: updatedSongs,
-      lastModified: new Date()
+      lastModified: new Date(),
     })
 
-    return await this.getSetlistById(setlistId) as Setlist
+    return (await this.getSetlistById(setlistId)) as Setlist
   }
 
-  static async removeSongFromSetlist(setlistId: string, songId: string): Promise<Setlist> {
+  static async removeSongFromSetlist(
+    setlistId: string,
+    songId: string
+  ): Promise<Setlist> {
     const setlist = await this.getSetlistById(setlistId)
     if (!setlist) {
       throw new Error('Setlist not found')
@@ -314,38 +353,47 @@ export class SetlistService {
     await repository.updateSetlist(setlistId, {
       songs: updatedSongs,
       totalDuration,
-      lastModified: new Date()
+      lastModified: new Date(),
     })
 
-    return await this.getSetlistById(setlistId) as Setlist
+    return (await this.getSetlistById(setlistId)) as Setlist
   }
 
-  static async reorderSongs(setlistId: string, reorderData: ReorderSongsRequest): Promise<Setlist> {
+  static async reorderSongs(
+    setlistId: string,
+    reorderData: ReorderSongsRequest
+  ): Promise<Setlist> {
     const setlist = await this.getSetlistById(setlistId)
     if (!setlist) {
       throw new Error('Setlist not found')
     }
 
-    const reorderedSongs: SetlistSong[] = reorderData.songOrder.map((songId, index) => {
-      const existingSong = (setlist.songs || []).find(s => s.songId === songId)
-      if (!existingSong) {
-        throw new Error(`Song ${songId} not found in setlist`)
+    const reorderedSongs: SetlistSong[] = reorderData.songOrder.map(
+      (songId, index) => {
+        const existingSong = (setlist.songs || []).find(
+          s => s.songId === songId
+        )
+        if (!existingSong) {
+          throw new Error(`Song ${songId} not found in setlist`)
+        }
+        return {
+          ...existingSong,
+          order: index + 1,
+        }
       }
-      return {
-        ...existingSong,
-        order: index + 1
-      }
-    })
+    )
 
     await repository.updateSetlist(setlistId, {
       songs: reorderedSongs,
-      lastModified: new Date()
+      lastModified: new Date(),
     })
 
-    return await this.getSetlistById(setlistId) as Setlist
+    return (await this.getSetlistById(setlistId)) as Setlist
   }
 
-  static async generateReadinessReport(setlistId: string): Promise<ReadinessReport> {
+  static async generateReadinessReport(
+    setlistId: string
+  ): Promise<ReadinessReport> {
     const setlist = await this.getSetlistById(setlistId)
     if (!setlist) {
       throw new Error('Setlist not found')
@@ -356,12 +404,14 @@ export class SetlistService {
     let readySongs = 0
     let needsPracticeSongs = 0
 
-    for (const setlistSong of (setlist.songs || [])) {
+    for (const setlistSong of setlist.songs || []) {
       const song = await db.songs.get(setlistSong.songId)
       if (!song) continue
 
       const daysSincePractice = song.lastPracticed
-        ? Math.floor((Date.now() - song.lastPracticed.getTime()) / (1000 * 60 * 60 * 24))
+        ? Math.floor(
+            (Date.now() - song.lastPracticed.getTime()) / (1000 * 60 * 60 * 24)
+          )
         : 999
 
       let status: 'ready' | 'needs-practice' | 'warning' | 'not-practiced'
@@ -397,23 +447,30 @@ export class SetlistService {
         lastPracticed: song.lastPracticed,
         daysSincePractice,
         status,
-        warnings
+        warnings,
       })
 
       totalConfidence += song.confidenceLevel
     }
 
-    const overallReadiness = (setlist.songs || []).length > 0 ? totalConfidence / (setlist.songs || []).length : 0
+    const overallReadiness =
+      (setlist.songs || []).length > 0
+        ? totalConfidence / (setlist.songs || []).length
+        : 0
 
     const recommendations: string[] = []
     if (needsPracticeSongs > 0) {
-      recommendations.push(`Practice ${needsPracticeSongs} songs that need work`)
+      recommendations.push(
+        `Practice ${needsPracticeSongs} songs that need work`
+      )
     }
     if (readySongs < (setlist.songs || []).length * 0.8) {
       recommendations.push('Schedule additional practice sessions')
     }
 
-    const estimatedPracticeTime = needsPracticeSongs * 30 + ((setlist.songs || []).length - readySongs - needsPracticeSongs) * 15
+    const estimatedPracticeTime =
+      needsPracticeSongs * 30 +
+      ((setlist.songs || []).length - readySongs - needsPracticeSongs) * 15
 
     return {
       setlistId,
@@ -423,7 +480,7 @@ export class SetlistService {
       needsPracticeSongs,
       songReadiness,
       recommendations,
-      estimatedPracticeTime
+      estimatedPracticeTime,
     }
   }
 
@@ -439,7 +496,9 @@ export class SetlistService {
     }
   }
 
-  private static async calculateTotalDuration(songs: SetlistSong[]): Promise<number> {
+  private static async calculateTotalDuration(
+    songs: SetlistSong[]
+  ): Promise<number> {
     let total = 0
     for (const setlistSong of songs) {
       // Get songs from repository
@@ -460,17 +519,22 @@ export class SetlistService {
   /**
    * Get casting for all songs in a setlist
    */
-  static async getSetlistCasting(setlistId: string): Promise<{ songId: number; casting: any }[]> {
+  static async getSetlistCasting(
+    setlistId: string
+  ): Promise<{ songId: number; casting: any }[]> {
     const setlist = await this.getSetlistById(setlistId)
     if (!setlist) {
       throw new Error('Setlist not found')
     }
 
-    const castings = await castingService.getCastingsForContext('setlist', setlistId)
+    const castings = await castingService.getCastingsForContext(
+      'setlist',
+      setlistId
+    )
 
     return castings.map(casting => ({
       songId: casting.songId,
-      casting
+      casting,
     }))
   }
 
@@ -492,7 +556,7 @@ export class SetlistService {
       contextId: setlistId,
       songId,
       createdBy,
-      createdDate: new Date()
+      createdDate: new Date(),
     })
   }
 
@@ -517,7 +581,10 @@ export class SetlistService {
    * Delete casting when a setlist is deleted
    */
   static async deleteSetlistCasting(setlistId: string): Promise<void> {
-    const castings = await castingService.getCastingsForContext('setlist', setlistId)
+    const castings = await castingService.getCastingsForContext(
+      'setlist',
+      setlistId
+    )
 
     for (const casting of castings) {
       if (casting.id) {
@@ -533,12 +600,17 @@ export class SetlistService {
     const setlist = await this.getSetlistById(setlistId)
     if (!setlist) return null
 
-    const castings = await castingService.getCastingsForContext('setlist', setlistId)
+    const castings = await castingService.getCastingsForContext(
+      'setlist',
+      setlistId
+    )
 
     const songsWithCasting = await Promise.all(
-      (setlist.songs || []).map(async (setlistSong) => {
+      (setlist.songs || []).map(async setlistSong => {
         const song = await db.songs.get(setlistSong.songId)
-        const casting = castings.find(c => c.songId === parseInt(setlistSong.songId))
+        const casting = castings.find(
+          c => c.songId === parseInt(setlistSong.songId)
+        )
 
         let completeCasting = null
         if (casting && casting.id) {
@@ -548,14 +620,14 @@ export class SetlistService {
         return {
           ...setlistSong,
           song,
-          casting: completeCasting
+          casting: completeCasting,
         }
       })
     )
 
     return {
       ...setlist,
-      songsWithCasting
+      songsWithCasting,
     }
   }
 }

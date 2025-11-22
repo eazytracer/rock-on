@@ -20,7 +20,11 @@ export const DevTools: React.FC = () => {
   const [lastAction, setLastAction] = useState<string | null>(null)
 
   const clearLocalDatabase = async () => {
-    if (!confirm('⚠️ Are you sure you want to clear the local database?\n\nThis will delete all data from IndexedDB. You will need to re-sync from Supabase.')) {
+    if (
+      !confirm(
+        '⚠️ Are you sure you want to clear the local database?\n\nThis will delete all data from IndexedDB. You will need to re-sync from Supabase.'
+      )
+    ) {
       return
     }
 
@@ -30,7 +34,9 @@ export const DevTools: React.FC = () => {
       await db.open()
       setLastAction('✅ Local database cleared successfully')
     } catch (err) {
-      setLastAction(`❌ Error clearing database: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setLastAction(
+        `❌ Error clearing database: ${err instanceof Error ? err.message : 'Unknown error'}`
+      )
     }
     setIsClearing(false)
   }
@@ -41,7 +47,11 @@ export const DevTools: React.FC = () => {
       return
     }
 
-    if (!confirm('⚠️⚠️⚠️ DANGER ⚠️⚠️⚠️\n\nAre you sure you want to DELETE ALL DATA from Supabase?\n\nThis will permanently delete:\n- All songs\n- All setlists\n- All shows\n- All practice sessions\n- All audit logs\n\nThis action CANNOT be undone!')) {
+    if (
+      !confirm(
+        '⚠️⚠️⚠️ DANGER ⚠️⚠️⚠️\n\nAre you sure you want to DELETE ALL DATA from Supabase?\n\nThis will permanently delete:\n- All songs\n- All setlists\n- All shows\n- All practice sessions\n- All audit logs\n\nThis action CANNOT be undone!'
+      )
+    ) {
       return
     }
 
@@ -58,7 +68,14 @@ export const DevTools: React.FC = () => {
       }
 
       // Delete from all tables
-      const tables = ['audit_log', 'setlists', 'shows', 'practice_sessions', 'songs', 'band_memberships']
+      const tables = [
+        'audit_log',
+        'setlists',
+        'shows',
+        'practice_sessions',
+        'songs',
+        'band_memberships',
+      ]
 
       for (const table of tables) {
         const { error } = await supabase
@@ -71,7 +88,9 @@ export const DevTools: React.FC = () => {
 
       setLastAction('✅ All Supabase data cleared successfully')
     } catch (err) {
-      setLastAction(`❌ Error clearing Supabase: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setLastAction(
+        `❌ Error clearing Supabase: ${err instanceof Error ? err.message : 'Unknown error'}`
+      )
     }
     setIsClearing(false)
   }
@@ -84,7 +103,9 @@ export const DevTools: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate
       setLastAction('✅ Force sync completed (not yet implemented)')
     } catch (err) {
-      setLastAction(`❌ Error during force sync: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setLastAction(
+        `❌ Error during force sync: ${err instanceof Error ? err.message : 'Unknown error'}`
+      )
     }
     setIsForcing(false)
   }
@@ -95,7 +116,11 @@ export const DevTools: React.FC = () => {
       return
     }
 
-    if (!confirm('Seed test data?\n\nThis will add sample songs, setlists, and practices to your database.')) {
+    if (
+      !confirm(
+        'Seed test data?\n\nThis will add sample songs, setlists, and practices to your database.'
+      )
+    ) {
       return
     }
 
@@ -103,7 +128,9 @@ export const DevTools: React.FC = () => {
       // TODO: Import and run seed data
       setLastAction('✅ Test data seeded (not yet implemented)')
     } catch (err) {
-      setLastAction(`❌ Error seeding data: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setLastAction(
+        `❌ Error seeding data: ${err instanceof Error ? err.message : 'Unknown error'}`
+      )
     }
   }
 
@@ -116,7 +143,7 @@ export const DevTools: React.FC = () => {
         practice_sessions: await db.table('practice_sessions').toArray(),
         bands: await db.table('bands').toArray(),
         band_memberships: await db.table('band_memberships').toArray(),
-        audit_log: await db.table('audit_log').toArray()
+        audit_log: await db.table('audit_log').toArray(),
       }
 
       const json = JSON.stringify(data, null, 2)
@@ -130,7 +157,9 @@ export const DevTools: React.FC = () => {
 
       setLastAction('✅ Database exported to JSON file')
     } catch (err) {
-      setLastAction(`❌ Error exporting database: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setLastAction(
+        `❌ Error exporting database: ${err instanceof Error ? err.message : 'Unknown error'}`
+      )
     }
   }
 
@@ -167,7 +196,9 @@ export const DevTools: React.FC = () => {
           {/* Clear Local Database */}
           <div className="flex items-center justify-between p-4 bg-surface rounded-lg">
             <div>
-              <div className="text-sm font-medium text-text">Clear Local Database</div>
+              <div className="text-sm font-medium text-text">
+                Clear Local Database
+              </div>
               <div className="text-xs text-muted mt-1">
                 Delete all data from IndexedDB (re-sync from Supabase required)
               </div>
@@ -184,9 +215,12 @@ export const DevTools: React.FC = () => {
           {/* Clear Supabase Data */}
           <div className="flex items-center justify-between p-4 bg-error/5 border-2 border-error rounded-lg">
             <div>
-              <div className="text-sm font-medium text-error">⚠️ Clear Supabase Data</div>
+              <div className="text-sm font-medium text-error">
+                ⚠️ Clear Supabase Data
+              </div>
               <div className="text-xs text-error mt-1">
-                DANGER: Permanently delete ALL data from cloud (CANNOT be undone!)
+                DANGER: Permanently delete ALL data from cloud (CANNOT be
+                undone!)
               </div>
             </div>
             <button
@@ -201,7 +235,9 @@ export const DevTools: React.FC = () => {
           {/* Export Database */}
           <div className="flex items-center justify-between p-4 bg-surface rounded-lg">
             <div>
-              <div className="text-sm font-medium text-text">Export Database to JSON</div>
+              <div className="text-sm font-medium text-text">
+                Export Database to JSON
+              </div>
               <div className="text-xs text-muted mt-1">
                 Download all IndexedDB data as a JSON file for inspection
               </div>
@@ -224,7 +260,9 @@ export const DevTools: React.FC = () => {
           {/* Force Sync */}
           <div className="flex items-center justify-between p-4 bg-surface rounded-lg">
             <div>
-              <div className="text-sm font-medium text-text">Force Sync Now</div>
+              <div className="text-sm font-medium text-text">
+                Force Sync Now
+              </div>
               <div className="text-xs text-muted mt-1">
                 Trigger immediate sync of all pending operations
               </div>
@@ -241,7 +279,9 @@ export const DevTools: React.FC = () => {
           {/* Seed Test Data */}
           <div className="flex items-center justify-between p-4 bg-surface rounded-lg">
             <div>
-              <div className="text-sm font-medium text-text">Seed Test Data</div>
+              <div className="text-sm font-medium text-text">
+                Seed Test Data
+              </div>
               <div className="text-xs text-muted mt-1">
                 Add sample songs, setlists, and practices for testing
               </div>
@@ -259,13 +299,30 @@ export const DevTools: React.FC = () => {
 
       {/* Help Text */}
       <div className="p-4 bg-surface rounded-lg border border-divider">
-        <h3 className="text-sm font-medium text-text mb-2">💡 Tool Usage Tips</h3>
+        <h3 className="text-sm font-medium text-text mb-2">
+          💡 Tool Usage Tips
+        </h3>
         <ul className="text-xs text-muted space-y-1">
-          <li>• <strong>Clear Local DB:</strong> Useful when testing initial sync from cloud</li>
-          <li>• <strong>Force Sync:</strong> Use when sync seems stuck or to test sync logic</li>
-          <li>• <strong>Export JSON:</strong> Inspect database contents or backup data</li>
-          <li>• <strong>Seed Data:</strong> Quickly populate database with test content</li>
-          <li>• <strong className="text-error">CLEAR SUPABASE:</strong> Only use in development! Deletes everything!</li>
+          <li>
+            • <strong>Clear Local DB:</strong> Useful when testing initial sync
+            from cloud
+          </li>
+          <li>
+            • <strong>Force Sync:</strong> Use when sync seems stuck or to test
+            sync logic
+          </li>
+          <li>
+            • <strong>Export JSON:</strong> Inspect database contents or backup
+            data
+          </li>
+          <li>
+            • <strong>Seed Data:</strong> Quickly populate database with test
+            content
+          </li>
+          <li>
+            • <strong className="text-error">CLEAR SUPABASE:</strong> Only use
+            in development! Deletes everything!
+          </li>
         </ul>
       </div>
     </div>

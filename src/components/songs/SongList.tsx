@@ -30,7 +30,7 @@ const VirtualizedList: React.FC<VirtualizedListProps> = ({
   items,
   itemHeight,
   containerHeight,
-  renderItem
+  renderItem,
 }) => {
   const [scrollTop, setScrollTop] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -65,7 +65,7 @@ const VirtualizedList: React.FC<VirtualizedListProps> = ({
             position: 'absolute',
             top: 0,
             left: 0,
-            right: 0
+            right: 0,
           }}
         >
           {items
@@ -97,10 +97,12 @@ export const SongList: React.FC<SongListProps> = ({
   compactMode = false,
   virtualized = false,
   itemHeight = compactMode ? 80 : 200,
-  className = ''
+  className = '',
 }) => {
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState<'title' | 'artist' | 'difficulty' | 'lastPracticed' | 'confidence'>('title')
+  const [sortBy, setSortBy] = useState<
+    'title' | 'artist' | 'difficulty' | 'lastPracticed' | 'confidence'
+  >('title')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [filterBy] = useState<{
     difficulty?: number[]
@@ -114,20 +116,28 @@ export const SongList: React.FC<SongListProps> = ({
         song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
         song.album?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        song.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+        song.tags.some(tag =>
+          tag.toLowerCase().includes(searchQuery.toLowerCase())
+        )
 
-      const matchesDifficulty = !filterBy.difficulty?.length ||
+      const matchesDifficulty =
+        !filterBy.difficulty?.length ||
         filterBy.difficulty.includes(song.difficulty)
 
-      const matchesConfidence = !filterBy.confidence ||
+      const matchesConfidence =
+        !filterBy.confidence ||
         (filterBy.confidence === 'ready' && song.confidenceLevel >= 4) ||
-        (filterBy.confidence === 'needs-practice' && song.confidenceLevel >= 2 && song.confidenceLevel < 4) ||
+        (filterBy.confidence === 'needs-practice' &&
+          song.confidenceLevel >= 2 &&
+          song.confidenceLevel < 4) ||
         (filterBy.confidence === 'new' && song.confidenceLevel < 2)
 
-      const matchesKey = !filterBy.key?.length ||
-        filterBy.key.includes(song.key)
+      const matchesKey =
+        !filterBy.key?.length || filterBy.key.includes(song.key)
 
-      return matchesSearch && matchesDifficulty && matchesConfidence && matchesKey
+      return (
+        matchesSearch && matchesDifficulty && matchesConfidence && matchesKey
+      )
     })
 
     filtered.sort((a, b) => {
@@ -144,8 +154,12 @@ export const SongList: React.FC<SongListProps> = ({
           comparison = a.difficulty - b.difficulty
           break
         case 'lastPracticed': {
-          const aDate = a.lastPracticed ? new Date(a.lastPracticed).getTime() : 0
-          const bDate = b.lastPracticed ? new Date(b.lastPracticed).getTime() : 0
+          const aDate = a.lastPracticed
+            ? new Date(a.lastPracticed).getTime()
+            : 0
+          const bDate = b.lastPracticed
+            ? new Date(b.lastPracticed).getTime()
+            : 0
           comparison = aDate - bDate
           break
         }
@@ -182,10 +196,7 @@ export const SongList: React.FC<SongListProps> = ({
     </div>
   )
 
-  const containerClasses = [
-    'w-full',
-    className
-  ].join(' ')
+  const containerClasses = ['w-full', className].join(' ')
 
   if (loading) {
     return (
@@ -214,7 +225,7 @@ export const SongList: React.FC<SongListProps> = ({
                 { key: 'artist', label: 'Artist' },
                 { key: 'difficulty', label: 'Difficulty' },
                 { key: 'confidence', label: 'Readiness' },
-                { key: 'lastPracticed', label: 'Last Practiced' }
+                { key: 'lastPracticed', label: 'Last Practiced' },
               ].map(({ key, label }) => (
                 <button
                   key={key}
@@ -253,12 +264,13 @@ export const SongList: React.FC<SongListProps> = ({
               d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No songs found</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">
+            No songs found
+          </h3>
           <p className="mt-1 text-sm text-gray-500">
             {searchQuery
               ? `No songs match "${searchQuery}"`
-              : 'Get started by adding your first song.'
-            }
+              : 'Get started by adding your first song.'}
           </p>
         </div>
       ) : (
@@ -272,14 +284,12 @@ export const SongList: React.FC<SongListProps> = ({
               items={filteredAndSortedSongs}
               itemHeight={itemHeight}
               containerHeight={600}
-              renderItem={(song) => renderSong(song)}
+              renderItem={song => renderSong(song)}
             />
           ) : (
             <div className="space-y-2">
-              {filteredAndSortedSongs.map((song) => (
-                <div key={song.id}>
-                  {renderSong(song)}
-                </div>
+              {filteredAndSortedSongs.map(song => (
+                <div key={song.id}>{renderSong(song)}</div>
               ))}
             </div>
           )}

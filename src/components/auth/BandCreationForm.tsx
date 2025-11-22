@@ -11,7 +11,10 @@ interface BandCreationFormProps {
   onCancel?: () => void
 }
 
-export const BandCreationForm: React.FC<BandCreationFormProps> = ({ onSuccess, onCancel }) => {
+export const BandCreationForm: React.FC<BandCreationFormProps> = ({
+  onSuccess,
+  onCancel,
+}) => {
   const { user } = useAuth()
   const [bandName, setBandName] = useState('')
   const [description, setDescription] = useState('')
@@ -41,7 +44,7 @@ export const BandCreationForm: React.FC<BandCreationFormProps> = ({ onSuccess, o
       // Create the band
       const band = await BandService.createBand({
         name: bandName,
-        description: description || undefined
+        description: description || undefined,
       })
 
       // Create admin membership for the creator directly
@@ -52,7 +55,7 @@ export const BandCreationForm: React.FC<BandCreationFormProps> = ({ onSuccess, o
         role: 'admin',
         joinedDate: new Date(),
         status: 'active',
-        permissions: ['admin', 'member']
+        permissions: ['admin', 'member'],
       })
 
       // Create an invite code for others to join
@@ -60,7 +63,7 @@ export const BandCreationForm: React.FC<BandCreationFormProps> = ({ onSuccess, o
         bandId: band.id,
         createdBy: user.id,
         maxUses: 10,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       })
 
       setCreatedBand({ bandId: band.id, inviteCode })
@@ -104,12 +107,18 @@ export const BandCreationForm: React.FC<BandCreationFormProps> = ({ onSuccess, o
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-steel-gray mb-2">Band Created!</h2>
-          <p className="text-steel-gray/70">Share this code with your bandmates to invite them</p>
+          <h2 className="text-2xl font-bold text-steel-gray mb-2">
+            Band Created!
+          </h2>
+          <p className="text-steel-gray/70">
+            Share this code with your bandmates to invite them
+          </p>
         </div>
 
         <div className="bg-steel-gray/5 rounded-lg p-6 mb-6">
-          <p className="text-xs text-steel-gray/70 mb-2 text-center">Invite Code</p>
+          <p className="text-xs text-steel-gray/70 mb-2 text-center">
+            Invite Code
+          </p>
           <div className="flex items-center justify-center gap-2">
             <span className="text-3xl font-bold text-energy-orange tracking-wider">
               {createdBand.inviteCode.code}
@@ -135,8 +144,12 @@ export const BandCreationForm: React.FC<BandCreationFormProps> = ({ onSuccess, o
   return (
     <div className="w-full max-w-md mx-auto p-6">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-steel-gray mb-2">Create a Band</h1>
-        <p className="text-steel-gray/70">Start your musical journey together</p>
+        <h1 className="text-3xl font-bold text-steel-gray mb-2">
+          Create a Band
+        </h1>
+        <p className="text-steel-gray/70">
+          Start your musical journey together
+        </p>
       </div>
 
       {error && (
@@ -147,14 +160,17 @@ export const BandCreationForm: React.FC<BandCreationFormProps> = ({ onSuccess, o
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="bandName" className="block text-sm font-medium text-steel-gray mb-2">
+          <label
+            htmlFor="bandName"
+            className="block text-sm font-medium text-steel-gray mb-2"
+          >
             Band Name
           </label>
           <input
             id="bandName"
             type="text"
             value={bandName}
-            onChange={(e) => setBandName(e.target.value)}
+            onChange={e => setBandName(e.target.value)}
             className="w-full px-4 py-3 rounded-lg border border-steel-gray/30 bg-smoke-white text-steel-gray focus:outline-none focus:ring-2 focus:ring-energy-orange focus:border-transparent"
             placeholder="The Rock Stars"
             disabled={loading}
@@ -163,13 +179,16 @@ export const BandCreationForm: React.FC<BandCreationFormProps> = ({ onSuccess, o
         </div>
 
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-steel-gray mb-2">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-steel-gray mb-2"
+          >
             Description (Optional)
           </label>
           <textarea
             id="description"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={e => setDescription(e.target.value)}
             className="w-full px-4 py-3 rounded-lg border border-steel-gray/30 bg-smoke-white text-steel-gray focus:outline-none focus:ring-2 focus:ring-energy-orange focus:border-transparent resize-none"
             placeholder="Tell us about your band..."
             rows={3}

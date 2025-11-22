@@ -14,31 +14,38 @@ export function useShows(bandId: string) {
   const { realtimeManager } = useAuth()
 
   // Memoize fetchShows with optional silent mode (no loading state change)
-  const fetchShows = useCallback(async (silent = false) => {
-    try {
-      console.log('[useShows] Fetching shows for band:', bandId, silent ? '(silent)' : '')
-      if (!silent) {
-        setLoading(true)
-      }
-      const response = await ShowService.getShows({ bandId })
+  const fetchShows = useCallback(
+    async (silent = false) => {
+      try {
+        console.log(
+          '[useShows] Fetching shows for band:',
+          bandId,
+          silent ? '(silent)' : ''
+        )
+        if (!silent) {
+          setLoading(true)
+        }
+        const response = await ShowService.getShows({ bandId })
 
-      // Sort by date (ascending)
-      const sortedShows = [...response.shows].sort((a, b) => {
-        return a.scheduledDate.getTime() - b.scheduledDate.getTime()
-      })
+        // Sort by date (ascending)
+        const sortedShows = [...response.shows].sort((a, b) => {
+          return a.scheduledDate.getTime() - b.scheduledDate.getTime()
+        })
 
-      console.log('[useShows] Fetched shows count:', sortedShows.length)
-      setShows(sortedShows)
-      setError(null)
-    } catch (err) {
-      console.error('[useShows] Error fetching shows:', err)
-      setError(err as Error)
-    } finally {
-      if (!silent) {
-        setLoading(false)
+        console.log('[useShows] Fetched shows count:', sortedShows.length)
+        setShows(sortedShows)
+        setError(null)
+      } catch (err) {
+        console.error('[useShows] Error fetching shows:', err)
+        setError(err as Error)
+      } finally {
+        if (!silent) {
+          setLoading(false)
+        }
       }
-    }
-  }, [bandId])
+    },
+    [bandId]
+  )
 
   useEffect(() => {
     if (!bandId) {
@@ -60,10 +67,18 @@ export function useShows(bandId: string) {
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
 
     // Listen for real-time changes from RealtimeManager
-    const handleRealtimeChange = ({ bandId: changedBandId }: { bandId: string; action: string; recordId: string }) => {
+    const handleRealtimeChange = ({
+      bandId: changedBandId,
+    }: {
+      bandId: string
+      action: string
+      recordId: string
+    }) => {
       // Only refetch if the change is for the current band
       if (changedBandId === bandId) {
-        console.log('[useShows] Realtime change detected for band, refetching...')
+        console.log(
+          '[useShows] Realtime change detected for band, refetching...'
+        )
         fetchShows(true) // Silent mode - update list without loading state
       }
     }
@@ -88,8 +103,12 @@ export function useUpcomingShows(bandId: string) {
   const { shows, loading, error } = useShows(bandId)
 
   const now = new Date()
-  const upcomingShows = shows.filter(show => show.scheduledDate >= now && show.status !== 'cancelled')
-  const pastShows = shows.filter(show => show.scheduledDate < now || show.status === 'completed')
+  const upcomingShows = shows.filter(
+    show => show.scheduledDate >= now && show.status !== 'cancelled'
+  )
+  const pastShows = shows.filter(
+    show => show.scheduledDate < now || show.status === 'completed'
+  )
 
   return { upcomingShows, pastShows, loading, error }
 }
@@ -119,7 +138,7 @@ export function useCreateShow() {
         contacts: showData.contacts,
         setlistId: showData.setlistId,
         status: showData.status,
-        notes: showData.notes
+        notes: showData.notes,
       })
 
       return newShow

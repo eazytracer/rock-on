@@ -15,5 +15,5 @@ export const BandSchema = {
   description: '',
   createdDate: '',
   settings: '',
-  memberIds: ''
+  memberIds: '',
 }

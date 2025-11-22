@@ -7,7 +7,10 @@ interface SignupFormProps {
   onSuccess?: () => void
 }
 
-export const SignupForm: React.FC<SignupFormProps> = ({ onSignInClick, onSuccess }) => {
+export const SignupForm: React.FC<SignupFormProps> = ({
+  onSignInClick,
+  onSuccess,
+}) => {
   const { signUp, loading } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -46,8 +49,12 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSignInClick, onSuccess
   return (
     <div className="w-full max-w-md mx-auto p-6">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-steel-gray mb-2">Create Account</h1>
-        <p className="text-steel-gray/70">Join Rock On and start managing your band</p>
+        <h1 className="text-3xl font-bold text-steel-gray mb-2">
+          Create Account
+        </h1>
+        <p className="text-steel-gray/70">
+          Join Rock On and start managing your band
+        </p>
       </div>
 
       {error && (
@@ -58,14 +65,17 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSignInClick, onSuccess
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-steel-gray mb-2">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-steel-gray mb-2"
+          >
             Full Name
           </label>
           <input
             id="name"
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={e => setName(e.target.value)}
             className="w-full px-4 py-3 rounded-lg border border-steel-gray/30 bg-smoke-white text-steel-gray focus:outline-none focus:ring-2 focus:ring-energy-orange focus:border-transparent"
             placeholder="John Doe"
             disabled={loading}
@@ -73,14 +83,17 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSignInClick, onSuccess
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-steel-gray mb-2">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-steel-gray mb-2"
+          >
             Email
           </label>
           <input
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded-lg border border-steel-gray/30 bg-smoke-white text-steel-gray focus:outline-none focus:ring-2 focus:ring-energy-orange focus:border-transparent"
             placeholder="you@example.com"
             disabled={loading}
@@ -88,19 +101,24 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSignInClick, onSuccess
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-steel-gray mb-2">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-steel-gray mb-2"
+          >
             Password
           </label>
           <input
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-lg border border-steel-gray/30 bg-smoke-white text-steel-gray focus:outline-none focus:ring-2 focus:ring-energy-orange focus:border-transparent"
             placeholder="••••••••"
             disabled={loading}
           />
-          <p className="mt-1 text-xs text-steel-gray/60">Minimum 6 characters</p>
+          <p className="mt-1 text-xs text-steel-gray/60">
+            Minimum 6 characters
+          </p>
         </div>
 
         <div>
@@ -114,7 +132,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSignInClick, onSuccess
             id="confirmPassword"
             type="password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={e => setConfirmPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-lg border border-steel-gray/30 bg-smoke-white text-steel-gray focus:outline-none focus:ring-2 focus:ring-energy-orange focus:border-transparent"
             placeholder="••••••••"
             disabled={loading}

@@ -43,7 +43,10 @@ export async function seedMvpData() {
 
       // Log what users exist for debugging
       const users = await db.users.toArray()
-      console.log('👥 Existing users:', users.map(u => u.email))
+      console.log(
+        '👥 Existing users:',
+        users.map(u => u.email)
+      )
       return
     }
 
@@ -70,7 +73,7 @@ export async function seedMvpData() {
         name: 'Eric Johnson',
         authProvider: 'mock',
         createdDate: new Date('2024-01-15'),
-        lastLogin: new Date()
+        lastLogin: new Date(),
       },
       {
         id: mikeId,
@@ -78,7 +81,7 @@ export async function seedMvpData() {
         name: 'Mike Thompson',
         authProvider: 'mock',
         createdDate: new Date('2024-01-20'),
-        lastLogin: new Date()
+        lastLogin: new Date(),
       },
       {
         id: sarahId,
@@ -86,8 +89,8 @@ export async function seedMvpData() {
         name: 'Sarah Chen',
         authProvider: 'mock',
         createdDate: new Date('2024-02-01'),
-        lastLogin: new Date()
-      }
+        lastLogin: new Date(),
+      },
     ])
 
     await db.userProfiles.bulkAdd([
@@ -98,7 +101,7 @@ export async function seedMvpData() {
         instruments: ['Guitar', 'Vocals'],
         primaryInstrument: 'Guitar',
         createdDate: new Date(),
-        updatedDate: new Date()
+        updatedDate: new Date(),
       },
       {
         id: crypto.randomUUID(),
@@ -107,7 +110,7 @@ export async function seedMvpData() {
         instruments: ['Bass', 'Harmonica', 'Vocals', 'Guitar'],
         primaryInstrument: 'Bass',
         createdDate: new Date(),
-        updatedDate: new Date()
+        updatedDate: new Date(),
       },
       {
         id: crypto.randomUUID(),
@@ -116,8 +119,8 @@ export async function seedMvpData() {
         instruments: ['Drums', 'Percussion'],
         primaryInstrument: 'Drums',
         createdDate: new Date(),
-        updatedDate: new Date()
-      }
+        updatedDate: new Date(),
+      },
     ])
 
     // ========================================
@@ -129,14 +132,14 @@ export async function seedMvpData() {
     await db.bands.add({
       id: bandId,
       name: 'iPod Shuffle',
-      description: 'A rockin\' cover band playing hits from every decade',
+      description: "A rockin' cover band playing hits from every decade",
       createdDate: new Date('2024-01-15'),
       memberIds: [ericId, mikeId, sarahId],
       settings: {
         defaultPracticeTime: 120,
         reminderMinutes: [60, 30, 10],
-        autoSaveInterval: 30
-      }
+        autoSaveInterval: 30,
+      },
     })
 
     await db.bandMemberships.bulkAdd([
@@ -147,7 +150,7 @@ export async function seedMvpData() {
         role: 'admin',
         joinedDate: new Date('2024-01-15'),
         status: 'active',
-        permissions: ['owner', 'admin']
+        permissions: ['owner', 'admin'],
       },
       {
         id: crypto.randomUUID(),
@@ -156,7 +159,7 @@ export async function seedMvpData() {
         role: 'admin',
         joinedDate: new Date('2024-01-20'),
         status: 'active',
-        permissions: ['admin']
+        permissions: ['admin'],
       },
       {
         id: crypto.randomUUID(),
@@ -165,8 +168,8 @@ export async function seedMvpData() {
         role: 'member',
         joinedDate: new Date('2024-02-01'),
         status: 'active',
-        permissions: ['member']
-      }
+        permissions: ['member'],
+      },
     ])
 
     // Create invite code
@@ -177,7 +180,7 @@ export async function seedMvpData() {
       createdBy: ericId,
       createdDate: new Date(),
       currentUses: 2,
-      isActive: true
+      isActive: true,
     })
 
     // ========================================
@@ -189,59 +192,509 @@ export async function seedMvpData() {
 
     const songs = [
       // 90s Hits
-      { key: 'allStar', title: 'All Star', artist: 'Smash Mouth', album: 'Astro Lounge', duration: 194, keyNote: 'F#', bpm: 104, tuning: 'Standard', tags: ['Rock', 'Cover', '90s'] },
-      { key: 'wonderwall', title: 'Wonderwall', artist: 'Oasis', album: '(What\'s the Story) Morning Glory?', duration: 258, keyNote: 'F#m', bpm: 87, tuning: 'Standard', tags: ['Rock', 'Cover', '90s'] },
-      { key: 'manInBox', title: 'Man in the Box', artist: 'Alice In Chains', album: 'Facelift', duration: 287, keyNote: 'Ebm', bpm: 108, tuning: 'Half-step down', tags: ['Grunge', 'Cover', '90s'] },
-      { key: 'smellsLike', title: 'Smells Like Teen Spirit', artist: 'Nirvana', album: 'Nevermind', duration: 301, keyNote: 'F', bpm: 116, tuning: 'Standard', tags: ['Grunge', 'Rock', '90s'] },
-      { key: 'creep', title: 'Creep', artist: 'Radiohead', album: 'Pablo Honey', duration: 238, keyNote: 'G', bpm: 92, tuning: 'Standard', tags: ['Alternative', 'Rock', '90s'] },
-      { key: 'justAGirl', title: 'Just A Girl', artist: 'No Doubt', album: 'Tragic Kingdom', duration: 210, keyNote: 'D', bpm: 108, tuning: 'Standard', tags: ['Ska', 'Rock', '90s'] },
-      { key: 'losingMyReligion', title: 'Losing my Religion', artist: 'R.E.M.', album: 'Out of Time', duration: 269, keyNote: 'Am', bpm: 125, tuning: 'Standard', tags: ['Alternative', 'Rock', '90s'] },
-      { key: 'zombie', title: 'Zombie', artist: 'The Cranberries', album: 'No Need to Argue', duration: 306, keyNote: 'Em', bpm: 84, tuning: 'Standard', tags: ['Alternative', 'Rock', '90s'] },
-      { key: 'noRain', title: 'No Rain', artist: 'Blind Melon', album: 'Blind Melon', duration: 217, keyNote: 'A', bpm: 148, tuning: 'Standard', tags: ['Alternative', 'Rock', '90s'] },
-      { key: 'plush', title: 'Plush', artist: 'Stone Temple Pilots', album: 'Core', duration: 310, keyNote: 'Gm', bpm: 73, tuning: 'Standard', tags: ['Grunge', 'Rock', '90s'] },
-      { key: 'cumbersome', title: 'Cumbersome', artist: 'Seven Mary Three', album: 'American Standard', duration: 362, keyNote: 'B', bpm: 87, tuning: 'Standard', tags: ['Alternative', 'Rock', '90s'] },
-      { key: 'buddyHolly', title: 'Buddy Holly', artist: 'Weezer', album: 'Weezer (Blue Album)', duration: 160, keyNote: 'Ab', bpm: 121, tuning: 'Half-step down', tags: ['Alternative', 'Rock', '90s'] },
-      { key: 'everythingZen', title: 'Everything Zen', artist: 'Bush', album: 'Sixteen Stone', duration: 278, keyNote: 'Em', bpm: 134, tuning: 'Standard', tags: ['Grunge', 'Alternative', '90s'] },
-      { key: 'lump', title: 'Lump', artist: 'The Presidents of the United States of America', album: 'The Presidents of the United States of America', duration: 134, keyNote: 'F#', bpm: 142, tuning: 'Drop C#', tags: ['Alternative', 'Rock', '90s'] },
-      { key: 'lightningCrashes', title: 'Lightning Crashes', artist: 'Live', album: 'Throwing Copper', duration: 326, keyNote: 'B', bpm: 90, tuning: 'Half-step down', tags: ['Alternative', 'Rock', '90s'] },
-      { key: 'shine', title: 'Shine', artist: 'Collective Soul', album: 'Hints Allegations and Things Left Unsaid', duration: 306, keyNote: 'F#', bpm: 150, tuning: 'Drop C#', tags: ['Alternative', 'Rock', '90s'] },
+      {
+        key: 'allStar',
+        title: 'All Star',
+        artist: 'Smash Mouth',
+        album: 'Astro Lounge',
+        duration: 194,
+        keyNote: 'F#',
+        bpm: 104,
+        tuning: 'Standard',
+        tags: ['Rock', 'Cover', '90s'],
+      },
+      {
+        key: 'wonderwall',
+        title: 'Wonderwall',
+        artist: 'Oasis',
+        album: "(What's the Story) Morning Glory?",
+        duration: 258,
+        keyNote: 'F#m',
+        bpm: 87,
+        tuning: 'Standard',
+        tags: ['Rock', 'Cover', '90s'],
+      },
+      {
+        key: 'manInBox',
+        title: 'Man in the Box',
+        artist: 'Alice In Chains',
+        album: 'Facelift',
+        duration: 287,
+        keyNote: 'Ebm',
+        bpm: 108,
+        tuning: 'Half-step down',
+        tags: ['Grunge', 'Cover', '90s'],
+      },
+      {
+        key: 'smellsLike',
+        title: 'Smells Like Teen Spirit',
+        artist: 'Nirvana',
+        album: 'Nevermind',
+        duration: 301,
+        keyNote: 'F',
+        bpm: 116,
+        tuning: 'Standard',
+        tags: ['Grunge', 'Rock', '90s'],
+      },
+      {
+        key: 'creep',
+        title: 'Creep',
+        artist: 'Radiohead',
+        album: 'Pablo Honey',
+        duration: 238,
+        keyNote: 'G',
+        bpm: 92,
+        tuning: 'Standard',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
+      {
+        key: 'justAGirl',
+        title: 'Just A Girl',
+        artist: 'No Doubt',
+        album: 'Tragic Kingdom',
+        duration: 210,
+        keyNote: 'D',
+        bpm: 108,
+        tuning: 'Standard',
+        tags: ['Ska', 'Rock', '90s'],
+      },
+      {
+        key: 'losingMyReligion',
+        title: 'Losing my Religion',
+        artist: 'R.E.M.',
+        album: 'Out of Time',
+        duration: 269,
+        keyNote: 'Am',
+        bpm: 125,
+        tuning: 'Standard',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
+      {
+        key: 'zombie',
+        title: 'Zombie',
+        artist: 'The Cranberries',
+        album: 'No Need to Argue',
+        duration: 306,
+        keyNote: 'Em',
+        bpm: 84,
+        tuning: 'Standard',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
+      {
+        key: 'noRain',
+        title: 'No Rain',
+        artist: 'Blind Melon',
+        album: 'Blind Melon',
+        duration: 217,
+        keyNote: 'A',
+        bpm: 148,
+        tuning: 'Standard',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
+      {
+        key: 'plush',
+        title: 'Plush',
+        artist: 'Stone Temple Pilots',
+        album: 'Core',
+        duration: 310,
+        keyNote: 'Gm',
+        bpm: 73,
+        tuning: 'Standard',
+        tags: ['Grunge', 'Rock', '90s'],
+      },
+      {
+        key: 'cumbersome',
+        title: 'Cumbersome',
+        artist: 'Seven Mary Three',
+        album: 'American Standard',
+        duration: 362,
+        keyNote: 'B',
+        bpm: 87,
+        tuning: 'Standard',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
+      {
+        key: 'buddyHolly',
+        title: 'Buddy Holly',
+        artist: 'Weezer',
+        album: 'Weezer (Blue Album)',
+        duration: 160,
+        keyNote: 'Ab',
+        bpm: 121,
+        tuning: 'Half-step down',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
+      {
+        key: 'everythingZen',
+        title: 'Everything Zen',
+        artist: 'Bush',
+        album: 'Sixteen Stone',
+        duration: 278,
+        keyNote: 'Em',
+        bpm: 134,
+        tuning: 'Standard',
+        tags: ['Grunge', 'Alternative', '90s'],
+      },
+      {
+        key: 'lump',
+        title: 'Lump',
+        artist: 'The Presidents of the United States of America',
+        album: 'The Presidents of the United States of America',
+        duration: 134,
+        keyNote: 'F#',
+        bpm: 142,
+        tuning: 'Drop C#',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
+      {
+        key: 'lightningCrashes',
+        title: 'Lightning Crashes',
+        artist: 'Live',
+        album: 'Throwing Copper',
+        duration: 326,
+        keyNote: 'B',
+        bpm: 90,
+        tuning: 'Half-step down',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
+      {
+        key: 'shine',
+        title: 'Shine',
+        artist: 'Collective Soul',
+        album: 'Hints Allegations and Things Left Unsaid',
+        duration: 306,
+        keyNote: 'F#',
+        bpm: 150,
+        tuning: 'Drop C#',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
 
       // 80s Classics
-      { key: 'sweet Child', title: 'Sweet Child O\' Mine', artist: 'Guns N\' Roses', album: 'Appetite for Destruction', duration: 356, keyNote: 'Db', bpm: 122, tuning: 'Eb tuning', tags: ['Rock', 'Cover', '80s'] },
-      { key: 'livin', title: 'Livin\' on a Prayer', artist: 'Bon Jovi', album: 'Slippery When Wet', duration: 249, keyNote: 'Em', bpm: 123, tuning: 'Standard', tags: ['Rock', '80s'] },
-      { key: 'jump', title: 'Jump', artist: 'Van Halen', album: '1984', duration: 241, keyNote: 'C', bpm: 130, tuning: 'Standard', tags: ['Rock', '80s'] },
-      { key: 'kickstartMyHeart', title: 'Kickstart My Heart', artist: 'Mötley Crüe', album: 'Dr. Feelgood', duration: 284, keyNote: 'Gm', bpm: 179, tuning: 'Drop D', tags: ['Metal', 'Rock', '80s'] },
+      {
+        key: 'sweet Child',
+        title: "Sweet Child O' Mine",
+        artist: "Guns N' Roses",
+        album: 'Appetite for Destruction',
+        duration: 356,
+        keyNote: 'Db',
+        bpm: 122,
+        tuning: 'Eb tuning',
+        tags: ['Rock', 'Cover', '80s'],
+      },
+      {
+        key: 'livin',
+        title: "Livin' on a Prayer",
+        artist: 'Bon Jovi',
+        album: 'Slippery When Wet',
+        duration: 249,
+        keyNote: 'Em',
+        bpm: 123,
+        tuning: 'Standard',
+        tags: ['Rock', '80s'],
+      },
+      {
+        key: 'jump',
+        title: 'Jump',
+        artist: 'Van Halen',
+        album: '1984',
+        duration: 241,
+        keyNote: 'C',
+        bpm: 130,
+        tuning: 'Standard',
+        tags: ['Rock', '80s'],
+      },
+      {
+        key: 'kickstartMyHeart',
+        title: 'Kickstart My Heart',
+        artist: 'Mötley Crüe',
+        album: 'Dr. Feelgood',
+        duration: 284,
+        keyNote: 'Gm',
+        bpm: 179,
+        tuning: 'Drop D',
+        tags: ['Metal', 'Rock', '80s'],
+      },
 
       // 70s Legends
-      { key: 'hotel', title: 'Hotel California', artist: 'Eagles', album: 'Hotel California', duration: 390, keyNote: 'Bm', bpm: 74, tuning: 'Standard', tags: ['Classic Rock', 'Cover', '70s'] },
-      { key: 'dream On', title: 'Dream On', artist: 'Aerosmith', album: 'Aerosmith', duration: 265, keyNote: 'Fm', bpm: 84, tuning: 'Standard', tags: ['Rock', '70s'] },
-      { key: 'free Bird', title: 'Free Bird', artist: 'Lynyrd Skynyrd', album: '(Pronounced \'Lĕh-\'nérd \'Skin-\'nérd)', duration: 548, keyNote: 'G', bpm: 60, tuning: 'Standard', tags: ['Southern Rock', '70s'] },
-      { key: 'laGrange', title: 'La Grange', artist: 'ZZ Top', album: 'Tres Hombres', duration: 271, keyNote: 'Am', bpm: 162, tuning: 'Standard', tags: ['Blues Rock', '70s'] },
-      { key: 'heartacheTonight', title: 'Heartache Tonight', artist: 'Eagles', album: 'The Long Run', duration: 266, keyNote: 'G', bpm: 113, tuning: 'Standard', tags: ['Rock', '70s'] },
-      { key: 'whiteRabbit', title: 'White Rabbit', artist: 'Jefferson Airplane', album: 'Surrealistic Pillow', duration: 153, keyNote: 'F#m', bpm: 105, tuning: 'Standard', tags: ['Psychedelic Rock', '60s'] },
-      { key: 'maryJanesLastDance', title: 'Mary Jane\'s Last Dance', artist: 'Tom Petty and the Heartbreakers', album: 'Greatest Hits', duration: 272, keyNote: 'Gm', bpm: 170, tuning: 'Standard', tags: ['Rock', '90s'] },
+      {
+        key: 'hotel',
+        title: 'Hotel California',
+        artist: 'Eagles',
+        album: 'Hotel California',
+        duration: 390,
+        keyNote: 'Bm',
+        bpm: 74,
+        tuning: 'Standard',
+        tags: ['Classic Rock', 'Cover', '70s'],
+      },
+      {
+        key: 'dream On',
+        title: 'Dream On',
+        artist: 'Aerosmith',
+        album: 'Aerosmith',
+        duration: 265,
+        keyNote: 'Fm',
+        bpm: 84,
+        tuning: 'Standard',
+        tags: ['Rock', '70s'],
+      },
+      {
+        key: 'free Bird',
+        title: 'Free Bird',
+        artist: 'Lynyrd Skynyrd',
+        album: "(Pronounced 'Lĕh-'nérd 'Skin-'nérd)",
+        duration: 548,
+        keyNote: 'G',
+        bpm: 60,
+        tuning: 'Standard',
+        tags: ['Southern Rock', '70s'],
+      },
+      {
+        key: 'laGrange',
+        title: 'La Grange',
+        artist: 'ZZ Top',
+        album: 'Tres Hombres',
+        duration: 271,
+        keyNote: 'Am',
+        bpm: 162,
+        tuning: 'Standard',
+        tags: ['Blues Rock', '70s'],
+      },
+      {
+        key: 'heartacheTonight',
+        title: 'Heartache Tonight',
+        artist: 'Eagles',
+        album: 'The Long Run',
+        duration: 266,
+        keyNote: 'G',
+        bpm: 113,
+        tuning: 'Standard',
+        tags: ['Rock', '70s'],
+      },
+      {
+        key: 'whiteRabbit',
+        title: 'White Rabbit',
+        artist: 'Jefferson Airplane',
+        album: 'Surrealistic Pillow',
+        duration: 153,
+        keyNote: 'F#m',
+        bpm: 105,
+        tuning: 'Standard',
+        tags: ['Psychedelic Rock', '60s'],
+      },
+      {
+        key: 'maryJanesLastDance',
+        title: "Mary Jane's Last Dance",
+        artist: 'Tom Petty and the Heartbreakers',
+        album: 'Greatest Hits',
+        duration: 272,
+        keyNote: 'Gm',
+        bpm: 170,
+        tuning: 'Standard',
+        tags: ['Rock', '90s'],
+      },
 
       // 2000s Hits
-      { key: 'mr Bright', title: 'Mr. Brightside', artist: 'The Killers', album: 'Hot Fuss', duration: 223, keyNote: 'D', bpm: 148, tuning: 'Standard', tags: ['Indie Rock', '2000s'] },
-      { key: 'hey There', title: 'Hey There Delilah', artist: 'Plain White T\'s', album: 'All That We Needed', duration: 233, keyNote: 'D', bpm: 104, tuning: 'Standard', tags: ['Acoustic', '2000s'] },
-      { key: 'seven Nation', title: 'Seven Nation Army', artist: 'The White Stripes', album: 'Elephant', duration: 231, keyNote: 'E', bpm: 124, tuning: 'Standard', tags: ['Rock', '2000s'] },
-      { key: 'whenIcomeAround', title: 'When I Come Around', artist: 'Green Day', album: 'Dookie', duration: 178, keyNote: 'B', bpm: 98, tuning: 'Half-step down', tags: ['Punk', 'Rock', '90s'] },
-      { key: 'kryptonite', title: 'Kryptonite', artist: '3 Doors Down', album: 'The Better Life', duration: 233, keyNote: 'Bm', bpm: 100, tuning: 'Standard', tags: ['Alternative', 'Rock', '2000s'] },
-      { key: 'burnItToTheGround', title: 'Burn It to the Ground', artist: 'Nickelback', album: 'Dark Horse', duration: 212, keyNote: 'B', bpm: 132, tuning: 'Drop B', tags: ['Rock', '2000s'] },
-      { key: 'danceDance', title: 'Dance, Dance', artist: 'Fall Out Boy', album: 'From Under the Cork Tree', duration: 181, keyNote: 'Bm', bpm: 114, tuning: 'Drop D', tags: ['Pop Punk', '2000s'] },
-      { key: 'broken', title: 'Broken', artist: 'Seether', album: 'Disclaimer II', duration: 259, keyNote: 'Ebm', bpm: 124, tuning: 'Half-step down', tags: ['Alternative', 'Rock', '2000s'] },
-      { key: 'harderToBreathe', title: 'Harder to Breathe', artist: 'Maroon 5', album: 'Songs About Jane', duration: 174, keyNote: 'C#m', bpm: 150, tuning: 'Standard', tags: ['Pop Rock', '2000s'] },
-      { key: 'shortSkirt', title: 'Short Skirt/Long Jacket', artist: 'Cake', album: 'Comfort Eagle', duration: 197, keyNote: 'D', bpm: 120, tuning: 'Standard', tags: ['Alternative', 'Rock', '2000s'] },
-      { key: 'whenYouWereYoung', title: 'When You Were Young', artist: 'The Killers', album: 'Sam\'s Town', duration: 220, keyNote: 'B', bpm: 130, tuning: 'Half-step down', tags: ['Rock', '2000s'] },
-      { key: 'takeAPicture', title: 'Take A Picture', artist: 'Filter', album: 'Title of Record', duration: 263, keyNote: 'D', bpm: 99, tuning: 'Drop D', tags: ['Alternative', 'Rock', '90s'] },
-      { key: 'monkeyWrench', title: 'Monkey Wrench', artist: 'Foo Fighters', album: 'The Colour and the Shape', duration: 231, keyNote: 'B', bpm: 174, tuning: 'Drop D', tags: ['Rock', '90s'] },
+      {
+        key: 'mr Bright',
+        title: 'Mr. Brightside',
+        artist: 'The Killers',
+        album: 'Hot Fuss',
+        duration: 223,
+        keyNote: 'D',
+        bpm: 148,
+        tuning: 'Standard',
+        tags: ['Indie Rock', '2000s'],
+      },
+      {
+        key: 'hey There',
+        title: 'Hey There Delilah',
+        artist: "Plain White T's",
+        album: 'All That We Needed',
+        duration: 233,
+        keyNote: 'D',
+        bpm: 104,
+        tuning: 'Standard',
+        tags: ['Acoustic', '2000s'],
+      },
+      {
+        key: 'seven Nation',
+        title: 'Seven Nation Army',
+        artist: 'The White Stripes',
+        album: 'Elephant',
+        duration: 231,
+        keyNote: 'E',
+        bpm: 124,
+        tuning: 'Standard',
+        tags: ['Rock', '2000s'],
+      },
+      {
+        key: 'whenIcomeAround',
+        title: 'When I Come Around',
+        artist: 'Green Day',
+        album: 'Dookie',
+        duration: 178,
+        keyNote: 'B',
+        bpm: 98,
+        tuning: 'Half-step down',
+        tags: ['Punk', 'Rock', '90s'],
+      },
+      {
+        key: 'kryptonite',
+        title: 'Kryptonite',
+        artist: '3 Doors Down',
+        album: 'The Better Life',
+        duration: 233,
+        keyNote: 'Bm',
+        bpm: 100,
+        tuning: 'Standard',
+        tags: ['Alternative', 'Rock', '2000s'],
+      },
+      {
+        key: 'burnItToTheGround',
+        title: 'Burn It to the Ground',
+        artist: 'Nickelback',
+        album: 'Dark Horse',
+        duration: 212,
+        keyNote: 'B',
+        bpm: 132,
+        tuning: 'Drop B',
+        tags: ['Rock', '2000s'],
+      },
+      {
+        key: 'danceDance',
+        title: 'Dance, Dance',
+        artist: 'Fall Out Boy',
+        album: 'From Under the Cork Tree',
+        duration: 181,
+        keyNote: 'Bm',
+        bpm: 114,
+        tuning: 'Drop D',
+        tags: ['Pop Punk', '2000s'],
+      },
+      {
+        key: 'broken',
+        title: 'Broken',
+        artist: 'Seether',
+        album: 'Disclaimer II',
+        duration: 259,
+        keyNote: 'Ebm',
+        bpm: 124,
+        tuning: 'Half-step down',
+        tags: ['Alternative', 'Rock', '2000s'],
+      },
+      {
+        key: 'harderToBreathe',
+        title: 'Harder to Breathe',
+        artist: 'Maroon 5',
+        album: 'Songs About Jane',
+        duration: 174,
+        keyNote: 'C#m',
+        bpm: 150,
+        tuning: 'Standard',
+        tags: ['Pop Rock', '2000s'],
+      },
+      {
+        key: 'shortSkirt',
+        title: 'Short Skirt/Long Jacket',
+        artist: 'Cake',
+        album: 'Comfort Eagle',
+        duration: 197,
+        keyNote: 'D',
+        bpm: 120,
+        tuning: 'Standard',
+        tags: ['Alternative', 'Rock', '2000s'],
+      },
+      {
+        key: 'whenYouWereYoung',
+        title: 'When You Were Young',
+        artist: 'The Killers',
+        album: "Sam's Town",
+        duration: 220,
+        keyNote: 'B',
+        bpm: 130,
+        tuning: 'Half-step down',
+        tags: ['Rock', '2000s'],
+      },
+      {
+        key: 'takeAPicture',
+        title: 'Take A Picture',
+        artist: 'Filter',
+        album: 'Title of Record',
+        duration: 263,
+        keyNote: 'D',
+        bpm: 99,
+        tuning: 'Drop D',
+        tags: ['Alternative', 'Rock', '90s'],
+      },
+      {
+        key: 'monkeyWrench',
+        title: 'Monkey Wrench',
+        artist: 'Foo Fighters',
+        album: 'The Colour and the Shape',
+        duration: 231,
+        keyNote: 'B',
+        bpm: 174,
+        tuning: 'Drop D',
+        tags: ['Rock', '90s'],
+      },
 
       // More variety
-      { key: 'black', title: 'Black', artist: 'Pearl Jam', album: 'Ten', duration: 343, keyNote: 'E', bpm: 107, tuning: 'Standard', tags: ['Grunge', '90s'] },
-      { key: 'enter Sandman', title: 'Enter Sandman', artist: 'Metallica', album: 'Metallica', duration: 331, keyNote: 'Em', bpm: 123, tuning: 'Eb tuning', tags: ['Metal', '90s'] },
-      { key: 'sadButTrue', title: 'Sad But True', artist: 'Metallica', album: 'Metallica', duration: 325, keyNote: 'G', bpm: 89, tuning: 'Drop D', tags: ['Metal', '90s'] },
-      { key: 'remedy', title: 'The Remedy', artist: 'Jason Mraz', album: 'Waiting for My Rocket to Come', duration: 254, keyNote: 'G', bpm: 150, tuning: 'Standard', tags: ['Pop', '2000s'] },
-      { key: 'yellowCard', title: 'Ocean Avenue', artist: 'Yellowcard', album: 'Ocean Avenue', duration: 213, keyNote: 'C', bpm: 190, tuning: 'Standard', tags: ['Pop Punk', '2000s'] },
+      {
+        key: 'black',
+        title: 'Black',
+        artist: 'Pearl Jam',
+        album: 'Ten',
+        duration: 343,
+        keyNote: 'E',
+        bpm: 107,
+        tuning: 'Standard',
+        tags: ['Grunge', '90s'],
+      },
+      {
+        key: 'enter Sandman',
+        title: 'Enter Sandman',
+        artist: 'Metallica',
+        album: 'Metallica',
+        duration: 331,
+        keyNote: 'Em',
+        bpm: 123,
+        tuning: 'Eb tuning',
+        tags: ['Metal', '90s'],
+      },
+      {
+        key: 'sadButTrue',
+        title: 'Sad But True',
+        artist: 'Metallica',
+        album: 'Metallica',
+        duration: 325,
+        keyNote: 'G',
+        bpm: 89,
+        tuning: 'Drop D',
+        tags: ['Metal', '90s'],
+      },
+      {
+        key: 'remedy',
+        title: 'The Remedy',
+        artist: 'Jason Mraz',
+        album: 'Waiting for My Rocket to Come',
+        duration: 254,
+        keyNote: 'G',
+        bpm: 150,
+        tuning: 'Standard',
+        tags: ['Pop', '2000s'],
+      },
+      {
+        key: 'yellowCard',
+        title: 'Ocean Avenue',
+        artist: 'Yellowcard',
+        album: 'Ocean Avenue',
+        duration: 213,
+        keyNote: 'C',
+        bpm: 190,
+        tuning: 'Standard',
+        tags: ['Pop Punk', '2000s'],
+      },
     ]
 
     for (const song of songs) {
@@ -268,12 +721,25 @@ export async function seedMvpData() {
         structure: [],
         chords: [],
         referenceLinks: [
-          { type: 'youtube', url: `https://youtube.com/watch/${song.key}`, description: 'Tutorial' },
-          { type: 'spotify', url: `https://spotify.com/track/${song.key}`, description: 'Original' }
+          {
+            type: 'youtube',
+            url: `https://youtube.com/watch/${song.key}`,
+            description: 'Tutorial',
+          },
+          {
+            type: 'spotify',
+            url: `https://spotify.com/track/${song.key}`,
+            description: 'Original',
+          },
         ],
-        notes: song.key === 'allStar' ? 'Fun crowd pleaser. Start with palm muted power chords.' :
-               song.key === 'hotel' ? 'Don\'t rush the intro. Let it breathe.' :
-               song.key === 'manInBox' ? 'Heavy riff. Watch the wah-wah pedal timing.' : undefined
+        notes:
+          song.key === 'allStar'
+            ? 'Fun crowd pleaser. Start with palm muted power chords.'
+            : song.key === 'hotel'
+              ? "Don't rush the intro. Let it breathe."
+              : song.key === 'manInBox'
+                ? 'Heavy riff. Watch the wah-wah pedal timing.'
+                : undefined,
       })
     }
 
@@ -298,16 +764,18 @@ export async function seedMvpData() {
       notes: 'Charity event. Bring extension cords. Sound check at 7 PM.',
       loadInTime: '6:00 PM',
       soundcheckTime: '7:00 PM',
-      payment: 50000,  // $500 in cents
-      contacts: [{
-        id: crypto.randomUUID(),
-        name: 'John Smith',
-        role: 'Promoter',
-        phone: '555-1234',
-        email: 'john@toys4tots.org'
-      }],
+      payment: 50000, // $500 in cents
+      contacts: [
+        {
+          id: crypto.randomUUID(),
+          name: 'John Smith',
+          role: 'Promoter',
+          phone: '555-1234',
+          email: 'john@toys4tots.org',
+        },
+      ],
       createdDate: new Date('2024-11-01'),
-      updatedDate: new Date('2024-11-15')
+      updatedDate: new Date('2024-11-15'),
     })
 
     // Upcoming show 2
@@ -315,7 +783,7 @@ export async function seedMvpData() {
     await db.shows.add({
       id: showIds.newYears,
       bandId,
-      name: 'New Year\'s Eve Party',
+      name: "New Year's Eve Party",
       venue: 'The Showbox',
       scheduledDate: new Date('2025-12-31T22:00:00'),
       duration: 120,
@@ -324,15 +792,17 @@ export async function seedMvpData() {
       notes: 'Two sets. Midnight countdown. Confetti cannons.',
       loadInTime: '8:00 PM',
       soundcheckTime: '9:00 PM',
-      payment: 120000,  // $1200
-      contacts: [{
-        id: crypto.randomUUID(),
-        name: 'Sarah Johnson',
-        role: 'Venue Manager',
-        phone: '555-5678'
-      }],
+      payment: 120000, // $1200
+      contacts: [
+        {
+          id: crypto.randomUUID(),
+          name: 'Sarah Johnson',
+          role: 'Venue Manager',
+          phone: '555-5678',
+        },
+      ],
       createdDate: new Date('2024-11-10'),
-      updatedDate: new Date('2024-11-20')
+      updatedDate: new Date('2024-11-20'),
     })
 
     // Upcoming show 3
@@ -349,15 +819,17 @@ export async function seedMvpData() {
       notes: 'Outdoor festival. Bring sun hats. Generator power only.',
       loadInTime: '3:00 PM',
       soundcheckTime: '4:00 PM',
-      payment: 75000,  // $750
-      contacts: [{
-        id: crypto.randomUUID(),
-        name: 'Mike Davis',
-        role: 'Festival Coordinator',
-        phone: '555-9012'
-      }],
+      payment: 75000, // $750
+      contacts: [
+        {
+          id: crypto.randomUUID(),
+          name: 'Mike Davis',
+          role: 'Festival Coordinator',
+          phone: '555-9012',
+        },
+      ],
       createdDate: new Date('2024-11-05'),
-      updatedDate: new Date('2024-11-18')
+      updatedDate: new Date('2024-11-18'),
     })
 
     // Past show 1
@@ -373,15 +845,17 @@ export async function seedMvpData() {
       notes: 'Great turnout! Costumes were a hit.',
       loadInTime: '7:00 PM',
       soundcheckTime: '8:00 PM',
-      payment: 60000,  // $600
-      contacts: [{
-        id: crypto.randomUUID(),
-        name: 'Emily Brown',
-        role: 'Venue Manager',
-        phone: '555-3456'
-      }],
+      payment: 60000, // $600
+      contacts: [
+        {
+          id: crypto.randomUUID(),
+          name: 'Emily Brown',
+          role: 'Venue Manager',
+          phone: '555-3456',
+        },
+      ],
       createdDate: new Date('2024-10-01'),
-      updatedDate: new Date('2024-10-15')
+      updatedDate: new Date('2024-10-15'),
     })
 
     // Past show 2
@@ -397,9 +871,9 @@ export async function seedMvpData() {
       notes: 'Solid performance. Good crowd energy.',
       loadInTime: '6:30 PM',
       soundcheckTime: '7:30 PM',
-      payment: 45000,  // $450
+      payment: 45000, // $450
       createdDate: new Date('2024-03-15'),
-      updatedDate: new Date('2024-04-01')
+      updatedDate: new Date('2024-04-01'),
     })
 
     // ========================================
@@ -412,21 +886,99 @@ export async function seedMvpData() {
     // Setlist 1: Toys 4 Tots (for upcoming show)
     setlistIds.toys4Tots = crypto.randomUUID()
     const toys4TotsItems: SetlistItem[] = [
-      { id: crypto.randomUUID(), type: 'song', position: 1, songId: songIds.allStar, notes: 'Energy opener!' },
-      { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds['mr Bright'] },
-      { id: crypto.randomUUID(), type: 'song', position: 3, songId: songIds.livin },
-      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds['seven Nation'] },
-      { id: crypto.randomUUID(), type: 'song', position: 5, songId: songIds.jump },
-      { id: crypto.randomUUID(), type: 'break', position: 6, breakDuration: 15, breakNotes: 'Quick break - stay hydrated' },
-      { id: crypto.randomUUID(), type: 'section', position: 7, sectionTitle: 'Acoustic Set' },
-      { id: crypto.randomUUID(), type: 'song', position: 8, songId: songIds.wonderwall },
-      { id: crypto.randomUUID(), type: 'song', position: 9, songId: songIds['hey There'] },
-      { id: crypto.randomUUID(), type: 'section', position: 10, sectionTitle: 'Rock Out' },
-      { id: crypto.randomUUID(), type: 'song', position: 11, songId: songIds.manInBox },
-      { id: crypto.randomUUID(), type: 'song', position: 12, songId: songIds['sweet Child'] },
-      { id: crypto.randomUUID(), type: 'song', position: 13, songId: songIds.smellsLike },
-      { id: crypto.randomUUID(), type: 'song', position: 14, songId: songIds['enter Sandman'] },
-      { id: crypto.randomUUID(), type: 'song', position: 15, songId: songIds.hotel, notes: 'Extended solo for finale' },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 1,
+        songId: songIds.allStar,
+        notes: 'Energy opener!',
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 2,
+        songId: songIds['mr Bright'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 3,
+        songId: songIds.livin,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 4,
+        songId: songIds['seven Nation'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 5,
+        songId: songIds.jump,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'break',
+        position: 6,
+        breakDuration: 15,
+        breakNotes: 'Quick break - stay hydrated',
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'section',
+        position: 7,
+        sectionTitle: 'Acoustic Set',
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 8,
+        songId: songIds.wonderwall,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 9,
+        songId: songIds['hey There'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'section',
+        position: 10,
+        sectionTitle: 'Rock Out',
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 11,
+        songId: songIds.manInBox,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 12,
+        songId: songIds['sweet Child'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 13,
+        songId: songIds.smellsLike,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 14,
+        songId: songIds['enter Sandman'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 15,
+        songId: songIds.hotel,
+        notes: 'Extended solo for finale',
+      },
     ]
 
     await db.setlists.add({
@@ -435,41 +987,144 @@ export async function seedMvpData() {
       bandId,
       showId: showIds.toys4Tots,
       items: toys4TotsItems,
-      totalDuration: 3600,  // Calculate from songs + breaks
+      totalDuration: 3600, // Calculate from songs + breaks
       status: 'active',
       notes: 'Keep energy high. Audience will be families.',
       createdDate: new Date('2024-11-01'),
-      lastModified: new Date('2024-11-15')
+      lastModified: new Date('2024-11-15'),
     })
 
     // Setlist 2: New Year's Eve (2 sets with break)
     setlistIds.newYears = crypto.randomUUID()
     const newYearsItems: SetlistItem[] = [
-      { id: crypto.randomUUID(), type: 'section', position: 1, sectionTitle: 'Set 1 - Party Starters' },
-      { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds['mr Bright'] },
-      { id: crypto.randomUUID(), type: 'song', position: 3, songId: songIds.allStar },
-      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds.jump },
-      { id: crypto.randomUUID(), type: 'song', position: 5, songId: songIds.livin },
-      { id: crypto.randomUUID(), type: 'song', position: 6, songId: songIds['seven Nation'] },
-      { id: crypto.randomUUID(), type: 'song', position: 7, songId: songIds.yellowCard },
-      { id: crypto.randomUUID(), type: 'song', position: 8, songId: songIds.remedy },
-      { id: crypto.randomUUID(), type: 'song', position: 9, songId: songIds.smellsLike },
-      { id: crypto.randomUUID(), type: 'song', position: 10, songId: songIds.black },
-      { id: crypto.randomUUID(), type: 'break', position: 11, breakDuration: 30, breakNotes: 'Costume change + refreshments' },
-      { id: crypto.randomUUID(), type: 'section', position: 12, sectionTitle: 'Set 2 - Countdown to Midnight' },
-      { id: crypto.randomUUID(), type: 'song', position: 13, songId: songIds['sweet Child'] },
-      { id: crypto.randomUUID(), type: 'song', position: 14, songId: songIds['dream On'] },
-      { id: crypto.randomUUID(), type: 'song', position: 15, songId: songIds['enter Sandman'] },
-      { id: crypto.randomUUID(), type: 'song', position: 16, songId: songIds.manInBox },
-      { id: crypto.randomUUID(), type: 'song', position: 17, songId: songIds.wonderwall },
-      { id: crypto.randomUUID(), type: 'song', position: 18, songId: songIds['hey There'] },
-      { id: crypto.randomUUID(), type: 'song', position: 19, songId: songIds.hotel, notes: 'Time for midnight countdown after this' },
-      { id: crypto.randomUUID(), type: 'song', position: 20, songId: songIds['free Bird'], notes: 'Encore - extended jam' },
+      {
+        id: crypto.randomUUID(),
+        type: 'section',
+        position: 1,
+        sectionTitle: 'Set 1 - Party Starters',
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 2,
+        songId: songIds['mr Bright'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 3,
+        songId: songIds.allStar,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 4,
+        songId: songIds.jump,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 5,
+        songId: songIds.livin,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 6,
+        songId: songIds['seven Nation'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 7,
+        songId: songIds.yellowCard,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 8,
+        songId: songIds.remedy,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 9,
+        songId: songIds.smellsLike,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 10,
+        songId: songIds.black,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'break',
+        position: 11,
+        breakDuration: 30,
+        breakNotes: 'Costume change + refreshments',
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'section',
+        position: 12,
+        sectionTitle: 'Set 2 - Countdown to Midnight',
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 13,
+        songId: songIds['sweet Child'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 14,
+        songId: songIds['dream On'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 15,
+        songId: songIds['enter Sandman'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 16,
+        songId: songIds.manInBox,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 17,
+        songId: songIds.wonderwall,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 18,
+        songId: songIds['hey There'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 19,
+        songId: songIds.hotel,
+        notes: 'Time for midnight countdown after this',
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 20,
+        songId: songIds['free Bird'],
+        notes: 'Encore - extended jam',
+      },
     ]
 
     await db.setlists.add({
       id: setlistIds.newYears,
-      name: 'New Year\'s Eve Party - Full Show',
+      name: "New Year's Eve Party - Full Show",
       bandId,
       showId: showIds.newYears,
       items: newYearsItems,
@@ -477,24 +1132,84 @@ export async function seedMvpData() {
       status: 'active',
       notes: 'Two sets with costume change. Midnight countdown between songs.',
       createdDate: new Date('2024-11-10'),
-      lastModified: new Date('2024-11-20')
+      lastModified: new Date('2024-11-20'),
     })
 
     // Setlist 3: Summer Festival (shorter set)
     setlistIds.summerFest = crypto.randomUUID()
     const summerFestItems: SetlistItem[] = [
-      { id: crypto.randomUUID(), type: 'song', position: 1, songId: songIds['mr Bright'] },
-      { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds.allStar },
-      { id: crypto.randomUUID(), type: 'song', position: 3, songId: songIds.remedy },
-      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds['seven Nation'] },
-      { id: crypto.randomUUID(), type: 'song', position: 5, songId: songIds.wonderwall },
-      { id: crypto.randomUUID(), type: 'song', position: 6, songId: songIds.jump },
-      { id: crypto.randomUUID(), type: 'song', position: 7, songId: songIds.livin },
-      { id: crypto.randomUUID(), type: 'song', position: 8, songId: songIds.smellsLike },
-      { id: crypto.randomUUID(), type: 'song', position: 9, songId: songIds['sweet Child'] },
-      { id: crypto.randomUUID(), type: 'song', position: 10, songId: songIds['hey There'] },
-      { id: crypto.randomUUID(), type: 'song', position: 11, songId: songIds['enter Sandman'] },
-      { id: crypto.randomUUID(), type: 'song', position: 12, songId: songIds.hotel },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 1,
+        songId: songIds['mr Bright'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 2,
+        songId: songIds.allStar,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 3,
+        songId: songIds.remedy,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 4,
+        songId: songIds['seven Nation'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 5,
+        songId: songIds.wonderwall,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 6,
+        songId: songIds.jump,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 7,
+        songId: songIds.livin,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 8,
+        songId: songIds.smellsLike,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 9,
+        songId: songIds['sweet Child'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 10,
+        songId: songIds['hey There'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 11,
+        songId: songIds['enter Sandman'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 12,
+        songId: songIds.hotel,
+      },
     ]
 
     await db.setlists.add({
@@ -507,15 +1222,35 @@ export async function seedMvpData() {
       status: 'active',
       notes: 'Outdoor stage. Keep songs upbeat and energetic.',
       createdDate: new Date('2024-11-05'),
-      lastModified: new Date('2024-11-18')
+      lastModified: new Date('2024-11-18'),
     })
 
     // Setlist 4: Practice setlist (draft)
     const practiceItems: SetlistItem[] = [
-      { id: crypto.randomUUID(), type: 'song', position: 1, songId: songIds.black },
-      { id: crypto.randomUUID(), type: 'song', position: 2, songId: songIds.yellowCard },
-      { id: crypto.randomUUID(), type: 'song', position: 3, songId: songIds['free Bird'] },
-      { id: crypto.randomUUID(), type: 'song', position: 4, songId: songIds['dream On'] },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 1,
+        songId: songIds.black,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 2,
+        songId: songIds.yellowCard,
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 3,
+        songId: songIds['free Bird'],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: 4,
+        songId: songIds['dream On'],
+      },
     ]
 
     await db.setlists.add({
@@ -527,7 +1262,7 @@ export async function seedMvpData() {
       status: 'draft',
       notes: 'Songs we want to add to rotation',
       createdDate: new Date('2024-11-22'),
-      lastModified: new Date('2024-11-22')
+      lastModified: new Date('2024-11-22'),
     })
 
     // ========================================
@@ -541,21 +1276,64 @@ export async function seedMvpData() {
       bandId,
       scheduledDate: new Date('2025-11-24T19:00:00'),
       duration: 120,
-      location: 'Mike\'s Garage',
+      location: "Mike's Garage",
       type: 'rehearsal',
       status: 'scheduled',
       songs: [
-        { songId: songIds.allStar, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.wonderwall, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.manInBox, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.hotel, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds['enter Sandman'], timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
+        {
+          songId: songIds.allStar,
+          timeSpent: 0,
+          status: 'not-started',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds.wonderwall,
+          timeSpent: 0,
+          status: 'not-started',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds.manInBox,
+          timeSpent: 0,
+          status: 'not-started',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds.hotel,
+          timeSpent: 0,
+          status: 'not-started',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds['enter Sandman'],
+          timeSpent: 0,
+          status: 'not-started',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
       ],
       attendees: [],
       notes: 'Focus on transitions. Run through full Toys 4 Tots set.',
-      objectives: ['Tighten transitions between songs', 'Nail the Hotel California solo'],
+      objectives: [
+        'Tighten transitions between songs',
+        'Nail the Hotel California solo',
+      ],
       completedObjectives: [],
-      createdDate: new Date('2024-11-15')
+      createdDate: new Date('2024-11-15'),
     })
 
     // Upcoming practice 2 - General rehearsal
@@ -564,19 +1342,43 @@ export async function seedMvpData() {
       bandId,
       scheduledDate: new Date('2025-12-01T19:00:00'),
       duration: 90,
-      location: 'Eric\'s Studio',
+      location: "Eric's Studio",
       type: 'rehearsal',
       status: 'scheduled',
       songs: [
-        { songId: songIds.black, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds['free Bird'], timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.yellowCard, timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
+        {
+          songId: songIds.black,
+          timeSpent: 0,
+          status: 'not-started',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds['free Bird'],
+          timeSpent: 0,
+          status: 'not-started',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds.yellowCard,
+          timeSpent: 0,
+          status: 'not-started',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
       ],
       attendees: [],
       notes: 'Work on new songs',
       objectives: ['Learn Black verse progression', 'Practice Free Bird jam'],
       completedObjectives: [],
-      createdDate: new Date('2024-11-22')
+      createdDate: new Date('2024-11-22'),
     })
 
     // Past practice 1
@@ -585,19 +1387,43 @@ export async function seedMvpData() {
       bandId,
       scheduledDate: new Date('2024-11-17T19:00:00'),
       duration: 120,
-      location: 'Mike\'s Garage',
+      location: "Mike's Garage",
       type: 'rehearsal',
       status: 'completed',
       songs: [
-        { songId: songIds['mr Bright'], timeSpent: 20, status: 'completed', sectionsWorked: ['intro', 'chorus'], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.smellsLike, timeSpent: 25, status: 'completed', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds['sweet Child'], timeSpent: 30, status: 'completed', sectionsWorked: [], improvements: [], needsWork: ['solo timing'], memberRatings: [] },
+        {
+          songId: songIds['mr Bright'],
+          timeSpent: 20,
+          status: 'completed',
+          sectionsWorked: ['intro', 'chorus'],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds.smellsLike,
+          timeSpent: 25,
+          status: 'completed',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds['sweet Child'],
+          timeSpent: 30,
+          status: 'completed',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: ['solo timing'],
+          memberRatings: [],
+        },
       ],
       attendees: [],
       notes: 'Great energy today. Sweet Child solo needs more practice.',
       objectives: ['Run through show openers', 'Tighten up timing'],
       completedObjectives: ['Run through show openers'],
-      createdDate: new Date('2024-11-10')
+      createdDate: new Date('2024-11-10'),
     })
 
     // Past practice 2
@@ -606,19 +1432,43 @@ export async function seedMvpData() {
       bandId,
       scheduledDate: new Date('2024-11-10T19:00:00'),
       duration: 90,
-      location: 'Eric\'s Studio',
+      location: "Eric's Studio",
       type: 'rehearsal',
       status: 'completed',
       songs: [
-        { songId: songIds.wonderwall, timeSpent: 25, status: 'completed', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds['hey There'], timeSpent: 20, status: 'completed', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds.jump, timeSpent: 15, status: 'completed', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
+        {
+          songId: songIds.wonderwall,
+          timeSpent: 25,
+          status: 'completed',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds['hey There'],
+          timeSpent: 20,
+          status: 'completed',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds.jump,
+          timeSpent: 15,
+          status: 'completed',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
       ],
       attendees: [],
       notes: 'Focused on acoustic songs. Sounding good!',
       objectives: ['Perfect acoustic songs'],
       completedObjectives: ['Perfect acoustic songs'],
-      createdDate: new Date('2024-11-03')
+      createdDate: new Date('2024-11-03'),
     })
 
     // Past practice 3
@@ -627,18 +1477,34 @@ export async function seedMvpData() {
       bandId,
       scheduledDate: new Date('2024-11-03T19:00:00'),
       duration: 120,
-      location: 'Mike\'s Garage',
+      location: "Mike's Garage",
       type: 'rehearsal',
       status: 'completed',
       songs: [
-        { songId: songIds.hotel, timeSpent: 40, status: 'completed', sectionsWorked: ['intro', 'solo'], improvements: [], needsWork: [], memberRatings: [] },
-        { songId: songIds['free Bird'], timeSpent: 35, status: 'completed', sectionsWorked: ['solo'], improvements: [], needsWork: [], memberRatings: [] },
+        {
+          songId: songIds.hotel,
+          timeSpent: 40,
+          status: 'completed',
+          sectionsWorked: ['intro', 'solo'],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
+        {
+          songId: songIds['free Bird'],
+          timeSpent: 35,
+          status: 'completed',
+          sectionsWorked: ['solo'],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        },
       ],
       attendees: [],
       notes: 'Epic jam session. Long songs day.',
       objectives: ['Master Hotel California', 'Nail Free Bird solo'],
       completedObjectives: ['Master Hotel California'],
-      createdDate: new Date('2024-10-28')
+      createdDate: new Date('2024-10-28'),
     })
 
     console.log('✅ MVP data seed complete!')
@@ -649,7 +1515,6 @@ export async function seedMvpData() {
     console.log(`   - Setlists: ${await db.setlists.count()}`)
     console.log(`   - Shows: ${await db.shows.count()}`)
     console.log(`   - Practices: ${await db.practiceSessions.count()}`)
-
   } catch (error) {
     console.error('❌ Error seeding MVP data:', error)
     throw error

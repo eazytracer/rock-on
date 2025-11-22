@@ -8,7 +8,7 @@ import {
   Settings,
   LogOut,
   Wifi,
-  WifiOff
+  WifiOff,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 // PHASE 2: Connection status indicator
@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   bandName = 'iPod Shuffle',
   userEmail = 'eric@example.com',
   onSignOut,
-  onNavigate
+  onNavigate,
 }) => {
   const navigate = useNavigate()
 
@@ -62,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Setlists', path: '/setlists', icon: <ListMusic size={20} /> },
     { label: 'Shows', path: '/shows', icon: <Ticket size={20} /> },
     { label: 'Practices', path: '/practices', icon: <Calendar size={20} /> },
-    { label: 'Band Members', path: '/band-members', icon: <Users size={20} /> }
+    { label: 'Band Members', path: '/band-members', icon: <Users size={20} /> },
   ]
 
   const isActive = (path: string) => {
@@ -84,7 +84,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-white font-bold text-lg">R</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-white font-semibold text-base leading-tight" data-testid="sidebar-band-name">
+            <h1
+              className="text-white font-semibold text-base leading-tight"
+              data-testid="sidebar-band-name"
+            >
               {bandName}
             </h1>
             <p className="text-[#707070] text-xs truncate">{userEmail}</p>
@@ -96,7 +99,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ) : (
                 <WifiOff size={12} className="text-red-500" />
               )}
-              <span className={`text-xs font-medium ${isOnline ? 'text-green-500' : 'text-red-500'}`}>
+              <span
+                className={`text-xs font-medium ${isOnline ? 'text-green-500' : 'text-red-500'}`}
+              >
                 {isOnline ? 'Connected' : 'Offline'}
               </span>
               {isSyncing && (
@@ -123,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Navigation Items */}
       <nav className="flex-1 space-y-1">
-        {navItems.map((item) => (
+        {navItems.map(item => (
           <button
             key={item.path}
             onClick={() => handleNavigation(item.path)}

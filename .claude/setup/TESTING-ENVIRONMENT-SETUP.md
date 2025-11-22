@@ -2,7 +2,7 @@
 
 Complete guide for setting up and testing the Rock On application locally with Supabase.
 
-## Quick Start
+## Quick Start - Manual Testing
 
 ```bash
 # 1. Reset database to fresh state
@@ -18,6 +18,20 @@ npm run dev
 # Email: eric@ipodshuffle.com (or mike/sarah)
 # Password: test123
 ```
+
+## Quick Start - Automated Tests
+
+```bash
+# Run all tests (recommended - includes Supabase setup)
+npm run start:test
+
+# Or run specific test types:
+npm test                  # Unit tests (fast, no Supabase needed)
+npm run test:e2e          # E2E tests (requires Supabase + dev server)
+npm run test:db           # Database schema tests (pgTAP)
+```
+
+**See "Automated Test Execution" section below for detailed test type requirements.**
 
 ---
 
@@ -371,6 +385,205 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
 **Problem:** "User exists but can't log in"
 - User might be in `public.users` but not `auth.users`
 - Use the mock users which are in both
+
+---
+
+## Automated Test Execution
+
+Rock-On has 5 different categories of automated tests, each with different requirements and execution environments.
+
+### Test Type Overview
+
+| Test Type | Count | Needs Supabase | Runner | Command |
+|-----------|-------|----------------|--------|---------|
+| **Unit** | 23 files | ❌ No (uses mocks) | Vitest | `npm test -- tests/unit/` |
+| **Integration** | 1 file | ✅ Yes | Vitest | `npm test -- tests/integration/` |
+| **Journey** | 4 files | ✅ **Yes** | Vitest | `npm test -- tests/journeys/` |
+| **Contract** | 3 files | ✅ Yes | Vitest | `npm test -- tests/contract/` |
+| **E2E** | 11 files | ✅ Yes + Dev Server | Playwright | `npm run test:e2e` |
+| **Database** | 11 files | ✅ Yes | pgTAP | `npm run test:db` |
+
+### Recommended Test Execution
+
+**Option 1: Run All Tests (Recommended)**
+```bash
+# This script handles everything:
+# 1. Starts Supabase if not running
+# 2. Sets test environment
+# 3. Runs all test suites
+npm run start:test
+```
+
+**Option 2: Run Specific Test Types**
+```bash
+# Unit tests only (fast, no setup needed)
+npm test -- tests/unit/
+
+# Journey + Contract tests (requires Supabase)
+supabase start
+npm test -- tests/journeys/ tests/contract/
+
+# E2E tests (requires Supabase + dev server)
+npm run test:e2e
+
+# Database schema tests
+npm run test:db
+```
+
+### Test Type Details
+
+#### 1. Unit Tests (`tests/unit/`)
+**Purpose:** Test individual functions/components in isolation
+**Dependencies:** Mocked repositories, fake-indexeddb
+**Supabase Required:** ❌ No
+**Examples:**
+- `services/BandService.test.ts` - Service layer with mocked repository
+- `hooks/useSyncStatus.test.ts` - React hooks
+- `components/SyncStatusIndicator.test.tsx` - UI components
+
+**Run:**
+```bash
+npm test -- tests/unit/
+```
+
+#### 2. Integration Tests (`tests/integration/`)
+**Purpose:** Test multiple components working together
+**Dependencies:** Real database interactions
+**Supabase Required:** ✅ Yes
+**Examples:**
+- `template.test.ts` - Template for integration tests
+
+**Run:**
+```bash
+supabase start
+npm test -- tests/integration/
+```
+
+#### 3. Journey Tests (`tests/journeys/`)
+**Purpose:** Test complete user workflows (offline sync, real-time, auth)
+**Dependencies:** **REQUIRES real Supabase** (calls `getSupabaseClient()` directly)
+**Supabase Required:** ✅ **Yes** (critical)
+**Examples:**
+- `sync-journeys.test.ts` - Offline/online sync scenarios
+- `realtime-sync-journeys.test.ts` - Multi-device sync
+- `auth-journeys.test.ts` - Session timeout, multi-tab auth
+- `error-recovery-journeys.test.ts` - Network failures, data corruption
+
+**Important:** These tests simulate multi-device scenarios using the `TestDevice` class, which directly interacts with Supabase. They will fail if Supabase is not running.
+
+**Run:**
+```bash
+supabase start
+npm test -- tests/journeys/
+```
+
+#### 4. Contract Tests (`tests/contract/`)
+**Purpose:** Verify API contracts match expectations
+**Dependencies:** Real Supabase API
+**Supabase Required:** ✅ Yes
+**Examples:**
+- `songs-api.test.ts` - Songs API contract
+- `setlists-api.test.ts` - Setlists API contract
+- `practice-sessions-api.test.ts` - Practice sessions API
+
+**Run:**
+```bash
+supabase start
+npm test -- tests/contract/
+```
+
+#### 5. E2E Tests (`tests/e2e/`)
+**Purpose:** Test complete user flows in real browser
+**Dependencies:** Real Supabase + running dev server
+**Supabase Required:** ✅ Yes + dev server
+**Runner:** Playwright (separate from Vitest)
+**Examples:**
+- `auth/login-smoke.spec.ts` - Login flow
+- `bands/create-band.spec.ts` - Band creation
+- `songs/crud.spec.ts` - Song management
+
+**Run:**
+```bash
+supabase start
+npm run test:e2e  # Playwright starts dev server automatically
+```
+
+**E2E Best Practice:** Start from fresh database each time:
+```bash
+supabase db reset
+npm run test:e2e
+```
+
+#### 6. Database Tests (`supabase/tests/`)
+**Purpose:** Validate database schema, RLS policies, triggers
+**Dependencies:** Supabase with pgTAP extension
+**Supabase Required:** ✅ Yes
+**Examples:**
+- `001-schema-tables.test.sql` - Table existence
+- `006-rls-policies.test.sql` - RLS policy validation
+- `010-audit-log.test.sql` - Audit logging
+
+**Run:**
+```bash
+npm run test:db
+```
+
+### Environment Setup for Tests
+
+**For Journey/Contract/E2E Tests:**
+
+These tests require Supabase environment variables. The recommended workflow:
+
+```bash
+# Method 1: Use npm run start:test (recommended)
+npm run start:test
+
+# Method 2: Manual setup
+supabase start
+npm run env:test  # Copies .env.test → .env.local
+npm test
+```
+
+**What `npm run start:test` does:**
+1. Checks if Supabase is running, starts it if not
+2. Copies `.env.test` → `.env.local` (sets environment variables)
+3. Runs `npm run test:all` (unit + integration + journey + contract + database tests)
+
+**Environment Variables Required:**
+- `VITE_SUPABASE_URL` - Local Supabase URL (usually `http://127.0.0.1:54321`)
+- `VITE_SUPABASE_ANON_KEY` - Local Supabase anon key (get from `supabase status`)
+
+### Developer Workflow
+
+**During Development (Fast Feedback):**
+```bash
+# Run unit tests in watch mode (no Supabase needed)
+npm test -- tests/unit/services/BandService.test.ts --watch
+```
+
+**Before Committing:**
+```bash
+# Run all tests
+npm run start:test
+
+# Check types
+npm run type-check
+
+# Lint
+npm run lint
+```
+
+**Debugging Test Failures:**
+```bash
+# Run single test file
+npm test -- tests/journeys/sync-journeys.test.ts
+
+# Run with verbose output
+npm test -- tests/journeys/ --reporter=verbose
+
+# Run E2E tests with UI
+npm run test:e2e:ui
+```
 
 ---
 

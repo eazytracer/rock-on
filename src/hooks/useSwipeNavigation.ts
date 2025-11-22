@@ -25,13 +25,13 @@ export function useSwipeNavigation(options: SwipeNavigationOptions = {}) {
     onSwipeDown,
     threshold = 50,
     velocity = 0.5,
-    enableHaptics = true
+    enableHaptics = true,
   } = options
 
   const [swipeState, setSwipeState] = useState<SwipeState>({
     isSwipeActive: false,
     swipeDirection: null,
-    swipeProgress: 0
+    swipeProgress: 0,
   })
 
   const elementRef = useRef<HTMLElement>(null)
@@ -46,13 +46,18 @@ export function useSwipeNavigation(options: SwipeNavigationOptions = {}) {
     setSwipeState({
       isSwipeActive: false,
       swipeDirection: null,
-      swipeProgress: 0
+      swipeProgress: 0,
     })
   }, [])
 
   const bind = useGesture(
     {
-      onDrag: ({ movement: [mx, my], velocity: [vx, vy], cancel, canceled }) => {
+      onDrag: ({
+        movement: [mx, my],
+        velocity: [vx, vy],
+        cancel,
+        canceled,
+      }) => {
         if (canceled) {
           resetSwipeState()
           return
@@ -74,7 +79,7 @@ export function useSwipeNavigation(options: SwipeNavigationOptions = {}) {
           setSwipeState({
             isSwipeActive: absMx > 10,
             swipeDirection: direction,
-            swipeProgress: progress
+            swipeProgress: progress,
           })
 
           // Trigger swipe action if threshold or velocity is met
@@ -96,7 +101,7 @@ export function useSwipeNavigation(options: SwipeNavigationOptions = {}) {
           setSwipeState({
             isSwipeActive: absMy > 10,
             swipeDirection: direction,
-            swipeProgress: progress
+            swipeProgress: progress,
           })
 
           // Trigger swipe action if threshold or velocity is met
@@ -115,22 +120,22 @@ export function useSwipeNavigation(options: SwipeNavigationOptions = {}) {
       },
       onDragEnd: () => {
         resetSwipeState()
-      }
+      },
     },
     {
       drag: {
         filterTaps: true,
         rubberband: true,
         axis: undefined, // Allow both directions
-        threshold: 5
-      }
+        threshold: 5,
+      },
     }
   )
 
   return {
     bind,
     swipeState,
-    ref: elementRef
+    ref: elementRef,
   }
 }
 
@@ -138,12 +143,15 @@ export function useSwipeNavigation(options: SwipeNavigationOptions = {}) {
 export function useHorizontalSwipe(
   onSwipeLeft?: () => void,
   onSwipeRight?: () => void,
-  options: Omit<SwipeNavigationOptions, 'onSwipeLeft' | 'onSwipeRight' | 'onSwipeUp' | 'onSwipeDown'> = {}
+  options: Omit<
+    SwipeNavigationOptions,
+    'onSwipeLeft' | 'onSwipeRight' | 'onSwipeUp' | 'onSwipeDown'
+  > = {}
 ) {
   return useSwipeNavigation({
     ...options,
     onSwipeLeft,
-    onSwipeRight
+    onSwipeRight,
   })
 }
 
@@ -151,12 +159,15 @@ export function useHorizontalSwipe(
 export function useVerticalSwipe(
   onSwipeUp?: () => void,
   onSwipeDown?: () => void,
-  options: Omit<SwipeNavigationOptions, 'onSwipeLeft' | 'onSwipeRight' | 'onSwipeUp' | 'onSwipeDown'> = {}
+  options: Omit<
+    SwipeNavigationOptions,
+    'onSwipeLeft' | 'onSwipeRight' | 'onSwipeUp' | 'onSwipeDown'
+  > = {}
 ) {
   return useSwipeNavigation({
     ...options,
     onSwipeUp,
-    onSwipeDown
+    onSwipeDown,
   })
 }
 

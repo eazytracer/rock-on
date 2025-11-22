@@ -7,10 +7,24 @@ import { TouchButton } from '../common/TouchButton'
 import { SearchBar } from '../common/SearchBar'
 
 interface SessionFormProps {
-  onSubmit: (sessionData: Omit<PracticeSession, 'id' | 'status' | 'startTime' | 'endTime' | 'songs' | 'attendees' | 'completedObjectives' | 'sessionRating' | 'createdDate' | 'lastModified'> & {
-    songIds: string[]
-    inviteeIds: string[]
-  }) => void
+  onSubmit: (
+    sessionData: Omit<
+      PracticeSession,
+      | 'id'
+      | 'status'
+      | 'startTime'
+      | 'endTime'
+      | 'songs'
+      | 'attendees'
+      | 'completedObjectives'
+      | 'sessionRating'
+      | 'createdDate'
+      | 'lastModified'
+    > & {
+      songIds: string[]
+      inviteeIds: string[]
+    }
+  ) => void
   onCancel: () => void
   songs: Song[]
   members: Member[]
@@ -25,12 +39,36 @@ interface FormErrors {
   location?: string
 }
 
-const SESSION_TYPES: { value: SessionType; label: string; description: string }[] = [
-  { value: 'rehearsal', label: 'Rehearsal', description: 'Practice songs for upcoming show' },
-  { value: 'writing', label: 'Writing', description: 'Create new songs and arrangements' },
-  { value: 'recording', label: 'Recording', description: 'Record songs for album or demo' },
-  { value: 'audition', label: 'Audition', description: 'Try out new members or songs' },
-  { value: 'lesson', label: 'Lesson', description: 'Learn techniques or theory' }
+const SESSION_TYPES: {
+  value: SessionType
+  label: string
+  description: string
+}[] = [
+  {
+    value: 'rehearsal',
+    label: 'Rehearsal',
+    description: 'Practice songs for upcoming show',
+  },
+  {
+    value: 'writing',
+    label: 'Writing',
+    description: 'Create new songs and arrangements',
+  },
+  {
+    value: 'recording',
+    label: 'Recording',
+    description: 'Record songs for album or demo',
+  },
+  {
+    value: 'audition',
+    label: 'Audition',
+    description: 'Try out new members or songs',
+  },
+  {
+    value: 'lesson',
+    label: 'Lesson',
+    description: 'Learn techniques or theory',
+  },
 ]
 
 export const SessionForm: React.FC<SessionFormProps> = ({
@@ -39,16 +77,18 @@ export const SessionForm: React.FC<SessionFormProps> = ({
   songs,
   members,
   initialData,
-  loading = false
+  loading = false,
 }) => {
   const [formData, setFormData] = useState({
     bandId: initialData?.bandId || '',
-    scheduledDate: initialData?.scheduledDate ? new Date(initialData.scheduledDate).toISOString().slice(0, 16) : '',
+    scheduledDate: initialData?.scheduledDate
+      ? new Date(initialData.scheduledDate).toISOString().slice(0, 16)
+      : '',
     duration: initialData?.duration || 120,
     location: initialData?.location || '',
-    type: initialData?.type || 'rehearsal' as SessionType,
+    type: initialData?.type || ('rehearsal' as SessionType),
     notes: initialData?.notes || '',
-    objectives: initialData?.objectives || []
+    objectives: initialData?.objectives || [],
   })
 
   const [selectedSongs, setSelectedSongs] = useState<string[]>([])
@@ -91,7 +131,9 @@ export const SessionForm: React.FC<SessionFormProps> = ({
     e.preventDefault()
 
     if (!validateForm()) {
-      const firstErrorField = formRef.current?.querySelector('[data-error="true"]') as HTMLElement
+      const firstErrorField = formRef.current?.querySelector(
+        '[data-error="true"]'
+      ) as HTMLElement
       firstErrorField?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       firstErrorField?.focus()
       return
@@ -106,13 +148,16 @@ export const SessionForm: React.FC<SessionFormProps> = ({
       notes: formData.notes.trim() || undefined,
       objectives: formData.objectives,
       songIds: selectedSongs,
-      inviteeIds: selectedMembers
+      inviteeIds: selectedMembers,
     }
 
     onSubmit(sessionData)
   }
 
-  const handleInputChange = (field: string, value: string | number | SessionType | string[]) => {
+  const handleInputChange = (
+    field: string,
+    value: string | number | SessionType | string[]
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
@@ -139,7 +184,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({
     if (newObjective.trim()) {
       setFormData(prev => ({
         ...prev,
-        objectives: [...prev.objectives, newObjective.trim()]
+        objectives: [...prev.objectives, newObjective.trim()],
       }))
       setNewObjective('')
     }
@@ -148,18 +193,21 @@ export const SessionForm: React.FC<SessionFormProps> = ({
   const removeObjective = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      objectives: prev.objectives.filter((_, i) => i !== index)
+      objectives: prev.objectives.filter((_, i) => i !== index),
     }))
   }
 
-  const filteredSongs = songs.filter(song =>
-    song.title.toLowerCase().includes(songSearch.toLowerCase()) ||
-    song.artist.toLowerCase().includes(songSearch.toLowerCase())
+  const filteredSongs = songs.filter(
+    song =>
+      song.title.toLowerCase().includes(songSearch.toLowerCase()) ||
+      song.artist.toLowerCase().includes(songSearch.toLowerCase())
   )
 
   const getMinDateTime = () => {
     const now = new Date()
-    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16)
   }
 
   return (
@@ -167,7 +215,9 @@ export const SessionForm: React.FC<SessionFormProps> = ({
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
-            {initialData ? 'Edit Practice Session' : 'Schedule Practice Session'}
+            {initialData
+              ? 'Edit Practice Session'
+              : 'Schedule Practice Session'}
           </h2>
         </div>
 
@@ -180,7 +230,9 @@ export const SessionForm: React.FC<SessionFormProps> = ({
               <input
                 type="datetime-local"
                 value={formData.scheduledDate}
-                onChange={(e) => handleInputChange('scheduledDate', e.target.value)}
+                onChange={e =>
+                  handleInputChange('scheduledDate', e.target.value)
+                }
                 min={getMinDateTime()}
                 className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.scheduledDate ? 'border-red-500' : 'border-gray-300'
@@ -188,7 +240,9 @@ export const SessionForm: React.FC<SessionFormProps> = ({
                 data-error={!!errors.scheduledDate}
               />
               {errors.scheduledDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.scheduledDate}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.scheduledDate}
+                </p>
               )}
             </div>
 
@@ -203,14 +257,20 @@ export const SessionForm: React.FC<SessionFormProps> = ({
                   max="480"
                   step="15"
                   value={formData.duration}
-                  onChange={(e) => handleInputChange('duration', parseInt(e.target.value) || 120)}
+                  onChange={e =>
+                    handleInputChange(
+                      'duration',
+                      parseInt(e.target.value) || 120
+                    )
+                  }
                   className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.duration ? 'border-red-500' : 'border-gray-300'
                   }`}
                   data-error={!!errors.duration}
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 text-sm">
-                  {Math.floor(formData.duration / 60)}h {formData.duration % 60}m
+                  {Math.floor(formData.duration / 60)}h {formData.duration % 60}
+                  m
                 </div>
               </div>
               {errors.duration && (
@@ -224,7 +284,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({
               </label>
               <select
                 value={formData.type}
-                onChange={(e) => handleInputChange('type', e.target.value)}
+                onChange={e => handleInputChange('type', e.target.value)}
                 className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.type ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -248,7 +308,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({
               <input
                 type="text"
                 value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
+                onChange={e => handleInputChange('location', e.target.value)}
                 className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.location ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -267,7 +327,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({
             </label>
             <textarea
               value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
+              onChange={e => handleInputChange('notes', e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="Any additional notes for this session..."
@@ -282,8 +342,8 @@ export const SessionForm: React.FC<SessionFormProps> = ({
               <input
                 type="text"
                 value={newObjective}
-                onChange={(e) => setNewObjective(e.target.value)}
-                onKeyPress={(e) => {
+                onChange={e => setNewObjective(e.target.value)}
+                onKeyPress={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
                     addObjective()
@@ -305,7 +365,10 @@ export const SessionForm: React.FC<SessionFormProps> = ({
             {formData.objectives.length > 0 && (
               <div className="space-y-2">
                 {formData.objectives.map((objective, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                  >
                     <span className="text-sm text-gray-900">{objective}</span>
                     <button
                       type="button"
@@ -313,8 +376,18 @@ export const SessionForm: React.FC<SessionFormProps> = ({
                       className="text-red-600 hover:text-red-800 transition-colors p-1"
                       aria-label="Remove objective"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -350,14 +423,20 @@ export const SessionForm: React.FC<SessionFormProps> = ({
                     htmlFor={`song-${song.id}`}
                     className="ml-3 flex-1 cursor-pointer"
                   >
-                    <div className="font-medium text-gray-900">{song.title}</div>
-                    <div className="text-sm text-gray-500">{song.artist} • {song.key} • {song.bpm} BPM</div>
+                    <div className="font-medium text-gray-900">
+                      {song.title}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {song.artist} • {song.key} • {song.bpm} BPM
+                    </div>
                   </label>
                 </div>
               ))}
               {filteredSongs.length === 0 && (
                 <div className="p-8 text-center text-gray-500">
-                  {songSearch ? `No songs found matching "${songSearch}"` : 'No songs available'}
+                  {songSearch
+                    ? `No songs found matching "${songSearch}"`
+                    : 'No songs available'}
                 </div>
               )}
             </div>
@@ -384,8 +463,12 @@ export const SessionForm: React.FC<SessionFormProps> = ({
                     htmlFor={`member-${member.id}`}
                     className="ml-3 flex-1 cursor-pointer"
                   >
-                    <div className="font-medium text-gray-900">{member.name}</div>
-                    <div className="text-sm text-gray-500">{member.primaryInstrument}</div>
+                    <div className="font-medium text-gray-900">
+                      {member.name}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {member.primaryInstrument}
+                    </div>
                   </label>
                 </div>
               ))}

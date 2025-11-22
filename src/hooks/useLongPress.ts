@@ -25,29 +25,32 @@ export function useLongPress(options: LongPressOptions = {}) {
     onLongPressEnd,
     preventDefault = true,
     enableHaptics = true,
-    visualFeedback = true
+    visualFeedback = true,
   } = options
 
   const [longPressState, setLongPressState] = useState<LongPressState>({
     isLongPressing: false,
     progress: 0,
-    startTime: null
+    startTime: null,
   })
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null)
   const elementRef = useRef<HTMLElement>(null)
 
-  const triggerHapticFeedback = useCallback((intensity: 'light' | 'medium' | 'heavy' = 'medium') => {
-    if (enableHaptics && 'vibrate' in navigator) {
-      const vibrationPattern = {
-        light: 10,
-        medium: 25,
-        heavy: 50
+  const triggerHapticFeedback = useCallback(
+    (intensity: 'light' | 'medium' | 'heavy' = 'medium') => {
+      if (enableHaptics && 'vibrate' in navigator) {
+        const vibrationPattern = {
+          light: 10,
+          medium: 25,
+          heavy: 50,
+        }
+        navigator.vibrate(vibrationPattern[intensity])
       }
-      navigator.vibrate(vibrationPattern[intensity])
-    }
-  }, [enableHaptics])
+    },
+    [enableHaptics]
+  )
 
   const startLongPress = useCallback(() => {
     const startTime = Date.now()
@@ -55,7 +58,7 @@ export function useLongPress(options: LongPressOptions = {}) {
     setLongPressState({
       isLongPressing: true,
       progress: 0,
-      startTime
+      startTime,
     })
 
     onLongPressStart?.()
@@ -69,7 +72,7 @@ export function useLongPress(options: LongPressOptions = {}) {
 
         setLongPressState(prev => ({
           ...prev,
-          progress
+          progress,
         }))
 
         if (progress < 1) {
@@ -86,10 +89,16 @@ export function useLongPress(options: LongPressOptions = {}) {
 
       setLongPressState(prev => ({
         ...prev,
-        progress: 1
+        progress: 1,
       }))
     }, threshold)
-  }, [threshold, onLongPress, onLongPressStart, triggerHapticFeedback, visualFeedback])
+  }, [
+    threshold,
+    onLongPress,
+    onLongPressStart,
+    triggerHapticFeedback,
+    visualFeedback,
+  ])
 
   const cancelLongPress = useCallback(() => {
     if (timerRef.current) {
@@ -107,7 +116,7 @@ export function useLongPress(options: LongPressOptions = {}) {
     setLongPressState({
       isLongPressing: false,
       progress: 0,
-      startTime: null
+      startTime: null,
     })
 
     if (wasLongPressing) {
@@ -117,7 +126,7 @@ export function useLongPress(options: LongPressOptions = {}) {
 
   const bind = useGesture(
     {
-      onPointerDown: (state) => {
+      onPointerDown: state => {
         if (preventDefault) {
           state.event.preventDefault()
         }
@@ -135,16 +144,17 @@ export function useLongPress(options: LongPressOptions = {}) {
       // Handle drag to cancel long press if user moves too far
       onDrag: ({ movement: [mx, my] }) => {
         const distance = Math.sqrt(mx * mx + my * my)
-        if (distance > 10) { // Cancel if moved more than 10px
+        if (distance > 10) {
+          // Cancel if moved more than 10px
           cancelLongPress()
         }
-      }
+      },
     },
     {
       drag: {
         threshold: 10,
-        filterTaps: false
-      }
+        filterTaps: false,
+      },
     }
   )
 
@@ -162,7 +172,7 @@ export function useLongPress(options: LongPressOptions = {}) {
     bind,
     longPressState,
     ref: elementRef,
-    cleanup
+    cleanup,
   }
 }
 
@@ -194,7 +204,7 @@ export function useLongPressContextMenu(
 
   const longPress = useLongPress({
     ...options,
-    onLongPress: handleLongPress
+    onLongPress: handleLongPress,
   })
 
   return {
@@ -203,7 +213,7 @@ export function useLongPressContextMenu(
     menuItems,
     menuPosition,
     onMenuItemClick: handleMenuItemClick,
-    onCloseMenu: closeMenu
+    onCloseMenu: closeMenu,
   }
 }
 
@@ -237,13 +247,13 @@ export function useLongPressQuickAction(
     onLongPressEnd: () => {
       setShowSecondaryAction(false)
       options.onLongPressEnd?.()
-    }
+    },
   })
 
   return {
     ...longPress,
     onClick: handleClick,
-    showSecondaryAction
+    showSecondaryAction,
   }
 }
 
@@ -255,7 +265,7 @@ export function useLongPressProgress(
   const longPress = useLongPress({
     ...options,
     onLongPress: onComplete,
-    visualFeedback: true
+    visualFeedback: true,
   })
 
   const getProgressStyle = useCallback(() => {
@@ -263,12 +273,12 @@ export function useLongPressProgress(
     return {
       background: `conic-gradient(#3b82f6 ${progress * 360}deg, #e5e7eb 0deg)`,
       opacity: longPress.longPressState.isLongPressing ? 1 : 0,
-      transition: 'opacity 0.2s ease-in-out'
+      transition: 'opacity 0.2s ease-in-out',
     }
   }, [longPress.longPressState])
 
   return {
     ...longPress,
-    getProgressStyle
+    getProgressStyle,
   }
 }

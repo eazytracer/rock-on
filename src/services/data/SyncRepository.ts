@@ -40,7 +40,7 @@ export class SyncRepository implements IDataRepository {
     this.isOnline = navigator.onLine
 
     // Subscribe to sync engine status changes
-    this.syncEngine.onStatusChange((status) => {
+    this.syncEngine.onStatusChange(status => {
       this.emitSyncStatusChange(status)
     })
 
@@ -114,7 +114,9 @@ export class SyncRepository implements IDataRepository {
 
     // 3. Sync if online
     if (this.isOnline) {
-      console.log('[SyncRepository] Step 3: Triggering immediate sync (online)...')
+      console.log(
+        '[SyncRepository] Step 3: Triggering immediate sync (online)...'
+      )
       this.syncEngine.syncNow()
     } else {
       console.log('[SyncRepository] Step 3: Skipping sync (offline)')
@@ -142,7 +144,10 @@ export class SyncRepository implements IDataRepository {
           return remoteBand
         }
       } catch (error) {
-        console.warn('[SyncRepository] Remote fetch failed for band, using local:', error)
+        console.warn(
+          '[SyncRepository] Remote fetch failed for band, using local:',
+          error
+        )
       }
     }
     return this.local.getBand(id)
@@ -254,7 +259,10 @@ export class SyncRepository implements IDataRepository {
     return localSession
   }
 
-  async updatePracticeSession(id: string, updates: Partial<PracticeSession>): Promise<PracticeSession> {
+  async updatePracticeSession(
+    id: string,
+    updates: Partial<PracticeSession>
+  ): Promise<PracticeSession> {
     const updated = await this.local.updatePracticeSession(id, updates)
     await this.syncEngine.queueUpdate('practice_sessions', id, updates)
     if (this.isOnline) {
@@ -323,7 +331,10 @@ export class SyncRepository implements IDataRepository {
         }
         return remoteMemberships
       } catch (error) {
-        console.warn('[SyncRepository] Remote fetch failed for band memberships, using local:', error)
+        console.warn(
+          '[SyncRepository] Remote fetch failed for band memberships, using local:',
+          error
+        )
       }
     }
     return this.local.getBandMemberships(bandId)
@@ -341,7 +352,10 @@ export class SyncRepository implements IDataRepository {
         }
         return remoteMemberships
       } catch (error) {
-        console.warn('[SyncRepository] Remote fetch failed for memberships, using local:', error)
+        console.warn(
+          '[SyncRepository] Remote fetch failed for memberships, using local:',
+          error
+        )
       }
     }
     return this.local.getUserMemberships(userId)
@@ -356,7 +370,10 @@ export class SyncRepository implements IDataRepository {
     return localMembership
   }
 
-  async updateBandMembership(id: string, updates: Partial<BandMembership>): Promise<BandMembership> {
+  async updateBandMembership(
+    id: string,
+    updates: Partial<BandMembership>
+  ): Promise<BandMembership> {
     const updated = await this.local.updateBandMembership(id, updates)
     await this.syncEngine.queueUpdate('band_memberships', id, updates)
     if (this.isOnline) {
@@ -388,7 +405,10 @@ export class SyncRepository implements IDataRepository {
       try {
         return await this.remote.getInviteCode(id)
       } catch (error) {
-        console.warn('[SyncRepository] Remote fetch failed, using local:', error)
+        console.warn(
+          '[SyncRepository] Remote fetch failed, using local:',
+          error
+        )
       }
     }
     return this.local.getInviteCode(id)
@@ -403,8 +423,11 @@ export class SyncRepository implements IDataRepository {
       return await this.remote.getInviteCodeByCode(code)
     } catch (error) {
       // If Supabase query fails, provide helpful error message
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      throw new Error(`Cannot validate invite code: ${errorMessage}. Please check your internet connection and try again.`)
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(
+        `Cannot validate invite code: ${errorMessage}. Please check your internet connection and try again.`
+      )
     }
   }
 
@@ -421,7 +444,10 @@ export class SyncRepository implements IDataRepository {
     return created
   }
 
-  async updateInviteCode(id: string, updates: Partial<InviteCode>): Promise<InviteCode> {
+  async updateInviteCode(
+    id: string,
+    updates: Partial<InviteCode>
+  ): Promise<InviteCode> {
     // Check if invite code exists locally first
     const localCode = await this.local.getInviteCode(id)
 
@@ -461,7 +487,9 @@ export class SyncRepository implements IDataRepository {
     // Update local copy if it exists (for band admins who created the code)
     const localCode = await this.local.getInviteCode(id)
     if (localCode) {
-      await this.local.updateInviteCode(id, { currentUses: updated.currentUses })
+      await this.local.updateInviteCode(id, {
+        currentUses: updated.currentUses,
+      })
     }
 
     return updated
@@ -533,7 +561,7 @@ export class SyncRepository implements IDataRepository {
     this.syncStatusCallbacks.forEach(callback => {
       if (callback.length === 0) {
         // Callback expects no arguments (change event)
-        (callback as unknown as () => void)()
+        ;(callback as unknown as () => void)()
       }
     })
   }
@@ -586,7 +614,10 @@ export class SyncRepository implements IDataRepository {
           return remoteUser
         }
       } catch (error) {
-        console.warn('[SyncRepository] Remote fetch failed for user, using local:', error)
+        console.warn(
+          '[SyncRepository] Remote fetch failed for user, using local:',
+          error
+        )
       }
     }
     return this.local.getUser(id)

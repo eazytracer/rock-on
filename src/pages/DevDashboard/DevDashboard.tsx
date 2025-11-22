@@ -37,7 +37,9 @@ export const DevDashboard: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen bg-surface">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-error mb-2">Access Denied</h1>
-          <p className="text-muted">Developer Dashboard is not available in production.</p>
+          <p className="text-muted">
+            Developer Dashboard is not available in production.
+          </p>
         </div>
       </div>
     )
@@ -56,15 +58,16 @@ export const DevDashboard: React.FC = () => {
       {/* Tab Navigation */}
       <div className="bg-white border-b border-divider">
         <div className="flex px-6">
-          {tabs.map((tab) => (
+          {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
                 px-4 py-3 text-sm font-medium border-b-2 transition-colors
-                ${activeTab === tab.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted hover:text-text hover:border-divider'
+                ${
+                  activeTab === tab.id
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted hover:text-text hover:border-divider'
                 }
               `}
             >
@@ -90,19 +93,20 @@ export const DevDashboard: React.FC = () => {
           <div className="flex items-center gap-4">
             <span>Dev Dashboard v1.0 • {import.meta.env.MODE} mode</span>
             <span className="text-primary font-medium">
-              🗄️ Database: {
-                import.meta.env.VITE_SUPABASE_URL?.includes('127.0.0.1') ||
-                import.meta.env.VITE_SUPABASE_URL?.includes('localhost')
-                  ? 'Local Supabase'
-                  : import.meta.env.VITE_SUPABASE_URL?.includes('supabase.co')
+              🗄️ Database:{' '}
+              {import.meta.env.VITE_SUPABASE_URL?.includes('127.0.0.1') ||
+              import.meta.env.VITE_SUPABASE_URL?.includes('localhost')
+                ? 'Local Supabase'
+                : import.meta.env.VITE_SUPABASE_URL?.includes('supabase.co')
                   ? `Production (${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]})`
                   : import.meta.env.VITE_MOCK_AUTH === 'true'
-                  ? 'Mock/IndexedDB Only'
-                  : 'Unknown'
-              }
+                    ? 'Mock/IndexedDB Only'
+                    : 'Unknown'}
             </span>
           </div>
-          <span className="text-warning">⚠️ Development Only - Not in Production</span>
+          <span className="text-warning">
+            ⚠️ Development Only - Not in Production
+          </span>
         </div>
       </div>
     </div>

@@ -13,12 +13,12 @@ export interface Show {
   setlistId?: string
   name: string
   scheduledDate: Date
-  duration: number  // Duration in minutes
+  duration: number // Duration in minutes
   venue?: string
-  location?: string  // Full address
-  loadInTime?: string  // Time string (e.g., "6:00 PM")
-  soundcheckTime?: string  // Time string (e.g., "7:00 PM")
-  payment?: number  // Payment in cents
+  location?: string // Full address
+  loadInTime?: string // Time string (e.g., "6:00 PM")
+  soundcheckTime?: string // Time string (e.g., "7:00 PM")
+  payment?: number // Payment in cents
   contacts?: ShowContact[]
   status: ShowStatus
   notes?: string
@@ -33,7 +33,7 @@ export interface Show {
 export interface ShowContact {
   id: string
   name: string
-  role: string  // e.g., "Venue Manager", "Sound Engineer"
+  role: string // e.g., "Venue Manager", "Sound Engineer"
   phone?: string
   email?: string
   notes?: string
@@ -44,13 +44,15 @@ export type ShowStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
 /**
  * Default values for new shows
  */
-export const DEFAULT_SHOW_DURATION = 120  // 2 hours in minutes
+export const DEFAULT_SHOW_DURATION = 120 // 2 hours in minutes
 export const DEFAULT_SHOW_STATUS: ShowStatus = 'scheduled'
 
 /**
  * Helper to create a new show with defaults
  */
-export function createNewShow(data: Partial<Show> & Pick<Show, 'bandId' | 'name' | 'scheduledDate'>): Show {
+export function createNewShow(
+  data: Partial<Show> & Pick<Show, 'bandId' | 'name' | 'scheduledDate'>
+): Show {
   const now = new Date()
 
   return {
@@ -60,16 +62,18 @@ export function createNewShow(data: Partial<Show> & Pick<Show, 'bandId' | 'name'
     createdDate: now,
     updatedDate: now,
     contacts: [],
-    ...data
+    ...data,
   }
 }
 
 /**
  * Helper to create a new contact with defaults
  */
-export function createNewContact(data: Partial<ShowContact> & Pick<ShowContact, 'name' | 'role'>): ShowContact {
+export function createNewContact(
+  data: Partial<ShowContact> & Pick<ShowContact, 'name' | 'role'>
+): ShowContact {
   return {
     id: crypto.randomUUID(),
-    ...data
+    ...data,
   }
 }

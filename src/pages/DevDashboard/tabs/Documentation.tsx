@@ -29,7 +29,8 @@ interface DiagramSection {
 }
 
 export const Documentation: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<DiagramCategory>('schema')
+  const [activeCategory, setActiveCategory] =
+    useState<DiagramCategory>('schema')
   const [selectedDiagram, setSelectedDiagram] = useState<string>('er-diagram')
   const [renderKey, setRenderKey] = useState(0)
   const diagramRef = useRef<HTMLDivElement>(null)
@@ -75,7 +76,8 @@ export const Documentation: React.FC = () => {
           {
             id: 'er-diagram',
             title: 'Database ER Diagram',
-            description: 'Complete entity-relationship diagram showing all tables and relationships',
+            description:
+              'Complete entity-relationship diagram showing all tables and relationships',
             diagram: databaseSchemaDiagram.erDiagram,
           },
           {
@@ -133,7 +135,8 @@ export const Documentation: React.FC = () => {
   }
 
   const sections = getSections()
-  const currentSection = sections.find(s => s.id === selectedDiagram) || sections[0]
+  const currentSection =
+    sections.find(s => s.id === selectedDiagram) || sections[0]
 
   return (
     <div className="flex h-[calc(100vh-250px)]">
@@ -193,10 +196,13 @@ export const Documentation: React.FC = () => {
           {sections.length > 1 && (
             <div className="mt-4 p-2 border-t border-divider">
               <h4 className="text-xs font-semibold text-muted uppercase tracking-wide px-3 mb-2">
-                {activeCategory === 'schema' ? 'Diagrams' :
-                 activeCategory === 'flows' ? 'Flows' : 'Views'}
+                {activeCategory === 'schema'
+                  ? 'Diagrams'
+                  : activeCategory === 'flows'
+                    ? 'Flows'
+                    : 'Views'}
               </h4>
-              {sections.map((section) => (
+              {sections.map(section => (
                 <button
                   key={section.id}
                   onClick={() => setSelectedDiagram(section.id)}
@@ -220,8 +226,12 @@ export const Documentation: React.FC = () => {
         <div className="bg-white border-b border-divider p-4">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-bold text-text">{currentSection?.title}</h2>
-              <p className="text-sm text-muted mt-1">{currentSection?.description}</p>
+              <h2 className="text-xl font-bold text-text">
+                {currentSection?.title}
+              </h2>
+              <p className="text-sm text-muted mt-1">
+                {currentSection?.description}
+              </p>
             </div>
             <button
               onClick={() => setRenderKey(prev => prev + 1)}
@@ -256,25 +266,39 @@ const TestCaseVisualization: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PASS': return 'bg-green-100 text-green-800 border-green-200'
-      case 'FAIL': return 'bg-red-100 text-red-800 border-red-200'
-      case 'PARTIAL': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'NOT_IMPLEMENTED': return 'bg-gray-100 text-gray-800 border-gray-200'
-      case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'SKIPPED': return 'bg-purple-100 text-purple-800 border-purple-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'PASS':
+        return 'bg-green-100 text-green-800 border-green-200'
+      case 'FAIL':
+        return 'bg-red-100 text-red-800 border-red-200'
+      case 'PARTIAL':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'NOT_IMPLEMENTED':
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'IN_PROGRESS':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'SKIPPED':
+        return 'bg-purple-100 text-purple-800 border-purple-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'PASS': return '✅'
-      case 'FAIL': return '❌'
-      case 'PARTIAL': return '⚠️'
-      case 'NOT_IMPLEMENTED': return '🔲'
-      case 'IN_PROGRESS': return '🚧'
-      case 'SKIPPED': return '⏭️'
-      default: return '❓'
+      case 'PASS':
+        return '✅'
+      case 'FAIL':
+        return '❌'
+      case 'PARTIAL':
+        return '⚠️'
+      case 'NOT_IMPLEMENTED':
+        return '🔲'
+      case 'IN_PROGRESS':
+        return '🚧'
+      case 'SKIPPED':
+        return '⏭️'
+      default:
+        return '❓'
     }
   }
 
@@ -284,19 +308,27 @@ const TestCaseVisualization: React.FC = () => {
       <div className="p-6 border-b border-divider">
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="text-2xl font-bold text-green-700">{testCaseData.summary.passing}</div>
+            <div className="text-2xl font-bold text-green-700">
+              {testCaseData.summary.passing}
+            </div>
             <div className="text-sm text-green-600 mt-1">Passing</div>
           </div>
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="text-2xl font-bold text-red-700">{testCaseData.summary.failing}</div>
+            <div className="text-2xl font-bold text-red-700">
+              {testCaseData.summary.failing}
+            </div>
             <div className="text-sm text-red-600 mt-1">Failing</div>
           </div>
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="text-2xl font-bold text-gray-700">{testCaseData.summary.notImplemented}</div>
+            <div className="text-2xl font-bold text-gray-700">
+              {testCaseData.summary.notImplemented}
+            </div>
             <div className="text-sm text-gray-600 mt-1">Not Implemented</div>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="text-2xl font-bold text-blue-700">{testCaseData.summary.total}</div>
+            <div className="text-2xl font-bold text-blue-700">
+              {testCaseData.summary.total}
+            </div>
             <div className="text-sm text-blue-600 mt-1">Total Tests</div>
           </div>
         </div>
@@ -306,13 +338,19 @@ const TestCaseVisualization: React.FC = () => {
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-muted">Overall Coverage</span>
             <span className="font-semibold text-text">
-              {((testCaseData.summary.passing / testCaseData.summary.total) * 100).toFixed(1)}%
+              {(
+                (testCaseData.summary.passing / testCaseData.summary.total) *
+                100
+              ).toFixed(1)}
+              %
             </span>
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
               className="h-full bg-green-500 transition-all duration-300"
-              style={{ width: `${(testCaseData.summary.passing / testCaseData.summary.total) * 100}%` }}
+              style={{
+                width: `${(testCaseData.summary.passing / testCaseData.summary.total) * 100}%`,
+              }}
             />
           </div>
         </div>
@@ -320,12 +358,15 @@ const TestCaseVisualization: React.FC = () => {
 
       {/* Test Categories */}
       <div className="p-6">
-        {categories.map((category) => (
+        {categories.map(category => (
           <div key={category.name} className="mb-6 last:mb-0">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-text">{category.name}</h3>
+              <h3 className="text-lg font-semibold text-text">
+                {category.name}
+              </h3>
               <span className="text-sm text-muted">
-                {category.tests.filter(t => t.status === 'PASS').length} / {category.tests.length} passing
+                {category.tests.filter(t => t.status === 'PASS').length} /{' '}
+                {category.tests.length} passing
               </span>
             </div>
 
@@ -339,7 +380,9 @@ const TestCaseVisualization: React.FC = () => {
                   <div className="flex-1">
                     <div className="text-sm font-medium">{test.name}</div>
                     {test.file && (
-                      <div className="text-xs text-muted mt-1 font-mono">{test.file}</div>
+                      <div className="text-xs text-muted mt-1 font-mono">
+                        {test.file}
+                      </div>
                     )}
                   </div>
                 </div>

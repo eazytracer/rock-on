@@ -3,6 +3,7 @@
 ## Overview
 
 Seed data is now managed as **TypeScript/JSON** instead of raw SQL files. This makes it:
+
 - ✅ Easier to maintain and update
 - ✅ Reusable across SQL seeding and tests
 - ✅ Type-safe with TypeScript
@@ -31,12 +32,24 @@ The `seedCatalog.ts` file contains the complete song catalog organized by era:
 
 ```typescript
 export const SEED_SONG_CATALOG = {
-  '90s_rock': [ /* 6 songs */ ],
-  '80s_rock': [ /* 3 songs */ ],
-  '70s_rock': [ /* 3 songs */ ],
-  '2000s': [ /* 5 songs */ ],
-  'modern': [ /* 1 song */ ],
-  'custom': [ /* 1 song */ ]
+  '90s_rock': [
+    /* 6 songs */
+  ],
+  '80s_rock': [
+    /* 3 songs */
+  ],
+  '70s_rock': [
+    /* 3 songs */
+  ],
+  '2000s': [
+    /* 5 songs */
+  ],
+  modern: [
+    /* 1 song */
+  ],
+  custom: [
+    /* 1 song */
+  ],
 }
 ```
 
@@ -98,21 +111,22 @@ psql $DATABASE_URL -f supabase/seed-medium-catalog.sql
 import { getAllSongs, getMinimalSongSet } from '../database/seedCatalog'
 
 // Get all songs as TypeScript objects
-const songs = getAllSongs()  // 19 songs
+const songs = getAllSongs() // 19 songs
 
 // Get minimal set for fast tests
-const minSongs = getMinimalSongSet()  // 3 songs
+const minSongs = getMinimalSongSet() // 3 songs
 
 // Get medium set
-const medSongs = getMediumSongSet()  // 8 songs
+const medSongs = getMediumSongSet() // 8 songs
 
 // Get songs by era
-const nineties = getSongsByEra('90s_rock')  // 6 songs
+const nineties = getSongsByEra('90s_rock') // 6 songs
 ```
 
 ## Benefits
 
 ### Before (Raw SQL)
+
 ```sql
 -- Hard to maintain
 -- Duplicate data across files
@@ -122,6 +136,7 @@ INSERT INTO songs VALUES ('...', 'Sweet Child O'' Mine', ...);
 ```
 
 ### After (TypeScript → SQL)
+
 ```typescript
 // Easy to maintain
 // Single source of truth
@@ -157,15 +172,16 @@ describe('Song Tests', () => {
 
 ## Available Song Sets
 
-| Set | Songs | Use Case | Command |
-|-----|-------|----------|---------|
-| **Minimal** | 3 | Fast dev/tests | `npm run generate-seed:min` |
-| **Medium** | 8 | Integration tests | `npm run generate-seed:med` |
-| **Full** | 19 | Complete catalog | `npm run generate-seed` |
+| Set         | Songs | Use Case          | Command                     |
+| ----------- | ----- | ----------------- | --------------------------- |
+| **Minimal** | 3     | Fast dev/tests    | `npm run generate-seed:min` |
+| **Medium**  | 8     | Integration tests | `npm run generate-seed:med` |
+| **Full**    | 19    | Complete catalog  | `npm run generate-seed`     |
 
 ## Song Catalog Contents
 
 ### 90s Rock (6 songs)
+
 - All Star (Smash Mouth)
 - Wonderwall (Oasis)
 - Man in the Box (Alice In Chains)
@@ -174,16 +190,19 @@ describe('Song Tests', () => {
 - Enter Sandman (Metallica)
 
 ### 80s Rock (3 songs)
+
 - Sweet Child O' Mine (Guns N' Roses)
 - Livin' on a Prayer (Bon Jovi)
 - Jump (Van Halen)
 
 ### 70s Rock (3 songs)
+
 - Hotel California (Eagles)
 - Dream On (Aerosmith)
 - Free Bird (Lynyrd Skynyrd)
 
 ### 2000s (5 songs)
+
 - Mr. Brightside (The Killers)
 - Hey There Delilah (Plain White T's)
 - Seven Nation Army (The White Stripes)
@@ -191,25 +210,30 @@ describe('Song Tests', () => {
 - Ocean Avenue (Yellowcard)
 
 ### Modern (1 song)
+
 - Shallow (Lady Gaga & Bradley Cooper)
 
 ### Custom (1 song)
+
 - A song (Someone)
 
 ## Maintenance
 
 ### To add a new song:
+
 1. Edit `src/database/seedCatalog.ts`
 2. Add song to appropriate era array
 3. Run `npm run generate-seed`
 4. Commit both `.ts` and `.sql` files
 
 ### To update a song:
+
 1. Edit song in `src/database/seedCatalog.ts`
 2. Run `npm run generate-seed`
 3. Re-seed database: `supabase db reset && psql $DATABASE_URL -f supabase/seed-full-catalog.sql`
 
 ### To remove a song:
+
 1. Remove from `src/database/seedCatalog.ts`
 2. Run `npm run generate-seed`
 3. Re-seed database
@@ -217,11 +241,13 @@ describe('Song Tests', () => {
 ## Migration from Old Approach
 
 Old files (deleted in Phase 1):
+
 - ❌ `supabase/seed-full-catalog.sql` (static)
 - ❌ `supabase/seed-full-catalog-random-ids.sql`
 - ❌ Multiple duplicate seed files
 
 New approach:
+
 - ✅ `src/database/seedCatalog.ts` (source of truth)
 - ✅ Generated SQL files (auto-generated)
 - ✅ Single maintenance point
@@ -229,6 +255,7 @@ New approach:
 ## Future Enhancements
 
 Possible additions to `seedCatalog.ts`:
+
 - [ ] Lyrics/notes field
 - [ ] Album information
 - [ ] Release year

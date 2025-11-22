@@ -1,17 +1,17 @@
-import React from 'react';
+import React from 'react'
 
 interface HeaderProps {
-  title?: string;
-  showLogo?: boolean;
-  className?: string;
-  onLogoClick?: () => void;
+  title?: string
+  showLogo?: boolean
+  className?: string
+  onLogoClick?: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
   title,
   showLogo = true,
   className = '',
-  onLogoClick
+  onLogoClick,
 }) => {
   return (
     <header className={`header ${className}`}>
@@ -25,16 +25,17 @@ export const Header: React.FC<HeaderProps> = ({
               src="/rockon-logo.png"
               alt="Rock-On"
               className="logo mr-3"
-              onError={(e) => {
+              onError={e => {
                 // Fallback to text if image fails to load
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
+                const target = e.target as HTMLImageElement
+                target.style.display = 'none'
+                const parent = target.parentElement
                 if (parent && !parent.querySelector('.logo-text')) {
-                  const textElement = document.createElement('span');
-                  textElement.className = 'logo-text text-energy-orange font-bold text-xl md:text-2xl';
-                  textElement.textContent = 'Rock-On';
-                  parent.appendChild(textElement);
+                  const textElement = document.createElement('span')
+                  textElement.className =
+                    'logo-text text-energy-orange font-bold text-xl md:text-2xl'
+                  textElement.textContent = 'Rock-On'
+                  parent.appendChild(textElement)
                 }
               }}
             />
@@ -57,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
     </header>
-  );
-};
+  )
+}
 
-export default Header;
+export default Header

@@ -39,7 +39,7 @@ export class RemoteRepository implements IDataRepository {
 
     if (error) throw error
 
-    return data.map((row) => this.mapSongFromSupabase(row))
+    return data.map(row => this.mapSongFromSupabase(row))
   }
 
   async getSong(id: string): Promise<Song | null> {
@@ -92,10 +92,7 @@ export class RemoteRepository implements IDataRepository {
   async deleteSong(id: string): Promise<void> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { error } = await supabase
-      .from('songs')
-      .delete()
-      .eq('id', id)
+    const { error } = await supabase.from('songs').delete().eq('id', id)
 
     if (error) throw error
   }
@@ -125,7 +122,7 @@ export class RemoteRepository implements IDataRepository {
       created_by: song.createdBy,
       visibility: song.visibility,
       song_group_id: song.songGroupId,
-      last_modified_by: song.lastModifiedBy ?? null
+      last_modified_by: song.lastModifiedBy ?? null,
     }
   }
 
@@ -149,14 +146,16 @@ export class RemoteRepository implements IDataRepository {
       tags: [], // IndexedDB only - not in Supabase
       notes: row.notes ?? '',
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
-      lastPracticed: row.last_practiced ? new Date(row.last_practiced) : undefined,
+      lastPracticed: row.last_practiced
+        ? new Date(row.last_practiced)
+        : undefined,
       confidenceLevel: row.confidence_level ?? 1,
       contextType: row.context_type,
       contextId: row.context_id,
       createdBy: row.created_by,
       visibility: row.visibility ?? 'band', // Default to 'band' for MVP
       songGroupId: row.song_group_id,
-      lastModifiedBy: row.last_modified_by ?? undefined
+      lastModifiedBy: row.last_modified_by ?? undefined,
     }
   }
 
@@ -183,7 +182,7 @@ export class RemoteRepository implements IDataRepository {
 
     if (error) throw error
 
-    return data.map((row) => this.mapBandFromSupabase(row))
+    return data.map(row => this.mapBandFromSupabase(row))
   }
 
   async getBand(id: string): Promise<Band | null> {
@@ -213,13 +212,13 @@ export class RemoteRepository implements IDataRepository {
 
     if (error) throw error
 
-    return data.map((row) => this.mapBandFromSupabase(row))
+    return data.map(row => this.mapBandFromSupabase(row))
   }
 
   async addBand(band: Band): Promise<Band> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { data, error} = await supabase
+    const { data, error } = await supabase
       .from('bands')
       .upsert(this.mapBandToSupabase(band) as any, { onConflict: 'id' })
       .select()
@@ -249,10 +248,7 @@ export class RemoteRepository implements IDataRepository {
   async deleteBand(id: string): Promise<void> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { error } = await supabase
-      .from('bands')
-      .delete()
-      .eq('id', id)
+    const { error } = await supabase.from('bands').delete().eq('id', id)
 
     if (error) throw error
   }
@@ -266,7 +262,7 @@ export class RemoteRepository implements IDataRepository {
       description: band.description,
       created_date: band.createdDate,
       updated_date: new Date(), // Supabase expects this
-      settings: band.settings ?? {}
+      settings: band.settings ?? {},
       // Note: memberIds not in Supabase (use band_memberships table)
     }
   }
@@ -278,7 +274,7 @@ export class RemoteRepository implements IDataRepository {
       description: row.description ?? '',
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
       settings: row.settings ?? {},
-      memberIds: [] // Not in Supabase - use band_memberships table instead
+      memberIds: [], // Not in Supabase - use band_memberships table instead
     }
   }
 
@@ -295,7 +291,7 @@ export class RemoteRepository implements IDataRepository {
 
     if (error) throw error
 
-    return data.map((row) => this.mapSetlistFromSupabase(row))
+    return data.map(row => this.mapSetlistFromSupabase(row))
   }
 
   async getSetlist(id: string): Promise<Setlist | null> {
@@ -326,7 +322,7 @@ export class RemoteRepository implements IDataRepository {
       .from('setlists')
       .insert({
         ...this.mapSetlistToSupabase(setlist),
-        created_by: userData.user.id
+        created_by: userData.user.id,
       } as any)
       .select()
       .single()
@@ -355,10 +351,7 @@ export class RemoteRepository implements IDataRepository {
   async deleteSetlist(id: string): Promise<void> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { error } = await supabase
-      .from('setlists')
-      .delete()
-      .eq('id', id)
+    const { error } = await supabase.from('setlists').delete().eq('id', id)
 
     if (error) throw error
   }
@@ -377,7 +370,7 @@ export class RemoteRepository implements IDataRepository {
       created_date: setlist.createdDate,
       last_modified: setlist.lastModified || new Date(),
       items: setlist.items || [], // Store items as JSONB in Supabase
-      last_modified_by: setlist.lastModifiedBy ?? null
+      last_modified_by: setlist.lastModifiedBy ?? null,
     }
   }
 
@@ -396,8 +389,10 @@ export class RemoteRepository implements IDataRepository {
       notes: row.notes ?? '',
       status: row.status ?? 'draft',
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
-      lastModified: row.last_modified ? new Date(row.last_modified) : new Date(),
-      lastModifiedBy: row.last_modified_by ?? undefined
+      lastModified: row.last_modified
+        ? new Date(row.last_modified)
+        : new Date(),
+      lastModifiedBy: row.last_modified_by ?? undefined,
     }
   }
 
@@ -414,7 +409,7 @@ export class RemoteRepository implements IDataRepository {
 
     if (error) throw error
 
-    return data.map((row) => this.mapPracticeSessionFromSupabase(row))
+    return data.map(row => this.mapPracticeSessionFromSupabase(row))
   }
 
   async getPracticeSession(id: string): Promise<PracticeSession | null> {
@@ -448,7 +443,10 @@ export class RemoteRepository implements IDataRepository {
     return this.mapPracticeSessionFromSupabase(data)
   }
 
-  async updatePracticeSession(id: string, updates: Partial<PracticeSession>): Promise<PracticeSession> {
+  async updatePracticeSession(
+    id: string,
+    updates: Partial<PracticeSession>
+  ): Promise<PracticeSession> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
     const { data, error } = await supabase
@@ -477,7 +475,9 @@ export class RemoteRepository implements IDataRepository {
 
   // ========== PRACTICE SESSION FIELD MAPPING ==========
 
-  private mapPracticeSessionToSupabase(session: Partial<PracticeSession>): Record<string, any> {
+  private mapPracticeSessionToSupabase(
+    session: Partial<PracticeSession>
+  ): Record<string, any> {
     return {
       id: session.id,
       band_id: session.bandId,
@@ -491,7 +491,7 @@ export class RemoteRepository implements IDataRepository {
       completed_objectives: session.completedObjectives ?? [],
       songs: session.songs ?? [],
       attendees: session.attendees ?? [],
-      last_modified_by: session.lastModifiedBy ?? null
+      last_modified_by: session.lastModifiedBy ?? null,
       // Note: status exists in IndexedDB only, not in Supabase
       // Note: Supabase has created_date but NOT updated_date
       // Note: Show-specific fields (name, venue, etc.) are now in the Show model
@@ -503,7 +503,9 @@ export class RemoteRepository implements IDataRepository {
       id: row.id,
       bandId: row.band_id,
       setlistId: row.setlist_id ?? undefined,
-      scheduledDate: row.scheduled_date ? new Date(row.scheduled_date) : new Date(),
+      scheduledDate: row.scheduled_date
+        ? new Date(row.scheduled_date)
+        : new Date(),
       duration: row.duration ?? 0,
       location: row.location ?? '',
       type: row.type ?? 'rehearsal',
@@ -514,7 +516,7 @@ export class RemoteRepository implements IDataRepository {
       songs: row.songs ?? [],
       attendees: row.attendees ?? [],
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
-      lastModifiedBy: row.last_modified_by ?? undefined
+      lastModifiedBy: row.last_modified_by ?? undefined,
     }
   }
 
@@ -531,7 +533,7 @@ export class RemoteRepository implements IDataRepository {
 
     if (error) throw error
 
-    return data.map((row) => this.mapShowFromSupabase(row))
+    return data.map(row => this.mapShowFromSupabase(row))
   }
 
   async getShow(id: string): Promise<Show | null> {
@@ -554,7 +556,7 @@ export class RemoteRepository implements IDataRepository {
   async addShow(show: Show): Promise<Show> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { data, error} = await supabase
+    const { data, error } = await supabase
       .from('shows')
       .insert(this.mapShowToSupabase(show) as any)
       .select()
@@ -584,10 +586,7 @@ export class RemoteRepository implements IDataRepository {
   async deleteShow(id: string): Promise<void> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { error } = await supabase
-      .from('shows')
-      .delete()
-      .eq('id', id)
+    const { error } = await supabase.from('shows').delete().eq('id', id)
 
     if (error) throw error
   }
@@ -607,12 +606,12 @@ export class RemoteRepository implements IDataRepository {
       load_in_time: show.loadInTime ?? null,
       soundcheck_time: show.soundcheckTime ?? null,
       payment: show.payment ?? null,
-      contacts: show.contacts ?? null,  // Supabase JSONB handles objects automatically
+      contacts: show.contacts ?? null, // Supabase JSONB handles objects automatically
       status: show.status,
       notes: show.notes ?? null,
       created_date: show.createdDate,
       updated_date: show.updatedDate,
-      last_modified_by: show.lastModifiedBy ?? null
+      last_modified_by: show.lastModifiedBy ?? null,
     }
   }
 
@@ -629,12 +628,12 @@ export class RemoteRepository implements IDataRepository {
       loadInTime: row.load_in_time ?? undefined,
       soundcheckTime: row.soundcheck_time ?? undefined,
       payment: row.payment ?? undefined,
-      contacts: row.contacts ?? undefined,  // Supabase JSONB returns objects automatically
+      contacts: row.contacts ?? undefined, // Supabase JSONB returns objects automatically
       status: row.status,
       notes: row.notes ?? undefined,
       createdDate: new Date(row.created_date),
       updatedDate: new Date(row.updated_date),
-      lastModifiedBy: row.last_modified_by ?? undefined
+      lastModifiedBy: row.last_modified_by ?? undefined,
     }
   }
 
@@ -650,13 +649,16 @@ export class RemoteRepository implements IDataRepository {
 
     if (error) throw error
 
-    return data.map((row) => this.mapBandMembershipFromSupabase(row))
+    return data.map(row => this.mapBandMembershipFromSupabase(row))
   }
 
   async getUserMemberships(userId: string): Promise<BandMembership[]> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    console.log('[RemoteRepository.getUserMemberships] Querying for userId:', userId)
+    console.log(
+      '[RemoteRepository.getUserMemberships] Querying for userId:',
+      userId
+    )
     const { data, error } = await supabase
       .from('band_memberships')
       .select('*')
@@ -667,12 +669,15 @@ export class RemoteRepository implements IDataRepository {
       throw error
     }
 
-    console.log('[RemoteRepository.getUserMemberships] Found memberships:', data?.length || 0)
+    console.log(
+      '[RemoteRepository.getUserMemberships] Found memberships:',
+      data?.length || 0
+    )
     if (data && data.length > 0) {
       console.log('[RemoteRepository.getUserMemberships] Memberships:', data)
     }
 
-    return data.map((row) => this.mapBandMembershipFromSupabase(row))
+    return data.map(row => this.mapBandMembershipFromSupabase(row))
   }
 
   async addBandMembership(membership: BandMembership): Promise<BandMembership> {
@@ -698,7 +703,10 @@ export class RemoteRepository implements IDataRepository {
     return this.mapBandMembershipFromSupabase(data)
   }
 
-  async updateBandMembership(id: string, updates: Partial<BandMembership>): Promise<BandMembership> {
+  async updateBandMembership(
+    id: string,
+    updates: Partial<BandMembership>
+  ): Promise<BandMembership> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
     const { data, error } = await supabase
@@ -738,7 +746,7 @@ export class RemoteRepository implements IDataRepository {
 
     if (error) throw error
 
-    return data.map((row) => this.mapInviteCodeFromSupabase(row))
+    return data.map(row => this.mapInviteCodeFromSupabase(row))
   }
 
   async getInviteCode(id: string): Promise<InviteCode | null> {
@@ -789,7 +797,10 @@ export class RemoteRepository implements IDataRepository {
     return this.mapInviteCodeFromSupabase(data)
   }
 
-  async updateInviteCode(id: string, updates: Partial<InviteCode>): Promise<InviteCode> {
+  async updateInviteCode(
+    id: string,
+    updates: Partial<InviteCode>
+  ): Promise<InviteCode> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
     const { data, error } = await supabase
@@ -808,10 +819,7 @@ export class RemoteRepository implements IDataRepository {
   async deleteInviteCode(id: string): Promise<void> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { error } = await supabase
-      .from('invite_codes')
-      .delete()
-      .eq('id', id)
+    const { error } = await supabase.from('invite_codes').delete().eq('id', id)
 
     if (error) throw error
   }
@@ -823,11 +831,13 @@ export class RemoteRepository implements IDataRepository {
   async incrementInviteCodeUsage(id: string): Promise<InviteCode> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { data, error } = await supabase
-      .rpc('increment_invite_code_usage', { p_invite_code_id: id } as any)
+    const { data, error } = await supabase.rpc('increment_invite_code_usage', {
+      p_invite_code_id: id,
+    } as any)
 
     if (error) throw error
-    if (!data) throw new Error(`Failed to increment invite code usage for ${id}`)
+    if (!data)
+      throw new Error(`Failed to increment invite code usage for ${id}`)
 
     return this.mapInviteCodeFromSupabase(data)
   }
@@ -858,13 +868,15 @@ export class RemoteRepository implements IDataRepository {
       name: row.name,
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
       lastLogin: row.last_login ? new Date(row.last_login) : undefined,
-      authProvider: row.auth_provider ?? 'email'
+      authProvider: row.auth_provider ?? 'email',
     }
   }
 
-// ========== BAND MEMBERSHIP FIELD MAPPING ==========
+  // ========== BAND MEMBERSHIP FIELD MAPPING ==========
 
-  private mapBandMembershipToSupabase(membership: Partial<BandMembership>): Record<string, any> {
+  private mapBandMembershipToSupabase(
+    membership: Partial<BandMembership>
+  ): Record<string, any> {
     return {
       id: membership.id,
       user_id: membership.userId,
@@ -872,7 +884,7 @@ export class RemoteRepository implements IDataRepository {
       role: membership.role,
       permissions: membership.permissions ?? [],
       joined_date: membership.joinedDate,
-      status: membership.status
+      status: membership.status,
       // Note: nickname, customRole exist in IndexedDB only
       // Note: Supabase has NO updated_date field
     }
@@ -886,25 +898,32 @@ export class RemoteRepository implements IDataRepository {
       role: row.role ?? 'member',
       permissions: row.permissions ?? [],
       joinedDate: row.joined_date ? new Date(row.joined_date) : new Date(),
-      status: row.status ?? 'active'
+      status: row.status ?? 'active',
       // Note: nickname, customRole not in Supabase
     }
   }
 
   // ========== INVITE CODE FIELD MAPPING ==========
 
-  private mapInviteCodeToSupabase(inviteCode: Partial<InviteCode>): Record<string, any> {
+  private mapInviteCodeToSupabase(
+    inviteCode: Partial<InviteCode>
+  ): Record<string, any> {
     const result: Record<string, any> = {}
 
     if (inviteCode.id !== undefined) result.id = inviteCode.id
     if (inviteCode.bandId !== undefined) result.band_id = inviteCode.bandId
     if (inviteCode.code !== undefined) result.code = inviteCode.code
-    if (inviteCode.createdBy !== undefined) result.created_by = inviteCode.createdBy
-    if (inviteCode.createdDate !== undefined) result.created_date = inviteCode.createdDate
-    if (inviteCode.expiresAt !== undefined) result.expires_at = inviteCode.expiresAt
+    if (inviteCode.createdBy !== undefined)
+      result.created_by = inviteCode.createdBy
+    if (inviteCode.createdDate !== undefined)
+      result.created_date = inviteCode.createdDate
+    if (inviteCode.expiresAt !== undefined)
+      result.expires_at = inviteCode.expiresAt
     if (inviteCode.maxUses !== undefined) result.max_uses = inviteCode.maxUses
-    if (inviteCode.currentUses !== undefined) result.current_uses = inviteCode.currentUses
-    if (inviteCode.isActive !== undefined) result.is_active = inviteCode.isActive
+    if (inviteCode.currentUses !== undefined)
+      result.current_uses = inviteCode.currentUses
+    if (inviteCode.isActive !== undefined)
+      result.is_active = inviteCode.isActive
 
     return result
   }
@@ -919,7 +938,7 @@ export class RemoteRepository implements IDataRepository {
       expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
       maxUses: row.max_uses,
       currentUses: row.current_uses,
-      isActive: row.is_active
+      isActive: row.is_active,
     }
   }
 

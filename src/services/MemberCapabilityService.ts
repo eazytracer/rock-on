@@ -12,24 +12,30 @@ export class MemberCapabilityService {
   /**
    * Add or update a member's capability for a role
    */
-  async setCapability(capability: Omit<MemberCapability, 'id'>): Promise<number> {
+  async setCapability(
+    capability: Omit<MemberCapability, 'id'>
+  ): Promise<number> {
     // Check if capability already exists
     const existing = await db.memberCapabilities
-      .where({ userId: capability.userId, bandId: capability.bandId, roleType: capability.roleType })
+      .where({
+        userId: capability.userId,
+        bandId: capability.bandId,
+        roleType: capability.roleType,
+      })
       .first()
 
     if (existing && existing.id) {
       // Update existing
       await db.memberCapabilities.update(existing.id, {
         ...capability,
-        updatedDate: new Date()
+        updatedDate: new Date(),
       })
       return existing.id
     } else {
       // Create new
       const id = await db.memberCapabilities.add({
         ...capability,
-        updatedDate: new Date()
+        updatedDate: new Date(),
       })
       return id as number
     }
@@ -38,10 +44,11 @@ export class MemberCapabilityService {
   /**
    * Get all capabilities for a member in a band
    */
-  async getMemberCapabilities(userId: string, bandId: string): Promise<MemberCapability[]> {
-    return await db.memberCapabilities
-      .where({ userId, bandId })
-      .toArray()
+  async getMemberCapabilities(
+    userId: string,
+    bandId: string
+  ): Promise<MemberCapability[]> {
+    return await db.memberCapabilities.where({ userId, bandId }).toArray()
   }
 
   /**
@@ -74,7 +81,10 @@ export class MemberCapabilityService {
   /**
    * Get member's primary role
    */
-  async getPrimaryRole(userId: string, bandId: string): Promise<MemberCapability | undefined> {
+  async getPrimaryRole(
+    userId: string,
+    bandId: string
+  ): Promise<MemberCapability | undefined> {
     const capabilities = await this.getMemberCapabilities(userId, bandId)
     return capabilities.find(c => c.isPrimary)
   }
@@ -82,7 +92,11 @@ export class MemberCapabilityService {
   /**
    * Set a role as the member's primary role
    */
-  async setPrimaryRole(userId: string, bandId: string, roleType: RoleType): Promise<void> {
+  async setPrimaryRole(
+    userId: string,
+    bandId: string,
+    roleType: RoleType
+  ): Promise<void> {
     // Clear all current primary flags
     const capabilities = await this.getMemberCapabilities(userId, bandId)
     for (const cap of capabilities) {
@@ -116,20 +130,20 @@ export class MemberCapabilityService {
 
     // Map instruments to role types
     const instrumentToRoleMap: Record<string, RoleType[]> = {
-      'Guitar': ['guitar_rhythm', 'guitar_lead'],
+      Guitar: ['guitar_rhythm', 'guitar_lead'],
       'Lead Guitar': ['guitar_lead', 'guitar_rhythm'],
       'Rhythm Guitar': ['guitar_rhythm'],
       'Acoustic Guitar': ['guitar_acoustic'],
-      'Bass': ['bass'],
-      'Drums': ['drums'],
-      'Percussion': ['percussion'],
-      'Vocals': ['vocals_lead', 'vocals_backing'],
+      Bass: ['bass'],
+      Drums: ['drums'],
+      Percussion: ['percussion'],
+      Vocals: ['vocals_lead', 'vocals_backing'],
       'Lead Vocals': ['vocals_lead'],
       'Backing Vocals': ['vocals_backing'],
-      'Keyboards': ['keys_piano', 'keys_synth'],
-      'Piano': ['keys_piano'],
-      'Synthesizer': ['keys_synth'],
-      'Organ': ['keys_organ']
+      Keyboards: ['keys_piano', 'keys_synth'],
+      Piano: ['keys_piano'],
+      Synthesizer: ['keys_synth'],
+      Organ: ['keys_organ'],
     }
 
     // Create capabilities for each instrument
@@ -146,7 +160,7 @@ export class MemberCapabilityService {
           roleType: role,
           proficiencyLevel: 3, // Default to intermediate
           isPrimary,
-          updatedDate: new Date()
+          updatedDate: new Date(),
         })
       }
     }
@@ -172,7 +186,7 @@ export class MemberCapabilityService {
         bandId,
         ...cap,
         isPrimary: cap.isPrimary || false,
-        updatedDate: new Date()
+        updatedDate: new Date(),
       })
     }
   }
@@ -197,17 +211,22 @@ export class MemberCapabilityService {
    * Get capability statistics for a band
    */
   async getBandCapabilityStats(bandId: string) {
-    const capabilities = await db.memberCapabilities
-      .where({ bandId })
-      .toArray()
+    const capabilities = await db.memberCapabilities.where({ bandId }).toArray()
 
-    const roleDistribution: Record<RoleType, number> = {} as Record<RoleType, number>
-    const avgProficiency: Record<RoleType, number> = {} as Record<RoleType, number>
+    const roleDistribution: Record<RoleType, number> = {} as Record<
+      RoleType,
+      number
+    >
+    const avgProficiency: Record<RoleType, number> = {} as Record<
+      RoleType,
+      number
+    >
     const roleCounts: Record<RoleType, number> = {} as Record<RoleType, number>
 
     for (const cap of capabilities) {
       roleDistribution[cap.roleType] = (roleDistribution[cap.roleType] || 0) + 1
-      avgProficiency[cap.roleType] = (avgProficiency[cap.roleType] || 0) + cap.proficiencyLevel
+      avgProficiency[cap.roleType] =
+        (avgProficiency[cap.roleType] || 0) + cap.proficiencyLevel
       roleCounts[cap.roleType] = (roleCounts[cap.roleType] || 0) + 1
     }
 
@@ -220,14 +239,17 @@ export class MemberCapabilityService {
       roleDistribution,
       avgProficiency,
       totalCapabilities: capabilities.length,
-      uniqueMembers: new Set(capabilities.map(c => c.userId)).size
+      uniqueMembers: new Set(capabilities.map(c => c.userId)).size,
     }
   }
 
   /**
    * Find gaps in band capabilities (roles with few or no members)
    */
-  async findCapabilityGaps(bandId: string, threshold: number = 1): Promise<RoleType[]> {
+  async findCapabilityGaps(
+    bandId: string,
+    threshold: number = 1
+  ): Promise<RoleType[]> {
     const stats = await this.getBandCapabilityStats(bandId)
 
     const allRoles: RoleType[] = [
@@ -243,25 +265,30 @@ export class MemberCapabilityService {
       'keys_piano',
       'keys_synth',
       'keys_organ',
-      'other'
+      'other',
     ]
 
-    return allRoles.filter(role => (stats.roleDistribution[role] || 0) <= threshold)
+    return allRoles.filter(
+      role => (stats.roleDistribution[role] || 0) <= threshold
+    )
   }
 
   /**
    * Auto-detect capabilities from assignment history
    */
-  async detectCapabilitiesFromHistory(userId: string, bandId: string): Promise<void> {
+  async detectCapabilitiesFromHistory(
+    userId: string,
+    bandId: string
+  ): Promise<void> {
     // Get all assignments for this member
     const assignments = await db.songAssignments
       .where({ memberId: userId })
       .toArray()
 
-    const roleFrequency: Record<RoleType, { count: number; totalConfidence: number }> = {} as Record<
+    const roleFrequency: Record<
       RoleType,
       { count: number; totalConfidence: number }
-    >
+    > = {} as Record<RoleType, { count: number; totalConfidence: number }>
 
     for (const assignment of assignments) {
       if (assignment.id) {
@@ -282,7 +309,10 @@ export class MemberCapabilityService {
     // Create or update capabilities based on frequency
     for (const [roleType, freq] of Object.entries(roleFrequency)) {
       const avgConfidence = freq.totalConfidence / freq.count
-      const proficiencyLevel = Math.min(5, Math.max(1, Math.round(avgConfidence))) as 1 | 2 | 3 | 4 | 5
+      const proficiencyLevel = Math.min(
+        5,
+        Math.max(1, Math.round(avgConfidence))
+      ) as 1 | 2 | 3 | 4 | 5
 
       await this.setCapability({
         userId,
@@ -291,7 +321,7 @@ export class MemberCapabilityService {
         proficiencyLevel,
         isPrimary: false, // Don't auto-set as primary
         notes: `Auto-detected from ${freq.count} assignments`,
-        updatedDate: new Date()
+        updatedDate: new Date(),
       })
     }
   }

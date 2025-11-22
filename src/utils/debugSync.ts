@@ -35,7 +35,9 @@ export async function debugSync() {
       console.log('')
       console.log('  Queue items:')
       queue.forEach((item, i) => {
-        console.log(`    ${i + 1}. ${item.operation} ${item.table} - Status: ${item.status}`)
+        console.log(
+          `    ${i + 1}. ${item.operation} ${item.table} - Status: ${item.status}`
+        )
         if (item.lastError) {
           console.log(`       Error: ${item.lastError}`)
         }
@@ -55,7 +57,9 @@ export async function debugSync() {
     if (syncMeta.length > 0) {
       syncMeta.forEach(meta => {
         // SyncMetadata stores value as Date, id contains the entity name
-        const lastSync = meta.value ? new Date(meta.value).toLocaleString() : 'Never'
+        const lastSync = meta.value
+          ? new Date(meta.value).toLocaleString()
+          : 'Never'
         console.log(`  ${meta.id}: ${lastSync}`)
       })
     } else {
@@ -100,5 +104,5 @@ export async function debugSync() {
 
 // Make it available globally
 if (typeof window !== 'undefined') {
-  (window as any).debugSync = debugSync
+  ;(window as any).debugSync = debugSync
 }

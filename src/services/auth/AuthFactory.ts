@@ -20,7 +20,9 @@ export function createAuthService(): IAuthService {
     console.log('☁️  Using SupabaseAuthService')
     authServiceInstance = new SupabaseAuthService()
   } else {
-    console.warn('⚠️  No auth service configured, falling back to MockAuthService')
+    console.warn(
+      '⚠️  No auth service configured, falling back to MockAuthService'
+    )
     authServiceInstance = mockAuthService
   }
 

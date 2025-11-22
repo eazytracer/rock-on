@@ -1,5 +1,10 @@
 import React, { Suspense, lazy, useEffect, useRef } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
 import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
@@ -9,19 +14,50 @@ import { AuthCallback } from './pages/auth/AuthCallback'
 import { SessionExpiredModal } from './components/auth/SessionExpiredModal'
 
 // Lazy load pages for better performance
-const NewLayout = lazy(() => import('./pages/NewLayout/NewLayout').then(module => ({ default: module.NewLayout })))
+const NewLayout = lazy(() =>
+  import('./pages/NewLayout/NewLayout').then(module => ({
+    default: module.NewLayout,
+  }))
+)
 
 // Pages with database integration
-const AuthPages = lazy(() => import('./pages/NewLayout/AuthPages').then(module => ({ default: module.AuthPages })))
-const BandMembersPage = lazy(() => import('./pages/NewLayout/BandMembersPage').then(module => ({ default: module.BandMembersPage })))
-const SongsPageNew = lazy(() => import('./pages/NewLayout/SongsPage').then(module => ({ default: module.SongsPage })))
-const SetlistsPageNew = lazy(() => import('./pages/NewLayout/SetlistsPage').then(module => ({ default: module.SetlistsPage })))
-const ShowsPage = lazy(() => import('./pages/NewLayout/ShowsPage').then(module => ({ default: module.ShowsPage })))
-const PracticesPage = lazy(() => import('./pages/NewLayout/PracticesPage').then(module => ({ default: module.PracticesPage })))
+const AuthPages = lazy(() =>
+  import('./pages/NewLayout/AuthPages').then(module => ({
+    default: module.AuthPages,
+  }))
+)
+const BandMembersPage = lazy(() =>
+  import('./pages/NewLayout/BandMembersPage').then(module => ({
+    default: module.BandMembersPage,
+  }))
+)
+const SongsPageNew = lazy(() =>
+  import('./pages/NewLayout/SongsPage').then(module => ({
+    default: module.SongsPage,
+  }))
+)
+const SetlistsPageNew = lazy(() =>
+  import('./pages/NewLayout/SetlistsPage').then(module => ({
+    default: module.SetlistsPage,
+  }))
+)
+const ShowsPage = lazy(() =>
+  import('./pages/NewLayout/ShowsPage').then(module => ({
+    default: module.ShowsPage,
+  }))
+)
+const PracticesPage = lazy(() =>
+  import('./pages/NewLayout/PracticesPage').then(module => ({
+    default: module.PracticesPage,
+  }))
+)
 
 // Dev-only pages
-const DevDashboard = lazy(() => import('./pages/DevDashboard/DevDashboard').then(module => ({ default: module.DevDashboard })))
-
+const DevDashboard = lazy(() =>
+  import('./pages/DevDashboard/DevDashboard').then(module => ({
+    default: module.DevDashboard,
+  }))
+)
 
 const AppContent: React.FC = () => {
   const { syncing, realtimeManager } = useAuth()
@@ -30,11 +66,16 @@ const AppContent: React.FC = () => {
   // Listen for toast events from RealtimeManager
   // CRITICAL: We must use a ref to the listener so we can properly clean it up
   // Using the realtimeManager directly in the dependency causes issues
-  const toastHandlerRef = useRef<((event: { message: string; type: 'info' | 'success' | 'error' }) => void) | null>(null)
+  const toastHandlerRef = useRef<
+    | ((event: { message: string; type: 'info' | 'success' | 'error' }) => void)
+    | null
+  >(null)
 
   useEffect(() => {
     if (!realtimeManager) {
-      console.warn('[AppContent] No realtimeManager, toast listener not registered')
+      console.warn(
+        '[AppContent] No realtimeManager, toast listener not registered'
+      )
       return
     }
 
@@ -44,7 +85,13 @@ const AppContent: React.FC = () => {
     }
 
     // Create new listener
-    const handleToast = ({ message, type }: { message: string; type: 'info' | 'success' | 'error' }) => {
+    const handleToast = ({
+      message,
+      type,
+    }: {
+      message: string
+      type: 'info' | 'success' | 'error'
+    }) => {
       console.log('[AppContent] Realtime toast received:', message, type)
       showToast(message, type)
     }
@@ -74,11 +121,13 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      <Suspense fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          <LoadingSpinner size="lg" text="Loading..." />
-        </div>
-      }>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-screen">
+            <LoadingSpinner size="lg" text="Loading..." />
+          </div>
+        }
+      >
         <Routes>
           {/* Auth routes - public */}
           <Route path="/auth" element={<AuthPages />} />

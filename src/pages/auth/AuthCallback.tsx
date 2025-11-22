@@ -35,7 +35,9 @@ export function AuthCallback() {
         }
 
         // Check if we have tokens in the hash (implicit flow) or code in query params (PKCE flow)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1)
+        )
         const code = params.get('code')
         const accessToken = hashParams.get('access_token')
 
@@ -46,16 +48,24 @@ export function AuthCallback() {
 
         // If we have access_token in hash, let Supabase's detectSessionInUrl handle it
         if (accessToken) {
-          console.log('🔄 Implicit flow detected - letting Supabase handle session from URL hash...')
+          console.log(
+            '🔄 Implicit flow detected - letting Supabase handle session from URL hash...'
+          )
 
           // Give Supabase a moment to detect and process the session from URL
           await new Promise(resolve => setTimeout(resolve, 1000))
 
           // Check if session was established
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+          const {
+            data: { session },
+            error: sessionError,
+          } = await supabase.auth.getSession()
 
           if (sessionError) {
-            console.error('Failed to get session after implicit flow:', sessionError)
+            console.error(
+              'Failed to get session after implicit flow:',
+              sessionError
+            )
             navigate('/auth?error=' + encodeURIComponent(sessionError.message))
             return
           }
@@ -70,12 +80,12 @@ export function AuthCallback() {
 
           // Continue with the rest of the flow (checking for band, etc.)
           // Fall through to the common redirect logic below
-
         } else if (code) {
           // PKCE flow - exchange code for session
           console.log('🔄 PKCE flow detected - exchanging code for session...')
 
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+          const { data, error } =
+            await supabase.auth.exchangeCodeForSession(code)
 
           if (error) {
             console.error('Failed to exchange code for session:', error)
@@ -83,11 +93,14 @@ export function AuthCallback() {
             // Provide more specific error messages
             let errorMessage = error.message
             if (error.message.includes('expired')) {
-              errorMessage = 'The sign-in link has expired. Please try signing in again.'
+              errorMessage =
+                'The sign-in link has expired. Please try signing in again.'
             } else if (error.message.includes('invalid')) {
-              errorMessage = 'Invalid sign-in link. Please try signing in again.'
+              errorMessage =
+                'Invalid sign-in link. Please try signing in again.'
             } else if (error.message.includes('already')) {
-              errorMessage = 'This sign-in link has already been used. Please try signing in again.'
+              errorMessage =
+                'This sign-in link has already been used. Please try signing in again.'
             }
 
             navigate('/auth?error=' + encodeURIComponent(errorMessage))
@@ -101,7 +114,6 @@ export function AuthCallback() {
           }
 
           console.log('✅ PKCE OAuth session established successfully')
-
         } else {
           // No code and no access_token - this shouldn't happen
           console.error('No auth code or access token in callback URL')
@@ -122,28 +134,32 @@ export function AuthCallback() {
         console.log('⏳ Waiting for auth state to be ready...')
 
         const waitForAuthState = () => {
-          return new Promise<{ userId: string | null; bandId: string | null }>((resolve) => {
-            const checkInterval = setInterval(() => {
-              const currentUserId = localStorage.getItem('currentUserId')
-              const currentBandId = localStorage.getItem('currentBandId')
+          return new Promise<{ userId: string | null; bandId: string | null }>(
+            resolve => {
+              const checkInterval = setInterval(() => {
+                const currentUserId = localStorage.getItem('currentUserId')
+                const currentBandId = localStorage.getItem('currentBandId')
 
-              if (currentUserId) {
-                // User is synced - check if they have a band
-                console.log(`✅ Auth state ready (userId: ${currentUserId}, bandId: ${currentBandId || 'none'})`)
+                if (currentUserId) {
+                  // User is synced - check if they have a band
+                  console.log(
+                    `✅ Auth state ready (userId: ${currentUserId}, bandId: ${currentBandId || 'none'})`
+                  )
+                  clearInterval(checkInterval)
+                  resolve({ userId: currentUserId, bandId: currentBandId })
+                }
+              }, 100) // Check every 100ms
+
+              // Timeout after 10 seconds
+              setTimeout(() => {
                 clearInterval(checkInterval)
+                const currentUserId = localStorage.getItem('currentUserId')
+                const currentBandId = localStorage.getItem('currentBandId')
+                console.warn('⚠️ Auth state setup timeout')
                 resolve({ userId: currentUserId, bandId: currentBandId })
-              }
-            }, 100) // Check every 100ms
-
-            // Timeout after 10 seconds
-            setTimeout(() => {
-              clearInterval(checkInterval)
-              const currentUserId = localStorage.getItem('currentUserId')
-              const currentBandId = localStorage.getItem('currentBandId')
-              console.warn('⚠️ Auth state setup timeout')
-              resolve({ userId: currentUserId, bandId: currentBandId })
-            }, 10000)
-          })
+              }, 10000)
+            }
+          )
         }
 
         const { userId, bandId } = await waitForAuthState()
@@ -156,7 +172,9 @@ export function AuthCallback() {
           console.log('👋 New user without band, navigating to get-started')
           navigate('/auth?view=get-started')
         } else {
-          console.error('❌ No user ID found after auth - redirecting to sign in')
+          console.error(
+            '❌ No user ID found after auth - redirecting to sign in'
+          )
           navigate('/auth')
         }
       } catch (error) {

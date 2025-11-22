@@ -33,7 +33,7 @@ export class SongLinkingService {
       name,
       createdBy,
       description,
-      createdDate: new Date().toISOString()
+      createdDate: new Date().toISOString(),
     })
 
     return groupId
@@ -58,7 +58,7 @@ export class SongLinkingService {
       addedBy,
       addedDate: new Date().toISOString(),
       relationship,
-      notes
+      notes,
     })
 
     // Update the song's songGroupId field
@@ -76,7 +76,11 @@ export class SongLinkingService {
     createdBy: string,
     description?: string
   ): Promise<string> {
-    const groupId = await this.createSongGroup(groupName, createdBy, description)
+    const groupId = await this.createSongGroup(
+      groupName,
+      createdBy,
+      description
+    )
 
     // Link all songs to the group
     for (let i = 0; i < songIds.length; i++) {
@@ -91,26 +95,30 @@ export class SongLinkingService {
   /**
    * Get all songs in a song group
    */
-  static async getSongsInGroup(songGroupId: string): Promise<Array<Song & { relationship: string; notes?: string }>> {
+  static async getSongsInGroup(
+    songGroupId: string
+  ): Promise<Array<Song & { relationship: string; notes?: string }>> {
     const memberships = await db.songGroupMemberships
       .where('songGroupId')
       .equals(songGroupId)
       .toArray()
 
     const songsWithMetadata = await Promise.all(
-      memberships.map(async (membership) => {
+      memberships.map(async membership => {
         const song = await db.songs.get(membership.songId)
         if (!song) return null
 
         return {
           ...song,
           relationship: membership.relationship,
-          notes: membership.notes
+          notes: membership.notes,
         }
       })
     )
 
-    return songsWithMetadata.filter((s): s is NonNullable<typeof s> => s !== null) as Array<Song & { relationship: string; notes?: string }>
+    return songsWithMetadata.filter(
+      (s): s is NonNullable<typeof s> => s !== null
+    ) as Array<Song & { relationship: string; notes?: string }>
   }
 
   /**
@@ -142,7 +150,7 @@ export class SongLinkingService {
       artist: song.artist,
       contextType: song.contextType,
       contextId: song.contextId,
-      totalSongsInDB: allSongs.length
+      totalSongsInDB: allSongs.length,
     })
 
     for (const targetSong of allSongs) {
@@ -150,13 +158,22 @@ export class SongLinkingService {
       if (targetSong.id === song.id) continue
 
       // Skip songs already in the same group
-      if (song.songGroupId && targetSong.songGroupId === song.songGroupId) continue
+      if (song.songGroupId && targetSong.songGroupId === song.songGroupId)
+        continue
 
       // Skip songs from the same context
-      if (song.contextType === targetSong.contextType && song.contextId === targetSong.contextId) continue
+      if (
+        song.contextType === targetSong.contextType &&
+        song.contextId === targetSong.contextId
+      )
+        continue
 
-      const titleMatch = this.calculateTitleSimilarity(song.title, targetSong.title)
-      const artistMatch = song.artist.toLowerCase() === targetSong.artist.toLowerCase()
+      const titleMatch = this.calculateTitleSimilarity(
+        song.title,
+        targetSong.title
+      )
+      const artistMatch =
+        song.artist.toLowerCase() === targetSong.artist.toLowerCase()
 
       console.log('[SongLinkingService] Comparing with:', {
         targetTitle: targetSong.title,
@@ -164,7 +181,7 @@ export class SongLinkingService {
         targetContext: targetSong.contextType,
         targetContextId: targetSong.contextId,
         titleMatch,
-        artistMatch
+        artistMatch,
       })
 
       if (titleMatch === 'exact' && artistMatch) {
@@ -173,7 +190,7 @@ export class SongLinkingService {
           targetSong,
           confidence: 'high',
           reason: `Same song "${song.title}" by ${song.artist} in different context`,
-          matchType: 'exact'
+          matchType: 'exact',
         })
       } else if (titleMatch === 'similar' && artistMatch) {
         suggestions.push({
@@ -181,7 +198,7 @@ export class SongLinkingService {
           targetSong,
           confidence: 'medium',
           reason: `Similar title and same artist (${song.artist})`,
-          matchType: 'similar_title'
+          matchType: 'similar_title',
         })
       } else if (titleMatch === 'exact' && !artistMatch) {
         suggestions.push({
@@ -189,7 +206,7 @@ export class SongLinkingService {
           targetSong,
           confidence: 'low',
           reason: `Same title but different artist`,
-          matchType: 'exact'
+          matchType: 'exact',
         })
       }
     }
@@ -207,7 +224,11 @@ export class SongLinkingService {
     title1: string,
     title2: string
   ): 'exact' | 'similar' | 'different' {
-    const normalize = (str: string) => str.toLowerCase().trim().replace(/[^\w\s]/g, '')
+    const normalize = (str: string) =>
+      str
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s]/g, '')
 
     const norm1 = normalize(title1)
     const norm2 = normalize(title2)
@@ -248,8 +269,8 @@ export class SongLinkingService {
         } else {
           matrix[i][j] = Math.min(
             matrix[i - 1][j - 1] + 1, // substitution
-            matrix[i][j - 1] + 1,     // insertion
-            matrix[i - 1][j] + 1      // deletion
+            matrix[i][j - 1] + 1, // insertion
+            matrix[i - 1][j] + 1 // deletion
           )
         }
       }
@@ -323,7 +344,7 @@ export class SongLinkingService {
       contextId: bandId,
       createdBy: userId,
       linkedFromSongId: personalSongId,
-      createdDate: new Date()
+      createdDate: new Date(),
     }
 
     await db.songs.add(bandSong)
@@ -333,7 +354,13 @@ export class SongLinkingService {
     if (personalSong.songGroupId) {
       // Use existing group
       groupId = personalSong.songGroupId
-      await this.linkSongToGroup(bandSongId, groupId, userId, 'variant', 'Contributed from personal catalog')
+      await this.linkSongToGroup(
+        bandSongId,
+        groupId,
+        userId,
+        'variant',
+        'Contributed from personal catalog'
+      )
     } else {
       // Create new group with both songs
       groupId = await this.linkSongs(
@@ -373,7 +400,7 @@ export class SongLinkingService {
       contextId: userId,
       createdBy: userId,
       linkedFromSongId: bandSongId,
-      createdDate: new Date()
+      createdDate: new Date(),
     }
 
     await db.songs.add(personalSong)
@@ -383,7 +410,13 @@ export class SongLinkingService {
     if (bandSong.songGroupId) {
       // Use existing group
       groupId = bandSong.songGroupId
-      await this.linkSongToGroup(personalSongId, groupId, userId, 'variant', 'Personal practice version')
+      await this.linkSongToGroup(
+        personalSongId,
+        groupId,
+        userId,
+        'variant',
+        'Personal practice version'
+      )
     } else {
       // Create new group with both songs
       groupId = await this.linkSongs(

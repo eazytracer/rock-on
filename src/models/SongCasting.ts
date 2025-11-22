@@ -12,14 +12,14 @@
  * (e.g., acoustic setlist, electric setlist, practice session).
  */
 export interface SongCasting {
-  id?: number;
-  contextType: 'setlist' | 'session' | 'template';
-  contextId: string;  // ID of the setlist, session, or template
-  songId: number;     // ID of the song being cast
-  createdBy: string;  // User ID who created the casting
-  createdDate: Date;
-  updatedDate?: Date;
-  notes?: string;     // General casting notes
+  id?: number
+  contextType: 'setlist' | 'session' | 'template'
+  contextId: string // ID of the setlist, session, or template
+  songId: number // ID of the song being cast
+  createdBy: string // User ID who created the casting
+  createdDate: Date
+  updatedDate?: Date
+  notes?: string // General casting notes
 }
 
 /**
@@ -29,15 +29,15 @@ export interface SongCasting {
  * A song can have multiple assignments (one per member).
  */
 export interface SongAssignment {
-  id?: number;
-  songCastingId: number;  // References SongCasting
-  memberId: string;       // User ID of assigned member
-  isPrimary: boolean;     // Primary vs backup assignment
-  confidence: number;     // 1-5 rating of member's confidence
-  notes?: string;         // Assignment-specific notes
-  addedBy: string;        // User ID who made the assignment
-  addedDate: Date;
-  updatedDate?: Date;
+  id?: number
+  songCastingId: number // References SongCasting
+  memberId: string // User ID of assigned member
+  isPrimary: boolean // Primary vs backup assignment
+  confidence: number // 1-5 rating of member's confidence
+  notes?: string // Assignment-specific notes
+  addedBy: string // User ID who made the assignment
+  addedDate: Date
+  updatedDate?: Date
 }
 
 /**
@@ -47,12 +47,12 @@ export interface SongAssignment {
  * A member can have multiple roles for the same song (e.g., guitar + vocals).
  */
 export interface AssignmentRole {
-  id?: number;
-  assignmentId: number;   // References SongAssignment
-  type: RoleType;
-  name: string;           // e.g., "Lead Guitar", "Backup Vocals"
-  arrangement?: string;   // Specific arrangement notes (e.g., "Drop D tuning")
-  isPrimary: boolean;     // Primary role vs secondary role
+  id?: number
+  assignmentId: number // References SongAssignment
+  type: RoleType
+  name: string // e.g., "Lead Guitar", "Backup Vocals"
+  arrangement?: string // Specific arrangement notes (e.g., "Drop D tuning")
+  isPrimary: boolean // Primary role vs secondary role
 }
 
 /**
@@ -73,7 +73,7 @@ export type RoleType =
   | 'keys_piano'
   | 'keys_synth'
   | 'keys_organ'
-  | 'other';
+  | 'other'
 
 /**
  * Role Display Names
@@ -93,8 +93,8 @@ export const RoleDisplayNames: Record<RoleType, string> = {
   keys_piano: 'Piano',
   keys_synth: 'Synthesizer',
   keys_organ: 'Organ',
-  other: 'Other'
-};
+  other: 'Other',
+}
 
 /**
  * Casting Template
@@ -102,14 +102,14 @@ export const RoleDisplayNames: Record<RoleType, string> = {
  * Reusable casting configuration that can be applied to multiple setlists.
  */
 export interface CastingTemplate {
-  id?: number;
-  bandId: string;
-  name: string;
-  description?: string;
-  contextType: 'acoustic' | 'electric' | 'practice' | 'custom';
-  createdBy: string;
-  createdDate: Date;
-  updatedDate?: Date;
+  id?: number
+  bandId: string
+  name: string
+  description?: string
+  contextType: 'acoustic' | 'electric' | 'practice' | 'custom'
+  createdBy: string
+  createdDate: Date
+  updatedDate?: Date
 }
 
 /**
@@ -118,15 +118,15 @@ export interface CastingTemplate {
  * Tracks a member's skills and experience levels for different roles.
  */
 export interface MemberCapability {
-  id?: number;
-  userId: string;
-  bandId: string;
-  roleType: RoleType;
-  proficiencyLevel: 1 | 2 | 3 | 4 | 5;  // 1=Beginner, 5=Expert
-  isPrimary: boolean;                    // Is this their primary role?
-  yearsExperience?: number;
-  notes?: string;
-  updatedDate: Date;
+  id?: number
+  userId: string
+  bandId: string
+  roleType: RoleType
+  proficiencyLevel: 1 | 2 | 3 | 4 | 5 // 1=Beginner, 5=Expert
+  isPrimary: boolean // Is this their primary role?
+  yearsExperience?: number
+  notes?: string
+  updatedDate: Date
 }
 
 /**
@@ -135,17 +135,18 @@ export interface MemberCapability {
  * AI-generated suggestion for role assignments based on member capabilities.
  */
 export interface CastingSuggestion {
-  songId: number;
-  memberId: string;
-  roleType: RoleType;
-  confidence: number;       // 0-1 confidence score
-  reason: string;           // Why this suggestion was made
-  isPrimary: boolean;
-  alternativeMembers?: {    // Alternative suggestions
-    memberId: string;
-    confidence: number;
-    reason: string;
-  }[];
+  songId: number
+  memberId: string
+  roleType: RoleType
+  confidence: number // 0-1 confidence score
+  reason: string // Why this suggestion was made
+  isPrimary: boolean
+  alternativeMembers?: {
+    // Alternative suggestions
+    memberId: string
+    confidence: number
+    reason: string
+  }[]
 }
 
 /**
@@ -154,10 +155,10 @@ export interface CastingSuggestion {
  * Analytics for casting assignments per member.
  */
 export interface CastingStats {
-  memberId: string;
-  totalAssignments: number;
-  primaryAssignments: number;
-  roleBreakdown: Record<RoleType, number>;
-  averageConfidence: number;
-  mostCommonRole: RoleType;
+  memberId: string
+  totalAssignments: number
+  primaryAssignments: number
+  roleBreakdown: Record<RoleType, number>
+  averageConfidence: number
+  mostCommonRole: RoleType
 }

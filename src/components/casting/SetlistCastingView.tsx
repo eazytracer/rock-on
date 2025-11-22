@@ -26,9 +26,11 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
   songs,
   bandMembers,
   bandId,
-  onClose
+  onClose,
 }) => {
-  const [castingStatuses, setCastingStatuses] = useState<Record<number, SongCastingStatus>>({})
+  const [castingStatuses, setCastingStatuses] = useState<
+    Record<number, SongCastingStatus>
+  >({})
   const [selectedSongId, setSelectedSongId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [copying, setCopying] = useState(false)
@@ -40,7 +42,10 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
   const loadCastingStatuses = async () => {
     setLoading(true)
     try {
-      const allCastings = await castingService.getCastingsForContext('setlist', setlist.id)
+      const allCastings = await castingService.getCastingsForContext(
+        'setlist',
+        setlist.id
+      )
 
       const statuses: Record<number, SongCastingStatus> = {}
 
@@ -56,13 +61,13 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
             songId: songIdNum,
             hasCasting: true,
             assignmentCount: assignments.length,
-            castingId: casting.id
+            castingId: casting.id,
           }
         } else {
           statuses[songIdNum] = {
             songId: songIdNum,
             hasCasting: false,
-            assignmentCount: 0
+            assignmentCount: 0,
           }
         }
       }
@@ -99,7 +104,10 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
     setCopying(true)
     try {
       // Get all castings and delete them
-      const castings = await castingService.getCastingsForContext('setlist', setlist.id)
+      const castings = await castingService.getCastingsForContext(
+        'setlist',
+        setlist.id
+      )
       for (const casting of castings) {
         if (casting.id) {
           await castingService.deleteCasting(casting.id)
@@ -118,12 +126,17 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
     const totalSongs = Object.keys(castingStatuses).length
     if (totalSongs === 0) return 0
 
-    const songsWithCasting = Object.values(castingStatuses).filter(s => s.hasCasting).length
+    const songsWithCasting = Object.values(castingStatuses).filter(
+      s => s.hasCasting
+    ).length
     return Math.round((songsWithCasting / totalSongs) * 100)
   }
 
   const getTotalAssignments = (): number => {
-    return Object.values(castingStatuses).reduce((sum, s) => sum + s.assignmentCount, 0)
+    return Object.values(castingStatuses).reduce(
+      (sum, s) => sum + s.assignmentCount,
+      0
+    )
   }
 
   // Show song casting editor if a song is selected
@@ -157,13 +170,19 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-xl font-semibold text-gray-900">Casting: {setlist.name}</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Casting: {setlist.name}
+              </h2>
               {setlist.status && (
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  setlist.status === 'active' ? 'bg-green-100 text-green-800' :
-                  setlist.status === 'archived' ? 'bg-gray-100 text-gray-800' :
-                  'bg-blue-100 text-blue-800'
-                }`}>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    setlist.status === 'active'
+                      ? 'bg-green-100 text-green-800'
+                      : setlist.status === 'archived'
+                        ? 'bg-gray-100 text-gray-800'
+                        : 'bg-blue-100 text-blue-800'
+                  }`}
+                >
                   {setlist.status}
                 </span>
               )}
@@ -183,8 +202,18 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
               aria-label="Close"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           )}
@@ -201,11 +230,15 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
             <div className="text-sm text-gray-600">Total Songs</div>
           </div>
           <div className="text-center">
-            <div className={`text-2xl font-bold ${
-              getCastingCompletionPercentage() >= 100 ? 'text-green-600' :
-              getCastingCompletionPercentage() >= 50 ? 'text-yellow-600' :
-              'text-red-600'
-            }`}>
+            <div
+              className={`text-2xl font-bold ${
+                getCastingCompletionPercentage() >= 100
+                  ? 'text-green-600'
+                  : getCastingCompletionPercentage() >= 50
+                    ? 'text-yellow-600'
+                    : 'text-red-600'
+              }`}
+            >
               {getCastingCompletionPercentage()}%
             </div>
             <div className="text-sm text-gray-600">Casting Complete</div>
@@ -223,9 +256,11 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className={`h-2 rounded-full transition-all duration-300 ${
-                getCastingCompletionPercentage() >= 100 ? 'bg-green-600' :
-                getCastingCompletionPercentage() >= 50 ? 'bg-yellow-600' :
-                'bg-red-600'
+                getCastingCompletionPercentage() >= 100
+                  ? 'bg-green-600'
+                  : getCastingCompletionPercentage() >= 50
+                    ? 'bg-yellow-600'
+                    : 'bg-red-600'
               }`}
               style={{ width: `${getCastingCompletionPercentage()}%` }}
             ></div>
@@ -260,7 +295,11 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
       <div className="p-6">
         {loading ? (
           <div className="py-12">
-            <LoadingSpinner size="lg" centered text="Loading casting information..." />
+            <LoadingSpinner
+              size="lg"
+              centered
+              text="Loading casting information..."
+            />
           </div>
         ) : (
           <div className="space-y-2">
@@ -284,16 +323,26 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
                     <div className="flex items-center space-x-4 flex-1 min-w-0">
                       {/* Song Order */}
                       <div className="flex-shrink-0 w-8 text-center">
-                        <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
+                        <span className="text-sm font-medium text-gray-500">
+                          #{index + 1}
+                        </span>
                       </div>
 
                       {/* Song Info */}
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 truncate">{song.title}</h4>
-                        <p className="text-sm text-gray-600 truncate">{song.artist}</p>
+                        <h4 className="font-medium text-gray-900 truncate">
+                          {song.title}
+                        </h4>
+                        <p className="text-sm text-gray-600 truncate">
+                          {song.artist}
+                        </p>
                         <div className="flex items-center space-x-2 mt-1">
-                          <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{song.key}</span>
-                          <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{song.bpm} BPM</span>
+                          <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">
+                            {song.key}
+                          </span>
+                          <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">
+                            {song.bpm} BPM
+                          </span>
                           {song.guitarTuning && (
                             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                               {song.guitarTuning}
@@ -307,17 +356,40 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
                         {status?.hasCasting ? (
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-green-700">
-                              {status.assignmentCount} {status.assignmentCount === 1 ? 'member' : 'members'}
+                              {status.assignmentCount}{' '}
+                              {status.assignmentCount === 1
+                                ? 'member'
+                                : 'members'}
                             </span>
-                            <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <svg
+                              className="w-5 h-5 text-green-600"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clipRule="evenodd"
+                              />
                             </svg>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">Not assigned</span>
-                            <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            <span className="text-sm text-gray-500">
+                              Not assigned
+                            </span>
+                            <svg
+                              className="w-5 h-5 text-gray-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                              />
                             </svg>
                           </div>
                         )}
@@ -325,15 +397,25 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
 
                       {/* Edit Button */}
                       <button
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           setSelectedSongId(songIdNum)
                         }}
                         className="flex-shrink-0 p-2 text-blue-600 hover:text-blue-800 transition-colors rounded-lg hover:bg-blue-50"
                         aria-label="Edit casting"
                       >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -344,11 +426,23 @@ export const SetlistCastingView: React.FC<SetlistCastingViewProps> = ({
 
             {getSetlistSongs().length === 0 && (
               <div className="text-center py-12 text-gray-500">
-                <svg className="mx-auto h-12 w-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                <svg
+                  className="mx-auto h-12 w-12 mb-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                  />
                 </svg>
                 <p>No songs in this setlist</p>
-                <p className="text-sm mt-1">Add songs to the setlist before assigning roles</p>
+                <p className="text-sm mt-1">
+                  Add songs to the setlist before assigning roles
+                </p>
               </div>
             )}
           </div>

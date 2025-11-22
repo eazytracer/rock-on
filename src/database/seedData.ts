@@ -29,7 +29,7 @@ const initialSongs: Song[] = [
     id: '1',
     title: 'Wonderwall',
     artist: 'Oasis',
-    album: '(What\'s the Story) Morning Glory?',
+    album: "(What's the Story) Morning Glory?",
     duration: 258,
     key: 'Em',
     bpm: 87,
@@ -45,12 +45,12 @@ const initialSongs: Song[] = [
     contextType: 'band',
     contextId: 'band1',
     createdBy: '1',
-    visibility: 'band'
+    visibility: 'band',
   },
   {
     id: '2',
-    title: 'Sweet Child O\' Mine',
-    artist: 'Guns N\' Roses',
+    title: "Sweet Child O' Mine",
+    artist: "Guns N' Roses",
     duration: 356,
     key: 'D',
     bpm: 125,
@@ -66,7 +66,7 @@ const initialSongs: Song[] = [
     contextType: 'band',
     contextId: 'band1',
     createdBy: '1',
-    visibility: 'band'
+    visibility: 'band',
   },
   {
     id: '3',
@@ -86,8 +86,8 @@ const initialSongs: Song[] = [
     contextType: 'band',
     contextId: 'band1',
     createdBy: '1',
-    visibility: 'band'
-  }
+    visibility: 'band',
+  },
 ]
 
 const initialMembers: Member[] = [
@@ -99,7 +99,7 @@ const initialMembers: Member[] = [
     primaryInstrument: 'guitar',
     role: 'admin',
     joinDate: new Date('2024-01-01'),
-    isActive: true
+    isActive: true,
   },
   {
     id: '2',
@@ -109,8 +109,8 @@ const initialMembers: Member[] = [
     primaryInstrument: 'bass',
     role: 'member',
     joinDate: new Date('2024-01-05'),
-    isActive: true
-  }
+    isActive: true,
+  },
 ]
 
 const initialSessions: PracticeSession[] = [
@@ -119,22 +119,38 @@ const initialSessions: PracticeSession[] = [
     bandId: 'band1',
     scheduledDate: new Date('2024-09-30T19:00:00'),
     duration: 120,
-    location: 'Mike\'s Garage',
+    location: "Mike's Garage",
     type: 'rehearsal',
     status: 'scheduled',
     songs: [
-      { songId: '1', timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] },
-      { songId: '2', timeSpent: 0, status: 'not-started', sectionsWorked: [], improvements: [], needsWork: [], memberRatings: [] }
+      {
+        songId: '1',
+        timeSpent: 0,
+        status: 'not-started',
+        sectionsWorked: [],
+        improvements: [],
+        needsWork: [],
+        memberRatings: [],
+      },
+      {
+        songId: '2',
+        timeSpent: 0,
+        status: 'not-started',
+        sectionsWorked: [],
+        improvements: [],
+        needsWork: [],
+        memberRatings: [],
+      },
     ],
     attendees: [
       { memberId: '1', confirmed: true, attended: false },
-      { memberId: '2', confirmed: true, attended: false }
+      { memberId: '2', confirmed: true, attended: false },
     ],
     notes: 'Focus on transitions between songs',
     objectives: ['Work on song transitions', 'Practice harmonies'],
     completedObjectives: [],
-    createdDate: new Date('2024-09-25')
-  }
+    createdDate: new Date('2024-09-25'),
+  },
 ]
 
 const initialSetlists: Setlist[] = [
@@ -145,14 +161,14 @@ const initialSetlists: Setlist[] = [
     items: [
       { id: crypto.randomUUID(), type: 'song', position: 1, songId: '1' },
       { id: crypto.randomUUID(), type: 'song', position: 2, songId: '3' },
-      { id: crypto.randomUUID(), type: 'song', position: 3, songId: '2' }
+      { id: crypto.randomUUID(), type: 'song', position: 3, songId: '2' },
     ],
     totalDuration: 1005,
     notes: 'Acoustic setup, intimate venue',
     status: 'draft',
     createdDate: new Date('2024-09-25'),
-    lastModified: new Date('2024-09-26')
-  }
+    lastModified: new Date('2024-09-26'),
+  },
 ]
 
 const initialBands: Band[] = [
@@ -165,9 +181,9 @@ const initialBands: Band[] = [
     settings: {
       defaultPracticeTime: 120,
       reminderMinutes: [60, 30, 10],
-      autoSaveInterval: 30
-    }
-  }
+      autoSaveInterval: 30,
+    },
+  },
 ]
 
 // Test users (for development/testing)
@@ -177,22 +193,22 @@ const initialUsers: User[] = [
     email: 'alice@test.com',
     name: 'Alice Anderson',
     createdDate: new Date('2024-01-01'),
-    authProvider: 'mock'
+    authProvider: 'mock',
   },
   {
     id: 'bob',
     email: 'bob@test.com',
     name: 'Bob Baker',
     createdDate: new Date('2024-01-02'),
-    authProvider: 'mock'
+    authProvider: 'mock',
   },
   {
     id: 'charlie',
     email: 'charlie@test.com',
     name: 'Charlie Chen',
     createdDate: new Date('2024-01-03'),
-    authProvider: 'mock'
-  }
+    authProvider: 'mock',
+  },
 ]
 
 // Link test users to band1
@@ -204,7 +220,7 @@ const initialBandMemberships: BandMembership[] = [
     role: 'admin',
     joinedDate: new Date('2024-01-01'),
     status: 'active',
-    permissions: ['admin', 'member']
+    permissions: ['admin', 'member'],
   },
   {
     id: 'membership-bob',
@@ -213,7 +229,7 @@ const initialBandMemberships: BandMembership[] = [
     role: 'member',
     joinedDate: new Date('2024-01-02'),
     status: 'active',
-    permissions: ['member']
+    permissions: ['member'],
   },
   {
     id: 'membership-charlie',
@@ -222,8 +238,8 @@ const initialBandMemberships: BandMembership[] = [
     role: 'member',
     joinedDate: new Date('2024-01-03'),
     status: 'active',
-    permissions: ['member']
-  }
+    permissions: ['member'],
+  },
 ]
 
 export async function seedDatabase(): Promise<void> {
@@ -238,21 +254,33 @@ export async function seedDatabase(): Promise<void> {
     console.log('Seeding database with initial data...')
 
     // Add all seed data (use put to allow overwriting existing records)
-    await db.transaction('rw', [db.users, db.songs, db.members, db.practiceSessions, db.setlists, db.bands, db.bandMemberships], async () => {
-      // Add test users first
-      await db.users.bulkPut(initialUsers)
-      console.log('Added test users (Alice, Bob, Charlie)')
+    await db.transaction(
+      'rw',
+      [
+        db.users,
+        db.songs,
+        db.members,
+        db.practiceSessions,
+        db.setlists,
+        db.bands,
+        db.bandMemberships,
+      ],
+      async () => {
+        // Add test users first
+        await db.users.bulkPut(initialUsers)
+        console.log('Added test users (Alice, Bob, Charlie)')
 
-      await db.bands.bulkPut(initialBands)
-      await db.songs.bulkPut(initialSongs)
-      await db.members.bulkPut(initialMembers)
-      await db.practiceSessions.bulkPut(initialSessions)
-      await db.setlists.bulkPut(initialSetlists)
+        await db.bands.bulkPut(initialBands)
+        await db.songs.bulkPut(initialSongs)
+        await db.members.bulkPut(initialMembers)
+        await db.practiceSessions.bulkPut(initialSessions)
+        await db.setlists.bulkPut(initialSetlists)
 
-      // Add band memberships to link test users to band1
-      await db.bandMemberships.bulkPut(initialBandMemberships)
-      console.log('Added band memberships for test users')
-    })
+        // Add band memberships to link test users to band1
+        await db.bandMemberships.bulkPut(initialBandMemberships)
+        console.log('Added band memberships for test users')
+      }
+    )
 
     console.log('Database seeded successfully!')
   } catch (error) {
@@ -261,4 +289,12 @@ export async function seedDatabase(): Promise<void> {
   }
 }
 
-export { initialSongs, initialMembers, initialSessions, initialSetlists, initialBands, initialUsers, initialBandMemberships }
+export {
+  initialSongs,
+  initialMembers,
+  initialSessions,
+  initialSetlists,
+  initialBands,
+  initialUsers,
+  initialBandMemberships,
+}

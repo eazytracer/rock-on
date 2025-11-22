@@ -40,7 +40,7 @@ export const BandMembershipSchema = {
   role: '',
   joinedDate: '',
   status: '',
-  '*permissions': ''
+  '*permissions': '',
 }
 
 export const InviteCodeSchema = {
@@ -51,5 +51,5 @@ export const InviteCodeSchema = {
   expiresAt: '',
   maxUses: '',
   currentUses: '',
-  createdDate: ''
+  createdDate: '',
 }

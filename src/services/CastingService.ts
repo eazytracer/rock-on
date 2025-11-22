@@ -11,7 +11,7 @@ import {
   SongAssignment,
   AssignmentRole,
   RoleType,
-  CastingStats
+  CastingStats,
 } from '../models/SongCasting'
 
 export class CastingService {
@@ -21,7 +21,7 @@ export class CastingService {
   async createCasting(casting: Omit<SongCasting, 'id'>): Promise<number> {
     const castingId = await db.songCastings.add({
       ...casting,
-      createdDate: new Date()
+      createdDate: new Date(),
     })
     return castingId as number
   }
@@ -29,7 +29,11 @@ export class CastingService {
   /**
    * Get casting for a song in a specific context
    */
-  async getCasting(contextType: string, contextId: string, songId: number): Promise<SongCasting | undefined> {
+  async getCasting(
+    contextType: string,
+    contextId: string,
+    songId: number
+  ): Promise<SongCasting | undefined> {
     return await db.songCastings
       .where('[contextType+contextId+songId]')
       .equals([contextType, contextId, songId])
@@ -39,10 +43,11 @@ export class CastingService {
   /**
    * Get all castings for a context (e.g., all songs in a setlist)
    */
-  async getCastingsForContext(contextType: string, contextId: string): Promise<SongCasting[]> {
-    return await db.songCastings
-      .where({ contextType, contextId })
-      .toArray()
+  async getCastingsForContext(
+    contextType: string,
+    contextId: string
+  ): Promise<SongCasting[]> {
+    return await db.songCastings.where({ contextType, contextId }).toArray()
   }
 
   /**
@@ -57,9 +62,7 @@ export class CastingService {
     // Delete all assignment roles
     for (const assignment of assignments) {
       if (assignment.id) {
-        await db.assignmentRoles
-          .where({ assignmentId: assignment.id })
-          .delete()
+        await db.assignmentRoles.where({ assignmentId: assignment.id }).delete()
       }
     }
 
@@ -90,7 +93,7 @@ export class CastingService {
       confidence,
       notes,
       addedBy: addedBy || memberId,
-      addedDate: new Date()
+      addedDate: new Date(),
     })
 
     // Add all roles to the assignment
@@ -98,7 +101,7 @@ export class CastingService {
     for (const role of roles) {
       await db.assignmentRoles.add({
         assignmentId: assignmentIdNum,
-        ...role
+        ...role,
       })
     }
 
@@ -118,7 +121,7 @@ export class CastingService {
   ): Promise<void> {
     await db.songAssignments.update(assignmentId, {
       ...updates,
-      updatedDate: new Date()
+      updatedDate: new Date(),
     })
   }
 
@@ -131,7 +134,7 @@ export class CastingService {
   ): Promise<number> {
     const roleId = await db.assignmentRoles.add({
       assignmentId,
-      ...role
+      ...role,
     })
     return roleId as number
   }
@@ -147,18 +150,14 @@ export class CastingService {
    * Get all assignments for a casting
    */
   async getAssignments(songCastingId: number): Promise<SongAssignment[]> {
-    return await db.songAssignments
-      .where({ songCastingId })
-      .toArray()
+    return await db.songAssignments.where({ songCastingId }).toArray()
   }
 
   /**
    * Get all roles for an assignment
    */
   async getRoles(assignmentId: number): Promise<AssignmentRole[]> {
-    return await db.assignmentRoles
-      .where({ assignmentId })
-      .toArray()
+    return await db.assignmentRoles.where({ assignmentId }).toArray()
   }
 
   /**
@@ -171,24 +170,30 @@ export class CastingService {
     const assignments = await this.getAssignments(castingId)
 
     const assignmentsWithRoles = await Promise.all(
-      assignments.map(async (assignment) => ({
+      assignments.map(async assignment => ({
         ...assignment,
-        roles: assignment.id ? await this.getRoles(assignment.id) : []
+        roles: assignment.id ? await this.getRoles(assignment.id) : [],
       }))
     )
 
     return {
       ...casting,
-      assignments: assignmentsWithRoles
+      assignments: assignmentsWithRoles,
     }
   }
 
   /**
    * Get all assignments for a member in a context
    */
-  async getMemberAssignments(memberId: string, contextType: string, contextId: string) {
+  async getMemberAssignments(
+    memberId: string,
+    contextType: string,
+    contextId: string
+  ) {
     const castings = await this.getCastingsForContext(contextType, contextId)
-    const castingIds = castings.map(c => c.id).filter((id): id is number => id !== undefined)
+    const castingIds = castings
+      .map(c => c.id)
+      .filter((id): id is number => id !== undefined)
 
     const assignments = await db.songAssignments
       .where('songCastingId')
@@ -197,7 +202,7 @@ export class CastingService {
       .toArray()
 
     const assignmentsWithRoles = await Promise.all(
-      assignments.map(async (assignment) => {
+      assignments.map(async assignment => {
         const roles = assignment.id ? await this.getRoles(assignment.id) : []
         const casting = await db.songCastings.get(assignment.songCastingId)
         const song = casting ? await db.songs.get(casting.songId) : null
@@ -206,7 +211,7 @@ export class CastingService {
           ...assignment,
           roles,
           casting,
-          song
+          song,
         }
       })
     )
@@ -225,9 +230,7 @@ export class CastingService {
     for (const assignment of assignments) {
       if (assignment.id) {
         // Delete all roles for this assignment
-        await db.assignmentRoles
-          .where({ assignmentId: assignment.id })
-          .delete()
+        await db.assignmentRoles.where({ assignmentId: assignment.id }).delete()
 
         // Delete the assignment
         await db.songAssignments.delete(assignment.id)
@@ -245,7 +248,10 @@ export class CastingService {
     targetContextId: string,
     createdBy: string
   ): Promise<void> {
-    const sourceCastings = await this.getCastingsForContext(sourceContextType, sourceContextId)
+    const sourceCastings = await this.getCastingsForContext(
+      sourceContextType,
+      sourceContextId
+    )
 
     for (const sourceCasting of sourceCastings) {
       // Create new casting in target context
@@ -255,7 +261,7 @@ export class CastingService {
         songId: sourceCasting.songId,
         createdBy,
         createdDate: new Date(),
-        notes: sourceCasting.notes
+        notes: sourceCasting.notes,
       })
 
       // Copy all assignments
@@ -282,7 +288,10 @@ export class CastingService {
   /**
    * Get casting statistics for a member
    */
-  async getMemberStats(memberId: string, bandId: string): Promise<CastingStats> {
+  async getMemberStats(
+    memberId: string,
+    bandId: string
+  ): Promise<CastingStats> {
     const memberships = await db.bandMemberships
       .where({ userId: memberId, bandId })
       .toArray()
@@ -294,23 +303,26 @@ export class CastingService {
         primaryAssignments: 0,
         roleBreakdown: {} as Record<RoleType, number>,
         averageConfidence: 0,
-        mostCommonRole: 'other' as RoleType
+        mostCommonRole: 'other' as RoleType,
       }
     }
 
     // Get all assignments for this member
-    const assignments = await db.songAssignments
-      .where({ memberId })
-      .toArray()
+    const assignments = await db.songAssignments.where({ memberId }).toArray()
 
     const totalAssignments = assignments.length
     const primaryAssignments = assignments.filter(a => a.isPrimary).length
-    const averageConfidence = totalAssignments > 0
-      ? assignments.reduce((sum, a) => sum + a.confidence, 0) / totalAssignments
-      : 0
+    const averageConfidence =
+      totalAssignments > 0
+        ? assignments.reduce((sum, a) => sum + a.confidence, 0) /
+          totalAssignments
+        : 0
 
     // Get role breakdown
-    const roleBreakdown: Record<RoleType, number> = {} as Record<RoleType, number>
+    const roleBreakdown: Record<RoleType, number> = {} as Record<
+      RoleType,
+      number
+    >
     for (const assignment of assignments) {
       if (assignment.id) {
         const roles = await this.getRoles(assignment.id)
@@ -336,7 +348,7 @@ export class CastingService {
       primaryAssignments,
       roleBreakdown,
       averageConfidence,
-      mostCommonRole
+      mostCommonRole,
     }
   }
 

@@ -5,7 +5,21 @@ import { TouchButton } from '../common/TouchButton'
 import CircleOfFifths from './CircleOfFifths'
 
 interface AddSongFormProps {
-  onSubmit: (songData: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel' | 'contextType' | 'contextId' | 'createdBy' | 'visibility' | 'songGroupId' | 'linkedFromSongId'>) => void
+  onSubmit: (
+    songData: Omit<
+      Song,
+      | 'id'
+      | 'createdDate'
+      | 'lastPracticed'
+      | 'confidenceLevel'
+      | 'contextType'
+      | 'contextId'
+      | 'createdBy'
+      | 'visibility'
+      | 'songGroupId'
+      | 'linkedFromSongId'
+    >
+  ) => void
   onCancel: () => void
   initialData?: Partial<Song>
   loading?: boolean
@@ -21,8 +35,22 @@ interface FormErrors {
 }
 
 const COMMON_TAGS = [
-  'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'Folk', 'Metal', 'Punk', 'Alternative',
-  'Acoustic', 'Electric', 'Ballad', 'Fast', 'Slow', 'Cover', 'Original'
+  'Rock',
+  'Pop',
+  'Jazz',
+  'Blues',
+  'Country',
+  'Folk',
+  'Metal',
+  'Punk',
+  'Alternative',
+  'Acoustic',
+  'Electric',
+  'Ballad',
+  'Fast',
+  'Slow',
+  'Cover',
+  'Original',
 ]
 
 const GUITAR_TUNINGS = [
@@ -35,14 +63,14 @@ const GUITAR_TUNINGS = [
   'Whole Step Down (D G C F A D)',
   'Open G (D G D G B D)',
   'Open D (D A D F# A D)',
-  'DADGAD'
+  'DADGAD',
 ]
 
 export const AddSongForm: React.FC<AddSongFormProps> = ({
   onSubmit,
   onCancel,
   initialData,
-  loading = false
+  loading = false,
 }) => {
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
@@ -59,7 +87,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
     tags: initialData?.tags?.join(', ') || '',
     chords: initialData?.chords?.join(', ') || '',
     structure: initialData?.structure || [],
-    referenceLinks: initialData?.referenceLinks || []
+    referenceLinks: initialData?.referenceLinks || [],
   })
 
   const [errors, setErrors] = useState<FormErrors>({})
@@ -78,7 +106,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
       newErrors.artist = 'Artist name is required'
     }
 
-    const totalSeconds = (formData.duration * 60) + formData.durationSeconds
+    const totalSeconds = formData.duration * 60 + formData.durationSeconds
     if (totalSeconds <= 0) {
       newErrors.duration = 'Duration must be greater than 0'
     }
@@ -103,7 +131,9 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
     e.preventDefault()
 
     if (!validateForm()) {
-      const firstErrorField = formRef.current?.querySelector('[data-error="true"]') as HTMLElement
+      const firstErrorField = formRef.current?.querySelector(
+        '[data-error="true"]'
+      ) as HTMLElement
       firstErrorField?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       firstErrorField?.focus()
       return
@@ -113,23 +143,36 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
       title: formData.title.trim(),
       artist: formData.artist.trim(),
       album: formData.album.trim() || undefined,
-      duration: (formData.duration * 60) + formData.durationSeconds,
+      duration: formData.duration * 60 + formData.durationSeconds,
       key: formData.key,
       bpm: formData.bpm,
       difficulty: formData.difficulty as 1 | 2 | 3 | 4 | 5,
       guitarTuning: formData.guitarTuning.trim() || undefined,
       structure: formData.structure,
       lyrics: formData.lyrics.trim() || undefined,
-      chords: formData.chords ? formData.chords.split(',').map(c => c.trim()).filter(Boolean) : [],
+      chords: formData.chords
+        ? formData.chords
+            .split(',')
+            .map(c => c.trim())
+            .filter(Boolean)
+        : [],
       notes: formData.notes.trim() || undefined,
       referenceLinks: formData.referenceLinks,
-      tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+      tags: formData.tags
+        ? formData.tags
+            .split(',')
+            .map(t => t.trim())
+            .filter(Boolean)
+        : [],
     }
 
     onSubmit(songData)
   }
 
-  const handleInputChange = (field: string, value: string | number | string[] | ReferenceLink[]) => {
+  const handleInputChange = (
+    field: string,
+    value: string | number | string[] | ReferenceLink[]
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
@@ -139,23 +182,30 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
   const addReferenceLink = () => {
     setFormData(prev => ({
       ...prev,
-      referenceLinks: [...prev.referenceLinks, { type: 'other', url: '', description: '' } as ReferenceLink]
+      referenceLinks: [
+        ...prev.referenceLinks,
+        { type: 'other', url: '', description: '' } as ReferenceLink,
+      ],
     }))
   }
 
   const removeReferenceLink = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      referenceLinks: prev.referenceLinks.filter((_, i) => i !== index)
+      referenceLinks: prev.referenceLinks.filter((_, i) => i !== index),
     }))
   }
 
-  const updateReferenceLink = (index: number, field: keyof ReferenceLink, value: string) => {
+  const updateReferenceLink = (
+    index: number,
+    field: keyof ReferenceLink,
+    value: string
+  ) => {
     setFormData(prev => ({
       ...prev,
       referenceLinks: prev.referenceLinks.map((link, i) =>
         i === index ? { ...link, [field]: value } : link
-      )
+      ),
     }))
   }
 
@@ -177,7 +227,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+                onChange={e => handleInputChange('title', e.target.value)}
                 className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.title ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -196,7 +246,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
               <input
                 type="text"
                 value={formData.artist}
-                onChange={(e) => handleInputChange('artist', e.target.value)}
+                onChange={e => handleInputChange('artist', e.target.value)}
                 className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.artist ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -215,7 +265,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
               <input
                 type="text"
                 value={formData.album}
-                onChange={(e) => handleInputChange('album', e.target.value)}
+                onChange={e => handleInputChange('album', e.target.value)}
                 className="w-full min-h-[48px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter album name (optional)"
               />
@@ -232,7 +282,12 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                     min="0"
                     max="59"
                     value={formData.duration}
-                    onChange={(e) => handleInputChange('duration', parseInt(e.target.value) || 0)}
+                    onChange={e =>
+                      handleInputChange(
+                        'duration',
+                        parseInt(e.target.value) || 0
+                      )
+                    }
                     className={`flex-1 min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.duration ? 'border-red-500' : 'border-gray-300'
                     }`}
@@ -244,7 +299,12 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                     min="0"
                     max="59"
                     value={formData.durationSeconds}
-                    onChange={(e) => handleInputChange('durationSeconds', parseInt(e.target.value) || 0)}
+                    onChange={e =>
+                      handleInputChange(
+                        'durationSeconds',
+                        parseInt(e.target.value) || 0
+                      )
+                    }
                     className={`flex-1 min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.duration ? 'border-red-500' : 'border-gray-300'
                     }`}
@@ -286,7 +346,9 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                   min="40"
                   max="300"
                   value={formData.bpm}
-                  onChange={(e) => handleInputChange('bpm', parseInt(e.target.value) || 120)}
+                  onChange={e =>
+                    handleInputChange('bpm', parseInt(e.target.value) || 120)
+                  }
                   className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.bpm ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -304,7 +366,9 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                 </label>
                 <select
                   value={formData.difficulty}
-                  onChange={(e) => handleInputChange('difficulty', parseInt(e.target.value))}
+                  onChange={e =>
+                    handleInputChange('difficulty', parseInt(e.target.value))
+                  }
                   className={`w-full min-h-[48px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.difficulty ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -317,7 +381,9 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                   <option value={5}>5 - Expert</option>
                 </select>
                 {errors.difficulty && (
-                  <p className="mt-1 text-sm text-red-600">{errors.difficulty}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.difficulty}
+                  </p>
                 )}
               </div>
             </div>
@@ -328,12 +394,16 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
               </label>
               <select
                 value={formData.guitarTuning}
-                onChange={(e) => handleInputChange('guitarTuning', e.target.value)}
+                onChange={e =>
+                  handleInputChange('guitarTuning', e.target.value)
+                }
                 className="w-full min-h-[48px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select tuning (optional)</option>
                 {GUITAR_TUNINGS.map(tuning => (
-                  <option key={tuning} value={tuning}>{tuning}</option>
+                  <option key={tuning} value={tuning}>
+                    {tuning}
+                  </option>
                 ))}
               </select>
             </div>
@@ -345,7 +415,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
               <input
                 type="text"
                 value={formData.tags}
-                onChange={(e) => handleInputChange('tags', e.target.value)}
+                onChange={e => handleInputChange('tags', e.target.value)}
                 className="w-full min-h-[48px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="rock, acoustic, cover (comma separated)"
               />
@@ -355,9 +425,15 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                     key={tag}
                     type="button"
                     onClick={() => {
-                      const currentTags = formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+                      const currentTags = formData.tags
+                        .split(',')
+                        .map(t => t.trim())
+                        .filter(Boolean)
                       if (!currentTags.includes(tag)) {
-                        handleInputChange('tags', [...currentTags, tag].join(', '))
+                        handleInputChange(
+                          'tags',
+                          [...currentTags, tag].join(', ')
+                        )
                       }
                     }}
                     className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors touch-manipulation"
@@ -374,7 +450,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
               </label>
               <textarea
                 value={formData.notes}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
+                onChange={e => handleInputChange('notes', e.target.value)}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 placeholder="Band-specific notes about this song..."
@@ -398,7 +474,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                   <input
                     type="text"
                     value={formData.chords}
-                    onChange={(e) => handleInputChange('chords', e.target.value)}
+                    onChange={e => handleInputChange('chords', e.target.value)}
                     className="w-full min-h-[48px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="C, F, G, Am (comma separated)"
                   />
@@ -410,7 +486,7 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                   </label>
                   <textarea
                     value={formData.lyrics}
-                    onChange={(e) => handleInputChange('lyrics', e.target.value)}
+                    onChange={e => handleInputChange('lyrics', e.target.value)}
                     rows={6}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     placeholder="Enter song lyrics..."
@@ -435,7 +511,9 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                     <div key={index} className="flex space-x-2 mb-2">
                       <select
                         value={link.type}
-                        onChange={(e) => updateReferenceLink(index, 'type', e.target.value)}
+                        onChange={e =>
+                          updateReferenceLink(index, 'type', e.target.value)
+                        }
                         className="min-h-[44px] px-2 py-1 border border-gray-300 rounded text-sm"
                       >
                         <option value="spotify">Spotify</option>
@@ -447,7 +525,9 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
                       <input
                         type="url"
                         value={link.url}
-                        onChange={(e) => updateReferenceLink(index, 'url', e.target.value)}
+                        onChange={e =>
+                          updateReferenceLink(index, 'url', e.target.value)
+                        }
                         className="flex-1 min-h-[44px] px-2 py-1 border border-gray-300 rounded text-sm"
                         placeholder="URL"
                       />
@@ -499,23 +579,35 @@ export const AddSongForm: React.FC<AddSongFormProps> = ({
         >
           <div
             className="bg-white rounded-lg p-6 max-w-lg w-full"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Select Musical Key</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Select Musical Key
+              </h3>
               <button
                 onClick={() => setShowKeyPicker(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
 
             <CircleOfFifths
               selectedKey={formData.key}
-              onKeySelect={(key) => {
+              onKeySelect={key => {
                 handleInputChange('key', key)
                 setShowKeyPicker(false)
               }}

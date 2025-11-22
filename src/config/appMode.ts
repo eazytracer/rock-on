@@ -61,8 +61,12 @@ export function getConfig(): AppConfig {
     enableSupabaseAuth: mode === 'production',
 
     // Supabase settings
-    supabaseUrl: mode === 'production' ? import.meta.env.VITE_SUPABASE_URL : undefined,
-    supabaseAnonKey: mode === 'production' ? import.meta.env.VITE_SUPABASE_ANON_KEY : undefined
+    supabaseUrl:
+      mode === 'production' ? import.meta.env.VITE_SUPABASE_URL : undefined,
+    supabaseAnonKey:
+      mode === 'production'
+        ? import.meta.env.VITE_SUPABASE_ANON_KEY
+        : undefined,
   }
 }
 

@@ -20,7 +20,11 @@ interface SyncIconProps {
  * - error: Red X - sync failed
  * - unread: Green checkmark with blue badge - synced but has unread updates
  */
-export function SyncIcon({ status, size = 'sm', className = '' }: SyncIconProps) {
+export function SyncIcon({
+  status,
+  size = 'sm',
+  className = '',
+}: SyncIconProps) {
   const iconSize = size === 'sm' ? 16 : 20
 
   const getIcon = () => {

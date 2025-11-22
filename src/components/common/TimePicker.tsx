@@ -20,7 +20,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   placeholder = 'Select time',
   name,
   id,
-  'data-testid': dataTestId
+  'data-testid': dataTestId,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedHour, setSelectedHour] = useState<number | null>(null)
@@ -54,7 +54,10 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -68,9 +71,10 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     }
   }, [isOpen])
 
-  const hours = format === '12h'
-    ? Array.from({ length: 12 }, (_, i) => i + 1)
-    : Array.from({ length: 24 }, (_, i) => i)
+  const hours =
+    format === '12h'
+      ? Array.from({ length: 12 }, (_, i) => i + 1)
+      : Array.from({ length: 24 }, (_, i) => i)
 
   const commonMinutes = [0, 15, 30, 45]
 
@@ -109,9 +113,14 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     }
   }
 
-  const displayValue = selectedHour !== null && selectedMinute !== null
-    ? formatTime(selectedHour, selectedMinute, format === '12h' ? selectedPeriod : undefined)
-    : placeholder
+  const displayValue =
+    selectedHour !== null && selectedMinute !== null
+      ? formatTime(
+          selectedHour,
+          selectedMinute,
+          format === '12h' ? selectedPeriod : undefined
+        )
+      : placeholder
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -123,11 +132,16 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         data-testid={dataTestId}
         className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 flex items-center justify-between"
       >
-        <span className={selectedHour === null ? 'text-[#707070]' : 'text-white'}>
+        <span
+          className={selectedHour === null ? 'text-[#707070]' : 'text-white'}
+        >
           <Clock size={16} className="inline mr-2" />
           {displayValue}
         </span>
-        <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          size={16}
+          className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {isOpen && (
@@ -135,7 +149,9 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           <div className="grid grid-cols-2 gap-4">
             {/* Hour Selection */}
             <div>
-              <div className="text-xs text-[#707070] mb-2 font-medium">Hour</div>
+              <div className="text-xs text-[#707070] mb-2 font-medium">
+                Hour
+              </div>
               <div className="grid grid-cols-3 gap-1">
                 {hours.map(hour => (
                   <button
@@ -161,7 +177,9 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
             {/* Minute Selection */}
             <div>
-              <div className="text-xs text-[#707070] mb-2 font-medium">Minute</div>
+              <div className="text-xs text-[#707070] mb-2 font-medium">
+                Minute
+              </div>
               <div className="space-y-1">
                 {commonMinutes.map(minute => (
                   <button
@@ -177,8 +195,8 @@ export const TimePicker: React.FC<TimePickerProps> = ({
                       selectedMinute === minute
                         ? 'bg-[#f17827ff] text-white'
                         : selectedHour === null
-                        ? 'text-[#505050] cursor-not-allowed'
-                        : 'text-[#a0a0a0] hover:bg-[#252525] hover:text-white'
+                          ? 'text-[#505050] cursor-not-allowed'
+                          : 'text-[#a0a0a0] hover:bg-[#252525] hover:text-white'
                     }`}
                   >
                     :{minute.toString().padStart(2, '0')}
@@ -193,7 +211,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
                       type="text"
                       value={customMinute}
                       onChange={handleCustomMinute}
-                      onKeyDown={(e) => e.key === 'Enter' && applyCustomMinute()}
+                      onKeyDown={e => e.key === 'Enter' && applyCustomMinute()}
                       placeholder="00-59"
                       disabled={selectedHour === null}
                       className="flex-1 px-2 py-1 bg-[#121212] border border-[#2a2a2a] rounded text-white text-sm focus:border-[#f17827ff] focus:outline-none disabled:opacity-50"

@@ -32,7 +32,7 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 194,
       key: 'F#',
       tempo: 104,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000011',
@@ -41,7 +41,7 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 258,
       key: 'F#m',
       tempo: 87,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000012',
@@ -50,7 +50,7 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 287,
       key: 'Ebm',
       tempo: 108,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000013',
@@ -59,7 +59,7 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 301,
       key: 'F',
       tempo: 116,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000014',
@@ -68,7 +68,7 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 343,
       key: 'E',
       tempo: 107,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000015',
@@ -77,28 +77,28 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 331,
       key: 'Em',
       tempo: 123,
-      tuning: 'Standard'
-    }
+      tuning: 'Standard',
+    },
   ],
 
   '80s_rock': [
     {
       id: '00000000-0000-0000-0000-000000000020',
-      title: 'Sweet Child O\' Mine',
-      artist: 'Guns N\' Roses',
+      title: "Sweet Child O' Mine",
+      artist: "Guns N' Roses",
       duration: 356,
       key: 'D',
       tempo: 125,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000021',
-      title: 'Livin\' on a Prayer',
+      title: "Livin' on a Prayer",
       artist: 'Bon Jovi',
       duration: 249,
       key: 'Em',
       tempo: 123,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000022',
@@ -107,8 +107,8 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 241,
       key: 'C',
       tempo: 130,
-      tuning: 'Standard'
-    }
+      tuning: 'Standard',
+    },
   ],
 
   '70s_rock': [
@@ -119,7 +119,7 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 390,
       key: 'Bm',
       tempo: 74,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000031',
@@ -128,7 +128,7 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 265,
       key: 'Fm',
       tempo: 84,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000032',
@@ -137,8 +137,8 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 548,
       key: 'G',
       tempo: 60,
-      tuning: 'Standard'
-    }
+      tuning: 'Standard',
+    },
   ],
 
   '2000s': [
@@ -149,16 +149,16 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 223,
       key: 'D',
       tempo: 148,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000041',
       title: 'Hey There Delilah',
-      artist: 'Plain White T\'s',
+      artist: "Plain White T's",
       duration: 233,
       key: 'D',
       tempo: 104,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000042',
@@ -167,7 +167,7 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 231,
       key: 'E',
       tempo: 124,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000043',
@@ -176,7 +176,7 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 254,
       key: 'G',
       tempo: 150,
-      tuning: 'Standard'
+      tuning: 'Standard',
     },
     {
       id: '00000000-0000-0000-0000-000000000044',
@@ -185,11 +185,11 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 213,
       key: 'C',
       tempo: 190,
-      tuning: 'Standard'
-    }
+      tuning: 'Standard',
+    },
   ],
 
-  'modern': [
+  modern: [
     {
       id: '00000000-0000-0000-0000-000000000050',
       title: 'Shallow',
@@ -197,11 +197,11 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 215,
       key: 'G',
       tempo: 96,
-      tuning: 'Standard'
-    }
+      tuning: 'Standard',
+    },
   ],
 
-  'custom': [
+  custom: [
     {
       id: 'c2946b79-3ecf-4483-86d4-cb9c08c3e1f6',
       title: 'A song',
@@ -209,9 +209,9 @@ export const SEED_SONG_CATALOG: Record<string, SeedSong[]> = {
       duration: 180,
       key: 'G',
       tempo: 120,
-      tuning: 'Standard'
-    }
-  ]
+      tuning: 'Standard',
+    },
+  ],
 }
 
 /**
@@ -248,13 +248,15 @@ export function generateSongInsertSQL(
 ): string {
   const songs = getAllSongs()
 
-  const values = songs.map(song => {
-    // Escape single quotes in strings
-    const title = song.title.replace(/'/g, "''")
-    const artist = song.artist.replace(/'/g, "''")
+  const values = songs
+    .map(song => {
+      // Escape single quotes in strings
+      const title = song.title.replace(/'/g, "''")
+      const artist = song.artist.replace(/'/g, "''")
 
-    return `    ('${song.id}', '${title}', '${artist}', ${song.duration}, '${song.key}', ${song.tempo}, NOW(), NOW(), '${userId}', 'band', '${bandId}')`
-  }).join(',\n')
+      return `    ('${song.id}', '${title}', '${artist}', ${song.duration}, '${song.key}', ${song.tempo}, NOW(), NOW(), '${userId}', 'band', '${bandId}')`
+    })
+    .join(',\n')
 
   return `  INSERT INTO public.songs (
     id, title, artist, duration, key, tempo,
@@ -270,8 +272,8 @@ ${values};`
 export function getMinimalSongSet(): SeedSong[] {
   return [
     SEED_SONG_CATALOG['90s_rock'][1], // Wonderwall
-    SEED_SONG_CATALOG['80s_rock'][0],  // Sweet Child O' Mine
-    SEED_SONG_CATALOG['modern'][0]     // Shallow
+    SEED_SONG_CATALOG['80s_rock'][0], // Sweet Child O' Mine
+    SEED_SONG_CATALOG['modern'][0], // Shallow
   ]
 }
 
@@ -283,6 +285,6 @@ export function getMediumSongSet(): SeedSong[] {
     ...SEED_SONG_CATALOG['90s_rock'].slice(0, 3),
     ...SEED_SONG_CATALOG['80s_rock'].slice(0, 2),
     ...SEED_SONG_CATALOG['70s_rock'].slice(0, 2),
-    SEED_SONG_CATALOG['modern'][0]
+    SEED_SONG_CATALOG['modern'][0],
   ]
 }

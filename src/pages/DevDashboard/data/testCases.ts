@@ -7,7 +7,13 @@
 export interface TestCase {
   id: string
   name: string
-  status: 'PASS' | 'FAIL' | 'PARTIAL' | 'NOT_IMPLEMENTED' | 'IN_PROGRESS' | 'SKIPPED'
+  status:
+    | 'PASS'
+    | 'FAIL'
+    | 'PARTIAL'
+    | 'NOT_IMPLEMENTED'
+    | 'IN_PROGRESS'
+    | 'SKIPPED'
   file?: string
   notes?: string
 }

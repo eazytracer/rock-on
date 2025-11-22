@@ -10,7 +10,10 @@ interface JoinBandFormProps {
   onCancel?: () => void
 }
 
-export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel }) => {
+export const JoinBandForm: React.FC<JoinBandFormProps> = ({
+  onSuccess,
+  onCancel,
+}) => {
   const { user } = useAuth()
   const [inviteCode, setInviteCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,7 +30,8 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
     setError(null)
 
     try {
-      const validation = await BandMembershipService.validateInviteCode(inviteCode)
+      const validation =
+        await BandMembershipService.validateInviteCode(inviteCode)
 
       if (!validation.valid) {
         setError(validation.error || 'Invalid invite code')
@@ -54,7 +58,10 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
 
   const handleJoin = async () => {
     console.log('[JoinBandForm] handleJoin called')
-    console.log('[JoinBandForm] user:', user ? { id: user.id, email: user.email } : 'null')
+    console.log(
+      '[JoinBandForm] user:',
+      user ? { id: user.id, email: user.email } : 'null'
+    )
     console.log('[JoinBandForm] inviteCode:', inviteCode)
 
     if (!user) {
@@ -73,10 +80,18 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
     setError(null)
 
     try {
-      console.log('[JoinBandForm] Calling BandMembershipService.joinBandWithCode...')
-      console.log('[JoinBandForm] Parameters:', { userId: user.id, code: inviteCode })
+      console.log(
+        '[JoinBandForm] Calling BandMembershipService.joinBandWithCode...'
+      )
+      console.log('[JoinBandForm] Parameters:', {
+        userId: user.id,
+        code: inviteCode,
+      })
 
-      const result = await BandMembershipService.joinBandWithCode(user.id, inviteCode)
+      const result = await BandMembershipService.joinBandWithCode(
+        user.id,
+        inviteCode
+      )
 
       console.log('[JoinBandForm] Result received:', result)
 
@@ -93,8 +108,14 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
     } catch (err) {
       console.error('[JoinBandForm] Exception caught:', err)
       console.error('[JoinBandForm] Error type:', err?.constructor?.name)
-      console.error('[JoinBandForm] Error message:', err instanceof Error ? err.message : 'Unknown error')
-      console.error('[JoinBandForm] Error stack:', err instanceof Error ? err.stack : 'No stack trace')
+      console.error(
+        '[JoinBandForm] Error message:',
+        err instanceof Error ? err.message : 'Unknown error'
+      )
+      console.error(
+        '[JoinBandForm] Error stack:',
+        err instanceof Error ? err.stack : 'No stack trace'
+      )
       setError(err instanceof Error ? err.message : 'Failed to join band')
     } finally {
       console.log('[JoinBandForm] Cleaning up, setting loading to false')
@@ -104,14 +125,19 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
 
   const formatInviteCode = (value: string) => {
     // Remove any non-alphanumeric characters and convert to uppercase
-    return value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6)
+    return value
+      .replace(/[^A-Za-z0-9]/g, '')
+      .toUpperCase()
+      .slice(0, 6)
   }
 
   return (
     <div className="w-full max-w-md mx-auto p-6">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-steel-gray mb-2">Join a Band</h1>
-        <p className="text-steel-gray/70">Enter the invite code to join your bandmates</p>
+        <p className="text-steel-gray/70">
+          Enter the invite code to join your bandmates
+        </p>
       </div>
 
       {error && (
@@ -122,14 +148,17 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
 
       <div className="space-y-6">
         <div>
-          <label htmlFor="inviteCode" className="block text-sm font-medium text-steel-gray mb-2">
+          <label
+            htmlFor="inviteCode"
+            className="block text-sm font-medium text-steel-gray mb-2"
+          >
             Invite Code
           </label>
           <input
             id="inviteCode"
             type="text"
             value={inviteCode}
-            onChange={(e) => setInviteCode(formatInviteCode(e.target.value))}
+            onChange={e => setInviteCode(formatInviteCode(e.target.value))}
             className="w-full px-4 py-3 rounded-lg border border-steel-gray/30 bg-smoke-white text-steel-gray text-center text-2xl tracking-widest font-bold focus:outline-none focus:ring-2 focus:ring-energy-orange focus:border-transparent uppercase"
             placeholder="ABC123"
             disabled={loading}
@@ -159,9 +188,13 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
                 </svg>
               </div>
               <div>
-                <h3 className="font-bold text-steel-gray">{validatedBand.name}</h3>
+                <h3 className="font-bold text-steel-gray">
+                  {validatedBand.name}
+                </h3>
                 {validatedBand.description && (
-                  <p className="text-sm text-steel-gray/70 mt-1">{validatedBand.description}</p>
+                  <p className="text-sm text-steel-gray/70 mt-1">
+                    {validatedBand.description}
+                  </p>
                 )}
               </div>
             </div>
@@ -190,7 +223,11 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
               Validate Code
             </TouchButton>
           ) : (
-            <TouchButton onClick={handleJoin} loading={loading} className="flex-1">
+            <TouchButton
+              onClick={handleJoin}
+              loading={loading}
+              className="flex-1"
+            >
               Join Band
             </TouchButton>
           )}
@@ -199,8 +236,9 @@ export const JoinBandForm: React.FC<JoinBandFormProps> = ({ onSuccess, onCancel 
 
       <div className="mt-8 p-4 bg-steel-gray/5 rounded-lg">
         <p className="text-xs text-steel-gray/70">
-          <strong>Tip:</strong> Ask your band leader to share their invite code. You can also create
-          your own band if you don't have an invite code yet.
+          <strong>Tip:</strong> Ask your band leader to share their invite code.
+          You can also create your own band if you don't have an invite code
+          yet.
         </p>
       </div>
     </div>

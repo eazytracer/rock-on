@@ -18,7 +18,7 @@ import {
   UserPlus,
   UserMinus,
   AlertTriangle,
-  Music2
+  Music2,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database and hooks
 import { db } from '../../services/database'
@@ -29,7 +29,7 @@ import {
   useGenerateInviteCode,
   useRemoveBandMember,
   useUpdateMemberRole,
-  useUpdateBand
+  useUpdateBand,
 } from '../../hooks/useBands'
 
 // Types
@@ -62,7 +62,7 @@ const instrumentPresets = [
   'Trombone',
   'Saxophone',
   'Violin',
-  'Cello'
+  'Cello',
 ]
 
 // Helper function to generate initials from name
@@ -76,8 +76,18 @@ const getInitials = (name: string): string => {
 
 // Helper function to generate avatar color from user ID
 const getAvatarColor = (userId: string): string => {
-  const colors = ['#f17827', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4']
-  const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const colors = [
+    '#f17827',
+    '#3b82f6',
+    '#8b5cf6',
+    '#ec4899',
+    '#f59e0b',
+    '#10b981',
+    '#06b6d4',
+  ]
+  const hash = userId
+    .split('')
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0)
   return colors[hash % colors.length]
 }
 
@@ -93,8 +103,13 @@ export const BandMembersPage: React.FC = () => {
 
   // DATABASE INTEGRATION: Use database hooks
   const { band, loading: bandLoading } = useBand(currentBandId)
-  const { members: dbMembers, loading: membersLoading } = useBandMembers(currentBandId)
-  const { inviteCodes, loading: _codesLoading, refetch: refetchInviteCodes } = useBandInviteCodes(currentBandId)
+  const { members: dbMembers, loading: membersLoading } =
+    useBandMembers(currentBandId)
+  const {
+    inviteCodes,
+    loading: _codesLoading,
+    refetch: refetchInviteCodes,
+  } = useBandInviteCodes(currentBandId)
   const { generateCode } = useGenerateInviteCode()
   const { removeMember } = useRemoveBandMember()
   const { updateRole } = useUpdateMemberRole()
@@ -104,16 +119,21 @@ export const BandMembersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [copiedCode, setCopiedCode] = useState(false)
   const [members, setMembers] = useState<BandMember[]>([])
-  const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'admin' | 'member'>('member')
+  const [currentUserRole, setCurrentUserRole] = useState<
+    'owner' | 'admin' | 'member'
+  >('member')
   const [toastMessage, setToastMessage] = useState<string>('')
 
   // Modal states
   const [showEditBandModal, setShowEditBandModal] = useState(false)
-  const [showRegenerateCodeDialog, setShowRegenerateCodeDialog] = useState(false)
+  const [showRegenerateCodeDialog, setShowRegenerateCodeDialog] =
+    useState(false)
   const [showMemberDetailModal, setShowMemberDetailModal] = useState(false)
-  const [showEditInstrumentsModal, setShowEditInstrumentsModal] = useState(false)
+  const [showEditInstrumentsModal, setShowEditInstrumentsModal] =
+    useState(false)
   const [showRemoveMemberDialog, setShowRemoveMemberDialog] = useState(false)
-  const [showTransferOwnershipDialog, setShowTransferOwnershipDialog] = useState(false)
+  const [showTransferOwnershipDialog, setShowTransferOwnershipDialog] =
+    useState(false)
   const [selectedMember, setSelectedMember] = useState<BandMember | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
@@ -122,7 +142,8 @@ export const BandMembersPage: React.FC = () => {
   const [editBandDescription, setEditBandDescription] = useState('')
   const [editInstruments, setEditInstruments] = useState<Instrument[]>([])
   const [transferConfirmText, setTransferConfirmText] = useState('')
-  const [showCustomInstrumentInput, setShowCustomInstrumentInput] = useState(false)
+  const [showCustomInstrumentInput, setShowCustomInstrumentInput] =
+    useState(false)
   const [customInstrumentName, setCustomInstrumentName] = useState('')
 
   const handleSignOut = async () => {
@@ -140,47 +161,65 @@ export const BandMembersPage: React.FC = () => {
       }
 
       // Deduplicate members by userId (in case of race conditions during sync)
-      const uniqueMembers = dbMembers.filter((member, index, self) =>
-        index === self.findIndex((m) => m.membership.userId === member.membership.userId)
+      const uniqueMembers = dbMembers.filter(
+        (member, index, self) =>
+          index ===
+          self.findIndex(m => m.membership.userId === member.membership.userId)
       )
 
       const transformedMembers: BandMember[] = await Promise.all(
-        uniqueMembers.map(async ({ membership, user, profile }): Promise<BandMember> => {
-          // User data now comes from the hook (cloud-first), no need to query db.users
+        uniqueMembers.map(
+          async ({ membership, user, profile }): Promise<BandMember> => {
+            // User data now comes from the hook (cloud-first), no need to query db.users
 
-          // Convert instruments from profile
-          const instruments: Instrument[] = profile?.instruments?.map((inst: string) => ({
-            name: inst,
-            isPrimary: inst === profile.primaryInstrument
-          })) || []
+            // Convert instruments from profile
+            const instruments: Instrument[] =
+              profile?.instruments?.map((inst: string) => ({
+                name: inst,
+                isPrimary: inst === profile.primaryInstrument,
+              })) || []
 
-          // Map role: database has 'admin'|'member'|'viewer', UI needs 'owner'|'admin'|'member'
-          // Check permissions array for 'owner' flag
-          const isOwner = membership.permissions?.includes('owner') || false
-          const role: 'owner' | 'admin' | 'member' = isOwner ? 'owner' : (membership.role === 'admin' ? 'admin' : 'member')
+            // Map role: database has 'admin'|'member'|'viewer', UI needs 'owner'|'admin'|'member'
+            // Check permissions array for 'owner' flag
+            const isOwner = membership.permissions?.includes('owner') || false
+            const role: 'owner' | 'admin' | 'member' = isOwner
+              ? 'owner'
+              : membership.role === 'admin'
+                ? 'admin'
+                : 'member'
 
-          return {
-            userId: membership.userId,
-            membershipId: membership.id,
-            name: profile?.displayName || user?.name || 'Unknown User',
-            email: user?.email || '',
-            role,
-            instruments,
-            joinedDate: membership.joinedDate,
-            status: membership.status as 'active' | 'inactive',
-            initials: getInitials(profile?.displayName || user?.name || 'Unknown'),
-            avatarColor: getAvatarColor(membership.userId)
+            return {
+              userId: membership.userId,
+              membershipId: membership.id,
+              name: profile?.displayName || user?.name || 'Unknown User',
+              email: user?.email || '',
+              role,
+              instruments,
+              joinedDate: membership.joinedDate,
+              status: membership.status as 'active' | 'inactive',
+              initials: getInitials(
+                profile?.displayName || user?.name || 'Unknown'
+              ),
+              avatarColor: getAvatarColor(membership.userId),
+            }
           }
-        })
+        )
       )
 
       setMembers(transformedMembers)
 
       // Set current user's role
-      const currentMembership = dbMembers.find(m => m.membership.userId === currentUserId)
+      const currentMembership = dbMembers.find(
+        m => m.membership.userId === currentUserId
+      )
       if (currentMembership) {
-        const isOwner = currentMembership.membership.permissions?.includes('owner') || false
-        const role: 'owner' | 'admin' | 'member' = isOwner ? 'owner' : (currentMembership.membership.role === 'admin' ? 'admin' : 'member')
+        const isOwner =
+          currentMembership.membership.permissions?.includes('owner') || false
+        const role: 'owner' | 'admin' | 'member' = isOwner
+          ? 'owner'
+          : currentMembership.membership.role === 'admin'
+            ? 'admin'
+            : 'member'
         setCurrentUserRole(role)
       }
     }
@@ -203,10 +242,13 @@ export const BandMembersPage: React.FC = () => {
   }
 
   // Filtered members
-  const filteredMembers = members.filter(member =>
-    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.instruments.some(inst => inst.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredMembers = members.filter(
+    member =>
+      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.instruments.some(inst =>
+        inst.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
   )
 
   // Sort members: Owner first, then Admins, then Members alphabetically
@@ -233,7 +275,7 @@ export const BandMembersPage: React.FC = () => {
     if (navigator.share && band && activeCode) {
       await navigator.share({
         title: `Join ${band.name} on Rock-On`,
-        text: `Join my band ${band.name} on Rock-On! Use invite code: ${activeCode}`
+        text: `Join my band ${band.name} on Rock-On! Use invite code: ${activeCode}`,
       })
     }
   }
@@ -257,7 +299,7 @@ export const BandMembersPage: React.FC = () => {
     try {
       await updateBand(currentBandId, {
         name: editBandName,
-        description: editBandDescription
+        description: editBandDescription,
       })
       setShowEditBandModal(false)
       showToast('Band info updated successfully')
@@ -281,12 +323,14 @@ export const BandMembersPage: React.FC = () => {
       if (profile) {
         // Convert instruments back to array format
         const instrumentNames = editInstruments.map(inst => inst.name)
-        const primaryInstrument = editInstruments.find(inst => inst.isPrimary)?.name
+        const primaryInstrument = editInstruments.find(
+          inst => inst.isPrimary
+        )?.name
 
         await db.userProfiles.update(profile.id, {
           instruments: instrumentNames,
           primaryInstrument: primaryInstrument || instrumentNames[0],
-          updatedDate: new Date()
+          updatedDate: new Date(),
         })
 
         // Update local state
@@ -380,7 +424,8 @@ export const BandMembersPage: React.FC = () => {
 
       // Update local state
       const updatedMembers = members.map(m => {
-        if (m.userId === selectedMember.userId) return { ...m, role: 'owner' as const }
+        if (m.userId === selectedMember.userId)
+          return { ...m, role: 'owner' as const }
         if (m.userId === currentUserId) return { ...m, role: 'admin' as const }
         return m
       })
@@ -401,24 +446,34 @@ export const BandMembersPage: React.FC = () => {
     const exists = editInstruments.find(inst => inst.name === instrumentName)
     if (exists) {
       // Remove instrument
-      setEditInstruments(editInstruments.filter(inst => inst.name !== instrumentName))
+      setEditInstruments(
+        editInstruments.filter(inst => inst.name !== instrumentName)
+      )
     } else {
       // Add instrument
-      setEditInstruments([...editInstruments, { name: instrumentName, isPrimary: false }])
+      setEditInstruments([
+        ...editInstruments,
+        { name: instrumentName, isPrimary: false },
+      ])
     }
   }
 
   const handleTogglePrimary = (instrumentName: string) => {
-    setEditInstruments(editInstruments.map(inst =>
-      inst.name === instrumentName
-        ? { ...inst, isPrimary: true }
-        : { ...inst, isPrimary: false }
-    ))
+    setEditInstruments(
+      editInstruments.map(inst =>
+        inst.name === instrumentName
+          ? { ...inst, isPrimary: true }
+          : { ...inst, isPrimary: false }
+      )
+    )
   }
 
   const handleAddCustomInstrument = () => {
     if (customInstrumentName.trim()) {
-      const newInstrument = { name: customInstrumentName.trim(), isPrimary: false }
+      const newInstrument = {
+        name: customInstrumentName.trim(),
+        isPrimary: false,
+      }
       setEditInstruments([...editInstruments, newInstrument])
       setShowCustomInstrumentInput(false)
       setCustomInstrumentName('')
@@ -456,7 +511,8 @@ export const BandMembersPage: React.FC = () => {
 
   // DATABASE INTEGRATION: Permission checks using current user role
   const canEditBand = currentUserRole === 'owner' || currentUserRole === 'admin'
-  const canInviteMembers = currentUserRole === 'owner' || currentUserRole === 'admin'
+  const canInviteMembers =
+    currentUserRole === 'owner' || currentUserRole === 'admin'
   const canRemoveMember = (member: BandMember) => {
     if (member.userId === currentUserId) return false
     if (member.role === 'owner') return false
@@ -468,7 +524,11 @@ export const BandMembersPage: React.FC = () => {
   // DATABASE INTEGRATION: Show loading state
   if (bandLoading || membersLoading) {
     return (
-      <ModernLayout bandName="Loading..." userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
+      <ModernLayout
+        bandName="Loading..."
+        userEmail={currentUser?.email || 'Not logged in'}
+        onSignOut={handleSignOut}
+      >
         <div className="flex items-center justify-center h-64">
           <div className="text-white text-lg">Loading band members...</div>
         </div>
@@ -479,7 +539,11 @@ export const BandMembersPage: React.FC = () => {
   // DATABASE INTEGRATION: Handle missing band
   if (!band) {
     return (
-      <ModernLayout bandName="Not Found" userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
+      <ModernLayout
+        bandName="Not Found"
+        userEmail={currentUser?.email || 'Not logged in'}
+        onSignOut={handleSignOut}
+      >
         <div className="flex items-center justify-center h-64">
           <div className="text-white text-lg">Band not found</div>
         </div>
@@ -518,7 +582,11 @@ export const BandMembersPage: React.FC = () => {
   }
 
   return (
-    <ModernLayout bandName={band.name} userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
+    <ModernLayout
+      bandName={band.name}
+      userEmail={currentUser?.email || 'Not logged in'}
+      onSignOut={handleSignOut}
+    >
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
@@ -552,18 +620,30 @@ export const BandMembersPage: React.FC = () => {
         <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a] mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">Members</div>
-              <div className="text-white text-lg font-semibold">{memberCount}</div>
+              <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">
+                Members
+              </div>
+              <div className="text-white text-lg font-semibold">
+                {memberCount}
+              </div>
             </div>
             <div>
-              <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">Created</div>
+              <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">
+                Created
+              </div>
               <div className="text-white text-lg font-semibold">
-                {band.createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {band.createdDate.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
               </div>
             </div>
             {band.description && (
               <div className="md:col-span-1">
-                <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">Description</div>
+                <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">
+                  Description
+                </div>
                 <div className="text-white text-sm">{band.description}</div>
               </div>
             )}
@@ -576,7 +656,9 @@ export const BandMembersPage: React.FC = () => {
             <h2 className="text-white font-semibold mb-4">Invite Members</h2>
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex-1 min-w-[200px]">
-                <div className="text-[#707070] text-xs uppercase tracking-wider mb-2">Invite Code</div>
+                <div className="text-[#707070] text-xs uppercase tracking-wider mb-2">
+                  Invite Code
+                </div>
                 <div
                   className="text-white text-2xl font-mono font-bold"
                   data-testid="invite-code"
@@ -618,7 +700,10 @@ export const BandMembersPage: React.FC = () => {
 
         {/* Search Bar */}
         <div className="relative mb-6">
-          <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]" />
+          <Search
+            size={20}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+          />
           <input
             type="text"
             name="memberSearch"
@@ -626,7 +711,7 @@ export const BandMembersPage: React.FC = () => {
             data-testid="member-search-input"
             placeholder="Search members..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="w-full h-10 pl-11 pr-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827] focus:outline-none focus:ring-2 focus:ring-[#f17827]/20"
           />
         </div>
@@ -651,7 +736,7 @@ export const BandMembersPage: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          {sortedMembers.map((member) => (
+          {sortedMembers.map(member => (
             <div
               key={member.userId}
               data-testid={`member-row-${member.email}`}
@@ -689,7 +774,9 @@ export const BandMembersPage: React.FC = () => {
                       key={idx}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#2a2a2a] text-[#a0a0a0] text-xs"
                     >
-                      {inst.isPrimary && <span className="text-[#f17827]">★</span>}
+                      {inst.isPrimary && (
+                        <span className="text-[#f17827]">★</span>
+                      )}
                       {inst.name}
                     </span>
                   ))}
@@ -703,15 +790,24 @@ export const BandMembersPage: React.FC = () => {
 
               {/* Joined Date */}
               <div className="w-[120px] text-[#a0a0a0] text-sm">
-                {member.joinedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                {member.joinedDate.toLocaleDateString('en-US', {
+                  month: 'short',
+                  year: 'numeric',
+                })}
               </div>
 
               {/* Actions Menu */}
               <div className="w-[60px] flex justify-end relative">
-                {canRemoveMember(member) || currentUserRole === 'owner' || member.userId === currentUserId ? (
+                {canRemoveMember(member) ||
+                currentUserRole === 'owner' ||
+                member.userId === currentUserId ? (
                   <>
                     <button
-                      onClick={() => setOpenMenuId(openMenuId === member.userId ? null : member.userId)}
+                      onClick={() =>
+                        setOpenMenuId(
+                          openMenuId === member.userId ? null : member.userId
+                        )
+                      }
                       className="p-2 rounded-lg text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-white transition-colors"
                     >
                       <MoreVertical size={16} />
@@ -732,35 +828,38 @@ export const BandMembersPage: React.FC = () => {
                             Edit Instruments
                           </button>
 
-                          {currentUserRole === 'owner' && member.role === 'member' && (
-                            <button
-                              onClick={() => handleMakeAdmin(member)}
-                              className="w-full px-4 py-2 text-left text-white text-sm hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
-                            >
-                              <UserPlus size={16} />
-                              Make Admin
-                            </button>
-                          )}
+                          {currentUserRole === 'owner' &&
+                            member.role === 'member' && (
+                              <button
+                                onClick={() => handleMakeAdmin(member)}
+                                className="w-full px-4 py-2 text-left text-white text-sm hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
+                              >
+                                <UserPlus size={16} />
+                                Make Admin
+                              </button>
+                            )}
 
-                          {currentUserRole === 'owner' && member.role === 'admin' && (
-                            <button
-                              onClick={() => handleRemoveAdmin(member)}
-                              className="w-full px-4 py-2 text-left text-white text-sm hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
-                            >
-                              <UserMinus size={16} />
-                              Remove Admin
-                            </button>
-                          )}
+                          {currentUserRole === 'owner' &&
+                            member.role === 'admin' && (
+                              <button
+                                onClick={() => handleRemoveAdmin(member)}
+                                className="w-full px-4 py-2 text-left text-white text-sm hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
+                              >
+                                <UserMinus size={16} />
+                                Remove Admin
+                              </button>
+                            )}
 
-                          {currentUserRole === 'owner' && member.role !== 'owner' && (
-                            <button
-                              onClick={() => openTransferOwnership(member)}
-                              className="w-full px-4 py-2 text-left text-white text-sm hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
-                            >
-                              <Crown size={16} />
-                              Transfer Ownership
-                            </button>
-                          )}
+                          {currentUserRole === 'owner' &&
+                            member.role !== 'owner' && (
+                              <button
+                                onClick={() => openTransferOwnership(member)}
+                                className="w-full px-4 py-2 text-left text-white text-sm hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
+                              >
+                                <Crown size={16} />
+                                Transfer Ownership
+                              </button>
+                            )}
 
                           {canRemoveMember(member) && (
                             <>
@@ -787,7 +886,7 @@ export const BandMembersPage: React.FC = () => {
 
       {/* Members List - Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {sortedMembers.map((member) => (
+        {sortedMembers.map(member => (
           <div
             key={member.userId}
             data-testid={`member-row-${member.email}`}
@@ -807,14 +906,20 @@ export const BandMembersPage: React.FC = () => {
                 >
                   {member.name}
                 </div>
-                <div className="text-[#a0a0a0] text-xs truncate">{member.email}</div>
-                <div className="mt-2">
-                  {getRoleBadge(member.role)}
+                <div className="text-[#a0a0a0] text-xs truncate">
+                  {member.email}
                 </div>
+                <div className="mt-2">{getRoleBadge(member.role)}</div>
               </div>
-              {(canRemoveMember(member) || currentUserRole === 'owner' || member.userId === currentUserId) && (
+              {(canRemoveMember(member) ||
+                currentUserRole === 'owner' ||
+                member.userId === currentUserId) && (
                 <button
-                  onClick={() => setOpenMenuId(openMenuId === member.userId ? null : member.userId)}
+                  onClick={() =>
+                    setOpenMenuId(
+                      openMenuId === member.userId ? null : member.userId
+                    )
+                  }
                   className="p-2 rounded-lg text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-white transition-colors flex-shrink-0"
                 >
                   <MoreVertical size={16} />
@@ -831,7 +936,9 @@ export const BandMembersPage: React.FC = () => {
                       key={idx}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#2a2a2a] text-[#a0a0a0] text-xs"
                     >
-                      {inst.isPrimary && <span className="text-[#f17827]">★</span>}
+                      {inst.isPrimary && (
+                        <span className="text-[#f17827]">★</span>
+                      )}
                       {inst.name}
                     </span>
                   ))}
@@ -841,7 +948,10 @@ export const BandMembersPage: React.FC = () => {
               <div className="flex items-center justify-between pt-2 border-t border-[#2a2a2a]">
                 <span className="text-[#707070] text-xs">Joined</span>
                 <span className="text-[#a0a0a0] text-xs">
-                  {member.joinedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  {member.joinedDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    year: 'numeric',
+                  })}
                 </span>
               </div>
             </div>
@@ -854,7 +964,9 @@ export const BandMembersPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
-              <h2 className="text-white text-xl font-semibold">Edit Band Info</h2>
+              <h2 className="text-white text-xl font-semibold">
+                Edit Band Info
+              </h2>
               <button
                 onClick={() => setShowEditBandModal(false)}
                 className="p-2 rounded-lg text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-white transition-colors"
@@ -874,7 +986,7 @@ export const BandMembersPage: React.FC = () => {
                   id="edit-band-name"
                   data-testid="edit-band-name-input"
                   value={editBandName}
-                  onChange={(e) => setEditBandName(e.target.value)}
+                  onChange={e => setEditBandName(e.target.value)}
                   className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827] focus:outline-none focus:ring-2 focus:ring-[#f17827]/20"
                   autoFocus
                 />
@@ -889,7 +1001,7 @@ export const BandMembersPage: React.FC = () => {
                   id="edit-band-description"
                   data-testid="edit-band-description-input"
                   value={editBandDescription}
-                  onChange={(e) => setEditBandDescription(e.target.value)}
+                  onChange={e => setEditBandDescription(e.target.value)}
                   rows={3}
                   className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827] focus:outline-none focus:ring-2 focus:ring-[#f17827]/20 resize-none"
                   placeholder="Tell us about your band..."
@@ -921,9 +1033,12 @@ export const BandMembersPage: React.FC = () => {
       {showRegenerateCodeDialog && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md p-6">
-            <h2 className="text-white text-xl font-semibold mb-4">Regenerate Invite Code?</h2>
+            <h2 className="text-white text-xl font-semibold mb-4">
+              Regenerate Invite Code?
+            </h2>
             <p className="text-[#a0a0a0] text-sm mb-6">
-              The old code will no longer work. Anyone with the current code will need the new one to join.
+              The old code will no longer work. Anyone with the current code
+              will need the new one to join.
             </p>
 
             <div className="flex gap-3">
@@ -949,7 +1064,9 @@ export const BandMembersPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
-              <h2 className="text-white text-xl font-semibold">Member Details</h2>
+              <h2 className="text-white text-xl font-semibold">
+                Member Details
+              </h2>
               <button
                 onClick={() => setShowMemberDetailModal(false)}
                 className="p-2 rounded-lg text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-white transition-colors"
@@ -967,9 +1084,15 @@ export const BandMembersPage: React.FC = () => {
                   {selectedMember.initials}
                 </div>
                 <div>
-                  <div className="text-white text-xl font-semibold">{selectedMember.name}</div>
-                  <div className="text-[#a0a0a0] text-sm">{selectedMember.email}</div>
-                  <div className="mt-2">{getRoleBadge(selectedMember.role)}</div>
+                  <div className="text-white text-xl font-semibold">
+                    {selectedMember.name}
+                  </div>
+                  <div className="text-[#a0a0a0] text-sm">
+                    {selectedMember.email}
+                  </div>
+                  <div className="mt-2">
+                    {getRoleBadge(selectedMember.role)}
+                  </div>
                 </div>
               </div>
 
@@ -981,7 +1104,9 @@ export const BandMembersPage: React.FC = () => {
                       key={idx}
                       className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-[#2a2a2a] text-white text-sm"
                     >
-                      {inst.isPrimary && <span className="text-[#f17827]">★</span>}
+                      {inst.isPrimary && (
+                        <span className="text-[#f17827]">★</span>
+                      )}
                       {inst.name}
                     </span>
                   ))}
@@ -990,14 +1115,24 @@ export const BandMembersPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">Joined</div>
+                  <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">
+                    Joined
+                  </div>
                   <div className="text-white text-sm">
-                    {selectedMember.joinedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    {selectedMember.joinedDate.toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">Status</div>
-                  <div className="text-white text-sm capitalize">{selectedMember.status}</div>
+                  <div className="text-[#707070] text-xs uppercase tracking-wider mb-1">
+                    Status
+                  </div>
+                  <div className="text-white text-sm capitalize">
+                    {selectedMember.status}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1030,7 +1165,9 @@ export const BandMembersPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a] flex-shrink-0">
-              <h2 className="text-white text-xl font-semibold">Edit Instruments</h2>
+              <h2 className="text-white text-xl font-semibold">
+                Edit Instruments
+              </h2>
               <button
                 onClick={() => {
                   setShowEditInstrumentsModal(false)
@@ -1045,15 +1182,22 @@ export const BandMembersPage: React.FC = () => {
 
             <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar-thin flex-1">
               <div className="text-[#a0a0a0] text-sm">
-                Select instruments for <span className="text-white font-medium">{selectedMember.name}</span>
+                Select instruments for{' '}
+                <span className="text-white font-medium">
+                  {selectedMember.name}
+                </span>
               </div>
 
               {/* Instrument Selection Buttons */}
               <div>
-                <div className="text-white font-medium mb-3">Available Instruments</div>
+                <div className="text-white font-medium mb-3">
+                  Available Instruments
+                </div>
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                   {instrumentPresets.map(preset => {
-                    const isSelected = editInstruments.some(inst => inst.name === preset)
+                    const isSelected = editInstruments.some(
+                      inst => inst.name === preset
+                    )
                     return (
                       <button
                         key={preset}
@@ -1087,8 +1231,8 @@ export const BandMembersPage: React.FC = () => {
                     <input
                       type="text"
                       value={customInstrumentName}
-                      onChange={(e) => setCustomInstrumentName(e.target.value)}
-                      onKeyDown={(e) => {
+                      onChange={e => setCustomInstrumentName(e.target.value)}
+                      onKeyDown={e => {
                         if (e.key === 'Enter') {
                           handleAddCustomInstrument()
                         } else if (e.key === 'Escape') {
@@ -1137,11 +1281,17 @@ export const BandMembersPage: React.FC = () => {
                                 ? 'text-[#f17827] bg-[#f17827]/10'
                                 : 'text-[#707070] hover:text-[#f17827] hover:bg-[#f17827]/5'
                             }`}
-                            title={inst.isPrimary ? 'Primary instrument' : 'Set as primary'}
+                            title={
+                              inst.isPrimary
+                                ? 'Primary instrument'
+                                : 'Set as primary'
+                            }
                           >
                             <span className="text-lg">★</span>
                           </button>
-                          <span className="text-white font-medium">{inst.name}</span>
+                          <span className="text-white font-medium">
+                            {inst.name}
+                          </span>
                           {inst.isPrimary && (
                             <span className="px-2 py-1 rounded-md bg-[#f17827]/20 text-[#f17827] text-xs font-medium">
                               Primary
@@ -1166,7 +1316,8 @@ export const BandMembersPage: React.FC = () => {
 
               {editInstruments.length === 0 && (
                 <div className="text-center py-8 text-[#707070] text-sm">
-                  No instruments selected. Click the buttons above to add instruments.
+                  No instruments selected. Click the buttons above to add
+                  instruments.
                 </div>
               )}
             </div>
@@ -1201,11 +1352,17 @@ export const BandMembersPage: React.FC = () => {
               <div className="p-3 rounded-full bg-red-500/10">
                 <AlertTriangle size={24} className="text-red-400" />
               </div>
-              <h2 className="text-white text-xl font-semibold">Remove Member?</h2>
+              <h2 className="text-white text-xl font-semibold">
+                Remove Member?
+              </h2>
             </div>
 
             <p className="text-[#a0a0a0] text-sm mb-6">
-              Remove <span className="text-white font-medium">{selectedMember.name}</span> from <span className="text-white font-medium">{band.name}</span>?
+              Remove{' '}
+              <span className="text-white font-medium">
+                {selectedMember.name}
+              </span>{' '}
+              from <span className="text-white font-medium">{band.name}</span>?
               They will lose access to all band content.
             </p>
 
@@ -1235,28 +1392,38 @@ export const BandMembersPage: React.FC = () => {
               <div className="p-3 rounded-full bg-[#f17827]/10">
                 <Crown size={24} className="text-[#f17827]" />
               </div>
-              <h2 className="text-white text-xl font-semibold">Transfer Ownership</h2>
+              <h2 className="text-white text-xl font-semibold">
+                Transfer Ownership
+              </h2>
             </div>
 
             <div className="space-y-4 mb-6">
               <p className="text-[#a0a0a0] text-sm">
-                Transfer ownership of <span className="text-white font-medium">{band.name}</span> to <span className="text-white font-medium">{selectedMember.name}</span>?
+                Transfer ownership of{' '}
+                <span className="text-white font-medium">{band.name}</span> to{' '}
+                <span className="text-white font-medium">
+                  {selectedMember.name}
+                </span>
+                ?
               </p>
 
               <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                 <p className="text-yellow-400 text-sm">
-                  <strong>Warning:</strong> You will become an admin. This cannot be undone.
+                  <strong>Warning:</strong> You will become an admin. This
+                  cannot be undone.
                 </p>
               </div>
 
               <div>
                 <label className="block text-white text-sm font-medium mb-2">
-                  Type <span className="font-mono text-[#f17827]">TRANSFER</span> to confirm
+                  Type{' '}
+                  <span className="font-mono text-[#f17827]">TRANSFER</span> to
+                  confirm
                 </label>
                 <input
                   type="text"
                   value={transferConfirmText}
-                  onChange={(e) => setTransferConfirmText(e.target.value)}
+                  onChange={e => setTransferConfirmText(e.target.value)}
                   className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827] focus:outline-none focus:ring-2 focus:ring-[#f17827]/20"
                   placeholder="TRANSFER"
                 />
@@ -1310,8 +1477,9 @@ export const BandMembersPage: React.FC = () => {
       {/* DATABASE INTEGRATION: Updated info banner */}
       <div className="mt-8 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
         <p className="text-green-400 text-sm">
-          <strong>Database Integrated:</strong> This page is now connected to the database. All changes are persisted.
-          Current role: {currentUserRole}. Band ID: {currentBandId.substring(0, 8)}...
+          <strong>Database Integrated:</strong> This page is now connected to
+          the database. All changes are persisted. Current role:{' '}
+          {currentUserRole}. Band ID: {currentBandId.substring(0, 8)}...
         </p>
       </div>
     </ModernLayout>

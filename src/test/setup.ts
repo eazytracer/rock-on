@@ -3,12 +3,15 @@ import 'fake-indexeddb/auto'
 import { beforeAll, afterAll, afterEach } from 'vitest'
 import { db } from '../services/database'
 import { resetTestDatabase } from '../../tests/helpers/testDatabase'
-import { verifySupabaseSchema, isSupabaseAvailable } from '../../tests/helpers/testSupabase'
+import {
+  verifySupabaseSchema,
+  isSupabaseAvailable,
+} from '../../tests/helpers/testSupabase'
 
 // Global test setup
 beforeAll(async () => {
   // Verify Supabase schema if available (optional - won't fail if Supabase is not running)
-  if (process.env.VITE_SUPABASE_URL && await isSupabaseAvailable()) {
+  if (process.env.VITE_SUPABASE_URL && (await isSupabaseAvailable())) {
     try {
       await verifySupabaseSchema()
       console.log('✅ Supabase schema verified')

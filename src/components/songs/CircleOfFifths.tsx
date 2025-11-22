@@ -1,78 +1,118 @@
-import React, { useState } from 'react';
-import { Check } from 'lucide-react';
+import React, { useState } from 'react'
+import { Check } from 'lucide-react'
 
 interface CircleOfFifthsProps {
-  selectedKey?: string;
-  onKeySelect: (key: string) => void;
+  selectedKey?: string
+  onKeySelect: (key: string) => void
 }
 
-const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ selectedKey, onKeySelect }) => {
+const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
+  selectedKey,
+  onKeySelect,
+}) => {
   // Initialize mode based on selected key (if it ends with 'm', it's minor)
-  const initialMode = selectedKey && selectedKey.endsWith('m') ? 'minor' : 'major';
-  const [mode, setMode] = useState<'major' | 'minor'>(initialMode);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [previewKey, setPreviewKey] = useState<string | null>(selectedKey || null);
-  const [clickedIndex, setClickedIndex] = useState<number | null>(null);
+  const initialMode =
+    selectedKey && selectedKey.endsWith('m') ? 'minor' : 'major'
+  const [mode, setMode] = useState<'major' | 'minor'>(initialMode)
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [previewKey, setPreviewKey] = useState<string | null>(
+    selectedKey || null
+  )
+  const [clickedIndex, setClickedIndex] = useState<number | null>(null)
 
   // Circle of Fifths order
-  const majorKeys = ['C', 'G', 'D', 'A', 'E', 'B', 'F♯/G♭', 'D♭', 'A♭', 'E♭', 'B♭', 'F'];
-  const minorKeys = ['A', 'E', 'B', 'F♯', 'C♯', 'G♯', 'E♭', 'B♭', 'F', 'C', 'G', 'D'];
+  const majorKeys = [
+    'C',
+    'G',
+    'D',
+    'A',
+    'E',
+    'B',
+    'F♯/G♭',
+    'D♭',
+    'A♭',
+    'E♭',
+    'B♭',
+    'F',
+  ]
+  const minorKeys = [
+    'A',
+    'E',
+    'B',
+    'F♯',
+    'C♯',
+    'G♯',
+    'E♭',
+    'B♭',
+    'F',
+    'C',
+    'G',
+    'D',
+  ]
 
-  const keys = mode === 'major' ? majorKeys : minorKeys;
-  const totalKeys = 12;
-  const anglePerKey = 360 / totalKeys;
-  const radius = 140;  // Increased from 100
-  const centerRadius = 40;  // Increased from 30
+  const keys = mode === 'major' ? majorKeys : minorKeys
+  const totalKeys = 12
+  const anglePerKey = 360 / totalKeys
+  const radius = 140 // Increased from 100
+  const centerRadius = 40 // Increased from 30
 
   // Create a pie slice path
-  const createSlicePath = (index: number, isHovered: boolean, isClicked: boolean) => {
-    const startAngle = (index * anglePerKey - 90) * (Math.PI / 180); // -90 to start at top
-    const endAngle = ((index + 1) * anglePerKey - 90) * (Math.PI / 180);
+  const createSlicePath = (
+    index: number,
+    isHovered: boolean,
+    isClicked: boolean
+  ) => {
+    const startAngle = (index * anglePerKey - 90) * (Math.PI / 180) // -90 to start at top
+    const endAngle = ((index + 1) * anglePerKey - 90) * (Math.PI / 180)
 
     // Use larger radius for hovered or clicked slice
-    const outerRadius = (isHovered || isClicked) ? radius * 1.15 : radius;
+    const outerRadius = isHovered || isClicked ? radius * 1.15 : radius
 
-    const x1 = centerRadius * Math.cos(startAngle);
-    const y1 = centerRadius * Math.sin(startAngle);
-    const x2 = outerRadius * Math.cos(startAngle);
-    const y2 = outerRadius * Math.sin(startAngle);
-    const x3 = outerRadius * Math.cos(endAngle);
-    const y3 = outerRadius * Math.sin(endAngle);
-    const x4 = centerRadius * Math.cos(endAngle);
-    const y4 = centerRadius * Math.sin(endAngle);
+    const x1 = centerRadius * Math.cos(startAngle)
+    const y1 = centerRadius * Math.sin(startAngle)
+    const x2 = outerRadius * Math.cos(startAngle)
+    const y2 = outerRadius * Math.sin(startAngle)
+    const x3 = outerRadius * Math.cos(endAngle)
+    const y3 = outerRadius * Math.sin(endAngle)
+    const x4 = centerRadius * Math.cos(endAngle)
+    const y4 = centerRadius * Math.sin(endAngle)
 
-    return `M ${x1},${y1} L ${x2},${y2} A ${outerRadius},${outerRadius} 0 0,1 ${x3},${y3} L ${x4},${y4} A ${centerRadius},${centerRadius} 0 0,0 ${x1},${y1} Z`;
-  };
+    return `M ${x1},${y1} L ${x2},${y2} A ${outerRadius},${outerRadius} 0 0,1 ${x3},${y3} L ${x4},${y4} A ${centerRadius},${centerRadius} 0 0,0 ${x1},${y1} Z`
+  }
 
   // Get text position for each key
   const getTextPosition = (index: number) => {
-    const angle = (index * anglePerKey + anglePerKey / 2 - 90) * (Math.PI / 180);
-    const textRadius = (radius + centerRadius) / 2;
+    const angle = (index * anglePerKey + anglePerKey / 2 - 90) * (Math.PI / 180)
+    const textRadius = (radius + centerRadius) / 2
     return {
       x: textRadius * Math.cos(angle),
-      y: textRadius * Math.sin(angle)
-    };
-  };
+      y: textRadius * Math.sin(angle),
+    }
+  }
 
   // Color scheme for keys - updated to match app theme
-  const getSliceColor = (keyWithMode: string, index: number, isHovered: boolean) => {
-    const isPreview = previewKey === keyWithMode;
-    const isSelected = selectedKey === keyWithMode;
+  const getSliceColor = (
+    keyWithMode: string,
+    index: number,
+    isHovered: boolean
+  ) => {
+    const isPreview = previewKey === keyWithMode
+    const isSelected = selectedKey === keyWithMode
 
     if (isSelected && isPreview) {
-      return '#f17827ff'; // App's primary orange accent - confirmed selection
+      return '#f17827ff' // App's primary orange accent - confirmed selection
     }
     if (isPreview) {
-      return '#ff9447'; // Lighter orange for preview/pending selection
+      return '#ff9447' // Lighter orange for preview/pending selection
     }
     if (isHovered) {
-      return '#ff9447'; // Lighter orange on hover
+      return '#ff9447' // Lighter orange on hover
     }
 
     // Subtle gradient around the circle with muted tones
-    const hue = (index * 30) % 360;
-    return `hsl(${hue}, 40%, 45%)`; // More muted colors
-  };
+    const hue = (index * 30) % 360
+    return `hsl(${hue}, 40%, 45%)` // More muted colors
+  }
 
   return (
     <div className="flex flex-col items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-[#0f0f0f] rounded-lg border border-[#2a2a2a]">
@@ -86,11 +126,12 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ selectedKey, onKeySelec
         >
           {/* Pie slices */}
           {keys.map((key, index) => {
-            const keyWithMode = mode === 'minor' ? `${key}m` : key;
-            const isHovered = hoveredIndex === index;
-            const isClicked = clickedIndex === index;
-            const isSelected = selectedKey === keyWithMode || selectedKey === key;
-            const isDualLabel = key.includes('/');
+            const keyWithMode = mode === 'minor' ? `${key}m` : key
+            const isHovered = hoveredIndex === index
+            const isClicked = clickedIndex === index
+            const isSelected =
+              selectedKey === keyWithMode || selectedKey === key
+            const isDualLabel = key.includes('/')
 
             return (
               <g key={key}>
@@ -107,21 +148,21 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ selectedKey, onKeySelec
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                   onClick={() => {
-                    setPreviewKey(keyWithMode);
+                    setPreviewKey(keyWithMode)
                     // Clear hover state for mobile
-                    setHoveredIndex(null);
+                    setHoveredIndex(null)
                     // Trigger click animation
-                    setClickedIndex(index);
-                    setTimeout(() => setClickedIndex(null), 200);
+                    setClickedIndex(index)
+                    setTimeout(() => setClickedIndex(null), 200)
                   }}
                   onTouchStart={() => {
                     // For touch devices, clear hover and trigger click animation
-                    setHoveredIndex(null);
-                    setClickedIndex(index);
+                    setHoveredIndex(null)
+                    setClickedIndex(index)
                   }}
                   onTouchEnd={() => {
-                    setPreviewKey(keyWithMode);
-                    setTimeout(() => setClickedIndex(null), 200);
+                    setPreviewKey(keyWithMode)
+                    setTimeout(() => setClickedIndex(null), 200)
                   }}
                 />
                 <text
@@ -130,14 +171,27 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ selectedKey, onKeySelec
                   textAnchor="middle"
                   dominantBaseline="middle"
                   className="pointer-events-none select-none font-bold"
-                  fill={(isSelected && previewKey === keyWithMode) || previewKey === keyWithMode ? '#ffffff' : '#e0e0e0'}
-                  fontSize={isHovered ? (isDualLabel ? "14" : "18") : (isDualLabel ? "12" : "16")}
+                  fill={
+                    (isSelected && previewKey === keyWithMode) ||
+                    previewKey === keyWithMode
+                      ? '#ffffff'
+                      : '#e0e0e0'
+                  }
+                  fontSize={
+                    isHovered
+                      ? isDualLabel
+                        ? '14'
+                        : '18'
+                      : isDualLabel
+                        ? '12'
+                        : '16'
+                  }
                   style={{ transition: 'font-size 0.2s' }}
                 >
                   {key}
                 </text>
               </g>
-            );
+            )
           })}
 
           {/* Center circle with mode toggle */}
@@ -170,12 +224,11 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ selectedKey, onKeySelec
         <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
           {previewKey ? (
             <div className="text-sm text-[#a0a0a0]">
-              Selected Key: <span className="font-bold text-white text-lg">{previewKey}</span>
+              Selected Key:{' '}
+              <span className="font-bold text-white text-lg">{previewKey}</span>
             </div>
           ) : (
-            <div className="text-xs text-[#707070]">
-              Click a key to select
-            </div>
+            <div className="text-xs text-[#707070]">Click a key to select</div>
           )}
         </div>
 
@@ -195,7 +248,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({ selectedKey, onKeySelec
         Center circle toggles major/minor
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default CircleOfFifths;
+export default CircleOfFifths

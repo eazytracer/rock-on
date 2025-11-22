@@ -20,7 +20,7 @@ import {
   CheckCircle,
   XCircle,
   Search,
-  Loader2
+  Loader2,
 } from 'lucide-react'
 
 // ===== DATABASE IMPORTS =====
@@ -29,10 +29,14 @@ import {
   useCreatePractice,
   useUpdatePractice,
   useDeletePractice,
-  useAutoSuggestSongs
+  useAutoSuggestSongs,
 } from '../../hooks/usePractices'
 import { useSongs } from '../../hooks/useSongs'
-import { formatShowDate, formatTime12Hour, parseTime12Hour } from '../../utils/dateHelpers'
+import {
+  formatShowDate,
+  formatTime12Hour,
+  parseTime12Hour,
+} from '../../utils/dateHelpers'
 import type { PracticeSession } from '../../models/PracticeSession'
 import type { Song } from '../../models/Song'
 import type { SessionSong } from '../../types'
@@ -77,7 +81,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
   onEdit,
   onMarkComplete,
   onCancel,
-  onDelete
+  onDelete,
 }) => {
   // PHASE 2: Get sync status for this practice
   const syncStatus = useItemStatus(practice.id)
@@ -104,8 +108,8 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
               practice.status === 'scheduled'
                 ? 'bg-[#f17827ff]/10 border border-[#f17827ff]/20'
                 : practice.status === 'completed'
-                ? 'bg-green-500/10 border border-green-500/20'
-                : 'bg-[#2a2a2a] border border-[#3a3a3a]'
+                  ? 'bg-green-500/10 border border-green-500/20'
+                  : 'bg-[#2a2a2a] border border-[#3a3a3a]'
             }`}
           >
             <div
@@ -113,19 +117,21 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
                 practice.status === 'scheduled'
                   ? 'text-[#f17827ff]'
                   : practice.status === 'completed'
-                  ? 'text-green-500'
-                  : 'text-[#707070]'
+                    ? 'text-green-500'
+                    : 'text-[#707070]'
               }`}
             >
-              {new Date(practice.scheduledDate).toLocaleDateString('en-US', { weekday: 'short' })}
+              {new Date(practice.scheduledDate).toLocaleDateString('en-US', {
+                weekday: 'short',
+              })}
             </div>
             <div
               className={`text-2xl font-bold ${
                 practice.status === 'scheduled'
                   ? 'text-[#f17827ff]'
                   : practice.status === 'completed'
-                  ? 'text-green-500'
-                  : 'text-[#707070]'
+                    ? 'text-green-500'
+                    : 'text-[#707070]'
               }`}
             >
               {new Date(practice.scheduledDate).getDate()}
@@ -143,7 +149,8 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#a0a0a0] mb-3">
               <div className="flex items-center gap-1">
                 <Clock size={14} />
-                {formatTime12Hour(new Date(practice.scheduledDate))} • {practice.duration} min
+                {formatTime12Hour(new Date(practice.scheduledDate))} •{' '}
+                {practice.duration} min
               </div>
               {practice.location && (
                 <div className="flex items-center gap-1">
@@ -168,7 +175,9 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
                     key={`${practice.id}-${song.id}`}
                     className="flex items-center gap-2 px-2 py-1 bg-[#0f0f0f] border border-[#2a2a2a] rounded-md text-xs"
                   >
-                    <span className="text-[#707070] font-semibold">{index + 1}.</span>
+                    <span className="text-[#707070] font-semibold">
+                      {index + 1}.
+                    </span>
                     <span className="text-white">{song.title}</span>
                   </div>
                 ))}
@@ -180,7 +189,9 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
         {/* Right: Actions Menu */}
         <div className="relative">
           <button
-            onClick={() => setOpenMenuId(openMenuId === practice.id ? null : practice.id)}
+            onClick={() =>
+              setOpenMenuId(openMenuId === practice.id ? null : practice.id)
+            }
             className="p-2 text-[#707070] hover:text-white hover:bg-[#252525] rounded-lg transition-colors"
           >
             <MoreVertical size={20} />
@@ -248,7 +259,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
   onClose,
   practice,
   onSave,
-  bandId
+  bandId,
 }) => {
   // DATABASE: Load songs using useSongs hook instead of direct queries
   const { songs: allSongs } = useSongs(bandId)
@@ -257,12 +268,16 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
   const { getSuggestions } = useAutoSuggestSongs(bandId)
 
   const [formData, setFormData] = useState({
-    date: practice?.scheduledDate ? new Date(practice.scheduledDate).toISOString().split('T')[0] : '',
-    time: practice?.scheduledDate ? formatTime12Hour(new Date(practice.scheduledDate)) : '',
+    date: practice?.scheduledDate
+      ? new Date(practice.scheduledDate).toISOString().split('T')[0]
+      : '',
+    time: practice?.scheduledDate
+      ? formatTime12Hour(new Date(practice.scheduledDate))
+      : '',
     duration: practice?.duration || 120,
     location: practice?.location || '',
     notes: practice?.notes || '',
-    selectedSongs: practice?.songs.map(s => s.songId) || []
+    selectedSongs: practice?.songs.map(s => s.songId) || [],
   })
 
   const [songSearchQuery, setShowSongSearch] = useState(false)
@@ -280,7 +295,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
       // Add suggested songs to selected songs
       setFormData(prev => ({
         ...prev,
-        selectedSongs: [...new Set([...prev.selectedSongs, ...songIds])]
+        selectedSongs: [...new Set([...prev.selectedSongs, ...songIds])],
       }))
     } catch (error) {
       console.error('Error loading suggestions:', error)
@@ -300,15 +315,17 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
       const datetime = parseTime12Hour(formData.time, baseDate)
 
       // DATABASE: Create SessionSong objects with proper structure
-      const sessionSongs: SessionSong[] = formData.selectedSongs.map(songId => ({
-        songId,
-        timeSpent: 0,
-        status: 'not-started' as const,
-        sectionsWorked: [],
-        improvements: [],
-        needsWork: [],
-        memberRatings: []
-      }))
+      const sessionSongs: SessionSong[] = formData.selectedSongs.map(
+        songId => ({
+          songId,
+          timeSpent: 0,
+          status: 'not-started' as const,
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        })
+      )
 
       await onSave({
         scheduledDate: datetime,
@@ -319,7 +336,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
         songs: sessionSongs,
         notes: formData.notes,
         objectives: practice?.objectives || [],
-        completedObjectives: practice?.completedObjectives || []
+        completedObjectives: practice?.completedObjectives || [],
       })
       onClose()
     } catch (error) {
@@ -333,14 +350,14 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
       ...prev,
       selectedSongs: prev.selectedSongs.includes(songId)
         ? prev.selectedSongs.filter(id => id !== songId)
-        : [...prev.selectedSongs, songId]
+        : [...prev.selectedSongs, songId],
     }))
   }
 
   const removeSong = (songId: string) => {
     setFormData(prev => ({
       ...prev,
-      selectedSongs: prev.selectedSongs.filter(id => id !== songId)
+      selectedSongs: prev.selectedSongs.filter(id => id !== songId),
     }))
   }
 
@@ -358,15 +375,16 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
       if (!song) return null
       return {
         ...song,
-        displayDuration: formatDuration(song.duration)
+        displayDuration: formatDuration(song.duration),
       }
     })
     .filter(Boolean) as SongWithDetails[]
 
   // DATABASE: Filter songs for search
-  const filteredSongs = allSongs.filter(song =>
-    song.title.toLowerCase().includes(songFilter.toLowerCase()) ||
-    song.artist.toLowerCase().includes(songFilter.toLowerCase())
+  const filteredSongs = allSongs.filter(
+    song =>
+      song.title.toLowerCase().includes(songFilter.toLowerCase()) ||
+      song.artist.toLowerCase().includes(songFilter.toLowerCase())
   )
 
   return (
@@ -377,14 +395,16 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
       <div
         data-testid="practice-modal"
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
           <div className="flex items-center gap-2 text-sm">
             <span className="text-white font-medium">Practices</span>
             <span className="text-[#707070]">&gt;</span>
-            <span className="text-[#a0a0a0]">{practice ? 'Edit Practice' : 'Schedule Practice'}</span>
+            <span className="text-[#a0a0a0]">
+              {practice ? 'Edit Practice' : 'Schedule Practice'}
+            </span>
           </div>
           <button
             onClick={onClose}
@@ -398,7 +418,9 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6">
           {/* Basic Info Section */}
           <div className="mb-6">
-            <h3 className="text-white font-semibold text-sm mb-4">Basic Info</h3>
+            <h3 className="text-white font-semibold text-sm mb-4">
+              Basic Info
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Date */}
               <div>
@@ -412,7 +434,9 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                   data-testid="practice-date-input"
                   required
                   value={formData.date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, date: e.target.value }))
+                  }
                   className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                 />
               </div>
@@ -427,17 +451,21 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                   id="practice-time"
                   data-testid="practice-time-input"
                   value={formData.time}
-                  onChange={(time) => setFormData(prev => ({ ...prev, time }))}
+                  onChange={time => setFormData(prev => ({ ...prev, time }))}
                   placeholder="Select time"
                 />
               </div>
 
               {/* Duration */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">Duration</label>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Duration
+                </label>
                 <DurationPicker
                   value={formData.duration}
-                  onChange={(minutes) => setFormData(prev => ({ ...prev, duration: minutes }))}
+                  onChange={minutes =>
+                    setFormData(prev => ({ ...prev, duration: minutes }))
+                  }
                   placeholder="Select duration"
                   mode="duration"
                 />
@@ -445,14 +473,18 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
 
               {/* Location */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">Location</label>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Location
+                </label>
                 <input
                   type="text"
                   name="location"
                   id="practice-location"
                   data-testid="practice-location-input"
                   value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, location: e.target.value }))
+                  }
                   placeholder="e.g., Dave's Garage"
                   className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                 />
@@ -467,7 +499,9 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                 id="practice-notes"
                 data-testid="practice-notes-textarea"
                 value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, notes: e.target.value }))
+                }
                 placeholder="Add any notes about this practice..."
                 rows={3}
                 className="w-full px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 resize-none"
@@ -478,7 +512,9 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
           {/* Songs Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-sm">Songs to Practice</h3>
+              <h3 className="text-white font-semibold text-sm">
+                Songs to Practice
+              </h3>
               {/* DATABASE: Auto-suggest button */}
               <button
                 type="button"
@@ -513,8 +549,12 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                       {index + 1}
                     </div>
                     <div className="flex-1">
-                      <div className="text-white text-sm font-medium">{song.title}</div>
-                      <div className="text-[#707070] text-xs">{song.artist} • {song.displayDuration}</div>
+                      <div className="text-white text-sm font-medium">
+                        {song.title}
+                      </div>
+                      <div className="text-[#707070] text-xs">
+                        {song.artist} • {song.displayDuration}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -544,12 +584,15 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
               <div className="mt-3 p-4 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg">
                 <div className="mb-3">
                   <div className="relative">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]" />
+                    <Search
+                      size={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+                    />
                     <input
                       type="text"
                       placeholder="Search songs..."
                       value={songFilter}
-                      onChange={(e) => setSongFilter(e.target.value)}
+                      onChange={e => setSongFilter(e.target.value)}
                       className="w-full h-9 pl-10 pr-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none"
                     />
                   </div>
@@ -563,20 +606,26 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
                       data-testid={`available-song-${song.id}`}
                       className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a1a] transition-colors text-left"
                     >
-                      <div className={`flex items-center justify-center w-5 h-5 rounded border ${
-                        formData.selectedSongs.includes(song.id)
-                          ? 'bg-[#f17827ff] border-[#f17827ff]'
-                          : 'border-[#2a2a2a]'
-                      }`}>
+                      <div
+                        className={`flex items-center justify-center w-5 h-5 rounded border ${
+                          formData.selectedSongs.includes(song.id)
+                            ? 'bg-[#f17827ff] border-[#f17827ff]'
+                            : 'border-[#2a2a2a]'
+                        }`}
+                      >
                         {formData.selectedSongs.includes(song.id) && (
                           <Check size={12} className="text-white" />
                         )}
                       </div>
                       <div className="flex-1">
                         <div className="text-white text-sm">{song.title}</div>
-                        <div className="text-[#707070] text-xs">{song.artist}</div>
+                        <div className="text-[#707070] text-xs">
+                          {song.artist}
+                        </div>
                       </div>
-                      <div className="text-[#707070] text-xs">{formatDuration(song.duration)}</div>
+                      <div className="text-[#707070] text-xs">
+                        {formatDuration(song.duration)}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -585,7 +634,8 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
 
             {selectedSongObjects.length > 0 && (
               <div className="mt-3 text-xs text-[#707070]">
-                {selectedSongObjects.length} song{selectedSongObjects.length !== 1 ? 's' : ''} selected
+                {selectedSongObjects.length} song
+                {selectedSongObjects.length !== 1 ? 's' : ''} selected
               </div>
             )}
           </div>
@@ -625,7 +675,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  practiceName
+  practiceName,
 }) => {
   if (!isOpen) return null
 
@@ -637,17 +687,21 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
       <div
         data-testid="delete-practice-modal"
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-md"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/10">
               <AlertCircle size={20} className="text-red-500" />
             </div>
-            <h3 className="text-white font-semibold text-lg">Delete Practice</h3>
+            <h3 className="text-white font-semibold text-lg">
+              Delete Practice
+            </h3>
           </div>
           <p className="text-[#a0a0a0] text-sm mb-6">
-            Are you sure you want to delete the practice on <span className="text-white font-medium">{practiceName}</span>? This action cannot be undone.
+            Are you sure you want to delete the practice on{' '}
+            <span className="text-white font-medium">{practiceName}</span>? This
+            action cannot be undone.
           </p>
           <div className="flex items-center justify-end gap-3">
             <button
@@ -683,10 +737,13 @@ export const PracticesPage: React.FC = () => {
   const { currentUser, currentBand, signOut } = useAuth()
 
   // DATABASE: Get current band ID from localStorage
-  const [currentBandId] = useState(() => localStorage.getItem('currentBandId') || '')
+  const [currentBandId] = useState(
+    () => localStorage.getItem('currentBandId') || ''
+  )
 
   // DATABASE: Use hooks to load and manage practices
-  const { upcomingPractices, pastPractices, loading, error } = useUpcomingPractices(currentBandId)
+  const { upcomingPractices, pastPractices, loading, error } =
+    useUpcomingPractices(currentBandId)
   const { createPractice } = useCreatePractice()
   const { updatePractice } = useUpdatePractice()
   const { deletePractice } = useDeletePractice()
@@ -696,8 +753,10 @@ export const PracticesPage: React.FC = () => {
 
   const [filter, setFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming')
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
-  const [editingPractice, setEditingPractice] = useState<PracticeSession | null>(null)
-  const [deleteConfirmPractice, setDeleteConfirmPractice] = useState<PracticeSession | null>(null)
+  const [editingPractice, setEditingPractice] =
+    useState<PracticeSession | null>(null)
+  const [deleteConfirmPractice, setDeleteConfirmPractice] =
+    useState<PracticeSession | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const now = new Date()
@@ -712,8 +771,17 @@ export const PracticesPage: React.FC = () => {
   const allPractices = [...upcomingPractices, ...pastPractices]
   const filteredPractices = allPractices
     .filter(practice => {
-      if (filter === 'upcoming') return new Date(practice.scheduledDate) > now && practice.status === 'scheduled'
-      if (filter === 'past') return new Date(practice.scheduledDate) <= now || practice.status === 'completed' || practice.status === 'cancelled'
+      if (filter === 'upcoming')
+        return (
+          new Date(practice.scheduledDate) > now &&
+          practice.status === 'scheduled'
+        )
+      if (filter === 'past')
+        return (
+          new Date(practice.scheduledDate) <= now ||
+          practice.status === 'completed' ||
+          practice.status === 'cancelled'
+        )
       return true
     })
     .sort((a, b) => {
@@ -750,7 +818,7 @@ export const PracticesPage: React.FC = () => {
           status: 'scheduled',
           attendees: [],
           objectives: [],
-          completedObjectives: []
+          completedObjectives: [],
         })
         alert('Practice scheduled successfully!')
       }
@@ -801,14 +869,16 @@ export const PracticesPage: React.FC = () => {
   }
 
   // DATABASE: Get songs for a practice using hook data
-  const getSongsForPractice = (practice: PracticeSession): SongWithDetails[] => {
+  const getSongsForPractice = (
+    practice: PracticeSession
+  ): SongWithDetails[] => {
     return practice.songs
       .map(sessionSong => {
         const song = allBandSongs.find(s => s.id === sessionSong.songId)
         if (!song) return null
         return {
           ...song,
-          displayDuration: formatDuration(song.duration)
+          displayDuration: formatDuration(song.duration),
         }
       })
       .filter(Boolean) as SongWithDetails[]
@@ -846,7 +916,11 @@ export const PracticesPage: React.FC = () => {
   // DATABASE: Show loading state
   if (loading) {
     return (
-      <ModernLayout bandName={currentBand?.name || 'No Band Selected'} userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
+      <ModernLayout
+        bandName={currentBand?.name || 'No Band Selected'}
+        userEmail={currentUser?.email || 'Not logged in'}
+        onSignOut={handleSignOut}
+      >
         <div className="flex items-center justify-center py-20">
           <Loader2 size={48} className="text-[#f17827ff] animate-spin" />
         </div>
@@ -857,10 +931,16 @@ export const PracticesPage: React.FC = () => {
   // DATABASE: Show error state
   if (error) {
     return (
-      <ModernLayout bandName={currentBand?.name || 'No Band Selected'} userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
+      <ModernLayout
+        bandName={currentBand?.name || 'No Band Selected'}
+        userEmail={currentUser?.email || 'Not logged in'}
+        onSignOut={handleSignOut}
+      >
         <div className="flex flex-col items-center justify-center py-20">
           <AlertCircle size={48} className="text-red-500 mb-4" />
-          <h3 className="text-white font-semibold text-lg mb-2">Error Loading Practices</h3>
+          <h3 className="text-white font-semibold text-lg mb-2">
+            Error Loading Practices
+          </h3>
           <p className="text-[#a0a0a0] text-sm">{error.message}</p>
         </div>
       </ModernLayout>
@@ -868,7 +948,11 @@ export const PracticesPage: React.FC = () => {
   }
 
   return (
-    <ModernLayout bandName={currentBand?.name || 'No Band Selected'} userEmail={currentUser?.email || 'Not logged in'} onSignOut={handleSignOut}>
+    <ModernLayout
+      bandName={currentBand?.name || 'No Band Selected'}
+      userEmail={currentUser?.email || 'Not logged in'}
+      onSignOut={handleSignOut}
+    >
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-6">
@@ -882,14 +966,25 @@ export const PracticesPage: React.FC = () => {
           <div className="relative">
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value as 'upcoming' | 'past' | 'all')}
+              onChange={e =>
+                setFilter(e.target.value as 'upcoming' | 'past' | 'all')
+              }
               className="h-10 pl-4 pr-10 bg-transparent border border-[#2a2a2a] rounded-lg text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors appearance-none cursor-pointer"
             >
-              <option value="upcoming" className="bg-[#1a1a1a]">Upcoming</option>
-              <option value="past" className="bg-[#1a1a1a]">Past</option>
-              <option value="all" className="bg-[#1a1a1a]">All</option>
+              <option value="upcoming" className="bg-[#1a1a1a]">
+                Upcoming
+              </option>
+              <option value="past" className="bg-[#1a1a1a]">
+                Past
+              </option>
+              <option value="all" className="bg-[#1a1a1a]">
+                All
+              </option>
             </select>
-            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] pointer-events-none" />
+            <ChevronDown
+              size={16}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] pointer-events-none"
+            />
           </div>
 
           {/* Schedule Practice Button */}
@@ -919,7 +1014,8 @@ export const PracticesPage: React.FC = () => {
                 </span>
               </div>
               <div className="text-white font-semibold text-lg mb-1">
-                {formatShowDate(new Date(nextPractice.scheduledDate))} at {formatTime12Hour(new Date(nextPractice.scheduledDate))}
+                {formatShowDate(new Date(nextPractice.scheduledDate))} at{' '}
+                {formatTime12Hour(new Date(nextPractice.scheduledDate))}
               </div>
               <div className="flex items-center gap-4 text-sm text-[#a0a0a0]">
                 {nextPractice.location && (
@@ -945,12 +1041,19 @@ export const PracticesPage: React.FC = () => {
       {/* Practices List */}
       {filteredPractices.length === 0 ? (
         /* Empty State */
-        <div data-testid="practice-empty-state" className="flex flex-col items-center justify-center py-20">
+        <div
+          data-testid="practice-empty-state"
+          className="flex flex-col items-center justify-center py-20"
+        >
           <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[#1a1a1a] mb-4">
             <Calendar size={32} className="text-[#707070]" />
           </div>
-          <h3 className="text-white font-semibold text-lg mb-2">No practices scheduled</h3>
-          <p className="text-[#a0a0a0] text-sm mb-6">Schedule your first practice to get started</p>
+          <h3 className="text-white font-semibold text-lg mb-2">
+            No practices scheduled
+          </h3>
+          <p className="text-[#a0a0a0] text-sm mb-6">
+            Schedule your first practice to get started
+          </p>
           <button
             onClick={() => {
               setEditingPractice(null)
@@ -965,7 +1068,7 @@ export const PracticesPage: React.FC = () => {
         </div>
       ) : (
         <div data-testid="practice-list" className="space-y-3">
-          {filteredPractices.map((practice) => {
+          {filteredPractices.map(practice => {
             const songs = getSongsForPractice(practice)
             const isNextPractice = practice.id === nextPractice?.id
 

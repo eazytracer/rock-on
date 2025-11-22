@@ -50,7 +50,7 @@ export class SyncEngine {
       data,
       timestamp: new Date(),
       status: 'pending',
-      retryCount: 0
+      retryCount: 0,
     }
 
     await db.syncQueue.add(item)
@@ -76,7 +76,7 @@ export class SyncEngine {
       // Merge updates
       await db.syncQueue.update(existing.id!, {
         data: { ...existing.data, ...data },
-        timestamp: new Date()
+        timestamp: new Date(),
       })
     } else {
       const item: SyncQueueItem = {
@@ -85,7 +85,7 @@ export class SyncEngine {
         data: { id: recordId, ...data },
         timestamp: new Date(),
         status: 'pending',
-        retryCount: 0
+        retryCount: 0,
       }
 
       await db.syncQueue.add(item)
@@ -108,7 +108,7 @@ export class SyncEngine {
       data: { id: recordId },
       timestamp: new Date(),
       status: 'pending',
-      retryCount: 0
+      retryCount: 0,
     }
 
     await db.syncQueue.add(item)
@@ -199,14 +199,14 @@ export class SyncEngine {
             status: 'failed',
             retryCount: newRetries,
             retries: newRetries,
-            lastError: (error as Error).message
+            lastError: (error as Error).message,
           })
         } else {
           // Retry later
           await db.syncQueue.update(item.id!, {
             status: 'pending',
             retryCount: newRetries,
-            retries: newRetries
+            retries: newRetries,
           })
         }
       }
@@ -326,7 +326,7 @@ export class SyncEngine {
     await db.syncMetadata.put({
       id: 'lastSync',
       value: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
   }
 
@@ -381,9 +381,11 @@ export class SyncEngine {
   // ========== STATUS & OBSERVABILITY ==========
 
   async getStatus(): Promise<SyncStatus> {
-    const pendingCount = await db.syncQueue?.where('status').equals('pending').count() || 0
-    const failedCount = await db.syncQueue?.where('status').equals('failed').count() || 0
-    const conflictCount = await db.syncConflicts?.count() || 0
+    const pendingCount =
+      (await db.syncQueue?.where('status').equals('pending').count()) || 0
+    const failedCount =
+      (await db.syncQueue?.where('status').equals('failed').count()) || 0
+    const conflictCount = (await db.syncConflicts?.count()) || 0
 
     return {
       isEnabled: true,
@@ -391,7 +393,7 @@ export class SyncEngine {
       pendingCount,
       failedCount,
       conflictCount,
-      lastSyncTime: undefined // Will be implemented in Phase 2
+      lastSyncTime: undefined, // Will be implemented in Phase 2
     }
   }
 
@@ -503,7 +505,10 @@ export class SyncEngine {
 
       // 1. Songs
       for (const bandId of bandIds) {
-        const songs = await this.remote.getSongs({ contextType: 'band', contextId: bandId })
+        const songs = await this.remote.getSongs({
+          contextType: 'band',
+          contextId: bandId,
+        })
         for (const song of songs) {
           await this.local.addSong(song).catch(() => {
             // Ignore duplicate errors, just update instead
@@ -551,7 +556,11 @@ export class SyncEngine {
           // Removed: console.log with band ID (security)
         } catch (error: any) {
           // Gracefully handle missing shows table (dev mode) - silently skip
-          if (error?.code === 'PGRST204' || error?.code === 'PGRST205' || error?.message?.includes('Could not find the table')) {
+          if (
+            error?.code === 'PGRST204' ||
+            error?.code === 'PGRST205' ||
+            error?.message?.includes('Could not find the table')
+          ) {
             // Removed: console.log (security)
           } else {
             throw error
@@ -562,9 +571,10 @@ export class SyncEngine {
       // Mark initial sync as complete
       await this.markInitialSyncComplete()
 
-      console.log(`✅ Initial sync complete: ${totalRecords} total records synced`)
+      console.log(
+        `✅ Initial sync complete: ${totalRecords} total records synced`
+      )
       this.notifyListeners()
-
     } catch (error) {
       console.error('❌ Initial sync failed:', error)
       throw error
@@ -584,7 +594,7 @@ export class SyncEngine {
       await db.syncMetadata.put({
         id: `${entity}_lastFullSync`,
         value: now,
-        updatedAt: now
+        updatedAt: now,
       })
     }
 
@@ -602,7 +612,8 @@ export class SyncEngine {
 
     // Check if it's been more than 30 days (force re-sync)
     const lastSyncDate = new Date(lastFullSync)
-    const daysSinceSync = (Date.now() - lastSyncDate.getTime()) / (1000 * 60 * 60 * 24)
+    const daysSinceSync =
+      (Date.now() - lastSyncDate.getTime()) / (1000 * 60 * 60 * 24)
     if (daysSinceSync > 30) return true
 
     // Check if any local tables are empty (data was cleared)
@@ -643,7 +654,6 @@ export class SyncEngine {
 
       console.log('✅ Pull from remote complete')
       this.notifyListeners()
-
     } catch (error) {
       console.error('❌ Pull from remote failed:', error)
       throw error
@@ -655,7 +665,10 @@ export class SyncEngine {
    */
   private async pullSongs(bandIds: string[]): Promise<void> {
     for (const bandId of bandIds) {
-      const remoteSongs = await this.remote.getSongs({ contextType: 'band', contextId: bandId })
+      const remoteSongs = await this.remote.getSongs({
+        contextType: 'band',
+        contextId: bandId,
+      })
 
       for (const remoteSong of remoteSongs) {
         const localSong = await this.local.getSong(remoteSong.id)
@@ -682,7 +695,7 @@ export class SyncEngine {
     await db.syncMetadata?.put({
       id: 'songs_lastSync',
       value: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
   }
 
@@ -701,8 +714,10 @@ export class SyncEngine {
           await this.local.addSetlist(remoteSetlist)
         } else {
           // Check timestamps (Last-Write-Wins)
-          const localTime = localSetlist.lastModified || localSetlist.createdDate
-          const remoteTime = remoteSetlist.lastModified || remoteSetlist.createdDate
+          const localTime =
+            localSetlist.lastModified || localSetlist.createdDate
+          const remoteTime =
+            remoteSetlist.lastModified || remoteSetlist.createdDate
 
           if (new Date(remoteTime) > new Date(localTime)) {
             // Remote is newer, update local
@@ -716,7 +731,7 @@ export class SyncEngine {
     await db.syncMetadata?.put({
       id: 'setlists_lastSync',
       value: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
   }
 
@@ -728,7 +743,9 @@ export class SyncEngine {
       const remotePractices = await this.remote.getPracticeSessions(bandId)
 
       for (const remotePractice of remotePractices) {
-        const localPractice = await this.local.getPracticeSession(remotePractice.id)
+        const localPractice = await this.local.getPracticeSession(
+          remotePractice.id
+        )
 
         if (!localPractice) {
           // New record from remote, add to local
@@ -736,12 +753,17 @@ export class SyncEngine {
         } else {
           // Check timestamps (Last-Write-Wins)
           // PracticeSession uses createdDate/scheduledDate, no lastModified
-          const localTime = localPractice.createdDate || localPractice.scheduledDate
-          const remoteTime = remotePractice.createdDate || remotePractice.scheduledDate
+          const localTime =
+            localPractice.createdDate || localPractice.scheduledDate
+          const remoteTime =
+            remotePractice.createdDate || remotePractice.scheduledDate
 
           if (new Date(remoteTime) > new Date(localTime)) {
             // Remote is newer, update local
-            await this.local.updatePracticeSession(remotePractice.id, remotePractice)
+            await this.local.updatePracticeSession(
+              remotePractice.id,
+              remotePractice
+            )
           }
         }
       }
@@ -751,7 +773,7 @@ export class SyncEngine {
     await db.syncMetadata?.put({
       id: 'practices_lastSync',
       value: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
   }
 
@@ -782,8 +804,14 @@ export class SyncEngine {
         }
       } catch (error: any) {
         // Gracefully handle 404 errors - shows table may not exist in Supabase yet (dev mode)
-        if (error?.code === 'PGRST204' || error?.code === 'PGRST205' || error?.message?.includes('Could not find the table')) {
-          console.log('ℹ️ Shows table not available in remote database (development mode)')
+        if (
+          error?.code === 'PGRST204' ||
+          error?.code === 'PGRST205' ||
+          error?.message?.includes('Could not find the table')
+        ) {
+          console.log(
+            'ℹ️ Shows table not available in remote database (development mode)'
+          )
           return // Skip syncing shows for this band
         }
         // Re-throw other errors
@@ -795,7 +823,7 @@ export class SyncEngine {
     await db.syncMetadata?.put({
       id: 'shows_lastSync',
       value: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
   }
 
@@ -807,7 +835,9 @@ export class SyncEngine {
       const remoteInviteCodes = await this.remote.getInviteCodes(bandId)
 
       for (const remoteInviteCode of remoteInviteCodes) {
-        const localInviteCode = await this.local.getInviteCode(remoteInviteCode.id)
+        const localInviteCode = await this.local.getInviteCode(
+          remoteInviteCode.id
+        )
 
         if (!localInviteCode) {
           // New record from remote, add to local
@@ -819,7 +849,10 @@ export class SyncEngine {
 
           if (new Date(remoteTime) > new Date(localTime)) {
             // Remote is newer, update local
-            await this.local.updateInviteCode(remoteInviteCode.id, remoteInviteCode)
+            await this.local.updateInviteCode(
+              remoteInviteCode.id,
+              remoteInviteCode
+            )
           }
           // else: local is newer, keep local (will be pushed on next push)
         }
@@ -830,7 +863,7 @@ export class SyncEngine {
     await db.syncMetadata?.put({
       id: 'invite_codes_lastSync',
       value: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
   }
 

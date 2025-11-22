@@ -82,7 +82,9 @@ export async function nukeDatabase() {
     console.log('⚠️  This will delete EVERYTHING')
 
     // Set a flag to prevent infinite loops
-    const reloadCount = parseInt(sessionStorage.getItem('nukeReloadCount') || '0')
+    const reloadCount = parseInt(
+      sessionStorage.getItem('nukeReloadCount') || '0'
+    )
     if (reloadCount > 3) {
       console.error('🛑 Too many reloads detected. Breaking loop.')
       sessionStorage.removeItem('nukeReloadCount')

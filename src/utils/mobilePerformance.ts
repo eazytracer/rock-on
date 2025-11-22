@@ -58,30 +58,33 @@ export class MobilePerformanceOptimizer {
       touchPoints: navigator.maxTouchPoints || 0,
       hardwareConcurrency: navigator.hardwareConcurrency || 1,
       platform: navigator.platform,
-      userAgent: navigator.userAgent
+      userAgent: navigator.userAgent,
     }
 
     // Battery API (experimental)
     if ('getBattery' in navigator) {
-      (navigator as any).getBattery().then((battery: any) => {
-        metrics.batteryLevel = battery.level * 100
-        metrics.batteryCharging = battery.charging
-        metrics.batteryChargingTime = battery.chargingTime
-        metrics.batteryDischargingTime = battery.dischargingTime
+      ;(navigator as any)
+        .getBattery()
+        .then((battery: any) => {
+          metrics.batteryLevel = battery.level * 100
+          metrics.batteryCharging = battery.charging
+          metrics.batteryChargingTime = battery.chargingTime
+          metrics.batteryDischargingTime = battery.dischargingTime
 
-        // Listen for battery changes
-        battery.addEventListener('levelchange', () => {
-          this.metrics.batteryLevel = battery.level * 100
-          this.updateOptimizations()
-        })
+          // Listen for battery changes
+          battery.addEventListener('levelchange', () => {
+            this.metrics.batteryLevel = battery.level * 100
+            this.updateOptimizations()
+          })
 
-        battery.addEventListener('chargingchange', () => {
-          this.metrics.batteryCharging = battery.charging
-          this.updateOptimizations()
+          battery.addEventListener('chargingchange', () => {
+            this.metrics.batteryCharging = battery.charging
+            this.updateOptimizations()
+          })
         })
-      }).catch(() => {
-        console.warn('[MobilePerf] Battery API not available')
-      })
+        .catch(() => {
+          console.warn('[MobilePerf] Battery API not available')
+        })
     }
 
     // Device Memory API (experimental)
@@ -123,23 +126,33 @@ export class MobilePerformanceOptimizer {
       lowBatteryMode: false,
       slowConnection: false,
       lowMemoryDevice: false,
-      orientationOptimization: 'auto'
+      orientationOptimization: 'auto',
     }
 
     // Check for reduced motion preference
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
       optimizations.prefersReducedMotion = true
       optimizations.reducedAnimations = true
     }
 
     // Low battery optimization
-    if (this.metrics.batteryLevel && this.metrics.batteryLevel < 20 && !this.metrics.batteryCharging) {
+    if (
+      this.metrics.batteryLevel &&
+      this.metrics.batteryLevel < 20 &&
+      !this.metrics.batteryCharging
+    ) {
       optimizations.lowBatteryMode = true
       optimizations.reducedAnimations = true
     }
 
     // Slow connection optimization
-    if (this.metrics.effectiveConnectionType === 'slow-2g' || this.metrics.effectiveConnectionType === '2g') {
+    if (
+      this.metrics.effectiveConnectionType === 'slow-2g' ||
+      this.metrics.effectiveConnectionType === '2g'
+    ) {
       optimizations.slowConnection = true
       optimizations.reducedAnimations = true
     }
@@ -173,7 +186,10 @@ export class MobilePerformanceOptimizer {
     if ('orientation' in screen) {
       screen.orientation.addEventListener('change', handleOrientationChange)
       this.observers.push(() => {
-        screen.orientation.removeEventListener('change', handleOrientationChange)
+        screen.orientation.removeEventListener(
+          'change',
+          handleOrientationChange
+        )
       })
     }
 
@@ -214,7 +230,10 @@ export class MobilePerformanceOptimizer {
     this.optimizations = this.determineOptimizations()
 
     // Notify if optimizations changed
-    if (JSON.stringify(previousOptimizations) !== JSON.stringify(this.optimizations)) {
+    if (
+      JSON.stringify(previousOptimizations) !==
+      JSON.stringify(this.optimizations)
+    ) {
       console.log('[MobilePerf] Optimizations updated:', this.optimizations)
       this.dispatchOptimizationChange()
     }
@@ -224,29 +243,37 @@ export class MobilePerformanceOptimizer {
    * Dispatch custom event when optimizations change
    */
   private dispatchOptimizationChange(): void {
-    window.dispatchEvent(new CustomEvent('mobile-optimization-change', {
-      detail: {
-        metrics: this.metrics,
-        optimizations: this.optimizations
-      }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('mobile-optimization-change', {
+        detail: {
+          metrics: this.metrics,
+          optimizations: this.optimizations,
+        },
+      })
+    )
   }
 
   /**
    * Pause non-essential operations for battery savings
    */
   private pauseNonEssentialOperations(): void {
-    console.log('[MobilePerf] Pausing non-essential operations for battery savings')
+    console.log(
+      '[MobilePerf] Pausing non-essential operations for battery savings'
+    )
 
     // Reduce animation frame rate
-    window.dispatchEvent(new CustomEvent('reduce-animations', {
-      detail: { reason: 'battery-saving' }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('reduce-animations', {
+        detail: { reason: 'battery-saving' },
+      })
+    )
 
     // Pause background sync
-    window.dispatchEvent(new CustomEvent('pause-background-operations', {
-      detail: { reason: 'battery-saving' }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('pause-background-operations', {
+        detail: { reason: 'battery-saving' },
+      })
+    )
   }
 
   /**
@@ -255,13 +282,17 @@ export class MobilePerformanceOptimizer {
   private resumeOperations(): void {
     console.log('[MobilePerf] Resuming normal operations')
 
-    window.dispatchEvent(new CustomEvent('resume-animations', {
-      detail: { reason: 'page-visible' }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('resume-animations', {
+        detail: { reason: 'page-visible' },
+      })
+    )
 
-    window.dispatchEvent(new CustomEvent('resume-background-operations', {
-      detail: { reason: 'page-visible' }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('resume-background-operations', {
+        detail: { reason: 'page-visible' },
+      })
+    )
   }
 
   /**
@@ -282,18 +313,22 @@ export class MobilePerformanceOptimizer {
    * Check if device is likely a mobile device
    */
   isMobileDevice(): boolean {
-    return this.metrics.touchPoints > 0 &&
-           this.metrics.screenWidth <= 768 &&
-           /Mobi|Android/i.test(this.metrics.userAgent)
+    return (
+      this.metrics.touchPoints > 0 &&
+      this.metrics.screenWidth <= 768 &&
+      /Mobi|Android/i.test(this.metrics.userAgent)
+    )
   }
 
   /**
    * Check if device has low performance characteristics
    */
   isLowPerformanceDevice(): boolean {
-    return this.optimizations.lowMemoryDevice ||
-           this.metrics.hardwareConcurrency <= 2 ||
-           this.optimizations.slowConnection
+    return (
+      this.optimizations.lowMemoryDevice ||
+      this.metrics.hardwareConcurrency <= 2 ||
+      this.optimizations.slowConnection
+    )
   }
 
   /**
@@ -304,8 +339,11 @@ export class MobilePerformanceOptimizer {
       return 'low'
     }
 
-    if (this.metrics.deviceMemory && this.metrics.deviceMemory >= 4 &&
-        this.metrics.hardwareConcurrency >= 4) {
+    if (
+      this.metrics.deviceMemory &&
+      this.metrics.deviceMemory >= 4 &&
+      this.metrics.hardwareConcurrency >= 4
+    ) {
       return 'high'
     }
 
@@ -322,9 +360,9 @@ export class MobilePerformanceOptimizer {
       case 'low':
         return 1000 // Update every second for low-end devices
       case 'medium':
-        return 500  // Update every 500ms for medium devices
+        return 500 // Update every 500ms for medium devices
       case 'high':
-        return 100  // Update every 100ms for high-end devices
+        return 100 // Update every 100ms for high-end devices
       default:
         return 500
     }
@@ -338,11 +376,11 @@ export class MobilePerformanceOptimizer {
 
     switch (deviceClass) {
       case 'low':
-        return 20   // Render fewer items for low-end devices
+        return 20 // Render fewer items for low-end devices
       case 'medium':
-        return 30   // Medium list size
+        return 30 // Medium list size
       case 'high':
-        return 50   // Larger lists for high-end devices
+        return 50 // Larger lists for high-end devices
       default:
         return 30
     }
@@ -359,7 +397,7 @@ export class MobilePerformanceOptimizer {
       isLowPerformance: this.isLowPerformanceDevice(),
       metrics: this.metrics,
       optimizations: this.optimizations,
-      recommendations: this.generateRecommendations()
+      recommendations: this.generateRecommendations(),
     }
   }
 
@@ -370,27 +408,39 @@ export class MobilePerformanceOptimizer {
     const recommendations: string[] = []
 
     if (this.optimizations.lowBatteryMode) {
-      recommendations.push('Device is in low battery mode - reduce background operations')
+      recommendations.push(
+        'Device is in low battery mode - reduce background operations'
+      )
     }
 
     if (this.optimizations.slowConnection) {
-      recommendations.push('Slow network detected - optimize data usage and enable offline mode')
+      recommendations.push(
+        'Slow network detected - optimize data usage and enable offline mode'
+      )
     }
 
     if (this.optimizations.lowMemoryDevice) {
-      recommendations.push('Low memory device - limit concurrent operations and use virtual scrolling')
+      recommendations.push(
+        'Low memory device - limit concurrent operations and use virtual scrolling'
+      )
     }
 
     if (this.optimizations.reducedAnimations) {
-      recommendations.push('Animations reduced for better performance - use simple transitions')
+      recommendations.push(
+        'Animations reduced for better performance - use simple transitions'
+      )
     }
 
     if (this.metrics.touchPoints === 0 && this.metrics.screenWidth > 768) {
-      recommendations.push('Desktop device detected - enable hover interactions and keyboard shortcuts')
+      recommendations.push(
+        'Desktop device detected - enable hover interactions and keyboard shortcuts'
+      )
     }
 
     if (this.isMobileDevice() && this.metrics.orientationAngle !== undefined) {
-      recommendations.push('Mobile device - optimize for touch interactions and orientation changes')
+      recommendations.push(
+        'Mobile device - optimize for touch interactions and orientation changes'
+      )
     }
 
     return recommendations
@@ -430,7 +480,8 @@ export class MobilePerformanceOptimizer {
 }
 
 // Export singleton instance
-export const mobilePerformanceOptimizer = MobilePerformanceOptimizer.getInstance()
+export const mobilePerformanceOptimizer =
+  MobilePerformanceOptimizer.getInstance()
 
 // Initialize mobile performance optimizations
 export function initializeMobilePerformance(): MobilePerformanceOptimizer {

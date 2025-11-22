@@ -23,27 +23,55 @@ export class LocalRepository implements IDataRepository {
       query = db.songs.where('contextType').equals(filter.contextType)
 
       if (filter.contextId) {
-        const results = await query.filter(s => s.contextId === filter.contextId).toArray()
-        console.log('[LocalRepository.getSongs] Returning', results.length, 'songs for contextId:', filter.contextId)
-        console.log('[LocalRepository.getSongs] Song IDs:', results.map(s => s.id.substring(0, 8) + '...').join(', '))
+        const results = await query
+          .filter(s => s.contextId === filter.contextId)
+          .toArray()
+        console.log(
+          '[LocalRepository.getSongs] Returning',
+          results.length,
+          'songs for contextId:',
+          filter.contextId
+        )
+        console.log(
+          '[LocalRepository.getSongs] Song IDs:',
+          results.map(s => s.id.substring(0, 8) + '...').join(', ')
+        )
         return results
       }
     }
 
     if (filter?.createdBy) {
-      const results = await query.filter(s => s.createdBy === filter.createdBy).toArray()
-      console.log('[LocalRepository.getSongs] Returning', results.length, 'songs for createdBy:', filter.createdBy)
+      const results = await query
+        .filter(s => s.createdBy === filter.createdBy)
+        .toArray()
+      console.log(
+        '[LocalRepository.getSongs] Returning',
+        results.length,
+        'songs for createdBy:',
+        filter.createdBy
+      )
       return results
     }
 
     if (filter?.songGroupId) {
-      const results = await query.filter(s => s.songGroupId === filter.songGroupId).toArray()
-      console.log('[LocalRepository.getSongs] Returning', results.length, 'songs for songGroupId:', filter.songGroupId)
+      const results = await query
+        .filter(s => s.songGroupId === filter.songGroupId)
+        .toArray()
+      console.log(
+        '[LocalRepository.getSongs] Returning',
+        results.length,
+        'songs for songGroupId:',
+        filter.songGroupId
+      )
       return results
     }
 
     const results = await query.toArray()
-    console.log('[LocalRepository.getSongs] Returning', results.length, 'songs (no filter)')
+    console.log(
+      '[LocalRepository.getSongs] Returning',
+      results.length,
+      'songs (no filter)'
+    )
     return results
   }
 
@@ -78,7 +106,11 @@ export class LocalRepository implements IDataRepository {
 
     // Check if song exists before delete
     const existsBefore = await db.songs.get(id)
-    console.log('[LocalRepository] Song exists before delete:', !!existsBefore, existsBefore?.title)
+    console.log(
+      '[LocalRepository] Song exists before delete:',
+      !!existsBefore,
+      existsBefore?.title
+    )
 
     await db.songs.delete(id)
 
@@ -87,9 +119,14 @@ export class LocalRepository implements IDataRepository {
     console.log('[LocalRepository] Song exists after delete:', !!existsAfter)
 
     if (existsAfter) {
-      console.error('[LocalRepository] ⚠️ WARNING: Song still exists after delete!', id)
+      console.error(
+        '[LocalRepository] ⚠️ WARNING: Song still exists after delete!',
+        id
+      )
     } else {
-      console.log('[LocalRepository] ✅ Song successfully deleted from IndexedDB')
+      console.log(
+        '[LocalRepository] ✅ Song successfully deleted from IndexedDB'
+      )
     }
   }
 
@@ -129,7 +166,7 @@ export class LocalRepository implements IDataRepository {
       .toArray()
 
     const bands = await Promise.all(
-      memberships.map(async (m) => await db.bands.get(m.bandId))
+      memberships.map(async m => await db.bands.get(m.bandId))
     )
 
     return bands.filter((b): b is Band => b !== undefined)
@@ -162,11 +199,7 @@ export class LocalRepository implements IDataRepository {
   // ========== SETLISTS ==========
 
   async getSetlists(bandId: string): Promise<Setlist[]> {
-    return db.setlists
-      .where('bandId')
-      .equals(bandId)
-      .reverse()
-      .toArray()
+    return db.setlists.where('bandId').equals(bandId).reverse().toArray()
   }
 
   async getSetlist(id: string): Promise<Setlist | null> {
@@ -222,7 +255,10 @@ export class LocalRepository implements IDataRepository {
     return session
   }
 
-  async updatePracticeSession(id: string, updates: Partial<PracticeSession>): Promise<PracticeSession> {
+  async updatePracticeSession(
+    id: string,
+    updates: Partial<PracticeSession>
+  ): Promise<PracticeSession> {
     await db.practiceSessions.update(id, updates)
 
     const updated = await db.practiceSessions.get(id)
@@ -243,7 +279,7 @@ export class LocalRepository implements IDataRepository {
     return db.shows
       .where('bandId')
       .equals(bandId)
-      .reverse()  // Most recent first
+      .reverse() // Most recent first
       .toArray()
   }
 
@@ -276,7 +312,11 @@ export class LocalRepository implements IDataRepository {
     console.log('[LocalRepository] Deleting show from IndexedDB:', id)
 
     const existsBefore = await db.shows.get(id)
-    console.log('[LocalRepository] Show exists before delete:', !!existsBefore, existsBefore?.name)
+    console.log(
+      '[LocalRepository] Show exists before delete:',
+      !!existsBefore,
+      existsBefore?.name
+    )
 
     await db.shows.delete(id)
 
@@ -284,26 +324,25 @@ export class LocalRepository implements IDataRepository {
     console.log('[LocalRepository] Show exists after delete:', !!existsAfter)
 
     if (existsAfter) {
-      console.error('[LocalRepository] ⚠️ WARNING: Show still exists after delete!', id)
+      console.error(
+        '[LocalRepository] ⚠️ WARNING: Show still exists after delete!',
+        id
+      )
     } else {
-      console.log('[LocalRepository] ✅ Show successfully deleted from IndexedDB')
+      console.log(
+        '[LocalRepository] ✅ Show successfully deleted from IndexedDB'
+      )
     }
   }
 
   // ========== BAND MEMBERSHIPS ==========
 
   async getBandMemberships(bandId: string): Promise<BandMembership[]> {
-    return db.bandMemberships
-      .where('bandId')
-      .equals(bandId)
-      .toArray()
+    return db.bandMemberships.where('bandId').equals(bandId).toArray()
   }
 
   async getUserMemberships(userId: string): Promise<BandMembership[]> {
-    return db.bandMemberships
-      .where('userId')
-      .equals(userId)
-      .toArray()
+    return db.bandMemberships.where('userId').equals(userId).toArray()
   }
 
   async addBandMembership(membership: BandMembership): Promise<BandMembership> {
@@ -317,7 +356,10 @@ export class LocalRepository implements IDataRepository {
     return membership
   }
 
-  async updateBandMembership(id: string, updates: Partial<BandMembership>): Promise<BandMembership> {
+  async updateBandMembership(
+    id: string,
+    updates: Partial<BandMembership>
+  ): Promise<BandMembership> {
     await db.bandMemberships.update(id, updates)
 
     const updated = await db.bandMemberships.get(id)
@@ -335,10 +377,7 @@ export class LocalRepository implements IDataRepository {
   // ========== INVITE CODES ==========
 
   async getInviteCodes(bandId: string): Promise<InviteCode[]> {
-    return db.inviteCodes
-      .where('bandId')
-      .equals(bandId)
-      .toArray()
+    return db.inviteCodes.where('bandId').equals(bandId).toArray()
   }
 
   async getInviteCode(id: string): Promise<InviteCode | null> {
@@ -364,7 +403,10 @@ export class LocalRepository implements IDataRepository {
     return inviteCode
   }
 
-  async updateInviteCode(id: string, updates: Partial<InviteCode>): Promise<InviteCode> {
+  async updateInviteCode(
+    id: string,
+    updates: Partial<InviteCode>
+  ): Promise<InviteCode> {
     await db.inviteCodes.update(id, updates)
 
     const updated = await db.inviteCodes.get(id)
@@ -382,7 +424,9 @@ export class LocalRepository implements IDataRepository {
       throw new Error(`InviteCode ${id} not found`)
     }
 
-    return this.updateInviteCode(id, { currentUses: inviteCode.currentUses + 1 })
+    return this.updateInviteCode(id, {
+      currentUses: inviteCode.currentUses + 1,
+    })
   }
 
   async deleteInviteCode(id: string): Promise<void> {

@@ -63,9 +63,10 @@ export class SongService {
     // Apply client-side filters for unsupported filters
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase()
-      songs = songs.filter(song =>
-        song.title.toLowerCase().includes(searchTerm) ||
-        song.artist.toLowerCase().includes(searchTerm)
+      songs = songs.filter(
+        song =>
+          song.title.toLowerCase().includes(searchTerm) ||
+          song.artist.toLowerCase().includes(searchTerm)
       )
     }
 
@@ -89,38 +90,46 @@ export class SongService {
     return {
       songs,
       total: songs.length,
-      filtered: songs.length
+      filtered: songs.length,
     }
   }
 
   /**
    * Get all personal songs for a specific user
    */
-  static async getPersonalSongs(userId: string, additionalFilters?: Partial<SongFilters>): Promise<SongListResponse> {
+  static async getPersonalSongs(
+    userId: string,
+    additionalFilters?: Partial<SongFilters>
+  ): Promise<SongListResponse> {
     return this.getAllSongs({
       bandId: '', // Not used for personal songs
       contextType: 'personal',
       contextId: userId,
-      ...additionalFilters
+      ...additionalFilters,
     })
   }
 
   /**
    * Get all band songs for a specific band
    */
-  static async getBandSongs(bandId: string, additionalFilters?: Partial<SongFilters>): Promise<SongListResponse> {
+  static async getBandSongs(
+    bandId: string,
+    additionalFilters?: Partial<SongFilters>
+  ): Promise<SongListResponse> {
     return this.getAllSongs({
       bandId,
       contextType: 'band',
       contextId: bandId,
-      ...additionalFilters
+      ...additionalFilters,
     })
   }
 
   /**
    * Get all songs accessible by a user (personal + bands they're in)
    */
-  static async getUserAccessibleSongs(userId: string): Promise<SongListResponse> {
+  static async getUserAccessibleSongs(
+    userId: string
+  ): Promise<SongListResponse> {
     // Get user's band memberships (keep using db.bandMemberships until it's in repository)
     const memberships = await db.bandMemberships
       .where('userId')
@@ -133,14 +142,14 @@ export class SongService {
     // Get personal songs from repository
     const personalSongs = await repository.getSongs({
       contextType: 'personal',
-      contextId: userId
+      contextId: userId,
     })
 
     // Get band songs from repository
     const bandSongsPromises = bandIds.map(bandId =>
       repository.getSongs({
         contextType: 'band',
-        contextId: bandId
+        contextId: bandId,
       })
     )
     const bandSongsArrays = await Promise.all(bandSongsPromises)
@@ -154,7 +163,7 @@ export class SongService {
     return {
       songs,
       total: songs.length,
-      filtered: songs.length
+      filtered: songs.length,
     }
   }
 
@@ -194,7 +203,7 @@ export class SongService {
       contextType: songData.contextType || 'band',
       contextId: songData.contextId || songData.bandId,
       createdBy: songData.createdBy,
-      visibility: songData.visibility || 'band' // Default to 'band' for MVP
+      visibility: songData.visibility || 'band', // Default to 'band' for MVP
     })
 
     return newSong
@@ -205,7 +214,10 @@ export class SongService {
     return songs[0] || null
   }
 
-  static async updateSong(songId: string, updateData: Partial<Song>): Promise<Song> {
+  static async updateSong(
+    songId: string,
+    updateData: Partial<Song>
+  ): Promise<Song> {
     const existingSong = await this.getSongById(songId)
     if (!existingSong) {
       throw new Error('Song not found')
@@ -223,7 +235,7 @@ export class SongService {
     }
 
     await repository.updateSong(songId, updateData)
-    return await this.getSongById(songId) as Song
+    return (await this.getSongById(songId)) as Song
   }
 
   static async deleteSong(songId: string): Promise<void> {
@@ -245,7 +257,10 @@ export class SongService {
     await repository.deleteSong(songId)
   }
 
-  static async submitConfidenceRating(songId: string, rating: ConfidenceRating): Promise<{ averageConfidence: number, totalRatings: number }> {
+  static async submitConfidenceRating(
+    songId: string,
+    rating: ConfidenceRating
+  ): Promise<{ averageConfidence: number; totalRatings: number }> {
     const song = await this.getSongById(songId)
     if (!song) {
       throw new Error('Song not found')
@@ -261,12 +276,12 @@ export class SongService {
     const newConfidence = rating.confidence
     await repository.updateSong(songId, {
       confidenceLevel: newConfidence,
-      lastPracticed: new Date()
+      lastPracticed: new Date(),
     })
 
     return {
       averageConfidence: newConfidence,
-      totalRatings: 1
+      totalRatings: 1,
     }
   }
 

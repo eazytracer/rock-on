@@ -15,10 +15,13 @@ const GUITAR_TUNINGS = [
   'Whole Step Down',
   'Open G',
   'Open D',
-  'DADGAD'
+  'DADGAD',
 ]
 
-export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) => {
+export const NewSongModal: React.FC<NewSongModalProps> = ({
+  isOpen,
+  onClose,
+}) => {
   const [formData, setFormData] = useState({
     title: '',
     artist: '',
@@ -29,7 +32,7 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
     guitarTuning: '',
     notes: '',
     tags: '',
-    externalLink: ''
+    externalLink: '',
   })
 
   if (!isOpen) return null
@@ -52,7 +55,7 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
     >
       <div
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
@@ -76,11 +79,13 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
             <div className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">Title</label>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Title
+                </label>
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => handleChange('title', e.target.value)}
+                  onChange={e => handleChange('title', e.target.value)}
                   placeholder="Wonderwall"
                   className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
@@ -88,11 +93,13 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
 
               {/* Artist */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">Artist</label>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Artist
+                </label>
                 <input
                   type="text"
                   value={formData.artist}
-                  onChange={(e) => handleChange('artist', e.target.value)}
+                  onChange={e => handleChange('artist', e.target.value)}
                   placeholder="Oasis"
                   className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
@@ -102,12 +109,16 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
               <div className="grid grid-cols-3 gap-3">
                 {/* Duration */}
                 <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">Duration</label>
+                  <label className="block text-sm text-[#a0a0a0] mb-2">
+                    Duration
+                  </label>
                   <div className="flex gap-1">
                     <input
                       type="text"
                       value={formData.durationMinutes}
-                      onChange={(e) => handleChange('durationMinutes', e.target.value)}
+                      onChange={e =>
+                        handleChange('durationMinutes', e.target.value)
+                      }
                       placeholder="00"
                       className="w-full h-10 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
@@ -115,7 +126,9 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
                     <input
                       type="text"
                       value={formData.durationSeconds}
-                      onChange={(e) => handleChange('durationSeconds', e.target.value)}
+                      onChange={e =>
+                        handleChange('durationSeconds', e.target.value)
+                      }
                       placeholder="00"
                       className="w-full h-10 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
@@ -124,11 +137,13 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
 
                 {/* BPM */}
                 <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">BPM</label>
+                  <label className="block text-sm text-[#a0a0a0] mb-2">
+                    BPM
+                  </label>
                   <input
                     type="text"
                     value={formData.bpm}
-                    onChange={(e) => handleChange('bpm', e.target.value)}
+                    onChange={e => handleChange('bpm', e.target.value)}
                     placeholder="120"
                     className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
@@ -136,11 +151,13 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
 
                 {/* Key */}
                 <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">Key</label>
+                  <label className="block text-sm text-[#a0a0a0] mb-2">
+                    Key
+                  </label>
                   <input
                     type="text"
                     value={formData.key}
-                    onChange={(e) => handleChange('key', e.target.value)}
+                    onChange={e => handleChange('key', e.target.value)}
                     placeholder="F#m"
                     className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
@@ -164,7 +181,7 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
                 <input
                   type="text"
                   value={formData.tags}
-                  onChange={(e) => handleChange('tags', e.target.value)}
+                  onChange={e => handleChange('tags', e.target.value)}
                   placeholder="Select tags"
                   className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
@@ -175,25 +192,37 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
             <div className="space-y-4">
               {/* Guitar Tuning */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">Guitar Tuning</label>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Guitar Tuning
+                </label>
                 <select
                   value={formData.guitarTuning}
-                  onChange={(e) => handleChange('guitarTuning', e.target.value)}
+                  onChange={e => handleChange('guitarTuning', e.target.value)}
                   className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
-                  <option value="" className="bg-[#1a1a1a]">Standard (EADGBE)</option>
+                  <option value="" className="bg-[#1a1a1a]">
+                    Standard (EADGBE)
+                  </option>
                   {GUITAR_TUNINGS.map(tuning => (
-                    <option key={tuning} value={tuning} className="bg-[#1a1a1a]">{tuning}</option>
+                    <option
+                      key={tuning}
+                      value={tuning}
+                      className="bg-[#1a1a1a]"
+                    >
+                      {tuning}
+                    </option>
                   ))}
                 </select>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">Notes</label>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Notes
+                </label>
                 <textarea
                   value={formData.notes}
-                  onChange={(e) => handleChange('notes', e.target.value)}
+                  onChange={e => handleChange('notes', e.target.value)}
                   placeholder="Band notes here..."
                   rows={4}
                   className="w-full px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
@@ -202,11 +231,13 @@ export const NewSongModal: React.FC<NewSongModalProps> = ({ isOpen, onClose }) =
 
               {/* External Link(s) */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">External Link(s)</label>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  External Link(s)
+                </label>
                 <input
                   type="text"
                   value={formData.externalLink}
-                  onChange={(e) => handleChange('externalLink', e.target.value)}
+                  onChange={e => handleChange('externalLink', e.target.value)}
                   placeholder="https://youtube.com/video"
                   className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />

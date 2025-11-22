@@ -1,5 +1,9 @@
 import React, { useState } from 'react'
-import { RoleType, RoleDisplayNames, MemberCapability } from '../../models/SongCasting'
+import {
+  RoleType,
+  RoleDisplayNames,
+  MemberCapability,
+} from '../../models/SongCasting'
 import { TouchButton } from '../common/TouchButton'
 
 export interface RoleSelection {
@@ -33,7 +37,7 @@ const ROLE_CATEGORIES: Record<string, RoleType[]> = {
   Bass: ['bass'],
   Drums: ['drums', 'percussion'],
   Keys: ['keys_piano', 'keys_synth', 'keys_organ'],
-  Other: ['other']
+  Other: ['other'],
 }
 
 export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
@@ -42,7 +46,7 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
   existingSelection,
   onSave,
   onCancel,
-  loading = false
+  loading = false,
 }) => {
   const [selectedMemberId, setSelectedMemberId] = useState<string>(
     existingSelection?.memberId || ''
@@ -57,7 +61,9 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
     existingSelection?.confidence || 3
   )
   const [notes, setNotes] = useState<string>(existingSelection?.notes || '')
-  const [arrangementInput, setArrangementInput] = useState<Record<string, string>>({})
+  const [arrangementInput, setArrangementInput] = useState<
+    Record<string, string>
+  >({})
 
   // Get member's capabilities for the selected member
   const memberCapabilities = selectedMemberId
@@ -65,13 +71,21 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
     : []
 
   // Get capability for a specific role
-  const getCapabilityForRole = (roleType: RoleType): MemberCapability | undefined => {
+  const getCapabilityForRole = (
+    roleType: RoleType
+  ): MemberCapability | undefined => {
     return memberCapabilities.find(cap => cap.roleType === roleType)
   }
 
   // Get proficiency level display
   const getProficiencyDisplay = (level: 1 | 2 | 3 | 4 | 5): string => {
-    const labels = ['Beginner', 'Intermediate', 'Proficient', 'Advanced', 'Expert']
+    const labels = [
+      'Beginner',
+      'Intermediate',
+      'Proficient',
+      'Advanced',
+      'Expert',
+    ]
     return labels[level - 1]
   }
 
@@ -88,7 +102,7 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
         type: roleType,
         name: RoleDisplayNames[roleType],
         isPrimary: selectedRoles.length === 0, // First role is primary by default
-        arrangement: arrangementInput[roleType] || ''
+        arrangement: arrangementInput[roleType] || '',
       }
       setSelectedRoles([...selectedRoles, newRole])
     }
@@ -99,7 +113,7 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
     setSelectedRoles(
       selectedRoles.map(role => ({
         ...role,
-        isPrimary: role.type === roleType
+        isPrimary: role.type === roleType,
       }))
     )
   }
@@ -137,7 +151,7 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
       roles: selectedRoles,
       isPrimaryMember,
       confidence,
-      notes: notes.trim() || undefined
+      notes: notes.trim() || undefined,
     }
 
     onSave(selection)
@@ -147,7 +161,9 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
     return selectedRoles.some(r => r.type === roleType)
   }
 
-  const getRoleInSelection = (roleType: RoleType): RoleSelection | undefined => {
+  const getRoleInSelection = (
+    roleType: RoleType
+  ): RoleSelection | undefined => {
     return selectedRoles.find(r => r.type === roleType)
   }
 
@@ -164,7 +180,7 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
         </label>
         <select
           value={selectedMemberId}
-          onChange={(e) => {
+          onChange={e => {
             setSelectedMemberId(e.target.value)
             // Reset roles when changing member
             setSelectedRoles([])
@@ -212,19 +228,33 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
-                                <div className="font-medium">{RoleDisplayNames[roleType]}</div>
+                                <div className="font-medium">
+                                  {RoleDisplayNames[roleType]}
+                                </div>
                                 {capability && (
                                   <div className="text-xs text-gray-600 mt-1">
-                                    {getProficiencyDisplay(capability.proficiencyLevel)}
+                                    {getProficiencyDisplay(
+                                      capability.proficiencyLevel
+                                    )}
                                     {capability.isPrimary && (
-                                      <span className="ml-1 text-blue-600">★ Primary</span>
+                                      <span className="ml-1 text-blue-600">
+                                        ★ Primary
+                                      </span>
                                     )}
                                   </div>
                                 )}
                               </div>
                               {selected && (
-                                <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                <svg
+                                  className="w-5 h-5 text-blue-600"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
                                 </svg>
                               )}
                             </div>
@@ -241,14 +271,18 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
                                     onChange={() => setPrimaryRole(roleType)}
                                     className="w-4 h-4 text-blue-600"
                                   />
-                                  <span className="text-sm text-gray-700">Primary Role</span>
+                                  <span className="text-sm text-gray-700">
+                                    Primary Role
+                                  </span>
                                 </label>
                               )}
                               <input
                                 type="text"
                                 placeholder="Arrangement notes (e.g., Drop D, Capo 2)"
                                 value={roleSelection?.arrangement || ''}
-                                onChange={(e) => updateArrangement(roleType, e.target.value)}
+                                onChange={e =>
+                                  updateArrangement(roleType, e.target.value)
+                                }
                                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               />
                             </div>
@@ -268,11 +302,13 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
               <input
                 type="checkbox"
                 checked={isPrimaryMember}
-                onChange={(e) => setIsPrimaryMember(e.target.checked)}
+                onChange={e => setIsPrimaryMember(e.target.checked)}
                 className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <div className="text-sm font-medium text-gray-700">Primary Assignment</div>
+                <div className="text-sm font-medium text-gray-700">
+                  Primary Assignment
+                </div>
                 <div className="text-xs text-gray-500">
                   Primary assignments take precedence over backup assignments
                 </div>
@@ -291,15 +327,21 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
                 min="1"
                 max="5"
                 value={confidence}
-                onChange={(e) => setConfidence(parseInt(e.target.value))}
+                onChange={e => setConfidence(parseInt(e.target.value))}
                 className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
               <div className="flex items-center space-x-2">
-                <span className={`text-lg font-bold ${
-                  confidence >= 4 ? 'text-green-600' :
-                  confidence >= 3 ? 'text-yellow-600' :
-                  confidence >= 2 ? 'text-orange-600' : 'text-red-600'
-                }`}>
+                <span
+                  className={`text-lg font-bold ${
+                    confidence >= 4
+                      ? 'text-green-600'
+                      : confidence >= 3
+                        ? 'text-yellow-600'
+                        : confidence >= 2
+                          ? 'text-orange-600'
+                          : 'text-red-600'
+                  }`}
+                >
                   {confidence}
                 </span>
                 <span className="text-sm text-gray-500">/ 5</span>
@@ -321,7 +363,7 @@ export const MemberRoleSelector: React.FC<MemberRoleSelectorProps> = ({
             </label>
             <textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={e => setNotes(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="Any special notes for this assignment..."

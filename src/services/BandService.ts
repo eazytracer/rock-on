@@ -56,7 +56,7 @@ export class BandService {
     const defaultSettings: BandSettings = {
       defaultPracticeTime: 120,
       reminderMinutes: [60, 30, 10],
-      autoSaveInterval: 30
+      autoSaveInterval: 30,
     }
 
     const newBand: Band = {
@@ -65,7 +65,7 @@ export class BandService {
       description: bandData.description,
       createdDate: new Date(),
       settings: { ...defaultSettings, ...bandData.settings },
-      memberIds: []
+      memberIds: [],
     }
 
     return await repository.addBand(newBand)
@@ -75,7 +75,10 @@ export class BandService {
     return await repository.getBand(bandId)
   }
 
-  static async updateBand(bandId: string, updateData: UpdateBandRequest): Promise<Band> {
+  static async updateBand(
+    bandId: string,
+    updateData: UpdateBandRequest
+  ): Promise<Band> {
     const existingBand = await this.getBandById(bandId)
     if (!existingBand) {
       throw new Error('Band not found')
@@ -86,7 +89,9 @@ export class BandService {
 
       // Check for duplicate name (excluding current band)
       const allBands = await repository.getBands()
-      const existingBandWithName = allBands.find(b => b.name === updateData.name)
+      const existingBandWithName = allBands.find(
+        b => b.name === updateData.name
+      )
 
       if (existingBandWithName && existingBandWithName.id !== bandId) {
         throw new Error('Band name already exists')
@@ -95,13 +100,14 @@ export class BandService {
 
     const updates: Partial<Band> = {}
     if (updateData.name !== undefined) updates.name = updateData.name
-    if (updateData.description !== undefined) updates.description = updateData.description
+    if (updateData.description !== undefined)
+      updates.description = updateData.description
     if (updateData.settings) {
       updates.settings = { ...existingBand.settings, ...updateData.settings }
     }
 
     await repository.updateBand(bandId, updates)
-    return await this.getBandById(bandId) as Band
+    return (await this.getBandById(bandId)) as Band
   }
 
   static async deleteBand(bandId: string): Promise<void> {
@@ -114,11 +120,13 @@ export class BandService {
     const [songs, sessions, setlists] = await Promise.all([
       repository.getSongs({ contextId: bandId }),
       repository.getPracticeSessions(bandId),
-      repository.getSetlists(bandId)
+      repository.getSetlists(bandId),
     ])
 
     if (songs.length > 0 || sessions.length > 0 || setlists.length > 0) {
-      throw new Error('Cannot delete band: has associated songs, sessions, or setlists')
+      throw new Error(
+        'Cannot delete band: has associated songs, sessions, or setlists'
+      )
     }
 
     await repository.deleteBand(bandId)
@@ -137,7 +145,10 @@ export class BandService {
     return members.filter(Boolean) as Member[]
   }
 
-  static async addMemberToBand(bandId: string, memberData: CreateMemberRequest): Promise<Member> {
+  static async addMemberToBand(
+    bandId: string,
+    memberData: CreateMemberRequest
+  ): Promise<Member> {
     const band = await this.getBandById(bandId)
     if (!band) {
       throw new Error('Band not found')
@@ -164,7 +175,7 @@ export class BandService {
       primaryInstrument: memberData.primaryInstrument,
       role: memberData.role || 'member',
       joinDate: new Date(),
-      isActive: true
+      isActive: true,
     }
 
     await db.members.add(newMember)
@@ -176,7 +187,10 @@ export class BandService {
     return newMember
   }
 
-  static async updateMember(memberId: string, updateData: UpdateMemberRequest): Promise<Member> {
+  static async updateMember(
+    memberId: string,
+    updateData: UpdateMemberRequest
+  ): Promise<Member> {
     const existingMember = await db.members.get(memberId)
     if (!existingMember) {
       throw new Error('Member not found')
@@ -207,15 +221,20 @@ export class BandService {
     if (updateData.email !== undefined) updates.email = updateData.email
     if (updateData.phone !== undefined) updates.phone = updateData.phone
     if (updateData.instruments) updates.instruments = updateData.instruments
-    if (updateData.primaryInstrument) updates.primaryInstrument = updateData.primaryInstrument
+    if (updateData.primaryInstrument)
+      updates.primaryInstrument = updateData.primaryInstrument
     if (updateData.role) updates.role = updateData.role
-    if (updateData.isActive !== undefined) updates.isActive = updateData.isActive
+    if (updateData.isActive !== undefined)
+      updates.isActive = updateData.isActive
 
     await db.members.update(memberId, updates)
-    return await db.members.get(memberId) as Member
+    return (await db.members.get(memberId)) as Member
   }
 
-  static async removeMemberFromBand(bandId: string, memberId: string): Promise<void> {
+  static async removeMemberFromBand(
+    bandId: string,
+    memberId: string
+  ): Promise<void> {
     const band = await this.getBandById(bandId)
     if (!band) {
       throw new Error('Band not found')
@@ -231,7 +250,9 @@ export class BandService {
       const adminMembers = await Promise.all(
         band.memberIds.map(id => db.members.get(id))
       )
-      const activeAdmins = adminMembers.filter(m => m?.role === 'admin' && m?.isActive)
+      const activeAdmins = adminMembers.filter(
+        m => m?.role === 'admin' && m?.isActive
+      )
 
       if (activeAdmins.length <= 1) {
         throw new Error('Cannot remove the last active admin')

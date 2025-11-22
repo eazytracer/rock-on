@@ -303,18 +303,25 @@ supabase db push   # Deploy to remote
 
 **CRITICAL**: Always run tests before and after making changes:
 
-1. **Before starting work**: Run `npm test` to ensure all tests pass
+1. **Before starting work**: Run `npm run start:test` to ensure all tests pass
 2. **After making changes**: Run tests for affected areas
-3. **Before committing**: Run full test suite (`npm test` and `npm run test:db`)
+3. **Before committing**: Run full test suite (`npm run start:test`)
 
-**Current Test Status**: 73 passing (sync infrastructure), 13 failing (hooks/utils - unrelated to sync)
+**Current Test Status** (as of 2025-11-20):
+- 491 passing tests across 25 test files
+- 64 failing tests across 8 test files (under investigation)
+- Primary issue: Journey tests require Supabase environment setup
 
 **Test Organization**:
 - All tests in `tests/` directory (NOT in `src/__tests__/`)
-- Unit tests mirror `src/` structure
-- Integration tests in `tests/integration/`
-- E2E tests in `tests/e2e/`
-- Database tests in `supabase/tests/` (pgTAP)
+- Unit tests: `tests/unit/` (mirror `src/` structure) - 23 files
+- Integration tests: `tests/integration/` - 1 file
+- Journey tests: `tests/journeys/` - 4 files (require Supabase)
+- Contract tests: `tests/contract/` - 3 files (require Supabase)
+- E2E tests: `tests/e2e/` - 11 files (Playwright)
+- Database tests: `supabase/tests/` - 11 files (pgTAP)
+
+**Test Execution Guide**: See `.claude/setup/TESTING-ENVIRONMENT-SETUP.md` for detailed test type requirements and execution instructions.
 
 ### Database Testing (pgTAP)
 

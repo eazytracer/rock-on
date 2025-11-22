@@ -21,11 +21,21 @@ import {
   Edit,
   ExternalLink,
   Play,
-  Music2
+  Music2,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database hooks and utilities
-import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../../hooks/useSongs'
-import { secondsToDuration, durationToSeconds, formatBpm, parseBpm } from '../../utils/formatters'
+import {
+  useSongs,
+  useCreateSong,
+  useUpdateSong,
+  useDeleteSong,
+} from '../../hooks/useSongs'
+import {
+  secondsToDuration,
+  durationToSeconds,
+  formatBpm,
+  parseBpm,
+} from '../../utils/formatters'
 import { db } from '../../services/database'
 // DBSong type imported but not currently used directly
 import CircleOfFifths from '../../components/songs/CircleOfFifths'
@@ -430,7 +440,14 @@ const mockSongs: Song[] = [
 */
 
 // Sort options
-type SortOption = 'title-asc' | 'title-desc' | 'artist-asc' | 'artist-desc' | 'date-added-desc' | 'date-added-asc' | 'show-asc'
+type SortOption =
+  | 'title-asc'
+  | 'title-desc'
+  | 'artist-asc'
+  | 'artist-desc'
+  | 'date-added-desc'
+  | 'date-added-asc'
+  | 'show-asc'
 
 // PHASE 2: Song row component with sync status
 interface SongRowProps {
@@ -450,7 +467,7 @@ const SongRow: React.FC<SongRowProps> = ({
   onDuplicate,
   onAddToSetlist,
   openActionMenuId,
-  setOpenActionMenuId
+  setOpenActionMenuId,
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
@@ -471,7 +488,9 @@ const SongRow: React.FC<SongRowProps> = ({
           {song.initials}
         </div>
         <div className="min-w-0">
-          <div className="text-white font-semibold text-sm truncate">{song.title}</div>
+          <div className="text-white font-semibold text-sm truncate">
+            {song.title}
+          </div>
           <div className="text-[#a0a0a0] text-xs truncate">{song.artist}</div>
         </div>
       </div>
@@ -503,7 +522,9 @@ const SongRow: React.FC<SongRowProps> = ({
       {/* Actions Menu */}
       <div className="w-[40px] relative">
         <button
-          onClick={() => setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)}
+          onClick={() =>
+            setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
+          }
           className="p-1 text-[#707070] hover:text-white transition-colors"
         >
           <MoreVertical size={20} />
@@ -561,7 +582,7 @@ const SongCard: React.FC<SongRowProps> = ({
   onDuplicate,
   onAddToSetlist,
   openActionMenuId,
-  setOpenActionMenuId
+  setOpenActionMenuId,
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
@@ -586,7 +607,9 @@ const SongCard: React.FC<SongRowProps> = ({
           <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
         </div>
         <button
-          onClick={() => setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)}
+          onClick={() =>
+            setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
+          }
           className="p-1 text-[#707070] hover:text-white transition-colors"
         >
           <MoreVertical size={20} />
@@ -673,7 +696,9 @@ const SongCard: React.FC<SongRowProps> = ({
         <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
           <Calendar size={16} className="text-[#707070] flex-shrink-0" />
           <span className="text-white truncate">{song.nextShow.name}</span>
-          <span className="text-[#a0a0a0] whitespace-nowrap">{song.nextShow.date}</span>
+          <span className="text-[#a0a0a0] whitespace-nowrap">
+            {song.nextShow.date}
+          </span>
         </div>
       )}
       {!song.nextShow && (
@@ -726,7 +751,7 @@ export const SongsPage: React.FC = () => {
 
       try {
         const transformedSongs = await Promise.all(
-          dbSongs.map(async (dbSong) => {
+          dbSongs.map(async dbSong => {
             // DATABASE INTEGRATION: Calculate "Next Show" for each song
             let nextShow: { name: string; date: string } | undefined
 
@@ -734,7 +759,9 @@ export const SongsPage: React.FC = () => {
               // Find setlists containing this song
               const setlists = await db.setlists
                 .filter(setlist =>
-                  setlist.items?.some(item => item.type === 'song' && item.songId === dbSong.id)
+                  setlist.items?.some(
+                    item => item.type === 'song' && item.songId === dbSong.id
+                  )
                 )
                 .toArray()
 
@@ -758,8 +785,8 @@ export const SongsPage: React.FC = () => {
                             date: showDate.toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',
-                              year: 'numeric'
-                            })
+                              year: 'numeric',
+                            }),
                           }
                         } else {
                           const currentNextDate = new Date(nextShow.date)
@@ -769,8 +796,8 @@ export const SongsPage: React.FC = () => {
                               date: showDate.toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
-                                year: 'numeric'
-                              })
+                                year: 'numeric',
+                              }),
                             }
                           }
                         }
@@ -780,7 +807,11 @@ export const SongsPage: React.FC = () => {
                 }
               }
             } catch (err) {
-              console.error('Error calculating next show for song:', dbSong.id, err)
+              console.error(
+                'Error calculating next show for song:',
+                dbSong.id,
+                err
+              )
             }
 
             // DATABASE INTEGRATION: Transform database format to display format
@@ -793,12 +824,24 @@ export const SongsPage: React.FC = () => {
               .toUpperCase()
 
             // Random color (consistent for each song by using ID)
-            const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#14b8a6', '#ef4444', '#10b981', '#a855f7']
-            const colorIndex = parseInt(dbSong.id.replace(/\D/g, '').slice(0, 8), 10) % colors.length
+            const colors = [
+              '#3b82f6',
+              '#8b5cf6',
+              '#ec4899',
+              '#f59e0b',
+              '#14b8a6',
+              '#ef4444',
+              '#10b981',
+              '#a855f7',
+            ]
+            const colorIndex =
+              parseInt(dbSong.id.replace(/\D/g, '').slice(0, 8), 10) %
+              colors.length
             const avatarColor = colors[colorIndex]
 
             // Determine tempo from BPM
-            const tempo = dbSong.bpm > 140 ? 'fast' : dbSong.bpm < 90 ? 'slow' : 'moderate'
+            const tempo =
+              dbSong.bpm > 140 ? 'fast' : dbSong.bpm < 90 ? 'slow' : 'moderate'
 
             return {
               id: dbSong.id,
@@ -816,10 +859,12 @@ export const SongsPage: React.FC = () => {
               avatarColor,
               notes: dbSong.notes,
               referenceLinks: dbSong.referenceLinks as SongLink[] | undefined,
-              createdDate: new Date(dbSong.createdDate).toISOString().split('T')[0],
+              createdDate: new Date(dbSong.createdDate)
+                .toISOString()
+                .split('T')[0],
               createdBy: dbSong.createdBy,
               difficulty: dbSong.difficulty,
-              confidenceLevel: dbSong.confidenceLevel
+              confidenceLevel: dbSong.confidenceLevel,
             } as Song
           })
         )
@@ -843,7 +888,9 @@ export const SongsPage: React.FC = () => {
   }, [songs])
 
   const availableShows = useMemo(() => {
-    return Array.from(new Set(songs.filter(s => s.nextShow).map(s => s.nextShow!.name))).sort()
+    return Array.from(
+      new Set(songs.filter(s => s.nextShow).map(s => s.nextShow!.name))
+    ).sort()
   }, [songs])
 
   // Filter and sort songs
@@ -868,7 +915,9 @@ export const SongsPage: React.FC = () => {
 
     // Apply tags filter
     if (selectedTags.length > 0) {
-      filtered = filtered.filter(song => selectedTags.some(tag => song.tags.includes(tag)))
+      filtered = filtered.filter(song =>
+        selectedTags.some(tag => song.tags.includes(tag))
+      )
     }
 
     // Apply show filter
@@ -888,9 +937,15 @@ export const SongsPage: React.FC = () => {
         case 'artist-desc':
           return b.artist.localeCompare(a.artist)
         case 'date-added-desc':
-          return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
+          return (
+            new Date(b.createdDate).getTime() -
+            new Date(a.createdDate).getTime()
+          )
         case 'date-added-asc':
-          return new Date(a.createdDate).getTime() - new Date(b.createdDate).getTime()
+          return (
+            new Date(a.createdDate).getTime() -
+            new Date(b.createdDate).getTime()
+          )
         case 'show-asc':
           if (!a.nextShow && !b.nextShow) return 0
           if (!a.nextShow) return 1
@@ -905,7 +960,11 @@ export const SongsPage: React.FC = () => {
   }, [songs, searchQuery, selectedTuning, selectedTags, selectedShow, sortBy])
 
   // Count active filters
-  const activeFilterCount = [selectedTuning, ...selectedTags, selectedShow].filter(Boolean).length
+  const activeFilterCount = [
+    selectedTuning,
+    ...selectedTags,
+    selectedShow,
+  ].filter(Boolean).length
 
   // Clear all filters
   const clearAllFilters = () => {
@@ -934,15 +993,24 @@ export const SongsPage: React.FC = () => {
         chords: [],
         tags: song.tags || [],
         notes: song.notes,
-        referenceLinks: (song.referenceLinks?.map(link => ({
-          ...link,
-          type: link.type === 'ultimate-guitar' ? 'tabs' as const : link.type as 'spotify' | 'youtube' | 'tabs' | 'lyrics' | 'other'
-        })) || []),
+        referenceLinks:
+          song.referenceLinks?.map(link => ({
+            ...link,
+            type:
+              link.type === 'ultimate-guitar'
+                ? ('tabs' as const)
+                : (link.type as
+                    | 'spotify'
+                    | 'youtube'
+                    | 'tabs'
+                    | 'lyrics'
+                    | 'other'),
+          })) || [],
         contextType: 'band',
         contextId: currentBandId,
         createdBy: currentUserId,
         visibility: 'band',
-        confidenceLevel: song.confidenceLevel || 1
+        confidenceLevel: song.confidenceLevel || 1,
       })
 
       // Refetch songs to update UI
@@ -1001,7 +1069,10 @@ export const SongsPage: React.FC = () => {
       // Refetch songs to update UI
       console.log('[SongsPage] Step 2: Calling refetch()...')
       await refetch()
-      console.log('[SongsPage] Step 2: refetch() completed, new song count:', songs.length)
+      console.log(
+        '[SongsPage] Step 2: refetch() completed, new song count:',
+        songs.length
+      )
 
       // Show success toast
       showToast(`Successfully deleted "${song.title}"`, 'success')
@@ -1068,7 +1139,9 @@ export const SongsPage: React.FC = () => {
       {/* DATABASE INTEGRATION: Show error state */}
       {error && (
         <div className="flex items-center justify-center py-16">
-          <div className="text-red-500">Error loading songs: {error.message}</div>
+          <div className="text-red-500">
+            Error loading songs: {error.message}
+          </div>
         </div>
       )}
 
@@ -1076,289 +1149,318 @@ export const SongsPage: React.FC = () => {
       {!loading && !error && (
         <>
           <div className="mb-8">
-          <div className="flex items-center gap-2 mb-6">
-            <h1 className="text-2xl font-bold text-white">Songs</h1>
-            <ChevronDown size={20} className="text-[#a0a0a0]" />
-            {/* DATABASE INTEGRATION: Show song count */}
-            <span className="text-sm text-[#a0a0a0] ml-2">({songs.length} songs)</span>
-          </div>
-
-        {/* Action Bar */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <button
-            onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-              activeFilterCount > 0
-                ? 'border-[#f17827ff] bg-[#f17827ff]/10 text-[#f17827ff]'
-                : 'border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f]'
-            }`}
-          >
-            <Filter size={20} />
-            <span>Filter</span>
-            {activeFilterCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-[#f17827ff] text-white text-xs rounded-full">
-                {activeFilterCount}
+            <div className="flex items-center gap-2 mb-6">
+              <h1 className="text-2xl font-bold text-white">Songs</h1>
+              <ChevronDown size={20} className="text-[#a0a0a0]" />
+              {/* DATABASE INTEGRATION: Show song count */}
+              <span className="text-sm text-[#a0a0a0] ml-2">
+                ({songs.length} songs)
               </span>
-            )}
-          </button>
-
-          <div className="flex items-center gap-3 flex-1 max-w-md">
-            <div className="relative flex-1">
-              <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]" />
-              <input
-                type="text"
-                placeholder="Search songs, artists, albums..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-11 pr-10 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-white"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="h-10 px-4 pr-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm hover:bg-[#1f1f1f] transition-colors focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-            >
-              <option value="title-asc">Title (A-Z)</option>
-              <option value="title-desc">Title (Z-A)</option>
-              <option value="artist-asc">Artist (A-Z)</option>
-              <option value="artist-desc">Artist (Z-A)</option>
-              <option value="date-added-desc">Recently Added</option>
-              <option value="date-added-asc">Oldest First</option>
-              <option value="show-asc">By Show</option>
-            </select>
-
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
-            >
-              <Plus size={20} />
-              <span>Add Song</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Filter Panel */}
-        {isFilterPanelOpen && (
-          <div className="mt-4 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white">Filters</h3>
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={clearAllFilters}
-                  className="text-xs text-[#f17827ff] hover:text-[#d66620] transition-colors"
-                >
-                  Clear All
-                </button>
-              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Tuning Filter */}
-              <div>
-                <label className="block text-xs text-[#a0a0a0] mb-2">Guitar Tuning</label>
-                <select
-                  value={selectedTuning}
-                  onChange={(e) => setSelectedTuning(e.target.value)}
-                  className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                >
-                  <option value="">All Tunings</option>
-                  {availableTunings.map(tuning => (
-                    <option key={tuning} value={tuning}>{tuning}</option>
-                  ))}
-                </select>
-              </div>
+            {/* Action Bar */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <button
+                onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  activeFilterCount > 0
+                    ? 'border-[#f17827ff] bg-[#f17827ff]/10 text-[#f17827ff]'
+                    : 'border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f]'
+                }`}
+              >
+                <Filter size={20} />
+                <span>Filter</span>
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-[#f17827ff] text-white text-xs rounded-full">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
 
-              {/* Show Filter */}
-              <div>
-                <label className="block text-xs text-[#a0a0a0] mb-2">Upcoming Show</label>
-                <select
-                  value={selectedShow}
-                  onChange={(e) => setSelectedShow(e.target.value)}
-                  className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                >
-                  <option value="">All Shows</option>
-                  {availableShows.map(show => (
-                    <option key={show} value={show}>{show}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Tags Filter */}
-              <div>
-                <label className="block text-xs text-[#a0a0a0] mb-2">Tags</label>
-                <div className="flex flex-wrap gap-2">
-                  {availableTags.map(tag => (
+              <div className="flex items-center gap-3 flex-1 max-w-md">
+                <div className="relative flex-1">
+                  <Search
+                    size={20}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search songs, artists, albums..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full h-10 pl-11 pr-10 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                  />
+                  {searchQuery && (
                     <button
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                        selectedTags.includes(tag)
-                          ? 'bg-[#f17827ff] text-white'
-                          : 'bg-[#2a2a2a] text-[#a0a0a0] hover:bg-[#3a3a3a]'
-                      }`}
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-white"
                     >
-                      {tag}
+                      <X size={16} />
                     </button>
-                  ))}
+                  )}
                 </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Sort Dropdown */}
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as SortOption)}
+                  className="h-10 px-4 pr-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm hover:bg-[#1f1f1f] transition-colors focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                >
+                  <option value="title-asc">Title (A-Z)</option>
+                  <option value="title-desc">Title (Z-A)</option>
+                  <option value="artist-asc">Artist (A-Z)</option>
+                  <option value="artist-desc">Artist (Z-A)</option>
+                  <option value="date-added-desc">Recently Added</option>
+                  <option value="date-added-asc">Oldest First</option>
+                  <option value="show-asc">By Show</option>
+                </select>
+
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
+                >
+                  <Plus size={20} />
+                  <span>Add Song</span>
+                </button>
               </div>
             </div>
 
-            {/* Active Filters Display */}
-            {activeFilterCount > 0 && (
-              <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
-                <div className="flex flex-wrap gap-2">
-                  {selectedTuning && (
-                    <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
-                      <span>{selectedTuning}</span>
-                      <button
-                        onClick={() => setSelectedTuning('')}
-                        className="text-[#a0a0a0] hover:text-white"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  )}
-                  {selectedTags.map(tag => (
-                    <div key={tag} className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
-                      <span>{tag}</span>
-                      <button
-                        onClick={() => toggleTag(tag)}
-                        className="text-[#a0a0a0] hover:text-white"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  {selectedShow && (
-                    <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
-                      <span>{selectedShow}</span>
-                      <button
-                        onClick={() => setSelectedShow('')}
-                        className="text-[#a0a0a0] hover:text-white"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
+            {/* Filter Panel */}
+            {isFilterPanelOpen && (
+              <div className="mt-4 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-white">Filters</h3>
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={clearAllFilters}
+                      className="text-xs text-[#f17827ff] hover:text-[#d66620] transition-colors"
+                    >
+                      Clear All
+                    </button>
                   )}
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Tuning Filter */}
+                  <div>
+                    <label className="block text-xs text-[#a0a0a0] mb-2">
+                      Guitar Tuning
+                    </label>
+                    <select
+                      value={selectedTuning}
+                      onChange={e => setSelectedTuning(e.target.value)}
+                      className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                    >
+                      <option value="">All Tunings</option>
+                      {availableTunings.map(tuning => (
+                        <option key={tuning} value={tuning}>
+                          {tuning}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Show Filter */}
+                  <div>
+                    <label className="block text-xs text-[#a0a0a0] mb-2">
+                      Upcoming Show
+                    </label>
+                    <select
+                      value={selectedShow}
+                      onChange={e => setSelectedShow(e.target.value)}
+                      className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                    >
+                      <option value="">All Shows</option>
+                      {availableShows.map(show => (
+                        <option key={show} value={show}>
+                          {show}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Tags Filter */}
+                  <div>
+                    <label className="block text-xs text-[#a0a0a0] mb-2">
+                      Tags
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {availableTags.map(tag => (
+                        <button
+                          key={tag}
+                          onClick={() => toggleTag(tag)}
+                          className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                            selectedTags.includes(tag)
+                              ? 'bg-[#f17827ff] text-white'
+                              : 'bg-[#2a2a2a] text-[#a0a0a0] hover:bg-[#3a3a3a]'
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Filters Display */}
+                {activeFilterCount > 0 && (
+                  <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTuning && (
+                        <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
+                          <span>{selectedTuning}</span>
+                          <button
+                            onClick={() => setSelectedTuning('')}
+                            className="text-[#a0a0a0] hover:text-white"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      {selectedTags.map(tag => (
+                        <div
+                          key={tag}
+                          className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg"
+                        >
+                          <span>{tag}</span>
+                          <button
+                            onClick={() => toggleTag(tag)}
+                            className="text-[#a0a0a0] hover:text-white"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      {selectedShow && (
+                        <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
+                          <span>{selectedShow}</span>
+                          <button
+                            onClick={() => setSelectedShow('')}
+                            className="text-[#a0a0a0] hover:text-white"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
 
-      {/* Empty State */}
-      {filteredAndSortedSongs.length === 0 && !searchQuery && activeFilterCount === 0 && (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-            <Music size={32} className="text-[#707070]" />
-          </div>
-          <h3 className="text-lg font-semibold text-white mb-2">No songs yet</h3>
-          <p className="text-sm text-[#a0a0a0] mb-6">Add your first song to get started</p>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
-          >
-            <Plus size={20} />
-            <span>Add Song</span>
-          </button>
-        </div>
-      )}
+          {/* Empty State */}
+          {filteredAndSortedSongs.length === 0 &&
+            !searchQuery &&
+            activeFilterCount === 0 && (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
+                  <Music size={32} className="text-[#707070]" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  No songs yet
+                </h3>
+                <p className="text-sm text-[#a0a0a0] mb-6">
+                  Add your first song to get started
+                </p>
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
+                >
+                  <Plus size={20} />
+                  <span>Add Song</span>
+                </button>
+              </div>
+            )}
 
-      {/* No Results State */}
-      {filteredAndSortedSongs.length === 0 && (searchQuery || activeFilterCount > 0) && (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-            <Search size={32} className="text-[#707070]" />
-          </div>
-          <h3 className="text-lg font-semibold text-white mb-2">No results found</h3>
-          <p className="text-sm text-[#a0a0a0] mb-6">Try adjusting your search or filters</p>
-          <button
-            onClick={() => {
-              setSearchQuery('')
-              clearAllFilters()
-            }}
-            className="text-sm text-[#f17827ff] hover:text-[#d66620] transition-colors"
-          >
-            Clear all filters
-          </button>
-        </div>
-      )}
+          {/* No Results State */}
+          {filteredAndSortedSongs.length === 0 &&
+            (searchQuery || activeFilterCount > 0) && (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
+                  <Search size={32} className="text-[#707070]" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  No results found
+                </h3>
+                <p className="text-sm text-[#a0a0a0] mb-6">
+                  Try adjusting your search or filters
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('')
+                    clearAllFilters()
+                  }}
+                  className="text-sm text-[#f17827ff] hover:text-[#d66620] transition-colors"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
 
-      {/* Desktop Table View */}
-      {filteredAndSortedSongs.length > 0 && (
-        <div className="hidden xl:block">
-          {/* Table Header */}
-          <div className="flex items-center gap-4 px-4 pb-3 mb-2 border-b border-[#2a2a2a]">
-            <div className="flex-1 min-w-[220px] text-xs font-semibold text-[#707070] uppercase tracking-wider">
-              Song
-            </div>
-            <div className="w-[90px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-              <Clock size={16} />
-            </div>
-            <div className="w-[60px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-              <Music size={16} />
-            </div>
-            <div className="w-[130px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-              <Guitar size={16} />
-            </div>
-            <div className="w-[80px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-              <Activity size={16} />
-            </div>
-            <div className="w-[180px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-              <Calendar size={16} />
-            </div>
-            <div className="w-[40px]"></div>
-          </div>
+          {/* Desktop Table View */}
+          {filteredAndSortedSongs.length > 0 && (
+            <div className="hidden xl:block">
+              {/* Table Header */}
+              <div className="flex items-center gap-4 px-4 pb-3 mb-2 border-b border-[#2a2a2a]">
+                <div className="flex-1 min-w-[220px] text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  Song
+                </div>
+                <div className="w-[90px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <Clock size={16} />
+                </div>
+                <div className="w-[60px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <Music size={16} />
+                </div>
+                <div className="w-[130px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <Guitar size={16} />
+                </div>
+                <div className="w-[80px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <Activity size={16} />
+                </div>
+                <div className="w-[180px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <Calendar size={16} />
+                </div>
+                <div className="w-[40px]"></div>
+              </div>
 
-          {/* Table Rows - PHASE 2: Using SongRow component with sync status */}
-          <div className="space-y-2">
-            {filteredAndSortedSongs.map((song) => (
-              <SongRow
-                key={song.id}
-                song={song}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onDuplicate={handleDuplicate}
-                onAddToSetlist={handleAddToSetlist}
-                openActionMenuId={openActionMenuId}
-                setOpenActionMenuId={setOpenActionMenuId}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+              {/* Table Rows - PHASE 2: Using SongRow component with sync status */}
+              <div className="space-y-2">
+                {filteredAndSortedSongs.map(song => (
+                  <SongRow
+                    key={song.id}
+                    song={song}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onDuplicate={handleDuplicate}
+                    onAddToSetlist={handleAddToSetlist}
+                    openActionMenuId={openActionMenuId}
+                    setOpenActionMenuId={setOpenActionMenuId}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Mobile Card View - PHASE 2: Using SongCard component with sync status */}
-      {filteredAndSortedSongs.length > 0 && (
-        <div className="xl:hidden space-y-3 min-w-[280px]">
-          {filteredAndSortedSongs.map((song) => (
-            <SongCard
-              key={song.id}
-              song={song}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onDuplicate={handleDuplicate}
-              onAddToSetlist={handleAddToSetlist}
-              openActionMenuId={openActionMenuId}
-              setOpenActionMenuId={setOpenActionMenuId}
-            />
-          ))}
-        </div>
-      )}
+          {/* Mobile Card View - PHASE 2: Using SongCard component with sync status */}
+          {filteredAndSortedSongs.length > 0 && (
+            <div className="xl:hidden space-y-3 min-w-[280px]">
+              {filteredAndSortedSongs.map(song => (
+                <SongCard
+                  key={song.id}
+                  song={song}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onDuplicate={handleDuplicate}
+                  onAddToSetlist={handleAddToSetlist}
+                  openActionMenuId={openActionMenuId}
+                  setOpenActionMenuId={setOpenActionMenuId}
+                />
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -1367,7 +1469,7 @@ export const SongsPage: React.FC = () => {
         <AddEditSongModal
           mode="add"
           onClose={() => setIsAddModalOpen(false)}
-          onSave={async (newSong) => {
+          onSave={async newSong => {
             try {
               // Convert display formats to database formats
               const duration = durationToSeconds(newSong.duration)
@@ -1386,15 +1488,24 @@ export const SongsPage: React.FC = () => {
                 chords: [],
                 tags: newSong.tags || [],
                 notes: newSong.notes,
-                referenceLinks: (newSong.referenceLinks?.map(link => ({
-                  ...link,
-                  type: link.type === 'ultimate-guitar' ? 'tabs' as const : link.type as 'spotify' | 'youtube' | 'tabs' | 'lyrics' | 'other'
-                })) || []),
+                referenceLinks:
+                  newSong.referenceLinks?.map(link => ({
+                    ...link,
+                    type:
+                      link.type === 'ultimate-guitar'
+                        ? ('tabs' as const)
+                        : (link.type as
+                            | 'spotify'
+                            | 'youtube'
+                            | 'tabs'
+                            | 'lyrics'
+                            | 'other'),
+                  })) || [],
                 contextType: 'band',
                 contextId: currentBandId,
                 createdBy: currentUserId,
                 visibility: 'band',
-                confidenceLevel: newSong.confidenceLevel || 1
+                confidenceLevel: newSong.confidenceLevel || 1,
               })
 
               // Refetch songs to update UI
@@ -1420,7 +1531,7 @@ export const SongsPage: React.FC = () => {
             setIsEditModalOpen(false)
             setSelectedSong(null)
           }}
-          onSave={async (updatedSong) => {
+          onSave={async updatedSong => {
             try {
               // Convert display formats to database formats
               const duration = durationToSeconds(updatedSong.duration)
@@ -1437,17 +1548,29 @@ export const SongsPage: React.FC = () => {
                 guitarTuning: updatedSong.tuning,
                 tags: updatedSong.tags || [],
                 notes: updatedSong.notes,
-                referenceLinks: (updatedSong.referenceLinks?.map(link => ({
-                  ...link,
-                  type: link.type === 'ultimate-guitar' ? 'tabs' as const : link.type as 'spotify' | 'youtube' | 'tabs' | 'lyrics' | 'other'
-                })) || []),
-                confidenceLevel: updatedSong.confidenceLevel || 1
+                referenceLinks:
+                  updatedSong.referenceLinks?.map(link => ({
+                    ...link,
+                    type:
+                      link.type === 'ultimate-guitar'
+                        ? ('tabs' as const)
+                        : (link.type as
+                            | 'spotify'
+                            | 'youtube'
+                            | 'tabs'
+                            | 'lyrics'
+                            | 'other'),
+                  })) || [],
+                confidenceLevel: updatedSong.confidenceLevel || 1,
               })
 
               // Refetch songs to update UI
               await refetch()
 
-              showToast(`Successfully updated "${updatedSong.title}"`, 'success')
+              showToast(
+                `Successfully updated "${updatedSong.title}"`,
+                'success'
+              )
               setIsEditModalOpen(false)
               setSelectedSong(null)
             } catch (err) {
@@ -1494,7 +1617,13 @@ interface AddEditSongModalProps {
   currentUserId: string
 }
 
-const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose, onSave, currentUserId }) => {
+const AddEditSongModal: React.FC<AddEditSongModalProps> = ({
+  mode,
+  song,
+  onClose,
+  onSave,
+  currentUserId,
+}) => {
   const [formData, setFormData] = useState({
     title: song?.title || '',
     artist: song?.artist || '',
@@ -1505,7 +1634,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
     tuning: song?.tuning || 'Standard',
     bpm: song?.bpm || '',
     tags: song?.tags.join(', ') || '',
-    notes: song?.notes || ''
+    notes: song?.notes || '',
   })
 
   // Circle of Fifths visibility state
@@ -1513,7 +1642,9 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
   // Link management state
   const [links, setLinks] = useState<SongLink[]>(song?.referenceLinks || [])
-  const [linkType, setLinkType] = useState<'spotify' | 'youtube' | 'ultimate-guitar' | 'other'>('youtube')
+  const [linkType, setLinkType] = useState<
+    'spotify' | 'youtube' | 'ultimate-guitar' | 'other'
+  >('youtube')
   const [linkName, setLinkName] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null)
@@ -1553,11 +1684,13 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
     if (editingLinkId) {
       // Update existing link
-      setLinks(links.map(link =>
-        link.id === editingLinkId
-          ? { ...link, type: linkType, name: finalName, url: linkUrl.trim() }
-          : link
-      ))
+      setLinks(
+        links.map(link =>
+          link.id === editingLinkId
+            ? { ...link, type: linkType, name: finalName, url: linkUrl.trim() }
+            : link
+        )
+      )
       setEditingLinkId(null)
     } else {
       // Add new link
@@ -1565,7 +1698,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
         id: `${Date.now()}`,
         type: linkType,
         name: finalName,
-        url: linkUrl.trim()
+        url: linkUrl.trim(),
       }
       setLinks([...links, newLink])
     }
@@ -1622,7 +1755,10 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
     }
 
     const duration = `${formData.durationMin.padStart(1, '0')}:${formData.durationSec.padStart(2, '0')}`
-    const tags = formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+    const tags = formData.tags
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean)
 
     // Generate initials from title
     const initials = formData.title
@@ -1633,8 +1769,18 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
       .toUpperCase()
 
     // Random color for new songs
-    const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#14b8a6', '#ef4444', '#10b981', '#a855f7']
-    const avatarColor = song?.avatarColor || colors[Math.floor(Math.random() * colors.length)]
+    const colors = [
+      '#3b82f6',
+      '#8b5cf6',
+      '#ec4899',
+      '#f59e0b',
+      '#14b8a6',
+      '#ef4444',
+      '#10b981',
+      '#a855f7',
+    ]
+    const avatarColor =
+      song?.avatarColor || colors[Math.floor(Math.random() * colors.length)]
 
     const savedSong: Song = {
       id: song?.id || crypto.randomUUID(),
@@ -1645,7 +1791,12 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
       key: formData.key,
       tuning: formData.tuning,
       bpm: formData.bpm,
-      tempo: parseInt(formData.bpm) > 140 ? 'fast' : parseInt(formData.bpm) < 90 ? 'slow' : 'moderate',
+      tempo:
+        parseInt(formData.bpm) > 140
+          ? 'fast'
+          : parseInt(formData.bpm) < 90
+            ? 'slow'
+            : 'moderate',
       tags,
       nextShow: song?.nextShow,
       initials,
@@ -1655,7 +1806,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
       createdDate: song?.createdDate || new Date().toISOString().split('T')[0],
       createdBy: song?.createdBy || currentUserId,
       difficulty: song?.difficulty,
-      confidenceLevel: song?.confidenceLevel
+      confidenceLevel: song?.confidenceLevel,
     }
 
     // DATABASE INTEGRATION: Call async onSave
@@ -1669,14 +1820,16 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
     >
       <div
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar-thin"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
           <div className="flex items-center gap-2 text-sm">
             <span className="text-white font-medium">Songs</span>
             <span className="text-[#707070]">&gt;</span>
-            <span className="text-[#a0a0a0]">{mode === 'add' ? 'New Song' : 'Edit Song'}</span>
+            <span className="text-[#a0a0a0]">
+              {mode === 'add' ? 'New Song' : 'Edit Song'}
+            </span>
           </div>
           <button
             onClick={onClose}
@@ -1693,7 +1846,10 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
             <div className="space-y-4">
               {/* Title */}
               <div>
-                <label htmlFor="song-title" className="block text-sm text-[#a0a0a0] mb-2">
+                <label
+                  htmlFor="song-title"
+                  className="block text-sm text-[#a0a0a0] mb-2"
+                >
                   Title <span className="text-[#D7263D]">*</span>
                 </label>
                 <input
@@ -1702,7 +1858,9 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                   id="song-title"
                   data-testid="song-title-input"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   placeholder="Enter song title"
                   className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                   required
@@ -1711,7 +1869,10 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
               {/* Artist */}
               <div>
-                <label htmlFor="song-artist" className="block text-sm text-[#a0a0a0] mb-2">
+                <label
+                  htmlFor="song-artist"
+                  className="block text-sm text-[#a0a0a0] mb-2"
+                >
                   Artist <span className="text-[#D7263D]">*</span>
                 </label>
                 <input
@@ -1720,7 +1881,9 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                   id="song-artist"
                   data-testid="song-artist-input"
                   value={formData.artist}
-                  onChange={(e) => setFormData({ ...formData, artist: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, artist: e.target.value })
+                  }
                   placeholder="Enter artist name"
                   className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                   required
@@ -1729,14 +1892,21 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
               {/* Album */}
               <div>
-                <label htmlFor="song-album" className="block text-sm text-[#a0a0a0] mb-2">Album</label>
+                <label
+                  htmlFor="song-album"
+                  className="block text-sm text-[#a0a0a0] mb-2"
+                >
+                  Album
+                </label>
                 <input
                   type="text"
                   name="album"
                   id="song-album"
                   data-testid="song-album-input"
                   value={formData.album}
-                  onChange={(e) => setFormData({ ...formData, album: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, album: e.target.value })
+                  }
                   placeholder="Enter album name"
                   className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                 />
@@ -1746,7 +1916,9 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
               <div className="grid grid-cols-3 gap-3">
                 {/* Duration */}
                 <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">Duration</label>
+                  <label className="block text-sm text-[#a0a0a0] mb-2">
+                    Duration
+                  </label>
                   <div className="flex gap-1">
                     <input
                       type="text"
@@ -1754,7 +1926,12 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                       id="song-duration-minutes"
                       data-testid="song-duration-minutes-input"
                       value={formData.durationMin}
-                      onChange={(e) => setFormData({ ...formData, durationMin: e.target.value.replace(/\D/g, '') })}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          durationMin: e.target.value.replace(/\D/g, ''),
+                        })
+                      }
                       placeholder="0"
                       maxLength={2}
                       className="w-full h-11 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
@@ -1766,7 +1943,12 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                       id="song-duration-seconds"
                       data-testid="song-duration-seconds-input"
                       value={formData.durationSec}
-                      onChange={(e) => setFormData({ ...formData, durationSec: e.target.value.replace(/\D/g, '') })}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          durationSec: e.target.value.replace(/\D/g, ''),
+                        })
+                      }
                       placeholder="00"
                       maxLength={2}
                       className="w-full h-11 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
@@ -1776,14 +1958,24 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
                 {/* BPM */}
                 <div>
-                  <label htmlFor="song-bpm" className="block text-sm text-[#a0a0a0] mb-2">BPM</label>
+                  <label
+                    htmlFor="song-bpm"
+                    className="block text-sm text-[#a0a0a0] mb-2"
+                  >
+                    BPM
+                  </label>
                   <input
                     type="text"
                     name="bpm"
                     id="song-bpm"
                     data-testid="song-bpm-input"
                     value={formData.bpm}
-                    onChange={(e) => setFormData({ ...formData, bpm: e.target.value.replace(/\D/g, '') })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        bpm: e.target.value.replace(/\D/g, ''),
+                      })
+                    }
                     placeholder="120"
                     className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                   />
@@ -1801,17 +1993,29 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                     onClick={() => setShowCircleOfFifths(true)}
                     className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm flex items-center justify-between hover:border-[#f17827ff] transition-colors group"
                   >
-                    <span className={formData.key ? 'text-white font-medium' : 'text-[#505050]'}>
+                    <span
+                      className={
+                        formData.key
+                          ? 'text-white font-medium'
+                          : 'text-[#505050]'
+                      }
+                    >
                       {formData.key || 'Select key'}
                     </span>
-                    <Music size={18} className="text-[#707070] group-hover:text-[#f17827ff] transition-colors" />
+                    <Music
+                      size={18}
+                      className="text-[#707070] group-hover:text-[#f17827ff] transition-colors"
+                    />
                   </button>
                 </div>
               </div>
 
               {/* Tags */}
               <div>
-                <label htmlFor="song-tags" className="block text-sm text-[#a0a0a0] mb-2">
+                <label
+                  htmlFor="song-tags"
+                  className="block text-sm text-[#a0a0a0] mb-2"
+                >
                   Tags (comma-separated)
                 </label>
                 <input
@@ -1820,7 +2024,9 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                   id="song-tags"
                   data-testid="song-tags-input"
                   value={formData.tags}
-                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, tags: e.target.value })
+                  }
                   placeholder="Rock, Cover, 90s"
                   className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                 />
@@ -1831,13 +2037,20 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
             <div className="space-y-4">
               {/* Guitar Tuning */}
               <div>
-                <label htmlFor="song-tuning" className="block text-sm text-[#a0a0a0] mb-2">Guitar Tuning</label>
+                <label
+                  htmlFor="song-tuning"
+                  className="block text-sm text-[#a0a0a0] mb-2"
+                >
+                  Guitar Tuning
+                </label>
                 <select
                   name="tuning"
                   id="song-tuning"
                   data-testid="song-tuning-select"
                   value={formData.tuning}
-                  onChange={(e) => setFormData({ ...formData, tuning: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, tuning: e.target.value })
+                  }
                   className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                 >
                   <option value="Standard">Standard</option>
@@ -1854,13 +2067,20 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
 
               {/* Notes */}
               <div>
-                <label htmlFor="song-notes" className="block text-sm text-[#a0a0a0] mb-2">Notes</label>
+                <label
+                  htmlFor="song-notes"
+                  className="block text-sm text-[#a0a0a0] mb-2"
+                >
+                  Notes
+                </label>
                 <textarea
                   name="notes"
                   id="song-notes"
                   data-testid="song-notes-textarea"
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
                   placeholder="Add notes about the song..."
                   rows={5}
                   className="w-full px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 resize-none"
@@ -1878,7 +2098,9 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                   {/* Link Type Dropdown */}
                   <select
                     value={linkType}
-                    onChange={(e) => handleLinkTypeChange(e.target.value as typeof linkType)}
+                    onChange={e =>
+                      handleLinkTypeChange(e.target.value as typeof linkType)
+                    }
                     className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                   >
                     <option value="youtube">YouTube</option>
@@ -1891,7 +2113,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                   <input
                     type="text"
                     value={linkName}
-                    onChange={(e) => setLinkName(e.target.value)}
+                    onChange={e => setLinkName(e.target.value)}
                     placeholder={getLinkPresetName(linkType) || 'Link name'}
                     className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                   />
@@ -1900,7 +2122,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                   <input
                     type="url"
                     value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
+                    onChange={e => setLinkUrl(e.target.value)}
                     placeholder="https://..."
                     className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                   />
@@ -1930,7 +2152,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
                 {/* Links List */}
                 {links.length > 0 && (
                   <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar-thin">
-                    {links.map((link) => (
+                    {links.map(link => (
                       <div
                         key={link.id}
                         className="flex items-center gap-2 p-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg group hover:border-[#3a3a3a] transition-colors"
@@ -2013,11 +2235,13 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
         >
           <div
             className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-4 sm:p-6 w-full max-w-[min(90vw,500px)] max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-semibold text-white">Select Key</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-white">
+                Select Key
+              </h3>
               <button
                 onClick={() => setShowCircleOfFifths(false)}
                 className="p-1 text-[#707070] hover:text-white transition-colors"
@@ -2029,7 +2253,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({ mode, song, onClose
             {/* Circle of Fifths */}
             <CircleOfFifths
               selectedKey={formData.key}
-              onKeySelect={(key) => {
+              onKeySelect={key => {
                 setFormData({ ...formData, key })
                 setShowCircleOfFifths(false)
               }}
@@ -2048,7 +2272,11 @@ interface DeleteConfirmationDialogProps {
   onCancel: () => void
 }
 
-const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({ song, onConfirm, onCancel }) => {
+const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
+  song,
+  onConfirm,
+  onCancel,
+}) => {
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -2056,7 +2284,7 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({ son
     >
       <div
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-[#D7263D]/10 flex items-center justify-center flex-shrink-0">
@@ -2066,13 +2294,16 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({ son
         </div>
 
         <p className="text-sm text-[#a0a0a0] mb-6">
-          Are you sure you want to delete <strong className="text-white">"{song.title}"</strong> by {song.artist}? This action cannot be undone.
+          Are you sure you want to delete{' '}
+          <strong className="text-white">"{song.title}"</strong> by{' '}
+          {song.artist}? This action cannot be undone.
         </p>
 
         {song.nextShow && (
           <div className="p-3 bg-[#f17827ff]/10 border border-[#f17827ff]/20 rounded-lg mb-6">
             <p className="text-xs text-[#f17827ff]">
-              This song is scheduled for <strong>{song.nextShow.name}</strong>. It will be removed from that show.
+              This song is scheduled for <strong>{song.nextShow.name}</strong>.
+              It will be removed from that show.
             </p>
           </div>
         )}
@@ -2102,14 +2333,17 @@ interface AddToSetlistMenuProps {
   onClose: () => void
 }
 
-const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({ song, onClose }) => {
+const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({
+  song,
+  onClose,
+}) => {
   const { showToast } = useToast()
 
   // Mock setlists
   const mockSetlists = [
     { id: '1', name: 'Toys 4 Tots', songCount: 15, hasSong: false },
-    { id: '2', name: 'New Year\'s Eve Bash', songCount: 18, hasSong: true },
-    { id: '3', name: 'Summer Festival', songCount: 12, hasSong: false }
+    { id: '2', name: "New Year's Eve Bash", songCount: 18, hasSong: true },
+    { id: '3', name: 'Summer Festival', songCount: 12, hasSong: false },
   ]
 
   const handleAddToSetlist = (setlistName: string) => {
@@ -2124,7 +2358,7 @@ const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({ song, onClose }) =>
     >
       <div
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-md"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
@@ -2139,7 +2373,7 @@ const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({ song, onClose }) =>
 
         {/* Setlist List */}
         <div className="p-2">
-          {mockSetlists.map((setlist) => (
+          {mockSetlists.map(setlist => (
             <button
               key={setlist.id}
               onClick={() => handleAddToSetlist(setlist.name)}
@@ -2150,8 +2384,12 @@ const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({ song, onClose }) =>
                   <ListPlus size={20} className="text-[#a0a0a0]" />
                 </div>
                 <div className="text-left">
-                  <div className="text-white text-sm font-medium">{setlist.name}</div>
-                  <div className="text-[#a0a0a0] text-xs">{setlist.songCount} songs</div>
+                  <div className="text-white text-sm font-medium">
+                    {setlist.name}
+                  </div>
+                  <div className="text-[#a0a0a0] text-xs">
+                    {setlist.songCount} songs
+                  </div>
                 </div>
               </div>
               {setlist.hasSong && (
@@ -2164,7 +2402,9 @@ const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({ song, onClose }) =>
         {/* Create New Setlist */}
         <div className="p-4 border-t border-[#2a2a2a]">
           <button
-            onClick={() => showToast('Create new setlist functionality coming soon', 'info')}
+            onClick={() =>
+              showToast('Create new setlist functionality coming soon', 'info')
+            }
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f17827ff] text-white text-sm font-medium rounded-lg hover:bg-[#d66620] transition-colors"
           >
             <Plus size={20} />

@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from 'react'
 import type { SyncStatus } from '../components/sync/SyncIcon'
 
 /**
@@ -12,7 +18,9 @@ interface ItemSyncStatusContextType {
   clearAll: () => void
 }
 
-const ItemSyncStatusContext = createContext<ItemSyncStatusContextType | undefined>(undefined)
+const ItemSyncStatusContext = createContext<
+  ItemSyncStatusContextType | undefined
+>(undefined)
 
 /**
  * Provider component for per-item sync status
@@ -20,9 +28,12 @@ const ItemSyncStatusContext = createContext<ItemSyncStatusContextType | undefine
 export function ItemSyncStatusProvider({ children }: { children: ReactNode }) {
   const [statuses, setStatuses] = useState<Map<string, SyncStatus>>(new Map())
 
-  const getStatus = useCallback((itemId: string) => {
-    return statuses.get(itemId)
-  }, [statuses])
+  const getStatus = useCallback(
+    (itemId: string) => {
+      return statuses.get(itemId)
+    },
+    [statuses]
+  )
 
   const setStatus = useCallback((itemId: string, status: SyncStatus) => {
     setStatuses(prev => {
@@ -79,7 +90,9 @@ export function ItemSyncStatusProvider({ children }: { children: ReactNode }) {
 export function useItemSyncStatus() {
   const context = useContext(ItemSyncStatusContext)
   if (!context) {
-    throw new Error('useItemSyncStatus must be used within ItemSyncStatusProvider')
+    throw new Error(
+      'useItemSyncStatus must be used within ItemSyncStatusProvider'
+    )
   }
   return context
 }

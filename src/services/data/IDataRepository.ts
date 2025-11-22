@@ -50,7 +50,10 @@ export interface IDataRepository {
   getPracticeSessions(bandId: string): Promise<PracticeSession[]>
   getPracticeSession(id: string): Promise<PracticeSession | null>
   addPracticeSession(session: PracticeSession): Promise<PracticeSession>
-  updatePracticeSession(id: string, updates: Partial<PracticeSession>): Promise<PracticeSession>
+  updatePracticeSession(
+    id: string,
+    updates: Partial<PracticeSession>
+  ): Promise<PracticeSession>
   deletePracticeSession(id: string): Promise<void>
 
   // ========== SHOWS ==========
@@ -64,7 +67,10 @@ export interface IDataRepository {
   getBandMemberships(bandId: string): Promise<BandMembership[]>
   getUserMemberships(userId: string): Promise<BandMembership[]>
   addBandMembership(membership: BandMembership): Promise<BandMembership>
-  updateBandMembership(id: string, updates: Partial<BandMembership>): Promise<BandMembership>
+  updateBandMembership(
+    id: string,
+    updates: Partial<BandMembership>
+  ): Promise<BandMembership>
   deleteBandMembership(id: string): Promise<void>
 
   // ========== INVITE CODES ==========
@@ -93,7 +99,10 @@ export interface IDataRepository {
   /**
    * Update an invite code (e.g., increment currentUses)
    */
-  updateInviteCode(id: string, updates: Partial<InviteCode>): Promise<InviteCode>
+  updateInviteCode(
+    id: string,
+    updates: Partial<InviteCode>
+  ): Promise<InviteCode>
 
   /**
    * Increment invite code usage count

@@ -16,26 +16,33 @@ export function useSongs(bandId: string) {
   const { realtimeManager } = useAuth()
 
   // Memoize fetchSongs with optional silent mode (no loading state change)
-  const fetchSongs = useCallback(async (silent = false) => {
-    try {
-      console.log('[useSongs] Fetching songs for band:', bandId, silent ? '(silent)' : '')
-      if (!silent) {
-        setLoading(true)
+  const fetchSongs = useCallback(
+    async (silent = false) => {
+      try {
+        console.log(
+          '[useSongs] Fetching songs for band:',
+          bandId,
+          silent ? '(silent)' : ''
+        )
+        if (!silent) {
+          setLoading(true)
+        }
+        const response = await SongService.getBandSongs(bandId)
+        console.log('[useSongs] Fetched songs count:', response.songs.length)
+        setSongs(response.songs)
+        setError(null)
+      } catch (err) {
+        console.error('[useSongs] Error fetching songs:', err)
+        setError(err as Error)
+        setSongs([])
+      } finally {
+        if (!silent) {
+          setLoading(false)
+        }
       }
-      const response = await SongService.getBandSongs(bandId)
-      console.log('[useSongs] Fetched songs count:', response.songs.length)
-      setSongs(response.songs)
-      setError(null)
-    } catch (err) {
-      console.error('[useSongs] Error fetching songs:', err)
-      setError(err as Error)
-      setSongs([])
-    } finally {
-      if (!silent) {
-        setLoading(false)
-      }
-    }
-  }, [bandId])
+    },
+    [bandId]
+  )
 
   useEffect(() => {
     if (!bandId) {
@@ -56,18 +63,33 @@ export function useSongs(bandId: string) {
         console.log('[useSongs] Sync completed, refetching songs...')
         fetchSongs(true) // Silent mode
       } else {
-        console.log('[useSongs] Sync status changed to:', status.status, '- not refetching')
+        console.log(
+          '[useSongs] Sync status changed to:',
+          status.status,
+          '- not refetching'
+        )
       }
     }
 
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
 
     // Listen for real-time changes from RealtimeManager
-    const handleRealtimeChange = ({ bandId: changedBandId }: { bandId: string; action: string; recordId: string }) => {
-      console.log('[useSongs] Realtime event received:', { changedBandId, currentBandId: bandId })
+    const handleRealtimeChange = ({
+      bandId: changedBandId,
+    }: {
+      bandId: string
+      action: string
+      recordId: string
+    }) => {
+      console.log('[useSongs] Realtime event received:', {
+        changedBandId,
+        currentBandId: bandId,
+      })
       // Only refetch if the change is for the current band
       if (changedBandId === bandId) {
-        console.log('[useSongs] Realtime change detected for band, refetching...')
+        console.log(
+          '[useSongs] Realtime change detected for band, refetching...'
+        )
         fetchSongs(true) // Silent mode - update list without loading state
       } else {
         console.log('[useSongs] Ignoring change for different band')
@@ -78,7 +100,9 @@ export function useSongs(bandId: string) {
       console.log('[useSongs] Registering realtime listener for band:', bandId)
       realtimeManager.on('songs:changed', handleRealtimeChange)
     } else {
-      console.warn('[useSongs] No realtimeManager available, real-time updates disabled')
+      console.warn(
+        '[useSongs] No realtimeManager available, real-time updates disabled'
+      )
     }
 
     // Cleanup
@@ -89,24 +113,49 @@ export function useSongs(bandId: string) {
     }
   }, [bandId, realtimeManager, fetchSongs])
 
-  return { songs, loading, error, refetch: async () => {
-    console.log('[useSongs.refetch] Starting manual refetch for band:', bandId)
-    console.log('[useSongs.refetch] Current songs in state:', songs.length, 'songs')
-    setLoading(true)
-    try {
-      const response = await SongService.getBandSongs(bandId)
-      console.log('[useSongs.refetch] Fetched from DB:', response.songs.length, 'songs')
-      console.log('[useSongs.refetch] Song IDs from DB:', response.songs.map(s => `${s.id.substring(0, 8)}:${s.title}`).join(', '))
-      setSongs(response.songs)
-      setError(null)
-      console.log('[useSongs.refetch] setSongs called with', response.songs.length, 'songs')
-    } catch (err) {
-      console.error('[useSongs.refetch] Error:', err)
-      setError(err as Error)
-    } finally {
-      setLoading(false)
-    }
-  }}
+  return {
+    songs,
+    loading,
+    error,
+    refetch: async () => {
+      console.log(
+        '[useSongs.refetch] Starting manual refetch for band:',
+        bandId
+      )
+      console.log(
+        '[useSongs.refetch] Current songs in state:',
+        songs.length,
+        'songs'
+      )
+      setLoading(true)
+      try {
+        const response = await SongService.getBandSongs(bandId)
+        console.log(
+          '[useSongs.refetch] Fetched from DB:',
+          response.songs.length,
+          'songs'
+        )
+        console.log(
+          '[useSongs.refetch] Song IDs from DB:',
+          response.songs
+            .map(s => `${s.id.substring(0, 8)}:${s.title}`)
+            .join(', ')
+        )
+        setSongs(response.songs)
+        setError(null)
+        console.log(
+          '[useSongs.refetch] setSongs called with',
+          response.songs.length,
+          'songs'
+        )
+      } catch (err) {
+        console.error('[useSongs.refetch] Error:', err)
+        setError(err as Error)
+      } finally {
+        setLoading(false)
+      }
+    },
+  }
 }
 
 /**
@@ -132,7 +181,7 @@ export function useCreateSong() {
         visibility: songData.visibility || 'band', // Fixed: use 'band' to match Supabase constraint
         createdDate: new Date(),
         confidenceLevel: songData.confidenceLevel || 1,
-        ...songData
+        ...songData,
       } as Song
 
       // Use SyncRepository instead of direct db access - this will queue for sync!
@@ -193,13 +242,20 @@ export function useDeleteSong() {
 
       // Check if song is in any setlists
       const setlists = await db.setlists
-        .filter(setlist => setlist.items?.some(item => item.type === 'song' && item.songId === songId))
+        .filter(setlist =>
+          setlist.items?.some(
+            item => item.type === 'song' && item.songId === songId
+          )
+        )
         .toArray()
 
       if (setlists.length > 0) {
         // Remove song from all setlists
         for (const setlist of setlists) {
-          const updatedItems = setlist.items?.filter(item => !(item.type === 'song' && item.songId === songId)) || []
+          const updatedItems =
+            setlist.items?.filter(
+              item => !(item.type === 'song' && item.songId === songId)
+            ) || []
 
           // Reindex positions
           updatedItems.forEach((item, index) => {
@@ -225,7 +281,11 @@ export function useDeleteSong() {
 
   const checkSongInSetlists = async (songId: string) => {
     const setlists = await db.setlists
-      .filter(setlist => setlist.items?.some(item => item.type === 'song' && item.songId === songId))
+      .filter(setlist =>
+        setlist.items?.some(
+          item => item.type === 'song' && item.songId === songId
+        )
+      )
       .toArray()
 
     return setlists

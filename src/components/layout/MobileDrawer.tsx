@@ -17,7 +17,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   currentPath,
   bandName,
   userEmail,
-  onSignOut
+  onSignOut,
 }) => {
   // Prevent body scroll when drawer is open
   useEffect(() => {

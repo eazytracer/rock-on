@@ -5,7 +5,11 @@ import { BandMembershipService } from '../services/BandMembershipService'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import { getSupabaseClient } from '../services/supabase/client'
 import type { Band } from '../models/Band'
-import type { BandMembership, BandMembershipRow, InviteCode } from '../models/BandMembership'
+import type {
+  BandMembership,
+  BandMembershipRow,
+  InviteCode,
+} from '../models/BandMembership'
 import type { User, UserProfile } from '../models/User'
 
 /**
@@ -27,7 +31,7 @@ async function createBandInSupabase(bandInput: {
     description: bandInput.description || '',
     created_date: new Date().toISOString(),
     updated_date: new Date().toISOString(),
-    settings: bandInput.settings || {}
+    settings: bandInput.settings || {},
   }
 
   // Use 'as any' to bypass TypeScript's overly strict Supabase types
@@ -56,7 +60,7 @@ async function createBandInSupabase(bandInput: {
     description: bandData.description || '',
     createdDate: new Date(bandData.created_date),
     memberIds: [], // Not stored in bands table anymore (use band_memberships)
-    settings: bandData.settings || {}
+    settings: bandData.settings || {},
   }
 }
 
@@ -95,12 +99,15 @@ async function waitForMembership(
         role: row.role,
         joinedDate: new Date(row.joined_date),
         status: row.status,
-        permissions: row.permissions || []
+        permissions: row.permissions || [],
       }
 
       // Add to IndexedDB for caching (fire and forget)
       db.bandMemberships.put(membership).catch(err => {
-        console.warn('[waitForMembership] Failed to cache membership in IndexedDB:', err)
+        console.warn(
+          '[waitForMembership] Failed to cache membership in IndexedDB:',
+          err
+        )
       })
 
       return membership
@@ -118,8 +125,8 @@ async function waitForMembership(
 
   throw new Error(
     `Timeout waiting for band membership (${options.timeout}ms). ` +
-    'The band was created successfully, but the membership was not created by the database trigger. ' +
-    'Please contact support.'
+      'The band was created successfully, but the membership was not created by the database trigger. ' +
+      'Please contact support.'
   )
 }
 
@@ -184,7 +191,8 @@ export function useBandMemberships(bandId: string) {
     const fetchMemberships = async () => {
       try {
         setLoading(true)
-        const bandMemberships = await BandMembershipService.getBandMembers(bandId)
+        const bandMemberships =
+          await BandMembershipService.getBandMembers(bandId)
         setMemberships(bandMemberships)
         setError(null)
       } catch (err) {
@@ -214,11 +222,13 @@ export function useBandMemberships(bandId: string) {
  * Fetches User data from Supabase (cloud-first) to ensure all band members are visible
  */
 export function useBandMembers(bandId: string) {
-  const [members, setMembers] = useState<Array<{
-    membership: BandMembership
-    user: User | null
-    profile: UserProfile | null
-  }>>([])
+  const [members, setMembers] = useState<
+    Array<{
+      membership: BandMembership
+      user: User | null
+      profile: UserProfile | null
+    }>
+  >([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
@@ -241,7 +251,7 @@ export function useBandMembers(bandId: string) {
 
         // Get user and profile data for each member (cloud-first to see all band members)
         const membersWithData = await Promise.all(
-          memberships.map(async (membership) => {
+          memberships.map(async membership => {
             // Cloud-first: Get user from Supabase so User 2 can see User 1's data
             const user = await repo.getUser(membership.userId)
 
@@ -254,7 +264,7 @@ export function useBandMembers(bandId: string) {
             return {
               membership,
               user: user || null,
-              profile: profile || null
+              profile: profile || null,
             }
           })
         )
@@ -354,7 +364,7 @@ export function useCreateBand() {
       const newBand = await createBandInSupabase({
         name: bandData.name || 'My Band',
         description: bandData.description || '',
-        settings: bandData.settings
+        settings: bandData.settings,
       })
 
       console.log('[useCreateBand] Band created in Supabase:', newBand.id)
@@ -366,7 +376,7 @@ export function useCreateBand() {
         description: newBand.description,
         createdDate: newBand.createdDate,
         memberIds: newBand.memberIds,
-        settings: newBand.settings
+        settings: newBand.settings,
       })
 
       console.log('[useCreateBand] Band added to IndexedDB')
@@ -377,7 +387,7 @@ export function useCreateBand() {
       console.log('[useCreateBand] Waiting for membership to sync...')
       await waitForMembership(newBand.id, ownerId, {
         timeout: 5000,
-        interval: 500
+        interval: 500,
       })
 
       console.log('[useCreateBand] Membership synced successfully')
@@ -410,7 +420,7 @@ export function useGenerateInviteCode() {
       // Create invite code via service
       const inviteCode = await BandMembershipService.createInviteCode({
         bandId,
-        createdBy
+        createdBy,
       })
 
       return inviteCode.code
@@ -464,7 +474,10 @@ export function useUpdateMemberRole() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const updateRole = async (membershipId: string, role: 'owner' | 'admin' | 'member') => {
+  const updateRole = async (
+    membershipId: string,
+    role: 'owner' | 'admin' | 'member'
+  ) => {
     try {
       setLoading(true)
       setError(null)
@@ -501,7 +514,14 @@ export function useUpdateBand() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const updateBand = async (bandId: string, updates: { name?: string; description?: string; settings?: Record<string, any> }) => {
+  const updateBand = async (
+    bandId: string,
+    updates: {
+      name?: string
+      description?: string
+      settings?: Record<string, any>
+    }
+  ) => {
     try {
       setLoading(true)
       setError(null)

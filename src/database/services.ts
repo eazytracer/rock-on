@@ -14,12 +14,14 @@ export const songService = {
     return await db.songs.get(id)
   },
 
-  async add(song: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel'>): Promise<string> {
+  async add(
+    song: Omit<Song, 'id' | 'createdDate' | 'lastPracticed' | 'confidenceLevel'>
+  ): Promise<string> {
     const id = await db.songs.add({
       ...song,
       id: crypto.randomUUID(),
       createdDate: new Date(),
-      confidenceLevel: 0
+      confidenceLevel: 0,
     } as Song)
     return id.toString()
   },
@@ -32,9 +34,12 @@ export const songService = {
     await db.songs.delete(id)
   },
 
-  async updateLastPracticed(id: string, date: Date = new Date()): Promise<void> {
+  async updateLastPracticed(
+    id: string,
+    date: Date = new Date()
+  ): Promise<void> {
     await db.songs.update(id, { lastPracticed: date })
-  }
+  },
 }
 
 // Member services
@@ -52,7 +57,7 @@ export const memberService = {
       ...member,
       id: crypto.randomUUID(),
       joinDate: new Date(),
-      isActive: true
+      isActive: true,
     } as Member)
     return id.toString()
   },
@@ -67,7 +72,7 @@ export const memberService = {
 
   async getActive(): Promise<Member[]> {
     return await db.members.where('isActive').equals(1).toArray()
-  }
+  },
 }
 
 // Practice Session services
@@ -83,7 +88,7 @@ export const sessionService = {
   async add(session: Omit<PracticeSession, 'id'>): Promise<string> {
     const id = await db.practiceSessions.add({
       ...session,
-      id: crypto.randomUUID()
+      id: crypto.randomUUID(),
     } as PracticeSession)
     return id.toString()
   },
@@ -111,7 +116,7 @@ export const sessionService = {
       .reverse()
       .limit(limit)
       .toArray()
-  }
+  },
 }
 
 // Setlist services
@@ -124,13 +129,15 @@ export const setlistService = {
     return await db.setlists.get(id)
   },
 
-  async add(setlist: Omit<Setlist, 'id' | 'createdDate' | 'lastModified'>): Promise<string> {
+  async add(
+    setlist: Omit<Setlist, 'id' | 'createdDate' | 'lastModified'>
+  ): Promise<string> {
     const now = new Date()
     const id = await db.setlists.add({
       ...setlist,
       id: crypto.randomUUID(),
       createdDate: now,
-      lastModified: now
+      lastModified: now,
     } as Setlist)
     return id.toString()
   },
@@ -138,7 +145,7 @@ export const setlistService = {
   async update(id: string, updates: Partial<Setlist>): Promise<void> {
     await db.setlists.update(id, {
       ...updates,
-      lastModified: new Date()
+      lastModified: new Date(),
     })
   },
 
@@ -148,5 +155,5 @@ export const setlistService = {
 
   async getByStatus(status: Setlist['status']): Promise<Setlist[]> {
     return await db.setlists.where('status').equals(status).toArray()
-  }
+  },
 }

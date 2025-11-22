@@ -14,36 +14,46 @@ export function usePractices(bandId: string) {
   const { realtimeManager } = useAuth()
 
   // Memoize fetchPractices with optional silent mode (no loading state change)
-  const fetchPractices = useCallback(async (silent = false) => {
-    try {
-      console.log('[usePractices] Fetching practices for band:', bandId, silent ? '(silent)' : '')
-      if (!silent) {
-        setLoading(true)
+  const fetchPractices = useCallback(
+    async (silent = false) => {
+      try {
+        console.log(
+          '[usePractices] Fetching practices for band:',
+          bandId,
+          silent ? '(silent)' : ''
+        )
+        if (!silent) {
+          setLoading(true)
+        }
+        const response = await PracticeSessionService.getSessions({ bandId })
+
+        // Filter to only rehearsals
+        const rehearsals = response.sessions.filter(p => p.type === 'rehearsal')
+
+        // Sort by date (ascending)
+        rehearsals.sort((a, b) => {
+          const dateA = new Date(a.scheduledDate).getTime()
+          const dateB = new Date(b.scheduledDate).getTime()
+          return dateA - dateB
+        })
+
+        console.log(
+          '[usePractices] Fetched practices count:',
+          rehearsals.length
+        )
+        setPractices(rehearsals)
+        setError(null)
+      } catch (err) {
+        console.error('[usePractices] Error fetching practices:', err)
+        setError(err as Error)
+      } finally {
+        if (!silent) {
+          setLoading(false)
+        }
       }
-      const response = await PracticeSessionService.getSessions({ bandId })
-
-      // Filter to only rehearsals
-      const rehearsals = response.sessions.filter(p => p.type === 'rehearsal')
-
-      // Sort by date (ascending)
-      rehearsals.sort((a, b) => {
-        const dateA = new Date(a.scheduledDate).getTime()
-        const dateB = new Date(b.scheduledDate).getTime()
-        return dateA - dateB
-      })
-
-      console.log('[usePractices] Fetched practices count:', rehearsals.length)
-      setPractices(rehearsals)
-      setError(null)
-    } catch (err) {
-      console.error('[usePractices] Error fetching practices:', err)
-      setError(err as Error)
-    } finally {
-      if (!silent) {
-        setLoading(false)
-      }
-    }
-  }, [bandId])
+    },
+    [bandId]
+  )
 
   useEffect(() => {
     if (!bandId) {
@@ -65,10 +75,18 @@ export function usePractices(bandId: string) {
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
 
     // Listen for real-time changes from RealtimeManager
-    const handleRealtimeChange = ({ bandId: changedBandId }: { bandId: string; action: string; recordId: string }) => {
+    const handleRealtimeChange = ({
+      bandId: changedBandId,
+    }: {
+      bandId: string
+      action: string
+      recordId: string
+    }) => {
       // Only refetch if the change is for the current band
       if (changedBandId === bandId) {
-        console.log('[usePractices] Realtime change detected for band, refetching...')
+        console.log(
+          '[usePractices] Realtime change detected for band, refetching...'
+        )
         fetchPractices(true) // Silent mode - update list without loading state
       }
     }
@@ -93,8 +111,12 @@ export function useUpcomingPractices(bandId: string) {
   const { practices, loading, error } = usePractices(bandId)
 
   const now = new Date()
-  const upcomingPractices = practices.filter(practice => new Date(practice.scheduledDate) >= now)
-  const pastPractices = practices.filter(practice => new Date(practice.scheduledDate) < now)
+  const upcomingPractices = practices.filter(
+    practice => new Date(practice.scheduledDate) >= now
+  )
+  const pastPractices = practices.filter(
+    practice => new Date(practice.scheduledDate) < now
+  )
 
   return { upcomingPractices, pastPractices, loading, error }
 }
@@ -117,10 +139,14 @@ export function useCreatePractice() {
         scheduledDate: (practiceData.scheduledDate || new Date()).toISOString(),
         duration: practiceData.duration || 120,
         location: practiceData.location,
-        songs: practiceData.songs?.map(s => typeof s === 'string' ? s : s.songId),
-        invitees: practiceData.attendees?.map(a => typeof a === 'string' ? a : a.memberId),
+        songs: practiceData.songs?.map(s =>
+          typeof s === 'string' ? s : s.songId
+        ),
+        invitees: practiceData.attendees?.map(a =>
+          typeof a === 'string' ? a : a.memberId
+        ),
         objectives: practiceData.objectives || [],
-        notes: practiceData.notes
+        notes: practiceData.notes,
       })
 
       return newPractice.id
@@ -143,17 +169,22 @@ export function useUpdatePractice() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const updatePractice = async (practiceId: string, updates: Partial<PracticeSession>) => {
+  const updatePractice = async (
+    practiceId: string,
+    updates: Partial<PracticeSession>
+  ) => {
     try {
       setLoading(true)
       setError(null)
 
       await PracticeSessionService.updateSession(practiceId, {
-        scheduledDate: updates.scheduledDate ? new Date(updates.scheduledDate).toISOString() : undefined,
+        scheduledDate: updates.scheduledDate
+          ? new Date(updates.scheduledDate).toISOString()
+          : undefined,
         duration: updates.duration,
         location: updates.location,
         objectives: updates.objectives,
-        notes: updates.notes
+        notes: updates.notes,
       })
 
       return true
@@ -216,7 +247,7 @@ export function useAutoSuggestSongs(bandId: string) {
       const now = new Date()
       const response = await PracticeSessionService.getSessions({
         bandId,
-        startDate: now.toISOString()
+        startDate: now.toISOString(),
       })
 
       // Filter to only shows/gigs

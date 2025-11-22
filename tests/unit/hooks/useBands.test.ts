@@ -13,9 +13,69 @@ import {
 import { BandService } from '../../../src/services/BandService'
 import { BandMembershipService } from '../../../src/services/BandMembershipService'
 import { getSyncRepository } from '../../../src/services/data/SyncRepository'
+import { getSupabaseClient } from '../../../src/services/supabase/client'
 import type { Band } from '../../../src/models/Band'
 import type { BandMembership, InviteCode } from '../../../src/models/BandMembership'
 import type { UserProfile } from '../../../src/models/User'
+
+// Mock database - consolidated mock for all database operations
+vi.mock('../../../src/services/database', () => ({
+  db: {
+    bands: {
+      add: vi.fn(),
+    },
+    userProfiles: {
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          first: vi.fn(),
+        })),
+      })),
+    },
+    bandMemberships: {
+      add: vi.fn(),
+      put: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn(),
+      delete: vi.fn(),
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          toArray: vi.fn(),
+        })),
+      })),
+    },
+  },
+}))
+
+// Mock Supabase client
+vi.mock('../../../src/services/supabase/client', () => {
+  const mockSingle = vi.fn()
+  const mockEq = vi.fn(() => ({
+    eq: vi.fn(() => ({
+      single: mockSingle
+    }))
+  }))
+  const mockSelect = vi.fn(() => ({
+    single: mockSingle,
+    eq: mockEq
+  }))
+  const mockInsert = vi.fn(() => ({
+    select: mockSelect
+  }))
+  const mockFrom = vi.fn((table: string) => ({
+    insert: mockInsert,
+    select: mockSelect
+  }))
+
+  return {
+    getSupabaseClient: vi.fn(() => ({
+      from: mockFrom,
+      _mockInsert: mockInsert,
+      _mockSelect: mockSelect,
+      _mockEq: mockEq,
+      _mockSingle: mockSingle,
+      _mockFrom: mockFrom
+    }))
+  }
+})
 
 // Mock services
 vi.mock('../../../src/services/BandService')
@@ -34,6 +94,13 @@ vi.mock('../../../src/services/data/SyncRepository', () => {
       mockCallbacks.forEach(cb => cb())
     },
     _clearMockCallbacks: () => mockCallbacks.clear(),
+    // Data access methods
+    getUser: vi.fn(),
+    getBand: vi.fn(),
+    getBandMemberships: vi.fn(),
+    getBandMembers: vi.fn(),
+    getUserMemberships: vi.fn(),
+    createBand: vi.fn(),
   }
 
   return {
@@ -43,24 +110,6 @@ vi.mock('../../../src/services/data/SyncRepository', () => {
     getSyncRepository: vi.fn(() => mockRepo),
   }
 })
-
-// Mock database for user profiles and band memberships
-vi.mock('../../../src/services/database', () => ({
-  db: {
-    userProfiles: {
-      where: vi.fn(() => ({
-        equals: vi.fn(() => ({
-          first: vi.fn(),
-        })),
-      })),
-    },
-    bandMemberships: {
-      add: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-  },
-}))
 
 describe('useBands Hooks', () => {
   const mockBand: Band = {
@@ -372,11 +421,40 @@ describe('useBands Hooks', () => {
       expect(typeof result.current.createBand).toBe('function')
     })
 
-    it('should create band using BandService', async () => {
+    it('should create band using Supabase', async () => {
       const bandData = { name: 'New Band', description: 'A new band' }
       const newBandId = 'band-new'
 
-      vi.mocked(BandService.createBand).mockResolvedValue({ ...mockBand, id: newBandId, ...bandData })
+      // Mock Supabase client response
+      const mockSupabaseClient = getSupabaseClient() as any
+
+      // First call: band creation (insert + select + single)
+      // Second call: membership wait (select + eq + eq + single)
+      mockSupabaseClient._mockSingle
+        .mockResolvedValueOnce({
+          data: {
+            id: newBandId,
+            name: bandData.name,
+            description: bandData.description,
+            created_date: new Date().toISOString(),
+            member_ids: ['user-1'],
+            settings: null
+          },
+          error: null
+        })
+        .mockResolvedValue({
+          data: {
+            id: 'membership-1',
+            user_id: 'user-1',
+            band_id: newBandId,
+            role: 'admin',
+            joined_date: new Date().toISOString(),
+            status: 'active',
+            permissions: ['admin']
+          },
+          error: null
+        })
+
       vi.mocked(BandMembershipService.getBandMembers).mockResolvedValue([])
 
       const { result } = renderHook(() => useCreateBand())
@@ -386,15 +464,20 @@ describe('useBands Hooks', () => {
         returnedId = await result.current.createBand(bandData, 'user-1')
       })
 
-      expect(BandService.createBand).toHaveBeenCalled()
       expect(returnedId).toBe(newBandId)
       expect(result.current.loading).toBe(false)
       expect(result.current.error).toBeNull()
     })
 
     it('should handle creation errors', async () => {
-      const mockError = new Error('Failed to create band')
-      vi.mocked(BandService.createBand).mockRejectedValue(mockError)
+      const errorMessage = 'Database error'
+
+      // Mock Supabase client error response
+      const mockSupabaseClient = getSupabaseClient() as any
+      mockSupabaseClient._mockSingle.mockResolvedValue({
+        data: null,
+        error: { message: errorMessage }
+      })
 
       const { result } = renderHook(() => useCreateBand())
 
@@ -406,7 +489,7 @@ describe('useBands Hooks', () => {
         }
       })
 
-      expect(result.current.error).toEqual(mockError)
+      expect(result.current.error).toEqual(new Error(`Failed to create band: ${errorMessage}`))
       expect(result.current.loading).toBe(false)
     })
   })

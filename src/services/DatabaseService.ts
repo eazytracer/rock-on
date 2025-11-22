@@ -31,7 +31,7 @@ export class DatabaseService {
       db.members.count(),
       db.songs.count(),
       db.practiceSessions.count(),
-      db.setlists.count()
+      db.setlists.count(),
     ])
 
     // Estimate storage size (rough calculation)
@@ -43,7 +43,7 @@ export class DatabaseService {
       songs,
       sessions,
       setlists,
-      totalSize
+      totalSize,
     }
   }
 
@@ -53,7 +53,7 @@ export class DatabaseService {
       db.members.toArray(),
       db.songs.toArray(),
       db.practiceSessions.toArray(),
-      db.setlists.toArray()
+      db.setlists.toArray(),
     ])
 
     return {
@@ -64,8 +64,8 @@ export class DatabaseService {
         members,
         songs,
         practiceSessions: sessions,
-        setlists
-      }
+        setlists,
+      },
     }
   }
 
@@ -75,25 +75,31 @@ export class DatabaseService {
     }
 
     try {
-      await db.transaction('rw', [db.bands, db.members, db.songs, db.practiceSessions, db.setlists], async () => {
-        // Clear existing data
-        await Promise.all([
-          db.bands.clear(),
-          db.members.clear(),
-          db.songs.clear(),
-          db.practiceSessions.clear(),
-          db.setlists.clear()
-        ])
+      await db.transaction(
+        'rw',
+        [db.bands, db.members, db.songs, db.practiceSessions, db.setlists],
+        async () => {
+          // Clear existing data
+          await Promise.all([
+            db.bands.clear(),
+            db.members.clear(),
+            db.songs.clear(),
+            db.practiceSessions.clear(),
+            db.setlists.clear(),
+          ])
 
-        // Import new data
-        const { bands, members, songs, practiceSessions, setlists } = importData.data
+          // Import new data
+          const { bands, members, songs, practiceSessions, setlists } =
+            importData.data
 
-        if (bands?.length) await db.bands.bulkAdd(bands)
-        if (members?.length) await db.members.bulkAdd(members)
-        if (songs?.length) await db.songs.bulkAdd(songs)
-        if (practiceSessions?.length) await db.practiceSessions.bulkAdd(practiceSessions)
-        if (setlists?.length) await db.setlists.bulkAdd(setlists)
-      })
+          if (bands?.length) await db.bands.bulkAdd(bands)
+          if (members?.length) await db.members.bulkAdd(members)
+          if (songs?.length) await db.songs.bulkAdd(songs)
+          if (practiceSessions?.length)
+            await db.practiceSessions.bulkAdd(practiceSessions)
+          if (setlists?.length) await db.setlists.bulkAdd(setlists)
+        }
+      )
     } catch (error) {
       console.error('Failed to import data:', error)
       throw new Error('Data import failed')
@@ -102,15 +108,19 @@ export class DatabaseService {
 
   static async clearAllData(): Promise<void> {
     try {
-      await db.transaction('rw', [db.bands, db.members, db.songs, db.practiceSessions, db.setlists], async () => {
-        await Promise.all([
-          db.bands.clear(),
-          db.members.clear(),
-          db.songs.clear(),
-          db.practiceSessions.clear(),
-          db.setlists.clear()
-        ])
-      })
+      await db.transaction(
+        'rw',
+        [db.bands, db.members, db.songs, db.practiceSessions, db.setlists],
+        async () => {
+          await Promise.all([
+            db.bands.clear(),
+            db.members.clear(),
+            db.songs.clear(),
+            db.practiceSessions.clear(),
+            db.setlists.clear(),
+          ])
+        }
+      )
     } catch (error) {
       console.error('Failed to clear data:', error)
       throw new Error('Failed to clear database')
@@ -199,7 +209,7 @@ export class DatabaseService {
       // Create test band
       const band = await BandService.createBand({
         name: 'Test Band',
-        description: 'A band for testing'
+        description: 'A band for testing',
       })
 
       // Add test member
@@ -208,7 +218,7 @@ export class DatabaseService {
         email: 'test@example.com',
         instruments: ['Guitar', 'Vocals'],
         primaryInstrument: 'Guitar',
-        role: 'admin'
+        role: 'admin',
       })
 
       // Add test songs
@@ -220,7 +230,7 @@ export class DatabaseService {
         bpm: 120,
         difficulty: 3,
         bandId: band.id,
-        createdBy: 'test-user'
+        createdBy: 'test-user',
       })
 
       await SongService.createSong({
@@ -231,7 +241,7 @@ export class DatabaseService {
         bpm: 140,
         difficulty: 4,
         bandId: band.id,
-        createdBy: 'test-user'
+        createdBy: 'test-user',
       })
 
       console.log('Test data seeded successfully')

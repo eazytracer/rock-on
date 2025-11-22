@@ -6,9 +6,12 @@ import {
   AuthSession,
   SignUpCredentials,
   SignInCredentials,
-  AuthResponse
+  AuthResponse,
 } from './types'
-import type { AuthChangeEvent, Session as SupabaseSession } from '@supabase/supabase-js'
+import type {
+  AuthChangeEvent,
+  Session as SupabaseSession,
+} from '@supabase/supabase-js'
 import { getSyncRepository } from '../data/SyncRepository'
 
 export class SupabaseAuthService implements IAuthService {
@@ -19,13 +22,20 @@ export class SupabaseAuthService implements IAuthService {
     this.supabase = getSupabaseClient()
 
     // Set up auth state listener
-    this.supabase.auth.onAuthStateChange((event: AuthChangeEvent, supabaseSession: SupabaseSession | null) => {
-      this.handleAuthStateChange(event, supabaseSession)
-    })
+    this.supabase.auth.onAuthStateChange(
+      (event: AuthChangeEvent, supabaseSession: SupabaseSession | null) => {
+        this.handleAuthStateChange(event, supabaseSession)
+      }
+    )
   }
 
-  private async handleAuthStateChange(event: AuthChangeEvent, supabaseSession: SupabaseSession | null): Promise<void> {
-    const session = supabaseSession ? await this.mapSupabaseSession(supabaseSession) : null
+  private async handleAuthStateChange(
+    event: AuthChangeEvent,
+    supabaseSession: SupabaseSession | null
+  ): Promise<void> {
+    const session = supabaseSession
+      ? await this.mapSupabaseSession(supabaseSession)
+      : null
 
     // CRITICAL: Sync user to local database BEFORE notifying listeners
     // This ensures bands/memberships are in IndexedDB when AuthContext tries to load them
@@ -38,10 +48,12 @@ export class SupabaseAuthService implements IAuthService {
   }
 
   private notifyListeners(session: AuthSession | null): void {
-    this.listeners.forEach((listener) => listener(session))
+    this.listeners.forEach(listener => listener(session))
   }
 
-  private async mapSupabaseSession(supabaseSession: SupabaseSession): Promise<AuthSession> {
+  private async mapSupabaseSession(
+    supabaseSession: SupabaseSession
+  ): Promise<AuthSession> {
     const supabaseUser = supabaseSession.user
 
     const provider = supabaseUser.app_metadata?.provider
@@ -54,14 +66,16 @@ export class SupabaseAuthService implements IAuthService {
       name: supabaseUser.user_metadata?.name || supabaseUser.email!,
       authProvider,
       createdDate: new Date(supabaseUser.created_at),
-      lastLogin: new Date()
+      lastLogin: new Date(),
     }
 
     return {
       user,
       accessToken: supabaseSession.access_token,
       refreshToken: supabaseSession.refresh_token,
-      expiresAt: supabaseSession.expires_at ? supabaseSession.expires_at * 1000 : Date.now() + 3600000
+      expiresAt: supabaseSession.expires_at
+        ? supabaseSession.expires_at * 1000
+        : Date.now() + 3600000,
     }
   }
 
@@ -71,17 +85,20 @@ export class SupabaseAuthService implements IAuthService {
       const { error } = await this.supabase
         .from('users')
         // @ts-expect-error - Supabase generated types are overly strict
-        .upsert({
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          created_date: user.createdDate || new Date(),
-          last_login: new Date(),
-          auth_provider: user.authProvider || 'email'
-        }, {
-          onConflict: 'id',
-          ignoreDuplicates: false // Update on conflict
-        })
+        .upsert(
+          {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            created_date: user.createdDate || new Date(),
+            last_login: new Date(),
+            auth_provider: user.authProvider || 'email',
+          },
+          {
+            onConflict: 'id',
+            ignoreDuplicates: false, // Update on conflict
+          }
+        )
 
       if (error) {
         console.error('⚠️ Failed to sync user to Supabase public.users:', error)
@@ -111,7 +128,10 @@ export class SupabaseAuthService implements IAuthService {
         await db.users.put(user)
 
         // Check if profile exists before creating
-        const existingProfile = await db.userProfiles.where('userId').equals(user.id).first()
+        const existingProfile = await db.userProfiles
+          .where('userId')
+          .equals(user.id)
+          .first()
         if (!existingProfile) {
           // Create user profile only if it doesn't exist
           await db.userProfiles.add({
@@ -120,7 +140,7 @@ export class SupabaseAuthService implements IAuthService {
             displayName: user.name,
             instruments: [],
             createdDate: new Date(),
-            updatedDate: new Date()
+            updatedDate: new Date(),
           })
         }
       }
@@ -159,7 +179,10 @@ export class SupabaseAuthService implements IAuthService {
         .eq('status', 'active')
 
       if (membershipsError) {
-        console.error('Failed to fetch band memberships from Supabase:', membershipsError)
+        console.error(
+          'Failed to fetch band memberships from Supabase:',
+          membershipsError
+        )
         return
       }
 
@@ -186,14 +209,16 @@ export class SupabaseAuthService implements IAuthService {
           id: band.id,
           name: band.name,
           description: band.description || '',
-          createdDate: new Date(band.created_date || band.createdDate || new Date()),
+          createdDate: new Date(
+            band.created_date || band.createdDate || new Date()
+          ),
           settings: band.settings || {},
-          memberIds: [] // Will be populated from memberships
+          memberIds: [], // Will be populated from memberships
         })
       }
 
       // Store band memberships in IndexedDB
-      for (const membership of (memberships as any[])) {
+      for (const membership of memberships as any[]) {
         await db.bandMemberships.put({
           id: membership.id,
           bandId: membership.band_id,
@@ -201,11 +226,13 @@ export class SupabaseAuthService implements IAuthService {
           role: membership.role,
           permissions: membership.permissions || [],
           status: membership.status,
-          joinedDate: new Date(membership.joined_date)
+          joinedDate: new Date(membership.joined_date),
         })
       }
 
-      console.log(`Synced ${bands?.length || 0} bands and ${memberships.length} memberships to IndexedDB for user: ${userId}`)
+      console.log(
+        `Synced ${bands?.length || 0} bands and ${memberships.length} memberships to IndexedDB for user: ${userId}`
+      )
     } catch (error) {
       console.error('Failed to sync bands from Supabase:', error)
     }
@@ -218,16 +245,16 @@ export class SupabaseAuthService implements IAuthService {
         password: credentials.password,
         options: {
           data: {
-            name: credentials.name
-          }
-        }
+            name: credentials.name,
+          },
+        },
       })
 
       if (error) {
         return {
           user: null,
           session: null,
-          error: error.message
+          error: error.message,
         }
       }
 
@@ -241,7 +268,7 @@ export class SupabaseAuthService implements IAuthService {
         return {
           user: null,
           session: null,
-          error: errorMessage
+          error: errorMessage,
         }
       }
 
@@ -251,14 +278,14 @@ export class SupabaseAuthService implements IAuthService {
 
       return {
         user: session.user,
-        session
+        session,
       }
     } catch (error) {
       console.error('Sign up error:', error)
       return {
         user: null,
         session: null,
-        error: 'Failed to sign up'
+        error: 'Failed to sign up',
       }
     }
   }
@@ -267,14 +294,14 @@ export class SupabaseAuthService implements IAuthService {
     try {
       const { data, error } = await this.supabase.auth.signInWithPassword({
         email: credentials.email,
-        password: credentials.password
+        password: credentials.password,
       })
 
       if (error) {
         return {
           user: null,
           session: null,
-          error: error.message
+          error: error.message,
         }
       }
 
@@ -282,7 +309,7 @@ export class SupabaseAuthService implements IAuthService {
         return {
           user: null,
           session: null,
-          error: 'Failed to create session'
+          error: 'Failed to create session',
         }
       }
 
@@ -292,14 +319,14 @@ export class SupabaseAuthService implements IAuthService {
 
       return {
         user: session.user,
-        session
+        session,
       }
     } catch (error) {
       console.error('Sign in error:', error)
       return {
         user: null,
         session: null,
-        error: 'Failed to sign in'
+        error: 'Failed to sign in',
       }
     }
   }
@@ -380,11 +407,13 @@ export class SupabaseAuthService implements IAuthService {
     }
   }
 
-  onAuthStateChange(callback: (session: AuthSession | null) => void): () => void {
+  onAuthStateChange(
+    callback: (session: AuthSession | null) => void
+  ): () => void {
     this.listeners.push(callback)
 
     // Immediately call with current session (and sync data first if logged in)
-    this.getSession().then(async (session) => {
+    this.getSession().then(async session => {
       // If user has an existing session, sync their data before calling callback
       if (session?.user) {
         await this.syncUserToLocalDB(session.user)
@@ -394,7 +423,7 @@ export class SupabaseAuthService implements IAuthService {
 
     // Return unsubscribe function
     return () => {
-      this.listeners = this.listeners.filter((listener) => listener !== callback)
+      this.listeners = this.listeners.filter(listener => listener !== callback)
     }
   }
 
@@ -406,8 +435,8 @@ export class SupabaseAuthService implements IAuthService {
       const { error } = await this.supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
 
       if (error) {

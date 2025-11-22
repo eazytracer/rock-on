@@ -42,8 +42,18 @@ export interface PaymentInfo {
 }
 
 export type MemberRole = 'admin' | 'member' | 'viewer'
-export type SessionType = 'rehearsal' | 'writing' | 'recording' | 'audition' | 'lesson' | 'gig'
-export type SessionStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
+export type SessionType =
+  | 'rehearsal'
+  | 'writing'
+  | 'recording'
+  | 'audition'
+  | 'lesson'
+  | 'gig'
+export type SessionStatus =
+  | 'scheduled'
+  | 'in-progress'
+  | 'completed'
+  | 'cancelled'
 export type SongStatus = 'not-started' | 'in-progress' | 'completed' | 'skipped'
 export type SetlistStatus = 'draft' | 'active' | 'archived'
 
@@ -81,12 +91,12 @@ export interface SetlistItem {
 
   // Song fields (when type='song')
   songId?: string
-  notes?: string  // Per-song notes in setlist
+  notes?: string // Per-song notes in setlist
 
   // Break fields (when type='break')
-  breakDuration?: number  // Duration in minutes
-  breakNotes?: string     // Break description
+  breakDuration?: number // Duration in minutes
+  breakNotes?: string // Break description
 
   // Section fields (when type='section')
-  sectionTitle?: string   // Section header
+  sectionTitle?: string // Section header
 }

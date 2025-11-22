@@ -35,12 +35,12 @@ export const DatabaseInspector: React.FC = () => {
 
     // Table name mapping: Supabase (snake_case) -> IndexedDB (camelCase)
     const tableMapping: Record<string, string> = {
-      'songs': 'songs',
-      'setlists': 'setlists',
-      'shows': 'shows',
-      'practice_sessions': 'practiceSessions',
-      'bands': 'bands',
-      'band_memberships': 'bandMemberships'
+      songs: 'songs',
+      setlists: 'setlists',
+      shows: 'shows',
+      practice_sessions: 'practiceSessions',
+      bands: 'bands',
+      band_memberships: 'bandMemberships',
     }
 
     const tables = Object.keys(tableMapping)
@@ -79,7 +79,10 @@ export const DatabaseInspector: React.FC = () => {
           indexedDBCount,
           supabaseCount,
           match: indexedDBCount === supabaseCount && indexedDBCount !== null,
-          error: indexedDBCount === null || supabaseCount === null ? 'Failed to fetch' : undefined
+          error:
+            indexedDBCount === null || supabaseCount === null
+              ? 'Failed to fetch'
+              : undefined,
         })
       } catch (err) {
         results.push({
@@ -87,7 +90,7 @@ export const DatabaseInspector: React.FC = () => {
           indexedDBCount: null,
           supabaseCount: null,
           match: false,
-          error: err instanceof Error ? err.message : 'Unknown error'
+          error: err instanceof Error ? err.message : 'Unknown error',
         })
       }
     }
@@ -110,16 +113,21 @@ export const DatabaseInspector: React.FC = () => {
       <div className="mb-6">
         <h2 className="text-xl font-bold text-text mb-2">Database Inspector</h2>
         <p className="text-sm text-muted mb-4">
-          Compare IndexedDB (local) vs Supabase (cloud) record counts to verify sync consistency.
+          Compare IndexedDB (local) vs Supabase (cloud) record counts to verify
+          sync consistency.
         </p>
 
         {/* Status Summary */}
         <div className="flex gap-4 mb-4">
-          <div className={`px-4 py-2 rounded-lg ${totalMismatches === 0 && totalErrors === 0 ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+          <div
+            className={`px-4 py-2 rounded-lg ${totalMismatches === 0 && totalErrors === 0 ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}
+          >
             <div className="text-2xl font-bold">{totalMismatches}</div>
             <div className="text-xs">Mismatches</div>
           </div>
-          <div className={`px-4 py-2 rounded-lg ${totalErrors === 0 ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
+          <div
+            className={`px-4 py-2 rounded-lg ${totalErrors === 0 ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}
+          >
             <div className="text-2xl font-bold">{totalErrors}</div>
             <div className="text-xs">Errors</div>
           </div>
@@ -150,7 +158,9 @@ export const DatabaseInspector: React.FC = () => {
       {!user && (
         <div className="bg-warning/10 border border-warning text-warning px-4 py-3 rounded-lg mb-6">
           <div className="font-medium mb-1">⚠️ Not Authenticated</div>
-          <div className="text-sm">Please log in to view database statistics.</div>
+          <div className="text-sm">
+            Please log in to view database statistics.
+          </div>
         </div>
       )}
 
@@ -160,10 +170,18 @@ export const DatabaseInspector: React.FC = () => {
           <table className="w-full">
             <thead className="bg-surface">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-text">Table</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-text">IndexedDB</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-text">Supabase</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-text">Status</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-text">
+                  Table
+                </th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-text">
+                  IndexedDB
+                </th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-text">
+                  Supabase
+                </th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-text">
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-divider">
@@ -180,16 +198,23 @@ export const DatabaseInspector: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                stats.map((stat) => (
-                  <tr key={stat.tableName} className="hover:bg-surface/50 transition-colors">
+                stats.map(stat => (
+                  <tr
+                    key={stat.tableName}
+                    className="hover:bg-surface/50 transition-colors"
+                  >
                     <td className="px-4 py-3 text-sm font-medium text-text">
                       {stat.tableName}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-text">
-                      {stat.indexedDBCount !== null ? stat.indexedDBCount.toLocaleString() : '-'}
+                      {stat.indexedDBCount !== null
+                        ? stat.indexedDBCount.toLocaleString()
+                        : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-text">
-                      {stat.supabaseCount !== null ? stat.supabaseCount.toLocaleString() : '-'}
+                      {stat.supabaseCount !== null
+                        ? stat.supabaseCount.toLocaleString()
+                        : '-'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {stat.error ? (
@@ -216,15 +241,26 @@ export const DatabaseInspector: React.FC = () => {
 
       {/* Help Text */}
       <div className="mt-6 p-4 bg-surface rounded-lg border border-divider">
-        <h3 className="text-sm font-medium text-text mb-2">💡 Understanding Mismatches</h3>
+        <h3 className="text-sm font-medium text-text mb-2">
+          💡 Understanding Mismatches
+        </h3>
         <ul className="text-xs text-muted space-y-1">
-          <li>• <strong>Match:</strong> Local and cloud data are in sync</li>
-          <li>• <strong>Mismatch:</strong> Data counts differ - may indicate pending sync operations</li>
-          <li>• <strong>Error:</strong> Failed to fetch data from one or both sources</li>
+          <li>
+            • <strong>Match:</strong> Local and cloud data are in sync
+          </li>
+          <li>
+            • <strong>Mismatch:</strong> Data counts differ - may indicate
+            pending sync operations
+          </li>
+          <li>
+            • <strong>Error:</strong> Failed to fetch data from one or both
+            sources
+          </li>
         </ul>
         <p className="text-xs text-muted mt-3">
-          <strong>Note:</strong> Temporary mismatches are normal during sync operations.
-          If mismatches persist, check the Sync Queue tab for pending operations.
+          <strong>Note:</strong> Temporary mismatches are normal during sync
+          operations. If mismatches persist, check the Sync Queue tab for
+          pending operations.
         </p>
       </div>
     </div>

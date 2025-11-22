@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from 'react'
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'info'
@@ -30,17 +36,20 @@ interface ToastProviderProps {
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const showToast = useCallback((message: string, type: ToastType = 'success') => {
-    const id = crypto.randomUUID()
-    const newToast: Toast = { id, message, type }
+  const showToast = useCallback(
+    (message: string, type: ToastType = 'success') => {
+      const id = crypto.randomUUID()
+      const newToast: Toast = { id, message, type }
 
-    setToasts(prev => [...prev, newToast])
+      setToasts(prev => [...prev, newToast])
 
-    // Auto-remove after 4 seconds
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, 4000)
-  }, [])
+      // Auto-remove after 4 seconds
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id))
+      }, 4000)
+    },
+    []
+  )
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id))
@@ -72,9 +81,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
               </div>
 
               {/* Message */}
-              <div className="flex-1 text-sm text-white">
-                {toast.message}
-              </div>
+              <div className="flex-1 text-sm text-white">{toast.message}</div>
 
               {/* Close Button */}
               <button
@@ -90,9 +97,11 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
             <div className="h-1 bg-[#2a2a2a]">
               <div
                 className={`h-full animate-toast-progress ${
-                  toast.type === 'success' ? 'bg-green-500' :
-                  toast.type === 'error' ? 'bg-red-500' :
-                  'bg-blue-500'
+                  toast.type === 'success'
+                    ? 'bg-green-500'
+                    : toast.type === 'error'
+                      ? 'bg-red-500'
+                      : 'bg-blue-500'
                 }`}
               />
             </div>

@@ -18,7 +18,7 @@ import type { RealtimeManager } from '../services/data/RealtimeManager'
 interface DebugOptions {
   watch?: boolean
   clear?: boolean
-  interval?: number  // For watch mode, default 5000ms
+  interval?: number // For watch mode, default 5000ms
 }
 
 declare global {
@@ -59,14 +59,26 @@ export function setupRealtimeDebug(realtimeManager: RealtimeManager): void {
     console.groupEnd()
 
     console.group('📊 Metrics')
-    console.log('Subscription Attempts:', diagnostics.metrics.subscriptionAttempts)
-    console.log('Subscription Successes:', diagnostics.metrics.subscriptionSuccesses)
-    console.log('Subscription Failures:', diagnostics.metrics.subscriptionFailures)
+    console.log(
+      'Subscription Attempts:',
+      diagnostics.metrics.subscriptionAttempts
+    )
+    console.log(
+      'Subscription Successes:',
+      diagnostics.metrics.subscriptionSuccesses
+    )
+    console.log(
+      'Subscription Failures:',
+      diagnostics.metrics.subscriptionFailures
+    )
     console.log('Messages Received:', diagnostics.metrics.messagesReceived)
     console.log('Messages/Minute:', diagnostics.metrics.messagesPerMinute)
-    console.log('Last Message:', diagnostics.metrics.lastMessageTime
-      ? new Date(diagnostics.metrics.lastMessageTime).toLocaleTimeString()
-      : 'Never')
+    console.log(
+      'Last Message:',
+      diagnostics.metrics.lastMessageTime
+        ? new Date(diagnostics.metrics.lastMessageTime).toLocaleTimeString()
+        : 'Never'
+    )
     console.groupEnd()
 
     console.group('📡 Channels')
@@ -83,12 +95,16 @@ export function setupRealtimeDebug(realtimeManager: RealtimeManager): void {
     // Watch mode
     if (options.watch) {
       if (window.__debugRealtimeInterval) {
-        console.warn('⚠️ Watch mode already active. Stopping previous interval.')
+        console.warn(
+          '⚠️ Watch mode already active. Stopping previous interval.'
+        )
         clearInterval(window.__debugRealtimeInterval)
       }
 
       const interval = options.interval || 5000
-      console.log(`👀 Watch mode enabled (refreshing every ${interval}ms). Call debugRealtime({ watch: false }) to stop.`)
+      console.log(
+        `👀 Watch mode enabled (refreshing every ${interval}ms). Call debugRealtime({ watch: false }) to stop.`
+      )
 
       window.__debugRealtimeInterval = setInterval(() => {
         console.clear()

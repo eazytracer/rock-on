@@ -14,7 +14,7 @@ export function formatShowDate(date: Date | string): string {
   return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
@@ -30,7 +30,7 @@ export function formatShowDateTime(date: Date | string): string {
   const dateStr = d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
   })
 
   const timeStr = formatTime12Hour(d)
@@ -49,7 +49,7 @@ export function formatTime12Hour(date: Date | string): string {
   return d.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   })
 }
 
@@ -57,7 +57,10 @@ export function formatTime12Hour(date: Date | string): string {
  * Parse a time string like "8:00 PM" and combine with a date
  * Returns a new Date object
  */
-export function parseTime12Hour(timeString: string, baseDate: Date = new Date()): Date {
+export function parseTime12Hour(
+  timeString: string,
+  baseDate: Date = new Date()
+): Date {
   if (!timeString) return baseDate
 
   // Extract hours, minutes, and AM/PM
@@ -143,11 +146,14 @@ export function getRelativeTimeString(date: Date | string): string {
   if (diffDays > 1 && diffDays < 7) return `In ${diffDays} days`
   if (diffDays < -1 && diffDays > -7) return `${Math.abs(diffDays)} days ago`
   if (diffDays >= 7 && diffDays < 14) return 'Next week'
-  if (diffDays >= 14 && diffDays < 30) return `In ${Math.floor(diffDays / 7)} weeks`
+  if (diffDays >= 14 && diffDays < 30)
+    return `In ${Math.floor(diffDays / 7)} weeks`
   if (diffDays <= -7 && diffDays > -14) return 'Last week'
-  if (diffDays <= -14 && diffDays > -30) return `${Math.floor(Math.abs(diffDays) / 7)} weeks ago`
+  if (diffDays <= -14 && diffDays > -30)
+    return `${Math.floor(Math.abs(diffDays) / 7)} weeks ago`
   if (diffDays >= 30) return `In ${Math.floor(diffDays / 30)} months`
-  if (diffDays <= -30) return `${Math.floor(Math.abs(diffDays) / 30)} months ago`
+  if (diffDays <= -30)
+    return `${Math.floor(Math.abs(diffDays) / 30)} months ago`
 
   return formatShowDate(d)
 }

@@ -21,5 +21,5 @@ export const MemberSchema = {
   primaryInstrument: '',
   role: '',
   joinDate: '',
-  isActive: ''
+  isActive: '',
 }

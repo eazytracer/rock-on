@@ -14,7 +14,7 @@ export async function testSupabaseConnection() {
       mode: config.mode,
       isProduction: config.isProduction,
       enableSupabaseAuth: config.enableSupabaseAuth,
-      supabaseUrl: config.supabaseUrl
+      supabaseUrl: config.supabaseUrl,
     })
     return
   }
@@ -27,7 +27,8 @@ export async function testSupabaseConnection() {
 
     // Test 1: Check auth session
     console.log('\n📋 Test 1: Checking auth session...')
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession()
 
     if (sessionError) {
       console.log('⚠️  Session error:', sessionError.message)
@@ -71,7 +72,6 @@ export async function testSupabaseConnection() {
     console.log('2. Check Supabase dashboard to see if user was created')
     console.log('3. Sign in and create some data')
     console.log('4. Verify data appears in Supabase dashboard')
-
   } catch (error) {
     console.error('❌ Supabase connection test failed:', error)
   }
@@ -79,5 +79,5 @@ export async function testSupabaseConnection() {
 
 // Make it available globally for console testing
 if (typeof window !== 'undefined') {
-  (window as any).testSupabaseConnection = testSupabaseConnection
+  ;(window as any).testSupabaseConnection = testSupabaseConnection
 }

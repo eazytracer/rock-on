@@ -1,4 +1,9 @@
-import { SessionType, SessionStatus, SessionSong, SessionAttendee } from '../types'
+import {
+  SessionType,
+  SessionStatus,
+  SessionSong,
+  SessionAttendee,
+} from '../types'
 
 /**
  * PracticeSession Model
@@ -11,19 +16,19 @@ import { SessionType, SessionStatus, SessionSong, SessionAttendee } from '../typ
 export interface PracticeSession {
   id: string
   bandId: string
-  setlistId?: string         // Associated setlist ID for practices
+  setlistId?: string // Associated setlist ID for practices
   scheduledDate: Date
   startTime?: Date
   endTime?: Date
-  duration: number           // Planned duration in minutes
+  duration: number // Planned duration in minutes
   location?: string
-  type: SessionType          // 'rehearsal' | 'writing' | 'recording' | 'audition' | 'lesson'
-  status: SessionStatus      // 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
+  type: SessionType // 'rehearsal' | 'writing' | 'recording' | 'audition' | 'lesson'
+  status: SessionStatus // 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
   notes?: string
-  objectives: string[]       // Practice goals
+  objectives: string[] // Practice goals
   completedObjectives: string[]
-  sessionRating?: number     // Rating 1-5
-  songs: SessionSong[]       // Songs practiced
+  sessionRating?: number // Rating 1-5
+  songs: SessionSong[] // Songs practiced
   attendees: SessionAttendee[]
   createdDate: Date
 
@@ -46,5 +51,5 @@ export const PracticeSessionSchema = {
   notes: '',
   objectives: '',
   completedObjectives: '',
-  sessionRating: ''
+  sessionRating: '',
 }

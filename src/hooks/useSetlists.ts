@@ -15,28 +15,41 @@ export function useSetlists(bandId: string) {
   const { realtimeManager } = useAuth()
 
   // Memoize fetchSetlists with optional silent mode (no loading state change)
-  const fetchSetlists = useCallback(async (silent = false) => {
-    try {
-      console.log('[useSetlists] Fetching setlists for band:', bandId, silent ? '(silent)' : '')
-      if (!silent) {
-        setLoading(true)
+  const fetchSetlists = useCallback(
+    async (silent = false) => {
+      try {
+        console.log(
+          '[useSetlists] Fetching setlists for band:',
+          bandId,
+          silent ? '(silent)' : ''
+        )
+        if (!silent) {
+          setLoading(true)
+        }
+        const response = await SetlistService.getSetlists({ bandId })
+        console.log(
+          '[useSetlists] Fetched setlists count:',
+          response.setlists.length
+        )
+        setSetlists(response.setlists)
+        setError(null)
+      } catch (err) {
+        console.error('[useSetlists] Error fetching setlists:', err)
+        setError(err as Error)
+      } finally {
+        if (!silent) {
+          setLoading(false)
+        }
       }
-      const response = await SetlistService.getSetlists({ bandId })
-      console.log('[useSetlists] Fetched setlists count:', response.setlists.length)
-      setSetlists(response.setlists)
-      setError(null)
-    } catch (err) {
-      console.error('[useSetlists] Error fetching setlists:', err)
-      setError(err as Error)
-    } finally {
-      if (!silent) {
-        setLoading(false)
-      }
-    }
-  }, [bandId])
+    },
+    [bandId]
+  )
 
   // Store the handler ref to properly clean up listeners
-  const realtimeHandlerRef = useRef<((event: { bandId: string; action: string; recordId: string }) => void) | null>(null)
+  const realtimeHandlerRef = useRef<
+    | ((event: { bandId: string; action: string; recordId: string }) => void)
+    | null
+  >(null)
 
   useEffect(() => {
     if (!bandId) {
@@ -65,16 +78,27 @@ export function useSetlists(bandId: string) {
       }
 
       // Create new listener
-      const handleRealtimeChange = ({ bandId: changedBandId }: { bandId: string; action: string; recordId: string }) => {
+      const handleRealtimeChange = ({
+        bandId: changedBandId,
+      }: {
+        bandId: string
+        action: string
+        recordId: string
+      }) => {
         // Only refetch if the change is for the current band
         if (changedBandId === bandId) {
-          console.log('[useSetlists] Realtime change detected for band, refetching...')
+          console.log(
+            '[useSetlists] Realtime change detected for band, refetching...'
+          )
           fetchSetlists(true) // Silent mode - update list without loading state
         }
       }
       realtimeHandlerRef.current = handleRealtimeChange
 
-      console.log('[useSetlists] Registering realtime listener for band:', bandId)
+      console.log(
+        '[useSetlists] Registering realtime listener for band:',
+        bandId
+      )
       realtimeManager.on('setlists:changed', handleRealtimeChange)
     }
 
@@ -117,7 +141,7 @@ export function useCreateSetlist() {
           notes: setlistData.notes || '',
           status: setlistData.status || 'draft',
           createdDate: new Date(),
-          lastModified: new Date()
+          lastModified: new Date(),
         }
 
         await repo.addSetlist(newSetlist)
@@ -128,7 +152,9 @@ export function useCreateSetlist() {
       const newSetlist = await SetlistService.createSetlist({
         name: setlistData.name || 'New Setlist',
         bandId: setlistData.bandId || '',
-        showDate: setlistData.showDate ? setlistData.showDate.toISOString() : undefined,
+        showDate: setlistData.showDate
+          ? setlistData.showDate.toISOString()
+          : undefined,
         venue: setlistData.venue,
         notes: setlistData.notes,
       })
@@ -154,17 +180,24 @@ export function useUpdateSetlist() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const updateSetlist = async (setlistId: string, updates: Partial<Setlist>) => {
+  const updateSetlist = async (
+    setlistId: string,
+    updates: Partial<Setlist>
+  ) => {
     try {
       setLoading(true)
       setError(null)
 
       // If updating items or other fields not supported by SetlistService, use repository
-      if (updates.items !== undefined || updates.showId !== undefined || updates.totalDuration !== undefined) {
+      if (
+        updates.items !== undefined ||
+        updates.showId !== undefined ||
+        updates.totalDuration !== undefined
+      ) {
         const repo = getSyncRepository()
         const updateData: Partial<Setlist> = {
           ...updates,
-          lastModified: new Date()
+          lastModified: new Date(),
         }
 
         await repo.updateSetlist(setlistId, updateData)
@@ -227,20 +260,28 @@ export function useAddSetlistItem() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const addItem = async (setlistId: string, item: Omit<SetlistItem, 'id' | 'position'>) => {
+  const addItem = async (
+    setlistId: string,
+    item: Omit<SetlistItem, 'id' | 'position'>
+  ) => {
     try {
       setLoading(true)
       setError(null)
 
       // Only handle song items for now (SetlistService works with songs)
       if (item.type === 'song' && item.songId) {
-        const updatedSetlist = await SetlistService.addSongToSetlist(setlistId, {
-          songId: item.songId,
-          keyChange: item.notes, // Map notes to keyChange if needed
-        })
+        const updatedSetlist = await SetlistService.addSongToSetlist(
+          setlistId,
+          {
+            songId: item.songId,
+            keyChange: item.notes, // Map notes to keyChange if needed
+          }
+        )
 
         // Find the newly added song in the updated setlist
-        const newSong = (updatedSetlist.songs || [])[(updatedSetlist.songs || []).length - 1]
+        const newSong = (updatedSetlist.songs || [])[
+          (updatedSetlist.songs || []).length - 1
+        ]
         if (newSong) {
           const newItem: SetlistItem = {
             id: crypto.randomUUID(),
@@ -310,7 +351,10 @@ export function useReorderSetlistItems() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const reorderItems = async (setlistId: string, reorderedItems: SetlistItem[]) => {
+  const reorderItems = async (
+    setlistId: string,
+    reorderedItems: SetlistItem[]
+  ) => {
     try {
       setLoading(true)
       setError(null)

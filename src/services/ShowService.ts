@@ -79,7 +79,7 @@ export class ShowService {
 
     return {
       shows,
-      total
+      total,
     }
   }
 
@@ -112,7 +112,7 @@ export class ShowService {
       status: showData.status || 'scheduled',
       notes: showData.notes,
       createdDate: new Date(),
-      updatedDate: new Date()
+      updatedDate: new Date(),
     }
 
     return await repository.addShow(newShow)
@@ -121,23 +121,29 @@ export class ShowService {
   /**
    * Update an existing show
    */
-  static async updateShow(showId: string, updateData: UpdateShowRequest): Promise<Show> {
+  static async updateShow(
+    showId: string,
+    updateData: UpdateShowRequest
+  ): Promise<Show> {
     const existingShow = await this.getShow(showId)
     if (!existingShow) {
       throw new Error('Show not found')
     }
 
     // Validate any changed required fields
-    if (updateData.name !== undefined || updateData.scheduledDate !== undefined) {
+    if (
+      updateData.name !== undefined ||
+      updateData.scheduledDate !== undefined
+    ) {
       this.validateShowData({
         ...existingShow,
-        ...updateData
+        ...updateData,
       } as CreateShowRequest)
     }
 
     const updates: Partial<Show> = {
       ...updateData,
-      updatedDate: new Date()
+      updatedDate: new Date(),
     }
 
     return await repository.updateShow(showId, updates)
@@ -176,12 +182,12 @@ export class ShowService {
 
     // Update the show to reference the forked setlist
     await this.updateShow(showId, {
-      setlistId: forkedSetlist.id
+      setlistId: forkedSetlist.id,
     })
 
     // Update the forked setlist to reference the show (bidirectional link)
     await SetlistService.updateSetlist(forkedSetlist.id, {
-      showId: showId
+      showId: showId,
     })
 
     return forkedSetlist.id
@@ -194,8 +200,8 @@ export class ShowService {
     const now = new Date()
     const response = await this.getShows({ bandId })
 
-    return response.shows.filter(show =>
-      show.scheduledDate >= now && show.status !== 'cancelled'
+    return response.shows.filter(
+      show => show.scheduledDate >= now && show.status !== 'cancelled'
     )
   }
 
@@ -206,8 +212,8 @@ export class ShowService {
     const now = new Date()
     const response = await this.getShows({ bandId })
 
-    return response.shows.filter(show =>
-      show.scheduledDate < now || show.status === 'completed'
+    return response.shows.filter(
+      show => show.scheduledDate < now || show.status === 'completed'
     )
   }
 
@@ -220,7 +226,9 @@ export class ShowService {
     if (upcomingShows.length === 0) return null
 
     // Sort by date ascending and return first
-    upcomingShows.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
+    upcomingShows.sort(
+      (a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime()
+    )
     return upcomingShows[0]
   }
 
@@ -236,7 +244,7 @@ export class ShowService {
     const contacts = show.contacts || []
     contacts.push({
       ...contact,
-      id: contact.id || crypto.randomUUID()
+      id: contact.id || crypto.randomUUID(),
     })
 
     return await this.updateShow(showId, { contacts })
@@ -264,7 +272,7 @@ export class ShowService {
 
     contacts[contactIndex] = {
       ...contacts[contactIndex],
-      ...updates
+      ...updates,
     }
 
     return await this.updateShow(showId, { contacts })
@@ -287,7 +295,9 @@ export class ShowService {
   /**
    * Validate show data
    */
-  private static validateShowData(showData: CreateShowRequest | Partial<Show>): void {
+  private static validateShowData(
+    showData: CreateShowRequest | Partial<Show>
+  ): void {
     if (!showData.bandId) {
       throw new Error('Band ID is required')
     }
@@ -310,9 +320,16 @@ export class ShowService {
 
     // Validate status if provided
     if (showData.status) {
-      const validStatuses: ShowStatus[] = ['scheduled', 'confirmed', 'completed', 'cancelled']
+      const validStatuses: ShowStatus[] = [
+        'scheduled',
+        'confirmed',
+        'completed',
+        'cancelled',
+      ]
       if (!validStatuses.includes(showData.status as ShowStatus)) {
-        throw new Error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`)
+        throw new Error(
+          `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+        )
       }
     }
   }

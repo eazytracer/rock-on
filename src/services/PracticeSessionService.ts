@@ -1,6 +1,11 @@
 import { db } from './database'
 import { PracticeSession } from '../models/PracticeSession'
-import { SessionType, SessionStatus, SessionSong, SessionAttendee } from '../types'
+import {
+  SessionType,
+  SessionStatus,
+  SessionSong,
+  SessionAttendee,
+} from '../types'
 import { castingService } from './CastingService'
 import { repository } from './data/RepositoryFactory'
 
@@ -64,7 +69,9 @@ export interface AttendanceRequest {
 }
 
 export class PracticeSessionService {
-  static async getSessions(filters: SessionFilters): Promise<SessionListResponse> {
+  static async getSessions(
+    filters: SessionFilters
+  ): Promise<SessionListResponse> {
     // Get all sessions for the band via repository
     let sessions = await repository.getPracticeSessions(filters.bandId)
 
@@ -87,18 +94,22 @@ export class PracticeSessionService {
 
     // Apply status filter (client-side)
     if (filters.status) {
-      sessions = sessions.filter(session => this.getSessionStatus(session) === filters.status)
+      sessions = sessions.filter(
+        session => this.getSessionStatus(session) === filters.status
+      )
     }
 
     const total = sessions.length
 
     return {
       sessions,
-      total
+      total,
     }
   }
 
-  static async createSession(sessionData: CreateSessionRequest): Promise<PracticeSession> {
+  static async createSession(
+    sessionData: CreateSessionRequest
+  ): Promise<PracticeSession> {
     this.validateSessionData(sessionData)
 
     const newSession: PracticeSession = {
@@ -110,36 +121,43 @@ export class PracticeSessionService {
       type: sessionData.type,
       status: 'scheduled',
       createdDate: new Date(),
-      songs: sessionData.songs?.map(songId => ({
-        songId,
-        timeSpent: 0,
-        status: 'not-started',
-        sectionsWorked: [],
-        improvements: [],
-        needsWork: [],
-        memberRatings: []
-      })) || [],
-      attendees: sessionData.invitees?.map(memberId => ({
-        memberId,
-        confirmed: false,
-        attended: false
-      })) || [],
+      songs:
+        sessionData.songs?.map(songId => ({
+          songId,
+          timeSpent: 0,
+          status: 'not-started',
+          sectionsWorked: [],
+          improvements: [],
+          needsWork: [],
+          memberRatings: [],
+        })) || [],
+      attendees:
+        sessionData.invitees?.map(memberId => ({
+          memberId,
+          confirmed: false,
+          attended: false,
+        })) || [],
       notes: sessionData.notes,
       objectives: sessionData.objectives || [],
-      completedObjectives: []
+      completedObjectives: [],
     }
 
     return await repository.addPracticeSession(newSession)
   }
 
-  static async getSessionById(sessionId: string): Promise<PracticeSession | null> {
+  static async getSessionById(
+    sessionId: string
+  ): Promise<PracticeSession | null> {
     // Get all sessions and find the one we need (repository doesn't have getById for sessions)
     const allSessions = await repository.getPracticeSessions('')
     const session = allSessions.find(s => s.id === sessionId)
     return session || null
   }
 
-  static async updateSession(sessionId: string, updateData: UpdateSessionRequest): Promise<PracticeSession> {
+  static async updateSession(
+    sessionId: string,
+    updateData: UpdateSessionRequest
+  ): Promise<PracticeSession> {
     const existingSession = await this.getSessionById(sessionId)
     if (!existingSession) {
       throw new Error('Session not found')
@@ -163,7 +181,7 @@ export class PracticeSessionService {
     }
 
     await repository.updatePracticeSession(sessionId, updates)
-    return await this.getSessionById(sessionId) as PracticeSession
+    return (await this.getSessionById(sessionId)) as PracticeSession
   }
 
   static async deleteSession(sessionId: string): Promise<void> {
@@ -187,24 +205,30 @@ export class PracticeSessionService {
     }
 
     await repository.updatePracticeSession(sessionId, {
-      startTime: new Date()
+      startTime: new Date(),
     })
 
-    return await this.getSessionById(sessionId) as PracticeSession
+    return (await this.getSessionById(sessionId)) as PracticeSession
   }
 
-  static async endSession(sessionId: string, endData: EndSessionRequest): Promise<PracticeSession> {
+  static async endSession(
+    sessionId: string,
+    endData: EndSessionRequest
+  ): Promise<PracticeSession> {
     const session = await this.getSessionById(sessionId)
     if (!session) {
       throw new Error('Session not found')
     }
 
-    if (endData.sessionRating && (endData.sessionRating < 1 || endData.sessionRating > 5)) {
+    if (
+      endData.sessionRating &&
+      (endData.sessionRating < 1 || endData.sessionRating > 5)
+    ) {
       throw new Error('Session rating must be between 1 and 5')
     }
 
     const updates: Partial<PracticeSession> = {
-      endTime: new Date()
+      endTime: new Date(),
     }
 
     if (endData.notes !== undefined) {
@@ -218,10 +242,13 @@ export class PracticeSessionService {
     }
 
     await repository.updatePracticeSession(sessionId, updates)
-    return await this.getSessionById(sessionId) as PracticeSession
+    return (await this.getSessionById(sessionId)) as PracticeSession
   }
 
-  static async addSongToSession(sessionId: string, songData: AddSessionSongRequest): Promise<SessionSong> {
+  static async addSongToSession(
+    sessionId: string,
+    songData: AddSessionSongRequest
+  ): Promise<SessionSong> {
     const session = await this.getSessionById(sessionId)
     if (!session) {
       throw new Error('Session not found')
@@ -235,7 +262,7 @@ export class PracticeSessionService {
       sectionsWorked: [],
       improvements: [],
       needsWork: [],
-      memberRatings: []
+      memberRatings: [],
     }
 
     const updatedSongs = [...session.songs, newSessionSong]
@@ -244,7 +271,11 @@ export class PracticeSessionService {
     return newSessionSong
   }
 
-  static async updateSessionSong(sessionId: string, songId: string, updateData: UpdateSessionSongRequest): Promise<SessionSong> {
+  static async updateSessionSong(
+    sessionId: string,
+    songId: string,
+    updateData: UpdateSessionSongRequest
+  ): Promise<SessionSong> {
     const session = await this.getSessionById(sessionId)
     if (!session) {
       throw new Error('Session not found')
@@ -255,7 +286,12 @@ export class PracticeSessionService {
       throw new Error('Song not found in session')
     }
 
-    if (updateData.status && !['not-started', 'in-progress', 'completed', 'skipped'].includes(updateData.status)) {
+    if (
+      updateData.status &&
+      !['not-started', 'in-progress', 'completed', 'skipped'].includes(
+        updateData.status
+      )
+    ) {
       throw new Error('Invalid song status')
     }
 
@@ -287,19 +323,28 @@ export class PracticeSessionService {
     return songToUpdate
   }
 
-  static async recordAttendance(sessionId: string, attendanceData: AttendanceRequest): Promise<SessionAttendee> {
+  static async recordAttendance(
+    sessionId: string,
+    attendanceData: AttendanceRequest
+  ): Promise<SessionAttendee> {
     const session = await this.getSessionById(sessionId)
     if (!session) {
       throw new Error('Session not found')
     }
 
-    const attendeeIndex = session.attendees.findIndex(a => a.memberId === attendanceData.memberId)
+    const attendeeIndex = session.attendees.findIndex(
+      a => a.memberId === attendanceData.memberId
+    )
     const newAttendee: SessionAttendee = {
       memberId: attendanceData.memberId,
       confirmed: true,
       attended: attendanceData.attended,
-      arrivalTime: attendanceData.arrivalTime ? new Date(attendanceData.arrivalTime) : undefined,
-      departureTime: attendanceData.departureTime ? new Date(attendanceData.departureTime) : undefined
+      arrivalTime: attendanceData.arrivalTime
+        ? new Date(attendanceData.arrivalTime)
+        : undefined,
+      departureTime: attendanceData.departureTime
+        ? new Date(attendanceData.departureTime)
+        : undefined,
     }
 
     const updatedAttendees = [...session.attendees]
@@ -309,7 +354,9 @@ export class PracticeSessionService {
       updatedAttendees.push(newAttendee)
     }
 
-    await repository.updatePracticeSession(sessionId, { attendees: updatedAttendees })
+    await repository.updatePracticeSession(sessionId, {
+      attendees: updatedAttendees,
+    })
     return newAttendee
   }
 
@@ -323,7 +370,11 @@ export class PracticeSessionService {
     if (!sessionData.type) {
       throw new Error('Session type is required')
     }
-    if (!['rehearsal', 'writing', 'recording', 'audition', 'lesson'].includes(sessionData.type)) {
+    if (
+      !['rehearsal', 'writing', 'recording', 'audition', 'lesson'].includes(
+        sessionData.type
+      )
+    ) {
       throw new Error('Invalid session type')
     }
     if (sessionData.duration && sessionData.duration <= 0) {
@@ -368,17 +419,22 @@ export class PracticeSessionService {
   /**
    * Get casting for all songs in a practice session
    */
-  static async getSessionCasting(sessionId: string): Promise<{ songId: number; casting: any }[]> {
+  static async getSessionCasting(
+    sessionId: string
+  ): Promise<{ songId: number; casting: any }[]> {
     const session = await this.getSessionById(sessionId)
     if (!session) {
       throw new Error('Session not found')
     }
 
-    const castings = await castingService.getCastingsForContext('session', sessionId)
+    const castings = await castingService.getCastingsForContext(
+      'session',
+      sessionId
+    )
 
     return castings.map(casting => ({
       songId: casting.songId,
-      casting
+      casting,
     }))
   }
 
@@ -400,7 +456,7 @@ export class PracticeSessionService {
       contextId: sessionId,
       songId,
       createdBy,
-      createdDate: new Date()
+      createdDate: new Date(),
     })
   }
 
@@ -411,12 +467,17 @@ export class PracticeSessionService {
     const session = await this.getSessionById(sessionId)
     if (!session) return null
 
-    const castings = await castingService.getCastingsForContext('session', sessionId)
+    const castings = await castingService.getCastingsForContext(
+      'session',
+      sessionId
+    )
 
     const songsWithCasting = await Promise.all(
-      session.songs.map(async (sessionSong) => {
+      session.songs.map(async sessionSong => {
         const song = await db.songs.get(sessionSong.songId)
-        const casting = castings.find(c => c.songId === parseInt(sessionSong.songId))
+        const casting = castings.find(
+          c => c.songId === parseInt(sessionSong.songId)
+        )
 
         let completeCasting = null
         if (casting && casting.id) {
@@ -426,14 +487,14 @@ export class PracticeSessionService {
         return {
           ...sessionSong,
           song,
-          casting: completeCasting
+          casting: completeCasting,
         }
       })
     )
 
     return {
       ...session,
-      songsWithCasting
+      songsWithCasting,
     }
   }
 
@@ -441,6 +502,10 @@ export class PracticeSessionService {
    * Get member's assigned roles for a session
    */
   static async getMemberAssignments(sessionId: string, memberId: string) {
-    return await castingService.getMemberAssignments(memberId, 'session', sessionId)
+    return await castingService.getMemberAssignments(
+      memberId,
+      'session',
+      sessionId
+    )
   }
 }

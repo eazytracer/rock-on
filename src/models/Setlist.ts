@@ -9,13 +9,13 @@ export interface Setlist {
   bandId: string
   /** @deprecated Use showId instead */
   showDate?: Date
-  showId?: string  // Version 5: Reference to show (practiceSessions with type='gig')
-  sourceSetlistId?: string  // Version 6: Reference to original setlist this was forked from
+  showId?: string // Version 5: Reference to show (practiceSessions with type='gig')
+  sourceSetlistId?: string // Version 6: Reference to original setlist this was forked from
   /** @deprecated Venue is now on show (practiceSessions.venue) */
   venue?: string
   /** @deprecated Use items instead */
   songs?: SetlistSong[]
-  items: SetlistItem[]  // Version 5: Songs, breaks, and sections
+  items: SetlistItem[] // Version 5: Songs, breaks, and sections
   totalDuration: number
   notes?: string
   status: SetlistStatus
@@ -38,5 +38,5 @@ export const SetlistSchema = {
   notes: '',
   status: '',
   createdDate: '',
-  lastModified: ''
+  lastModified: '',
 }

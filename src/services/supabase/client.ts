@@ -6,7 +6,9 @@ let supabaseInstance: ReturnType<typeof createClient> | null = null
 export function getSupabaseClient() {
   // Allow Supabase client when Supabase auth is enabled (production mode)
   if (!config.enableSupabaseAuth) {
-    throw new Error('Supabase client should only be used when Supabase auth is enabled')
+    throw new Error(
+      'Supabase client should only be used when Supabase auth is enabled'
+    )
   }
 
   if (!supabaseInstance) {
@@ -21,8 +23,8 @@ export function getSupabaseClient() {
         auth: {
           autoRefreshToken: true,
           persistSession: true,
-          detectSessionInUrl: true
-        }
+          detectSessionInUrl: true,
+        },
       }
     )
   }

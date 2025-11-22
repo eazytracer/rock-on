@@ -59,5 +59,5 @@ export const SongSchema = {
   createdBy: '',
   visibility: '',
   songGroupId: '',
-  linkedFromSongId: ''
+  linkedFromSongId: '',
 }

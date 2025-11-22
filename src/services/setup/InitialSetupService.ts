@@ -28,7 +28,7 @@ export class InitialSetupService {
     // Create default band
     const band = await BandService.createBand({
       name: `${userName}'s Band`,
-      description: 'My awesome band'
+      description: 'My awesome band',
     })
 
     // Create admin membership for the user
@@ -39,21 +39,23 @@ export class InitialSetupService {
       role: 'admin',
       joinedDate: new Date(),
       status: 'active',
-      permissions: ['admin', 'member']
+      permissions: ['admin', 'member'],
     }
 
     await db.bandMemberships.add(membership)
 
     return {
       bandId: band.id,
-      membershipId: membership.id
+      membershipId: membership.id,
     }
   }
 
   /**
    * Perform initial setup for a new user
    */
-  static async performInitialSetup(options: InitialSetupOptions): Promise<void> {
+  static async performInitialSetup(
+    options: InitialSetupOptions
+  ): Promise<void> {
     const { userId, userName, createDefaultBand = true } = options
 
     // Check if setup already completed
@@ -82,7 +84,7 @@ export class InitialSetupService {
 
     // Return the first band (usually the one created during setup)
     // or the first admin band if multiple exist
-    const adminMembership = memberships.find((m) => m.role === 'admin')
+    const adminMembership = memberships.find(m => m.role === 'admin')
     return adminMembership ? adminMembership.bandId : memberships[0].bandId
   }
 
@@ -91,7 +93,10 @@ export class InitialSetupService {
    */
   static async resetUserSetup(userId: string): Promise<void> {
     // Remove all band memberships
-    const memberships = await db.bandMemberships.where('userId').equals(userId).toArray()
+    const memberships = await db.bandMemberships
+      .where('userId')
+      .equals(userId)
+      .toArray()
 
     for (const membership of memberships) {
       await db.bandMemberships.delete(membership.id)

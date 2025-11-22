@@ -24,7 +24,7 @@ export const UserSchema = {
   name: '',
   createdDate: '',
   lastLogin: '',
-  authProvider: ''
+  authProvider: '',
 }
 
 export const UserProfileSchema = {
@@ -35,5 +35,5 @@ export const UserProfileSchema = {
   '*instruments': '',
   avatarUrl: '',
   createdDate: '',
-  updatedDate: ''
+  updatedDate: '',
 }

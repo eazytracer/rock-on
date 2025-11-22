@@ -1,6 +1,15 @@
 import React, { useState } from 'react'
 import { ModernLayout } from '../../components/layout/ModernLayout'
-import { ChevronDown, Plus, Search, Clock, Music, Guitar, Activity, Calendar } from 'lucide-react'
+import {
+  ChevronDown,
+  Plus,
+  Search,
+  Clock,
+  Music,
+  Guitar,
+  Activity,
+  Calendar,
+} from 'lucide-react'
 import { NewSongModal } from '../../components/songs/NewSongModal'
 
 interface Song {
@@ -31,7 +40,7 @@ const demoSongs: Song[] = [
     bpm: '104bpm',
     nextShow: { name: 'Toys 4 Tots', date: 'Dec 8th, 2025' },
     initials: 'as',
-    avatarColor: '#3b82f6'
+    avatarColor: '#3b82f6',
   },
   {
     id: '2',
@@ -43,7 +52,7 @@ const demoSongs: Song[] = [
     bpm: '108bpm',
     nextShow: { name: 'Toys 4 Tots', date: 'Dec 8th, 2025' },
     initials: 'mb',
-    avatarColor: '#8b5cf6'
+    avatarColor: '#8b5cf6',
   },
   {
     id: '3',
@@ -55,7 +64,7 @@ const demoSongs: Song[] = [
     bpm: '150bpm',
     nextShow: { name: 'Toys 4 Tots', date: 'Dec 8th, 2025' },
     initials: 'nr',
-    avatarColor: '#ec4899'
+    avatarColor: '#ec4899',
   },
   {
     id: '4',
@@ -67,8 +76,8 @@ const demoSongs: Song[] = [
     bpm: '175bpm',
     nextShow: { name: 'Toys 4 Tots', date: 'Dec 8th, 2025' },
     initials: 'mw',
-    avatarColor: '#f59e0b'
-  }
+    avatarColor: '#f59e0b',
+  },
 ]
 
 export const NewLayout: React.FC = () => {
@@ -93,12 +102,15 @@ export const NewLayout: React.FC = () => {
 
           <div className="flex items-center gap-3 flex-1 max-w-md">
             <div className="relative flex-1">
-              <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]" />
+              <Search
+                size={20}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+              />
               <input
                 type="text"
                 placeholder="Search songs"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 className="w-full h-10 pl-11 pr-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
@@ -140,7 +152,7 @@ export const NewLayout: React.FC = () => {
 
         {/* Table Rows */}
         <div className="space-y-2">
-          {demoSongs.map((song) => (
+          {demoSongs.map(song => (
             <div
               key={song.id}
               className="flex items-center gap-4 p-4 bg-[#1a1a1a] rounded-xl hover:bg-[#252525] transition-colors cursor-pointer"
@@ -154,19 +166,25 @@ export const NewLayout: React.FC = () => {
                   {song.initials}
                 </div>
                 <div>
-                  <div className="text-white font-semibold text-sm">{song.title}</div>
+                  <div className="text-white font-semibold text-sm">
+                    {song.title}
+                  </div>
                   <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
                 </div>
               </div>
 
               {/* Duration */}
-              <div className="w-[100px] text-[#a0a0a0] text-sm">{song.duration}</div>
+              <div className="w-[100px] text-[#a0a0a0] text-sm">
+                {song.duration}
+              </div>
 
               {/* Key */}
               <div className="w-[80px] text-[#a0a0a0] text-sm">{song.key}</div>
 
               {/* Tuning */}
-              <div className="w-[140px] text-[#a0a0a0] text-sm">{song.tuning}</div>
+              <div className="w-[140px] text-[#a0a0a0] text-sm">
+                {song.tuning}
+              </div>
 
               {/* BPM */}
               <div className="w-[100px] text-[#a0a0a0] text-sm">{song.bpm}</div>
@@ -175,11 +193,17 @@ export const NewLayout: React.FC = () => {
               <div className="w-[180px]">
                 {song.nextShow ? (
                   <>
-                    <div className="text-white text-sm">{song.nextShow.name}</div>
-                    <div className="text-[#a0a0a0] text-xs">{song.nextShow.date}</div>
+                    <div className="text-white text-sm">
+                      {song.nextShow.name}
+                    </div>
+                    <div className="text-[#a0a0a0] text-xs">
+                      {song.nextShow.date}
+                    </div>
                   </>
                 ) : (
-                  <div className="text-[#707070] text-sm">No shows scheduled</div>
+                  <div className="text-[#707070] text-sm">
+                    No shows scheduled
+                  </div>
                 )}
               </div>
             </div>
@@ -189,8 +213,11 @@ export const NewLayout: React.FC = () => {
 
       {/* Mobile Card View */}
       <div className="md:hidden space-y-3">
-        {demoSongs.map((song) => (
-          <div key={song.id} className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]">
+        {demoSongs.map(song => (
+          <div
+            key={song.id}
+            className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]"
+          >
             {/* Song Info */}
             <div className="flex items-center gap-3 mb-3">
               <div
@@ -200,7 +227,9 @@ export const NewLayout: React.FC = () => {
                 {song.initials}
               </div>
               <div className="flex-1">
-                <div className="text-white font-semibold text-sm">{song.title}</div>
+                <div className="text-white font-semibold text-sm">
+                  {song.title}
+                </div>
                 <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
               </div>
             </div>
@@ -240,14 +269,19 @@ export const NewLayout: React.FC = () => {
       {/* Demo Banner */}
       <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
         <p className="text-blue-400 text-sm">
-          <strong>Demo Page:</strong> This is a demonstration of the new layout design.
-          The actual Songs page at /songs remains unchanged. Review the design style guide at
-          .claude/specifications/2025-10-22T14:01_design-style-guide.md for full details.
+          <strong>Demo Page:</strong> This is a demonstration of the new layout
+          design. The actual Songs page at /songs remains unchanged. Review the
+          design style guide at
+          .claude/specifications/2025-10-22T14:01_design-style-guide.md for full
+          details.
         </p>
       </div>
 
       {/* New Song Modal */}
-      <NewSongModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <NewSongModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </ModernLayout>
   )
 }

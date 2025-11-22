@@ -10,7 +10,8 @@ import { getRelativeTimeString } from '../../utils/dateHelpers'
  * Provides real-time feedback on pending changes and last sync time.
  */
 export function SyncStatusIndicator() {
-  const { isSyncing, lastSyncTime, pendingCount, isOnline, syncError } = useSyncStatus()
+  const { isSyncing, lastSyncTime, pendingCount, isOnline, syncError } =
+    useSyncStatus()
 
   // Map hook fields to component expectations
   const lastSyncedAt = lastSyncTime
@@ -136,27 +137,29 @@ export function SyncStatusIndicator() {
         )}
 
         {/* Fully Synced State */}
-        {!isSyncing && !error && isOnline && pendingChanges === 0 && lastSyncedAt && (
-          <div className="flex items-center gap-1.5 text-gray-500">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            <span>
-              Synced {getRelativeTimeString(lastSyncedAt)}
-            </span>
-          </div>
-        )}
+        {!isSyncing &&
+          !error &&
+          isOnline &&
+          pendingChanges === 0 &&
+          lastSyncedAt && (
+            <div className="flex items-center gap-1.5 text-gray-500">
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              <span>Synced {getRelativeTimeString(lastSyncedAt)}</span>
+            </div>
+          )}
       </div>
     </div>
   )

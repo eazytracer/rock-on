@@ -61,11 +61,21 @@ export class CastingSuggestionService {
     const suggestions: CastingSuggestion[] = []
 
     for (const memberId of memberIds) {
-      const capability = await memberCapabilityService.getCapability(memberId, bandId, roleType)
+      const capability = await memberCapabilityService.getCapability(
+        memberId,
+        bandId,
+        roleType
+      )
 
       if (capability) {
         // Calculate confidence score based on multiple factors
-        const confidence = await this.calculateConfidence(memberId, roleType, bandId, songId, capability.proficiencyLevel)
+        const confidence = await this.calculateConfidence(
+          memberId,
+          roleType,
+          bandId,
+          songId,
+          capability.proficiencyLevel
+        )
 
         const reason = this.generateReason(capability, roleType)
 
@@ -75,7 +85,7 @@ export class CastingSuggestionService {
           roleType,
           confidence,
           reason,
-          isPrimary: capability.isPrimary
+          isPrimary: capability.isPrimary,
         })
       }
     }
@@ -104,7 +114,10 @@ export class CastingSuggestionService {
     score += historyScore * 0.3
 
     // Factor 3: Primary role bonus (0-0.2 points)
-    const primaryRole = await memberCapabilityService.getPrimaryRole(memberId, bandId)
+    const primaryRole = await memberCapabilityService.getPrimaryRole(
+      memberId,
+      bandId
+    )
     if (primaryRole && primaryRole.roleType === roleType) {
       score += 0.2
     }
@@ -115,10 +128,11 @@ export class CastingSuggestionService {
   /**
    * Get historical performance score from past assignments
    */
-  private async getHistoryScore(memberId: string, roleType: RoleType): Promise<number> {
-    const assignments = await db.songAssignments
-      .where({ memberId })
-      .toArray()
+  private async getHistoryScore(
+    memberId: string,
+    roleType: RoleType
+  ): Promise<number> {
+    const assignments = await db.songAssignments.where({ memberId }).toArray()
 
     let roleCount = 0
     let totalConfidence = 0
@@ -145,11 +159,14 @@ export class CastingSuggestionService {
   /**
    * Generate human-readable reason for suggestion
    */
-  private generateReason(
-    capability: any,
-    _roleType: RoleType
-  ): string {
-    const proficiencyLabels = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Expert']
+  private generateReason(capability: any, _roleType: RoleType): string {
+    const proficiencyLabels = [
+      'Beginner',
+      'Novice',
+      'Intermediate',
+      'Advanced',
+      'Expert',
+    ]
     const proficiency = proficiencyLabels[capability.proficiencyLevel - 1]
 
     if (capability.isPrimary) {
@@ -189,7 +206,10 @@ export class CastingSuggestionService {
       baseRoles.push('vocals_backing')
 
       // Check for keyboard parts
-      if (song.notes?.toLowerCase().includes('piano') || song.notes?.toLowerCase().includes('keys')) {
+      if (
+        song.notes?.toLowerCase().includes('piano') ||
+        song.notes?.toLowerCase().includes('keys')
+      ) {
         baseRoles.push('keys_piano')
       }
     }
@@ -214,7 +234,12 @@ export class CastingSuggestionService {
       .map(m => m.userId)
       .filter(id => id !== excludeMemberId)
 
-    const suggestions = await this.getSuggestionsForRole(roleType, memberIds, bandId, songId)
+    const suggestions = await this.getSuggestionsForRole(
+      roleType,
+      memberIds,
+      bandId,
+      songId
+    )
 
     return suggestions.slice(0, 3) // Return top 3 alternatives
   }
@@ -227,9 +252,7 @@ export class CastingSuggestionService {
     bandId: string,
     contextType: 'acoustic' | 'electric' | 'practice' | 'custom' = 'electric'
   ) {
-    const setlist = await db.setlists
-      .where({ id: setlistId })
-      .first()
+    const setlist = await db.setlists.where({ id: setlistId }).first()
 
     if (!setlist || !setlist.songs) return []
 
@@ -237,10 +260,14 @@ export class CastingSuggestionService {
 
     for (const setlistSong of setlist.songs) {
       const songId = parseInt(setlistSong.songId)
-      const songSuggestions = await this.getSuggestionsForSong(songId, bandId, contextType)
+      const songSuggestions = await this.getSuggestionsForSong(
+        songId,
+        bandId,
+        contextType
+      )
       suggestions.push({
         songId,
-        suggestions: songSuggestions
+        suggestions: songSuggestions,
       })
     }
 
@@ -255,7 +282,11 @@ export class CastingSuggestionService {
     bandId: string,
     contextType: 'acoustic' | 'electric' | 'practice' | 'custom' = 'electric'
   ) {
-    const suggestions = await this.suggestSetlistCasting(setlistId, bandId, contextType)
+    const suggestions = await this.suggestSetlistCasting(
+      setlistId,
+      bandId,
+      contextType
+    )
 
     // Count assignments per member
     const workload: Record<string, number> = {}
@@ -278,7 +309,10 @@ export class CastingSuggestionService {
   /**
    * Detect conflicts in casting (one member assigned to multiple roles they can't handle)
    */
-  async detectConflicts(_songId: number, assignments: CastingSuggestion[]): Promise<string[]> {
+  async detectConflicts(
+    _songId: number,
+    assignments: CastingSuggestion[]
+  ): Promise<string[]> {
     const conflicts: string[] = []
 
     // Check if same member assigned to conflicting roles
@@ -293,8 +327,15 @@ export class CastingSuggestionService {
 
     // Drums + any other physical instrument is usually a conflict
     for (const [memberId, roles] of Object.entries(memberRoles)) {
-      if (roles.includes('drums') && roles.some(r => r.startsWith('guitar') || r === 'bass' || r.startsWith('keys'))) {
-        conflicts.push(`Member ${memberId} assigned to drums and another physical instrument`)
+      if (
+        roles.includes('drums') &&
+        roles.some(
+          r => r.startsWith('guitar') || r === 'bass' || r.startsWith('keys')
+        )
+      ) {
+        conflicts.push(
+          `Member ${memberId} assigned to drums and another physical instrument`
+        )
       }
     }
 

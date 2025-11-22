@@ -32,10 +32,11 @@ export const SongContextTabs: React.FC<SongContextTabsProps> = ({
   availableBands = [],
   personalSongCount = 0,
   bandSongCount = 0,
-  className = ''
+  className = '',
 }) => {
   // Get the active band name
-  const activeBandName = availableBands.find(band => band.id === activeBandId)?.name || 'Band'
+  const activeBandName =
+    availableBands.find(band => band.id === activeBandId)?.name || 'Band'
 
   return (
     <div className={`border-b border-gray-200 ${className}`}>
@@ -114,35 +115,42 @@ export const SongContextTabs: React.FC<SongContextTabsProps> = ({
       </nav>
 
       {/* Band Selector (shown when band context is active and multiple bands available) */}
-      {activeContext === 'band' && availableBands.length > 1 && onBandChange && (
-        <div className="py-3 px-4 bg-gray-50 border-t border-gray-200">
-          <label htmlFor="band-selector" className="block text-sm font-medium text-gray-700 mb-2">
-            Select Band:
-          </label>
-          <select
-            id="band-selector"
-            value={activeBandId || ''}
-            onChange={(e) => onBandChange(e.target.value)}
-            className="block w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          >
-            {availableBands.map((band) => (
-              <option key={band.id} value={band.id}>
-                {band.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {activeContext === 'band' &&
+        availableBands.length > 1 &&
+        onBandChange && (
+          <div className="py-3 px-4 bg-gray-50 border-t border-gray-200">
+            <label
+              htmlFor="band-selector"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Select Band:
+            </label>
+            <select
+              id="band-selector"
+              value={activeBandId || ''}
+              onChange={e => onBandChange(e.target.value)}
+              className="block w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            >
+              {availableBands.map(band => (
+                <option key={band.id} value={band.id}>
+                  {band.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
       {/* Context Description */}
       <div className="py-2 px-4 bg-gray-50 text-xs text-gray-600">
         {activeContext === 'personal' ? (
           <p>
-            Your personal song catalog - songs only you can see and edit for your own practice.
+            Your personal song catalog - songs only you can see and edit for
+            your own practice.
           </p>
         ) : (
           <p>
-            Band songs shared with all members - collaborate on setlists and arrangements together.
+            Band songs shared with all members - collaborate on setlists and
+            arrangements together.
           </p>
         )}
       </div>

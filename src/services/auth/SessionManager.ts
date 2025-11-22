@@ -51,7 +51,7 @@ export class SessionManager {
       userId: session.user.id,
       userName: session.user.name,
       userEmail: session.user.email,
-      savedAt: Date.now()
+      savedAt: Date.now(),
     }
     localStorage.setItem(OFFLINE_SESSION_KEY, JSON.stringify(offlineSession))
   }
@@ -59,7 +59,11 @@ export class SessionManager {
   /**
    * Load offline session
    */
-  static loadOfflineSession(): { userId: string; userName: string; userEmail: string } | null {
+  static loadOfflineSession(): {
+    userId: string
+    userName: string
+    userEmail: string
+  } | null {
     try {
       const offlineData = localStorage.getItem(OFFLINE_SESSION_KEY)
       if (!offlineData) {
@@ -78,7 +82,7 @@ export class SessionManager {
       return {
         userId: offlineSession.userId,
         userName: offlineSession.userName,
-        userEmail: offlineSession.userEmail
+        userEmail: offlineSession.userEmail,
       }
     } catch (error) {
       console.error('Failed to load offline session:', error)
@@ -107,10 +111,13 @@ export class SessionManager {
   /**
    * Extend session expiry
    */
-  static extendSession(session: AuthSession, durationMs: number = 24 * 60 * 60 * 1000): AuthSession {
+  static extendSession(
+    session: AuthSession,
+    durationMs: number = 24 * 60 * 60 * 1000
+  ): AuthSession {
     return {
       ...session,
-      expiresAt: Date.now() + durationMs
+      expiresAt: Date.now() + durationMs,
     }
   }
 

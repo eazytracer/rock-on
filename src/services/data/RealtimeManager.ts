@@ -25,12 +25,12 @@ interface AuditLogEntry {
   record_id: string
   action: 'INSERT' | 'UPDATE' | 'DELETE'
   user_id: string | null
-  user_name: string  // Denormalized user name - always available!
-  changed_at: string  // ISO timestamp
-  old_values: any  // Complete JSONB record before change (NULL for INSERT)
-  new_values: any  // Complete JSONB record after change (NULL for DELETE)
+  user_name: string // Denormalized user name - always available!
+  changed_at: string // ISO timestamp
+  old_values: any // Complete JSONB record before change (NULL for INSERT)
+  new_values: any // Complete JSONB record after change (NULL for DELETE)
   band_id: string
-  client_info?: any  // Optional metadata
+  client_info?: any // Optional metadata
 }
 
 interface PendingToast {
@@ -48,11 +48,27 @@ interface PendingToast {
  * Event types emitted by RealtimeManager
  */
 export type RealtimeEvents = {
-  'songs:changed': { bandId: string; action: 'INSERT' | 'UPDATE' | 'DELETE'; recordId: string }
-  'setlists:changed': { bandId: string; action: 'INSERT' | 'UPDATE' | 'DELETE'; recordId: string }
-  'shows:changed': { bandId: string; action: 'INSERT' | 'UPDATE' | 'DELETE'; recordId: string }
-  'practices:changed': { bandId: string; action: 'INSERT' | 'UPDATE' | 'DELETE'; recordId: string }
-  'toast': { message: string; type: 'info' | 'success' | 'error' }
+  'songs:changed': {
+    bandId: string
+    action: 'INSERT' | 'UPDATE' | 'DELETE'
+    recordId: string
+  }
+  'setlists:changed': {
+    bandId: string
+    action: 'INSERT' | 'UPDATE' | 'DELETE'
+    recordId: string
+  }
+  'shows:changed': {
+    bandId: string
+    action: 'INSERT' | 'UPDATE' | 'DELETE'
+    recordId: string
+  }
+  'practices:changed': {
+    bandId: string
+    action: 'INSERT' | 'UPDATE' | 'DELETE'
+    recordId: string
+  }
+  toast: { message: string; type: 'info' | 'success' | 'error' }
 }
 
 /**
@@ -79,7 +95,7 @@ export class RealtimeManager extends EventEmitter {
   private connected: boolean = false
   private pendingToasts: Map<string, PendingToast> = new Map()
   private toastBatchTimeout: NodeJS.Timeout | null = null
-  private readonly TOAST_BATCH_DELAY = 2000  // 2 seconds
+  private readonly TOAST_BATCH_DELAY = 2000 // 2 seconds
 
   // Connection tracking for diagnostics
   private connectionId: string = crypto.randomUUID()
@@ -89,7 +105,7 @@ export class RealtimeManager extends EventEmitter {
     subscriptionSuccesses: 0,
     subscriptionFailures: 0,
     messagesReceived: 0,
-    lastMessageTime: 0
+    lastMessageTime: 0,
   }
 
   constructor() {
@@ -115,7 +131,7 @@ export class RealtimeManager extends EventEmitter {
       connectionType: (navigator as any).connection?.effectiveType || 'unknown',
       online: navigator.onLine,
       supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     })
   }
 
@@ -160,7 +176,10 @@ export class RealtimeManager extends EventEmitter {
    * Subscribe to audit_log for a specific band
    * This replaces subscribeToBand() which created 4 subscriptions
    */
-  private async subscribeToAuditLog(_userId: string, bandId: string): Promise<void> {
+  private async subscribeToAuditLog(
+    _userId: string,
+    bandId: string
+  ): Promise<void> {
     this.connectionMetrics.subscriptionAttempts++
 
     try {
@@ -168,36 +187,50 @@ export class RealtimeManager extends EventEmitter {
 
       // Check if already subscribed to this band
       if (this.channels.has(channelName)) {
-        console.log(`[RealtimeManager] Already subscribed to ${channelName}, skipping...`)
+        console.log(
+          `[RealtimeManager] Already subscribed to ${channelName}, skipping...`
+        )
         return
       }
 
-      console.log(`[RealtimeManager] Subscribing to audit log for band: ${bandId} (attempt #${this.connectionMetrics.subscriptionAttempts})`)
+      console.log(
+        `[RealtimeManager] Subscribing to audit log for band: ${bandId} (attempt #${this.connectionMetrics.subscriptionAttempts})`
+      )
 
       const channel = this.supabase
         .channel(channelName)
-        .on('postgres_changes', {
-          event: 'INSERT',  // Only INSERT (audit_log is append-only)
-          schema: 'public',
-          table: 'audit_log',
-          filter: `band_id=eq.${bandId}`
-        }, (payload: any) => {
-          // Supabase realtime payload structure: { new, old, eventType, schema, table }
-          this.handleAuditChange(payload).catch(error => {
-            console.error(`Error handling audit change:`, error)
-          })
-        })
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT', // Only INSERT (audit_log is append-only)
+            schema: 'public',
+            table: 'audit_log',
+            filter: `band_id=eq.${bandId}`,
+          },
+          (payload: any) => {
+            // Supabase realtime payload structure: { new, old, eventType, schema, table }
+            this.handleAuditChange(payload).catch(error => {
+              console.error(`Error handling audit change:`, error)
+            })
+          }
+        )
         .subscribe(async (status, err) => {
           if (err) {
             this.connectionMetrics.subscriptionFailures++
             console.error(`❌ Failed to subscribe to ${channelName}:`, err)
-            console.error(`   Connection ID: ${this.connectionId.substring(0, 8)}`)
-            console.error(`   Failures: ${this.connectionMetrics.subscriptionFailures}`)
+            console.error(
+              `   Connection ID: ${this.connectionId.substring(0, 8)}`
+            )
+            console.error(
+              `   Failures: ${this.connectionMetrics.subscriptionFailures}`
+            )
             this.connected = false
           } else if (status === 'SUBSCRIBED') {
             this.connectionMetrics.subscriptionSuccesses++
             console.log(`✅ Subscribed to ${channelName} (audit-first)`)
-            console.log(`   Connection ID: ${this.connectionId.substring(0, 8)}`)
+            console.log(
+              `   Connection ID: ${this.connectionId.substring(0, 8)}`
+            )
             this.connected = true
           } else if (status === 'CHANNEL_ERROR') {
             this.connectionMetrics.subscriptionFailures++
@@ -218,18 +251,37 @@ export class RealtimeManager extends EventEmitter {
    * @deprecated - Use subscribeToAuditLog instead (audit-first approach)
    */
   // @ts-ignore - Intentionally unused
-  private async subscribeToBand(_userId: string, bandId: string): Promise<void> {
+  private async subscribeToBand(
+    _userId: string,
+    bandId: string
+  ): Promise<void> {
     // Subscribe to songs
-    await this.subscribeToTable('songs', bandId, this.handleSongChange.bind(this))
+    await this.subscribeToTable(
+      'songs',
+      bandId,
+      this.handleSongChange.bind(this)
+    )
 
     // Subscribe to setlists
-    await this.subscribeToTable('setlists', bandId, this.handleSetlistChange.bind(this))
+    await this.subscribeToTable(
+      'setlists',
+      bandId,
+      this.handleSetlistChange.bind(this)
+    )
 
     // Subscribe to shows
-    await this.subscribeToTable('shows', bandId, this.handleShowChange.bind(this))
+    await this.subscribeToTable(
+      'shows',
+      bandId,
+      this.handleShowChange.bind(this)
+    )
 
     // Subscribe to practice sessions
-    await this.subscribeToTable('practice_sessions', bandId, this.handlePracticeSessionChange.bind(this))
+    await this.subscribeToTable(
+      'practice_sessions',
+      bandId,
+      this.handlePracticeSessionChange.bind(this)
+    )
   }
 
   /**
@@ -248,16 +300,20 @@ export class RealtimeManager extends EventEmitter {
 
       const channel = this.supabase
         .channel(channelName)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table,
-          filter: `${filterField}=eq.${bandId}`
-        }, (payload: any) => {
-          handler(payload as RealtimePayload).catch(error => {
-            console.error(`Error handling ${table} change:`, error)
-          })
-        })
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table,
+            filter: `${filterField}=eq.${bandId}`,
+          },
+          (payload: any) => {
+            handler(payload as RealtimePayload).catch(error => {
+              console.error(`Error handling ${table} change:`, error)
+            })
+          }
+        )
         .subscribe(async (status, err) => {
           if (err) {
             console.error(`❌ Failed to subscribe to ${channelName}:`, err)
@@ -284,16 +340,24 @@ export class RealtimeManager extends EventEmitter {
     const { eventType, new: newRow, old: oldRow } = payload
 
     if (eventType === 'INSERT' || eventType === 'UPDATE') {
-      console.log(`📡 Received ${eventType} event for song:`, newRow.id, newRow.title)
+      console.log(
+        `📡 Received ${eventType} event for song:`,
+        newRow.id,
+        newRow.title
+      )
 
       // Determine who modified the record (for INSERT, use created_by; for UPDATE, use last_modified_by)
-      const modifiedBy = eventType === 'INSERT'
-        ? newRow.created_by
-        : (newRow.last_modified_by || newRow.created_by)
+      const modifiedBy =
+        eventType === 'INSERT'
+          ? newRow.created_by
+          : newRow.last_modified_by || newRow.created_by
 
       // Skip if current user made this change (avoid redundant refetches and toasts)
       if (modifiedBy === this.currentUserId) {
-        console.log('[RealtimeManager] Skipping own change for song:', newRow.id)
+        console.log(
+          '[RealtimeManager] Skipping own change for song:',
+          newRow.id
+        )
         return
       }
 
@@ -309,7 +373,7 @@ export class RealtimeManager extends EventEmitter {
             artist: string | null
             album: string | null
             key: string | null
-            tempo: number | null  // Supabase column name
+            tempo: number | null // Supabase column name
             duration: number | null
             difficulty: number
             guitar_tuning: string | null
@@ -351,7 +415,7 @@ export class RealtimeManager extends EventEmitter {
           artist: data.artist || '',
           album: data.album || undefined,
           key: data.key || '',
-          bpm: data.tempo || 120,  // Map Supabase 'tempo' to Song 'bpm'
+          bpm: data.tempo || 120, // Map Supabase 'tempo' to Song 'bpm'
           duration: data.duration || 0,
           difficulty: (data.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
           guitarTuning: data.guitar_tuning || undefined,
@@ -362,7 +426,9 @@ export class RealtimeManager extends EventEmitter {
           referenceLinks: data.reference_links || [],
           tags: data.tags || [],
           createdDate: new Date(data.created_date),
-          lastPracticed: data.last_practiced ? new Date(data.last_practiced) : undefined,
+          lastPracticed: data.last_practiced
+            ? new Date(data.last_practiced)
+            : undefined,
           confidenceLevel: data.confidence_level || 1,
           contextType: data.context_type,
           contextId: data.context_id,
@@ -371,7 +437,7 @@ export class RealtimeManager extends EventEmitter {
           songGroupId: data.song_group_id || undefined,
           linkedFromSongId: data.linked_from_song_id || undefined,
           version: data.version || 0,
-          lastModifiedBy: data.last_modified_by || undefined
+          lastModifiedBy: data.last_modified_by || undefined,
         }
 
         // Update or insert into local IndexedDB (upsert)
@@ -382,12 +448,12 @@ export class RealtimeManager extends EventEmitter {
         console.log('[RealtimeManager] Emitting songs:changed event:', {
           bandId: song.contextId,
           action: eventType,
-          recordId: song.id
+          recordId: song.id,
         })
         this.emit('songs:changed', {
           bandId: song.contextId,
           action: eventType,
-          recordId: song.id
+          recordId: song.id,
         })
 
         // Queue toast notification
@@ -406,7 +472,10 @@ export class RealtimeManager extends EventEmitter {
           songTitle = song.title || 'a song'
         }
       } catch (error) {
-        console.warn('[RealtimeManager] Could not fetch song title before delete:', error)
+        console.warn(
+          '[RealtimeManager] Could not fetch song title before delete:',
+          error
+        )
       }
 
       await repository.deleteSong(oldRow.id)
@@ -415,7 +484,7 @@ export class RealtimeManager extends EventEmitter {
       this.emit('songs:changed', {
         bandId: oldRow.context_id,
         action: 'DELETE',
-        recordId: oldRow.id
+        recordId: oldRow.id,
       })
 
       // Show toast for deletion
@@ -427,19 +496,27 @@ export class RealtimeManager extends EventEmitter {
    * Handle setlist changes from Supabase
    */
   private async handleSetlistChange(payload: RealtimePayload): Promise<void> {
-    const { eventType, new: newRow, old: oldRow} = payload
+    const { eventType, new: newRow, old: oldRow } = payload
 
     if (eventType === 'INSERT' || eventType === 'UPDATE') {
-      console.log(`📡 Received ${eventType} event for setlist:`, newRow.id, newRow.name)
+      console.log(
+        `📡 Received ${eventType} event for setlist:`,
+        newRow.id,
+        newRow.name
+      )
 
       // Determine who modified the record (for INSERT, use created_by; for UPDATE, use last_modified_by)
-      const modifiedBy = eventType === 'INSERT'
-        ? newRow.created_by
-        : (newRow.last_modified_by || newRow.created_by)
+      const modifiedBy =
+        eventType === 'INSERT'
+          ? newRow.created_by
+          : newRow.last_modified_by || newRow.created_by
 
       // Skip if current user made this change (avoid redundant refetches and toasts)
       if (modifiedBy === this.currentUserId) {
-        console.log('[RealtimeManager] Skipping own change for setlist:', newRow.id)
+        console.log(
+          '[RealtimeManager] Skipping own change for setlist:',
+          newRow.id
+        )
         return
       }
 
@@ -447,11 +524,11 @@ export class RealtimeManager extends EventEmitter {
         id: newRow.id,
         name: newRow.name,
         bandId: newRow.band_id,
-        items: newRow.items,  // Already JSONB, no conversion needed
+        items: newRow.items, // Already JSONB, no conversion needed
         createdDate: new Date(newRow.created_date),
         lastModified: new Date(newRow.last_modified),
         version: newRow.version,
-        lastModifiedBy: newRow.last_modified_by
+        lastModifiedBy: newRow.last_modified_by,
       }
 
       // Update or insert into local IndexedDB (upsert)
@@ -461,7 +538,7 @@ export class RealtimeManager extends EventEmitter {
       this.emit('setlists:changed', {
         bandId: newRow.band_id,
         action: eventType,
-        recordId: newRow.id
+        recordId: newRow.id,
       })
 
       await this.queueToast(modifiedBy, eventType, 'setlist', newRow.name)
@@ -476,7 +553,10 @@ export class RealtimeManager extends EventEmitter {
           setlistName = setlist.name || 'a setlist'
         }
       } catch (error) {
-        console.warn('[RealtimeManager] Could not fetch setlist name before delete:', error)
+        console.warn(
+          '[RealtimeManager] Could not fetch setlist name before delete:',
+          error
+        )
       }
 
       await repository.deleteSetlist(oldRow.id)
@@ -485,7 +565,7 @@ export class RealtimeManager extends EventEmitter {
       this.emit('setlists:changed', {
         bandId: oldRow.band_id,
         action: 'DELETE',
-        recordId: oldRow.id
+        recordId: oldRow.id,
       })
 
       await this.queueToast(oldRow.created_by, 'DELETE', 'setlist', setlistName)
@@ -499,16 +579,24 @@ export class RealtimeManager extends EventEmitter {
     const { eventType, new: newRow, old: oldRow } = payload
 
     if (eventType === 'INSERT' || eventType === 'UPDATE') {
-      console.log(`📡 Received ${eventType} event for show:`, newRow.id, newRow.name)
+      console.log(
+        `📡 Received ${eventType} event for show:`,
+        newRow.id,
+        newRow.name
+      )
 
       // Determine who modified the record (for INSERT, use created_by; for UPDATE, use last_modified_by)
-      const modifiedBy = eventType === 'INSERT'
-        ? newRow.created_by
-        : (newRow.last_modified_by || newRow.created_by)
+      const modifiedBy =
+        eventType === 'INSERT'
+          ? newRow.created_by
+          : newRow.last_modified_by || newRow.created_by
 
       // Skip if current user made this change (avoid redundant refetches and toasts)
       if (modifiedBy === this.currentUserId) {
-        console.log('[RealtimeManager] Skipping own change for show:', newRow.id)
+        console.log(
+          '[RealtimeManager] Skipping own change for show:',
+          newRow.id
+        )
         return
       }
 
@@ -524,7 +612,7 @@ export class RealtimeManager extends EventEmitter {
         createdDate: new Date(newRow.created_date),
         updatedDate: new Date(newRow.updated_date),
         version: newRow.version,
-        lastModifiedBy: newRow.last_modified_by
+        lastModifiedBy: newRow.last_modified_by,
       }
 
       // Update or insert into local IndexedDB (upsert)
@@ -534,7 +622,7 @@ export class RealtimeManager extends EventEmitter {
       this.emit('shows:changed', {
         bandId: newRow.band_id,
         action: eventType,
-        recordId: newRow.id
+        recordId: newRow.id,
       })
 
       await this.queueToast(modifiedBy, eventType, 'show', newRow.name)
@@ -549,7 +637,10 @@ export class RealtimeManager extends EventEmitter {
           showName = show.name || 'a show'
         }
       } catch (error) {
-        console.warn('[RealtimeManager] Could not fetch show name before delete:', error)
+        console.warn(
+          '[RealtimeManager] Could not fetch show name before delete:',
+          error
+        )
       }
 
       await repository.deleteShow(oldRow.id)
@@ -558,7 +649,7 @@ export class RealtimeManager extends EventEmitter {
       this.emit('shows:changed', {
         bandId: oldRow.band_id,
         action: 'DELETE',
-        recordId: oldRow.id
+        recordId: oldRow.id,
       })
 
       await this.queueToast(oldRow.created_by, 'DELETE', 'show', showName)
@@ -568,20 +659,29 @@ export class RealtimeManager extends EventEmitter {
   /**
    * Handle practice session changes from Supabase
    */
-  private async handlePracticeSessionChange(payload: RealtimePayload): Promise<void> {
+  private async handlePracticeSessionChange(
+    payload: RealtimePayload
+  ): Promise<void> {
     const { eventType, new: newRow, old: oldRow } = payload
 
     if (eventType === 'INSERT' || eventType === 'UPDATE') {
-      console.log(`📡 Received ${eventType} event for practice session:`, newRow.id)
+      console.log(
+        `📡 Received ${eventType} event for practice session:`,
+        newRow.id
+      )
 
       // Determine who modified the record (for INSERT, use created_by; for UPDATE, use last_modified_by)
-      const modifiedBy = eventType === 'INSERT'
-        ? newRow.created_by
-        : (newRow.last_modified_by || newRow.created_by)
+      const modifiedBy =
+        eventType === 'INSERT'
+          ? newRow.created_by
+          : newRow.last_modified_by || newRow.created_by
 
       // Skip if current user made this change (avoid redundant refetches and toasts)
       if (modifiedBy === this.currentUserId) {
-        console.log('[RealtimeManager] Skipping own change for practice session:', newRow.id)
+        console.log(
+          '[RealtimeManager] Skipping own change for practice session:',
+          newRow.id
+        )
         return
       }
 
@@ -594,23 +694,28 @@ export class RealtimeManager extends EventEmitter {
         bandId: newRow.band_id,
         setlistId: newRow.setlist_id,
         notes: newRow.notes,
-        attendees: newRow.attendees || [],  // JSONB field
+        attendees: newRow.attendees || [], // JSONB field
         createdDate: new Date(newRow.created_date),
         version: newRow.version,
-        lastModifiedBy: newRow.last_modified_by
+        lastModifiedBy: newRow.last_modified_by,
       }
 
       // Update or insert into local IndexedDB (upsert)
-      await db.practiceSessions.put({ ...practice, id: newRow.id } as PracticeSession)
+      await db.practiceSessions.put({
+        ...practice,
+        id: newRow.id,
+      } as PracticeSession)
 
       // Emit change event for UI reactivity
       this.emit('practices:changed', {
         bandId: newRow.band_id,
         action: eventType,
-        recordId: newRow.id
+        recordId: newRow.id,
       })
 
-      const displayName = newRow.date ? new Date(newRow.date).toLocaleDateString() : 'Practice'
+      const displayName = newRow.date
+        ? new Date(newRow.date).toLocaleDateString()
+        : 'Practice'
       await this.queueToast(modifiedBy, eventType, 'practice', displayName)
     }
 
@@ -625,7 +730,10 @@ export class RealtimeManager extends EventEmitter {
             : 'a practice'
         }
       } catch (error) {
-        console.warn('[RealtimeManager] Could not fetch practice before delete:', error)
+        console.warn(
+          '[RealtimeManager] Could not fetch practice before delete:',
+          error
+        )
       }
 
       await repository.deletePracticeSession(oldRow.id)
@@ -634,10 +742,15 @@ export class RealtimeManager extends EventEmitter {
       this.emit('practices:changed', {
         bandId: oldRow.band_id,
         action: 'DELETE',
-        recordId: oldRow.id
+        recordId: oldRow.id,
       })
 
-      await this.queueToast(oldRow.created_by, 'DELETE', 'practice', practiceName)
+      await this.queueToast(
+        oldRow.created_by,
+        'DELETE',
+        'practice',
+        practiceName
+      )
     }
   }
 
@@ -658,14 +771,17 @@ export class RealtimeManager extends EventEmitter {
       return
     }
 
-    console.log(`📡 Received audit event (#${this.connectionMetrics.messagesReceived}):`, {
-      connectionId: this.connectionId.substring(0, 8),
-      table: audit.table_name,
-      action: audit.action,
-      user: audit.user_name,
-      recordId: audit.record_id.substring(0, 8),
-      timeSinceStart: Date.now() - this.connectionStartTime
-    })
+    console.log(
+      `📡 Received audit event (#${this.connectionMetrics.messagesReceived}):`,
+      {
+        connectionId: this.connectionId.substring(0, 8),
+        table: audit.table_name,
+        action: audit.action,
+        user: audit.user_name,
+        recordId: audit.record_id.substring(0, 8),
+        timeSinceStart: Date.now() - this.connectionStartTime,
+      }
+    )
 
     // Skip if current user made this change (avoid redundant refetches and toasts)
     if (audit.user_id === this.currentUserId) {
@@ -690,19 +806,28 @@ export class RealtimeManager extends EventEmitter {
       const itemName = this.extractItemName(audit)
 
       // Show toast with ACTUAL user name (not "Someone"!)
-      await this.queueToastFromAudit(audit.user_name, audit.action, audit.table_name, itemName)
+      await this.queueToastFromAudit(
+        audit.user_name,
+        audit.action,
+        audit.table_name,
+        itemName
+      )
 
       // Emit change event for UI reactivity
       // Map table_name to event name (practice_sessions → practices)
-      const eventName = audit.table_name === 'practice_sessions'
-        ? 'practices:changed'
-        : `${audit.table_name}:changed`
+      const eventName =
+        audit.table_name === 'practice_sessions'
+          ? 'practices:changed'
+          : `${audit.table_name}:changed`
 
-      console.log(`[RealtimeManager] Emitting ${eventName} event, listeners:`, this.listenerCount(eventName))
+      console.log(
+        `[RealtimeManager] Emitting ${eventName} event, listeners:`,
+        this.listenerCount(eventName)
+      )
       this.emit(eventName, {
         bandId: audit.band_id,
         action: audit.action,
-        recordId: audit.record_id
+        recordId: audit.record_id,
       })
     } catch (error) {
       console.error('[RealtimeManager] Error processing audit change:', error)
@@ -717,7 +842,9 @@ export class RealtimeManager extends EventEmitter {
     const { table_name, new_values } = audit
 
     if (!new_values) {
-      console.warn('[RealtimeManager] No new_values in audit entry for INSERT/UPDATE')
+      console.warn(
+        '[RealtimeManager] No new_values in audit entry for INSERT/UPDATE'
+      )
       return
     }
 
@@ -784,7 +911,9 @@ export class RealtimeManager extends EventEmitter {
         break
 
       default:
-        console.warn(`[RealtimeManager] Unknown table_name for DELETE: ${table_name}`)
+        console.warn(
+          `[RealtimeManager] Unknown table_name for DELETE: ${table_name}`
+        )
     }
   }
 
@@ -797,7 +926,9 @@ export class RealtimeManager extends EventEmitter {
     }
     const parsed = new Date(dateString)
     if (isNaN(parsed.getTime())) {
-      console.warn(`[RealtimeManager] Invalid date: ${dateString}, using default`)
+      console.warn(
+        `[RealtimeManager] Invalid date: ${dateString}, using default`
+      )
       return defaultDate || new Date()
     }
     return parsed
@@ -814,7 +945,7 @@ export class RealtimeManager extends EventEmitter {
       artist: jsonb.artist || '',
       album: jsonb.album || undefined,
       key: jsonb.key || '',
-      bpm: jsonb.tempo || 120,  // tempo → bpm
+      bpm: jsonb.tempo || 120, // tempo → bpm
       duration: jsonb.duration || 0,
       difficulty: (jsonb.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
       guitarTuning: jsonb.guitar_tuning || undefined,
@@ -825,7 +956,9 @@ export class RealtimeManager extends EventEmitter {
       referenceLinks: jsonb.reference_links || [],
       tags: jsonb.tags || [],
       createdDate: this.parseDate(jsonb.created_date),
-      lastPracticed: jsonb.last_practiced ? this.parseDate(jsonb.last_practiced) : undefined,
+      lastPracticed: jsonb.last_practiced
+        ? this.parseDate(jsonb.last_practiced)
+        : undefined,
       confidenceLevel: jsonb.confidence_level || 1,
       contextType: jsonb.context_type,
       contextId: jsonb.context_id,
@@ -834,7 +967,7 @@ export class RealtimeManager extends EventEmitter {
       songGroupId: jsonb.song_group_id || undefined,
       linkedFromSongId: jsonb.linked_from_song_id || undefined,
       version: jsonb.version || 0,
-      lastModifiedBy: jsonb.last_modified_by || undefined
+      lastModifiedBy: jsonb.last_modified_by || undefined,
     }
   }
 
@@ -846,13 +979,13 @@ export class RealtimeManager extends EventEmitter {
       id: jsonb.id,
       name: jsonb.name || '',
       bandId: jsonb.band_id,
-      items: jsonb.items || [],  // Already JSONB
-      totalDuration: 0,  // Calculate from items if needed
+      items: jsonb.items || [], // Already JSONB
+      totalDuration: 0, // Calculate from items if needed
       status: jsonb.status || 'draft',
       createdDate: this.parseDate(jsonb.created_date),
       lastModified: this.parseDate(jsonb.last_modified),
       version: jsonb.version || 0,
-      lastModifiedBy: jsonb.last_modified_by || undefined
+      lastModifiedBy: jsonb.last_modified_by || undefined,
     }
   }
 
@@ -873,7 +1006,7 @@ export class RealtimeManager extends EventEmitter {
       createdDate: this.parseDate(jsonb.created_date),
       updatedDate: this.parseDate(jsonb.updated_date),
       version: jsonb.version || 0,
-      lastModifiedBy: jsonb.last_modified_by || undefined
+      lastModifiedBy: jsonb.last_modified_by || undefined,
     }
   }
 
@@ -884,12 +1017,14 @@ export class RealtimeManager extends EventEmitter {
     return {
       id: jsonb.id,
       scheduledDate: this.parseDate(jsonb.scheduled_date),
-      startTime: jsonb.start_time ? this.parseDate(jsonb.start_time) : undefined,
+      startTime: jsonb.start_time
+        ? this.parseDate(jsonb.start_time)
+        : undefined,
       endTime: jsonb.end_time ? this.parseDate(jsonb.end_time) : undefined,
       duration: jsonb.duration || 120,
       location: jsonb.location || '',
       type: jsonb.type || 'rehearsal',
-      status: 'scheduled',  // Default status for IndexedDB model
+      status: 'scheduled', // Default status for IndexedDB model
       objectives: jsonb.objectives || [],
       completedObjectives: jsonb.completed_objectives || [],
       songs: jsonb.songs || [],
@@ -899,7 +1034,7 @@ export class RealtimeManager extends EventEmitter {
       attendees: jsonb.attendees || [],
       createdDate: this.parseDate(jsonb.created_date),
       version: jsonb.version || 0,
-      lastModifiedBy: jsonb.last_modified_by || undefined
+      lastModifiedBy: jsonb.last_modified_by || undefined,
     }
   }
 
@@ -908,7 +1043,8 @@ export class RealtimeManager extends EventEmitter {
    */
   private extractItemName(audit: AuditLogEntry): string {
     // For DELETE, use old_values; for INSERT/UPDATE, use new_values
-    const values = audit.action === 'DELETE' ? audit.old_values : audit.new_values
+    const values =
+      audit.action === 'DELETE' ? audit.old_values : audit.new_values
 
     if (!values) {
       return 'item'
@@ -939,10 +1075,10 @@ export class RealtimeManager extends EventEmitter {
     let pending = this.pendingToasts.get(userName)
     if (!pending) {
       pending = {
-        userId: userName,  // Use userName as key
+        userId: userName, // Use userName as key
         userName,
         changes: [],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
       this.pendingToasts.set(userName, pending)
     }
@@ -971,12 +1107,14 @@ export class RealtimeManager extends EventEmitter {
   ): Promise<void> {
     // Get user's display name
     let userName = 'Someone'
-    let effectiveUserId = userId || 'unknown'  // Use 'unknown' as key if userId is empty
+    let effectiveUserId = userId || 'unknown' // Use 'unknown' as key if userId is empty
 
     try {
       // Validate userId before querying (avoid Dexie "No key or key range specified" error)
       if (!userId) {
-        console.warn('[RealtimeManager] queueToast called with empty userId, using default name')
+        console.warn(
+          '[RealtimeManager] queueToast called with empty userId, using default name'
+        )
       } else {
         const user = await db.users.get(userId)
         if (user) {
@@ -997,7 +1135,7 @@ export class RealtimeManager extends EventEmitter {
         userId: effectiveUserId,
         userName,
         changes: [],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
       this.pendingToasts.set(effectiveUserId, pending)
     }
@@ -1024,9 +1162,12 @@ export class RealtimeManager extends EventEmitter {
       if (changes.length === 1) {
         // Single change - detailed message
         const change = changes[0]
-        const action = change.type === 'INSERT' ? 'added' :
-                      change.type === 'UPDATE' ? 'updated' :
-                      'deleted'
+        const action =
+          change.type === 'INSERT'
+            ? 'added'
+            : change.type === 'UPDATE'
+              ? 'updated'
+              : 'deleted'
         const message = `${userName} ${action} "${change.itemName}"`
 
         this.showToast(message, 'info')
@@ -1047,7 +1188,10 @@ export class RealtimeManager extends EventEmitter {
    */
   private showToast(message: string, type: 'success' | 'error' | 'info'): void {
     // Emit toast event for UI to handle
-    console.log('[RealtimeManager] Emitting toast event, listeners:', this.listenerCount('toast'))
+    console.log(
+      '[RealtimeManager] Emitting toast event, listeners:',
+      this.listenerCount('toast')
+    )
     this.emit('toast', { message, type })
 
     // Also log for debugging
@@ -1089,24 +1233,31 @@ export class RealtimeManager extends EventEmitter {
   getDiagnostics() {
     return {
       connectionId: this.connectionId,
-      uptime: this.connectionStartTime ? Date.now() - this.connectionStartTime : 0,
+      uptime: this.connectionStartTime
+        ? Date.now() - this.connectionStartTime
+        : 0,
       metrics: {
         ...this.connectionMetrics,
-        messagesPerMinute: this.connectionMetrics.messagesReceived > 0 && this.connectionStartTime > 0
-          ? (this.connectionMetrics.messagesReceived / ((Date.now() - this.connectionStartTime) / 60000)).toFixed(2)
-          : '0.00'
+        messagesPerMinute:
+          this.connectionMetrics.messagesReceived > 0 &&
+          this.connectionStartTime > 0
+            ? (
+                this.connectionMetrics.messagesReceived /
+                ((Date.now() - this.connectionStartTime) / 60000)
+              ).toFixed(2)
+            : '0.00',
       },
       channels: {
         count: this.channels.size,
-        names: Array.from(this.channels.keys())
+        names: Array.from(this.channels.keys()),
       },
       state: {
         connected: this.connected,
         currentUserId: this.currentUserId?.substring(0, 8) + '...',
-        isOnline: navigator.onLine
+        isOnline: navigator.onLine,
       },
       pendingToasts: this.pendingToasts.size,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     }
   }
 

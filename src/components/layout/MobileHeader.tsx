@@ -12,7 +12,7 @@ interface MobileHeaderProps {
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onMenuClick,
   bandName = 'iPod Shuffle',
-  userEmail = 'eric@example.com'
+  userEmail = 'eric@example.com',
 }) => {
   // PHASE 2: Get sync status for connection indicator
   const { isOnline, isSyncing } = useSyncStatus()
@@ -31,19 +31,28 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-sm">R</span>
         </div>
-        <h1 className="text-white font-semibold text-base" data-testid="sidebar-band-name">{bandName}</h1>
+        <h1
+          className="text-white font-semibold text-base"
+          data-testid="sidebar-band-name"
+        >
+          {bandName}
+        </h1>
       </div>
 
       {/* PHASE 2: User & Connection Status (Right Side) */}
       <div className="ml-auto flex flex-col items-end gap-0.5">
-        <p className="text-[#a0a0a0] text-xs truncate max-w-[140px]">{userEmail}</p>
+        <p className="text-[#a0a0a0] text-xs truncate max-w-[140px]">
+          {userEmail}
+        </p>
         <div className="flex items-center gap-1.5">
           {isOnline ? (
             <Wifi size={12} className="text-green-500" />
           ) : (
             <WifiOff size={12} className="text-red-500" />
           )}
-          <span className={`text-xs font-medium ${isOnline ? 'text-green-500' : 'text-red-500'}`}>
+          <span
+            className={`text-xs font-medium ${isOnline ? 'text-green-500' : 'text-red-500'}`}
+          >
             {isOnline ? 'Connected' : 'Offline'}
           </span>
           {isSyncing && (
