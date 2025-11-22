@@ -14,7 +14,9 @@ global.fetch = vi.fn((url, _options) => {
   if (typeof url === 'string' && url.includes('supabase')) {
     // Parse URL to detect .maybeSingle() or .single() queries (limit=1 in query params)
     const urlObj = new URL(url)
-    const isSingleQuery = urlObj.searchParams.has('limit') && urlObj.searchParams.get('limit') === '1'
+    const isSingleQuery =
+      urlObj.searchParams.has('limit') &&
+      urlObj.searchParams.get('limit') === '1'
 
     const mockResponse = {
       ok: true,
@@ -23,7 +25,8 @@ global.fetch = vi.fn((url, _options) => {
       headers: new Headers({ 'content-type': 'application/json' }),
       // Return null for single item queries (.maybeSingle()), empty array for list queries
       json: async () => ({ data: isSingleQuery ? null : [], error: null }),
-      text: async () => JSON.stringify({ data: isSingleQuery ? null : [], error: null }),
+      text: async () =>
+        JSON.stringify({ data: isSingleQuery ? null : [], error: null }),
       blob: async () => new Blob(),
       arrayBuffer: async () => new ArrayBuffer(0),
       clone: () => mockResponse,
