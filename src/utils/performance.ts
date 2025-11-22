@@ -1,4 +1,5 @@
 // Performance monitoring utilities for Rock On! platform
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface PerformanceMetrics {
   loadTime: number

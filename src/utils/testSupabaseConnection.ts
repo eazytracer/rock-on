@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getSupabaseClient } from '../services/supabase/client'
 import { config } from '../config/appMode'
 

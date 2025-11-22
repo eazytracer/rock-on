@@ -1,4 +1,5 @@
 // Mobile performance testing and optimization utilities
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface MobilePerformanceMetrics {
   batteryLevel?: number
