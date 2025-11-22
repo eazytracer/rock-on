@@ -9,7 +9,7 @@ import {
 } from '../../tests/helpers/testSupabase'
 
 // Mock fetch for Supabase calls in tests
-global.fetch = vi.fn((url, options) => {
+global.fetch = vi.fn((url, _options) => {
   // Mock successful empty responses for Supabase endpoints
   if (typeof url === 'string' && url.includes('supabase')) {
     const mockResponse = {
