@@ -303,6 +303,8 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
 
     vi.spyOn(remoteRepo, 'getShows').mockResolvedValue([])
 
+    vi.spyOn(remoteRepo, 'getInviteCodes').mockResolvedValue([])
+
     syncEngine = new SyncEngine(localRepo, remoteRepo)
   })
 
@@ -432,6 +434,8 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
 
     vi.spyOn(remoteRepo, 'getSetlists').mockResolvedValue([])
     vi.spyOn(remoteRepo, 'getPracticeSessions').mockResolvedValue([])
+    vi.spyOn(remoteRepo, 'getShows').mockResolvedValue([])
+    vi.spyOn(remoteRepo, 'getInviteCodes').mockResolvedValue([])
 
     syncEngine = new SyncEngine(localRepo, remoteRepo)
   })
