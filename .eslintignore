@@ -1,0 +1,22 @@
+# Build outputs
+dist/
+coverage/
+build/
+
+# Dependencies
+node_modules/
+
+# Test files
+tests/
+
+# Scripts and utilities
+scripts/
+
+# Environment files
+.env*
+!.env.example
+
+# Misc
+*.config.js
+*.config.cjs
+vite.config.ts

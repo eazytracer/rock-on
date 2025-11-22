@@ -250,7 +250,7 @@ export class RealtimeManager extends EventEmitter {
    * Subscribe to all table channels for a specific band
    * @deprecated - Use subscribeToAuditLog instead (audit-first approach)
    */
-  // @ts-ignore - Intentionally unused
+  // @ts-expect-error - Intentionally unused
   private async subscribeToBand(
     _userId: string,
     bandId: string
@@ -1107,7 +1107,7 @@ export class RealtimeManager extends EventEmitter {
   ): Promise<void> {
     // Get user's display name
     let userName = 'Someone'
-    let effectiveUserId = userId || 'unknown' // Use 'unknown' as key if userId is empty
+    const effectiveUserId = userId || 'unknown' // Use 'unknown' as key if userId is empty
 
     try {
       // Validate userId before querying (avoid Dexie "No key or key range specified" error)

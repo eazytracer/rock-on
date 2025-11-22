@@ -71,7 +71,7 @@ interface SetlistSong extends Song {
   position: number
 }
 
-// @ts-ignore - Intentionally unused
+// @ts-expect-error - Intentionally unused
 // Reserved for future use
 interface _SetlistWithSongs {
   id: string
@@ -1488,7 +1488,7 @@ function getStatusConfig(status: Show['status']) {
   }
 }
 
-// @ts-ignore - Intentionally unused
+// @ts-expect-error - Intentionally unused
 // Reserved for future payment tracking feature
 function _getPaymentStatusConfig(status?: 'unpaid' | 'partial' | 'paid') {
   switch (status) {

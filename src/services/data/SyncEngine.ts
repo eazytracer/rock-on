@@ -355,7 +355,7 @@ export class SyncEngine {
   }
 
   // ========== PHASE 4: ONLINE/OFFLINE HANDLING ==========
-  // @ts-ignore - Intentionally unused
+  // @ts-expect-error - Intentionally unused
 
   private startPeriodicSync(): void {
     this.syncInterval = window.setInterval(() => {

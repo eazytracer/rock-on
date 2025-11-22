@@ -133,7 +133,7 @@ export class LocalRepository implements IDataRepository {
   // ========== BANDS ==========
 
   async getBands(filter?: BandFilter): Promise<Band[]> {
-    let query = db.bands.toCollection()
+    const query = db.bands.toCollection()
 
     // isActive filter not supported in current Band model
     // Will be added when needed

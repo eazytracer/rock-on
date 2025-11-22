@@ -140,6 +140,6 @@ export function cleanupRealtimeDebug(): void {
   }
 
   window.__realtimeManager = undefined
-  // @ts-ignore - Allow cleanup of debug function
+  // @ts-expect-error - Allow cleanup of debug function
   window.debugRealtime = undefined
 }

@@ -406,7 +406,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setCurrentUserProfile(profile || null)
 
       // Load all bands user is a member of from IndexedDB
-      let memberships = await db.bandMemberships
+      const memberships = await db.bandMemberships
         .where('userId')
         .equals(userId)
         .filter(m => m.status === 'active')

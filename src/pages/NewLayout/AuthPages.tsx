@@ -1104,7 +1104,7 @@ interface UserMenuDropdownProps {
 }
 
 // Component reserved for future use
-// @ts-ignore - Intentionally unused
+// @ts-expect-error - Intentionally unused
 const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({
   user,
   onAccountSettings,
@@ -1202,7 +1202,7 @@ interface BandSelectorDropdownProps {
 }
 
 // Component reserved for future use
-// @ts-ignore - Intentionally unused
+// @ts-expect-error - Intentionally unused
 const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
   currentBand,
   bands,
@@ -1341,7 +1341,7 @@ interface CreateBandModalProps {
 }
 
 // Component reserved for future use
-// @ts-ignore - Intentionally unused
+// @ts-expect-error - Intentionally unused
 const _CreateBandModal: React.FC<CreateBandModalProps> = ({
   isOpen,
   onClose,
@@ -1459,7 +1459,7 @@ interface JoinBandModalProps {
 }
 
 // Component reserved for future use
-// @ts-ignore - Intentionally unused
+// @ts-expect-error - Intentionally unused
 const _JoinBandModal: React.FC<JoinBandModalProps> = ({
   isOpen,
   onClose,

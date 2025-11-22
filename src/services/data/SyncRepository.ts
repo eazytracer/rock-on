@@ -555,7 +555,7 @@ export class SyncRepository implements IDataRepository {
    * Emit generic change event for hooks
    * Reserved for future use - currently handled by sync status updates
    */
-  // @ts-ignore - Intentionally unused
+  // @ts-expect-error - Intentionally unused
   private _emitChangeEvent(): void {
     // Call all callbacks without arguments for 'changed' event
     this.syncStatusCallbacks.forEach(callback => {
