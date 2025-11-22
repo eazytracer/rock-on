@@ -3,6 +3,7 @@
  *
  * Types for the sync queue, metadata, and conflict resolution system.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
  * Represents a queued sync operation

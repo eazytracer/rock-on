@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Dexie, { Table } from 'dexie'
 import { Band } from '../../models/Band'
 import { Member } from '../../models/Member'

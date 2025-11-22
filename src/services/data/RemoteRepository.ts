@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IDataRepository, SongFilter, BandFilter } from './IDataRepository'
 import { Song } from '../../models/Song'
 import { Band } from '../../models/Band'

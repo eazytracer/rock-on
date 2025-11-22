@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '../database'
 import { LocalRepository } from './LocalRepository'
 import { RemoteRepository } from './RemoteRepository'

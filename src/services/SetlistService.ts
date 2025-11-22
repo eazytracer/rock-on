@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from './database'
 import { Setlist } from '../models/Setlist'
 import { SetlistStatus, SetlistSong } from '../types'

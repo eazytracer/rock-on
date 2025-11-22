@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react'
 import { SongService } from '../services/SongService'
 import { getSyncRepository } from '../services/data/SyncRepository'

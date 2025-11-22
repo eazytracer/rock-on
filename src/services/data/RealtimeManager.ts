@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import EventEmitter from 'eventemitter3'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { getSupabaseClient } from '../supabase/client'

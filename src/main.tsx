@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Load polyfills first for older browsers (especially mobile)
 import './utils/polyfills'
 

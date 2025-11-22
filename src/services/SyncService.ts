@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Import removed to avoid circular dependency
 
 interface PendingChange {

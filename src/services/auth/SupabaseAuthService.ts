@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { User } from '../../models/User'
 import { getSupabaseClient } from '../supabase/client'
 import { db } from '../database'

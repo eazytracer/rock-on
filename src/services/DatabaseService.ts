@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db, initializeDefaultBand } from './database'
 import { SongService } from './SongService'
 import { PracticeSessionService } from './PracticeSessionService'

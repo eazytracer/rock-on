@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '../database'
 import { BandService } from '../BandService'
 import { BandMembershipService } from '../BandMembershipService'

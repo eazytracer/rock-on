@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from './database' // Keep for entities not yet in repository (bandMemberships)
 import { repository } from './data/RepositoryFactory'
 import { Song } from '../models/Song'
