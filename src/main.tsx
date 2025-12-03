@@ -11,6 +11,7 @@ import { initializeMobilePerformance } from './utils/mobilePerformance'
 import './utils/testSupabaseConnection'
 import './utils/debugSync'
 import { BUILD_ID } from './config/buildInfo'
+import { logger } from './utils/logger'
 
 // Register Service Worker for offline functionality
 if ('serviceWorker' in navigator && import.meta.env?.PROD) {
@@ -18,7 +19,7 @@ if ('serviceWorker' in navigator && import.meta.env?.PROD) {
     navigator.serviceWorker
       .register('/sw.js')
       .then(registration => {
-        console.log('SW registered:', registration)
+        logger.info('SW registered:', registration)
 
         // Check for updates
         registration.addEventListener('updatefound', () => {
@@ -40,14 +41,14 @@ if ('serviceWorker' in navigator && import.meta.env?.PROD) {
         })
       })
       .catch(error => {
-        console.log('SW registration failed:', error)
+        logger.error('SW registration failed:', error)
       })
   })
 
   // Listen for SW messages
   navigator.serviceWorker.addEventListener('message', event => {
     if (event.data && event.data.type === 'SYNC_COMPLETE') {
-      console.log(`Data sync completed for ${event.data.dataType}`)
+      logger.debug(`Data sync completed for ${event.data.dataType}`)
       // Trigger UI update if needed
       window.dispatchEvent(
         new CustomEvent('sw-sync-complete', {
@@ -68,14 +69,14 @@ initializeMobilePerformance()
 
 // Seed database with MVP data and then render app
 async function initializeApp() {
-  console.log('🚀 Initializing app...')
-  console.log(`📦 BUILD: ${BUILD_ID}`)
-  console.log('📱 Browser:', {
+  logger.info('🚀 Initializing app...')
+  logger.info(`📦 BUILD: ${BUILD_ID}`)
+  logger.debug('📱 Browser:', {
     userAgent: navigator.userAgent,
     platform: navigator.platform,
     hasCryptoUUID: typeof crypto.randomUUID === 'function',
   })
-  console.log('📍 Environment:', {
+  logger.debug('📍 Environment:', {
     DEV: import.meta.env.DEV,
     MODE: import.meta.env.MODE,
     PROD: import.meta.env.PROD,
@@ -83,16 +84,16 @@ async function initializeApp() {
 
   // IndexedDB is populated via sync from Supabase on first login
   // See: .claude/specifications/2025-10-27T18:16_test-data-and-seeding-specification.md
-  console.log('📦 IndexedDB will be populated from Supabase on first login')
+  logger.debug('📦 IndexedDB will be populated from Supabase on first login')
 
   // Render the app
-  console.log('🎨 Rendering React app...')
+  logger.info('🎨 Rendering React app...')
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <App />
     </React.StrictMode>
   )
-  console.log('✅ App rendered')
+  logger.info('✅ App rendered')
 }
 
 // Start the app initialization

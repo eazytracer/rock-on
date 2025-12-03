@@ -3,6 +3,9 @@ import { db } from '../database'
 import { LocalRepository } from './LocalRepository'
 import { RemoteRepository } from './RemoteRepository'
 import { SyncQueueItem, SyncStatus, SyncStatusListener } from './syncTypes'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('SyncEngine')
 
 export class SyncEngine {
   private syncInterval: number | null = null
@@ -28,7 +31,7 @@ export class SyncEngine {
 
     this.setupOnlineListener()
 
-    console.log('✅ SyncEngine initialized (real-time mode)')
+    log.info('✅ SyncEngine initialized (real-time mode)')
   }
 
   /**
@@ -162,7 +165,7 @@ export class SyncEngine {
       // 3. Update last sync time
       await this.updateLastSyncTime()
     } catch (error) {
-      console.error('Sync failed:', error)
+      log.error('Sync failed:', error)
     } finally {
       this.isSyncing = false
       this.notifyListeners()
@@ -188,7 +191,7 @@ export class SyncEngine {
         // Remove from queue on success
         await db.syncQueue.delete(item.id!)
       } catch (error) {
-        console.error(`Failed to sync ${item.table}:`, error)
+        log.error(`Failed to sync ${item.table}:`, error)
 
         // Increment retry count
         const currentRetries = item.retryCount || item.retries || 0
@@ -419,7 +422,7 @@ export class SyncEngine {
    * Called once on first login or when local database is empty
    */
   async performInitialSync(userId: string): Promise<void> {
-    console.log('🔄 Starting initial sync for user:', userId)
+    log.info('🔄 Starting initial sync for user:', userId)
 
     // Set current user for future periodic syncs
     this.setCurrentUser(userId)

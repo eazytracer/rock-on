@@ -51,6 +51,11 @@ const PracticesPage = lazy(() =>
     default: module.PracticesPage,
   }))
 )
+const SettingsPage = lazy(() =>
+  import('./pages/NewLayout/SettingsPage').then(module => ({
+    default: module.SettingsPage,
+  }))
+)
 
 // Dev-only pages
 const DevDashboard = lazy(() =>
@@ -172,6 +177,14 @@ const AppContent: React.FC = () => {
             element={
               <ProtectedRoute>
                 <BandMembersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

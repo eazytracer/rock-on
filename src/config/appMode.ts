@@ -72,12 +72,15 @@ export function getConfig(): AppConfig {
 
 export const config = getConfig()
 
-// Log mode on initialization
+// Log mode on initialization (only in development - production uses logger)
 if (typeof window !== 'undefined') {
-  console.log(`🚀 Rock On running in ${config.mode} mode`)
-  if (config.isLocal) {
-    console.log('📦 Using local-only mode (Dexie + Mock Auth)')
-  } else {
-    console.log('☁️  Using production mode (Dexie + Supabase sync)')
-  }
+  // Import logger dynamically to avoid circular dependencies
+  import('../utils/logger').then(({ logger }) => {
+    logger.info(`🚀 Rock On running in ${config.mode} mode`)
+    if (config.isLocal) {
+      logger.info('📦 Using local-only mode (Dexie + Mock Auth)')
+    } else {
+      logger.info('☁️  Using production mode (Dexie + Supabase sync)')
+    }
+  })
 }

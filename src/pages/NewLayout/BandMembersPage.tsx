@@ -1473,15 +1473,6 @@ export const BandMembersPage: React.FC = () => {
           <p className="text-white text-sm">{toastMessage}</p>
         </div>
       )}
-
-      {/* DATABASE INTEGRATION: Updated info banner */}
-      <div className="mt-8 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-        <p className="text-green-400 text-sm">
-          <strong>Database Integrated:</strong> This page is now connected to
-          the database. All changes are persisted. Current role:{' '}
-          {currentUserRole}. Band ID: {currentBandId.substring(0, 8)}...
-        </p>
-      </div>
     </ModernLayout>
   )
 }
