@@ -24,7 +24,7 @@ import type { SetlistItem } from '../types'
  *
  * Includes:
  * - 3-4 test users with profiles
- * - 1 band ("iPod Shuffle") with memberships
+ * - 1 band ("Demo Band") with memberships
  * - 15-20 songs across different decades/styles
  * - 3-4 setlists with breaks and sections
  * - 3-5 shows with metadata
@@ -69,7 +69,7 @@ export async function seedMvpData() {
     await db.users.bulkAdd([
       {
         id: ericId,
-        email: 'eric@ipodshuffle.com',
+        email: 'eric@testband.demo',
         name: 'Eric Johnson',
         authProvider: 'mock',
         createdDate: new Date('2024-01-15'),
@@ -77,7 +77,7 @@ export async function seedMvpData() {
       },
       {
         id: mikeId,
-        email: 'mike@ipodshuffle.com',
+        email: 'mike@testband.demo',
         name: 'Mike Thompson',
         authProvider: 'mock',
         createdDate: new Date('2024-01-20'),
@@ -85,7 +85,7 @@ export async function seedMvpData() {
       },
       {
         id: sarahId,
-        email: 'sarah@ipodshuffle.com',
+        email: 'sarah@testband.demo',
         name: 'Sarah Chen',
         authProvider: 'mock',
         createdDate: new Date('2024-02-01'),
@@ -131,8 +131,8 @@ export async function seedMvpData() {
     const bandId = crypto.randomUUID()
     await db.bands.add({
       id: bandId,
-      name: 'iPod Shuffle',
-      description: "A rockin' cover band playing hits from every decade",
+      name: 'Demo Band',
+      description: 'A demo band for testing Rock-On features',
       createdDate: new Date('2024-01-15'),
       memberIds: [ericId, mikeId, sarahId],
       settings: {

@@ -33,7 +33,7 @@ BEGIN
     (
       v_eric_id,
       '00000000-0000-0000-0000-000000000000',
-      'eric@ipodshuffle.com',
+      'eric@testband.demo',
       crypt('test123', gen_salt('bf')),
       NOW(), NOW(), NOW(),
       '{"provider":"email","providers":["email"]}'::jsonb,
@@ -46,7 +46,7 @@ BEGIN
     (
       v_mike_id,
       '00000000-0000-0000-0000-000000000000',
-      'mike@ipodshuffle.com',
+      'mike@testband.demo',
       crypt('test123', gen_salt('bf')),
       NOW(), NOW(), NOW(),
       '{"provider":"email","providers":["email"]}'::jsonb,
@@ -59,7 +59,7 @@ BEGIN
     (
       v_sarah_id,
       '00000000-0000-0000-0000-000000000000',
-      'sarah@ipodshuffle.com',
+      'sarah@testband.demo',
       crypt('test123', gen_salt('bf')),
       NOW(), NOW(), NOW(),
       '{"provider":"email","providers":["email"]}'::jsonb,
@@ -77,9 +77,9 @@ BEGIN
   RAISE NOTICE '👤 Seeding public.users...';
 
   INSERT INTO public.users (id, email, name, created_date, auth_provider) VALUES
-    (v_eric_id, 'eric@ipodshuffle.com', 'Eric Johnson', '2024-01-15', 'email'),
-    (v_mike_id, 'mike@ipodshuffle.com', 'Mike Thompson', '2024-01-20', 'email'),
-    (v_sarah_id, 'sarah@ipodshuffle.com', 'Sarah Chen', '2024-02-01', 'email')
+    (v_eric_id, 'eric@testband.demo', 'Eric Johnson', '2024-01-15', 'email'),
+    (v_mike_id, 'mike@testband.demo', 'Mike Thompson', '2024-01-20', 'email'),
+    (v_sarah_id, 'sarah@testband.demo', 'Sarah Chen', '2024-02-01', 'email')
   ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
   -- ========================================
@@ -103,8 +103,8 @@ BEGIN
     settings
   ) VALUES (
     v_band_id,
-    'iPod Shuffle',
-    'A rockin'' cover band playing hits from every decade',
+    'Demo Band',
+    'A demo band for testing Rock-On features',
     v_eric_id,
     '2024-01-15',
     NOW(),
@@ -255,9 +255,9 @@ BEGIN
   ON CONFLICT (id) DO NOTHING;
 
   RAISE NOTICE '✅ MVP seed data complete!';
-  RAISE NOTICE 'Test users: eric@ipodshuffle.com, mike@ipodshuffle.com, sarah@ipodshuffle.com';
+  RAISE NOTICE 'Test users: eric@testband.demo, mike@testband.demo, sarah@testband.demo';
   RAISE NOTICE 'Password for all: test123';
-  RAISE NOTICE 'Band: iPod Shuffle';
+  RAISE NOTICE 'Band: Demo Band';
 
 END $$;
 
