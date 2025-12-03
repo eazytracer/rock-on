@@ -14,45 +14,38 @@ import { AuthCallback } from './pages/auth/AuthCallback'
 import { SessionExpiredModal } from './components/auth/SessionExpiredModal'
 
 // Lazy load pages for better performance
-const NewLayout = lazy(() =>
-  import('./pages/NewLayout/NewLayout').then(module => ({
-    default: module.NewLayout,
-  }))
-)
-
-// Pages with database integration
 const AuthPages = lazy(() =>
-  import('./pages/NewLayout/AuthPages').then(module => ({
+  import('./pages/AuthPages').then(module => ({
     default: module.AuthPages,
   }))
 )
 const BandMembersPage = lazy(() =>
-  import('./pages/NewLayout/BandMembersPage').then(module => ({
+  import('./pages/BandMembersPage').then(module => ({
     default: module.BandMembersPage,
   }))
 )
-const SongsPageNew = lazy(() =>
-  import('./pages/NewLayout/SongsPage').then(module => ({
+const SongsPage = lazy(() =>
+  import('./pages/SongsPage').then(module => ({
     default: module.SongsPage,
   }))
 )
-const SetlistsPageNew = lazy(() =>
-  import('./pages/NewLayout/SetlistsPage').then(module => ({
+const SetlistsPage = lazy(() =>
+  import('./pages/SetlistsPage').then(module => ({
     default: module.SetlistsPage,
   }))
 )
 const ShowsPage = lazy(() =>
-  import('./pages/NewLayout/ShowsPage').then(module => ({
+  import('./pages/ShowsPage').then(module => ({
     default: module.ShowsPage,
   }))
 )
 const PracticesPage = lazy(() =>
-  import('./pages/NewLayout/PracticesPage').then(module => ({
+  import('./pages/PracticesPage').then(module => ({
     default: module.PracticesPage,
   }))
 )
 const SettingsPage = lazy(() =>
-  import('./pages/NewLayout/SettingsPage').then(module => ({
+  import('./pages/SettingsPage').then(module => ({
     default: module.SettingsPage,
   }))
 )
@@ -139,12 +132,12 @@ const AppContent: React.FC = () => {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/get-started" element={<AuthPages />} />
 
-          {/* Protected routes - new database-connected pages (primary) */}
+          {/* Protected routes */}
           <Route
             path="/songs"
             element={
               <ProtectedRoute>
-                <SongsPageNew />
+                <SongsPage />
               </ProtectedRoute>
             }
           />
@@ -152,7 +145,7 @@ const AppContent: React.FC = () => {
             path="/setlists"
             element={
               <ProtectedRoute>
-                <SetlistsPageNew />
+                <SetlistsPage />
               </ProtectedRoute>
             }
           />
@@ -194,9 +187,6 @@ const AppContent: React.FC = () => {
 
           {/* Dev Dashboard - accessible in development only */}
           <Route path="/dev/dashboard" element={<DevDashboard />} />
-
-          {/* New layout demo route */}
-          <Route path="/new-layout/*" element={<NewLayout />} />
         </Routes>
       </Suspense>
     </div>

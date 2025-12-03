@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ModernLayout } from '../../components/layout/ModernLayout'
-import { useAuth } from '../../contexts/AuthContext'
-import { TimePicker } from '../../components/common/TimePicker'
-import { DurationPicker } from '../../components/common/DurationPicker'
+import { ModernLayout } from '../components/layout/ModernLayout'
+import { useAuth } from '../contexts/AuthContext'
+import { TimePicker } from '../components/common/TimePicker'
+import { DurationPicker } from '../components/common/DurationPicker'
 import {
   ChevronDown,
   Plus,
@@ -30,19 +30,19 @@ import {
   useUpdatePractice,
   useDeletePractice,
   useAutoSuggestSongs,
-} from '../../hooks/usePractices'
-import { useSongs } from '../../hooks/useSongs'
+} from '../hooks/usePractices'
+import { useSongs } from '../hooks/useSongs'
 import {
   formatShowDate,
   formatTime12Hour,
   parseTime12Hour,
-} from '../../utils/dateHelpers'
-import type { PracticeSession } from '../../models/PracticeSession'
-import type { Song } from '../../models/Song'
-import type { SessionSong } from '../../types'
+} from '../utils/dateHelpers'
+import type { PracticeSession } from '../models/PracticeSession'
+import type { Song } from '../models/Song'
+import type { SessionSong } from '../types'
 // PHASE 2: Sync status visualization
-import { SyncIcon } from '../../components/sync/SyncIcon'
-import { useItemStatus } from '../../hooks/useItemSyncStatus'
+import { SyncIcon } from '../components/sync/SyncIcon'
+import { useItemStatus } from '../hooks/useItemSyncStatus'
 
 // ===== INTERFACES =====
 

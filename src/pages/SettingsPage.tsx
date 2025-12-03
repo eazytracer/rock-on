@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { ModernLayout } from '../../components/layout/ModernLayout'
-import { useAuth } from '../../contexts/AuthContext'
-import { useToast } from '../../contexts/ToastContext'
+import { ModernLayout } from '../components/layout/ModernLayout'
+import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import {
   User,
   Mail,
@@ -13,10 +13,10 @@ import {
   Database,
   Info,
 } from 'lucide-react'
-import { isDev } from '../../config/environment'
-import { db } from '../../services/database'
-import { logger } from '../../utils/logger'
-import { BUILD_ID } from '../../config/buildInfo'
+import { isDev } from '../config/environment'
+import { db } from '../services/database'
+import { logger } from '../utils/logger'
+import { BUILD_ID } from '../config/buildInfo'
 
 /**
  * Settings Page

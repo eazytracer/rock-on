@@ -30,12 +30,12 @@ import {
 // 6. Join Band Modal: Same as Get Started join flow for modals
 // All operations include proper error handling with try-catch blocks and error toasts
 // ============================================================================
-import { db } from '../../services/database'
-import { BandMembershipService } from '../../services/BandMembershipService'
-import { useCreateBand } from '../../hooks/useBands'
-import { useAuth } from '../../contexts/AuthContext'
-import { authService } from '../../services/auth/AuthFactory'
-import { BUILD_ID } from '../../config/buildInfo'
+import { db } from '../services/database'
+import { BandMembershipService } from '../services/BandMembershipService'
+import { useCreateBand } from '../hooks/useBands'
+import { useAuth } from '../contexts/AuthContext'
+import { authService } from '../services/auth/AuthFactory'
+import { BUILD_ID } from '../config/buildInfo'
 // Band type not currently used but may be needed for future features
 
 // ============================================================================
@@ -930,9 +930,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
       // Get band name for toast message (query via repository to ensure we have it)
       console.log('[handleJoinBand] Fetching band details')
-      const { repository } = await import(
-        '../../services/data/RepositoryFactory'
-      )
+      const { repository } = await import('../services/data/RepositoryFactory')
       const band = await repository.getBand(bandId)
       console.log('[handleJoinBand] Band details:', band)
 

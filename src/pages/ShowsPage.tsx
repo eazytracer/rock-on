@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ModernLayout } from '../../components/layout/ModernLayout'
-import { useAuth } from '../../contexts/AuthContext'
-import { TimePicker } from '../../components/common/TimePicker'
+import { ModernLayout } from '../components/layout/ModernLayout'
+import { useAuth } from '../contexts/AuthContext'
+import { TimePicker } from '../components/common/TimePicker'
 import {
   Plus,
   Calendar,
@@ -32,30 +32,30 @@ import {
 // ============================================
 // DATABASE & UTILITIES - REAL IMPORTS
 // ============================================
-import { db } from '../../services/database'
+import { db } from '../services/database'
 import {
   useUpcomingShows,
   useCreateShow,
   useUpdateShow,
   useDeleteShow,
-} from '../../hooks/useShows'
-import { SetlistService } from '../../services/SetlistService'
-import { centsToDollars, dollarsToCents } from '../../utils/formatters'
+} from '../hooks/useShows'
+import { SetlistService } from '../services/SetlistService'
+import { centsToDollars, dollarsToCents } from '../utils/formatters'
 import {
   formatShowDate,
   formatTime12Hour,
   parseTime12Hour,
-} from '../../utils/dateHelpers'
-import type { Setlist } from '../../models/Setlist'
+} from '../utils/dateHelpers'
+import type { Setlist } from '../models/Setlist'
 // PHASE 2: Sync status visualization
-import { SyncIcon } from '../../components/sync/SyncIcon'
-import { useItemStatus } from '../../hooks/useItemSyncStatus'
+import { SyncIcon } from '../components/sync/SyncIcon'
+import { useItemStatus } from '../hooks/useItemSyncStatus'
 
 // ============================================
 // TYPES - UPDATED FOR DATABASE INTEGRATION
 // ============================================
 // Import Show and ShowContact from correct model
-import { Show, ShowContact } from '../../models/Show'
+import { Show, ShowContact } from '../models/Show'
 
 interface Song {
   id: string

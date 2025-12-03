@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ModernLayout } from '../../components/layout/ModernLayout'
-import { useAuth } from '../../contexts/AuthContext'
+import { ModernLayout } from '../components/layout/ModernLayout'
+import { useAuth } from '../contexts/AuthContext'
 import {
   ArrowLeft,
   Edit,
@@ -21,7 +21,7 @@ import {
   Music2,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database and hooks
-import { db } from '../../services/database'
+import { db } from '../services/database'
 import {
   useBand,
   useBandMembers,
@@ -30,7 +30,7 @@ import {
   useRemoveBandMember,
   useUpdateMemberRole,
   useUpdateBand,
-} from '../../hooks/useBands'
+} from '../hooks/useBands'
 
 // Types
 interface Instrument {

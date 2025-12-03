@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ModernLayout } from '../../components/layout/ModernLayout'
-import { useAuth } from '../../contexts/AuthContext'
-import { useToast } from '../../contexts/ToastContext'
+import { ModernLayout } from '../components/layout/ModernLayout'
+import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import {
   ChevronDown,
   Plus,
@@ -29,19 +29,19 @@ import {
   useCreateSong,
   useUpdateSong,
   useDeleteSong,
-} from '../../hooks/useSongs'
+} from '../hooks/useSongs'
 import {
   secondsToDuration,
   durationToSeconds,
   formatBpm,
   parseBpm,
-} from '../../utils/formatters'
-import { db } from '../../services/database'
+} from '../utils/formatters'
+import { db } from '../services/database'
 // DBSong type imported but not currently used directly
-import CircleOfFifths from '../../components/songs/CircleOfFifths'
+import CircleOfFifths from '../components/songs/CircleOfFifths'
 // PHASE 2: Sync status visualization
-import { SyncIcon } from '../../components/sync/SyncIcon'
-import { useItemStatus } from '../../hooks/useItemSyncStatus'
+import { SyncIcon } from '../components/sync/SyncIcon'
+import { useItemStatus } from '../hooks/useItemSyncStatus'
 
 interface SongLink {
   id: string

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ModernLayout } from '../../components/layout/ModernLayout'
-import { useAuth } from '../../contexts/AuthContext'
+import { ModernLayout } from '../components/layout/ModernLayout'
+import { useAuth } from '../contexts/AuthContext'
 import {
   ChevronDown,
   Plus,
@@ -44,22 +44,22 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 
 // DATABASE INTEGRATION: Import database hooks and utilities
-import { db } from '../../services/database'
-import { secondsToDuration } from '../../utils/formatters'
-import { formatShowDate } from '../../utils/dateHelpers'
+import { db } from '../services/database'
+import { secondsToDuration } from '../utils/formatters'
+import { formatShowDate } from '../utils/dateHelpers'
 import type {
   SetlistItem as DBSetlistItem,
   Setlist as DBSetlist,
-} from '../../models/Setlist'
-import type { Song as DBSong } from '../../models/Song'
+} from '../models/Setlist'
+import type { Song as DBSong } from '../models/Song'
 import {
   useCreateSetlist,
   useUpdateSetlist,
   useDeleteSetlist,
-} from '../../hooks/useSetlists'
+} from '../hooks/useSetlists'
 // PHASE 2: Sync status visualization
-import { SyncIcon } from '../../components/sync/SyncIcon'
-import { useItemStatus } from '../../hooks/useItemSyncStatus'
+import { SyncIcon } from '../components/sync/SyncIcon'
+import { useItemStatus } from '../hooks/useItemSyncStatus'
 
 // DATABASE INTEGRATION: UI-specific types for display
 // These extend the database types with UI-specific fields
