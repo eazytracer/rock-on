@@ -1,9 +1,12 @@
 // Rock On! Service Worker for Offline Functionality
 // Enables offline access to the band management platform
 
-const CACHE_NAME = 'rock-on-v1';
-const STATIC_CACHE_NAME = 'rock-on-static-v1';
-const DYNAMIC_CACHE_NAME = 'rock-on-dynamic-v1';
+// IMPORTANT: Update VERSION on each deploy to invalidate old caches
+// This should match BUILD_ID from the build process
+const VERSION = '2';
+const CACHE_NAME = `rock-on-v${VERSION}`;
+const STATIC_CACHE_NAME = `rock-on-static-v${VERSION}`;
+const DYNAMIC_CACHE_NAME = `rock-on-dynamic-v${VERSION}`;
 
 // Static assets to cache immediately
 const STATIC_ASSETS = [
@@ -105,53 +108,73 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Handle navigation requests (for SPA routing)
+// NETWORK-FIRST: Always try to get fresh HTML to ensure users get latest version
 function handleNavigationRequest(request) {
-  return caches.match('/index.html')
-    .then((response) => {
-      if (response) {
-        return response;
+  return fetch(request)
+    .then((networkResponse) => {
+      // Got response from network - cache it and return
+      if (networkResponse.ok) {
+        return caches.open(DYNAMIC_CACHE_NAME)
+          .then((cache) => {
+            cache.put('/index.html', networkResponse.clone());
+            return networkResponse;
+          });
       }
-
-      // Fallback to network
-      return fetch(request)
-        .then((networkResponse) => {
-          // Cache successful responses
-          if (networkResponse.ok) {
-            return caches.open(DYNAMIC_CACHE_NAME)
-              .then((cache) => {
-                cache.put('/index.html', networkResponse.clone());
-                return networkResponse;
-              });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          // Return offline page if available
-          return caches.match('/index.html');
-        });
+      return networkResponse;
+    })
+    .catch(() => {
+      // Network failed - try cache as fallback for offline support
+      console.log('[SW] Network failed, falling back to cached index.html');
+      return caches.match('/index.html');
     });
 }
 
 // Handle static asset requests
+// CACHE-FIRST for hashed assets (immutable), NETWORK-FIRST for unhashed
 function handleStaticRequest(request) {
-  return caches.match(request)
-    .then((response) => {
-      if (response) {
-        return response;
-      }
+  const url = new URL(request.url);
 
-      // Fetch from network and cache
-      return fetch(request)
-        .then((networkResponse) => {
-          if (networkResponse.ok) {
-            return caches.open(STATIC_CACHE_NAME)
-              .then((cache) => {
-                cache.put(request, networkResponse.clone());
-                return networkResponse;
-              });
-          }
-          return networkResponse;
-        });
+  // Hashed assets (contain hash in filename) are immutable - use cache-first
+  // Pattern: filename-hash.ext (e.g., index-95de112-d7efe939.js)
+  const isHashedAsset = /\-[a-f0-9]{6,}\./i.test(url.pathname);
+
+  if (isHashedAsset) {
+    // Cache-first for immutable hashed assets
+    return caches.match(request)
+      .then((response) => {
+        if (response) {
+          return response;
+        }
+        // Not in cache - fetch and cache
+        return fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse.ok) {
+              return caches.open(STATIC_CACHE_NAME)
+                .then((cache) => {
+                  cache.put(request, networkResponse.clone());
+                  return networkResponse;
+                });
+            }
+            return networkResponse;
+          });
+      });
+  }
+
+  // Network-first for non-hashed assets (may change between deploys)
+  return fetch(request)
+    .then((networkResponse) => {
+      if (networkResponse.ok) {
+        return caches.open(STATIC_CACHE_NAME)
+          .then((cache) => {
+            cache.put(request, networkResponse.clone());
+            return networkResponse;
+          });
+      }
+      return networkResponse;
+    })
+    .catch(() => {
+      // Network failed - try cache as fallback
+      return caches.match(request);
     });
 }
 

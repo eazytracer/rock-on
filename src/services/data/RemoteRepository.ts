@@ -63,13 +63,35 @@ export class RemoteRepository implements IDataRepository {
   async addSong(song: Song): Promise<Song> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
+    const mappedSong = this.mapSongToSupabase(song)
+
+    // Debug logging for RLS issues
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    console.log('[RemoteRepository.addSong] Debug info:', {
+      songId: song.id,
+      createdBy: mappedSong.created_by,
+      contextId: mappedSong.context_id,
+      contextType: mappedSong.context_type,
+      authUid: user?.id,
+      authUidMatches: mappedSong.created_by === user?.id,
+    })
+
     const { data, error } = await supabase
       .from('songs')
-      .insert(this.mapSongToSupabase(song) as any)
+      .insert(mappedSong as any)
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('[RemoteRepository.addSong] Insert failed:', {
+        error,
+        mappedSong,
+        authUser: user?.id,
+      })
+      throw error
+    }
 
     return this.mapSongFromSupabase(data)
   }

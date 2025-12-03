@@ -17,6 +17,7 @@ describe('SyncStatusIndicator', () => {
       lastSyncTime: null,
       pendingCount: 0,
       isOnline: true,
+      isSupabaseConnected: true,
       syncError: null,
       sync: vi.fn(),
     })
@@ -34,6 +35,7 @@ describe('SyncStatusIndicator', () => {
       lastSyncTime: lastSyncTime,
       pendingCount: 0,
       isOnline: true,
+      isSupabaseConnected: true,
       syncError: null,
       sync: vi.fn(),
     })
@@ -50,6 +52,7 @@ describe('SyncStatusIndicator', () => {
       lastSyncTime: null,
       pendingCount: 0,
       isOnline: false,
+      isSupabaseConnected: false,
       syncError: null,
       sync: vi.fn(),
     })
@@ -67,6 +70,7 @@ describe('SyncStatusIndicator', () => {
       lastSyncTime: new Date(),
       pendingCount: 0,
       isOnline: true,
+      isSupabaseConnected: true,
       syncError: null,
       sync: vi.fn(),
     })
@@ -77,12 +81,30 @@ describe('SyncStatusIndicator', () => {
     expect(indicator).toHaveClass('bg-green-500')
   })
 
+  it('should render yellow indicator when online but Supabase not connected', () => {
+    vi.spyOn(useSyncStatusModule, 'useSyncStatus').mockReturnValue({
+      isSyncing: false,
+      lastSyncTime: null,
+      pendingCount: 0,
+      isOnline: true,
+      isSupabaseConnected: false,
+      syncError: null,
+      sync: vi.fn(),
+    })
+
+    render(<SyncStatusIndicator />)
+
+    const indicator = screen.getByTestId('connection-indicator')
+    expect(indicator).toHaveClass('bg-yellow-500')
+  })
+
   it('should show pending changes count when > 0', () => {
     vi.spyOn(useSyncStatusModule, 'useSyncStatus').mockReturnValue({
       isSyncing: false,
       lastSyncTime: new Date(),
       pendingCount: 5,
       isOnline: false,
+      isSupabaseConnected: false,
       syncError: null,
       sync: vi.fn(),
     })
@@ -98,6 +120,7 @@ describe('SyncStatusIndicator', () => {
       lastSyncTime: null,
       pendingCount: 0,
       isOnline: true,
+      isSupabaseConnected: false,
       syncError: 'Network timeout',
       sync: vi.fn(),
     })
@@ -114,6 +137,7 @@ describe('SyncStatusIndicator', () => {
       lastSyncTime: null,
       pendingCount: 0,
       isOnline: true,
+      isSupabaseConnected: false,
       syncError: 'Sync error',
       sync: vi.fn(),
     })
@@ -129,6 +153,7 @@ describe('SyncStatusIndicator', () => {
       lastSyncTime: null,
       pendingCount: 0,
       isOnline: true,
+      isSupabaseConnected: true,
       syncError: null,
       sync: vi.fn(),
     })
@@ -145,6 +170,7 @@ describe('SyncStatusIndicator', () => {
       lastSyncTime: new Date(),
       pendingCount: 3,
       isOnline: false,
+      isSupabaseConnected: false,
       syncError: null,
       sync: vi.fn(),
     })
@@ -161,6 +187,7 @@ describe('SyncStatusIndicator', () => {
       lastSyncTime: null,
       pendingCount: 5,
       isOnline: true,
+      isSupabaseConnected: true,
       syncError: null,
       sync: vi.fn(),
     })

@@ -222,6 +222,41 @@ export const SettingsPage: React.FC = () => {
           </div>
         </section>
 
+        {/* App Info Section - Always visible */}
+        <section
+          className="bg-surface-elevated rounded-lg border border-white/5 p-6"
+          data-testid="app-info-section"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Info className="w-5 h-5 text-blue-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-white">App Info</h2>
+          </div>
+
+          <div className="space-y-4">
+            {/* Version Info */}
+            <div className="flex items-start gap-3">
+              <Code className="w-5 h-5 text-gray-400 mt-0.5" />
+              <div className="flex-1">
+                <label className="text-sm text-gray-400 block mb-1">
+                  Build Version
+                </label>
+                <p
+                  className="text-white font-mono text-sm"
+                  data-testid="version-info"
+                >
+                  {BUILD_ID}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  If your app is outdated, try refreshing or clearing browser
+                  cache.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Developer Section (Dev Mode Only) */}
         {isDev && (
           <section
@@ -239,22 +274,6 @@ export const SettingsPage: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Version Info */}
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-gray-400 mt-0.5" />
-                <div className="flex-1">
-                  <label className="text-sm text-gray-400 block mb-1">
-                    Build Version
-                  </label>
-                  <p
-                    className="text-white font-mono text-sm"
-                    data-testid="version-info"
-                  >
-                    {BUILD_ID}
-                  </p>
-                </div>
-              </div>
-
               {/* Clear Local Data */}
               <div className="flex items-start gap-3">
                 <Database className="w-5 h-5 text-gray-400 mt-0.5" />

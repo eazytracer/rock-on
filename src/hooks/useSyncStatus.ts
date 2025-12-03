@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { SyncRepository } from '../services/data/SyncRepository'
 import type { SyncStatus as SyncEngineStatus } from '../services/data/syncTypes'
 
@@ -7,6 +7,7 @@ import type { SyncStatus as SyncEngineStatus } from '../services/data/syncTypes'
  */
 export interface SyncStatus {
   isOnline: boolean
+  isSupabaseConnected: boolean // NEW: actual Supabase connectivity
   isSyncing: boolean
   pendingCount: number
   lastSyncTime: Date | null
@@ -50,14 +51,55 @@ export interface UseSyncStatusReturn extends SyncStatus {
 export function useSyncStatus(): UseSyncStatusReturn {
   const [status, setStatus] = useState<SyncStatus>({
     isOnline: navigator.onLine,
+    isSupabaseConnected: true, // Assume connected initially
     isSyncing: false,
     pendingCount: 0,
     lastSyncTime: null,
     syncError: null,
   })
+  const supabaseCheckInterval = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     const repo = SyncRepository.getInstance()
+
+    // Check Supabase connectivity
+    const checkSupabaseConnection = async () => {
+      try {
+        // Dynamic import to avoid circular dependencies
+        const { getSupabaseClient } = await import(
+          '../services/supabase/client'
+        )
+        const supabase = getSupabaseClient()
+
+        if (!supabase) {
+          setStatus(prev => ({ ...prev, isSupabaseConnected: false }))
+          return
+        }
+
+        // Quick health check - try to get auth session
+        const { error } = await supabase.auth.getSession()
+
+        setStatus(prev => {
+          const isConnected = !error
+          if (prev.isSupabaseConnected === isConnected) {
+            return prev // No change
+          }
+          return { ...prev, isSupabaseConnected: isConnected }
+        })
+      } catch {
+        setStatus(prev => ({ ...prev, isSupabaseConnected: false }))
+      }
+    }
+
+    // Initial check
+    checkSupabaseConnection()
+
+    // Check periodically (every 30 seconds) when online
+    supabaseCheckInterval.current = setInterval(() => {
+      if (navigator.onLine) {
+        checkSupabaseConnection()
+      }
+    }, 30000)
 
     // Subscribe to sync engine status changes
     const unsubscribe = repo.onSyncStatusChange(
@@ -74,11 +116,18 @@ export function useSyncStatus(): UseSyncStatusReturn {
             return prevStatus // Return same reference to prevent re-render
           }
 
+          // If sync succeeded, mark Supabase as connected
+          const isSupabaseConnected =
+            engineStatus.isSyncing || !engineStatus.lastError
+              ? true
+              : prevStatus.isSupabaseConnected
+
           return {
             ...prevStatus,
             isSyncing: engineStatus.isSyncing,
             pendingCount: engineStatus.pendingCount,
             lastSyncTime: newLastSyncTime,
+            isSupabaseConnected,
           }
         })
       }
@@ -117,6 +166,9 @@ export function useSyncStatus(): UseSyncStatusReturn {
       unsubscribe()
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      if (supabaseCheckInterval.current) {
+        clearInterval(supabaseCheckInterval.current)
+      }
     }
   }, [])
 

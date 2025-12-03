@@ -10,13 +10,35 @@ import { getRelativeTimeString } from '../../utils/dateHelpers'
  * Provides real-time feedback on pending changes and last sync time.
  */
 export function SyncStatusIndicator() {
-  const { isSyncing, lastSyncTime, pendingCount, isOnline, syncError } =
-    useSyncStatus()
+  const {
+    isSyncing,
+    lastSyncTime,
+    pendingCount,
+    isOnline,
+    isSupabaseConnected,
+    syncError,
+  } = useSyncStatus()
 
   // Map hook fields to component expectations
   const lastSyncedAt = lastSyncTime
   const pendingChanges = pendingCount
   const error = syncError ? new Error(syncError) : null
+
+  // Determine connection indicator color:
+  // - Green: Online AND Supabase connected
+  // - Yellow: Online but Supabase not connected (auth/API issue)
+  // - Red: Offline (no network)
+  const getConnectionColor = () => {
+    if (!isOnline) return 'bg-red-500'
+    if (!isSupabaseConnected) return 'bg-yellow-500'
+    return 'bg-green-500'
+  }
+
+  const getConnectionTitle = () => {
+    if (!isOnline) return 'Offline - No network connection'
+    if (!isSupabaseConnected) return 'Online but cannot reach server'
+    return 'Connected'
+  }
 
   return (
     <div
@@ -27,10 +49,9 @@ export function SyncStatusIndicator() {
       {/* Connection Indicator */}
       <div
         data-testid="connection-indicator"
-        className={`h-2 w-2 rounded-full ${
-          isOnline ? 'bg-green-500' : 'bg-red-500'
-        }`}
+        className={`h-2 w-2 rounded-full ${getConnectionColor()}`}
         aria-hidden="true"
+        title={getConnectionTitle()}
       />
 
       {/* Status Text */}
