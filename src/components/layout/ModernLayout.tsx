@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar'
 import { MobileHeader } from './MobileHeader'
 import { MobileDrawer } from './MobileDrawer'
 import { useLocation } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface ModernLayoutProps {
   children: React.ReactNode
@@ -13,12 +14,18 @@ interface ModernLayoutProps {
 
 export const ModernLayout: React.FC<ModernLayoutProps> = ({
   children,
-  bandName,
-  userEmail,
-  onSignOut,
+  bandName: propBandName,
+  userEmail: propUserEmail,
+  onSignOut: propOnSignOut,
 }) => {
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { user, currentBand, signOut } = useAuth()
+
+  // Use props if provided, otherwise fall back to auth context
+  const bandName = propBandName ?? currentBand?.name ?? 'Select a Band'
+  const userEmail = propUserEmail ?? user?.email ?? ''
+  const onSignOut = propOnSignOut ?? signOut
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
