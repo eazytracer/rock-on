@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { SongService } from '../services/SongService'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import { db } from '../services/database'
@@ -15,6 +15,12 @@ export function useSongs(bandId: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const { realtimeManager } = useAuth()
+
+  // Use ref to track the current realtime handler for proper cleanup
+  const realtimeHandlerRef = useRef<
+    | ((event: { bandId: string; action: string; recordId: string }) => void)
+    | null
+  >(null)
 
   // Memoize fetchSongs with optional silent mode (no loading state change)
   const fetchSongs = useCallback(
@@ -74,6 +80,12 @@ export function useSongs(bandId: string) {
 
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
 
+    // Cleanup previous realtime handler if exists
+    if (realtimeManager && realtimeHandlerRef.current) {
+      realtimeManager.off('songs:changed', realtimeHandlerRef.current)
+      realtimeHandlerRef.current = null
+    }
+
     // Listen for real-time changes from RealtimeManager
     const handleRealtimeChange = ({
       bandId: changedBandId,
@@ -100,6 +112,7 @@ export function useSongs(bandId: string) {
     if (realtimeManager) {
       console.log('[useSongs] Registering realtime listener for band:', bandId)
       realtimeManager.on('songs:changed', handleRealtimeChange)
+      realtimeHandlerRef.current = handleRealtimeChange
     } else {
       console.warn(
         '[useSongs] No realtimeManager available, real-time updates disabled'
@@ -110,7 +123,10 @@ export function useSongs(bandId: string) {
     return () => {
       console.log('[useSongs] Unmounting hook for band:', bandId)
       unsubscribe()
-      realtimeManager?.off('songs:changed', handleRealtimeChange)
+      if (realtimeManager && realtimeHandlerRef.current) {
+        realtimeManager.off('songs:changed', realtimeHandlerRef.current)
+        realtimeHandlerRef.current = null
+      }
     }
   }, [bandId, realtimeManager, fetchSongs])
 

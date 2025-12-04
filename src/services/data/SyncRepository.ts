@@ -139,8 +139,8 @@ export class SyncRepository implements IDataRepository {
       try {
         const remoteBand = await this.remote.getBand(id)
         if (remoteBand) {
-          // Cache in local for offline access
-          await this.local.addBand(remoteBand)
+          // Cache in local for offline access (upsert to handle existing records)
+          await this.local.upsertBand(remoteBand)
           return remoteBand
         }
       } catch (error) {
@@ -609,8 +609,8 @@ export class SyncRepository implements IDataRepository {
       try {
         const remoteUser = await this.remote.getUser(id)
         if (remoteUser) {
-          // Cache in local for offline access
-          await this.local.addUser(remoteUser)
+          // Cache in local for offline access (upsert to handle existing records)
+          await this.local.upsertUser(remoteUser)
           return remoteUser
         }
       } catch (error) {

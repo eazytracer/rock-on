@@ -37,7 +37,7 @@ describe('SyncRepository', () => {
     createdBy: 'test-user-1',
     visibility: 'band_only',
     confidenceLevel: 3,
-    createdDate: new Date()
+    createdDate: new Date(),
   }
 
   const testBand: Band = {
@@ -48,9 +48,9 @@ describe('SyncRepository', () => {
     settings: {
       defaultPracticeTime: 120,
       reminderMinutes: [60, 30, 10],
-      autoSaveInterval: 30
+      autoSaveInterval: 30,
     },
-    memberIds: []
+    memberIds: [],
   }
 
   beforeEach(() => {
@@ -68,6 +68,7 @@ describe('SyncRepository', () => {
       getBand: vi.fn(),
       getBandsForUser: vi.fn(),
       addBand: vi.fn(),
+      upsertBand: vi.fn(),
       updateBand: vi.fn(),
       deleteBand: vi.fn(),
       getSetlists: vi.fn(),
@@ -84,7 +85,7 @@ describe('SyncRepository', () => {
       getUserMemberships: vi.fn(),
       addBandMembership: vi.fn(),
       updateBandMembership: vi.fn(),
-      deleteBandMembership: vi.fn()
+      deleteBandMembership: vi.fn(),
     }
 
     mockRemote = {
@@ -101,7 +102,7 @@ describe('SyncRepository', () => {
       deleteBand: vi.fn(),
       getBandMemberships: vi.fn(),
       getUserMemberships: vi.fn(),
-      addBandMembership: vi.fn()
+      addBandMembership: vi.fn(),
     }
 
     mockSyncEngine = {
@@ -110,7 +111,7 @@ describe('SyncRepository', () => {
       queueDelete: vi.fn(),
       syncNow: vi.fn(),
       getStatus: vi.fn(),
-      onStatusChange: vi.fn()
+      onStatusChange: vi.fn(),
     }
 
     // Mock the constructors
@@ -124,7 +125,7 @@ describe('SyncRepository', () => {
     Object.defineProperty(navigator, 'onLine', {
       writable: true,
       configurable: true,
-      value: originalOnLine
+      value: originalOnLine,
     })
     vi.clearAllMocks()
   })
@@ -181,16 +182,16 @@ describe('SyncRepository', () => {
     it('should get a single band cloud-first (remote, then local)', async () => {
       // Mock remote to return band
       mockRemote.getBand.mockResolvedValue(testBand)
-      // Mock local addBand for caching
-      mockLocal.addBand.mockResolvedValue(testBand)
+      // Mock local upsertBand for caching (uses put() to handle existing records)
+      mockLocal.upsertBand.mockResolvedValue(testBand)
 
       syncRepository = new SyncRepository()
       const result = await syncRepository.getBand('test-band-1')
 
       // Should try remote first when online
       expect(mockRemote.getBand).toHaveBeenCalledWith('test-band-1')
-      // Should cache the result in local
-      expect(mockLocal.addBand).toHaveBeenCalledWith(testBand)
+      // Should cache the result in local using upsert (handles existing records)
+      expect(mockLocal.upsertBand).toHaveBeenCalledWith(testBand)
       expect(result).toEqual(testBand)
     })
 
@@ -213,14 +214,17 @@ describe('SyncRepository', () => {
         Object.defineProperty(navigator, 'onLine', {
           writable: true,
           configurable: true,
-          value: true
+          value: true,
         })
 
         syncRepository = new SyncRepository()
         const result = await syncRepository.addSong(testSong)
 
         expect(mockLocal.addSong).toHaveBeenCalledWith(testSong)
-        expect(mockSyncEngine.queueCreate).toHaveBeenCalledWith('songs', testSong)
+        expect(mockSyncEngine.queueCreate).toHaveBeenCalledWith(
+          'songs',
+          testSong
+        )
         expect(result).toEqual(testSong)
       })
 
@@ -231,14 +235,21 @@ describe('SyncRepository', () => {
         Object.defineProperty(navigator, 'onLine', {
           writable: true,
           configurable: true,
-          value: true
+          value: true,
         })
 
         syncRepository = new SyncRepository()
         const result = await syncRepository.updateSong('test-song-1', updates)
 
-        expect(mockLocal.updateSong).toHaveBeenCalledWith('test-song-1', updates)
-        expect(mockSyncEngine.queueUpdate).toHaveBeenCalledWith('songs', 'test-song-1', updates)
+        expect(mockLocal.updateSong).toHaveBeenCalledWith(
+          'test-song-1',
+          updates
+        )
+        expect(mockSyncEngine.queueUpdate).toHaveBeenCalledWith(
+          'songs',
+          'test-song-1',
+          updates
+        )
         expect(result).toEqual(updatedSong)
       })
 
@@ -247,14 +258,17 @@ describe('SyncRepository', () => {
         Object.defineProperty(navigator, 'onLine', {
           writable: true,
           configurable: true,
-          value: true
+          value: true,
         })
 
         syncRepository = new SyncRepository()
         await syncRepository.deleteSong('test-song-1')
 
         expect(mockLocal.deleteSong).toHaveBeenCalledWith('test-song-1')
-        expect(mockSyncEngine.queueDelete).toHaveBeenCalledWith('songs', 'test-song-1')
+        expect(mockSyncEngine.queueDelete).toHaveBeenCalledWith(
+          'songs',
+          'test-song-1'
+        )
       })
     })
 
@@ -264,14 +278,17 @@ describe('SyncRepository', () => {
         Object.defineProperty(navigator, 'onLine', {
           writable: true,
           configurable: true,
-          value: true
+          value: true,
         })
 
         syncRepository = new SyncRepository()
         const result = await syncRepository.addBand(testBand)
 
         expect(mockLocal.addBand).toHaveBeenCalledWith(testBand)
-        expect(mockSyncEngine.queueCreate).toHaveBeenCalledWith('bands', testBand)
+        expect(mockSyncEngine.queueCreate).toHaveBeenCalledWith(
+          'bands',
+          testBand
+        )
         expect(result).toEqual(testBand)
       })
 
@@ -282,14 +299,21 @@ describe('SyncRepository', () => {
         Object.defineProperty(navigator, 'onLine', {
           writable: true,
           configurable: true,
-          value: true
+          value: true,
         })
 
         syncRepository = new SyncRepository()
         const result = await syncRepository.updateBand('test-band-1', updates)
 
-        expect(mockLocal.updateBand).toHaveBeenCalledWith('test-band-1', updates)
-        expect(mockSyncEngine.queueUpdate).toHaveBeenCalledWith('bands', 'test-band-1', updates)
+        expect(mockLocal.updateBand).toHaveBeenCalledWith(
+          'test-band-1',
+          updates
+        )
+        expect(mockSyncEngine.queueUpdate).toHaveBeenCalledWith(
+          'bands',
+          'test-band-1',
+          updates
+        )
         expect(result).toEqual(updatedBand)
       })
 
@@ -298,14 +322,17 @@ describe('SyncRepository', () => {
         Object.defineProperty(navigator, 'onLine', {
           writable: true,
           configurable: true,
-          value: true
+          value: true,
         })
 
         syncRepository = new SyncRepository()
         await syncRepository.deleteBand('test-band-1')
 
         expect(mockLocal.deleteBand).toHaveBeenCalledWith('test-band-1')
-        expect(mockSyncEngine.queueDelete).toHaveBeenCalledWith('bands', 'test-band-1')
+        expect(mockSyncEngine.queueDelete).toHaveBeenCalledWith(
+          'bands',
+          'test-band-1'
+        )
       })
     })
   })
@@ -316,7 +343,7 @@ describe('SyncRepository', () => {
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         configurable: true,
-        value: true
+        value: true,
       })
 
       syncRepository = new SyncRepository()
@@ -330,7 +357,7 @@ describe('SyncRepository', () => {
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         configurable: true,
-        value: false
+        value: false,
       })
 
       syncRepository = new SyncRepository()
@@ -346,7 +373,7 @@ describe('SyncRepository', () => {
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         configurable: true,
-        value: true
+        value: true,
       })
 
       syncRepository = new SyncRepository()
@@ -362,7 +389,7 @@ describe('SyncRepository', () => {
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         configurable: true,
-        value: false
+        value: false,
       })
 
       syncRepository = new SyncRepository()
@@ -376,7 +403,7 @@ describe('SyncRepository', () => {
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         configurable: true,
-        value: true
+        value: true,
       })
 
       syncRepository = new SyncRepository()
@@ -390,7 +417,7 @@ describe('SyncRepository', () => {
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         configurable: true,
-        value: false
+        value: false,
       })
 
       syncRepository = new SyncRepository()
@@ -422,12 +449,18 @@ describe('SyncRepository', () => {
     })
 
     it('should implement addSetlist', async () => {
-      const setlist = { id: 'setlist-1', bandId: 'band-1', name: 'Test Setlist', songs: [], createdDate: new Date() }
+      const setlist = {
+        id: 'setlist-1',
+        bandId: 'band-1',
+        name: 'Test Setlist',
+        songs: [],
+        createdDate: new Date(),
+      }
       mockLocal.addSetlist.mockResolvedValue(setlist)
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         configurable: true,
-        value: false
+        value: false,
       })
 
       syncRepository = new SyncRepository()
@@ -439,12 +472,18 @@ describe('SyncRepository', () => {
 
     it('should implement updateSetlist', async () => {
       const updates = { name: 'Updated Setlist' }
-      const updated = { id: 'setlist-1', bandId: 'band-1', name: 'Updated Setlist', songs: [], createdDate: new Date() }
+      const updated = {
+        id: 'setlist-1',
+        bandId: 'band-1',
+        name: 'Updated Setlist',
+        songs: [],
+        createdDate: new Date(),
+      }
       mockLocal.updateSetlist.mockResolvedValue(updated)
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         configurable: true,
-        value: false
+        value: false,
       })
 
       syncRepository = new SyncRepository()
@@ -459,7 +498,7 @@ describe('SyncRepository', () => {
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
         configurable: true,
-        value: false
+        value: false,
       })
 
       syncRepository = new SyncRepository()

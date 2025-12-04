@@ -181,6 +181,19 @@ export class LocalRepository implements IDataRepository {
     return band
   }
 
+  /**
+   * Upsert a band - use when caching remote data that may already exist locally
+   * Uses put() which updates if exists, inserts if not
+   */
+  async upsertBand(band: Band): Promise<Band> {
+    if (!band.id) {
+      band.id = crypto.randomUUID()
+    }
+
+    await db.bands.put(band)
+    return band
+  }
+
   async updateBand(id: string, updates: Partial<Band>): Promise<Band> {
     await db.bands.update(id, updates)
 
@@ -446,6 +459,15 @@ export class LocalRepository implements IDataRepository {
 
   async addUser(user: User): Promise<User> {
     await db.users.add(user)
+    return user
+  }
+
+  /**
+   * Upsert a user - use when caching remote data that may already exist locally
+   * Uses put() which updates if exists, inserts if not
+   */
+  async upsertUser(user: User): Promise<User> {
+    await db.users.put(user)
     return user
   }
 

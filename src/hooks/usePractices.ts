@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { PracticeSessionService } from '../services/PracticeSessionService'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,6 +12,12 @@ export function usePractices(bandId: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const { realtimeManager } = useAuth()
+
+  // Use ref to track the current realtime handler for proper cleanup
+  const realtimeHandlerRef = useRef<
+    | ((event: { bandId: string; action: string; recordId: string }) => void)
+    | null
+  >(null)
 
   // Memoize fetchPractices with optional silent mode (no loading state change)
   const fetchPractices = useCallback(
@@ -74,6 +80,12 @@ export function usePractices(bandId: string) {
 
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
 
+    // Cleanup previous realtime handler if exists
+    if (realtimeManager && realtimeHandlerRef.current) {
+      realtimeManager.off('practices:changed', realtimeHandlerRef.current)
+      realtimeHandlerRef.current = null
+    }
+
     // Listen for real-time changes from RealtimeManager
     const handleRealtimeChange = ({
       bandId: changedBandId,
@@ -91,13 +103,27 @@ export function usePractices(bandId: string) {
       }
     }
 
-    realtimeManager?.on('practices:changed', handleRealtimeChange)
+    if (realtimeManager) {
+      console.log(
+        '[usePractices] Registering realtime listener for band:',
+        bandId
+      )
+      realtimeManager.on('practices:changed', handleRealtimeChange)
+      realtimeHandlerRef.current = handleRealtimeChange
+    } else {
+      console.warn(
+        '[usePractices] No realtimeManager available, real-time updates disabled'
+      )
+    }
 
     // Cleanup
     return () => {
       console.log('[usePractices] Unmounting hook for band:', bandId)
       unsubscribe()
-      realtimeManager?.off('practices:changed', handleRealtimeChange)
+      if (realtimeManager && realtimeHandlerRef.current) {
+        realtimeManager.off('practices:changed', realtimeHandlerRef.current)
+        realtimeHandlerRef.current = null
+      }
     }
   }, [bandId, realtimeManager, fetchPractices])
 
