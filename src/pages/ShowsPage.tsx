@@ -45,6 +45,8 @@ import {
   formatShowDate,
   formatTime12Hour,
   parseTime12Hour,
+  formatDateForInput,
+  parseDateAsLocal,
 } from '../utils/dateHelpers'
 import type { Setlist } from '../models/Setlist'
 // PHASE 2: Sync status visualization
@@ -916,9 +918,7 @@ const ScheduleShowModal: React.FC<{
   // Initialize form data from show or defaults
   const [formData, setFormData] = useState({
     name: show?.name || '',
-    date: show?.scheduledDate
-      ? new Date(show.scheduledDate).toISOString().split('T')[0]
-      : '',
+    date: show?.scheduledDate ? formatDateForInput(show.scheduledDate) : '',
     time: show?.scheduledDate ? formatTime12Hour(show.scheduledDate) : '',
     venue: show?.venue || '',
     location: show?.location || '',
@@ -940,7 +940,8 @@ const ScheduleShowModal: React.FC<{
 
     try {
       // Parse time and combine with date to create full scheduledDate
-      const baseDate = new Date(formData.date)
+      // Use parseDateAsLocal to avoid timezone issues (new Date("YYYY-MM-DD") parses as UTC)
+      const baseDate = parseDateAsLocal(formData.date)
       const scheduledDate = formData.time
         ? parseTime12Hour(formData.time, baseDate)
         : baseDate

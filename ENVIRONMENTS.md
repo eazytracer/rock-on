@@ -5,6 +5,9 @@ Rock-On uses different environment configurations for development, staging, and 
 ## Quick Start
 
 ```bash
+# First time setup: Start Supabase and generate local env files
+npm run setup:local
+
 # Development with local Supabase (recommended for day-to-day work)
 npm run start:dev
 
@@ -14,6 +17,31 @@ npm run start:staging
 # Check current environment
 npm run env:status
 ```
+
+## First Time Setup
+
+When setting up a new development environment or after cloning the repo:
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start Supabase and generate environment files
+npm run setup:local
+
+# This will:
+# - Start local Supabase (if not running)
+# - Generate .env.development with correct API keys
+# - Generate .env.test for E2E testing
+
+# 3. Switch to development environment and start the app
+npm run env:dev
+npm run dev
+# Or simply:
+npm run start:dev
+```
+
+**Note:** The `setup:local` script dynamically extracts API keys from `supabase status`, so the generated files work even if Supabase generates different keys on different machines.
 
 ## Available Environments
 

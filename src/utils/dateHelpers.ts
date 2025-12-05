@@ -103,14 +103,33 @@ export function isUpcomingDate(date: Date | string): boolean {
 }
 
 /**
- * Format a date for input fields (YYYY-MM-DD)
+ * Format a date for input fields (YYYY-MM-DD) using LOCAL timezone
+ * IMPORTANT: Do NOT use toISOString() as it converts to UTC, causing date shifts
  */
 export function formatDateForInput(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date
 
   if (!d || isNaN(d.getTime())) return ''
 
-  return d.toISOString().split('T')[0]
+  // Use local date components to avoid timezone conversion
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Parse a date string (YYYY-MM-DD) as LOCAL time, not UTC
+ * IMPORTANT: new Date("YYYY-MM-DD") parses as UTC midnight, causing off-by-one errors
+ * in timezones west of UTC. This function parses as local midnight instead.
+ */
+export function parseDateAsLocal(dateString: string): Date {
+  if (!dateString) return new Date()
+
+  // Split the date string and create date in local timezone
+  const [year, month, day] = dateString.split('-').map(Number)
+  return new Date(year, month - 1, day) // month is 0-indexed
 }
 
 /**

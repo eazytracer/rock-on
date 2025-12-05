@@ -36,6 +36,7 @@
     "supabase:status": "supabase status",
     "supabase:reset": "supabase db reset",
     "supabase:studio": "echo 'Opening Supabase Studio...' && open http://127.0.0.1:54323 || xdg-open http://127.0.0.1:54323",
+    "setup:local": "./scripts/setup-local-env.sh",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -59,7 +60,7 @@
     "dexie-react-hooks": "^1.1.7",
     "eventemitter3": "^5.0.1",
     "lucide-react": "^0.546.0",
-    "mermaid": "^11.12.1",
+    "mermaid": "^11.12.2",
     "puppeteer": "^24.26.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

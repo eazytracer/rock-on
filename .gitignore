@@ -16,10 +16,12 @@ build/
 # Ignore active environment (auto-generated)
 .env.local
 
-# But track environment templates
-!.env.development
+# Ignore generated local environment files (created by npm run setup:local)
+.env.development
+.env.test
+
+# But track environment templates and staging/production configs
 !.env.staging
-!.env.test
 !.env.production
 !.env*.example
 !.env*.template

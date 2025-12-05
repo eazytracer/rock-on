@@ -36,6 +36,8 @@ import {
   formatShowDate,
   formatTime12Hour,
   parseTime12Hour,
+  formatDateForInput,
+  parseDateAsLocal,
 } from '../utils/dateHelpers'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song } from '../models/Song'
@@ -269,7 +271,7 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
 
   const [formData, setFormData] = useState({
     date: practice?.scheduledDate
-      ? new Date(practice.scheduledDate).toISOString().split('T')[0]
+      ? formatDateForInput(practice.scheduledDate)
       : '',
     time: practice?.scheduledDate
       ? formatTime12Hour(new Date(practice.scheduledDate))
@@ -311,7 +313,8 @@ const SchedulePracticeModal: React.FC<SchedulePracticeModalProps> = ({
 
     try {
       // DATABASE: Parse time and create proper Date
-      const baseDate = new Date(formData.date)
+      // Use parseDateAsLocal to avoid timezone issues (new Date("YYYY-MM-DD") parses as UTC)
+      const baseDate = parseDateAsLocal(formData.date)
       const datetime = parseTime12Hour(formData.time, baseDate)
 
       // DATABASE: Create SessionSong objects with proper structure

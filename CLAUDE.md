@@ -81,17 +81,29 @@ npm run dev        # Start development server
 npm run build      # Build for production
 ```
 
+### Local Development Setup
+```bash
+# First time setup (generates .env.development and .env.test from local Supabase)
+npm run setup:local
+
+# This command:
+# - Starts local Supabase if not running
+# - Extracts API keys from supabase status
+# - Generates .env.development with local config
+# - Generates .env.test with service role key for E2E tests
+```
+
 ### Supabase Commands
 ```bash
 # See /supabase command for full reference
-supabase start     # Start local Supabase
-supabase db reset  # Reset local database
-supabase db push   # Apply migrations locally
+npx supabase start     # Start local Supabase
+npx supabase db reset  # Reset local database
+npx supabase db push   # Apply migrations locally
 
 # Remote operations (requires .env.supabase with SUPABASE_ACCESS_TOKEN)
-source .env.supabase && supabase link --project-ref khzeuxxhigqcmrytsfux
-source .env.supabase && supabase migration list  # Check remote status
-source .env.supabase && supabase db push --linked  # Apply to remote
+source .env.supabase && npx supabase link --project-ref khzeuxxhigqcmrytsfux
+source .env.supabase && npx supabase migration list  # Check remote status
+source .env.supabase && npx supabase db push --linked  # Apply to remote
 ```
 
 ## Code Style
@@ -144,11 +156,28 @@ TypeScript 5.x with React 18+: Follow standard conventions
 
 **Local Development:**
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start Supabase and generate environment files
+npm run setup:local
+
+# 3. Start development (sets env + starts server)
+npm run start:dev
+
+# That's it! The setup:local script handles:
+# - Starting local Supabase
+# - Generating .env.development with correct API keys
+# - Generating .env.test for E2E testing
+```
+
+**Manual Setup (if needed):**
+```bash
 # 1. Start local Supabase
-supabase start
+npx supabase start
 
 # 2. Apply baseline migration
-supabase db push
+npx supabase db push
 
 # 3. Verify
 psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"

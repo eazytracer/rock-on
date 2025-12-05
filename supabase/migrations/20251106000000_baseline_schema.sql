@@ -231,6 +231,9 @@ CREATE TABLE public.setlists (
   version INTEGER DEFAULT 1 NOT NULL,
   last_modified_by UUID REFERENCES public.users(id),
 
+  -- Template/duplication tracking
+  source_setlist_id UUID REFERENCES public.setlists(id) ON DELETE SET NULL,
+
   CONSTRAINT setlist_status_check CHECK (status IN ('draft', 'active', 'archived'))
 );
 
@@ -239,6 +242,7 @@ CREATE TABLE public.shows (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   venue TEXT,
+  location TEXT,
   band_id UUID NOT NULL REFERENCES public.bands(id) ON DELETE CASCADE,
   setlist_id UUID REFERENCES public.setlists(id) ON DELETE SET NULL,
   scheduled_date TIMESTAMPTZ NOT NULL,
@@ -429,6 +433,7 @@ CREATE INDEX idx_songs_version_modified ON songs(version, updated_date);
 -- Setlist indexes
 CREATE INDEX idx_setlists_band_id ON public.setlists(band_id);
 CREATE INDEX idx_setlists_show_id ON public.setlists(show_id);
+CREATE INDEX idx_setlists_source_setlist_id ON public.setlists(source_setlist_id);
 CREATE INDEX idx_setlists_version ON setlists(version);
 CREATE INDEX idx_setlists_version_modified ON setlists(version, last_modified);
 
@@ -480,6 +485,23 @@ $$;
 ALTER FUNCTION update_updated_date_column() OWNER TO postgres;
 GRANT EXECUTE ON FUNCTION update_updated_date_column() TO authenticated;
 COMMENT ON FUNCTION update_updated_date_column() IS 'Update updated_date timestamp - owned by postgres to bypass RLS';
+
+-- Function to update last_modified timestamp (for setlists which use last_modified instead of updated_date)
+CREATE OR REPLACE FUNCTION update_setlist_last_modified()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.last_modified = NOW();
+  RETURN NEW;
+END;
+$$;
+
+ALTER FUNCTION update_setlist_last_modified() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION update_setlist_last_modified() TO authenticated;
+COMMENT ON FUNCTION update_setlist_last_modified() IS 'Update last_modified timestamp for setlists - owned by postgres to bypass RLS';
 
 -- Function to increment version on UPDATE (Phase 3)
 CREATE OR REPLACE FUNCTION increment_version()
@@ -702,7 +724,7 @@ CREATE TRIGGER update_songs_updated_date BEFORE UPDATE ON public.songs
   FOR EACH ROW EXECUTE FUNCTION update_updated_date_column();
 
 CREATE TRIGGER update_setlists_last_modified BEFORE UPDATE ON public.setlists
-  FOR EACH ROW EXECUTE FUNCTION update_updated_date_column();
+  FOR EACH ROW EXECUTE FUNCTION update_setlist_last_modified();
 
 CREATE TRIGGER update_song_castings_updated_date BEFORE UPDATE ON public.song_castings
   FOR EACH ROW EXECUTE FUNCTION update_updated_date_column();

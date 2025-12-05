@@ -5,8 +5,8 @@
 
 begin;
 
--- Note: Plan reduced from 29 to 28 - practice_sessions created_by trigger removed in migration 20251107000001
-select plan(28);
+-- Note: Plan increased from 28 to 30 - added update_setlist_last_modified function tests
+select plan(30);
 
 -- ============================================================================
 -- Function Existence Tests
@@ -15,6 +15,11 @@ select plan(28);
 select has_function(
   'update_updated_date_column',
   'Should have update_updated_date_column function'
+);
+
+select has_function(
+  'update_setlist_last_modified',
+  'Should have update_setlist_last_modified function for setlists'
 );
 
 select has_function(
@@ -45,6 +50,12 @@ select function_returns(
   'update_updated_date_column',
   'trigger',
   'update_updated_date_column should return trigger'
+);
+
+select function_returns(
+  'update_setlist_last_modified',
+  'trigger',
+  'update_setlist_last_modified should return trigger'
 );
 
 select function_returns(

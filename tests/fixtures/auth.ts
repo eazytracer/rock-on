@@ -17,7 +17,8 @@ export function createTestUser(overrides?: Partial<TestUser>): TestUser {
 
   return {
     name: `Test User ${timestamp}`,
-    email: `test.user.${timestamp}.${randomSuffix}@rockontesting.com`,
+    // Use example.com - reserved domain per RFC 2606, accepted by Supabase GoTrue
+    email: `test.user.${timestamp}.${randomSuffix}@example.com`,
     password: 'TestPassword123!',
     ...overrides,
   };

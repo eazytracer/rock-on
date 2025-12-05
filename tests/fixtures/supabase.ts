@@ -4,19 +4,27 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+// Well-known local Supabase service role key (same for all local instances)
+// This is NOT a secret - it's the default key for local development
+const LOCAL_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+
 /**
- * Get the local Supabase service role key from `supabase status`
+ * Get the local Supabase service role key from `npx supabase status`
+ * Falls back to well-known local key if command fails
  */
 export async function getLocalServiceKey(): Promise<string> {
   try {
-    const { stdout } = await execAsync('supabase status');
-    const match = stdout.match(/Secret key:\s+(.+)/);
+    const { stdout } = await execAsync('npx supabase status');
+    const match = stdout.match(/Secret[^:]*:\s+(.+)/);
     if (match) {
       return match[1].trim();
     }
-    throw new Error('Could not extract service key from supabase status');
+    // Fall back to well-known local key
+    return LOCAL_SERVICE_ROLE_KEY;
   } catch (error) {
-    throw new Error(`Failed to get service key: ${error}`);
+    // Fall back to well-known local key for local testing
+    console.warn('Could not get service key from supabase status, using default local key');
+    return LOCAL_SERVICE_ROLE_KEY;
   }
 }
 
@@ -25,10 +33,10 @@ export async function getLocalServiceKey(): Promise<string> {
  */
 export async function ensureSupabaseRunning(): Promise<void> {
   try {
-    await execAsync('supabase status');
+    await execAsync('npx supabase status');
   } catch (error) {
     throw new Error(
-      'Supabase is not running. Start it with: supabase start'
+      'Supabase is not running. Start it with: npx supabase start'
     );
   }
 }
