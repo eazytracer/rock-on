@@ -2055,6 +2055,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({
                 >
                   <option value="Standard">Standard</option>
                   <option value="Drop D">Drop D</option>
+                  <option value="Drop C#">Drop C#</option>
                   <option value="Drop C">Drop C</option>
                   <option value="Drop B">Drop B</option>
                   <option value="Half-step down">Half-step down</option>

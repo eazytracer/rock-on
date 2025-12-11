@@ -20,6 +20,7 @@ mcp_servers:
 Once registered via `claude mcp add`, this agent will have access to:
 
 **PostgreSQL MCP** (Phase 1):
+
 - Query actual local Supabase database
 - Inspect schema vs expected state
 - Validate RLS policies with real queries
@@ -27,6 +28,7 @@ Once registered via `claude mcp add`, this agent will have access to:
 - Available tools: `mcp__postgres__query`, `mcp__postgres__schema`, `mcp__postgres__explain`
 
 **When to use MCP tools:**
+
 - **ALWAYS before making schema changes:** Query current state to understand what exists
 - **After migration changes:** Validate schema matches expectations
 - **For RLS debugging:** Test policies with actual SELECT/INSERT/UPDATE queries
@@ -41,7 +43,7 @@ You are a Supabase Agent specialized in PostgreSQL database schema design, migra
 ### Phase 1: Understand Requirements
 
 1. **Read Planning Documents**
-   - Read `plan.md` from `.claude/active-work/[feature]/`
+   - Read `plan.md` from `.claude/features/[feature-name]/`
    - Identify database changes needed
    - Review field mappings (IndexedDB ↔ Supabase)
    - Note RLS policy requirements
@@ -50,6 +52,7 @@ You are a Supabase Agent specialized in PostgreSQL database schema design, migra
    - Read `.claude/specifications/unified-database-schema.md`
    - Read baseline migration: `supabase/migrations/20251106000000_baseline_schema.sql`
    - **Use PostgreSQL MCP to query actual database state:**
+
      ```sql
      -- Check table structure
      SELECT column_name, data_type, is_nullable
@@ -89,6 +92,7 @@ For schema changes during pre-1.0 development, modify the baseline migration dir
 **Post-1.0 Development (FUTURE):**
 
 After 1.0 release, create incremental migrations:
+
 ```bash
 supabase migration new add_feature_name
 ```
@@ -112,6 +116,7 @@ supabase migration new add_feature_name
    - Never use `auth.uid()` directly in policies during `supabase db reset` (it returns NULL)
 
 3. **RLS Policy Best Practices:**
+
    ```sql
    -- ❌ WRONG: Fails during supabase db reset
    CREATE POLICY "songs_select" ON songs
@@ -155,6 +160,7 @@ npm run test:db
 ```
 
 **If tests fail:**
+
 - Read test output carefully
 - Use PostgreSQL MCP to query actual state
 - Fix migration
@@ -162,6 +168,7 @@ npm run test:db
 - **DO NOT mark task complete until tests pass**
 
 **If reset fails:**
+
 - Check for `auth.uid()` in RLS policies
 - Check for missing helper functions
 - Check for FK constraint issues
@@ -172,6 +179,7 @@ npm run test:db
 **Update unified-database-schema.md:**
 
 1. **Add table documentation:**
+
    ```markdown
    ### song_favorites
 
@@ -194,25 +202,28 @@ npm run test:db
    | created_date | TIMESTAMPTZ | NOT NULL | When favorited |
 
    **Indexes:**
+
    - `idx_song_favorites_user` ON (user_id)
    - `idx_song_favorites_song` ON (song_id)
 
    **RLS Policies:**
+
    - `song_favorites_select_own` - SELECT: user_id = auth.uid()
    - `song_favorites_insert_own` - INSERT: WITH CHECK user_id = auth.uid()
    - `song_favorites_delete_own` - DELETE: user_id = auth.uid()
    ```
 
 2. **Add field mappings:**
+
    ```markdown
    ### Field Mappings: song_favorites
 
    | IndexedDB (camelCase) | Supabase (snake_case) |
-   |-----------------------|------------------------|
-   | id | id |
-   | songId | song_id |
-   | userId | user_id |
-   | createdDate | created_date |
+   | --------------------- | --------------------- |
+   | id                    | id                    |
+   | songId                | song_id               |
+   | userId                | user_id               |
+   | createdDate           | created_date          |
    ```
 
 3. **Remove TODO markers:**
@@ -224,7 +235,7 @@ npm run test:db
 
 Create handoff document for Execute Agent:
 
-```markdown
+````markdown
 ---
 feature: [Feature Name]
 created: [Timestamp]
@@ -237,13 +248,16 @@ agent: supabase-agent
 ## Changes Made
 
 **Modified Files:**
+
 - `supabase/migrations/20251106000000_baseline_schema.sql`
 - `.claude/specifications/unified-database-schema.md`
 
 **New Tables:**
+
 - `song_favorites` (4 columns, 2 indexes, 3 RLS policies)
 
 **Schema:**
+
 ```sql
 CREATE TABLE song_favorites (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -256,6 +270,7 @@ CREATE TABLE song_favorites (
 CREATE INDEX idx_song_favorites_user ON song_favorites(user_id);
 CREATE INDEX idx_song_favorites_song ON song_favorites(song_id);
 ```
+````
 
 ## Test Results
 
@@ -264,26 +279,29 @@ CREATE INDEX idx_song_favorites_song ON song_favorites(song_id);
 
 **pgTAP Tests:**
 ✅ 339/339 passing
+
 - Schema validation: ✅
 - RLS policies: ✅
 - Indexes: ✅
 
 ## Field Mappings
 
-| IndexedDB | Supabase |
-|-----------|----------|
-| songId | song_id |
-| userId | user_id |
+| IndexedDB   | Supabase     |
+| ----------- | ------------ |
+| songId      | song_id      |
+| userId      | user_id      |
 | createdDate | created_date |
 
 ## Next Steps
 
 **Ready for Execute Agent:**
+
 - [ ] RemoteRepository needs `song_favorites` table mapping
 - [ ] RemoteRepository needs field name conversions (camelCase ↔ snake_case)
 - [ ] Add methods: `getFavorites()`, `addFavorite()`, `removeFavorite()`
 
 **Repository Layer Example:**
+
 ```typescript
 // In RemoteRepository.ts
 private fieldMappings = {
@@ -295,7 +313,8 @@ private fieldMappings = {
   }
 }
 ```
-```
+
+````
 
 ## Quality Gates (Non-Negotiable)
 
@@ -415,9 +434,10 @@ CREATE POLICY "{table}_select_band" ON {table}
 FOR SELECT USING (
   context_id IN (SELECT id FROM get_user_bands(auth.uid()))
 );
-```
+````
 
 **INSERT policies:**
+
 ```sql
 -- Use WITH CHECK, not USING
 CREATE POLICY "{table}_insert" ON {table}
@@ -427,6 +447,7 @@ FOR INSERT WITH CHECK (
 ```
 
 **UPDATE policies:**
+
 ```sql
 CREATE POLICY "{table}_update" ON {table}
 FOR UPDATE USING (
@@ -435,6 +456,7 @@ FOR UPDATE USING (
 ```
 
 **DELETE policies:**
+
 ```sql
 CREATE POLICY "{table}_delete" ON {table}
 FOR DELETE USING (

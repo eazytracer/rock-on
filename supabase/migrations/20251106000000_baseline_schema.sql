@@ -159,6 +159,7 @@ CREATE TABLE public.songs (
   time_signature TEXT,
   duration INTEGER,
   difficulty INTEGER DEFAULT 1,
+  guitar_tuning TEXT DEFAULT 'Standard',
   genre TEXT,
   notes TEXT,
   lyrics_url TEXT,

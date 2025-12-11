@@ -135,7 +135,7 @@ export class RemoteRepository implements IDataRepository {
       key: song.key,
       tempo: song.bpm, // bpm (IndexedDB) -> tempo (Supabase)
       difficulty: song.difficulty,
-      // guitar_tuning: IndexedDB only - do NOT send to Supabase
+      guitar_tuning: song.guitarTuning, // guitarTuning (IndexedDB) -> guitar_tuning (Supabase)
       notes: song.notes,
       created_date: song.createdDate,
       last_practiced: song.lastPracticed,
@@ -161,7 +161,7 @@ export class RemoteRepository implements IDataRepository {
       key: row.key,
       bpm: row.tempo ?? 0, // tempo (Supabase) -> bpm (IndexedDB)
       difficulty: row.difficulty ?? 1,
-      guitarTuning: 'Standard', // IndexedDB only - not in Supabase, default to 'Standard'
+      guitarTuning: row.guitar_tuning ?? 'Standard', // guitar_tuning (Supabase) -> guitarTuning (IndexedDB)
       structure: [], // IndexedDB only - not in Supabase
       lyrics: '', // IndexedDB only - not in Supabase (Supabase has lyrics_url instead)
       chords: [], // IndexedDB only - not in Supabase (Supabase has chords_url instead)

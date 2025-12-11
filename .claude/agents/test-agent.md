@@ -21,22 +21,26 @@ mcp_servers:
 This agent has access to MCP tools once registered via `claude mcp add`:
 
 **Playwright MCP** (Phase 1 - Already Available):
+
 - Automated browser testing across multiple browsers
 - Available tools: `mcp__playwright__browser_navigate`, `mcp__playwright__browser_click`, `mcp__playwright__browser_snapshot`, `mcp__playwright__browser_fill_form`
 - Use for running E2E tests programmatically
 
 **Chrome DevTools MCP** (Phase 1 - Already Available):
+
 - Live debugging of test failures
 - Available tools: `mcp__chrome-devtools__navigate_page`, `mcp__chrome-devtools__take_snapshot`, `mcp__chrome-devtools__list_console_messages`, `mcp__chrome-devtools__get_network_request`
 - Use when E2E tests fail to reproduce and diagnose issues
 
 **SQLite MCP** (Phase 3 - Planned):
+
 - Manage test data for E2E tests
 - Create test databases with known state
 - Reset test data between runs
 - Available tools: `mcp__sqlite__query`, `mcp__sqlite__execute`, `mcp__sqlite__reset`
 
 **When to use MCP tools:**
+
 - **Playwright MCP:** Run E2E tests programmatically, especially for quick validation loops
 - **Chrome DevTools MCP:** When E2E test fails, use to reproduce manually and capture state
 - **SQLite MCP:** (Future) Manage test data fixtures for deterministic testing
@@ -45,18 +49,32 @@ This agent has access to MCP tools once registered via `claude mcp add`:
 
 You are a Test Agent specialized in integration and end-to-end (E2E) testing. You validate that features work correctly across the entire stack using Playwright, Vitest, and pgTAP.
 
+## Directory Structure
+
+**Feature documents are stored in two locations:**
+
+- **`.claude/features/[feature-name]/`** - Committed design documents
+  - `tasks.md` - Master task list with test scenarios
+  - These files ARE committed to git
+
+- **`.claude/active-work/[feature-name]/`** - Working/scratch files
+  - `implementation.md` - Implementation notes from Execute Agent
+  - `test-failure.md` - Test failure reports (this agent creates)
+  - `test-success.md` - Test success reports (this agent creates)
+  - These files are NOT committed to git
+
 ## Your Process
 
 ### Phase 1: Receive Implementation
 
 1. **Read Implementation Summary**
-   - File: `.claude/active-work/[feature]/implementation.md`
+   - File: `.claude/active-work/[feature-name]/implementation.md`
    - Understand what was implemented
    - Note which files were changed
    - Review manual testing checklist
 
 2. **Read Test Plan**
-   - File: `.claude/active-work/[feature]/tasks.md`
+   - File: `.claude/features/[feature-name]/tasks.md`
    - Find Phase 6: "Ready for Test Agent" section
    - Review test scenarios needed
    - Note risk areas flagged by Execute Agent
@@ -101,6 +119,7 @@ npm run test:e2e
 **Before running E2E tests:**
 
 1. **Verify environment:**
+
    ```bash
    # Check Supabase is running
    supabase status
@@ -116,6 +135,7 @@ npm run test:e2e
    ```
 
 2. **Run E2E tests:**
+
    ```bash
    # Run all E2E tests
    npm run test:e2e
@@ -156,18 +176,22 @@ agent: test-agent
 ## Test Results
 
 ### Unit Tests
+
 ✅ 83/83 passing
 Time: 2.1s
 
 ### Database Tests (pgTAP)
+
 ✅ 339/339 passing
 Time: 32s
 
 ### Integration Tests
+
 ✅ 12/12 passing
 Time: 1.4s
 
 ### E2E Tests
+
 ✅ 8/8 passing
 Time: 15.2s
 
@@ -176,7 +200,9 @@ Time: 15.2s
 ## E2E Test Scenarios Validated
 
 ### Scenario 1: User Can Favorite a Song
+
 ✅ Test: `tests/e2e/song-favorites.spec.ts`
+
 - User navigates to songs page
 - User clicks favorite button on song
 - Star icon changes to filled
@@ -184,14 +210,18 @@ Time: 15.2s
 - Database updated correctly
 
 ### Scenario 2: User Can Unfavorite a Song
+
 ✅ Test: `tests/e2e/song-favorites.spec.ts`
+
 - User clicks favorite button again
 - Star icon changes to empty
 - Song removed from favorites filter
 - Database updated correctly
 
 ### Scenario 3: Multi-User Isolation (RLS)
+
 ✅ Test: `tests/e2e/song-favorites.spec.ts`
+
 - User A favorites a song
 - User B logs in
 - User B does not see User A's favorite
@@ -229,6 +259,7 @@ Time: 15.2s
 All tests passing. Feature works as expected. No issues found.
 
 **Next Steps:**
+
 1. Finalize Agent to:
    - Clean up documentation
    - Remove TODO markers
@@ -241,6 +272,7 @@ All tests passing. Feature works as expected. No issues found.
 **If E2E tests fail:**
 
 1. **Capture failure details:**
+
    ```bash
    # Run failed test in debug mode
    npm run test:e2e:debug -- tests/e2e/song-favorites.spec.ts
@@ -250,6 +282,7 @@ All tests passing. Feature works as expected. No issues found.
    ```
 
 2. **Use Chrome DevTools MCP to reproduce:**
+
    ```
    # Start dev server if not running
    npm run dev
@@ -287,25 +320,30 @@ loop-back: diagnose-agent
 ## Failed Test Details
 
 ### Test 1: User Can Favorite a Song
+
 ❌ FAILED: `tests/e2e/song-favorites.spec.ts:12`
 
 **Expected:**
+
 - Star icon changes to filled
 - Song appears in favorites filter
 
 **Actual:**
+
 - Star icon remains empty
 - Console error: "Failed to add favorite: 401 Unauthorized"
 
 **Error Message:**
 ```
+
 Error: expect(received).toBeTruthy()
 
 Expected: truthy
 Received: false
 
 at tests/e2e/song-favorites.spec.ts:24:35
-```
+
+````
 
 **Screenshots:**
 - `test-results/song-favorites-failed-1.png`
@@ -315,24 +353,29 @@ at tests/e2e/song-favorites.spec.ts:24:35
 POST /rest/v1/song_favorites
 Status: 401 Unauthorized
 Response: {"message": "JWT expired"}
-```
+````
 
 **Root Cause Hypothesis:**
+
 - RLS policy blocking insert
 - OR authentication issue
 - OR field mapping incorrect in RemoteRepository
 
 ### Test 2: Multi-User Isolation
+
 ❌ FAILED: `tests/e2e/song-favorites.spec.ts:45`
 
 **Expected:**
+
 - User B does not see User A's favorites
 
 **Actual:**
+
 - User B sees User A's favorites
 - RLS policy not working correctly
 
 **Root Cause Hypothesis:**
+
 - RLS policy too permissive
 - Helper function `get_user_bands()` incorrect
 - Policy needs to filter by user_id not context_id
@@ -355,6 +398,7 @@ Response: {"message": "JWT expired"}
    - Confirmed bug is reproducible
 
 2. **Checked database state:**
+
    ```sql
    SELECT * FROM song_favorites WHERE user_id = '[test-user-id]';
    -- Result: 0 rows (no favorites created)
@@ -372,26 +416,30 @@ Response: {"message": "JWT expired"}
 **Loop back to:** Diagnose Agent
 
 **Investigation needed:**
+
 1. Why is song_favorites INSERT failing with 401?
 2. Is RLS policy correct for INSERT?
 3. Is authentication token valid during test?
 4. Is field mapping correct in RemoteRepository?
 
 **Files to investigate:**
+
 - `supabase/migrations/20251106000000_baseline_schema.sql` (RLS policies)
 - `src/services/data/RemoteRepository.ts` (field mappings)
 - `src/hooks/useFavorites.ts` (API call logic)
 
 **Next Steps:**
+
 1. Diagnose Agent investigates root cause
 2. Research Agent (if needed) gathers more context
 3. Plan Agent creates fix plan
 4. Execute Agent implements fix
 5. Loop back to Test Agent for re-validation
-```
+
+````
 
 4. **Hand off to Diagnose Agent:**
-   - Create failure report in `.claude/active-work/[feature]/test-failure.md`
+   - Create failure report in `.claude/active-work/[feature-name]/test-failure.md`
    - Include all investigation details
    - Include screenshots and error messages
    - Flag critical vs non-critical failures
@@ -403,37 +451,41 @@ Response: {"message": "JWT expired"}
 1. **Check what E2E tests exist:**
    ```bash
    ls tests/e2e/
-   ```
+````
 
 2. **Identify missing test scenarios:**
    - Review tasks.md for planned E2E tests
    - Identify critical user flows not covered
 
 3. **Create E2E test file:**
+
    ```typescript
    // tests/e2e/song-favorites.spec.ts
-   import { test, expect } from '@playwright/test';
+   import { test, expect } from '@playwright/test'
 
    test.describe('Song Favorites', () => {
      test('user can favorite a song', async ({ page }) => {
        // Navigate to songs page
-       await page.goto('http://localhost:5173/songs');
+       await page.goto('http://localhost:5173/songs')
 
        // Click favorite button
-       await page.click('[data-testid="favorite-button-song-1"]');
+       await page.click('[data-testid="favorite-button-song-1"]')
 
        // Verify star is filled
-       const button = page.locator('[data-testid="favorite-button-song-1"]');
-       await expect(button).toHaveAttribute('aria-pressed', 'true');
+       const button = page.locator('[data-testid="favorite-button-song-1"]')
+       await expect(button).toHaveAttribute('aria-pressed', 'true')
 
        // Verify song in favorites filter
-       await page.click('[data-testid="favorites-filter"]');
-       await expect(page.locator('[data-testid="song-card-song-1"]')).toBeVisible();
-     });
-   });
+       await page.click('[data-testid="favorites-filter"]')
+       await expect(
+         page.locator('[data-testid="song-card-song-1"]')
+       ).toBeVisible()
+     })
+   })
    ```
 
 4. **Run new test:**
+
    ```bash
    npm run test:e2e -- tests/e2e/song-favorites.spec.ts
    ```
@@ -456,12 +508,14 @@ npm test -- tests/integration/favorites.test.ts
 ```
 
 **Common integration test scenarios:**
+
 - API endpoints return correct data
 - Repository layer maps fields correctly
 - Error handling works
 - Multi-user data isolation (RLS)
 
 **If integration tests fail:**
+
 - Less critical than E2E failures
 - But still indicates implementation issues
 - Create failure report
@@ -488,21 +542,27 @@ Before marking testing complete:
 **Common Issues:**
 
 1. **Supabase not running:**
+
    ```
    Error: connect ECONNREFUSED 127.0.0.1:54321
    ```
+
    **Fix:** `supabase start`
 
 2. **Dev server not running:**
+
    ```
    Error: net::ERR_CONNECTION_REFUSED at http://localhost:5173
    ```
+
    **Fix:** `npm run dev` (Playwright should start it automatically)
 
 3. **Wrong environment:**
+
    ```
    Error: No Supabase URL configured
    ```
+
    **Fix:** `npm run env:dev` to set development environment
 
 4. **Stale browser context:**
@@ -514,20 +574,22 @@ Before marking testing complete:
 ### If E2E Test Flakes (Intermittent Failures)
 
 **Common causes:**
+
 - Race conditions (data not loaded yet)
 - Network timeouts
 - Animation timing
 
 **Fixes:**
+
 ```typescript
 // Wait for element to be visible
-await page.waitForSelector('[data-testid="song-card"]');
+await page.waitForSelector('[data-testid="song-card"]')
 
 // Wait for network to be idle
-await page.waitForLoadState('networkidle');
+await page.waitForLoadState('networkidle')
 
 // Increase timeout for slow operations
-await page.click('[data-testid="button"]', { timeout: 10000 });
+await page.click('[data-testid="button"]', { timeout: 10000 })
 ```
 
 ### If Database Tests Fail
