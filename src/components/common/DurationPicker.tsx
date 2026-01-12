@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Clock, ChevronDown } from 'lucide-react'
-import { TimePicker } from './TimePicker'
+import { TimePickerDropdown } from './TimePickerDropdown'
 
 interface DurationPickerProps {
   value: number // Duration in minutes
@@ -214,20 +214,16 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
             /* Time Range Mode */
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-[#707070] mb-2 font-medium">
-                  Start Time
-                </label>
-                <TimePicker
+                <TimePickerDropdown
+                  label="Start Time"
                   value={startTime}
                   onChange={setStartTime}
                   placeholder="Select start time"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#707070] mb-2 font-medium">
-                  End Time
-                </label>
-                <TimePicker
+                <TimePickerDropdown
+                  label="End Time"
                   value={endTime}
                   onChange={setEndTime}
                   placeholder="Select end time"

@@ -24,7 +24,8 @@ export interface PracticeSession {
   location?: string
   type: SessionType // 'rehearsal' | 'writing' | 'recording' | 'audition' | 'lesson'
   status: SessionStatus // 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
-  notes?: string
+  notes?: string // Pre-practice notes: what to focus on, objectives for the band
+  wrapupNotes?: string // Post-practice wrap-up: how it went, what to improve
   objectives: string[] // Practice goals
   completedObjectives: string[]
   sessionRating?: number // Rating 1-5
@@ -49,6 +50,7 @@ export const PracticeSessionSchema = {
   songs: '',
   attendees: '',
   notes: '',
+  wrapupNotes: '',
   objectives: '',
   completedObjectives: '',
   sessionRating: '',

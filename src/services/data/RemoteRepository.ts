@@ -7,6 +7,16 @@ import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
 import { BandMembership, InviteCode } from '../../models/BandMembership'
 import { User } from '../../models/User'
+import {
+  SongPersonalNote,
+  SongPersonalNoteInput,
+  SongPersonalNoteUpdate,
+} from '../../models/SongPersonalNote'
+import {
+  SongNoteEntry,
+  SongNoteEntryInput,
+  SongNoteEntryUpdate,
+} from '../../models/SongNoteEntry'
 import { supabase } from '../supabase/client'
 
 /**
@@ -510,6 +520,7 @@ export class RemoteRepository implements IDataRepository {
       location: session.location,
       type: session.type,
       notes: session.notes,
+      wrapup_notes: session.wrapupNotes,
       objectives: session.objectives ?? [],
       completed_objectives: session.completedObjectives ?? [],
       songs: session.songs ?? [],
@@ -534,6 +545,7 @@ export class RemoteRepository implements IDataRepository {
       type: row.type ?? 'rehearsal',
       status: 'scheduled', // Default status for IndexedDB (not in Supabase)
       notes: row.notes ?? '',
+      wrapupNotes: row.wrapup_notes ?? '',
       objectives: row.objectives ?? [],
       completedObjectives: row.completed_objectives ?? [],
       songs: row.songs ?? [],
@@ -962,6 +974,261 @@ export class RemoteRepository implements IDataRepository {
       maxUses: row.max_uses,
       currentUses: row.current_uses,
       isActive: row.is_active,
+    }
+  }
+
+  // ========== SONG PERSONAL NOTES ==========
+
+  async getPersonalNote(
+    songId: string,
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('song_personal_notes')
+      .select('*')
+      .eq('song_id', songId)
+      .eq('user_id', userId)
+      .eq('band_id', bandId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') return null // Not found
+      throw error
+    }
+
+    return this.mapPersonalNoteFromSupabase(data)
+  }
+
+  async getPersonalNotesForUser(
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('song_personal_notes')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('band_id', bandId)
+
+    if (error) throw error
+
+    return data.map(row => this.mapPersonalNoteFromSupabase(row))
+  }
+
+  async createPersonalNote(
+    input: SongPersonalNoteInput
+  ): Promise<SongPersonalNote> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await (supabase.from('song_personal_notes') as any)
+      .insert({
+        song_id: input.songId,
+        user_id: input.userId,
+        band_id: input.bandId,
+        content: input.content,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return this.mapPersonalNoteFromSupabase(data)
+  }
+
+  async updatePersonalNote(
+    id: string,
+    updates: SongPersonalNoteUpdate
+  ): Promise<SongPersonalNote> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const updateData: any = {}
+    if (updates.content !== undefined) updateData.content = updates.content
+
+    const { data, error } = await (supabase.from('song_personal_notes') as any)
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return this.mapPersonalNoteFromSupabase(data)
+  }
+
+  async deletePersonalNote(id: string): Promise<void> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { error } = await supabase
+      .from('song_personal_notes')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+  }
+
+  async upsertPersonalNote(
+    input: SongPersonalNoteInput
+  ): Promise<SongPersonalNote> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await (supabase.from('song_personal_notes') as any)
+      .upsert(
+        {
+          song_id: input.songId,
+          user_id: input.userId,
+          band_id: input.bandId,
+          content: input.content,
+        },
+        {
+          onConflict: 'song_id,user_id,band_id',
+        }
+      )
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return this.mapPersonalNoteFromSupabase(data)
+  }
+
+  private mapPersonalNoteFromSupabase(row: any): SongPersonalNote {
+    return {
+      id: row.id,
+      songId: row.song_id,
+      userId: row.user_id,
+      bandId: row.band_id,
+      content: row.content,
+      createdDate: new Date(row.created_date),
+      updatedDate: new Date(row.updated_date),
+      version: row.version,
+    }
+  }
+
+  // ========== SONG NOTE ENTRIES ==========
+
+  async getNoteEntriesForSong(
+    songId: string,
+    bandId: string
+  ): Promise<SongNoteEntry[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('song_note_entries')
+      .select('*')
+      .eq('song_id', songId)
+      .eq('band_id', bandId)
+      .order('created_date', { ascending: false })
+
+    if (error) throw error
+
+    return data.map(row => this.mapNoteEntryFromSupabase(row))
+  }
+
+  async getNoteEntriesForSession(
+    sessionType: 'practice' | 'show',
+    sessionId: string
+  ): Promise<SongNoteEntry[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('song_note_entries')
+      .select('*')
+      .eq('session_type', sessionType)
+      .eq('session_id', sessionId)
+
+    if (error) throw error
+
+    return data.map(row => this.mapNoteEntryFromSupabase(row))
+  }
+
+  async getNoteEntry(id: string): Promise<SongNoteEntry | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('song_note_entries')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') return null // Not found
+      throw error
+    }
+
+    return this.mapNoteEntryFromSupabase(data)
+  }
+
+  async createNoteEntry(input: SongNoteEntryInput): Promise<SongNoteEntry> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await (supabase.from('song_note_entries') as any)
+      .insert({
+        song_id: input.songId,
+        user_id: input.userId,
+        band_id: input.bandId,
+        session_type: input.sessionType,
+        session_id: input.sessionId,
+        content: input.content,
+        visibility: input.visibility,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return this.mapNoteEntryFromSupabase(data)
+  }
+
+  async updateNoteEntry(
+    id: string,
+    updates: SongNoteEntryUpdate
+  ): Promise<SongNoteEntry> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const updateData: any = {}
+    if (updates.content !== undefined) updateData.content = updates.content
+    if (updates.visibility !== undefined)
+      updateData.visibility = updates.visibility
+
+    const { data, error } = await (supabase.from('song_note_entries') as any)
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return this.mapNoteEntryFromSupabase(data)
+  }
+
+  async deleteNoteEntry(id: string): Promise<void> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { error } = await supabase
+      .from('song_note_entries')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+  }
+
+  private mapNoteEntryFromSupabase(row: any): SongNoteEntry {
+    return {
+      id: row.id,
+      songId: row.song_id,
+      userId: row.user_id,
+      bandId: row.band_id,
+      sessionType: row.session_type,
+      sessionId: row.session_id,
+      content: row.content,
+      visibility: row.visibility,
+      createdDate: new Date(row.created_date),
+      updatedDate: row.updated_date ? new Date(row.updated_date) : null,
+      version: row.version,
     }
   }
 

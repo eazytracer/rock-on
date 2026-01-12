@@ -1,56 +1,129 @@
 ---
-description: Execute the implementation plan by processing and executing all tasks defined in tasks.md
+description: Execute implementation tasks from plan - implements feature following TDD approach
 ---
 
-The user input can be provided directly by the agent or as a command argument - you **MUST** consider it before proceeding with the prompt (if not empty).
+# Feature Implementation
 
-User input:
+Execute the implementation plan by working through tasks in `tasks.md`. This command coordinates implementation using the appropriate specialized agents.
+
+## Usage
+
+```
+/implement <feature-name>
+```
+
+## Prerequisites
+
+**Plan and tasks must exist first!** Run `/research` then `/plan` before `/implement`.
+
+The implement workflow expects to find:
+
+- `.claude/features/<feature-name>/*_research.md`
+- `.claude/features/<feature-name>/*_plan.md`
+- `.claude/features/<feature-name>/tasks.md`
+
+## Examples
+
+```
+/implement improved-auth-flow
+/implement dark-mode
+```
+
+## What This Does
+
+1. **Loads implementation context**:
+   - Reads `tasks.md` for task list
+   - Reads `*_plan.md` for architecture decisions
+   - Reads `*_research.md` for constraints and risks
+
+2. **Executes tasks in order**:
+   - Respects dependencies between tasks
+   - Runs parallel tasks [P] concurrently when possible
+   - Follows TDD: writes tests before implementation
+   - Marks tasks complete as they finish
+
+3. **Uses specialized agents**:
+   - `nextjs-react-developer` - For React/UI components
+   - `supabase-agent` - For database changes, migrations, RLS
+   - `test-agent` - For E2E and integration tests
+
+4. **Validates progress**:
+   - Runs tests after each phase
+   - Checks type errors with `npm run type-check`
+   - Verifies acceptance criteria
+
+## Execution Flow
+
+```
+Phase 1: Setup
+  └─ Create directories, install deps, configure
+
+Phase 2: Tests [TDD]
+  └─ Write failing tests that define expected behavior
+  └─ Tasks marked [P] can run in parallel
+
+Phase 3: Core Implementation
+  └─ Implement features to make tests pass
+  └─ Follow architecture from plan.md
+
+Phase 4: Integration
+  └─ Connect components, wire up services
+  └─ Database migrations if needed
+
+Phase 5: Polish
+  └─ Additional tests, documentation, cleanup
+```
+
+## Task Progress Tracking
+
+As tasks complete, they're marked in `tasks.md`:
+
+```markdown
+## Phase 2: Tests
+
+- [x] T002: Write unit tests for useAuthCheck hook ✓
+- [x] T003: Write unit tests for ProtectedRoute ✓
+- [ ] T004: Write E2E test for session expiry redirect ← Current
+
+## Phase 3: Core Implementation
+
+- [ ] T005: Implement useAuthCheck hook
+- [ ] T006: Update ProtectedRoute component
+```
+
+## Handling Failures
+
+If a task fails:
+
+1. **Stop execution** (for sequential tasks)
+2. **Log the error** with context
+3. **Suggest running `/diagnose`** to investigate
+
+For parallel tasks [P]:
+
+- Continue with other parallel tasks
+- Report failures at phase end
+- Block dependent tasks
+
+## Commands During Implementation
+
+While implementing, you may need:
+
+```
+/diagnose <feature-name>  # If tests fail or bugs appear
+npm run type-check        # Verify TypeScript
+npm test                  # Run test suite
+npm run lint              # Check code style
+```
+
+## Next Steps After Implementation
+
+Once all tasks complete:
+
+```
+/finalize <feature-name>
+```
+
+## User Input
 
 $ARGUMENTS
-
-1. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute.
-
-2. Load and analyze the implementation context:
-   - **REQUIRED**: Read tasks.md for the complete task list and execution plan
-   - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
-   - **IF EXISTS**: Read data-model.md for entities and relationships
-   - **IF EXISTS**: Read contracts/ for API specifications and test requirements
-   - **IF EXISTS**: Read research.md for technical decisions and constraints
-   - **IF EXISTS**: Read quickstart.md for integration scenarios
-
-3. Parse tasks.md structure and extract:
-   - **Task phases**: Setup, Tests, Core, Integration, Polish
-   - **Task dependencies**: Sequential vs parallel execution rules
-   - **Task details**: ID, description, file paths, parallel markers [P]
-   - **Execution flow**: Order and dependency requirements
-
-4. Execute implementation following the task plan:
-   - **Phase-by-phase execution**: Complete each phase before moving to the next
-   - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together  
-   - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
-   - **File-based coordination**: Tasks affecting the same files must run sequentially
-   - **Validation checkpoints**: Verify each phase completion before proceeding
-
-5. Implementation execution rules:
-   - **Setup first**: Initialize project structure, dependencies, configuration
-   - **Tests before code**: If you need to write tests for contracts, entities, and integration scenarios
-   - **Core development**: Implement models, services, CLI commands, endpoints
-   - **Integration work**: Database connections, middleware, logging, external services
-   - **Polish and validation**: Unit tests, performance optimization, documentation
-
-6. Progress tracking and error handling:
-   - Report progress after each completed task
-   - Halt execution if any non-parallel task fails
-   - For parallel tasks [P], continue with successful tasks, report failed ones
-   - Provide clear error messages with context for debugging
-   - Suggest next steps if implementation cannot proceed
-   - **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file.
-
-7. Completion validation:
-   - Verify all required tasks are completed
-   - Check that implemented features match the original specification
-   - Validate that tests pass and coverage meets requirements
-   - Confirm the implementation follows the technical plan
-   - Report final status with summary of completed work
-
-Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/tasks` first to regenerate the task list.

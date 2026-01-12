@@ -7,12 +7,14 @@ import type { SessionSong, SessionAttendee } from '../../../src/types'
 vi.mock('../../../src/services/data/RepositoryFactory', () => {
   // Create mock functions inside the factory to avoid hoisting issues
   const mockGetPracticeSessions = vi.fn()
+  const mockGetPracticeSession = vi.fn()
   const mockAddPracticeSession = vi.fn()
   const mockUpdatePracticeSession = vi.fn()
   const mockDeletePracticeSession = vi.fn()
 
   const mockRepository = {
     getPracticeSessions: mockGetPracticeSessions,
+    getPracticeSession: mockGetPracticeSession,
     addPracticeSession: mockAddPracticeSession,
     updatePracticeSession: mockUpdatePracticeSession,
     deletePracticeSession: mockDeletePracticeSession,
@@ -41,10 +43,19 @@ import { PracticeSessionService } from '../../../src/services/PracticeSessionSer
 import { repository } from '../../../src/services/data/RepositoryFactory'
 
 // Extract mock functions for test assertions
-const mockGetPracticeSessions = repository.getPracticeSessions as ReturnType<typeof vi.fn>
-const mockAddPracticeSession = repository.addPracticeSession as ReturnType<typeof vi.fn>
-const mockUpdatePracticeSession = repository.updatePracticeSession as ReturnType<typeof vi.fn>
-const mockDeletePracticeSession = repository.deletePracticeSession as ReturnType<typeof vi.fn>
+const mockGetPracticeSessions = repository.getPracticeSessions as ReturnType<
+  typeof vi.fn
+>
+const mockGetPracticeSession = (
+  repository as { getPracticeSession: ReturnType<typeof vi.fn> }
+).getPracticeSession
+const mockAddPracticeSession = repository.addPracticeSession as ReturnType<
+  typeof vi.fn
+>
+const mockUpdatePracticeSession =
+  repository.updatePracticeSession as ReturnType<typeof vi.fn>
+const mockDeletePracticeSession =
+  repository.deletePracticeSession as ReturnType<typeof vi.fn>
 
 describe('PracticeSessionService - Migrated to Repository Pattern', () => {
   beforeEach(() => {
@@ -83,7 +94,9 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
       mockGetPracticeSessions.mockResolvedValue(mockSessions)
 
       // Act
-      const result = await PracticeSessionService.getSessions({ bandId: 'band-1' })
+      const result = await PracticeSessionService.getSessions({
+        bandId: 'band-1',
+      })
 
       // Assert
       expect(mockGetPracticeSessions).toHaveBeenCalledWith('band-1')
@@ -341,19 +354,19 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         completedObjectives: [],
       }
 
-      mockGetPracticeSessions.mockResolvedValue([mockSession])
+      mockGetPracticeSession.mockResolvedValue(mockSession)
 
       // Act
       const result = await PracticeSessionService.getSessionById('session-123')
 
       // Assert
-      expect(mockGetPracticeSessions).toHaveBeenCalled()
+      expect(mockGetPracticeSession).toHaveBeenCalledWith('session-123')
       expect(result).toEqual(mockSession)
     })
 
     it('should return null for non-existent session', async () => {
       // Arrange
-      mockGetPracticeSessions.mockResolvedValue([])
+      mockGetPracticeSession.mockResolvedValue(null)
 
       // Act
       const result = await PracticeSessionService.getSessionById('non-existent')
@@ -384,9 +397,11 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         location: 'Studio B',
       }
 
-      mockGetPracticeSessions.mockResolvedValueOnce([existingSession])
+      // First call returns existing session, second call returns updated session
+      mockGetPracticeSession
+        .mockResolvedValueOnce(existingSession)
+        .mockResolvedValueOnce(updatedSession)
       mockUpdatePracticeSession.mockResolvedValue(updatedSession)
-      mockGetPracticeSessions.mockResolvedValueOnce([updatedSession])
 
       // Act
       const result = await PracticeSessionService.updateSession('session-123', {
@@ -402,7 +417,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
 
     it('should throw error when updating non-existent session', async () => {
       // Arrange
-      mockGetPracticeSessions.mockResolvedValue([])
+      mockGetPracticeSession.mockResolvedValue(null)
 
       // Act & Assert
       await expect(
@@ -428,7 +443,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         completedObjectives: [],
       }
 
-      mockGetPracticeSessions.mockResolvedValue([existingSession])
+      mockGetPracticeSession.mockResolvedValue(existingSession)
       mockDeletePracticeSession.mockResolvedValue(undefined)
 
       // Act
@@ -440,7 +455,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
 
     it('should throw error when deleting non-existent session', async () => {
       // Arrange
-      mockGetPracticeSessions.mockResolvedValue([])
+      mockGetPracticeSession.mockResolvedValue(null)
 
       // Act & Assert
       await expect(
@@ -470,9 +485,11 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         startTime: new Date(),
       }
 
-      mockGetPracticeSessions.mockResolvedValueOnce([existingSession])
+      // First call returns existing session, second call returns started session
+      mockGetPracticeSession
+        .mockResolvedValueOnce(existingSession)
+        .mockResolvedValueOnce(startedSession)
       mockUpdatePracticeSession.mockResolvedValue(startedSession)
-      mockGetPracticeSessions.mockResolvedValueOnce([startedSession])
 
       // Act
       const result = await PracticeSessionService.startSession('session-123')
@@ -487,7 +504,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
 
     it('should throw error when starting non-existent session', async () => {
       // Arrange
-      mockGetPracticeSessions.mockResolvedValue([])
+      mockGetPracticeSession.mockResolvedValue(null)
 
       // Act & Assert
       await expect(
@@ -519,9 +536,11 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         sessionRating: 4,
       }
 
-      mockGetPracticeSessions.mockResolvedValueOnce([existingSession])
+      // First call returns existing session, second call returns ended session
+      mockGetPracticeSession
+        .mockResolvedValueOnce(existingSession)
+        .mockResolvedValueOnce(endedSession)
       mockUpdatePracticeSession.mockResolvedValue(endedSession)
-      mockGetPracticeSessions.mockResolvedValueOnce([endedSession])
 
       // Act
       const result = await PracticeSessionService.endSession('session-123', {
@@ -556,7 +575,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         completedObjectives: [],
       }
 
-      mockGetPracticeSessions.mockResolvedValue([existingSession])
+      mockGetPracticeSession.mockResolvedValue(existingSession)
 
       // Act & Assert
       await expect(
@@ -598,14 +617,17 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         ],
       }
 
-      mockGetPracticeSessions.mockResolvedValue([existingSession])
+      mockGetPracticeSession.mockResolvedValue(existingSession)
       mockUpdatePracticeSession.mockResolvedValue(updatedSession)
 
       // Act
-      const result = await PracticeSessionService.addSongToSession('session-123', {
-        songId: 'song-1',
-        notes: 'Focus on intro',
-      })
+      const result = await PracticeSessionService.addSongToSession(
+        'session-123',
+        {
+          songId: 'song-1',
+          notes: 'Focus on intro',
+        }
+      )
 
       // Assert
       expect(mockUpdatePracticeSession).toHaveBeenCalledWith(
@@ -660,7 +682,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         ],
       }
 
-      mockGetPracticeSessions.mockResolvedValue([existingSession])
+      mockGetPracticeSession.mockResolvedValue(existingSession)
       mockUpdatePracticeSession.mockResolvedValue(updatedSession)
 
       // Act
@@ -709,7 +731,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         completedObjectives: [],
       }
 
-      mockGetPracticeSessions.mockResolvedValue([existingSession])
+      mockGetPracticeSession.mockResolvedValue(existingSession)
 
       // Act & Assert
       await expect(
@@ -733,7 +755,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         completedObjectives: [],
       }
 
-      mockGetPracticeSessions.mockResolvedValue([existingSession])
+      mockGetPracticeSession.mockResolvedValue(existingSession)
 
       // Act & Assert
       await expect(
@@ -778,16 +800,19 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         ],
       }
 
-      mockGetPracticeSessions.mockResolvedValue([existingSession])
+      mockGetPracticeSession.mockResolvedValue(existingSession)
       mockUpdatePracticeSession.mockResolvedValue(updatedSession)
 
       // Act
-      const result = await PracticeSessionService.recordAttendance('session-123', {
-        memberId: 'member-1',
-        attended: true,
-        arrivalTime: '2025-10-28T18:00:00',
-        departureTime: '2025-10-28T20:00:00',
-      })
+      const result = await PracticeSessionService.recordAttendance(
+        'session-123',
+        {
+          memberId: 'member-1',
+          attended: true,
+          arrivalTime: '2025-10-28T18:00:00',
+          departureTime: '2025-10-28T20:00:00',
+        }
+      )
 
       // Assert
       expect(mockUpdatePracticeSession).toHaveBeenCalledWith(
@@ -822,14 +847,17 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
         ],
       }
 
-      mockGetPracticeSessions.mockResolvedValue([existingSession])
+      mockGetPracticeSession.mockResolvedValue(existingSession)
       mockUpdatePracticeSession.mockResolvedValue(updatedSession)
 
       // Act
-      const result = await PracticeSessionService.recordAttendance('session-123', {
-        memberId: 'member-1',
-        attended: true,
-      })
+      const result = await PracticeSessionService.recordAttendance(
+        'session-123',
+        {
+          memberId: 'member-1',
+          attended: true,
+        }
+      )
 
       // Assert
       expect(result.memberId).toBe('member-1')

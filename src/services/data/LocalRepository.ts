@@ -7,6 +7,16 @@ import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
 import { BandMembership, InviteCode } from '../../models/BandMembership'
 import { User } from '../../models/User'
+import {
+  SongPersonalNote,
+  SongPersonalNoteInput,
+  SongPersonalNoteUpdate,
+} from '../../models/SongPersonalNote'
+import {
+  SongNoteEntry,
+  SongNoteEntryInput,
+  SongNoteEntryUpdate,
+} from '../../models/SongNoteEntry'
 
 /**
  * Local repository implementation using Dexie (IndexedDB)
@@ -484,6 +494,138 @@ export class LocalRepository implements IDataRepository {
 
   async deleteUser(id: string): Promise<void> {
     await db.users.delete(id)
+  }
+
+  // ========== SONG PERSONAL NOTES ==========
+
+  async getPersonalNote(
+    songId: string,
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote | null> {
+    const note = await db.songPersonalNotes
+      .where('[songId+userId+bandId]')
+      .equals([songId, userId, bandId])
+      .first()
+    return note || null
+  }
+
+  async getPersonalNotesForUser(
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote[]> {
+    return db.songPersonalNotes
+      .where('userId')
+      .equals(userId)
+      .filter(n => n.bandId === bandId)
+      .toArray()
+  }
+
+  async createPersonalNote(
+    input: SongPersonalNoteInput
+  ): Promise<SongPersonalNote> {
+    const note: SongPersonalNote = {
+      ...input,
+      id: crypto.randomUUID(),
+      createdDate: new Date(),
+      updatedDate: new Date(),
+      version: 1,
+    }
+    await db.songPersonalNotes.add(note)
+    return note
+  }
+
+  async updatePersonalNote(
+    id: string,
+    updates: SongPersonalNoteUpdate
+  ): Promise<SongPersonalNote> {
+    await db.songPersonalNotes.update(id, {
+      ...updates,
+      updatedDate: new Date(),
+    })
+    const updated = await db.songPersonalNotes.get(id)
+    if (!updated) {
+      throw new Error(`Personal note ${id} not found after update`)
+    }
+    return updated
+  }
+
+  async deletePersonalNote(id: string): Promise<void> {
+    await db.songPersonalNotes.delete(id)
+  }
+
+  async upsertPersonalNote(
+    input: SongPersonalNoteInput
+  ): Promise<SongPersonalNote> {
+    const existing = await this.getPersonalNote(
+      input.songId,
+      input.userId,
+      input.bandId
+    )
+    if (existing) {
+      return this.updatePersonalNote(existing.id, { content: input.content })
+    }
+    return this.createPersonalNote(input)
+  }
+
+  // ========== SONG NOTE ENTRIES ==========
+
+  async getNoteEntriesForSong(
+    songId: string,
+    bandId: string
+  ): Promise<SongNoteEntry[]> {
+    return db.songNoteEntries
+      .where('songId')
+      .equals(songId)
+      .filter(n => n.bandId === bandId)
+      .reverse()
+      .sortBy('createdDate')
+  }
+
+  async getNoteEntriesForSession(
+    sessionType: 'practice' | 'show',
+    sessionId: string
+  ): Promise<SongNoteEntry[]> {
+    return db.songNoteEntries
+      .where('[sessionType+sessionId]')
+      .equals([sessionType, sessionId])
+      .toArray()
+  }
+
+  async getNoteEntry(id: string): Promise<SongNoteEntry | null> {
+    const entry = await db.songNoteEntries.get(id)
+    return entry || null
+  }
+
+  async createNoteEntry(input: SongNoteEntryInput): Promise<SongNoteEntry> {
+    const entry: SongNoteEntry = {
+      ...input,
+      id: crypto.randomUUID(),
+      createdDate: new Date(),
+      updatedDate: null,
+      version: 1,
+    }
+    await db.songNoteEntries.add(entry)
+    return entry
+  }
+
+  async updateNoteEntry(
+    id: string,
+    updates: SongNoteEntryUpdate
+  ): Promise<SongNoteEntry> {
+    await db.songNoteEntries.update(id, {
+      ...updates,
+      updatedDate: new Date(),
+    })
+    const updated = await db.songNoteEntries.get(id)
+    if (!updated) {
+      throw new Error(`Note entry ${id} not found after update`)
+    }
+    return updated
+  }
+
+  async deleteNoteEntry(id: string): Promise<void> {
+    await db.songNoteEntries.delete(id)
   }
 
   // ========== SYNC OPERATIONS ==========

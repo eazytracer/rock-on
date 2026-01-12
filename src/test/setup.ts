@@ -35,7 +35,7 @@ global.fetch = vi.fn((url, _options) => {
   }
   // For other URLs, return 404
   return Promise.reject(new Error(`Unmocked fetch call to ${url}`))
-}) as any
+}) as unknown as typeof fetch
 
 // Global test setup
 beforeAll(async () => {

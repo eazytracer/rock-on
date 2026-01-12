@@ -5,7 +5,7 @@
 
 begin;
 
-select plan(81);
+select plan(99);
 
 -- ============================================================================
 -- Users table (6 tests)
@@ -127,6 +127,32 @@ select has_column('song_castings', 'context_type', 'song_castings should have co
 select has_column('song_assignments', 'song_casting_id', 'song_assignments should have song_casting_id column');
 select has_column('assignment_roles', 'type', 'assignment_roles should have type column');
 select has_column('casting_templates', 'template_data', 'casting_templates should have template_data column');
+
+-- ============================================================================
+-- Song Personal Notes table (8 tests)
+-- ============================================================================
+select has_column('song_personal_notes', 'id', 'song_personal_notes should have id column');
+select col_is_pk('song_personal_notes', 'id', 'song_personal_notes.id should be primary key');
+select has_column('song_personal_notes', 'song_id', 'song_personal_notes should have song_id column');
+select col_type_is('song_personal_notes', 'song_id', 'uuid', 'song_personal_notes.song_id should be uuid');
+select has_column('song_personal_notes', 'user_id', 'song_personal_notes should have user_id column');
+select has_column('song_personal_notes', 'band_id', 'song_personal_notes should have band_id column');
+select has_column('song_personal_notes', 'content', 'song_personal_notes should have content column');
+select has_column('song_personal_notes', 'version', 'song_personal_notes should have version column');
+
+-- ============================================================================
+-- Song Note Entries table (10 tests)
+-- ============================================================================
+select has_column('song_note_entries', 'id', 'song_note_entries should have id column');
+select col_is_pk('song_note_entries', 'id', 'song_note_entries.id should be primary key');
+select has_column('song_note_entries', 'song_id', 'song_note_entries should have song_id column');
+select col_type_is('song_note_entries', 'song_id', 'uuid', 'song_note_entries.song_id should be uuid');
+select has_column('song_note_entries', 'user_id', 'song_note_entries should have user_id column');
+select has_column('song_note_entries', 'band_id', 'song_note_entries should have band_id column');
+select has_column('song_note_entries', 'session_type', 'song_note_entries should have session_type column');
+select has_column('song_note_entries', 'content', 'song_note_entries should have content column');
+select has_column('song_note_entries', 'visibility', 'song_note_entries should have visibility column');
+select has_column('song_note_entries', 'version', 'song_note_entries should have version column');
 
 select * from finish();
 rollback;

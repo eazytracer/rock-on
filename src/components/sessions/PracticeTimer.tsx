@@ -80,6 +80,7 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
     if (autoStart && !isRunning) {
       handleStart()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only run on autoStart change
   }, [autoStart])
 
   const handleStart = () => {

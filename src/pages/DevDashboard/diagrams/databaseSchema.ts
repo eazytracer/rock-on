@@ -1,224 +1,33 @@
 /**
  * Database Schema Mermaid Diagrams
  *
- * Generated from .claude/specifications/unified-database-schema.md
+ * ER Diagram is AUTO-GENERATED from baseline schema migration.
+ * To regenerate: npx ts-node scripts/generate-er-diagram.ts
+ *
+ * Sync Architecture diagram is manually maintained.
  */
+
+import {
+  generatedERDiagram,
+  generatedAt,
+  sourceFile,
+} from './generated/erDiagram'
 
 export const databaseSchemaDiagram = {
   /**
    * Complete ER Diagram showing all tables and relationships
+   * AUTO-GENERATED from baseline schema migration
    */
-  erDiagram: `
-erDiagram
-    users ||--o{ user_profiles : "has profile"
-    users ||--o{ band_memberships : "member of"
-    users ||--o{ songs : "creates (personal)"
-    users ||--o{ audit_log : "performs actions"
+  erDiagram: generatedERDiagram,
 
-    bands ||--o{ band_memberships : "has members"
-    bands ||--o{ invite_codes : "has invites"
-    bands ||--o{ songs : "has songs (context)"
-    bands ||--o{ setlists : "has setlists"
-    bands ||--o{ shows : "performs shows"
-    bands ||--o{ practice_sessions : "has practices"
-    bands ||--o{ casting_templates : "has templates"
-
-    songs ||--o{ song_group_memberships : "belongs to groups"
-    songs ||--o{ song_castings : "has castings"
-    songs ||--o{ song_assignments : "has assignments"
-
-    song_groups ||--o{ song_group_memberships : "contains songs"
-
-    setlists ||--o{ shows : "used in show"
-    setlists ||--o{ practice_sessions : "used in practice"
-
-    band_memberships ||--o{ song_assignments : "assigned to"
-    band_memberships ||--o{ member_capabilities : "has capabilities"
-    band_memberships ||--o{ casting_templates : "created by"
-
-    song_castings ||--o{ song_assignments : "defines"
-    song_assignments ||--o{ assignment_roles : "has roles"
-
-    casting_templates ||--o{ song_castings : "applied to"
-
-    users {
-        uuid id PK
-        string email UK "Unique email"
-        string name
-        timestamptz created_date
-        timestamptz last_login
-        string auth_provider "email|google"
-    }
-
-    user_profiles {
-        uuid id PK
-        uuid user_id FK
-        string timezone
-        string preferred_instrument
-        text bio
-        text avatar_url
-    }
-
-    bands {
-        uuid id PK
-        string name
-        timestamptz created_date
-        timestamptz updated_date
-        uuid created_by FK
-        int version
-        uuid last_modified_by FK
-    }
-
-    band_memberships {
-        uuid id PK
-        uuid band_id FK
-        uuid user_id FK
-        string role "admin|member"
-        timestamptz joined_date
-        int version
-        uuid last_modified_by FK
-    }
-
-    invite_codes {
-        uuid id PK
-        uuid band_id FK
-        string code UK "6-char code"
-        timestamptz expires_at
-        timestamptz created_date
-        uuid created_by FK
-        int max_uses
-        int current_uses
-    }
-
-    songs {
-        uuid id PK
-        string title
-        string artist
-        int tempo "BPM"
-        string key_signature
-        int duration_seconds
-        text notes
-        uuid context_id FK "band_id or user_id"
-        string context_type "band|personal"
-        timestamptz created_date
-        timestamptz updated_date
-        uuid created_by FK
-        int version
-        uuid last_modified_by FK
-    }
-
-    song_groups {
-        uuid id PK
-        uuid band_id FK
-        string name
-        text description
-        timestamptz created_date
-        uuid created_by FK
-    }
-
-    song_group_memberships {
-        uuid id PK
-        uuid group_id FK
-        uuid song_id FK
-        int display_order
-        timestamptz added_date
-    }
-
-    setlists {
-        uuid id PK
-        uuid band_id FK
-        string name
-        jsonb items "Songs, breaks, sections"
-        timestamptz created_date
-        timestamptz last_modified
-        uuid created_by FK
-        int version
-        uuid last_modified_by FK
-    }
-
-    shows {
-        uuid id PK
-        uuid band_id FK
-        string name
-        string venue
-        timestamptz show_date
-        uuid setlist_id FK
-        timestamptz created_date
-        timestamptz updated_date
-        uuid created_by FK
-        int version
-        uuid last_modified_by FK
-    }
-
-    practice_sessions {
-        uuid id PK
-        uuid band_id FK
-        timestamptz session_date
-        int duration_minutes
-        uuid setlist_id FK
-        text notes
-        timestamptz created_date
-        uuid created_by FK
-        int version
-        uuid last_modified_by FK
-    }
-
-    song_castings {
-        uuid id PK
-        uuid song_id FK
-        uuid context_id FK "band_id or show_id"
-        string context_type "band|show"
-        uuid template_id FK
-        timestamptz created_date
-        uuid created_by FK
-    }
-
-    song_assignments {
-        uuid id PK
-        uuid casting_id FK
-        uuid membership_id FK
-        text notes
-        timestamptz created_date
-    }
-
-    assignment_roles {
-        uuid id PK
-        uuid assignment_id FK
-        string instrument
-        string part "lead|rhythm|backing"
-    }
-
-    casting_templates {
-        uuid id PK
-        uuid band_id FK
-        string name
-        text description
-        jsonb template_data
-        timestamptz created_date
-        uuid created_by FK
-    }
-
-    member_capabilities {
-        uuid id PK
-        uuid membership_id FK
-        string instrument
-        string proficiency "beginner|intermediate|advanced|expert"
-        boolean can_lead
-        text notes
-    }
-
-    audit_log {
-        uuid id PK
-        string table_name
-        uuid record_id
-        string operation "INSERT|UPDATE|DELETE"
-        jsonb old_data
-        jsonb new_data
-        uuid user_id FK
-        timestamptz timestamp
-        boolean synced
-    }
-`,
+  /**
+   * Metadata about the generated diagram
+   */
+  erDiagramMeta: {
+    generatedAt,
+    sourceFile,
+    regenerateCommand: 'npx ts-node scripts/generate-er-diagram.ts',
+  },
 
   /**
    * Sync Architecture Diagram

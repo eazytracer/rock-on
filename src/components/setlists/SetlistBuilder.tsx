@@ -5,6 +5,15 @@ import { SetlistSong } from '../../types'
 import { TouchButton } from '../common/TouchButton'
 import { SearchBar } from '../common/SearchBar'
 import { SongCard } from '../songs/SongCard'
+import { ShadowEntry } from './ShadowEntry'
+import { DatePicker } from '../common/DatePicker'
+import { TimePickerDropdown } from '../common/TimePickerDropdown'
+import {
+  formatDateForInput,
+  formatTime12Hour,
+  parseTime12Hour,
+  parseDateInputAsLocal,
+} from '../../utils/dateHelpers'
 
 interface SetlistBuilderProps {
   songs: Song[]
@@ -37,10 +46,12 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
   loading = false,
 }) => {
   const [setlistName, setSetlistName] = useState(setlist?.name || '')
-  const [showDate, setShowDate] = useState(
-    setlist?.showDate
-      ? new Date(setlist.showDate).toISOString().slice(0, 16)
-      : ''
+  // Split datetime into separate date and time for custom pickers
+  const [showDateValue, setShowDateValue] = useState(
+    setlist?.showDate ? formatDateForInput(new Date(setlist.showDate)) : ''
+  )
+  const [showTimeValue, setShowTimeValue] = useState(
+    setlist?.showDate ? formatTime12Hour(new Date(setlist.showDate)) : ''
   )
   const [venue, setVenue] = useState(setlist?.venue || '')
   const [notes, setNotes] = useState(setlist?.notes || '')
@@ -64,6 +75,22 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
   const setlistRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ y: number; time: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const availableSongsRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to and focus the available songs section
+  const scrollToAvailableSongs = useCallback(() => {
+    if (availableSongsRef.current) {
+      availableSongsRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+      // Focus the search input if there is one
+      const searchInput = availableSongsRef.current.querySelector('input')
+      if (searchInput) {
+        setTimeout(() => searchInput.focus(), 300)
+      }
+    }
+  }, [])
 
   // Track if setlist has changed from original
   const hasChanges = React.useMemo(() => {
@@ -73,10 +100,15 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
     if (venue.trim() !== (setlist.venue || '')) return true
     if (notes.trim() !== (setlist.notes || '')) return true
 
+    // Compare date and time separately
     const originalDate = setlist.showDate
-      ? new Date(setlist.showDate).toISOString().slice(0, 16)
+      ? formatDateForInput(new Date(setlist.showDate))
       : ''
-    if (showDate !== originalDate) return true
+    const originalTime = setlist.showDate
+      ? formatTime12Hour(new Date(setlist.showDate))
+      : ''
+    if (showDateValue !== originalDate || showTimeValue !== originalTime)
+      return true
 
     // Check if songs have changed
     if (setlistSongs.length !== (setlist.songs || []).length) return true
@@ -91,7 +123,15 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
     })
 
     return songsChanged
-  }, [setlist, setlistName, venue, notes, showDate, setlistSongs])
+  }, [
+    setlist,
+    setlistName,
+    venue,
+    notes,
+    showDateValue,
+    showTimeValue,
+    setlistSongs,
+  ])
 
   const availableSongs = songs.filter(
     song =>
@@ -432,10 +472,21 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
       return
     }
 
+    // Combine date and time into a single Date object
+    let showDate: Date | undefined
+    if (showDateValue) {
+      const baseDate = parseDateInputAsLocal(showDateValue)
+      if (showTimeValue) {
+        showDate = parseTime12Hour(showTimeValue, baseDate)
+      } else {
+        showDate = baseDate
+      }
+    }
+
     const setlistData = {
       name: setlistName.trim(),
       songs: setlistSongs,
-      showDate: showDate ? new Date(showDate) : undefined,
+      showDate,
       venue: venue.trim() || undefined,
       notes: notes.trim() || undefined,
     }
@@ -545,16 +596,25 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Show Date
-                </label>
-                <input
-                  type="datetime-local"
-                  value={showDate}
-                  onChange={e => setShowDate(e.target.value)}
-                  className="w-full min-h-[48px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <DatePicker
+                  label="Show Date"
+                  value={showDateValue}
+                  onChange={setShowDateValue}
+                  data-testid="setlist-show-date"
+                  className="[&_button]:bg-white [&_button]:border-gray-300 [&_button]:text-gray-900 [&_button:hover]:border-gray-400 [&_span]:text-gray-900 [&_.text-\\[\\#707070\\]]:text-gray-500"
+                />
+              </div>
+
+              <div>
+                <TimePickerDropdown
+                  label="Show Time"
+                  value={showTimeValue}
+                  onChange={setShowTimeValue}
+                  placeholder="Select time"
+                  data-testid="setlist-show-time"
+                  className="[&_button]:bg-white [&_button]:border-gray-300 [&_button]:text-gray-900 [&_button:hover]:border-gray-400 [&_span]:text-gray-900 [&_.text-\\[\\#707070\\]]:text-gray-500"
                 />
               </div>
 
@@ -657,51 +717,148 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
                     </p>
                   </div>
                 ) : (
-                  setlistSongs.map((setlistSong, index) => {
-                    const song = getSongById(setlistSong.songId)
-                    if (!song) return null
+                  <>
+                    {setlistSongs.map((setlistSong, index) => {
+                      const song = getSongById(setlistSong.songId)
+                      if (!song) return null
 
-                    const isDraggedItem =
-                      dragState.isDragging &&
-                      dragState.draggedIndex === index &&
-                      !dragState.draggedFromAvailable
-                    const isPotentialDrag =
-                      !dragState.isDragging &&
-                      dragState.draggedIndex === index &&
-                      !dragState.draggedFromAvailable
-                    const isDropTarget =
-                      dragState.isDragging && dragState.dropIndex === index
+                      const isDraggedItem =
+                        dragState.isDragging &&
+                        dragState.draggedIndex === index &&
+                        !dragState.draggedFromAvailable
+                      const isPotentialDrag =
+                        !dragState.isDragging &&
+                        dragState.draggedIndex === index &&
+                        !dragState.draggedFromAvailable
+                      const isDropTarget =
+                        dragState.isDragging && dragState.dropIndex === index
 
-                    return (
-                      <div
-                        key={`${setlistSong.songId}-${index}`}
-                        data-setlist-item
-                        data-index={index}
-                        className={`p-3 rounded-lg transition-all duration-200 ${getColorByField(
-                          song.id
-                        )} ${
-                          isDraggedItem
-                            ? 'opacity-50 scale-95'
-                            : isPotentialDrag
-                              ? 'scale-105 shadow-lg'
-                              : 'hover:shadow-md'
-                        } ${reorderMode ? 'cursor-move' : ''} ${
-                          isDropTarget
-                            ? 'border-4 border-blue-500 shadow-lg scale-105'
-                            : 'border'
-                        }`}
-                        onTouchStart={e => handleTouchStartWrapper(e, index)}
-                        onMouseDown={e => handleMouseDown(e, index)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3 flex-1 min-w-0">
-                            <div className="flex flex-col items-center">
-                              <span className="text-xs text-gray-500">
-                                #{index + 1}
-                              </span>
+                      return (
+                        <div
+                          key={`${setlistSong.songId}-${index}`}
+                          data-setlist-item
+                          data-index={index}
+                          className={`p-3 rounded-lg transition-all duration-200 ${getColorByField(
+                            song.id
+                          )} ${
+                            isDraggedItem
+                              ? 'opacity-50 scale-95'
+                              : isPotentialDrag
+                                ? 'scale-105 shadow-lg'
+                                : 'hover:shadow-md'
+                          } ${reorderMode ? 'cursor-move' : ''} ${
+                            isDropTarget
+                              ? 'border-4 border-blue-500 shadow-lg scale-105'
+                              : 'border'
+                          }`}
+                          onTouchStart={e => handleTouchStartWrapper(e, index)}
+                          onMouseDown={e => handleMouseDown(e, index)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              <div className="flex flex-col items-center">
+                                <span className="text-xs text-gray-500">
+                                  #{index + 1}
+                                </span>
+                                {reorderMode && (
+                                  <svg
+                                    className="w-4 h-4 text-gray-400 mt-1"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-gray-900 truncate">
+                                  {song.title}
+                                </h4>
+                                <p className="text-sm text-gray-600">
+                                  {song.artist} •{' '}
+                                  {formatDuration(song.duration)}
+                                </p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">
+                                    {song.key}
+                                  </span>
+                                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">
+                                    {song.bpm} BPM
+                                  </span>
+                                  {song.guitarTuning && (
+                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                      {song.guitarTuning}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
                               {reorderMode && (
+                                <>
+                                  <button
+                                    onClick={() => moveSongUp(index)}
+                                    disabled={index === 0}
+                                    className={`p-2 transition-colors touch-manipulation rounded-lg ${
+                                      index === 0
+                                        ? 'text-gray-300 cursor-not-allowed'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                                    }`}
+                                    aria-label="Move up"
+                                  >
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M5 15l7-7 7 7"
+                                      />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => moveSongDown(index)}
+                                    disabled={index === setlistSongs.length - 1}
+                                    className={`p-2 transition-colors touch-manipulation rounded-lg ${
+                                      index === setlistSongs.length - 1
+                                        ? 'text-gray-300 cursor-not-allowed'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                                    }`}
+                                    aria-label="Move down"
+                                  >
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 9l-7 7-7-7"
+                                      />
+                                    </svg>
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => removeSongFromSetlist(index)}
+                                className="p-2 text-red-600 hover:text-red-800 transition-colors touch-manipulation rounded-lg hover:bg-red-50"
+                                aria-label="Remove from setlist"
+                              >
                                 <svg
-                                  className="w-4 h-4 text-gray-400 mt-1"
+                                  className="w-4 h-4"
                                   fill="none"
                                   viewBox="0 0 24 24"
                                   stroke="currentColor"
@@ -710,110 +867,21 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                     strokeWidth={2}
-                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                   />
                                 </svg>
-                              )}
+                              </button>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-gray-900 truncate">
-                                {song.title}
-                              </h4>
-                              <p className="text-sm text-gray-600">
-                                {song.artist} • {formatDuration(song.duration)}
-                              </p>
-                              <div className="flex items-center space-x-2 mt-1">
-                                <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">
-                                  {song.key}
-                                </span>
-                                <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">
-                                  {song.bpm} BPM
-                                </span>
-                                {song.guitarTuning && (
-                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                                    {song.guitarTuning}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {reorderMode && (
-                              <>
-                                <button
-                                  onClick={() => moveSongUp(index)}
-                                  disabled={index === 0}
-                                  className={`p-2 transition-colors touch-manipulation rounded-lg ${
-                                    index === 0
-                                      ? 'text-gray-300 cursor-not-allowed'
-                                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                                  }`}
-                                  aria-label="Move up"
-                                >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M5 15l7-7 7 7"
-                                    />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={() => moveSongDown(index)}
-                                  disabled={index === setlistSongs.length - 1}
-                                  className={`p-2 transition-colors touch-manipulation rounded-lg ${
-                                    index === setlistSongs.length - 1
-                                      ? 'text-gray-300 cursor-not-allowed'
-                                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                                  }`}
-                                  aria-label="Move down"
-                                >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M19 9l-7 7-7-7"
-                                    />
-                                  </svg>
-                                </button>
-                              </>
-                            )}
-                            <button
-                              onClick={() => removeSongFromSetlist(index)}
-                              className="p-2 text-red-600 hover:text-red-800 transition-colors touch-manipulation rounded-lg hover:bg-red-50"
-                              aria-label="Remove from setlist"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                              </svg>
-                            </button>
                           </div>
                         </div>
-                      </div>
-                    )
-                  })
+                      )
+                    })}
+                    <ShadowEntry
+                      onAddSong={scrollToAvailableSongs}
+                      className="mt-2"
+                      data-testid="setlist-shadow-entry"
+                    />
+                  </>
                 )}
               </div>
             </div>
@@ -845,7 +913,10 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
         </div>
 
         {/* Available Songs */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div
+          ref={availableSongsRef}
+          className="bg-white rounded-lg shadow-sm border border-gray-200"
+        >
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">
               Available Songs
@@ -860,7 +931,7 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
               className="mb-4"
             />
 
-            <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar-thin">
               {availableSongs.map((song, index) => {
                 const isDraggedItem =
                   dragState.isDragging &&

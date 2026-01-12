@@ -44,6 +44,31 @@ const PracticesPage = lazy(() =>
     default: module.PracticesPage,
   }))
 )
+const PracticeBuilderPage = lazy(() =>
+  import('./pages/PracticeBuilderPage').then(module => ({
+    default: module.PracticeBuilderPage,
+  }))
+)
+const PracticeViewPage = lazy(() =>
+  import('./pages/PracticeViewPage').then(module => ({
+    default: module.PracticeViewPage,
+  }))
+)
+const PracticeSessionPage = lazy(() =>
+  import('./pages/PracticeSessionPage').then(module => ({
+    default: module.PracticeSessionPage,
+  }))
+)
+const SetlistViewPage = lazy(() =>
+  import('./pages/SetlistViewPage').then(module => ({
+    default: module.SetlistViewPage,
+  }))
+)
+const ShowViewPage = lazy(() =>
+  import('./pages/ShowViewPage').then(module => ({
+    default: module.ShowViewPage,
+  }))
+)
 const SettingsPage = lazy(() =>
   import('./pages/SettingsPage').then(module => ({
     default: module.SettingsPage,
@@ -150,6 +175,22 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
+            path="/setlists/new"
+            element={
+              <ProtectedRoute>
+                <SetlistViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/setlists/:setlistId"
+            element={
+              <ProtectedRoute>
+                <SetlistViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/shows"
             element={
               <ProtectedRoute>
@@ -158,10 +199,58 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
+            path="/shows/new"
+            element={
+              <ProtectedRoute>
+                <ShowViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shows/:showId"
+            element={
+              <ProtectedRoute>
+                <ShowViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/practices"
             element={
               <ProtectedRoute>
                 <PracticesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practices/new"
+            element={
+              <ProtectedRoute>
+                <PracticeViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practices/:practiceId"
+            element={
+              <ProtectedRoute>
+                <PracticeViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practices/:practiceId/edit"
+            element={
+              <ProtectedRoute>
+                <PracticeBuilderPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practices/:practiceId/session"
+            element={
+              <ProtectedRoute>
+                <PracticeSessionPage />
               </ProtectedRoute>
             }
           />

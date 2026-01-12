@@ -10,6 +10,15 @@ import { Show } from '../../models/Show'
 import { BandMembership, InviteCode } from '../../models/BandMembership'
 import { User } from '../../models/User'
 import type { SyncStatus, SyncStatusListener } from './syncTypes'
+import type {
+  SongPersonalNote,
+  SongPersonalNoteInput,
+} from '../../models/SongPersonalNote'
+import type {
+  SongNoteEntry,
+  SongNoteEntryInput,
+  SongNoteEntryUpdate,
+} from '../../models/SongNoteEntry'
 
 /**
  * SyncRepository - Local-first repository with background sync
@@ -587,6 +596,83 @@ export class SyncRepository implements IDataRepository {
    */
   setCurrentUser(userId: string): void {
     this.syncEngine.setCurrentUser(userId)
+  }
+
+  // ========== SONG PERSONAL NOTES ==========
+  // READ: Always from local (instant, private to user)
+
+  async getPersonalNote(
+    songId: string,
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote | null> {
+    return this.local.getPersonalNote(songId, userId, bandId)
+  }
+
+  async getPersonalNotesForUser(
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote[]> {
+    return this.local.getPersonalNotesForUser(userId, bandId)
+  }
+
+  // WRITE: Local-first with background sync
+
+  async upsertPersonalNote(
+    input: SongPersonalNoteInput
+  ): Promise<SongPersonalNote> {
+    const note = await this.local.upsertPersonalNote(input)
+    // For upsert, we use queueUpdate with the note ID
+    await this.syncEngine.queueUpdate('song_personal_notes', note.id, note)
+    return note
+  }
+
+  async deletePersonalNote(id: string): Promise<void> {
+    await this.local.deletePersonalNote(id)
+    await this.syncEngine.queueDelete('song_personal_notes', id)
+  }
+
+  // ========== SONG NOTE ENTRIES ==========
+  // READ: Always from local (instant)
+
+  async getNoteEntriesForSong(
+    songId: string,
+    bandId: string
+  ): Promise<SongNoteEntry[]> {
+    return this.local.getNoteEntriesForSong(songId, bandId)
+  }
+
+  async getNoteEntriesForSession(
+    sessionType: 'practice' | 'show',
+    sessionId: string
+  ): Promise<SongNoteEntry[]> {
+    return this.local.getNoteEntriesForSession(sessionType, sessionId)
+  }
+
+  async getNoteEntry(id: string): Promise<SongNoteEntry | null> {
+    return this.local.getNoteEntry(id)
+  }
+
+  // WRITE: Local-first with background sync
+
+  async createNoteEntry(input: SongNoteEntryInput): Promise<SongNoteEntry> {
+    const entry = await this.local.createNoteEntry(input)
+    await this.syncEngine.queueCreate('song_note_entries', entry)
+    return entry
+  }
+
+  async updateNoteEntry(
+    id: string,
+    updates: SongNoteEntryUpdate
+  ): Promise<SongNoteEntry> {
+    const entry = await this.local.updateNoteEntry(id, updates)
+    await this.syncEngine.queueUpdate('song_note_entries', id, entry)
+    return entry
+  }
+
+  async deleteNoteEntry(id: string): Promise<void> {
+    await this.local.deleteNoteEntry(id)
+    await this.syncEngine.queueDelete('song_note_entries', id)
   }
 
   // ========== CLOUD-TO-LOCAL SYNC ==========

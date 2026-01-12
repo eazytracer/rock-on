@@ -49,11 +49,12 @@ COPY package.json package-lock.json* ./
 # Install all dependencies
 RUN npm ci
 
-# Copy source code
+# Copy source code (will be overridden by volume mount)
 COPY . .
 
 # Expose Vite dev server port
 EXPOSE 5173
 
-# Start development server
-CMD ["npm", "run", "dev"]
+# Start development server with host binding for Docker
+# --host allows external access, required for Docker
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
