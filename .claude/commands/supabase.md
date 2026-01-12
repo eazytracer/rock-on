@@ -10,17 +10,20 @@ Common Supabase CLI operations for local development with our migration-based wo
 ## Environment Setup
 
 **Supabase Local Stack:**
+
 - Running in Docker containers via `supabase start`
 - API URL: `http://127.0.0.1:54321`
 - Studio URL: `http://127.0.0.1:54323`
 - Database URL: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 
 **Migration Files:**
+
 - Location: `/workspaces/rock-on/supabase/migrations/`
 - Format: `YYYYMMDDHHMMSS_description.sql`
 - Applied in timestamp order
 
 **Seed File:**
+
 - Location: `/workspaces/rock-on/supabase/seed-mvp-data.sql`
 - Configured in: `supabase/config.toml` → `[db.seed]` → `sql_paths`
 - Contains test users (eric@, mike@, sarah@) with password: `test123`
@@ -131,10 +134,11 @@ Check applied migrations (local and remote):
 supabase migration list
 
 # Remote migrations
-source .env.supabase && supabase migration list
+source .env.supabase.local && supabase migration list
 ```
 
 Current migrations:
+
 - ✅ `20251106000000_baseline_schema.sql` (Consolidated baseline - all 17 tables)
 - ✅ `20251110060100_fix_bands_insert_policy.sql` (RLS policy fix)
 
@@ -143,13 +147,22 @@ Current migrations:
 ### Setup Remote Connection
 
 **Prerequisites:**
-1. Valid Supabase access token in `.env.supabase`
+
+1. Valid Supabase access token in `.env.supabase.local` (gitignored)
 2. Project reference ID (e.g., `khzeuxxhigqcmrytsfux`)
 
-**Authentication:**
+**Create token file:**
+
 ```bash
-# Load token from .env.supabase
-source .env.supabase
+# Get token from: https://supabase.com/dashboard/account/tokens
+echo "SUPABASE_ACCESS_TOKEN=your-token-here" > .env.supabase.local
+```
+
+**Authentication:**
+
+```bash
+# Load token from .env.supabase.local
+source .env.supabase.local
 export SUPABASE_ACCESS_TOKEN
 
 # Link to remote project
@@ -160,16 +173,16 @@ supabase link --project-ref khzeuxxhigqcmrytsfux
 
 ```bash
 # Check migration status (local vs remote)
-export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase | cut -d '=' -f2) && supabase migration list
+export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase.local | cut -d '=' -f2) && supabase migration list
 
 # Push migrations to remote
-export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase | cut -d '=' -f2) && supabase db push --linked
+export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase.local | cut -d '=' -f2) && supabase db push --linked
 
 # Mark a manually-applied migration as applied
-export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase | cut -d '=' -f2) && supabase migration repair --status applied <migration_id>
+export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase.local | cut -d '=' -f2) && supabase migration repair --status applied <migration_id>
 
 # Pull remote schema to compare with local
-export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase | cut -d '=' -f2) && supabase db pull --schema public
+export SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env.supabase.local | cut -d '=' -f2) && supabase db pull --schema public
 ```
 
 ### Manual SQL Execution via Dashboard
@@ -187,19 +200,19 @@ For complex migrations or RLS policy fixes:
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Fresh start | `supabase db reset` |
-| Apply new migration (local) | `supabase db push` |
-| Apply new migration (remote) | `source .env.supabase && supabase db push --linked` |
-| Create migration | `supabase migration new <name>` |
-| Check status | `supabase status` |
-| View Studio (local) | `open http://127.0.0.1:54323` |
-| View Studio (remote) | `open https://supabase.com/dashboard/project/khzeuxxhigqcmrytsfux` |
-| View logs | `supabase logs` |
-| Connect to DB (local) | `psql postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
-| Link to remote | `source .env.supabase && supabase link --project-ref khzeuxxhigqcmrytsfux` |
-| Check remote migrations | `source .env.supabase && supabase migration list` |
+| Task                         | Command                                                                          |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| Fresh start                  | `supabase db reset`                                                              |
+| Apply new migration (local)  | `supabase db push`                                                               |
+| Apply new migration (remote) | `source .env.supabase.local && supabase db push --linked`                        |
+| Create migration             | `supabase migration new <name>`                                                  |
+| Check status                 | `supabase status`                                                                |
+| View Studio (local)          | `open http://127.0.0.1:54323`                                                    |
+| View Studio (remote)         | `open https://supabase.com/dashboard/project/khzeuxxhigqcmrytsfux`               |
+| View logs                    | `supabase logs`                                                                  |
+| Connect to DB (local)        | `psql postgresql://postgres:postgres@127.0.0.1:54322/postgres`                   |
+| Link to remote               | `source .env.supabase.local && supabase link --project-ref khzeuxxhigqcmrytsfux` |
+| Check remote migrations      | `source .env.supabase.local && supabase migration list`                          |
 
 ## Pro Tips
 

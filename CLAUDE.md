@@ -108,10 +108,10 @@ npx supabase start     # Start local Supabase
 npx supabase db reset  # Reset local database
 npx supabase db push   # Apply migrations locally
 
-# Remote operations (requires .env.supabase with SUPABASE_ACCESS_TOKEN)
-source .env.supabase && npx supabase link --project-ref khzeuxxhigqcmrytsfux
-source .env.supabase && npx supabase migration list  # Check remote status
-source .env.supabase && npx supabase db push --linked  # Apply to remote
+# Remote operations (requires .env.supabase.local with SUPABASE_ACCESS_TOKEN)
+source .env.supabase.local && supabase link --project-ref khzeuxxhigqcmrytsfux
+source .env.supabase.local && supabase migration list  # Check remote status
+source .env.supabase.local && supabase db push --linked  # Apply to remote
 ```
 
 ## Code Style
@@ -294,15 +294,15 @@ psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c "SELECT COUNT(*)
 **Remote (Production/Staging):**
 
 ```bash
-# 1. Ensure .env.supabase exists with valid SUPABASE_ACCESS_TOKEN
+# 1. Ensure .env.supabase.local exists with valid SUPABASE_ACCESS_TOKEN
 # Token expires: Check file for expiration date
 # Get new token: https://supabase.com/dashboard/account/tokens
 
 # 2. Link to remote project
-source .env.supabase && supabase link --project-ref khzeuxxhigqcmrytsfux
+source .env.supabase.local && supabase link --project-ref khzeuxxhigqcmrytsfux
 
 # 3. Apply baseline migration
-source .env.supabase && supabase db push --linked
+source .env.supabase.local && supabase db push --linked
 
 # 4. Verify via Supabase Studio
 # Go to: https://supabase.com/dashboard/project/khzeuxxhigqcmrytsfux/editor
