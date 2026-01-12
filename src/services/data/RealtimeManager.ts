@@ -1051,12 +1051,20 @@ export class RealtimeManager extends EventEmitter {
       return 'item'
     }
 
+    // Special handling for practice_sessions - use scheduled_date
+    if (audit.table_name === 'practice_sessions') {
+      return values.scheduled_date || 'item'
+    }
+
     // Try common name fields
     return values.title || values.name || 'item'
   }
 
   /**
    * Queue a toast notification from audit log (no user lookup needed!)
+   *
+   * PRACTICE-SPECIFIC TOASTS ONLY: Only show toasts for practice_sessions changes.
+   * Other tables (songs, setlists, shows) use silent sync with "last synced" indicator.
    */
   private async queueToastFromAudit(
     userName: string,
@@ -1064,36 +1072,50 @@ export class RealtimeManager extends EventEmitter {
     table: string,
     itemName: string
   ): Promise<void> {
-    // DELETE actions get immediate toast (visual change is instant)
-    if (eventType === 'DELETE') {
-      const action = 'deleted'
-      const message = `${userName} ${action} "${itemName}"`
-      this.showToast(message, 'info')
+    // ONLY show toasts for practice_sessions (others were too noisy)
+    if (table !== 'practice_sessions') {
       return
     }
 
-    // INSERT/UPDATE actions are batched to avoid spam
-    let pending = this.pendingToasts.get(userName)
-    if (!pending) {
-      pending = {
-        userId: userName, // Use userName as key
-        userName,
-        changes: [],
-        timestamp: Date.now(),
+    // Format practice date for display
+    const displayName = this.formatPracticeDateForToast(itemName)
+
+    // Show immediate toast for practice changes
+    let message: string
+    switch (eventType) {
+      case 'INSERT':
+        message = `${userName} scheduled practice for ${displayName}`
+        break
+      case 'UPDATE':
+        message = `${userName} updated practice details`
+        break
+      case 'DELETE':
+        message = `${userName} cancelled practice`
+        break
+    }
+
+    this.showToast(message, 'info')
+  }
+
+  /**
+   * Format practice date for toast display
+   * Handles both ISO date strings and fallback to generic name
+   */
+  private formatPracticeDateForToast(itemName: string): string {
+    // Try to parse as date (itemName might be ISO string or formatted date)
+    try {
+      const date = new Date(itemName)
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString(undefined, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        })
       }
-      this.pendingToasts.set(userName, pending)
+    } catch {
+      // Not a valid date, use as-is
     }
-
-    pending.changes.push({ type: eventType, table, itemName })
-
-    // Reset batch timer
-    if (this.toastBatchTimeout) {
-      clearTimeout(this.toastBatchTimeout)
-    }
-
-    this.toastBatchTimeout = setTimeout(() => {
-      this.flushToasts()
-    }, this.TOAST_BATCH_DELAY)
+    return itemName || 'a practice'
   }
 
   /**

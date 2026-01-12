@@ -6,7 +6,11 @@
 begin;
 
 -- Declare how many tests will run
-select plan(73);
+-- 17 RLS enabled tests + 2 new tables = 19
+-- + 64 policy existence tests + 8 new policies = 72
+-- Total: 19 + 64 = 83 originally, + 8 new = 91 (but added 2 rls enabled + 8 policies = 10)
+-- Actually: original 73 + 2 RLS enabled + 8 policies = 83
+select plan(83);
 
 -- ============================================================================
 -- RLS Enabled Tests (17 tables)
@@ -95,6 +99,16 @@ select ok(
 select ok(
   tests.rls_enabled('audit_log'),
   'RLS should be enabled on audit_log table'
+);
+
+select ok(
+  tests.rls_enabled('song_personal_notes'),
+  'RLS should be enabled on song_personal_notes table'
+);
+
+select ok(
+  tests.rls_enabled('song_note_entries'),
+  'RLS should be enabled on song_note_entries table'
 );
 
 -- ============================================================================
@@ -484,6 +498,54 @@ select ok(
       and permissive::text = 'true'
   ),
   'audit_log should not have permissive DELETE policy'
+);
+
+-- ============================================================================
+-- Song Personal Notes Policies (4 policies)
+-- ============================================================================
+
+select ok(
+  tests.policy_exists('song_personal_notes', 'personal_notes_select_own'),
+  'personal_notes_select_own policy should exist'
+);
+
+select ok(
+  tests.policy_exists('song_personal_notes', 'personal_notes_insert_own'),
+  'personal_notes_insert_own policy should exist'
+);
+
+select ok(
+  tests.policy_exists('song_personal_notes', 'personal_notes_update_own'),
+  'personal_notes_update_own policy should exist'
+);
+
+select ok(
+  tests.policy_exists('song_personal_notes', 'personal_notes_delete_own'),
+  'personal_notes_delete_own policy should exist'
+);
+
+-- ============================================================================
+-- Song Note Entries Policies (4 policies)
+-- ============================================================================
+
+select ok(
+  tests.policy_exists('song_note_entries', 'note_entries_select'),
+  'note_entries_select policy should exist'
+);
+
+select ok(
+  tests.policy_exists('song_note_entries', 'note_entries_insert_own'),
+  'note_entries_insert_own policy should exist'
+);
+
+select ok(
+  tests.policy_exists('song_note_entries', 'note_entries_update_own'),
+  'note_entries_update_own policy should exist'
+);
+
+select ok(
+  tests.policy_exists('song_note_entries', 'note_entries_delete_own_or_admin'),
+  'note_entries_delete_own_or_admin policy should exist'
 );
 
 -- Finalize

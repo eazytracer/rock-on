@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { ModernLayout } from '../components/layout/ModernLayout'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import {
   ChevronDown,
   Plus,
@@ -18,7 +20,6 @@ import {
   Calendar,
   ListMusic,
   ArrowLeft,
-  Guitar,
   ChevronRight,
   Coffee,
   Layers,
@@ -506,24 +507,46 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
 // Setlist Card Component (for grid view)
 interface SetlistCardProps {
   setlist: UISetlist // DATABASE INTEGRATION: Updated to use UI type
+  onClick: () => void
   onEdit: (setlist: UISetlist) => void
   onDuplicate: (setlist: UISetlist) => void
   onArchive: (setlistId: string) => void
   onDelete: (setlistId: string) => void
+  onNavigateToShow?: (showId: string) => void
 }
 
 const SetlistCard: React.FC<SetlistCardProps> = ({
   setlist,
+  onClick,
   onEdit,
   onDuplicate,
   onArchive,
   onDelete,
+  onNavigateToShow,
 }) => {
   // PHASE 2: Get sync status for this setlist
   const syncStatus = useItemStatus(setlist.id)
 
   const [showActions, setShowActions] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+  const songListRef = useRef<HTMLDivElement>(null)
+
+  // Check if song list overflows
+  const checkOverflow = useCallback(() => {
+    if (songListRef.current) {
+      const { scrollHeight, clientHeight } = songListRef.current
+      setIsOverflowing(scrollHeight > clientHeight)
+    }
+  }, [])
+
+  // Check overflow on mount and when content changes
+  useEffect(() => {
+    checkOverflow()
+    // Also check on resize
+    window.addEventListener('resize', checkOverflow)
+    return () => window.removeEventListener('resize', checkOverflow)
+  }, [checkOverflow, setlist.items])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -539,46 +562,40 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
   }
 
   const songItems = setlist.items.filter(item => item.type === 'song')
+  const totalDuration = formatTotalDuration(
+    calculateSetlistDuration(setlist.items)
+  )
 
   return (
     <div
       data-testid={`setlist-card-${setlist.name}`}
-      className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors"
+      className="bg-[#1a1a1a] rounded-xl p-5 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors cursor-pointer aspect-square flex flex-col"
+      onClick={onClick}
     >
-      <div className="flex items-start justify-between mb-3">
-        {/* PHASE 2: Sync Icon */}
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="flex-shrink-0 mt-1">
-            <SyncIcon status={syncStatus} size="sm" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3
-              data-testid="setlist-name"
-              className="text-white font-semibold text-base mb-1 truncate"
+      {/* Header Row */}
+      <div className="flex items-start justify-between gap-3 mb-2 flex-shrink-0">
+        <div className="flex-1 min-w-0">
+          <h3
+            data-testid="setlist-name"
+            className="text-lg font-bold text-white mb-1 truncate"
+          >
+            {setlist.name}
+          </h3>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(setlist.status)}`}
             >
-              {setlist.name}
-            </h3>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(setlist.status)}`}
-              >
-                {setlist.status.charAt(0).toUpperCase() +
-                  setlist.status.slice(1)}
-              </span>
-              {setlist.associatedShow && (
-                <div className="flex items-center gap-1 text-[#a0a0a0] text-xs">
-                  <Calendar size={12} />
-                  <span>{setlist.associatedShow.name}</span>
-                </div>
-              )}
-            </div>
+              {setlist.status.charAt(0).toUpperCase() + setlist.status.slice(1)}
+            </span>
+            <SyncIcon status={syncStatus} size="sm" />
           </div>
         </div>
 
-        <div className="relative">
+        {/* Actions Menu */}
+        <div className="relative" onClick={e => e.stopPropagation()}>
           <button
             onClick={() => setShowActions(!showActions)}
-            className="p-1 text-[#707070] hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#252525] transition-colors text-[#a0a0a0]"
           >
             <MoreVertical size={18} />
           </button>
@@ -642,44 +659,66 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-4 text-[#a0a0a0] text-sm mb-3">
-        <div className="flex items-center gap-1">
-          <Music2 size={14} />
-          <span data-testid={`setlist-song-count-${setlist.id}`}>
-            {songItems.length} songs
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Clock size={14} />
-          <span data-testid={`setlist-duration-${setlist.id}`}>
-            {formatTotalDuration(calculateSetlistDuration(setlist.items))}
-          </span>
-        </div>
+      {/* Duration */}
+      <div className="flex items-center gap-2 text-white font-medium mb-2 flex-shrink-0">
+        <Clock size={16} className="text-[#f17827ff]" />
+        <span data-testid={`setlist-duration-${setlist.id}`}>
+          {totalDuration}
+        </span>
+        <span className="text-[#505050]">•</span>
+        <span
+          className="text-[#a0a0a0]"
+          data-testid={`setlist-song-count-${setlist.id}`}
+        >
+          {songItems.length} song{songItems.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
-      <div className="space-y-1.5 mb-3">
-        {songItems.slice(0, 5).map((item, index) => (
-          <div key={index} className="flex items-center gap-2 text-xs">
-            <span className="text-[#505050] w-4">{index + 1}.</span>
-            <span className="text-[#a0a0a0] truncate flex-1">
-              {item.song?.title}
-            </span>
-            <span className="text-[#707070]">{item.song?.duration}</span>
-          </div>
-        ))}
-        {songItems.length > 5 && (
-          <div className="text-[#505050] text-xs pl-6">
-            +{songItems.length - 5} more...
-          </div>
-        )}
-      </div>
+      {/* Associated Show Link */}
+      {setlist.associatedShow && (
+        <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+          <Calendar size={14} className="text-[#f17827ff]" />
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              onNavigateToShow?.(setlist.associatedShow!.id)
+            }}
+            className="text-[#f17827ff] text-sm hover:underline truncate"
+          >
+            {setlist.associatedShow.name} - {setlist.associatedShow.date}
+          </button>
+        </div>
+      )}
 
-      <button
-        onClick={() => onEdit(setlist)}
-        className="w-full py-2 rounded-lg border border-[#2a2a2a] text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
-      >
-        Edit Setlist
-      </button>
+      {/* Notes/Description */}
+      {setlist.notes && (
+        <p className="text-sm text-[#a0a0a0] mb-2 line-clamp-2 flex-shrink-0">
+          {setlist.notes}
+        </p>
+      )}
+
+      {/* Song Preview - Vertical list */}
+      {songItems.length > 0 && (
+        <div
+          ref={songListRef}
+          className="relative flex-1 min-h-0 overflow-hidden"
+        >
+          <ul className="text-sm space-y-1">
+            {songItems.map((item, index) => (
+              <li key={index} className="text-[#a0a0a0] truncate">
+                <span className="text-[#505050] mr-2">{index + 1}.</span>
+                {item.song?.title}
+              </li>
+            ))}
+          </ul>
+          {/* Fade/ellipsis indicator - only show when overflowing */}
+          {isOverflowing && (
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1a1a1a] to-transparent pointer-events-none flex items-end justify-center pb-1">
+              <span className="text-[#505050] text-sm">...</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {showDeleteConfirm && (
         <div
@@ -730,22 +769,24 @@ interface SetlistEditorPageProps {
   availableSongs: UISong[] // DATABASE INTEGRATION: Updated to use UI type
   availableShows: UIShow[] // DATABASE INTEGRATION: Updated to use UI type
   availablePractices: UIPractice[] // DATABASE INTEGRATION: Updated to use UI type
+  dbSongs: DBSong[] // Raw database songs for BrowseSongsDrawer
+  dbSetlists: DBSetlist[] // Raw database setlists for BrowseSongsDrawer
   onBack: () => void
   onSave: (setlist: UISetlist) => void
 }
 
 const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
   setlist,
-  availableSongs,
   availableShows,
   availablePractices,
+  dbSongs,
+  dbSetlists,
   onBack,
   onSave,
 }) => {
+  const { showToast } = useToast()
   const [editedSetlist, setEditedSetlist] = useState<UISetlist>(setlist)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedTuning, setSelectedTuning] = useState<string>('')
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [showPracticeMenu, setShowPracticeMenu] = useState(false)
 
@@ -783,20 +824,42 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
     }
   }
 
-  const addSongToSetlist = (song: UISong) => {
+  const addSongToSetlist = (song: DBSong) => {
     const newPosition = editedSetlist.items.length + 1
+    const uiSong = dbSongToUISong(song)
     const newItem: UISetlistItem = {
       id: crypto.randomUUID(), // DATABASE INTEGRATION: Use crypto.randomUUID()
       type: 'song',
       position: newPosition,
-      song: song,
-      songId: song.id, // DATABASE INTEGRATION: Store songId for database
+      song: uiSong,
+      songId: song.id!, // DATABASE INTEGRATION: Store songId for database
     }
 
     setEditedSetlist(prev => ({
       ...prev,
       items: [...prev.items, newItem],
       songCount: prev.items.filter(i => i.type === 'song').length + 1,
+    }))
+  }
+
+  const addAllSongsFromSetlist = (songs: DBSong[]) => {
+    const startPosition = editedSetlist.items.length + 1
+    const newItems: UISetlistItem[] = songs.map((song, index) => {
+      const uiSong = dbSongToUISong(song)
+      return {
+        id: crypto.randomUUID(),
+        type: 'song',
+        position: startPosition + index,
+        song: uiSong,
+        songId: song.id!,
+      }
+    })
+
+    setEditedSetlist(prev => ({
+      ...prev,
+      items: [...prev.items, ...newItems],
+      songCount:
+        prev.items.filter(i => i.type === 'song').length + newItems.length,
     }))
   }
 
@@ -870,8 +933,9 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
   const handleAddToPractice = (practiceId: string) => {
     const practice = availablePractices.find(p => p.id === practiceId)
     if (practice) {
-      alert(
-        `Added ${editedSetlist.items.filter(i => i.type === 'song').length} songs to ${practice.name}`
+      showToast(
+        `Added ${editedSetlist.items.filter(i => i.type === 'song').length} songs to ${practice.name}`,
+        'success'
       )
       setShowPracticeMenu(false)
     }
@@ -883,30 +947,14 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
     )?.song
     if (song) {
       // For now, add to first practice (in real app, would show menu)
-      alert(`Added "${song.title}" to practice`)
+      showToast(`Added "${song.title}" to practice`, 'success')
     }
   }
 
   // Filter songs that are already in the setlist
-  const songsInSetlist = new Set(
-    editedSetlist.items
-      .filter(item => item.type === 'song' && item.song)
-      .map(item => item.song!.id)
-  )
-
-  const filteredSongs = availableSongs
-    .filter(song => !songsInSetlist.has(song.id))
-    .filter(song => {
-      const matchesSearch =
-        song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        song.artist.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesTuning = !selectedTuning || song.tuning === selectedTuning
-      return matchesSearch && matchesTuning
-    })
-
-  const availableTunings = Array.from(
-    new Set(availableSongs.map(s => s.tuning))
-  ).sort()
+  const songsInSetlist = editedSetlist.items
+    .filter(item => item.type === 'song' && item.songId)
+    .map(item => item.songId!)
 
   const totalDuration = calculateSetlistDuration(editedSetlist.items)
   const songCount = editedSetlist.items.filter(i => i.type === 'song').length
@@ -1314,114 +1362,15 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
         </div>
 
         {/* Sliding Drawer for Songs */}
-        {isDrawerOpen && (
-          <>
-            <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-              onClick={() => setIsDrawerOpen(false)}
-            />
-            <div className="fixed right-0 top-0 bottom-0 w-full md:w-[480px] bg-[#0f0f0f] border-l border-[#2a2a2a] shadow-2xl z-50 flex flex-col">
-              {/* Drawer Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] flex-shrink-0">
-                <h3 className="text-white font-semibold text-lg">
-                  Browse Songs
-                </h3>
-                <button
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="p-2 text-[#707070] hover:text-white transition-colors rounded-lg hover:bg-[#1a1a1a]"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Search and Filters */}
-              <div className="px-6 py-4 border-b border-[#2a2a2a] space-y-3 flex-shrink-0">
-                <div className="relative">
-                  <Search
-                    size={18}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search songs..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full h-10 pl-10 pr-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  />
-                </div>
-
-                <select
-                  value={selectedTuning}
-                  onChange={e => setSelectedTuning(e.target.value)}
-                  className="w-full h-10 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                >
-                  <option value="">All Tunings</option>
-                  {availableTunings.map(tuning => (
-                    <option key={tuning} value={tuning}>
-                      {tuning}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Songs List */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar-thin px-6 py-4">
-                <div data-testid="available-songs-list" className="space-y-2">
-                  {filteredSongs.length === 0 ? (
-                    <div className="text-center py-12">
-                      <p className="text-[#707070] text-sm">
-                        No songs available
-                      </p>
-                      <p className="text-[#505050] text-xs mt-1">
-                        {songsInSetlist.size > 0
-                          ? 'All songs have been added'
-                          : 'Try adjusting your search'}
-                      </p>
-                    </div>
-                  ) : (
-                    filteredSongs.map(song => (
-                      <button
-                        key={song.id}
-                        onClick={() => addSongToSetlist(song)}
-                        data-testid={`available-song-${song.id}`}
-                        className="w-full flex items-center gap-3 p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg hover:border-[#f17827ff] hover:bg-[#1f1f1f] transition-colors text-left group"
-                      >
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
-                          style={{ backgroundColor: song.avatarColor }}
-                        >
-                          {song.initials}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white text-sm font-semibold truncate">
-                            {song.title}
-                          </div>
-                          <div className="text-[#707070] text-xs truncate">
-                            {song.artist}
-                          </div>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-[#505050]">
-                            <span className="flex items-center gap-1">
-                              <Guitar size={12} />
-                              {song.tuning}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock size={12} />
-                              {song.duration}
-                            </span>
-                          </div>
-                        </div>
-                        <Plus
-                          size={18}
-                          className="text-[#505050] group-hover:text-[#f17827ff] transition-colors flex-shrink-0"
-                        />
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+        <BrowseSongsDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          songs={dbSongs}
+          selectedSongIds={songsInSetlist}
+          onAddSong={addSongToSetlist}
+          setlists={dbSetlists}
+          onAddAllFromSetlist={addAllSongsFromSetlist}
+        />
       </div>
     </div>
   )
@@ -1430,9 +1379,11 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
 // Main Setlists Page Component
 export const SetlistsPage: React.FC = () => {
   const navigate = useNavigate()
+  const location = useLocation()
 
   // Get auth context for user info and sign out
   const { currentUser, currentBand, signOut } = useAuth()
+  const { showToast } = useToast()
 
   // DATABASE INTEGRATION: Get currentBandId from localStorage
   const [currentBandId] = useState(
@@ -1449,6 +1400,8 @@ export const SetlistsPage: React.FC = () => {
   const [availableSongs, setAvailableSongs] = useState<UISong[]>([])
   const [availableShows, setAvailableShows] = useState<UIShow[]>([])
   const [availablePractices, setAvailablePractices] = useState<UIPractice[]>([])
+  const [dbSongs, setDbSongs] = useState<DBSong[]>([]) // Raw database songs
+  const [dbSetlists, setDbSetlists] = useState<DBSetlist[]>([]) // Raw database setlists
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -1472,20 +1425,24 @@ export const SetlistsPage: React.FC = () => {
         setError(null)
 
         // Load setlists for the band
-        const dbSetlists = await db.setlists
+        const loadedDbSetlists = await db.setlists
           .where('bandId')
           .equals(currentBandId)
           .toArray()
 
         // Load songs for the band
-        const dbSongs = await db.songs
+        const loadedDbSongs = await db.songs
           .where('contextType')
           .equals('band')
           .and(s => s.contextId === currentBandId)
           .toArray()
 
+        // Store raw database data
+        setDbSongs(loadedDbSongs)
+        setDbSetlists(loadedDbSetlists)
+
         // Convert songs to UI format
-        const uiSongs: UISong[] = dbSongs.map(dbSongToUISong)
+        const uiSongs: UISong[] = loadedDbSongs.map(dbSongToUISong)
 
         // Load shows from dedicated shows table
         const dbShows = await db.shows
@@ -1514,7 +1471,7 @@ export const SetlistsPage: React.FC = () => {
 
         // Convert setlists to UI format with populated songs
         const uiSetlists: UISetlist[] = await Promise.all(
-          dbSetlists.map(async dbSetlist => {
+          loadedDbSetlists.map(async dbSetlist => {
             // Load associated show if exists
             let associatedShow:
               | { id: string; name: string; date: string }
@@ -1590,6 +1547,19 @@ export const SetlistsPage: React.FC = () => {
     loadData()
   }, [currentBandId])
 
+  // Handle opening editor from navigation state (e.g., from view page)
+  useEffect(() => {
+    const state = location.state as { editSetlistId?: string } | null
+    if (state?.editSetlistId && uiSetlists.length > 0) {
+      const setlistToEdit = uiSetlists.find(s => s.id === state.editSetlistId)
+      if (setlistToEdit) {
+        setEditingSetlist(setlistToEdit)
+        // Clear the state to prevent reopening on refresh
+        navigate(location.pathname, { replace: true })
+      }
+    }
+  }, [location.state, uiSetlists, navigate, location.pathname])
+
   const filteredSetlists = uiSetlists.filter(setlist => {
     const matchesStatus =
       filterStatus === 'all' || setlist.status === filterStatus
@@ -1599,25 +1569,13 @@ export const SetlistsPage: React.FC = () => {
     return matchesStatus && matchesSearch
   })
 
-  // DATABASE INTEGRATION: Create new setlist
-  const handleCreateNew = async () => {
+  // Navigate to create new setlist
+  const handleCreateNew = () => {
     if (!currentBandId) {
-      alert('No band selected')
+      showToast('No band selected', 'error')
       return
     }
-
-    const newSetlist: UISetlist = {
-      id: crypto.randomUUID(),
-      name: 'New Setlist',
-      bandId: currentBandId,
-      songCount: 0,
-      totalDuration: '0 min',
-      status: 'draft',
-      items: [],
-      lastModified: 'Just now',
-      notes: '',
-    }
-    setEditingSetlist(newSetlist)
+    navigate('/setlists/new')
   }
 
   // DATABASE INTEGRATION: Edit setlist
@@ -1672,10 +1630,10 @@ export const SetlistsPage: React.FC = () => {
       // Update UI state
       setUISetlists([duplicated, ...uiSetlists])
 
-      alert('Setlist duplicated successfully!')
+      showToast('Setlist duplicated', 'success')
     } catch (err) {
       console.error('Error duplicating setlist:', err)
-      alert('Failed to duplicate setlist')
+      showToast('Failed to duplicate setlist', 'error')
     }
   }
 
@@ -1688,10 +1646,10 @@ export const SetlistsPage: React.FC = () => {
           s.id === setlistId ? { ...s, status: 'archived' as const } : s
         )
       )
-      alert('Setlist archived successfully!')
+      showToast('Setlist archived', 'success')
     } catch (err) {
       console.error('Error archiving setlist:', err)
-      alert('Failed to archive setlist')
+      showToast('Failed to archive setlist', 'error')
     }
   }
 
@@ -1714,10 +1672,10 @@ export const SetlistsPage: React.FC = () => {
       // Update UI state
       setUISetlists(uiSetlists.filter(s => s.id !== setlistId))
 
-      alert('Setlist deleted successfully!')
+      showToast('Setlist deleted', 'success')
     } catch (err) {
       console.error('Error deleting setlist:', err)
-      alert('Failed to delete setlist')
+      showToast('Failed to delete setlist', 'error')
     }
   }
 
@@ -1836,10 +1794,10 @@ export const SetlistsPage: React.FC = () => {
 
       setUISetlists(reloadedSetlists)
 
-      alert('Setlist saved successfully!')
+      showToast('Setlist saved', 'success')
     } catch (err) {
       console.error('Error saving setlist:', err)
-      alert('Failed to save setlist')
+      showToast('Failed to save setlist', 'error')
     }
   }
 
@@ -1898,6 +1856,8 @@ export const SetlistsPage: React.FC = () => {
         availableSongs={availableSongs}
         availableShows={availableShows}
         availablePractices={availablePractices}
+        dbSongs={dbSongs}
+        dbSetlists={dbSetlists}
         onBack={() => setEditingSetlist(null)}
         onSave={handleSave}
       />
@@ -1911,91 +1871,95 @@ export const SetlistsPage: React.FC = () => {
       userEmail={currentUser?.email || 'Not logged in'}
       onSignOut={handleSignOut}
     >
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-6">
-          <h1 className="text-2xl font-bold text-white">Setlists</h1>
-          <ChevronDown size={20} className="text-[#a0a0a0]" />
-        </div>
-
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <select
-            value={filterStatus}
-            onChange={e =>
-              setFilterStatus(e.target.value as typeof filterStatus)
-            }
-            className="h-10 px-4 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-          >
-            <option value="all">All Setlists</option>
-            <option value="active">Active</option>
-            <option value="draft">Drafts</option>
-            <option value="archived">Archived</option>
-          </select>
-
-          <div className="flex items-center gap-3 flex-1 max-w-md">
-            <div className="relative flex-1">
-              <Search
-                size={20}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
-              />
-              <input
-                type="text"
-                placeholder="Search setlists"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-11 pr-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-              />
-            </div>
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-6">
+            <h1 className="text-2xl font-bold text-white">Setlists</h1>
+            <ChevronDown size={20} className="text-[#a0a0a0]" />
           </div>
 
-          <button
-            onClick={handleCreateNew}
-            data-testid="create-setlist-button"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
-          >
-            <Plus size={20} />
-            <span>Create Setlist</span>
-          </button>
-        </div>
-      </div>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <select
+              value={filterStatus}
+              onChange={e =>
+                setFilterStatus(e.target.value as typeof filterStatus)
+              }
+              className="h-10 px-4 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+            >
+              <option value="all">All Setlists</option>
+              <option value="active">Active</option>
+              <option value="draft">Drafts</option>
+              <option value="archived">Archived</option>
+            </select>
 
-      {filteredSetlists.length === 0 ? (
-        <div
-          data-testid="setlist-empty-state"
-          className="flex flex-col items-center justify-center py-20"
-        >
-          <ListMusic size={64} className="text-[#2a2a2a] mb-4" />
-          <h3 className="text-white font-semibold text-lg mb-2">
-            No setlists yet
-          </h3>
-          <p className="text-[#707070] text-sm mb-6">
-            Create your first setlist to get started
-          </p>
-          <button
-            onClick={handleCreateNew}
-            data-testid="create-setlist-button"
-            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+            <div className="flex items-center gap-3 flex-1 max-w-md">
+              <div className="relative flex-1">
+                <Search
+                  size={20}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+                />
+                <input
+                  type="text"
+                  placeholder="Search setlists"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full h-10 pl-11 pr-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleCreateNew}
+              data-testid="create-setlist-button"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+            >
+              <Plus size={20} />
+              <span>Create Setlist</span>
+            </button>
+          </div>
+        </div>
+
+        {filteredSetlists.length === 0 ? (
+          <div
+            data-testid="setlist-empty-state"
+            className="flex flex-col items-center justify-center py-20"
           >
-            <Plus size={20} />
-            <span>Create Setlist</span>
-          </button>
-        </div>
-      ) : (
-        <div
-          data-testid="setlist-list"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-        >
-          {filteredSetlists.map(setlist => (
-            <SetlistCard
-              key={setlist.id}
-              setlist={setlist}
-              onEdit={handleEdit}
-              onDuplicate={handleDuplicate}
-              onArchive={handleArchive}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
-      )}
+            <ListMusic size={64} className="text-[#2a2a2a] mb-4" />
+            <h3 className="text-white font-semibold text-lg mb-2">
+              No setlists yet
+            </h3>
+            <p className="text-[#707070] text-sm mb-6">
+              Create your first setlist to get started
+            </p>
+            <button
+              onClick={handleCreateNew}
+              data-testid="create-setlist-button"
+              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+            >
+              <Plus size={20} />
+              <span>Create Setlist</span>
+            </button>
+          </div>
+        ) : (
+          <div
+            data-testid="setlist-list"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-sm md:max-w-none mx-auto md:mx-0"
+          >
+            {filteredSetlists.map(setlist => (
+              <SetlistCard
+                key={setlist.id}
+                setlist={setlist}
+                onClick={() => navigate(`/setlists/${setlist.id}`)}
+                onEdit={handleEdit}
+                onDuplicate={handleDuplicate}
+                onArchive={handleArchive}
+                onDelete={handleDelete}
+                onNavigateToShow={showId => navigate(`/shows/${showId}`)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </ModernLayout>
   )
 }

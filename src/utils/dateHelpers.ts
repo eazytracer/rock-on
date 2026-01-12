@@ -103,15 +103,20 @@ export function isUpcomingDate(date: Date | string): boolean {
 }
 
 /**
- * Format a date for input fields (YYYY-MM-DD) using LOCAL timezone
- * IMPORTANT: Do NOT use toISOString() as it converts to UTC, causing date shifts
+ * Format a date for input fields (YYYY-MM-DD)
+ *
+ * IMPORTANT: Uses LOCAL timezone, not UTC!
+ * Using toISOString().split('T')[0] causes off-by-one date bugs
+ * because toISOString() converts to UTC first.
+ *
+ * Example: Dec 15 11pm EST becomes Dec 16 4am UTC, then displays as Dec 16
  */
 export function formatDateForInput(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date
 
   if (!d || isNaN(d.getTime())) return ''
 
-  // Use local date components to avoid timezone conversion
+  // Use LOCAL date components, NOT toISOString() which converts to UTC
   const year = d.getFullYear()
   const month = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
@@ -120,17 +125,25 @@ export function formatDateForInput(date: Date | string): string {
 }
 
 /**
- * Parse a date string (YYYY-MM-DD) as LOCAL time, not UTC
- * IMPORTANT: new Date("YYYY-MM-DD") parses as UTC midnight, causing off-by-one errors
- * in timezones west of UTC. This function parses as local midnight instead.
+ * Parse a YYYY-MM-DD date string as LOCAL time (midnight)
+ *
+ * IMPORTANT: new Date("2024-12-20") parses as UTC midnight, which becomes
+ * Dec 19 in timezones west of UTC! This function parses as LOCAL midnight.
+ *
+ * Use this when parsing date input values before combining with time.
  */
 export function parseDateAsLocal(dateString: string): Date {
   if (!dateString) return new Date()
 
-  // Split the date string and create date in local timezone
+  // Split the date string and create date with local timezone
   const [year, month, day] = dateString.split('-').map(Number)
-  return new Date(year, month - 1, day) // month is 0-indexed
+
+  // Month is 0-indexed in JavaScript Date
+  return new Date(year, month - 1, day)
 }
+
+// Alias for backwards compatibility with code using the longer name
+export const parseDateInputAsLocal = parseDateAsLocal
 
 /**
  * Format a datetime for input fields (YYYY-MM-DDTHH:mm)

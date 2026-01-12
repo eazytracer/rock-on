@@ -3,6 +3,7 @@ import { PracticeSessionService } from '../services/PracticeSessionService'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import { useAuth } from '../contexts/AuthContext'
 import type { PracticeSession } from '../models/PracticeSession'
+import type { SyncStatus } from '../services/data/syncTypes'
 
 /**
  * Hook to fetch practices (rehearsals) for a band
@@ -73,9 +74,21 @@ export function usePractices(bandId: string) {
 
     // Subscribe to sync changes for live updates
     const repo = getSyncRepository()
-    const handleSyncChange = () => {
-      console.log('[usePractices] Sync status changed, refetching...')
-      fetchPractices(true) // Silent mode
+    const handleSyncChange = (status: SyncStatus) => {
+      // Only refetch when sync COMPLETES, not when it starts
+      // This prevents double-fetching during creation/updates
+      if (!status.isSyncing && status.pendingCount === 0) {
+        console.log('[usePractices] Sync completed, refetching practices...')
+        fetchPractices(true) // Silent mode
+      } else {
+        console.log(
+          '[usePractices] Sync status changed - isSyncing:',
+          status.isSyncing,
+          'pending:',
+          status.pendingCount,
+          '- not refetching'
+        )
+      }
     }
 
     const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
@@ -127,14 +140,14 @@ export function usePractices(bandId: string) {
     }
   }, [bandId, realtimeManager, fetchPractices])
 
-  return { practices, loading, error }
+  return { practices, loading, error, refetch: fetchPractices }
 }
 
 /**
  * Hook to get upcoming and past practices separately
  */
 export function useUpcomingPractices(bandId: string) {
-  const { practices, loading, error } = usePractices(bandId)
+  const { practices, loading, error, refetch } = usePractices(bandId)
 
   const now = new Date()
   const upcomingPractices = practices.filter(
@@ -144,7 +157,7 @@ export function useUpcomingPractices(bandId: string) {
     practice => new Date(practice.scheduledDate) < now
   )
 
-  return { upcomingPractices, pastPractices, loading, error }
+  return { upcomingPractices, pastPractices, loading, error, refetch }
 }
 
 /**
@@ -211,6 +224,8 @@ export function useUpdatePractice() {
         location: updates.location,
         objectives: updates.objectives,
         notes: updates.notes,
+        status: updates.status,
+        songs: updates.songs?.map(s => (typeof s === 'string' ? s : s.songId)),
       })
 
       return true

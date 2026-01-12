@@ -3,7 +3,10 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ModernLayout } from '../components/layout/ModernLayout'
 import { useAuth } from '../contexts/AuthContext'
-import { TimePicker } from '../components/common/TimePicker'
+import { useToast } from '../contexts/ToastContext'
+import { DatePicker } from '../components/common/DatePicker'
+import { TimePickerDropdown } from '../components/common/TimePickerDropdown'
+import { CalendarDateBadge } from '../components/common/CalendarDateBadge'
 import {
   Plus,
   Calendar,
@@ -105,6 +108,7 @@ export const ShowsPage: React.FC = () => {
 
   // Get auth context for user info and sign out
   const { currentUser, currentBand, signOut } = useAuth()
+  const { showToast } = useToast()
 
   // ============================================
   // DATABASE STATE & HOOKS - REAL INTEGRATION
@@ -241,15 +245,6 @@ export const ShowsPage: React.FC = () => {
     return formatShowDate(date)
   }
 
-  const formatDateBadge = (date: Date | string) => {
-    const d = typeof date === 'string' ? new Date(date) : date
-    const month = d.toLocaleDateString('en-US', { month: 'short' })
-    const day = d.getDate()
-    const weekday = d.toLocaleDateString('en-US', { weekday: 'short' })
-
-    return { month, day, weekday }
-  }
-
   // ============================================
   // CRUD HANDLERS - REAL DATABASE OPERATIONS
   // ============================================
@@ -257,11 +252,10 @@ export const ShowsPage: React.FC = () => {
     try {
       await deleteShow(show.id)
       setShowToDelete(null)
-      // Show success toast
-      console.log('Show deleted successfully')
+      showToast('Show deleted', 'success')
     } catch (err) {
       console.error('Failed to delete show:', err)
-      alert('Failed to delete show. Please try again.')
+      showToast('Failed to delete show', 'error')
     }
   }
 
@@ -312,256 +306,255 @@ export const ShowsPage: React.FC = () => {
       userEmail={currentUser?.email || 'Not logged in'}
       onSignOut={handleSignOut}
     >
-      {/* Page Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white">Shows</h1>
-            <ChevronDown size={20} className="text-[#a0a0a0]" />
-          </div>
+      <div className="max-w-6xl mx-auto">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-white">Shows</h1>
+              <ChevronDown size={20} className="text-[#a0a0a0]" />
+            </div>
 
-          <div className="flex items-center gap-3">
-            {/* Filter Dropdown */}
-            <div className="relative">
+            <div className="flex items-center gap-3">
+              {/* Filter Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
+                >
+                  <FilterIcon size={20} />
+                  <span className="capitalize">{filter}</span>
+                </button>
+
+                {isFilterOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-50 py-1">
+                    {(
+                      [
+                        'all',
+                        'upcoming',
+                        'past',
+                        'scheduled',
+                        'confirmed',
+                        'completed',
+                        'cancelled',
+                      ] as FilterType[]
+                    ).map(filterOption => (
+                      <button
+                        key={filterOption}
+                        onClick={() => {
+                          setFilter(filterOption)
+                          setIsFilterOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors capitalize ${
+                          filter === filterOption
+                            ? 'bg-[#f17827ff]/10 text-[#f17827ff]'
+                            : 'text-white hover:bg-[#252525]'
+                        }`}
+                      >
+                        {filterOption}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <button
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
+                onClick={() => navigate('/shows/new')}
+                data-testid="create-show-button"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
               >
-                <FilterIcon size={20} />
-                <span className="capitalize">{filter}</span>
+                <Plus size={20} />
+                <span>Schedule Show</span>
               </button>
+            </div>
+          </div>
+        </div>
 
-              {isFilterOpen && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-50 py-1">
-                  {(
-                    [
-                      'all',
-                      'upcoming',
-                      'past',
-                      'scheduled',
-                      'confirmed',
-                      'completed',
-                      'cancelled',
-                    ] as FilterType[]
-                  ).map(filterOption => (
-                    <button
-                      key={filterOption}
-                      onClick={() => {
-                        setFilter(filterOption)
-                        setIsFilterOpen(false)
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors capitalize ${
-                        filter === filterOption
-                          ? 'bg-[#f17827ff]/10 text-[#f17827ff]'
-                          : 'text-white hover:bg-[#252525]'
-                      }`}
-                    >
-                      {filterOption}
-                    </button>
-                  ))}
+        {/* Next Show Preview Card - UPDATED FOR DATABASE */}
+        {nextShow && filter === 'upcoming' && (
+          <div className="mb-6 p-6 bg-gradient-to-br from-[#f17827ff]/10 to-transparent border-2 border-[#f17827ff]/30 rounded-xl">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <div className="text-xs font-semibold text-[#f17827ff] uppercase tracking-wider mb-1">
+                  Next Show
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-1">
+                  {nextShow.name || 'Untitled Show'}
+                </h2>
+                <div className="text-lg text-[#f17827ff] font-semibold">
+                  {getDaysUntilShow(nextShow.scheduledDate)}
+                </div>
+              </div>
+              <ShowStatusBadge status={nextShow.status} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 text-white">
+                <Calendar size={20} className="text-[#f17827ff]" />
+                <div>
+                  <div className="text-sm font-medium">
+                    {formatDate(nextShow.scheduledDate)}
+                  </div>
+                  <div className="text-xs text-[#a0a0a0]">
+                    {formatTime12Hour(nextShow.scheduledDate)}
+                  </div>
+                </div>
+              </div>
+
+              {nextShow.venue && (
+                <div className="flex items-center gap-3 text-white">
+                  <MapPin size={20} className="text-[#f17827ff]" />
+                  <div>
+                    <div className="text-sm font-medium">{nextShow.venue}</div>
+                    {nextShow.location && (
+                      <div className="text-xs text-[#a0a0a0]">
+                        {nextShow.location}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {nextShow.setlistId && setlistsData[nextShow.setlistId] && (
+                <div className="flex items-center gap-3 text-white">
+                  <Music size={20} className="text-[#f17827ff]" />
+                  <div>
+                    <div className="text-sm font-medium">
+                      {setlistsData[nextShow.setlistId].name}
+                    </div>
+                    <div className="text-xs text-[#a0a0a0]">
+                      {
+                        setlistsData[nextShow.setlistId].items.filter(
+                          i => i.type === 'song'
+                        ).length
+                      }{' '}
+                      songs
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {nextShow.payment !== undefined && nextShow.payment > 0 && (
+                <div className="flex items-center gap-3 text-white">
+                  <DollarSign size={20} className="text-[#f17827ff]" />
+                  <div>
+                    <div className="text-sm font-medium">
+                      {centsToDollars(nextShow.payment)}
+                    </div>
+                    <div className="text-xs text-[#a0a0a0]">Payment</div>
+                  </div>
                 </div>
               )}
             </div>
-
-            <button
-              onClick={() => {
-                setSelectedShow(null)
-                setIsScheduleModalOpen(true)
-              }}
-              data-testid="create-show-button"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
-            >
-              <Plus size={20} />
-              <span>Schedule Show</span>
-            </button>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Next Show Preview Card - UPDATED FOR DATABASE */}
-      {nextShow && filter === 'upcoming' && (
-        <div className="mb-6 p-6 bg-gradient-to-br from-[#f17827ff]/10 to-transparent border-2 border-[#f17827ff]/30 rounded-xl">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div>
-              <div className="text-xs font-semibold text-[#f17827ff] uppercase tracking-wider mb-1">
-                Next Show
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-1">
-                {nextShow.name || 'Untitled Show'}
-              </h2>
-              <div className="text-lg text-[#f17827ff] font-semibold">
-                {getDaysUntilShow(nextShow.scheduledDate)}
-              </div>
-            </div>
-            <ShowStatusBadge status={nextShow.status} />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 text-white">
-              <Calendar size={20} className="text-[#f17827ff]" />
-              <div>
-                <div className="text-sm font-medium">
-                  {formatDate(nextShow.scheduledDate)}
-                </div>
-                <div className="text-xs text-[#a0a0a0]">
-                  {formatTime12Hour(nextShow.scheduledDate)}
-                </div>
-              </div>
-            </div>
-
-            {nextShow.venue && (
-              <div className="flex items-center gap-3 text-white">
-                <MapPin size={20} className="text-[#f17827ff]" />
-                <div>
-                  <div className="text-sm font-medium">{nextShow.venue}</div>
-                  {nextShow.location && (
-                    <div className="text-xs text-[#a0a0a0]">
-                      {nextShow.location}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {nextShow.setlistId && setlistsData[nextShow.setlistId] && (
-              <div className="flex items-center gap-3 text-white">
-                <Music size={20} className="text-[#f17827ff]" />
-                <div>
-                  <div className="text-sm font-medium">
-                    {setlistsData[nextShow.setlistId].name}
-                  </div>
-                  <div className="text-xs text-[#a0a0a0]">
-                    {
-                      setlistsData[nextShow.setlistId].items.filter(
-                        i => i.type === 'song'
-                      ).length
-                    }{' '}
-                    songs
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {nextShow.payment !== undefined && nextShow.payment > 0 && (
-              <div className="flex items-center gap-3 text-white">
-                <DollarSign size={20} className="text-[#f17827ff]" />
-                <div>
-                  <div className="text-sm font-medium">
-                    {centsToDollars(nextShow.payment)}
-                  </div>
-                  <div className="text-xs text-[#a0a0a0]">Payment</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Shows List - UPDATED FOR DATABASE */}
-      {filteredShows.length === 0 ? (
-        <EmptyState onSchedule={() => setIsScheduleModalOpen(true)} />
-      ) : (
-        <div data-testid="show-list" className="space-y-3">
-          {filteredShows
-            .sort((a, b) => {
-              const dateA = new Date(a.scheduledDate).getTime()
-              const dateB = new Date(b.scheduledDate).getTime()
-              // Sort descending for display
-              return dateB - dateA
-            })
-            .map(show => (
-              <ShowCard
-                key={show.id}
-                show={show}
-                setlist={
-                  show.setlistId ? setlistsData[show.setlistId] || null : null
-                }
-                onEdit={() => handleEditShow(show)}
-                onDelete={() => setShowToDelete(show)}
-                formatDateBadge={formatDateBadge}
-                getDaysUntilShow={getDaysUntilShow}
-              />
-            ))}
-        </div>
-      )}
-
-      {/* Schedule/Edit Show Modal - UPDATED FOR DATABASE */}
-      {isScheduleModalOpen && (
-        <ScheduleShowModal
-          show={selectedShow}
-          availableSetlists={availableSetlists}
-          onClose={() => {
-            setIsScheduleModalOpen(false)
-            setSelectedShow(null)
-          }}
-          onSave={async showData => {
-            try {
-              if (selectedShow) {
-                // Edit existing show
-                await updateShow(selectedShow.id, showData)
-                console.log('Show updated successfully')
-              } else {
-                // Create new show with optional setlist forking
-                let forkedSetlistId: string | undefined = undefined
-
-                // If a setlist was selected, fork it for this show
-                if (showData.setlistId) {
-                  try {
-                    const forkedSetlist = await SetlistService.forkSetlist(
-                      showData.setlistId,
-                      showData.name || 'Show'
-                    )
-                    forkedSetlistId = forkedSetlist.id
-                    console.log(
-                      'Setlist forked successfully:',
-                      forkedSetlist.name
-                    )
-                  } catch (forkError) {
-                    console.error('Failed to fork setlist:', forkError)
-                    // Continue creating show without setlist if fork fails
+        {/* Shows List - UPDATED FOR DATABASE */}
+        {filteredShows.length === 0 ? (
+          <EmptyState onSchedule={() => navigate('/shows/new')} />
+        ) : (
+          <div data-testid="show-list" className="space-y-3">
+            {filteredShows
+              .sort((a, b) => {
+                const dateA = new Date(a.scheduledDate).getTime()
+                const dateB = new Date(b.scheduledDate).getTime()
+                // Sort descending for display
+                return dateB - dateA
+              })
+              .map(show => (
+                <ShowCard
+                  key={show.id}
+                  show={show}
+                  setlist={
+                    show.setlistId ? setlistsData[show.setlistId] || null : null
                   }
-                }
+                  onClick={() => navigate(`/shows/${show.id}`)}
+                  onEdit={() => handleEditShow(show)}
+                  onDelete={() => setShowToDelete(show)}
+                  getDaysUntilShow={getDaysUntilShow}
+                />
+              ))}
+          </div>
+        )}
 
-                // Create the show with the forked setlist (if available)
-                const newShow = await createShow({
-                  ...showData,
-                  setlistId: forkedSetlistId, // Use forked setlist instead of original
-                  bandId: currentBandId,
-                })
-
-                // Update the forked setlist to reference the show (bidirectional link)
-                if (forkedSetlistId && newShow?.id) {
-                  try {
-                    await SetlistService.updateSetlist(forkedSetlistId, {
-                      showId: newShow.id,
-                    })
-                    console.log('Setlist linked to show successfully')
-                  } catch (linkError) {
-                    console.warn('Failed to link setlist to show:', linkError)
-                    // Non-critical - show is created, just missing bidirectional link
-                  }
-                }
-
-                console.log('Show created successfully')
-              }
+        {/* Schedule/Edit Show Modal - UPDATED FOR DATABASE */}
+        {isScheduleModalOpen && (
+          <ScheduleShowModal
+            show={selectedShow}
+            availableSetlists={availableSetlists}
+            onClose={() => {
               setIsScheduleModalOpen(false)
               setSelectedShow(null)
-            } catch (err) {
-              console.error('Failed to save show:', err)
-              alert('Failed to save show. Please try again.')
-            }
-          }}
-        />
-      )}
+            }}
+            onSave={async showData => {
+              try {
+                if (selectedShow) {
+                  // Edit existing show
+                  await updateShow(selectedShow.id, showData)
+                  console.log('Show updated successfully')
+                } else {
+                  // Create new show with optional setlist forking
+                  let forkedSetlistId: string | undefined = undefined
 
-      {/* Delete Confirmation Modal */}
-      {showToDelete && (
-        <DeleteConfirmationModal
-          show={showToDelete}
-          onConfirm={() => handleDeleteShow(showToDelete)}
-          onCancel={() => setShowToDelete(null)}
-        />
-      )}
+                  // If a setlist was selected, fork it for this show
+                  if (showData.setlistId) {
+                    try {
+                      const forkedSetlist = await SetlistService.forkSetlist(
+                        showData.setlistId,
+                        showData.name || 'Show'
+                      )
+                      forkedSetlistId = forkedSetlist.id
+                      console.log(
+                        'Setlist forked successfully:',
+                        forkedSetlist.name
+                      )
+                    } catch (forkError) {
+                      console.error('Failed to fork setlist:', forkError)
+                      // Continue creating show without setlist if fork fails
+                    }
+                  }
+
+                  // Create the show with the forked setlist (if available)
+                  const newShow = await createShow({
+                    ...showData,
+                    setlistId: forkedSetlistId, // Use forked setlist instead of original
+                    bandId: currentBandId,
+                  })
+
+                  // Update the forked setlist to reference the show (bidirectional link)
+                  if (forkedSetlistId && newShow?.id) {
+                    try {
+                      await SetlistService.updateSetlist(forkedSetlistId, {
+                        showId: newShow.id,
+                      })
+                      console.log('Setlist linked to show successfully')
+                    } catch (linkError) {
+                      console.warn('Failed to link setlist to show:', linkError)
+                      // Non-critical - show is created, just missing bidirectional link
+                    }
+                  }
+
+                  console.log('Show created successfully')
+                }
+                setIsScheduleModalOpen(false)
+                setSelectedShow(null)
+              } catch (err) {
+                console.error('Failed to save show:', err)
+                showToast('Failed to save show', 'error')
+              }
+            }}
+          />
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showToDelete && (
+          <DeleteConfirmationModal
+            show={showToDelete}
+            onConfirm={() => handleDeleteShow(showToDelete)}
+            onCancel={() => setShowToDelete(null)}
+          />
+        )}
+      </div>
     </ModernLayout>
   )
 }
@@ -572,30 +565,17 @@ export const ShowsPage: React.FC = () => {
 const ShowCard: React.FC<{
   show: Show
   setlist: Setlist | null
+  onClick: () => void
   onEdit: () => void
   onDelete: () => void
-  formatDateBadge: (date: Date | string) => {
-    month: string
-    day: number
-    weekday: string
-  }
   getDaysUntilShow: (date: Date | string) => string
-}> = ({
-  show,
-  setlist,
-  onEdit,
-  onDelete,
-  formatDateBadge,
-  getDaysUntilShow,
-}) => {
+}> = ({ show, setlist, onClick, onEdit, onDelete, getDaysUntilShow }) => {
   // PHASE 2: Get sync status for this show
   const syncStatus = useItemStatus(show.id)
 
   const [isActionsOpen, setIsActionsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [setlistSongs, setSetlistSongs] = useState<any[]>([])
-
-  const dateBadge = formatDateBadge(show.scheduledDate)
 
   // Payment is stored as cents in database, no paymentStatus field
   const paymentAmount = show.payment ? centsToDollars(show.payment) : null
@@ -640,42 +620,28 @@ const ShowCard: React.FC<{
   return (
     <div
       data-testid={`show-item-${show.id}`}
-      className={`bg-[#1a1a1a] rounded-xl p-5 border transition-all ${
+      className={`bg-[#1a1a1a] rounded-xl p-5 border transition-all cursor-pointer ${
         show.status === 'cancelled'
           ? 'border-[#2a2a2a] opacity-60'
           : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
       }`}
+      onClick={onClick}
     >
       <div className="flex items-start gap-4">
-        {/* PHASE 2: Sync Icon */}
-        <div className="flex-shrink-0 mt-1">
-          <SyncIcon status={syncStatus} size="sm" />
-        </div>
-
         {/* Date Badge */}
-        <div
-          className={`flex-shrink-0 w-16 h-16 rounded-lg flex flex-col items-center justify-center border-2 ${
-            isUpcoming
-              ? 'bg-[#f17827ff]/10 border-[#f17827ff]'
-              : 'bg-[#2a2a2a] border-[#3a3a3a]'
-          }`}
-        >
-          <div
-            className={`text-xs font-semibold uppercase ${isUpcoming ? 'text-[#f17827ff]' : 'text-[#707070]'}`}
-          >
-            {dateBadge.month}
-          </div>
-          <div
-            className={`text-2xl font-bold ${isUpcoming ? 'text-white' : 'text-[#a0a0a0]'}`}
-          >
-            {dateBadge.day}
-          </div>
-          <div
-            className={`text-xs ${isUpcoming ? 'text-[#a0a0a0]' : 'text-[#707070]'}`}
-          >
-            {dateBadge.weekday}
-          </div>
-        </div>
+        <CalendarDateBadge
+          date={show.scheduledDate}
+          variant={
+            show.status === 'cancelled'
+              ? 'cancelled'
+              : show.status === 'completed'
+                ? 'completed'
+                : isUpcoming
+                  ? 'active'
+                  : 'default'
+          }
+          size="md"
+        />
 
         {/* Show Info */}
         <div className="flex-1 min-w-0">
@@ -693,8 +659,14 @@ const ShowCard: React.FC<{
                 {show.name}
               </h3>
               {isUpcoming && (
-                <div className="text-sm text-[#f17827ff] font-medium">
-                  {getDaysUntilShow(show.scheduledDate)}
+                <div className="flex items-center gap-2 text-sm text-[#f17827ff] font-medium">
+                  <span>{getDaysUntilShow(show.scheduledDate)}</span>
+                  <SyncIcon status={syncStatus} size="sm" />
+                </div>
+              )}
+              {!isUpcoming && (
+                <div className="flex items-center gap-2">
+                  <SyncIcon status={syncStatus} size="sm" />
                 </div>
               )}
             </div>
@@ -703,7 +675,7 @@ const ShowCard: React.FC<{
               <ShowStatusBadge status={show.status} />
 
               {/* Actions Menu */}
-              <div className="relative">
+              <div className="relative" onClick={e => e.stopPropagation()}>
                 <button
                   onClick={() => setIsActionsOpen(!isActionsOpen)}
                   className="p-1.5 rounded-lg hover:bg-[#252525] transition-colors text-[#a0a0a0]"
@@ -741,13 +713,14 @@ const ShowCard: React.FC<{
             </div>
           </div>
 
+          {/* Time - Prominent */}
+          <div className="flex items-center gap-2 text-white font-medium mb-3">
+            <Clock size={16} className="text-[#f17827ff]" />
+            <span>{formatTime12Hour(show.scheduledDate)}</span>
+          </div>
+
           {/* Details Grid - UPDATED FOR DATABASE */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2 text-[#a0a0a0]">
-              <Clock size={16} />
-              <span>{formatTime12Hour(show.scheduledDate)}</span>
-            </div>
-
             {show.venue && (
               <div className="flex items-center gap-2 text-[#a0a0a0]">
                 <MapPin size={16} />
@@ -836,7 +809,7 @@ const ShowCard: React.FC<{
                   {setlistSongs.length} songs loaded
                 </div>
               </div>
-              <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar-thin">
+              <div className="space-y-2">
                 {setlistSongs.map(song => (
                   <SetlistSongMiniCard key={song.id} song={song} />
                 ))}
@@ -909,12 +882,14 @@ const ShowStatusBadge: React.FC<{ status: Show['status'] }> = ({ status }) => {
 // ============================================
 // SCHEDULE SHOW MODAL - UPDATED FOR DATABASE
 // ============================================
-const ScheduleShowModal: React.FC<{
+export const ScheduleShowModal: React.FC<{
   show: Show | null
   availableSetlists: Setlist[]
   onClose: () => void
   onSave: (show: Partial<Show>) => void | Promise<void>
 }> = ({ show, availableSetlists, onClose, onSave }) => {
+  const { showToast } = useToast()
+
   // Initialize form data from show or defaults
   const [formData, setFormData] = useState({
     name: show?.name || '',
@@ -974,7 +949,7 @@ const ScheduleShowModal: React.FC<{
       await onSave(showData)
     } catch (err) {
       console.error('Error saving show:', err)
-      alert('Failed to save show. Please try again.')
+      showToast('Failed to save show', 'error')
     }
   }
 
@@ -1009,7 +984,7 @@ const ScheduleShowModal: React.FC<{
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div
         data-testid="show-modal"
-        className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar-thin"
       >
         {/* Modal Header */}
         <div className="sticky top-0 bg-[#1a1a1a] border-b border-[#2a2a2a] p-6 flex items-center justify-between">
@@ -1053,31 +1028,24 @@ const ScheduleShowModal: React.FC<{
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="Date"
                   name="showDate"
                   id="show-date"
                   data-testid="show-date-input"
                   required
                   value={formData.date}
-                  onChange={e =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                  className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                  onChange={date => setFormData({ ...formData, date })}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Time <span className="text-red-500">*</span>
-                </label>
-                <TimePicker
+                <TimePickerDropdown
+                  label="Time"
                   name="showTime"
                   id="show-time"
                   data-testid="show-time-input"
+                  required
                   value={formData.time}
                   onChange={time => setFormData({ ...formData, time })}
                   placeholder="Select time"
@@ -1158,28 +1126,26 @@ const ScheduleShowModal: React.FC<{
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Load-in Time
-                </label>
-                <TimePicker
+                <TimePickerDropdown
+                  label="Load-in Time"
                   value={formData.loadInTime}
                   onChange={time =>
                     setFormData({ ...formData, loadInTime: time })
                   }
                   placeholder="Select load-in time"
+                  data-testid="show-loadin-time-input"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Soundcheck Time
-                </label>
-                <TimePicker
+                <TimePickerDropdown
+                  label="Soundcheck Time"
                   value={formData.soundcheckTime}
                   onChange={time =>
                     setFormData({ ...formData, soundcheckTime: time })
                   }
                   placeholder="Select soundcheck time"
+                  data-testid="show-soundcheck-time-input"
                 />
               </div>
 

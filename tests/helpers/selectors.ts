@@ -7,15 +7,18 @@ export const selectors = {
   // Authentication
   auth: {
     // Login form
-    emailInput: '[data-testid="login-email-input"], input[name="email"], input[type="email"]',
-    passwordInput: '[data-testid="login-password-input"], input[name="password"]',
+    emailInput:
+      '[data-testid="login-email-input"], input[name="email"], input[type="email"]',
+    passwordInput:
+      '[data-testid="login-password-input"], input[name="password"]',
     signInButton: 'button[type="submit"]:has-text("Log In")',
 
     // Signup form
     nameInput: '[data-testid="signup-name-input"], input[name="name"]',
     signupEmailInput: '[data-testid="signup-email-input"]',
     signupPasswordInput: '[data-testid="signup-password-input"]',
-    confirmPasswordInput: '[data-testid="signup-confirm-password-input"], input[name="confirmPassword"]',
+    confirmPasswordInput:
+      '[data-testid="signup-confirm-password-input"], input[name="confirmPassword"]',
     signUpButton: 'button[type="submit"]:has-text("Create Account")',
 
     // Navigation between forms
@@ -29,13 +32,18 @@ export const selectors = {
   // Bands
   band: {
     // Create band
-    nameInput: '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-    descriptionInput: 'textarea[name="description"], textarea[id="description"]',
-    createButton: '[data-testid="create-band-button"], button:has-text("Create Band")',
+    nameInput:
+      '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
+    descriptionInput:
+      'textarea[name="description"], textarea[id="description"]',
+    createButton:
+      '[data-testid="create-band-button"], button:has-text("Create Band")',
 
     // Join band
-    inviteCodeInput: '[data-testid="join-band-invite-code-input"], input[name="inviteCode"], input[id="invite-code"]',
-    joinButton: '[data-testid="join-band-button"], button:has-text("Join Band")',
+    inviteCodeInput:
+      '[data-testid="join-band-invite-code-input"], input[name="inviteCode"], input[id="invite-code"]',
+    joinButton:
+      '[data-testid="join-band-button"], button:has-text("Join Band")',
 
     // Band management
     inviteCode: '[data-testid="invite-code"], code:has-text("-")',
@@ -54,12 +62,14 @@ export const selectors = {
     artistInput: 'input[name="artist"], input[id="artist"]',
     keySelect: 'select[name="key"], select[id="key"]',
     durationInput: 'input[name="duration"], input[id="duration"]',
-    bpmInput: 'input[name="bpm"], input[id="bpm"], input[name="tempo"], input[id="tempo"]',
+    bpmInput:
+      'input[name="bpm"], input[id="bpm"], input[name="tempo"], input[id="tempo"]',
     tuningInput: 'input[name="tuning"], input[id="tuning"]',
     saveButton: 'button:has-text("Save"), button[type="submit"]',
     songRow: '[data-testid^="song-row-"]',
     songTitle: '[data-testid="song-title"]',
-    emptyState: '[data-testid="empty-state"], .text-center:has-text("No songs")',
+    emptyState:
+      '[data-testid="empty-state"], .text-center:has-text("No songs")',
   },
 
   // Setlists
@@ -82,11 +92,30 @@ export const selectors = {
 
   // Practices
   practices: {
-    addButton: 'button:has-text("Add Practice"), button:has-text("Schedule Practice")',
+    addButton:
+      'button:has-text("Add Practice"), button:has-text("Schedule Practice")',
     dateInput: 'input[name="date"], input[type="date"]',
     timeInput: 'input[name="time"], input[type="time"]',
     saveButton: 'button:has-text("Save"), button[type="submit"]',
     practiceRow: '[data-testid^="practice-row-"]',
+    startSessionButton: '[data-testid="start-practice-button"]',
+    addSongsButton: 'button:has-text("Add Songs")',
+  },
+
+  // Practice Session
+  practiceSession: {
+    exitButton: '[data-testid="session-exit-button"]',
+    timer: '[data-testid="session-timer"]',
+    progress: '[data-testid="session-progress"]',
+    songTitle: '[data-testid="session-song-title"]',
+    songArtist: '[data-testid="session-song-artist"]',
+    songKey: '[data-testid="session-song-key"]',
+    songTuning: '[data-testid="session-song-tuning"]',
+    songBpm: '[data-testid="session-song-bpm"]',
+    notes: '[data-testid="session-notes"]',
+    prevButton: '[data-testid="session-prev-button"]',
+    nextButton: '[data-testid="session-next-button"]',
+    endButton: '[data-testid="session-end-button"]',
   },
 
   // Common UI elements
@@ -109,4 +138,4 @@ export const selectors = {
     practicesLink: 'a[href="/practices"], nav a:has-text("Practices")',
     bandMembersLink: 'a[href="/band-members"], nav a:has-text("Members")',
   },
-};
+}

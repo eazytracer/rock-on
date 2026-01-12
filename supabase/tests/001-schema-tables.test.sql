@@ -5,7 +5,7 @@
 
 begin;
 
-select plan(17);
+select plan(19);
 
 -- Core tables
 select has_table('users', 'users table should exist');
@@ -28,6 +28,10 @@ select has_table('song_assignments', 'song_assignments table should exist');
 select has_table('assignment_roles', 'assignment_roles table should exist');
 select has_table('casting_templates', 'casting_templates table should exist');
 select has_table('member_capabilities', 'member_capabilities table should exist');
+
+-- Song notes tables
+select has_table('song_personal_notes', 'song_personal_notes table should exist');
+select has_table('song_note_entries', 'song_note_entries table should exist');
 
 -- Audit table
 select has_table('audit_log', 'audit_log table should exist');

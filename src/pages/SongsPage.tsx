@@ -42,6 +42,8 @@ import CircleOfFifths from '../components/songs/CircleOfFifths'
 // PHASE 2: Sync status visualization
 import { SyncIcon } from '../components/sync/SyncIcon'
 import { useItemStatus } from '../hooks/useItemSyncStatus'
+// Expandable notes for songs
+import { ExpandableSongNotes } from '../components/songs/ExpandableSongNotes'
 
 interface SongLink {
   id: string
@@ -458,6 +460,11 @@ interface SongRowProps {
   onAddToSetlist: (song: Song) => void
   openActionMenuId: string | null
   setOpenActionMenuId: (id: string | null) => void
+  // Expandable notes props
+  userId: string
+  bandId: string
+  isExpanded: boolean
+  onToggleExpand: () => void
 }
 
 const SongRow: React.FC<SongRowProps> = ({
@@ -468,107 +475,125 @@ const SongRow: React.FC<SongRowProps> = ({
   onAddToSetlist,
   openActionMenuId,
   setOpenActionMenuId,
+  userId,
+  bandId,
+  isExpanded,
+  onToggleExpand,
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
 
   return (
-    <div className="flex items-center gap-4 p-4 bg-[#1a1a1a] rounded-xl hover:bg-[#252525] transition-colors group">
-      {/* PHASE 2: Sync Icon */}
-      <div className="flex-shrink-0">
-        <SyncIcon status={syncStatus} size="sm" />
-      </div>
-
-      {/* Song Info */}
-      <div className="flex items-center gap-3 flex-1 min-w-[220px] cursor-pointer">
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
-          style={{ backgroundColor: song.avatarColor }}
-        >
-          {song.initials}
+    <div className="bg-[#1a1a1a] rounded-xl hover:bg-[#252525] transition-colors group">
+      <div className="flex items-center gap-4 p-4">
+        {/* PHASE 2: Sync Icon */}
+        <div className="flex-shrink-0">
+          <SyncIcon status={syncStatus} size="sm" />
         </div>
-        <div className="min-w-0">
-          <div className="text-white font-semibold text-sm truncate">
-            {song.title}
+
+        {/* Song Info */}
+        <div className="flex items-center gap-3 flex-1 min-w-[220px] cursor-pointer">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
+            style={{ backgroundColor: song.avatarColor }}
+          >
+            {song.initials}
           </div>
-          <div className="text-[#a0a0a0] text-xs truncate">{song.artist}</div>
+          <div className="min-w-0">
+            <div className="text-white font-semibold text-sm truncate">
+              {song.title}
+            </div>
+            <div className="text-[#a0a0a0] text-xs truncate">{song.artist}</div>
+          </div>
+        </div>
+
+        {/* Duration */}
+        <div className="w-[90px] text-[#a0a0a0] text-sm">{song.duration}</div>
+
+        {/* Key */}
+        <div className="w-[60px] text-[#a0a0a0] text-sm">{song.key}</div>
+
+        {/* Tuning */}
+        <div className="w-[130px] text-[#a0a0a0] text-sm">{song.tuning}</div>
+
+        {/* BPM */}
+        <div className="w-[80px] text-[#a0a0a0] text-sm">{song.bpm}</div>
+
+        {/* Next Show */}
+        <div className="w-[180px]">
+          {song.nextShow ? (
+            <>
+              <div className="text-white text-sm">{song.nextShow.name}</div>
+              <div className="text-[#a0a0a0] text-xs">{song.nextShow.date}</div>
+            </>
+          ) : (
+            <div className="text-[#707070] text-sm">No shows scheduled</div>
+          )}
+        </div>
+
+        {/* Actions Menu */}
+        <div className="w-[40px] relative">
+          <button
+            onClick={() =>
+              setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
+            }
+            className="p-1 text-[#707070] hover:text-white transition-colors"
+          >
+            <MoreVertical size={20} />
+          </button>
+
+          {openActionMenuId === song.id && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setOpenActionMenuId(null)}
+              />
+              <div className="absolute right-0 top-8 z-20 w-48 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
+                <button
+                  onClick={() => onEdit(song)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <Edit size={16} />
+                  <span>Edit Song</span>
+                </button>
+                <button
+                  onClick={() => onAddToSetlist(song)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <ListPlus size={16} />
+                  <span>Add to Setlist</span>
+                </button>
+                <button
+                  onClick={() => onDuplicate(song)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <Copy size={16} />
+                  <span>Duplicate Song</span>
+                </button>
+                <div className="h-px bg-[#2a2a2a]" />
+                <button
+                  onClick={() => onDelete(song)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <Trash2 size={16} />
+                  <span>Delete Song</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Duration */}
-      <div className="w-[90px] text-[#a0a0a0] text-sm">{song.duration}</div>
-
-      {/* Key */}
-      <div className="w-[60px] text-[#a0a0a0] text-sm">{song.key}</div>
-
-      {/* Tuning */}
-      <div className="w-[130px] text-[#a0a0a0] text-sm">{song.tuning}</div>
-
-      {/* BPM */}
-      <div className="w-[80px] text-[#a0a0a0] text-sm">{song.bpm}</div>
-
-      {/* Next Show */}
-      <div className="w-[180px]">
-        {song.nextShow ? (
-          <>
-            <div className="text-white text-sm">{song.nextShow.name}</div>
-            <div className="text-[#a0a0a0] text-xs">{song.nextShow.date}</div>
-          </>
-        ) : (
-          <div className="text-[#707070] text-sm">No shows scheduled</div>
-        )}
-      </div>
-
-      {/* Actions Menu */}
-      <div className="w-[40px] relative">
-        <button
-          onClick={() =>
-            setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
-          }
-          className="p-1 text-[#707070] hover:text-white transition-colors"
-        >
-          <MoreVertical size={20} />
-        </button>
-
-        {openActionMenuId === song.id && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setOpenActionMenuId(null)}
-            />
-            <div className="absolute right-0 top-8 z-20 w-48 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
-              <button
-                onClick={() => onEdit(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
-              >
-                <Edit size={16} />
-                <span>Edit Song</span>
-              </button>
-              <button
-                onClick={() => onAddToSetlist(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
-              >
-                <ListPlus size={16} />
-                <span>Add to Setlist</span>
-              </button>
-              <button
-                onClick={() => onDuplicate(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
-              >
-                <Copy size={16} />
-                <span>Duplicate Song</span>
-              </button>
-              <div className="h-px bg-[#2a2a2a]" />
-              <button
-                onClick={() => onDelete(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
-              >
-                <Trash2 size={16} />
-                <span>Delete Song</span>
-              </button>
-            </div>
-          </>
-        )}
+      {/* Expandable Notes Section */}
+      <div className="px-4 pb-3">
+        <ExpandableSongNotes
+          songId={song.id}
+          bandNotes={song.notes}
+          userId={userId}
+          bandId={bandId}
+          isExpanded={isExpanded}
+          onToggle={onToggleExpand}
+        />
       </div>
     </div>
   )
@@ -583,6 +608,10 @@ const SongCard: React.FC<SongRowProps> = ({
   onAddToSetlist,
   openActionMenuId,
   setOpenActionMenuId,
+  userId,
+  bandId,
+  isExpanded,
+  onToggleExpand,
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
@@ -707,6 +736,18 @@ const SongCard: React.FC<SongRowProps> = ({
           <span className="text-[#707070]">No shows scheduled</span>
         </div>
       )}
+
+      {/* Expandable Notes Section */}
+      <div className="mt-3">
+        <ExpandableSongNotes
+          songId={song.id}
+          bandNotes={song.notes}
+          userId={userId}
+          bandId={bandId}
+          isExpanded={isExpanded}
+          onToggle={onToggleExpand}
+        />
+      </div>
     </div>
   )
 }
@@ -739,6 +780,7 @@ export const SongsPage: React.FC = () => {
   const [isSetlistMenuOpen, setIsSetlistMenuOpen] = useState(false)
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
+  const [expandedSongId, setExpandedSongId] = useState<string | null>(null)
   // State for tracking songs in setlists - reserved for future feature
 
   // DATABASE INTEGRATION: Transform database songs to display format and calculate "Next Show"
@@ -1129,307 +1171,337 @@ export const SongsPage: React.FC = () => {
       userEmail={currentUser?.email || 'Not logged in'}
       onSignOut={handleSignOut}
     >
-      {/* DATABASE INTEGRATION: Show loading state */}
-      {loading && (
-        <div className="flex items-center justify-center py-16">
-          <div className="text-white">Loading songs...</div>
-        </div>
-      )}
-
-      {/* DATABASE INTEGRATION: Show error state */}
-      {error && (
-        <div className="flex items-center justify-center py-16">
-          <div className="text-red-500">
-            Error loading songs: {error.message}
+      <div className="max-w-6xl mx-auto">
+        {/* DATABASE INTEGRATION: Show loading state */}
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-white">Loading songs...</div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Page Header */}
-      {!loading && !error && (
-        <>
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-6">
-              <h1 className="text-2xl font-bold text-white">Songs</h1>
-              <ChevronDown size={20} className="text-[#a0a0a0]" />
-              {/* DATABASE INTEGRATION: Show song count */}
-              <span className="text-sm text-[#a0a0a0] ml-2">
-                ({songs.length} songs)
-              </span>
+        {/* DATABASE INTEGRATION: Show error state */}
+        {error && (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-red-500">
+              Error loading songs: {error.message}
             </div>
+          </div>
+        )}
 
-            {/* Action Bar */}
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <button
-                onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                  activeFilterCount > 0
-                    ? 'border-[#f17827ff] bg-[#f17827ff]/10 text-[#f17827ff]'
-                    : 'border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f]'
-                }`}
-              >
-                <Filter size={20} />
-                <span>Filter</span>
-                {activeFilterCount > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-[#f17827ff] text-white text-xs rounded-full">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-
-              <div className="flex items-center gap-3 flex-1 max-w-md">
-                <div className="relative flex-1">
-                  <Search
-                    size={20}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search songs, artists, albums..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full h-10 pl-11 pr-10 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-white"
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
-                </div>
+        {/* Page Header */}
+        {!loading && !error && (
+          <>
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-6">
+                <h1 className="text-2xl font-bold text-white">Songs</h1>
+                <ChevronDown size={20} className="text-[#a0a0a0]" />
+                {/* DATABASE INTEGRATION: Show song count */}
+                <span className="text-sm text-[#a0a0a0] ml-2">
+                  ({songs.length} songs)
+                </span>
               </div>
 
-              <div className="flex items-center gap-3">
-                {/* Sort Dropdown */}
-                <select
-                  value={sortBy}
-                  onChange={e => setSortBy(e.target.value as SortOption)}
-                  className="h-10 px-4 pr-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm hover:bg-[#1f1f1f] transition-colors focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                >
-                  <option value="title-asc">Title (A-Z)</option>
-                  <option value="title-desc">Title (Z-A)</option>
-                  <option value="artist-asc">Artist (A-Z)</option>
-                  <option value="artist-desc">Artist (Z-A)</option>
-                  <option value="date-added-desc">Recently Added</option>
-                  <option value="date-added-asc">Oldest First</option>
-                  <option value="show-asc">By Show</option>
-                </select>
-
+              {/* Action Bar */}
+              <div className="flex items-center justify-between gap-4 flex-wrap">
                 <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
+                  onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                    activeFilterCount > 0
+                      ? 'border-[#f17827ff] bg-[#f17827ff]/10 text-[#f17827ff]'
+                      : 'border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f]'
+                  }`}
                 >
-                  <Plus size={20} />
-                  <span>Add Song</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Filter Panel */}
-            {isFilterPanelOpen && (
-              <div className="mt-4 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-white">Filters</h3>
+                  <Filter size={20} />
+                  <span>Filter</span>
                   {activeFilterCount > 0 && (
-                    <button
-                      onClick={clearAllFilters}
-                      className="text-xs text-[#f17827ff] hover:text-[#d66620] transition-colors"
-                    >
-                      Clear All
-                    </button>
+                    <span className="ml-1 px-1.5 py-0.5 bg-[#f17827ff] text-white text-xs rounded-full">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+
+                <div className="flex items-center gap-3 flex-1 max-w-md">
+                  <div className="relative flex-1">
+                    <Search
+                      size={20}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search songs, artists, albums..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full h-10 pl-11 pr-10 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-white"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Sort Dropdown */}
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as SortOption)}
+                    className="h-10 px-4 pr-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm hover:bg-[#1f1f1f] transition-colors focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                  >
+                    <option value="title-asc">Title (A-Z)</option>
+                    <option value="title-desc">Title (Z-A)</option>
+                    <option value="artist-asc">Artist (A-Z)</option>
+                    <option value="artist-desc">Artist (Z-A)</option>
+                    <option value="date-added-desc">Recently Added</option>
+                    <option value="date-added-asc">Oldest First</option>
+                    <option value="show-asc">By Show</option>
+                  </select>
+
+                  <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
+                  >
+                    <Plus size={20} />
+                    <span>Add Song</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter Panel */}
+              {isFilterPanelOpen && (
+                <div className="mt-4 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-white">
+                      Filters
+                    </h3>
+                    {activeFilterCount > 0 && (
+                      <button
+                        onClick={clearAllFilters}
+                        className="text-xs text-[#f17827ff] hover:text-[#d66620] transition-colors"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Tuning Filter */}
+                    <div>
+                      <label className="block text-xs text-[#a0a0a0] mb-2">
+                        Guitar Tuning
+                      </label>
+                      <select
+                        value={selectedTuning}
+                        onChange={e => setSelectedTuning(e.target.value)}
+                        className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                      >
+                        <option value="">All Tunings</option>
+                        {availableTunings.map(tuning => (
+                          <option key={tuning} value={tuning}>
+                            {tuning}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Show Filter */}
+                    <div>
+                      <label className="block text-xs text-[#a0a0a0] mb-2">
+                        Upcoming Show
+                      </label>
+                      <select
+                        value={selectedShow}
+                        onChange={e => setSelectedShow(e.target.value)}
+                        className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                      >
+                        <option value="">All Shows</option>
+                        {availableShows.map(show => (
+                          <option key={show} value={show}>
+                            {show}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Tags Filter */}
+                    <div>
+                      <label className="block text-xs text-[#a0a0a0] mb-2">
+                        Tags
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {availableTags.map(tag => (
+                          <button
+                            key={tag}
+                            onClick={() => toggleTag(tag)}
+                            className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                              selectedTags.includes(tag)
+                                ? 'bg-[#f17827ff] text-white'
+                                : 'bg-[#2a2a2a] text-[#a0a0a0] hover:bg-[#3a3a3a]'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Active Filters Display */}
+                  {activeFilterCount > 0 && (
+                    <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTuning && (
+                          <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
+                            <span>{selectedTuning}</span>
+                            <button
+                              onClick={() => setSelectedTuning('')}
+                              className="text-[#a0a0a0] hover:text-white"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )}
+                        {selectedTags.map(tag => (
+                          <div
+                            key={tag}
+                            className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg"
+                          >
+                            <span>{tag}</span>
+                            <button
+                              onClick={() => toggleTag(tag)}
+                              className="text-[#a0a0a0] hover:text-white"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        {selectedShow && (
+                          <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
+                            <span>{selectedShow}</span>
+                            <button
+                              onClick={() => setSelectedShow('')}
+                              className="text-[#a0a0a0] hover:text-white"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
+              )}
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Tuning Filter */}
-                  <div>
-                    <label className="block text-xs text-[#a0a0a0] mb-2">
-                      Guitar Tuning
-                    </label>
-                    <select
-                      value={selectedTuning}
-                      onChange={e => setSelectedTuning(e.target.value)}
-                      className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                    >
-                      <option value="">All Tunings</option>
-                      {availableTunings.map(tuning => (
-                        <option key={tuning} value={tuning}>
-                          {tuning}
-                        </option>
-                      ))}
-                    </select>
+            {/* Empty State */}
+            {filteredAndSortedSongs.length === 0 &&
+              !searchQuery &&
+              activeFilterCount === 0 && (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
+                    <Music size={32} className="text-[#707070]" />
                   </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    No songs yet
+                  </h3>
+                  <p className="text-sm text-[#a0a0a0] mb-6">
+                    Add your first song to get started
+                  </p>
+                  <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
+                  >
+                    <Plus size={20} />
+                    <span>Add Song</span>
+                  </button>
+                </div>
+              )}
 
-                  {/* Show Filter */}
-                  <div>
-                    <label className="block text-xs text-[#a0a0a0] mb-2">
-                      Upcoming Show
-                    </label>
-                    <select
-                      value={selectedShow}
-                      onChange={e => setSelectedShow(e.target.value)}
-                      className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                    >
-                      <option value="">All Shows</option>
-                      {availableShows.map(show => (
-                        <option key={show} value={show}>
-                          {show}
-                        </option>
-                      ))}
-                    </select>
+            {/* No Results State */}
+            {filteredAndSortedSongs.length === 0 &&
+              (searchQuery || activeFilterCount > 0) && (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
+                    <Search size={32} className="text-[#707070]" />
                   </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    No results found
+                  </h3>
+                  <p className="text-sm text-[#a0a0a0] mb-6">
+                    Try adjusting your search or filters
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('')
+                      clearAllFilters()
+                    }}
+                    className="text-sm text-[#f17827ff] hover:text-[#d66620] transition-colors"
+                  >
+                    Clear all filters
+                  </button>
+                </div>
+              )}
 
-                  {/* Tags Filter */}
-                  <div>
-                    <label className="block text-xs text-[#a0a0a0] mb-2">
-                      Tags
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {availableTags.map(tag => (
-                        <button
-                          key={tag}
-                          onClick={() => toggleTag(tag)}
-                          className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                            selectedTags.includes(tag)
-                              ? 'bg-[#f17827ff] text-white'
-                              : 'bg-[#2a2a2a] text-[#a0a0a0] hover:bg-[#3a3a3a]'
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
+            {/* Desktop Table View */}
+            {filteredAndSortedSongs.length > 0 && (
+              <div className="hidden xl:block">
+                {/* Table Header */}
+                <div className="flex items-center gap-4 px-4 pb-3 mb-2 border-b border-[#2a2a2a]">
+                  <div className="flex-1 min-w-[220px] text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                    Song
                   </div>
+                  <div className="w-[90px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                    <Clock size={16} />
+                  </div>
+                  <div className="w-[60px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                    <Music size={16} />
+                  </div>
+                  <div className="w-[130px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                    <Guitar size={16} />
+                  </div>
+                  <div className="w-[80px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                    <Activity size={16} />
+                  </div>
+                  <div className="w-[180px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                    <Calendar size={16} />
+                  </div>
+                  <div className="w-[40px]"></div>
                 </div>
 
-                {/* Active Filters Display */}
-                {activeFilterCount > 0 && (
-                  <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
-                    <div className="flex flex-wrap gap-2">
-                      {selectedTuning && (
-                        <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
-                          <span>{selectedTuning}</span>
-                          <button
-                            onClick={() => setSelectedTuning('')}
-                            className="text-[#a0a0a0] hover:text-white"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      )}
-                      {selectedTags.map(tag => (
-                        <div
-                          key={tag}
-                          className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg"
-                        >
-                          <span>{tag}</span>
-                          <button
-                            onClick={() => toggleTag(tag)}
-                            className="text-[#a0a0a0] hover:text-white"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                      {selectedShow && (
-                        <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
-                          <span>{selectedShow}</span>
-                          <button
-                            onClick={() => setSelectedShow('')}
-                            className="text-[#a0a0a0] hover:text-white"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Empty State */}
-          {filteredAndSortedSongs.length === 0 &&
-            !searchQuery &&
-            activeFilterCount === 0 && (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-                  <Music size={32} className="text-[#707070]" />
+                {/* Table Rows - PHASE 2: Using SongRow component with sync status */}
+                <div className="space-y-2">
+                  {filteredAndSortedSongs.map(song => (
+                    <SongRow
+                      key={song.id}
+                      song={song}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onDuplicate={handleDuplicate}
+                      onAddToSetlist={handleAddToSetlist}
+                      openActionMenuId={openActionMenuId}
+                      setOpenActionMenuId={setOpenActionMenuId}
+                      userId={currentUserId}
+                      bandId={currentBandId}
+                      isExpanded={expandedSongId === song.id}
+                      onToggleExpand={() =>
+                        setExpandedSongId(
+                          expandedSongId === song.id ? null : song.id
+                        )
+                      }
+                    />
+                  ))}
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  No songs yet
-                </h3>
-                <p className="text-sm text-[#a0a0a0] mb-6">
-                  Add your first song to get started
-                </p>
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
-                >
-                  <Plus size={20} />
-                  <span>Add Song</span>
-                </button>
               </div>
             )}
 
-          {/* No Results State */}
-          {filteredAndSortedSongs.length === 0 &&
-            (searchQuery || activeFilterCount > 0) && (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-                  <Search size={32} className="text-[#707070]" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  No results found
-                </h3>
-                <p className="text-sm text-[#a0a0a0] mb-6">
-                  Try adjusting your search or filters
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('')
-                    clearAllFilters()
-                  }}
-                  className="text-sm text-[#f17827ff] hover:text-[#d66620] transition-colors"
-                >
-                  Clear all filters
-                </button>
-              </div>
-            )}
-
-          {/* Desktop Table View */}
-          {filteredAndSortedSongs.length > 0 && (
-            <div className="hidden xl:block">
-              {/* Table Header */}
-              <div className="flex items-center gap-4 px-4 pb-3 mb-2 border-b border-[#2a2a2a]">
-                <div className="flex-1 min-w-[220px] text-xs font-semibold text-[#707070] uppercase tracking-wider">
-                  Song
-                </div>
-                <div className="w-[90px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-                  <Clock size={16} />
-                </div>
-                <div className="w-[60px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-                  <Music size={16} />
-                </div>
-                <div className="w-[130px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-                  <Guitar size={16} />
-                </div>
-                <div className="w-[80px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-                  <Activity size={16} />
-                </div>
-                <div className="w-[180px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
-                  <Calendar size={16} />
-                </div>
-                <div className="w-[40px]"></div>
-              </div>
-
-              {/* Table Rows - PHASE 2: Using SongRow component with sync status */}
-              <div className="space-y-2">
+            {/* Mobile Card View - PHASE 2: Using SongCard component with sync status */}
+            {filteredAndSortedSongs.length > 0 && (
+              <div className="xl:hidden space-y-3 min-w-[280px]">
                 {filteredAndSortedSongs.map(song => (
-                  <SongRow
+                  <SongCard
                     key={song.id}
                     song={song}
                     onEdit={handleEdit}
@@ -1438,172 +1510,167 @@ export const SongsPage: React.FC = () => {
                     onAddToSetlist={handleAddToSetlist}
                     openActionMenuId={openActionMenuId}
                     setOpenActionMenuId={setOpenActionMenuId}
+                    userId={currentUserId}
+                    bandId={currentBandId}
+                    isExpanded={expandedSongId === song.id}
+                    onToggleExpand={() =>
+                      setExpandedSongId(
+                        expandedSongId === song.id ? null : song.id
+                      )
+                    }
                   />
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </>
+        )}
 
-          {/* Mobile Card View - PHASE 2: Using SongCard component with sync status */}
-          {filteredAndSortedSongs.length > 0 && (
-            <div className="xl:hidden space-y-3 min-w-[280px]">
-              {filteredAndSortedSongs.map(song => (
-                <SongCard
-                  key={song.id}
-                  song={song}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onDuplicate={handleDuplicate}
-                  onAddToSetlist={handleAddToSetlist}
-                  openActionMenuId={openActionMenuId}
-                  setOpenActionMenuId={setOpenActionMenuId}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+        {/* DATABASE INTEGRATION: Add Song Modal with database operations */}
+        {isAddModalOpen && (
+          <AddEditSongModal
+            mode="add"
+            onClose={() => setIsAddModalOpen(false)}
+            onSave={async newSong => {
+              try {
+                // Convert display formats to database formats
+                const duration = durationToSeconds(newSong.duration)
+                const bpm = parseBpm(newSong.bpm)
 
-      {/* DATABASE INTEGRATION: Add Song Modal with database operations */}
-      {isAddModalOpen && (
-        <AddEditSongModal
-          mode="add"
-          onClose={() => setIsAddModalOpen(false)}
-          onSave={async newSong => {
-            try {
-              // Convert display formats to database formats
-              const duration = durationToSeconds(newSong.duration)
-              const bpm = parseBpm(newSong.bpm)
+                await createSong({
+                  title: newSong.title,
+                  artist: newSong.artist,
+                  album: newSong.album,
+                  duration,
+                  key: newSong.key,
+                  bpm,
+                  difficulty: (newSong.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
+                  guitarTuning: newSong.tuning,
+                  structure: [],
+                  chords: [],
+                  tags: newSong.tags || [],
+                  notes: newSong.notes,
+                  referenceLinks:
+                    newSong.referenceLinks?.map(link => ({
+                      ...link,
+                      type:
+                        link.type === 'ultimate-guitar'
+                          ? ('tabs' as const)
+                          : (link.type as
+                              | 'spotify'
+                              | 'youtube'
+                              | 'tabs'
+                              | 'lyrics'
+                              | 'other'),
+                    })) || [],
+                  contextType: 'band',
+                  contextId: currentBandId,
+                  createdBy: currentUserId,
+                  visibility: 'band',
+                  confidenceLevel: newSong.confidenceLevel || 1,
+                })
 
-              await createSong({
-                title: newSong.title,
-                artist: newSong.artist,
-                album: newSong.album,
-                duration,
-                key: newSong.key,
-                bpm,
-                difficulty: (newSong.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
-                guitarTuning: newSong.tuning,
-                structure: [],
-                chords: [],
-                tags: newSong.tags || [],
-                notes: newSong.notes,
-                referenceLinks:
-                  newSong.referenceLinks?.map(link => ({
-                    ...link,
-                    type:
-                      link.type === 'ultimate-guitar'
-                        ? ('tabs' as const)
-                        : (link.type as
-                            | 'spotify'
-                            | 'youtube'
-                            | 'tabs'
-                            | 'lyrics'
-                            | 'other'),
-                  })) || [],
-                contextType: 'band',
-                contextId: currentBandId,
-                createdBy: currentUserId,
-                visibility: 'band',
-                confidenceLevel: newSong.confidenceLevel || 1,
-              })
+                // Refetch songs to update UI
+                await refetch()
 
-              // Refetch songs to update UI
-              await refetch()
+                showToast(`Successfully added "${newSong.title}"`, 'success')
+                setIsAddModalOpen(false)
+              } catch (err) {
+                console.error('Error creating song:', err)
+                showToast('Failed to create song. Please try again.', 'error')
+              }
+            }}
+            currentUserId={currentUserId}
+          />
+        )}
 
-              showToast(`Successfully added "${newSong.title}"`, 'success')
-              setIsAddModalOpen(false)
-            } catch (err) {
-              console.error('Error creating song:', err)
-              showToast('Failed to create song. Please try again.', 'error')
-            }
-          }}
-          currentUserId={currentUserId}
-        />
-      )}
-
-      {/* DATABASE INTEGRATION: Edit Song Modal with database operations */}
-      {isEditModalOpen && selectedSong && (
-        <AddEditSongModal
-          mode="edit"
-          song={selectedSong}
-          onClose={() => {
-            setIsEditModalOpen(false)
-            setSelectedSong(null)
-          }}
-          onSave={async updatedSong => {
-            try {
-              // Convert display formats to database formats
-              const duration = durationToSeconds(updatedSong.duration)
-              const bpm = parseBpm(updatedSong.bpm)
-
-              await updateSong(updatedSong.id, {
-                title: updatedSong.title,
-                artist: updatedSong.artist,
-                album: updatedSong.album,
-                duration,
-                key: updatedSong.key,
-                bpm,
-                difficulty: (updatedSong.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
-                guitarTuning: updatedSong.tuning,
-                tags: updatedSong.tags || [],
-                notes: updatedSong.notes,
-                referenceLinks:
-                  updatedSong.referenceLinks?.map(link => ({
-                    ...link,
-                    type:
-                      link.type === 'ultimate-guitar'
-                        ? ('tabs' as const)
-                        : (link.type as
-                            | 'spotify'
-                            | 'youtube'
-                            | 'tabs'
-                            | 'lyrics'
-                            | 'other'),
-                  })) || [],
-                confidenceLevel: updatedSong.confidenceLevel || 1,
-              })
-
-              // Refetch songs to update UI
-              await refetch()
-
-              showToast(
-                `Successfully updated "${updatedSong.title}"`,
-                'success'
-              )
+        {/* DATABASE INTEGRATION: Edit Song Modal with database operations */}
+        {isEditModalOpen && selectedSong && (
+          <AddEditSongModal
+            mode="edit"
+            song={selectedSong}
+            onClose={() => {
               setIsEditModalOpen(false)
               setSelectedSong(null)
-            } catch (err) {
-              console.error('Error updating song:', err)
-              showToast('Failed to update song. Please try again.', 'error')
-            }
-          }}
-          currentUserId={currentUserId}
-        />
-      )}
+            }}
+            onSave={async updatedSong => {
+              try {
+                // Convert display formats to database formats
+                const duration = durationToSeconds(updatedSong.duration)
+                const bpm = parseBpm(updatedSong.bpm)
 
-      {/* Delete Confirmation Dialog */}
-      {isDeleteDialogOpen && selectedSong && (
-        <DeleteConfirmationDialog
-          song={selectedSong}
-          onConfirm={confirmDelete}
-          onCancel={() => {
-            setIsDeleteDialogOpen(false)
-            setSelectedSong(null)
-          }}
-        />
-      )}
+                await updateSong(updatedSong.id, {
+                  title: updatedSong.title,
+                  artist: updatedSong.artist,
+                  album: updatedSong.album,
+                  duration,
+                  key: updatedSong.key,
+                  bpm,
+                  difficulty: (updatedSong.difficulty || 1) as
+                    | 1
+                    | 2
+                    | 3
+                    | 4
+                    | 5,
+                  guitarTuning: updatedSong.tuning,
+                  tags: updatedSong.tags || [],
+                  notes: updatedSong.notes,
+                  referenceLinks:
+                    updatedSong.referenceLinks?.map(link => ({
+                      ...link,
+                      type:
+                        link.type === 'ultimate-guitar'
+                          ? ('tabs' as const)
+                          : (link.type as
+                              | 'spotify'
+                              | 'youtube'
+                              | 'tabs'
+                              | 'lyrics'
+                              | 'other'),
+                    })) || [],
+                  confidenceLevel: updatedSong.confidenceLevel || 1,
+                })
 
-      {/* Add to Setlist Menu */}
-      {isSetlistMenuOpen && selectedSong && (
-        <AddToSetlistMenu
-          song={selectedSong}
-          onClose={() => {
-            setIsSetlistMenuOpen(false)
-            setSelectedSong(null)
-          }}
-        />
-      )}
+                // Refetch songs to update UI
+                await refetch()
+
+                showToast(
+                  `Successfully updated "${updatedSong.title}"`,
+                  'success'
+                )
+                setIsEditModalOpen(false)
+                setSelectedSong(null)
+              } catch (err) {
+                console.error('Error updating song:', err)
+                showToast('Failed to update song. Please try again.', 'error')
+              }
+            }}
+            currentUserId={currentUserId}
+          />
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        {isDeleteDialogOpen && selectedSong && (
+          <DeleteConfirmationDialog
+            song={selectedSong}
+            onConfirm={confirmDelete}
+            onCancel={() => {
+              setIsDeleteDialogOpen(false)
+              setSelectedSong(null)
+            }}
+          />
+        )}
+
+        {/* Add to Setlist Menu */}
+        {isSetlistMenuOpen && selectedSong && (
+          <AddToSetlistMenu
+            song={selectedSong}
+            onClose={() => {
+              setIsSetlistMenuOpen(false)
+              setSelectedSong(null)
+            }}
+          />
+        )}
+      </div>
     </ModernLayout>
   )
 }
@@ -2235,7 +2302,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({
           onClick={() => setShowCircleOfFifths(false)}
         >
           <div
-            className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-4 sm:p-6 w-full max-w-[min(90vw,500px)] max-h-[90vh] overflow-y-auto"
+            className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-4 sm:p-6 w-full max-w-[min(90vw,500px)] max-h-[90vh] overflow-y-auto custom-scrollbar-thin"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}

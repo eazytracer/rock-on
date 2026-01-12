@@ -2,79 +2,81 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 // Use vi.hoisted to ensure mocks are available during hoisting
-const { mockChannels, mockSupabase, mockRepository, mockDb } = vi.hoisted(() => {
-  // Track all created channel instances so we can inspect them
-  const mockChannels: any[] = []
+const { mockChannels, mockSupabase, mockRepository, mockDb } = vi.hoisted(
+  () => {
+    // Track all created channel instances so we can inspect them
+    const mockChannels: any[] = []
 
-  // Factory function to create unique channel instances
-  const createMockChannel = () => {
-    const channel = {
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn().mockImplementation(() => {
-        return Promise.resolve({ error: null })
-      }),
-      unsubscribe: vi.fn().mockImplementation(() => {
-        return Promise.resolve({ error: null })
-      })
+    // Factory function to create unique channel instances
+    const createMockChannel = () => {
+      const channel = {
+        on: vi.fn().mockReturnThis(),
+        subscribe: vi.fn().mockImplementation(() => {
+          return Promise.resolve({ error: null })
+        }),
+        unsubscribe: vi.fn().mockImplementation(() => {
+          return Promise.resolve({ error: null })
+        }),
+      }
+      mockChannels.push(channel)
+      return channel
     }
-    mockChannels.push(channel)
-    return channel
-  }
 
-  const mockSupabase = {
-    channel: vi.fn().mockImplementation(() => createMockChannel()),
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: null, error: null })
-  }
-
-  const mockRepository = {
-    deleteSong: vi.fn().mockResolvedValue(undefined),
-    deleteSetlist: vi.fn().mockResolvedValue(undefined),
-    deleteShow: vi.fn().mockResolvedValue(undefined),
-    deletePracticeSession: vi.fn().mockResolvedValue(undefined)
-  }
-
-  const mockDb = {
-    users: {
-      get: vi.fn().mockResolvedValue({ id: 'user-1', name: 'Alice' })
-    },
-    songs: {
-      put: vi.fn().mockResolvedValue(undefined)
-    },
-    setlists: {
-      put: vi.fn().mockResolvedValue(undefined)
-    },
-    shows: {
-      put: vi.fn().mockResolvedValue(undefined)
-    },
-    practiceSessions: {
-      put: vi.fn().mockResolvedValue(undefined)
+    const mockSupabase = {
+      channel: vi.fn().mockImplementation(() => createMockChannel()),
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
     }
-  }
 
-  return { mockChannels, mockSupabase, mockRepository, mockDb }
-})
+    const mockRepository = {
+      deleteSong: vi.fn().mockResolvedValue(undefined),
+      deleteSetlist: vi.fn().mockResolvedValue(undefined),
+      deleteShow: vi.fn().mockResolvedValue(undefined),
+      deletePracticeSession: vi.fn().mockResolvedValue(undefined),
+    }
+
+    const mockDb = {
+      users: {
+        get: vi.fn().mockResolvedValue({ id: 'user-1', name: 'Alice' }),
+      },
+      songs: {
+        put: vi.fn().mockResolvedValue(undefined),
+      },
+      setlists: {
+        put: vi.fn().mockResolvedValue(undefined),
+      },
+      shows: {
+        put: vi.fn().mockResolvedValue(undefined),
+      },
+      practiceSessions: {
+        put: vi.fn().mockResolvedValue(undefined),
+      },
+    }
+
+    return { mockChannels, mockSupabase, mockRepository, mockDb }
+  }
+)
 
 // Mock Supabase client
 vi.mock('../../../../src/services/supabase/client', () => ({
-  getSupabaseClient: () => mockSupabase
+  getSupabaseClient: () => mockSupabase,
 }))
 
 // Mock repository
 vi.mock('../../../../src/services/data/RepositoryFactory', () => ({
-  repository: mockRepository
+  repository: mockRepository,
 }))
 
 // Mock toast
 vi.mock('../../../../src/contexts/ToastContext', () => ({
-  useToast: () => ({ showToast: vi.fn() })
+  useToast: () => ({ showToast: vi.fn() }),
 }))
 
 // Mock database
 vi.mock('../../../../src/services/database', () => ({
-  db: mockDb
+  db: mockDb,
 }))
 
 // Import after mocks
@@ -110,7 +112,7 @@ describe('RealtimeManager', () => {
         expect.objectContaining({
           table: 'audit_log',
           event: 'INSERT',
-          filter: 'band_id=eq.band-1'
+          filter: 'band_id=eq.band-1',
         }),
         expect.any(Function)
       )
@@ -143,7 +145,6 @@ describe('RealtimeManager', () => {
 
       expect(manager.isConnected()).toBe(true)
     })
-
   })
 
   describe('Event Handling - INSERT', () => {
@@ -154,8 +155,8 @@ describe('RealtimeManager', () => {
       await manager.subscribeToUserBands(userId, bandIds)
 
       // Get the audit_log event handler from the first channel
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       expect(onCall).toBeDefined()
       const handler = onCall![2]
@@ -166,7 +167,7 @@ describe('RealtimeManager', () => {
           id: 'audit-1',
           table_name: 'songs',
           action: 'INSERT',
-          user_id: 'user-2',  // Different user
+          user_id: 'user-2', // Different user
           user_name: 'Bob',
           record_id: 'song-1',
           band_id: 'band-1',
@@ -178,14 +179,14 @@ describe('RealtimeManager', () => {
             context_id: 'band-1',
             created_by: 'user-2',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -197,7 +198,7 @@ describe('RealtimeManager', () => {
       expect(mockDb.songs.put).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'song-1',
-          title: 'Wonderwall'
+          title: 'Wonderwall',
         })
       )
     })
@@ -208,8 +209,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -218,7 +219,7 @@ describe('RealtimeManager', () => {
           id: 'audit-1',
           table_name: 'songs',
           action: 'INSERT',
-          user_id: 'user-1',  // Current user
+          user_id: 'user-1', // Current user
           user_name: 'Alice',
           record_id: 'song-1',
           band_id: 'band-1',
@@ -229,14 +230,14 @@ describe('RealtimeManager', () => {
             created_by: 'user-1',
             context_id: 'band-1',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -252,8 +253,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -273,14 +274,14 @@ describe('RealtimeManager', () => {
             created_by: 'user-2',
             context_id: 'band-1',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -299,8 +300,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -321,18 +322,18 @@ describe('RealtimeManager', () => {
             context_id: 'band-1',
             last_modified_by: 'user-2',
             last_modified: new Date().toISOString(),
-            version: 2
+            version: 2,
           },
           old_values: {
             id: 'song-1',
             title: 'Wonderwall',
-            version: 1
-          }
+            version: 1,
+          },
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -341,7 +342,7 @@ describe('RealtimeManager', () => {
       expect(mockDb.songs.put).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Wonderwall (Updated)',
-          version: 2
+          version: 2,
         })
       )
     })
@@ -352,8 +353,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -362,7 +363,7 @@ describe('RealtimeManager', () => {
           id: 'audit-1',
           table_name: 'songs',
           action: 'UPDATE',
-          user_id: 'user-1',  // Current user
+          user_id: 'user-1', // Current user
           user_name: 'Alice',
           record_id: 'song-1',
           band_id: 'band-1',
@@ -372,17 +373,17 @@ describe('RealtimeManager', () => {
             title: 'Updated Title',
             last_modified_by: 'user-1',
             context_id: 'band-1',
-            version: 2
+            version: 2,
           },
           old_values: {
             id: 'song-1',
-            version: 1
-          }
+            version: 1,
+          },
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -399,8 +400,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -418,13 +419,13 @@ describe('RealtimeManager', () => {
           old_values: {
             id: 'song-1',
             title: 'Deleted Song',
-            context_id: 'band-1'
-          }
+            context_id: 'band-1',
+          },
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -439,8 +440,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -450,7 +451,7 @@ describe('RealtimeManager', () => {
           id: 'audit-1',
           table_name: 'songs',
           action: 'DELETE',
-          user_id: 'user-1',  // Current user
+          user_id: 'user-1', // Current user
           user_name: 'Alice',
           record_id: 'song-1',
           band_id: 'band-1',
@@ -458,13 +459,13 @@ describe('RealtimeManager', () => {
           new_values: null,
           old_values: {
             id: 'song-1',
-            context_id: 'band-1'
-          }
+            context_id: 'band-1',
+          },
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -482,8 +483,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       expect(onCall).toBeDefined()
       const handler = onCall![2]
@@ -504,14 +505,14 @@ describe('RealtimeManager', () => {
             band_id: 'band-1',
             created_by: 'user-2',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -526,8 +527,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       expect(onCall).toBeDefined()
       const handler = onCall![2]
@@ -548,14 +549,14 @@ describe('RealtimeManager', () => {
             band_id: 'band-1',
             created_by: 'user-2',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -570,8 +571,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       expect(onCall).toBeDefined()
       const handler = onCall![2]
@@ -592,14 +593,14 @@ describe('RealtimeManager', () => {
             band_id: 'band-1',
             created_by: 'user-2',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -647,8 +648,8 @@ describe('RealtimeManager', () => {
 
       await manager.subscribeToUserBands(userId, bandIds)
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -670,14 +671,14 @@ describe('RealtimeManager', () => {
               created_by: 'user-2',
               context_id: 'band-1',
               created_date: new Date().toISOString(),
-              version: 1
+              version: 1,
             },
-            old_values: null
+            old_values: null,
           },
           old: {},
           eventType: 'INSERT',
           schema: 'public',
-          table: 'audit_log'
+          table: 'audit_log',
         }
 
         await handler(auditPayload)
@@ -705,8 +706,8 @@ describe('RealtimeManager', () => {
       manager.on('songs:changed', eventSpy)
 
       // Get the handler
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -727,14 +728,14 @@ describe('RealtimeManager', () => {
             created_by: 'user-2',
             context_id: 'band-1',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -744,7 +745,7 @@ describe('RealtimeManager', () => {
       expect(eventSpy).toHaveBeenCalledWith({
         bandId: 'band-1',
         action: 'INSERT',
-        recordId: 'song-1'
+        recordId: 'song-1',
       })
     })
 
@@ -759,48 +760,48 @@ describe('RealtimeManager', () => {
       manager.on('toast', toastSpy)
 
       // Get the handler
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
+      // Practice-specific toast: Only practice_sessions trigger toasts
+      const practiceDate = new Date('2025-12-15T18:00:00Z').toISOString()
       const auditPayload = {
         new: {
           id: 'audit-1',
-          table_name: 'songs',
+          table_name: 'practice_sessions',
           action: 'INSERT',
           user_id: 'user-2',
           user_name: 'Bob',
-          record_id: 'song-1',
+          record_id: 'practice-1',
           band_id: 'band-1',
           changed_at: new Date().toISOString(),
           new_values: {
-            id: 'song-1',
-            title: 'Wonderwall',
+            id: 'practice-1',
+            scheduled_date: practiceDate,
+            band_id: 'band-1',
             created_by: 'user-2',
-            context_id: 'band-1',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
       await new Promise(resolve => setImmediate(resolve))
 
-      // Wait for toast batching
-      await new Promise(resolve => setTimeout(resolve, 2500))
-
-      // Should emit toast event
+      // Practice toasts are immediate (no batching)
+      // Should emit toast event with practice-specific message
       expect(toastSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           message: expect.stringContaining('Bob'),
-          type: 'info'
+          type: 'info',
         })
       )
     })
@@ -821,8 +822,8 @@ describe('RealtimeManager', () => {
       manager.on('practices:changed', practiceSpy)
 
       // Get audit_log handler
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -837,13 +838,18 @@ describe('RealtimeManager', () => {
           record_id: 'setlist-1',
           band_id: 'band-1',
           changed_at: new Date().toISOString(),
-          new_values: { id: 'setlist-1', name: 'Test', band_id: 'band-1', created_by: 'user-2' },
-          old_values: null
+          new_values: {
+            id: 'setlist-1',
+            name: 'Test',
+            band_id: 'band-1',
+            created_by: 'user-2',
+          },
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       })
       await new Promise(resolve => setImmediate(resolve))
 
@@ -857,13 +863,18 @@ describe('RealtimeManager', () => {
           record_id: 'show-1',
           band_id: 'band-1',
           changed_at: new Date().toISOString(),
-          new_values: { id: 'show-1', name: 'Test', band_id: 'band-1', created_by: 'user-2' },
-          old_values: null
+          new_values: {
+            id: 'show-1',
+            name: 'Test',
+            band_id: 'band-1',
+            created_by: 'user-2',
+          },
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       })
       await new Promise(resolve => setImmediate(resolve))
 
@@ -877,13 +888,18 @@ describe('RealtimeManager', () => {
           record_id: 'practice-1',
           band_id: 'band-1',
           changed_at: new Date().toISOString(),
-          new_values: { id: 'practice-1', date: '2025-01-01', band_id: 'band-1', created_by: 'user-2' },
-          old_values: null
+          new_values: {
+            id: 'practice-1',
+            date: '2025-01-01',
+            band_id: 'band-1',
+            created_by: 'user-2',
+          },
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       })
       await new Promise(resolve => setImmediate(resolve))
 
@@ -904,8 +920,8 @@ describe('RealtimeManager', () => {
       manager.off('songs:changed', eventSpy)
 
       // Get the handler
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -925,14 +941,14 @@ describe('RealtimeManager', () => {
             created_by: 'user-2',
             context_id: 'band-1',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -949,13 +965,13 @@ describe('RealtimeManager', () => {
       const failingChannel = {
         on: vi.fn().mockReturnThis(),
         subscribe: vi.fn().mockResolvedValue({ error: new Error('Failed') }),
-        unsubscribe: vi.fn().mockResolvedValue({ error: null })
+        unsubscribe: vi.fn().mockResolvedValue({ error: null }),
       }
 
       const successChannel = {
         on: vi.fn().mockReturnThis(),
         subscribe: vi.fn().mockResolvedValue({ error: null }),
-        unsubscribe: vi.fn().mockResolvedValue({ error: null })
+        unsubscribe: vi.fn().mockResolvedValue({ error: null }),
       }
 
       let callCount = 0
@@ -977,7 +993,7 @@ describe('RealtimeManager', () => {
       // Should create 2 channels (audit-first: 1 per band)
       expect(mockSupabase.channel).toHaveBeenCalledTimes(2)
       // Should still subscribe to second band even if first fails
-      expect(successChannel.subscribe).toHaveBeenCalledTimes(1)  // band-2 succeeds
+      expect(successChannel.subscribe).toHaveBeenCalledTimes(1) // band-2 succeeds
     })
   })
 
@@ -992,7 +1008,9 @@ describe('RealtimeManager', () => {
 
       // Should only create ONE channel per band (audit-first approach)
       const channelCalls = mockSupabase.channel.mock.calls
-      const auditChannels = channelCalls.filter(call => call[0].startsWith('audit-'))
+      const auditChannels = channelCalls.filter(call =>
+        call[0].startsWith('audit-')
+      )
 
       // Only one audit channel should be created
       expect(auditChannels.length).toBe(1)
@@ -1009,10 +1027,15 @@ describe('RealtimeManager', () => {
 
       // Should only create 2 channels (one per band), not 4
       const channelCalls = mockSupabase.channel.mock.calls
-      const auditChannels = channelCalls.filter(call => call[0].startsWith('audit-'))
+      const auditChannels = channelCalls.filter(call =>
+        call[0].startsWith('audit-')
+      )
 
       expect(auditChannels.length).toBe(2)
-      expect(auditChannels.map(c => c[0]).sort()).toEqual(['audit-band-1', 'audit-band-2'])
+      expect(auditChannels.map(c => c[0]).sort()).toEqual([
+        'audit-band-1',
+        'audit-band-2',
+      ])
     })
 
     it('should handle concurrent subscription calls without creating duplicates', async () => {
@@ -1022,12 +1045,14 @@ describe('RealtimeManager', () => {
       // Call both concurrently (simulates race condition)
       await Promise.all([
         manager.subscribeToUserBands(userId, bandIds),
-        manager.subscribeToUserBands(userId, bandIds)
+        manager.subscribeToUserBands(userId, bandIds),
       ])
 
       // Should still only create one channel
       const channelCalls = mockSupabase.channel.mock.calls
-      const auditChannels = channelCalls.filter(call => call[0].startsWith('audit-'))
+      const auditChannels = channelCalls.filter(call =>
+        call[0].startsWith('audit-')
+      )
 
       expect(auditChannels.length).toBe(1)
     })
@@ -1050,10 +1075,15 @@ describe('RealtimeManager', () => {
 
       // Verify both bands subscribed
       const channelCalls = mockSupabase.channel.mock.calls
-      const auditChannels = channelCalls.filter(call => call[0].startsWith('audit-'))
+      const auditChannels = channelCalls.filter(call =>
+        call[0].startsWith('audit-')
+      )
 
       expect(auditChannels.length).toBe(2)
-      expect(auditChannels.map(c => c[0]).sort()).toEqual(['audit-band-1', 'audit-band-2'])
+      expect(auditChannels.map(c => c[0]).sort()).toEqual([
+        'audit-band-1',
+        'audit-band-2',
+      ])
     })
 
     it('should be idempotent: calling three times produces same result as once', async () => {
@@ -1070,7 +1100,9 @@ describe('RealtimeManager', () => {
 
       // Should only have one channel
       const channelCalls = mockSupabase.channel.mock.calls
-      const auditChannels = channelCalls.filter(call => call[0].startsWith('audit-'))
+      const auditChannels = channelCalls.filter(call =>
+        call[0].startsWith('audit-')
+      )
 
       expect(auditChannels.length).toBe(1)
     })
@@ -1081,8 +1113,8 @@ describe('RealtimeManager', () => {
       await manager.subscribeToUserBands('user-1', ['band-1'])
 
       // Get the audit log handler
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       expect(onCall).toBeDefined()
       const handler = onCall![2]
@@ -1097,7 +1129,7 @@ describe('RealtimeManager', () => {
       const auditPayload = {
         new: {
           id: 'audit-1',
-          table_name: 'practice_sessions',  // Supabase table name
+          table_name: 'practice_sessions', // Supabase table name
           action: 'INSERT',
           user_id: 'user-2',
           user_name: 'Bob',
@@ -1109,14 +1141,14 @@ describe('RealtimeManager', () => {
             scheduled_date: new Date().toISOString(),
             band_id: 'band-1',
             created_date: new Date().toISOString(),
-            version: 1
+            version: 1,
           },
-          old_values: null
+          old_values: null,
         },
         old: {},
         eventType: 'INSERT',
         schema: 'public',
-        table: 'audit_log'
+        table: 'audit_log',
       }
 
       await handler(auditPayload)
@@ -1129,18 +1161,17 @@ describe('RealtimeManager', () => {
       expect(receivedEvent).toEqual({
         bandId: 'band-1',
         action: 'INSERT',
-        recordId: 'practice-1'
+        recordId: 'practice-1',
       })
     })
-
   })
 
   describe('JSONB Data Validation (Bug Fix)', () => {
     it('should handle corrupted/incomplete song data gracefully', async () => {
       await manager.subscribeToUserBands('user-1', ['band-1'])
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -1158,10 +1189,10 @@ describe('RealtimeManager', () => {
           new_values: {
             id: 'song-1',
             // Missing: title, artist, key, tempo, etc.
-            band_id: 'band-1'
+            band_id: 'band-1',
           },
-          old_values: null
-        }
+          old_values: null,
+        },
       }
 
       // Should NOT throw an error
@@ -1194,8 +1225,8 @@ describe('RealtimeManager', () => {
     it('should handle null new_values in audit log', async () => {
       await manager.subscribeToUserBands('user-1', ['band-1'])
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -1204,15 +1235,15 @@ describe('RealtimeManager', () => {
         new: {
           id: 'audit-1',
           table_name: 'songs',
-          action: 'INSERT',  // INSERT with null new_values is invalid
+          action: 'INSERT', // INSERT with null new_values is invalid
           user_id: 'user-2',
           user_name: 'Bob',
           record_id: 'song-1',
           band_id: 'band-1',
           changed_at: new Date().toISOString(),
-          new_values: null,  // Invalid!
-          old_values: null
-        }
+          new_values: null, // Invalid!
+          old_values: null,
+        },
       }
 
       // Should NOT throw an error
@@ -1235,8 +1266,8 @@ describe('RealtimeManager', () => {
     it('should validate required fields before writing to IndexedDB', async () => {
       await manager.subscribeToUserBands('user-1', ['band-1'])
 
-      const onCall = mockChannels[0].on.mock.calls.find((call: any[]) =>
-        call[1]?.table === 'audit_log'
+      const onCall = mockChannels[0].on.mock.calls.find(
+        (call: any[]) => call[1]?.table === 'audit_log'
       )
       const handler = onCall![2]
 
@@ -1244,24 +1275,24 @@ describe('RealtimeManager', () => {
       const testCases = [
         {
           table: 'songs',
-          minimalData: { id: 'song-1', band_id: 'band-1' },  // Missing title, artist
-          requiredFields: ['title', 'artist', 'key']
+          minimalData: { id: 'song-1', band_id: 'band-1' }, // Missing title, artist
+          requiredFields: ['title', 'artist', 'key'],
         },
         {
           table: 'setlists',
-          minimalData: { id: 'setlist-1', band_id: 'band-1' },  // Missing name, items
-          requiredFields: ['name', 'items']
+          minimalData: { id: 'setlist-1', band_id: 'band-1' }, // Missing name, items
+          requiredFields: ['name', 'items'],
         },
         {
           table: 'shows',
-          minimalData: { id: 'show-1', band_id: 'band-1' },  // Missing venue, scheduledDate
-          requiredFields: ['venue', 'scheduledDate']
+          minimalData: { id: 'show-1', band_id: 'band-1' }, // Missing venue, scheduledDate
+          requiredFields: ['venue', 'scheduledDate'],
         },
         {
           table: 'practice_sessions',
-          minimalData: { id: 'practice-1', band_id: 'band-1' },  // Missing scheduled_date
-          requiredFields: ['scheduledDate']  // Note: camelCase after mapping
-        }
+          minimalData: { id: 'practice-1', band_id: 'band-1' }, // Missing scheduled_date
+          requiredFields: ['scheduledDate'], // Note: camelCase after mapping
+        },
       ]
 
       for (const { table, minimalData, requiredFields } of testCases) {
@@ -1278,15 +1309,16 @@ describe('RealtimeManager', () => {
             band_id: 'band-1',
             changed_at: new Date().toISOString(),
             new_values: minimalData,
-            old_values: null
-          }
+            old_values: null,
+          },
         }
 
         await handler(payload)
         await new Promise(resolve => setImmediate(resolve))
 
         // Should either: (1) not write, or (2) write with defaults for required fields
-        const dbTable = table === 'practice_sessions' ? 'practiceSessions' : table
+        const dbTable =
+          table === 'practice_sessions' ? 'practiceSessions' : table
         const putCalls = (mockDb as any)[dbTable].put.mock.calls
 
         if (putCalls.length > 0) {

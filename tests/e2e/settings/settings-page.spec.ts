@@ -13,24 +13,52 @@ import {
   setupConsoleErrorTracking,
   assertNoConsoleErrors,
 } from '../../helpers/assertions'
-import { createTestUser, signIn, signOut } from '../../helpers/auth'
-import { resetDatabase } from '../../helpers/database'
+import { createTestUser, loginViaUI, logoutViaUI } from '../../fixtures/auth'
+import { clearTestData } from '../../fixtures/database'
 
 test.describe('Settings Page', () => {
-  let testUser: { email: string; password: string; id?: string }
+  let testUser: { email: string; password: string; name: string; id?: string }
 
   test.beforeEach(async ({ page }) => {
-    // Reset database and create test user
-    await resetDatabase()
-    testUser = await createTestUser()
+    // Clear test data and create test user
+    await clearTestData()
+    testUser = createTestUser()
 
-    // Sign in
-    await signIn(page, testUser.email, testUser.password)
+    // Sign in via UI (creates account and logs in)
+    await page.goto('/auth')
+    await page.waitForSelector(
+      'button:has-text("Log In"), button:has-text("Create Account")',
+      {
+        state: 'visible',
+        timeout: 10000,
+      }
+    )
+    // Switch to signup if on login form
+    const logInButton = page.locator('button:has-text("Log In")')
+    if (await logInButton.isVisible()) {
+      await page.click('button:has-text("Don\'t have an account")')
+      await page.waitForSelector('[data-testid="signup-name-input"]', {
+        state: 'visible',
+        timeout: 5000,
+      })
+    }
+    await page.fill(
+      '[data-testid="signup-name-input"]',
+      testUser.name || 'Test User'
+    )
+    await page.fill('[data-testid="signup-email-input"]', testUser.email)
+    await page.fill('[data-testid="signup-password-input"]', testUser.password)
+    await page.click('button[type="submit"]:has-text("Create Account")')
+    await page.waitForURL(/\/(get-started|songs)/, { timeout: 10000 })
   })
 
   test.afterEach(async ({ page }) => {
     // Sign out after each test
-    await signOut(page)
+    try {
+      await logoutViaUI(page)
+    } catch {
+      // Ignore logout errors (user may already be logged out)
+    }
   })
 
   test.describe('Page Access and Navigation', () => {
@@ -61,7 +89,7 @@ test.describe('Settings Page', () => {
 
     test('should require authentication', async ({ page }) => {
       // Sign out first
-      await signOut(page)
+      await logoutViaUI(page)
 
       // Try to access settings
       await page.goto('/settings')

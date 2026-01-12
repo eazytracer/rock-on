@@ -215,6 +215,10 @@ export class SyncEngine {
         }
       }
     }
+
+    // Notify listeners after processing queue so UI updates pending count
+    // This is critical when called via scheduleImmediateSync() which bypasses syncNow()
+    this.notifyListeners()
   }
 
   private async executeSyncOperation(item: SyncQueueItem): Promise<void> {
@@ -315,6 +319,33 @@ export class SyncEngine {
             break
           case 'delete':
             await this.remote.deleteInviteCode(data.id)
+            break
+        }
+        break
+
+      case 'song_personal_notes':
+        switch (operation) {
+          case 'create':
+          case 'update':
+            // Use upsert for both create and update since personal notes use upsert locally
+            await this.remote.upsertPersonalNote(data)
+            break
+          case 'delete':
+            await this.remote.deletePersonalNote(data.id)
+            break
+        }
+        break
+
+      case 'song_note_entries':
+        switch (operation) {
+          case 'create':
+            await this.remote.createNoteEntry(data)
+            break
+          case 'update':
+            await this.remote.updateNoteEntry(data.id, data)
+            break
+          case 'delete':
+            await this.remote.deleteNoteEntry(data.id)
             break
         }
         break

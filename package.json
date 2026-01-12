@@ -21,6 +21,8 @@
     "schema:validate": "tsx scripts/validate-schema.ts",
     "schema:show": "tsx scripts/show-schema.ts",
     "schema:check": "npm run schema:validate",
+    "schema:diagram": "npx ts-node scripts/generate-er-diagram.ts",
+    "schema:diagram:check": "npx ts-node scripts/generate-er-diagram.ts --check",
     "generate-seed": "tsx scripts/generateSeedSQL.ts full",
     "generate-seed:min": "tsx scripts/generateSeedSQL.ts minimal",
     "generate-seed:med": "tsx scripts/generateSeedSQL.ts medium",
@@ -64,7 +66,9 @@
     "puppeteer": "^24.26.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.15.0"
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^6.15.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

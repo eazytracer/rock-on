@@ -40,6 +40,8 @@ export interface UpdateSessionRequest {
   location?: string
   objectives?: string[]
   notes?: string
+  songs?: string[]
+  status?: SessionStatus
 }
 
 export interface EndSessionRequest {
@@ -149,10 +151,8 @@ export class PracticeSessionService {
   static async getSessionById(
     sessionId: string
   ): Promise<PracticeSession | null> {
-    // Get all sessions and find the one we need (repository doesn't have getById for sessions)
-    const allSessions = await repository.getPracticeSessions('')
-    const session = allSessions.find(s => s.id === sessionId)
-    return session || null
+    // Use the repository's getPracticeSession method which looks up by ID directly
+    return repository.getPracticeSession(sessionId)
   }
 
   static async updateSession(
@@ -179,6 +179,20 @@ export class PracticeSessionService {
     }
     if (updateData.notes !== undefined) {
       updates.notes = updateData.notes
+    }
+    if (updateData.status) {
+      updates.status = updateData.status
+    }
+    if (updateData.songs) {
+      updates.songs = updateData.songs.map(songId => ({
+        songId,
+        timeSpent: 0,
+        status: 'not-started' as const,
+        sectionsWorked: [],
+        improvements: [],
+        needsWork: [],
+        memberRatings: [],
+      }))
     }
 
     await repository.updatePracticeSession(sessionId, updates)

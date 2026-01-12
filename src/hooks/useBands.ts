@@ -334,6 +334,7 @@ export function useBandInviteCodes(bandId: string) {
     return () => {
       repo.off('changed', fetchInviteCodes)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchInviteCodes is stable, bandId is the trigger
   }, [bandId])
 
   return { inviteCodes, loading, error, refetch: fetchInviteCodes }

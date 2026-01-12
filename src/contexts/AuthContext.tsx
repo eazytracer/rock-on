@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, {
   createContext,
   useContext,
@@ -655,6 +656,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       // Include realtimeManagerReady in deps to trigger re-render when manager is created
       realtimeManager: realtimeManagerRef.current,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref.current captured intentionally, realtimeManagerReady triggers update
     [
       user,
       session,

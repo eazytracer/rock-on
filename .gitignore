@@ -15,6 +15,10 @@ build/
 # Environment variables
 # Ignore active environment (auto-generated)
 .env.local
+.env
+
+# Docker compose environment (contains secrets)
+!.env.docker.example
 
 # Ignore generated local environment files (created by npm run setup:local)
 .env.development
@@ -149,3 +153,7 @@ supabase/.branches/
 user-data/
 exports/
 .env.supabase
+
+# Claude Code feature archives (completed feature documentation)
+.claude/archives/
+.claude/features/**/archive.tar

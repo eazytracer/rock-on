@@ -39,6 +39,9 @@ jobs:
       - name: Check code formatting
         run: npx prettier --check "src/**/*.{ts,tsx,json,md}"
 
+      - name: Verify ER diagram is up-to-date
+        run: npm run schema:diagram:check
+
   unit-tests:
     name: Unit Tests with Coverage
     runs-on: ubuntu-latest

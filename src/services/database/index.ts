@@ -17,6 +17,8 @@ import {
   MemberCapability,
 } from '../../models/SongCasting'
 import { SyncQueueItem, SyncMetadata, SyncConflict } from '../data/syncTypes'
+import { SongPersonalNote } from '../../models/SongPersonalNote'
+import { SongNoteEntry } from '../../models/SongNoteEntry'
 
 export class RockOnDB extends Dexie {
   bands!: Table<Band>
@@ -39,6 +41,8 @@ export class RockOnDB extends Dexie {
   syncQueue!: Table<SyncQueueItem>
   syncMetadata!: Table<SyncMetadata>
   syncConflicts!: Table<SyncConflict>
+  songPersonalNotes!: Table<SongPersonalNote>
+  songNoteEntries!: Table<SongNoteEntry>
 
   constructor() {
     super('RockOnDB')
@@ -294,6 +298,42 @@ export class RockOnDB extends Dexie {
         }
       })
 
+    // Version 9: Song notes system (personal notes + practice log entries)
+    this.version(9).stores({
+      bands: '++id, name, createdDate',
+      members: '++id, name, email, isActive',
+      songs:
+        '++id, title, artist, key, difficulty, createdDate, lastPracticed, confidenceLevel, contextType, contextId, createdBy, visibility, songGroupId',
+      practiceSessions: '++id, bandId, scheduledDate, type, status, setlistId',
+      setlists: '++id, name, bandId, showId, status, createdDate, lastModified',
+      shows: '++id, bandId, setlistId, scheduledDate, status, venue',
+      users: '++id, email, name, createdDate, lastLogin, authProvider',
+      userProfiles:
+        '++id, userId, displayName, primaryInstrument, *instruments',
+      bandMemberships:
+        '++id, [userId+bandId], userId, bandId, role, joinedDate, status, *permissions',
+      inviteCodes: '++id, bandId, code, createdBy, expiresAt, currentUses',
+      songGroups: '++id, createdBy, name, createdDate',
+      songGroupMemberships: '++id, songId, songGroupId, addedBy, addedDate',
+      songCastings:
+        '++id, contextType, contextId, songId, createdBy, createdDate',
+      songAssignments:
+        '++id, songCastingId, memberId, isPrimary, confidence, addedBy, addedDate',
+      assignmentRoles: '++id, assignmentId, type, name, isPrimary',
+      castingTemplates:
+        '++id, bandId, name, contextType, createdBy, createdDate',
+      memberCapabilities:
+        '++id, userId, bandId, roleType, proficiencyLevel, isPrimary, updatedDate',
+      // Sync infrastructure tables
+      syncQueue: '++id, table, status, timestamp, data.id',
+      syncMetadata: 'id',
+      syncConflicts: '++id, table, recordId, timestamp',
+      // Song notes system (NEW in v9)
+      songPersonalNotes: '++id, songId, userId, bandId, [songId+userId+bandId]',
+      songNoteEntries:
+        '++id, songId, userId, bandId, sessionType, sessionId, createdDate, visibility',
+    })
+
     // Add hooks for automatic timestamps
     this.bands.hook('creating', function (_primKey, obj, _trans) {
       obj.createdDate = new Date()
@@ -415,6 +455,33 @@ export class RockOnDB extends Dexie {
     })
 
     this.shows.hook(
+      'updating',
+      function (modifications, _primKey, _obj, _trans) {
+        ;(modifications as any).updatedDate = new Date()
+      }
+    )
+
+    // Version 9: Song notes hooks
+    this.songPersonalNotes.hook('creating', function (_primKey, obj, _trans) {
+      obj.createdDate = new Date()
+      obj.updatedDate = new Date()
+      obj.version = 1
+    })
+
+    this.songPersonalNotes.hook(
+      'updating',
+      function (modifications, _primKey, _obj, _trans) {
+        ;(modifications as any).updatedDate = new Date()
+        // Note: version increment should be handled by sync logic, not hooks
+      }
+    )
+
+    this.songNoteEntries.hook('creating', function (_primKey, obj, _trans) {
+      obj.createdDate = new Date()
+      obj.version = 1
+    })
+
+    this.songNoteEntries.hook(
       'updating',
       function (modifications, _primKey, _obj, _trans) {
         ;(modifications as any).updatedDate = new Date()
