@@ -46,6 +46,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 // DATABASE INTEGRATION: Import database hooks and utilities
 import { db } from '../services/database'
+import { getSyncRepository } from '../services/data/SyncRepository'
 import { secondsToDuration } from '../utils/formatters'
 import { formatShowDate } from '../utils/dateHelpers'
 import type {
@@ -1662,8 +1663,9 @@ export const SetlistsPage: React.FC = () => {
         .equals(setlistId)
         .toArray()
 
+      const repo = getSyncRepository()
       for (const show of shows) {
-        await db.practiceSessions.update(show.id!, { setlistId: undefined })
+        await repo.updatePracticeSession(show.id!, { setlistId: undefined })
       }
 
       // Delete the setlist using hook
@@ -1725,7 +1727,8 @@ export const SetlistsPage: React.FC = () => {
 
       // Update or add associated show if selected
       if (updatedSetlist.associatedShow) {
-        await db.practiceSessions.update(updatedSetlist.associatedShow.id, {
+        const repo = getSyncRepository()
+        await repo.updatePracticeSession(updatedSetlist.associatedShow.id, {
           setlistId: updatedSetlist.id,
         })
       }

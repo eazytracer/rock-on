@@ -1,38 +1,38 @@
 # Setlist Sync Bypass Bug Fix - Implementation Tasks
 
 **Feature**: setlist-sync-bypass (bugfix)
-**Status**: Ready for implementation
+**Status**: Phases 1-3 Complete
 **Branch**: bugfix/setlist-sync-bypass
 
 ---
 
-## Phase 1: SetlistViewPage.tsx (Critical)
+## Phase 1: SetlistViewPage.tsx (Critical) ✅ COMPLETE
 
-- [ ] T1.1: Add `getSyncRepository` import to SetlistViewPage.tsx
+- [x] T1.1: Add `getSyncRepository` import to SetlistViewPage.tsx
   - Files: `src/pages/SetlistViewPage.tsx`
   - Acceptance: Import statement added
 
-- [ ] T1.2: Fix `createSetlist()` to use `repo.addSetlist()`
+- [x] T1.2: Fix `createSetlist()` to use `repo.addSetlist()`
   - Files: `src/pages/SetlistViewPage.tsx`
   - Acceptance: New setlists sync to Supabase
 
-- [ ] T1.3: Fix `saveField()` to use `repo.updateSetlist()`
+- [x] T1.3: Fix `saveField()` to use `repo.updateSetlist()`
   - Files: `src/pages/SetlistViewPage.tsx`
   - Acceptance: Field edits sync to Supabase
 
-- [ ] T1.4: Fix `saveItems()` to use `repo.updateSetlist()`
+- [x] T1.4: Fix `saveItems()` to use `repo.updateSetlist()`
   - Files: `src/pages/SetlistViewPage.tsx`
   - Acceptance: Item reordering syncs to Supabase
 
-- [ ] T1.5: Fix `addBreak()` to use `repo.updateSetlist()`
+- [x] T1.5: Fix `addBreak()` to use `repo.updateSetlist()`
   - Files: `src/pages/SetlistViewPage.tsx`
   - Acceptance: Adding breaks syncs to Supabase
 
-- [ ] T1.6: Fix `addSection()` to use `repo.updateSetlist()`
+- [x] T1.6: Fix `addSection()` to use `repo.updateSetlist()`
   - Files: `src/pages/SetlistViewPage.tsx`
   - Acceptance: Adding sections syncs to Supabase
 
-- [ ] T1.7: Fix `EditSongModal onSave` to use `repo.updateSong()`
+- [x] T1.7: Fix `EditSongModal onSave` to use `repo.updateSong()`
   - Files: `src/pages/SetlistViewPage.tsx`
   - Acceptance: Song edits from setlist view sync to Supabase
 
@@ -42,45 +42,45 @@
 
 ---
 
-## Phase 2: ShowViewPage.tsx (High Priority)
+## Phase 2: ShowViewPage.tsx (High Priority) ✅ COMPLETE
 
-- [ ] T2.1: Add `getSyncRepository` import to ShowViewPage.tsx
+- [x] T2.1: Add `getSyncRepository` import to ShowViewPage.tsx
   - Files: `src/pages/ShowViewPage.tsx`
   - Acceptance: Import statement added
 
-- [ ] T2.2: Fix `saveField()` to use `repo.updateShow()`
+- [x] T2.2: Fix `saveField()` to use `repo.updateShow()`
   - Files: `src/pages/ShowViewPage.tsx`
   - Acceptance: Show field edits sync to Supabase
 
-- [ ] T2.3: Fix `saveDateTime()` to use `repo.updateShow()`
+- [x] T2.3: Fix `saveDateTime()` to use `repo.updateShow()`
   - Files: `src/pages/ShowViewPage.tsx`
   - Acceptance: DateTime changes sync to Supabase
 
-- [ ] T2.4: Fix `saveContacts()` to use `repo.updateShow()`
+- [x] T2.4: Fix `saveContacts()` to use `repo.updateShow()`
   - Files: `src/pages/ShowViewPage.tsx`
   - Acceptance: Contact changes sync to Supabase
 
-- [ ] T2.5: Fix setlist fork to use `repo.addSetlist()`
+- [x] T2.5: Fix setlist fork to use `repo.addSetlist()`
   - Files: `src/pages/ShowViewPage.tsx`
   - Acceptance: Forked setlists sync to Supabase
 
-- [ ] T2.6: Fix `handleCreateNewSetlist()` to use `repo.addSetlist()`
+- [x] T2.6: Fix `handleCreateNewSetlist()` to use `repo.addSetlist()`
   - Files: `src/pages/ShowViewPage.tsx`
   - Acceptance: New setlists from show sync to Supabase
 
-- [ ] T2.7: Fix `createShow()` to use `repo.addShow()`
+- [x] T2.7: Fix `createShow()` to use `repo.addShow()`
   - Files: `src/pages/ShowViewPage.tsx`
   - Acceptance: New shows sync to Supabase
 
 ---
 
-## Phase 3: SetlistsPage.tsx (Low Priority)
+## Phase 3: SetlistsPage.tsx (Low Priority) ✅ COMPLETE
 
-- [ ] T3.1: Fix `handleDelete()` practice session update
+- [x] T3.1: Fix `handleDelete()` practice session update
   - Files: `src/pages/SetlistsPage.tsx`
   - Acceptance: Practice session updates sync to Supabase
 
-- [ ] T3.2: Fix `handleSave()` practice session update
+- [x] T3.2: Fix `handleSave()` practice session update
   - Files: `src/pages/SetlistsPage.tsx`
   - Acceptance: Practice session saves sync to Supabase
 
@@ -152,5 +152,7 @@
 ## Task Summary
 
 **Total Tasks**: 25
+**Completed**: 15 (Phases 1-3)
+**Remaining**: 10 (Phases 4-7)
 **Critical Path**: Phase 1 (T1.1-T1.8) → Phase 2 (T2.1-T2.7) → Phase 4-6 (Tests)
 **Parallelizable**: T4.3, T4.4, T5.2, T5.3, T5.4 (marked with [P])

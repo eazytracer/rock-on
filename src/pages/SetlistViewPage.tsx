@@ -19,6 +19,7 @@ import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
 import { db } from '../services/database'
+import { getSyncRepository } from '../services/data/SyncRepository'
 import { secondsToDuration } from '../utils/formatters'
 import { formatShowDate } from '../utils/dateHelpers'
 import type { Setlist as DBSetlist } from '../models/Setlist'
@@ -240,7 +241,8 @@ export const SetlistViewPage: React.FC = () => {
       }
 
       try {
-        await db.setlists.update(setlistId, {
+        const repo = getSyncRepository()
+        await repo.updateSetlist(setlistId, {
           [field]: value,
           lastModified: new Date(),
         })
@@ -262,6 +264,7 @@ export const SetlistViewPage: React.FC = () => {
   const createSetlist = async () => {
     try {
       setSaving(true)
+      const repo = getSyncRepository()
 
       // Build items for save
       const dbItems = items.map((item, index) => ({
@@ -276,7 +279,7 @@ export const SetlistViewPage: React.FC = () => {
       }))
 
       const newId = crypto.randomUUID()
-      await db.setlists.add({
+      await repo.addSetlist({
         id: newId,
         bandId: currentBandId,
         name: formName,
@@ -329,6 +332,7 @@ export const SetlistViewPage: React.FC = () => {
     if (!setlistId || isNewMode) return
 
     try {
+      const repo = getSyncRepository()
       const dbItems = orderedItems.map((item, index) => ({
         id: item.id,
         type: item.type,
@@ -340,7 +344,7 @@ export const SetlistViewPage: React.FC = () => {
         notes: item.notes,
       }))
 
-      await db.setlists.update(setlistId, {
+      await repo.updateSetlist(setlistId, {
         items: dbItems,
         lastModified: new Date(),
       })
@@ -436,6 +440,7 @@ export const SetlistViewPage: React.FC = () => {
     // Auto-save for existing setlists
     if (setlistId && !isNewMode) {
       try {
+        const repo = getSyncRepository()
         const dbItems = newItems.map(item => ({
           id: item.id,
           type: item.type,
@@ -446,9 +451,10 @@ export const SetlistViewPage: React.FC = () => {
           breakNotes: item.breakNotes,
           sectionTitle: item.sectionTitle,
         }))
-        await db.setlists.update(setlistId, {
+        await repo.updateSetlist(setlistId, {
           items: dbItems,
           totalDuration: calculateSetlistDuration(newItems),
+          lastModified: new Date(),
         })
         showToast('Break added', 'success')
       } catch (error) {
@@ -478,6 +484,7 @@ export const SetlistViewPage: React.FC = () => {
     // Auto-save for existing setlists
     if (setlistId && !isNewMode) {
       try {
+        const repo = getSyncRepository()
         const dbItems = newItems.map(item => ({
           id: item.id,
           type: item.type,
@@ -488,9 +495,10 @@ export const SetlistViewPage: React.FC = () => {
           breakNotes: item.breakNotes,
           sectionTitle: item.sectionTitle,
         }))
-        await db.setlists.update(setlistId, {
+        await repo.updateSetlist(setlistId, {
           items: dbItems,
           totalDuration: calculateSetlistDuration(newItems),
+          lastModified: new Date(),
         })
         showToast('Section added', 'success')
       } catch (error) {
@@ -795,7 +803,8 @@ export const SetlistViewPage: React.FC = () => {
           onClose={() => setEditingSong(null)}
           onSave={async updatedSong => {
             try {
-              await db.songs.update(updatedSong.id!, updatedSong)
+              const repo = getSyncRepository()
+              await repo.updateSong(updatedSong.id!, updatedSong)
               // Update the song in our local state
               setDbSongs(prev =>
                 prev.map(s => (s.id === updatedSong.id ? updatedSong : s))
