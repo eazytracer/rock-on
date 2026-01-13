@@ -1,7 +1,7 @@
 # Implementation Plan: Setlist Sync Bypass Bug Fix
 
 **Date:** 2026-01-13
-**Bug Report:** `.claude/artifacts/2026-01-13T15:44_bug-report-setlist-sync-bypass.md`
+**Bug Report:** `.claude/bug-reports/2026-01-13T15:44_bug-report-setlist-sync-bypass.md`
 **Branch:** `bugfix/setlist-sync-bypass`
 
 ## Executive Summary
