@@ -233,19 +233,51 @@ Apply same pattern to practice session updates
 
 ---
 
-## E2E Test Cases to Add
+## E2E Testing Strategy
 
-### Test 1: New Setlist Syncs to Supabase
+### Infrastructure Already Available
+
+The codebase already has working database verification patterns:
+
+| Component            | Location                                   | Purpose                                           |
+| -------------------- | ------------------------------------------ | ------------------------------------------------- |
+| `getSupabaseAdmin()` | `tests/fixtures/supabase.ts`               | Admin client with service role key (bypasses RLS) |
+| Existing sync tests  | `tests/e2e/sync/setlist-show-sync.spec.ts` | Reference implementation                          |
+| Database helpers     | `tests/helpers/testSupabase.ts`            | Table counts, schema verification                 |
+| Environment          | `.env.test`                                | Service role key (auto-generated)                 |
+
+### New Test File: `tests/e2e/sync/database-sync-verification.spec.ts`
+
+This file will contain comprehensive sync verification tests.
+
+---
+
+## E2E Test Cases - Category 1: Positive Sync Tests
+
+### Test 1.1: New Setlist Syncs to Supabase
 
 ```typescript
+import { test, expect } from '@playwright/test'
+import { getSupabaseAdmin } from '../../fixtures/supabase'
+import { signUpViaUI, createBandViaUI } from '../../fixtures/auth'
+import { createTestUser } from '../../fixtures/users'
+
 test('newly created setlist via SetlistViewPage syncs to Supabase', async ({
   page,
 }) => {
+  const user = createTestUser()
+  await signUpViaUI(page, user)
+  await createBandViaUI(page, `Test Band ${Date.now()}`)
+
+  const setlistName = `E2E Sync Test ${Date.now()}`
+
   // Navigate to /setlists/new
   await page.goto('/setlists/new')
 
-  // Fill setlist name
-  await page.fill('[data-testid="setlist-name-input"]', 'E2E Sync Test Setlist')
+  // Fill setlist name (inline editable field)
+  await page.locator('[data-testid="setlist-header"]').click()
+  await page.keyboard.type(setlistName)
+  await page.keyboard.press('Tab')
 
   // Click create button
   await page.click('[data-testid="create-setlist-button"]')
@@ -253,31 +285,472 @@ test('newly created setlist via SetlistViewPage syncs to Supabase', async ({
   // Wait for redirect (indicates local save)
   await page.waitForURL(/\/setlists\/[a-z0-9-]+/)
 
-  // Allow time for sync
+  // Allow time for sync (max 5 seconds)
   await page.waitForTimeout(3000)
 
   // Verify in Supabase
-  const { data } = await supabase
+  const supabase = await getSupabaseAdmin()
+  const { data: setlists, error } = await supabase
     .from('setlists')
     .select('*')
-    .eq('name', 'E2E Sync Test Setlist')
+    .ilike('name', `%${setlistName}%`)
 
-  expect(data).not.toBeNull()
-  expect(data!.length).toBe(1)
+  expect(error).toBeNull()
+  expect(setlists).not.toBeNull()
+  expect(setlists!.length).toBeGreaterThan(0)
+  console.log(`✅ Setlist verified in Supabase: ${setlists![0].id}`)
 })
 ```
 
-### Test 2: Setlist Updates Sync
+### Test 1.2: Setlist Field Updates Sync
 
-Test inline editing of setlist name syncs to Supabase.
+```typescript
+test('editing setlist name syncs to Supabase', async ({ page }) => {
+  // ... setup user/band ...
+  // Create setlist first
+  const originalName = `Original ${Date.now()}`
+  const updatedName = `Updated ${Date.now()}`
 
-### Test 3: Adding Breaks/Sections Sync
+  // Create via UI, then edit inline
+  // ... create setlist ...
 
-Test that structural changes sync properly.
+  // Edit name inline
+  await page.locator('[data-testid="setlist-header"] [contenteditable]').click()
+  await page.keyboard.press('Control+A')
+  await page.keyboard.type(updatedName)
+  await page.keyboard.press('Tab')
 
-### Test 4: Show Creation Syncs
+  // Wait for sync
+  await page.waitForTimeout(3000)
 
-Test new shows via ShowViewPage sync to Supabase.
+  // Verify in Supabase
+  const supabase = await getSupabaseAdmin()
+  const { data } = await supabase
+    .from('setlists')
+    .select('name')
+    .ilike('name', `%${updatedName}%`)
+
+  expect(data!.length).toBe(1)
+  expect(data![0].name).toContain(updatedName)
+})
+```
+
+### Test 1.3: Adding Break/Section Syncs
+
+```typescript
+test('adding break to setlist syncs items to Supabase', async ({ page }) => {
+  // ... setup and create setlist ...
+
+  // Add break via UI
+  await page.click('[data-testid="add-item-dropdown"]')
+  await page.click('text=Add Break')
+
+  // Wait for sync
+  await page.waitForTimeout(3000)
+
+  // Verify in Supabase
+  const supabase = await getSupabaseAdmin()
+  const { data } = await supabase
+    .from('setlists')
+    .select('items')
+    .eq('id', setlistId)
+    .single()
+
+  const items = data.items as any[]
+  expect(items.some(i => i.type === 'break')).toBe(true)
+})
+```
+
+### Test 1.4: Show Creation Syncs
+
+```typescript
+test('newly created show via ShowViewPage syncs to Supabase', async ({
+  page,
+}) => {
+  // ... setup ...
+  const showName = `E2E Show ${Date.now()}`
+
+  await page.goto('/shows/new')
+  // Fill show details
+  await page.fill('[data-testid="show-name-input"]', showName)
+  await page.click('[data-testid="create-show-button"]')
+
+  await page.waitForURL(/\/shows\/[a-z0-9-]+/)
+  await page.waitForTimeout(3000)
+
+  // Verify in Supabase
+  const supabase = await getSupabaseAdmin()
+  const { data: shows } = await supabase
+    .from('shows')
+    .select('*')
+    .ilike('name', `%${showName}%`)
+
+  expect(shows!.length).toBeGreaterThan(0)
+})
+```
+
+---
+
+## E2E Test Cases - Category 2: Offline/Online Sync Tests
+
+### Test 2.1: Offline Edits Show Pending Status
+
+```typescript
+test('offline edits show pending sync status', async ({ page, context }) => {
+  // ... setup user/band/setlist ...
+
+  // Go offline
+  await context.setOffline(true)
+
+  // Make an edit
+  await page.locator('[data-testid="setlist-header"]').click()
+  await page.keyboard.type(' - Offline Edit')
+  await page.keyboard.press('Tab')
+
+  // Verify sync icon shows pending/error state
+  const syncIcon = page.locator('[data-testid="sync-status-icon"]')
+  await expect(syncIcon).toHaveAttribute('data-status', /(pending|error)/)
+
+  // Verify NOT in Supabase yet
+  const supabase = await getSupabaseAdmin()
+  const { data } = await supabase
+    .from('setlists')
+    .select('name')
+    .eq('id', setlistId)
+    .single()
+
+  expect(data.name).not.toContain('Offline Edit')
+})
+```
+
+### Test 2.2: Offline Edits Sync When Online
+
+```typescript
+test('offline edits sync when connection restored', async ({
+  page,
+  context,
+}) => {
+  // ... setup user/band/setlist ...
+  const editSuffix = ` - Synced ${Date.now()}`
+
+  // Go offline
+  await context.setOffline(true)
+
+  // Make edit while offline
+  await page.locator('[data-testid="setlist-header"]').click()
+  await page.keyboard.type(editSuffix)
+  await page.keyboard.press('Tab')
+
+  // Verify pending status
+  await expect(
+    page.locator('[data-testid="sync-status-icon"]')
+  ).toHaveAttribute('data-status', 'pending')
+
+  // Go back online
+  await context.setOffline(false)
+
+  // Wait for sync to complete (poll for up to 10 seconds)
+  let synced = false
+  const supabase = await getSupabaseAdmin()
+  for (let i = 0; i < 20; i++) {
+    const { data } = await supabase
+      .from('setlists')
+      .select('name')
+      .eq('id', setlistId)
+      .single()
+
+    if (data.name.includes(editSuffix)) {
+      synced = true
+      break
+    }
+    await page.waitForTimeout(500)
+  }
+
+  expect(synced).toBe(true)
+
+  // Verify sync icon shows synced
+  await expect(
+    page.locator('[data-testid="sync-status-icon"]')
+  ).toHaveAttribute('data-status', 'synced')
+})
+```
+
+### Test 2.3: Multiple Offline Edits Queue and Sync
+
+```typescript
+test('multiple offline edits all sync when online', async ({
+  page,
+  context,
+}) => {
+  // ... setup ...
+
+  // Go offline
+  await context.setOffline(true)
+
+  // Make 3 different edits
+  // 1. Edit setlist name
+  // 2. Add a break
+  // 3. Add a section
+
+  // Go online
+  await context.setOffline(false)
+
+  // Wait for sync
+  await page.waitForTimeout(5000)
+
+  // Verify all 3 changes in Supabase
+  const supabase = await getSupabaseAdmin()
+  const { data } = await supabase
+    .from('setlists')
+    .select('*')
+    .eq('id', setlistId)
+    .single()
+
+  expect(data.name).toContain(editedName)
+  expect(data.items.some(i => i.type === 'break')).toBe(true)
+  expect(data.items.some(i => i.type === 'section')).toBe(true)
+})
+```
+
+---
+
+## E2E Test Cases - Category 3: Negative/Error Cases
+
+### Test 3.1: Sync Icon Shows Error on Persistent Failure
+
+```typescript
+test('sync icon shows error after repeated failures', async ({
+  page,
+  context,
+}) => {
+  // This test requires mocking Supabase to return errors
+  // ... setup ...
+
+  // Mock Supabase to reject writes
+  await page.route('**/rest/v1/setlists**', route => {
+    route.fulfill({ status: 500, body: 'Server Error' })
+  })
+
+  // Make an edit
+  await page.locator('[data-testid="setlist-header"]').click()
+  await page.keyboard.type(' - Will Fail')
+  await page.keyboard.press('Tab')
+
+  // Wait for retries to exhaust
+  await page.waitForTimeout(10000)
+
+  // Verify sync icon shows error
+  await expect(
+    page.locator('[data-testid="sync-status-icon"]')
+  ).toHaveAttribute('data-status', 'error')
+})
+```
+
+### Test 3.2: Console Errors on Sync Failure
+
+```typescript
+test('logs console errors on sync failure', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', msg => {
+    if (msg.type() === 'error') {
+      errors.push(msg.text())
+    }
+  })
+
+  // ... trigger sync failure ...
+
+  expect(errors.some(e => e.includes('sync') || e.includes('Supabase'))).toBe(
+    true
+  )
+})
+```
+
+---
+
+## E2E Test Cases - Category 4: Cross-Device Sync (Future)
+
+### Test 4.1: Changes Appear on Second Device
+
+```typescript
+test.skip('changes on device A appear on device B', async ({ browser }) => {
+  // This requires two browser contexts
+  const contextA = await browser.newContext()
+  const contextB = await browser.newContext()
+
+  const pageA = await contextA.newPage()
+  const pageB = await contextB.newPage()
+
+  // Login same user on both
+  // ... login on pageA and pageB ...
+
+  // Create setlist on Device A
+  const setlistName = `Multi-Device Test ${Date.now()}`
+  // ... create on pageA ...
+
+  // Wait and check Device B
+  await pageB.reload()
+  await pageB.waitForTimeout(5000)
+
+  // Verify setlist appears on Device B
+  await expect(pageB.locator(`text=${setlistName}`)).toBeVisible()
+})
+```
+
+---
+
+## Database Verification Helper Functions
+
+Create `tests/helpers/databaseVerification.ts`:
+
+```typescript
+import { getSupabaseAdmin } from '../fixtures/supabase'
+import { expect } from '@playwright/test'
+
+/**
+ * Verify a setlist exists in Supabase with expected values
+ */
+export async function verifySetlistInDatabase(
+  setlistId: string,
+  expectations: {
+    name?: string
+    status?: string
+    itemCount?: number
+    hasBreak?: boolean
+    hasSection?: boolean
+  }
+) {
+  const supabase = await getSupabaseAdmin()
+  const { data, error } = await supabase
+    .from('setlists')
+    .select('*')
+    .eq('id', setlistId)
+    .single()
+
+  expect(error).toBeNull()
+  expect(data).not.toBeNull()
+
+  if (expectations.name) {
+    expect(data.name).toContain(expectations.name)
+  }
+  if (expectations.status) {
+    expect(data.status).toBe(expectations.status)
+  }
+  if (expectations.itemCount !== undefined) {
+    expect(data.items?.length || 0).toBe(expectations.itemCount)
+  }
+  if (expectations.hasBreak) {
+    expect(data.items?.some((i: any) => i.type === 'break')).toBe(true)
+  }
+  if (expectations.hasSection) {
+    expect(data.items?.some((i: any) => i.type === 'section')).toBe(true)
+  }
+
+  return data
+}
+
+/**
+ * Verify a show exists in Supabase
+ */
+export async function verifyShowInDatabase(
+  showId: string,
+  expectations: {
+    name?: string
+    location?: string
+    hasSetlist?: boolean
+  }
+) {
+  const supabase = await getSupabaseAdmin()
+  const { data, error } = await supabase
+    .from('shows')
+    .select('*')
+    .eq('id', showId)
+    .single()
+
+  expect(error).toBeNull()
+  expect(data).not.toBeNull()
+
+  if (expectations.name) {
+    expect(data.name).toContain(expectations.name)
+  }
+  if (expectations.location) {
+    expect(data.location).toBe(expectations.location)
+  }
+  if (expectations.hasSetlist) {
+    expect(data.setlist_id).not.toBeNull()
+  }
+
+  return data
+}
+
+/**
+ * Wait for a record to sync to Supabase
+ */
+export async function waitForSync(
+  table: string,
+  id: string,
+  field: string,
+  expectedValue: any,
+  maxWaitMs = 10000
+): Promise<boolean> {
+  const supabase = await getSupabaseAdmin()
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < maxWaitMs) {
+    const { data } = await supabase
+      .from(table)
+      .select(field)
+      .eq('id', id)
+      .single()
+
+    if (data && data[field] === expectedValue) {
+      return true
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  return false
+}
+
+/**
+ * Verify record does NOT exist in Supabase (for testing pre-sync state)
+ */
+export async function verifyNotInDatabase(
+  table: string,
+  field: string,
+  value: string
+): Promise<boolean> {
+  const supabase = await getSupabaseAdmin()
+  const { data } = await supabase.from(table).select('id').eq(field, value)
+
+  return !data || data.length === 0
+}
+```
+
+---
+
+## Related Bug: Multi-Device Sync Not Working
+
+**Symptom:** Songs added on PC don't appear on mobile until site data is cleared.
+
+**Root Cause:** The `pullFromRemote()` method exists but is only called:
+
+1. During `syncNow()` (before pushing changes)
+2. NOT on app load for returning users
+
+**Current Architecture Gap:**
+
+- Initial sync: Only runs ONCE on first login
+- Periodic pull: DEPRECATED/removed
+- WebSocket realtime: Only 30% implemented
+
+**Recommended Fix (separate ticket):**
+
+1. Call `pullFromRemote()` on app load for authenticated users
+2. Or: Complete WebSocket real-time sync implementation
+3. Or: Add "Refresh" button to manually trigger pull
+
+This is tracked as a separate issue from the setlist sync bypass bug.
 
 ---
 
@@ -329,15 +802,64 @@ Test new shows via ShowViewPage sync to Supabase.
 - [ ] T3.1: Fix `handleDelete()` practice session update
 - [ ] T3.2: Fix `handleSave()` practice session update
 
-### Phase 4: E2E Tests
+### Phase 4: E2E Test Infrastructure
 
-- [ ] T4.1: Add test for setlist creation sync
-- [ ] T4.2: Add test for setlist update sync
-- [ ] T4.3: Add test for show creation sync
-- [ ] T4.4: Run full E2E suite
+- [ ] T4.1: Create `tests/helpers/databaseVerification.ts` with helper functions
+- [ ] T4.2: Create `tests/e2e/sync/database-sync-verification.spec.ts`
+- [ ] T4.3: Add `data-testid` attributes to SetlistViewPage elements (if missing)
+- [ ] T4.4: Add `data-testid` attributes to ShowViewPage elements (if missing)
 
-### Phase 5: Verification
+### Phase 5: E2E Tests - Positive Cases
 
-- [ ] T5.1: Manual test: Create setlist, verify in Supabase Studio
-- [ ] T5.2: Manual test: Edit setlist, verify changes sync
-- [ ] T5.3: Manual test: Create show, verify in Supabase Studio
+- [ ] T5.1: Test: New setlist syncs to Supabase
+- [ ] T5.2: Test: Setlist field updates sync to Supabase
+- [ ] T5.3: Test: Adding breaks/sections syncs to Supabase
+- [ ] T5.4: Test: New show syncs to Supabase
+- [ ] T5.5: Test: Forked setlist syncs to Supabase
+
+### Phase 6: E2E Tests - Offline/Online
+
+- [ ] T6.1: Test: Offline edits show pending sync status
+- [ ] T6.2: Test: Offline edits sync when connection restored
+- [ ] T6.3: Test: Multiple offline edits all sync when online
+- [ ] T6.4: Test: Sync icon transitions through states correctly
+
+### Phase 7: E2E Tests - Negative Cases
+
+- [ ] T7.1: Test: Sync icon shows error after repeated failures
+- [ ] T7.2: Test: Console logs errors on sync failure
+- [ ] T7.3: Test: Data remains in IndexedDB on sync failure (no data loss)
+
+### Phase 8: Verification & Documentation
+
+- [ ] T8.1: Run full E2E test suite
+- [ ] T8.2: Manual test: Create setlist, verify in Supabase Studio
+- [ ] T8.3: Manual test: Edit setlist offline, go online, verify sync
+- [ ] T8.4: Update bug report with resolution details
+- [ ] T8.5: Create separate ticket for multi-device sync issue
+
+---
+
+## Separate Issue: Multi-Device Sync
+
+**This is NOT fixed by this bug fix.** File a separate ticket for:
+
+> **Title:** Changes on one device don't appear on other devices until re-login
+>
+> **Description:** After the setlist sync fix, data will correctly push to Supabase. However, existing devices that are already logged in won't receive those changes because:
+>
+> 1. Initial sync only runs ONCE on first login
+> 2. Periodic pull was deprecated
+> 3. WebSocket real-time sync is only 30% implemented
+>
+> **Acceptance Criteria:**
+>
+> - [ ] User A creates song on PC
+> - [ ] User A's mobile (already logged in) sees song within 5 seconds
+> - [ ] No need to clear site data or re-login
+>
+> **Recommended Fix Options:**
+>
+> 1. Call `pullFromRemote()` on app load/focus for authenticated users
+> 2. Complete WebSocket real-time sync (Phase 4 of sync spec)
+> 3. Add manual "Refresh" button as interim solution
