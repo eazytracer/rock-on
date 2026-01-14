@@ -16,6 +16,7 @@ import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
 import { db } from '../services/database'
+import { getSyncRepository } from '../services/data/SyncRepository'
 import { secondsToDuration } from '../utils/formatters'
 import {
   formatShowDate,
@@ -306,7 +307,8 @@ export const ShowViewPage: React.FC = () => {
       if (!showId) return
 
       try {
-        await db.shows.update(showId, {
+        const repo = getSyncRepository()
+        await repo.updateShow(showId, {
           [field]: value,
           updatedDate: new Date(),
         })
@@ -339,7 +341,8 @@ export const ShowViewPage: React.FC = () => {
       if (!showId) return
 
       try {
-        await db.shows.update(showId, {
+        const repo = getSyncRepository()
+        await repo.updateShow(showId, {
           scheduledDate: scheduledDateTime,
           updatedDate: new Date(),
         })
@@ -370,7 +373,8 @@ export const ShowViewPage: React.FC = () => {
       if (!showId) return
 
       try {
-        await db.shows.update(showId, {
+        const repo = getSyncRepository()
+        await repo.updateShow(showId, {
           contacts: filteredContacts,
           updatedDate: new Date(),
         })
@@ -410,7 +414,8 @@ export const ShowViewPage: React.FC = () => {
             createdDate: new Date(),
             lastModified: new Date(),
           }
-          await db.setlists.add(forkedSetlist)
+          const repo = getSyncRepository()
+          await repo.addSetlist(forkedSetlist)
           await saveField('setlistId', forkedId)
           setSetlist(forkedSetlist)
 
@@ -453,7 +458,8 @@ export const ShowViewPage: React.FC = () => {
         lastModified: new Date(),
       }
 
-      await db.setlists.add(newSetlist)
+      const repo = getSyncRepository()
+      await repo.addSetlist(newSetlist)
       await saveField('setlistId', newSetlistId)
       setSetlist(newSetlist)
       setSetlistItems([])
@@ -471,7 +477,8 @@ export const ShowViewPage: React.FC = () => {
 
     try {
       const newId = crypto.randomUUID()
-      await db.shows.add({
+      const repo = getSyncRepository()
+      await repo.addShow({
         ...show,
         id: newId,
         bandId: currentBandId,
