@@ -3,13 +3,13 @@
 **Feature**: improved-auth-flow
 **Estimate**: 4-6 hours
 **Strategy**: Browser-strict session validation, short grace period for brief offline
-**Status**: Ready for implementation
+**Status**: Phase 1 (Auth Fix) COMPLETE ✅ | Phase 2/3 (Sync + Conflict Resolution) COMPLETE ✅
 
 ---
 
-## Phase 1: Setup (30 minutes)
+## Phase 1: Setup (30 minutes) ✅ COMPLETE
 
-- [ ] T001: Create hooks directory and skeleton files
+- [x] T001: Create hooks directory and skeleton files
   - Files:
     - `src/hooks/useAuthCheck.ts` (create)
     - `src/hooks/index.ts` (create or update)
@@ -20,7 +20,7 @@
     - Hook exported from `index.ts`
   - Notes: Create directory if it doesn't exist
 
-- [ ] T002: Add helper utilities for auth check
+- [x] T002: Add helper utilities for auth check
   - Files: `src/hooks/useAuthCheck.ts`
   - Depends: T001
   - Acceptance:
@@ -31,11 +31,11 @@
 
 ---
 
-## Phase 2: Tests (Write Tests First) (1.5-2 hours)
+## Phase 2: Tests (Write Tests First) (1.5-2 hours) ✅ COMPLETE
 
 ### Unit Tests for useAuthCheck Hook
 
-- [ ] T003: Write unit test - no localStorage keys [P]
+- [x] T003: Write unit test - no localStorage keys [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts` (create)
   - Depends: T001
   - Acceptance:
@@ -45,7 +45,7 @@
     - Asserts `isChecking = false`
   - Notes: Test should fail initially (TDD)
 
-- [ ] T004: Write unit test - no session [P]
+- [x] T004: Write unit test - no session [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -56,7 +56,7 @@
     - Asserts `isAuthenticated = false`
   - Notes: Test should fail initially (TDD)
 
-- [ ] T005: Write unit test - valid session [P]
+- [x] T005: Write unit test - valid session [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -67,7 +67,7 @@
     - Asserts `isAuthenticated = true`
   - Notes: Test should fail initially (TDD)
 
-- [ ] T006: Write unit test - expired session beyond grace [P]
+- [x] T006: Write unit test - expired session beyond grace [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -78,7 +78,7 @@
     - Asserts `isAuthenticated = false`
   - Notes: Test should fail initially (TDD)
 
-- [ ] T007: Write unit test - expired session within grace [P]
+- [x] T007: Write unit test - expired session within grace [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -89,7 +89,7 @@
     - Logs warning message about grace period
   - Notes: Test should fail initially (TDD)
 
-- [ ] T008: Write unit test - clears localStorage on invalid [P]
+- [x] T008: Write unit test - clears localStorage on invalid [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -102,7 +102,7 @@
 
 ### E2E Tests for Protected Routes
 
-- [ ] T009: Write E2E test - redirect without session [P]
+- [x] T009: Write E2E test - redirect without session [P]
   - Files: `tests/e2e/auth/protected-routes.spec.ts` (create)
   - Depends: None
   - Acceptance:
@@ -113,7 +113,7 @@
     - Asserts protected content NOT visible
   - Notes: Test should fail initially (TDD), parallelizable with other E2E tests
 
-- [ ] T010: Write E2E test - redirect with expired session [P]
+- [x] T010: Write E2E test - redirect with expired session [P]
   - Files: `tests/e2e/auth/protected-routes.spec.ts`
   - Depends: None
   - Acceptance:
@@ -125,7 +125,7 @@
     - Asserts protected content NOT visible
   - Notes: Test should fail initially (TDD)
 
-- [ ] T011: Write E2E test - shows loading state [P]
+- [x] T011: Write E2E test - shows loading state [P]
   - Files: `tests/e2e/auth/protected-routes.spec.ts`
   - Depends: None
   - Acceptance:
@@ -136,7 +136,7 @@
     - Asserts `/songs` page renders after loading
   - Notes: May need to slow down check with mock delay
 
-- [ ] T012: Write E2E test - redirect to get-started [P]
+- [x] T012: Write E2E test - redirect to get-started [P]
   - Files: `tests/e2e/auth/protected-routes.spec.ts`
   - Depends: None
   - Acceptance:
@@ -177,9 +177,9 @@
 
 ---
 
-## Phase 3: Core Implementation (1.5-2 hours)
+## Phase 3: Core Implementation (1.5-2 hours) ✅ COMPLETE
 
-- [ ] T015: Implement useAuthCheck hook
+- [x] T015: Implement useAuthCheck hook
   - Files: `src/hooks/useAuthCheck.ts`
   - Depends: T002, T003-T008 (tests written)
   - Acceptance:
@@ -192,7 +192,7 @@
     - All unit tests (T003-T008) pass
   - Notes: Follow TDD - make tests pass one by one
 
-- [ ] T016: Update ProtectedRoute to use useAuthCheck
+- [x] T016: Update ProtectedRoute to use useAuthCheck
   - Files: `src/components/ProtectedRoute.tsx`
   - Depends: T015
   - Acceptance:
@@ -204,7 +204,7 @@
     - Renders children when `isAuthenticated === true`
   - Notes: Keep existing redirect logic for no-band case
 
-- [ ] T017: Add loading state component
+- [x] T017: Add loading state component
   - Files: `src/components/ProtectedRoute.tsx`
   - Depends: T016
   - Acceptance:
@@ -214,7 +214,7 @@
     - No flash of content before check completes
   - Notes: Can be simple spinner div, doesn't need to be fancy
 
-- [ ] T018: Clear localStorage on session expiry in AuthContext
+- [x] T018: Clear localStorage on session expiry in AuthContext
   - Files: `src/contexts/AuthContext.tsx`
   - Depends: T015
   - Acceptance:
@@ -227,9 +227,9 @@
 
 ---
 
-## Phase 4: Integration (1 hour)
+## Phase 4: Integration (1 hour) - PARTIAL
 
-- [ ] T019: Add redirect logic to AuthContext on session expiry
+- [x] T019: Add redirect logic to AuthContext on session expiry
   - Files: `src/contexts/AuthContext.tsx`
   - Depends: T018
   - Acceptance:
@@ -248,8 +248,8 @@
     - Modal removed from protected pages (redirect handles it)
   - Notes: Discuss with team which option is preferred
 
-- [ ] T021: Add session expiry message on auth page
-  - Files: `src/pages/AuthPage.tsx` or relevant auth component
+- [x] T021: Add session expiry message on auth page
+  - Files: `src/pages/AuthPages.tsx`
   - Depends: T019
   - Acceptance:
     - Checks for `?reason=session-expired` query param

@@ -12,6 +12,8 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { AuthCallback } from './pages/auth/AuthCallback'
 import { SessionExpiredModal } from './components/auth/SessionExpiredModal'
+import { ConflictResolutionModal } from './components/sync/ConflictResolutionModal'
+import { useSyncConflicts } from './hooks/useSyncConflicts'
 
 // Lazy load pages for better performance
 const AuthPages = lazy(() =>
@@ -85,6 +87,8 @@ const DevDashboard = lazy(() =>
 const AppContent: React.FC = () => {
   const { syncing, realtimeManager } = useAuth()
   const { showToast } = useToast()
+  const { currentConflict, resolveConflict, dismissConflict } =
+    useSyncConflicts()
 
   // Listen for toast events from RealtimeManager
   // CRITICAL: We must use a ref to the listener so we can properly clean it up
@@ -135,6 +139,13 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-surface">
       {/* Session expiry modal */}
       <SessionExpiredModal />
+
+      {/* Sync conflict resolution modal */}
+      <ConflictResolutionModal
+        conflict={currentConflict}
+        onResolve={resolveConflict}
+        onDismiss={dismissConflict}
+      />
 
       {/* Sync indicator overlay */}
       {syncing && (

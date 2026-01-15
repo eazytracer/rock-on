@@ -115,6 +115,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         setSessionExpired(true)
         setSession(null)
         setUser(null)
+
+        // Clear localStorage keys so ProtectedRoute will redirect properly
+        // This ensures useAuthCheck sees no valid session
+        localStorage.removeItem('currentUserId')
+        localStorage.removeItem('currentBandId')
+        SessionManager.clearSession()
+
         // Clear interval since session is expired
         if (sessionCheckIntervalRef.current) {
           clearInterval(sessionCheckIntervalRef.current)
@@ -211,6 +218,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
               console.error('❌ Initial sync failed:', error)
             } finally {
               setSyncing(false)
+            }
+          } else {
+            // No full sync needed - perform incremental sync to catch recent changes
+            // This happens on every app load after initial sync
+            try {
+              const result =
+                await repository.pullIncrementalChanges(storedUserId)
+              const totalChanges =
+                result.newSongs +
+                result.updatedSongs +
+                result.newSetlists +
+                result.updatedSetlists +
+                result.newPractices +
+                result.updatedPractices +
+                result.newShows +
+                result.updatedShows
+
+              if (totalChanges > 0) {
+                console.log(
+                  `🔄 Incremental sync: ${totalChanges} changes in ${result.syncDurationMs}ms`
+                )
+              }
+            } catch (error) {
+              // Don't fail login if incremental sync fails - data will sync via realtime
+              console.warn('⚠️ Incremental sync failed (non-fatal):', error)
             }
           }
 

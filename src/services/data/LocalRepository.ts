@@ -1,5 +1,9 @@
 import { db } from '../database'
 import { IDataRepository, SongFilter, BandFilter } from './IDataRepository'
+import {
+  IncrementalSyncResult,
+  createEmptyIncrementalSyncResult,
+} from './syncTypes'
 import { Song } from '../../models/Song'
 import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
@@ -647,5 +651,12 @@ export class LocalRepository implements IDataRepository {
 
   async pullFromRemote(_userId: string): Promise<void> {
     // No-op: LocalRepository doesn't handle sync
+  }
+
+  async pullIncrementalChanges(
+    _userId: string
+  ): Promise<IncrementalSyncResult> {
+    // No-op: LocalRepository doesn't handle sync
+    return createEmptyIncrementalSyncResult()
   }
 }

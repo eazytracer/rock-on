@@ -1631,6 +1631,22 @@ export const AuthPages: React.FC = () => {
   const searchParams = new URLSearchParams(location.search)
   const view = searchParams.get('view')
   const errorParam = searchParams.get('error')
+  const reasonParam = searchParams.get('reason')
+
+  // Display session expiry message if redirected from ProtectedRoute
+  useEffect(() => {
+    if (reasonParam === 'session-expired') {
+      setToast({
+        message: 'Your session expired. Please log in again.',
+        type: 'info',
+      })
+    } else if (reasonParam === 'session-invalid') {
+      setToast({
+        message: 'Your session was invalid. Please log in again.',
+        type: 'info',
+      })
+    }
+  }, [reasonParam])
 
   // Display OAuth error if present
   useEffect(() => {
