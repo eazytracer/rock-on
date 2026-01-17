@@ -1,6 +1,7 @@
 import React from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuthCheck } from '../hooks/useAuthCheck'
+import { useAuth } from '../contexts/AuthContext'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -42,10 +43,18 @@ const AuthLoadingSpinner: React.FC = () => (
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isChecking, failureReason } = useAuthCheck()
+  const { sessionExpired } = useAuth()
 
   // Show loading spinner while checking (prevents flash of content or "Not logged in")
   if (isChecking) {
     return <AuthLoadingSpinner />
+  }
+
+  // Handle session expiration detected by AuthContext's visibility listener
+  // This catches the "left tab open overnight" scenario where the session expires
+  // without a route change
+  if (sessionExpired) {
+    return <Navigate to="/auth?reason=session-expired" replace />
   }
 
   // Handle authentication failures with appropriate redirects

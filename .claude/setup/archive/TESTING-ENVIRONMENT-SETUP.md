@@ -74,12 +74,14 @@ cat .env.local.dev
 The `./scripts/reset_local_db.sh` script provides a clean, repeatable database setup:
 
 **What it does:**
+
 1. Drops all existing tables and policies
 2. Creates fresh schema from `scripts/fresh_init.sql`
 3. Seeds test data from `scripts/seed_test_data.sql`
 4. Verifies setup (15 tables, 33 RLS policies)
 
 **When to use:**
+
 - Initial setup
 - After schema changes
 - When database state is unclear
@@ -87,11 +89,13 @@ The `./scripts/reset_local_db.sh` script provides a clean, repeatable database s
 - To fix corruption or inconsistencies
 
 **Usage:**
+
 ```bash
 ./scripts/reset_local_db.sh
 ```
 
 **Expected output:**
+
 ```
 ==================================
 Rock On - Database Reset Script
@@ -128,6 +132,7 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
 The seed data creates 3 authenticated test users that match Supabase Auth:
 
 ### Eric (Admin)
+
 - **Email:** `eric@ipodshuffle.com`
 - **Password:** `test123`
 - **Role:** Band admin
@@ -135,6 +140,7 @@ The seed data creates 3 authenticated test users that match Supabase Auth:
 - **Band:** iPod Shuffle
 
 ### Mike (Member)
+
 - **Email:** `mike@ipodshuffle.com`
 - **Password:** `test123`
 - **Role:** Band member
@@ -142,6 +148,7 @@ The seed data creates 3 authenticated test users that match Supabase Auth:
 - **Band:** iPod Shuffle
 
 ### Sarah (Member)
+
 - **Email:** `sarah@ipodshuffle.com`
 - **Password:** `test123`
 - **Role:** Band member
@@ -149,6 +156,7 @@ The seed data creates 3 authenticated test users that match Supabase Auth:
 - **Band:** iPod Shuffle
 
 **Note:** These users exist in both:
+
 1. Supabase Auth (`auth.users`)
 2. Application database (`public.users`)
 
@@ -159,11 +167,13 @@ The seed data creates 3 authenticated test users that match Supabase Auth:
 After running `reset_local_db.sh`, the database contains:
 
 ### Band
+
 - **Name:** iPod Shuffle
 - **Members:** Eric (admin), Mike, Sarah
 - **Settings:** Rehearsal on Thursdays at 7:00 PM
 
 ### Songs (5)
+
 1. Sweet Child O' Mine - Guns N' Roses
 2. Pride and Joy - Stevie Ray Vaughan
 3. Wonderwall - Oasis
@@ -171,6 +181,7 @@ After running `reset_local_db.sh`, the database contains:
 5. Black Hole Sun - Soundgarden
 
 ### Setlists (2)
+
 1. **Rock Classics Set** (active)
    - 4 songs + 1 break
    - Linked to upcoming show
@@ -180,6 +191,7 @@ After running `reset_local_db.sh`, the database contains:
    - Linked to past show
 
 ### Shows (3)
+
 1. **Toys 4 Tots Benefit Concert** (Upcoming)
    - Date: ~2 weeks from now
    - Venue: The Whiskey Room
@@ -201,6 +213,7 @@ After running `reset_local_db.sh`, the database contains:
    - Setlist: Blues Night
 
 ### Practice Sessions (2)
+
 - 1 upcoming rehearsal (in 3 days)
 - 1 past rehearsal (3 days ago)
 
@@ -230,12 +243,14 @@ npm run dev
 ### 3. Test Features
 
 **Login:**
+
 - Navigate to http://localhost:5173
 - Click "Show Mock Users for Testing"
 - Click "Eric (Guitar, Vocals)"
 - Auto-fills credentials and logs in
 
 **Shows:**
+
 - Click "Shows" in sidebar
 - View existing shows
 - Create new show
@@ -244,6 +259,7 @@ npm run dev
 - Verify sync to Supabase
 
 **Sync Verification:**
+
 ```bash
 # Check shows in database
 docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
@@ -257,6 +273,7 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
 ### 4. Monitor Sync
 
 **Browser Console:**
+
 - Open DevTools (F12)
 - Check for sync messages:
   - `🔄 Pulling changes from remote`
@@ -264,6 +281,7 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
   - `❌ Pull from remote failed` (if errors)
 
 **Common Sync Issues:**
+
 - RLS policy errors → Check policies in database
 - Field mapping errors → Check RemoteRepository.ts
 - Network errors → Check Supabase is running
@@ -273,12 +291,14 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
 ## Testing Checklist
 
 ### Initial Setup
+
 - [ ] Supabase is running (`docker ps | grep supabase`)
 - [ ] Database reset successful (`./scripts/reset_local_db.sh`)
 - [ ] Dev server started (`npm run dev`)
 - [ ] Can access http://localhost:5173
 
 ### Authentication
+
 - [ ] Can see login page
 - [ ] Mock users button shows Eric/Mike/Sarah
 - [ ] Can log in as Eric
@@ -286,6 +306,7 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
 - [ ] User info displayed in header
 
 ### Shows Feature
+
 - [ ] Can navigate to Shows page
 - [ ] See 3 test shows (2 upcoming, 1 past)
 - [ ] Can filter shows (upcoming/past/all)
@@ -299,6 +320,7 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
 - [ ] Changes sync to Supabase within ~30 seconds
 
 ### Sync Verification
+
 - [ ] No console errors
 - [ ] See sync messages in console
 - [ ] Data appears in Supabase:
@@ -310,6 +332,7 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
   ```
 
 ### Data Integrity
+
 - [ ] Songs display correctly
 - [ ] Setlists display correctly
 - [ ] Shows link to setlists
@@ -323,6 +346,7 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
 ### Database Issues
 
 **Problem:** "Container not running"
+
 ```bash
 # Start Supabase
 npx supabase start
@@ -332,12 +356,14 @@ npx supabase status
 ```
 
 **Problem:** "Tables already exist"
+
 ```bash
 # Reset will drop and recreate
 ./scripts/reset_local_db.sh
 ```
 
 **Problem:** "RLS infinite recursion"
+
 ```bash
 # Fixed in fresh_init.sql
 # Just reset database
@@ -347,6 +373,7 @@ npx supabase status
 ### Sync Issues
 
 **Problem:** "No bands found"
+
 ```bash
 # User has no band memberships
 # Reset database to get test data
@@ -365,6 +392,7 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
 ```
 
 **Problem:** "Sync fails with 500 error"
+
 ```bash
 # Check console for specific error
 # Common: RLS policy rejection
@@ -378,11 +406,13 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -c "
 ### Authentication Issues
 
 **Problem:** "Invalid email or password"
+
 - Use test users: `eric@ipodshuffle.com` / `test123`
 - Or use mock user buttons
 - Password is `test123` for all test users
 
 **Problem:** "User exists but can't log in"
+
 - User might be in `public.users` but not `auth.users`
 - Use the mock users which are in both
 
@@ -394,18 +424,19 @@ Rock-On has 5 different categories of automated tests, each with different requi
 
 ### Test Type Overview
 
-| Test Type | Count | Needs Supabase | Runner | Command |
-|-----------|-------|----------------|--------|---------|
-| **Unit** | 23 files | ❌ No (uses mocks) | Vitest | `npm test -- tests/unit/` |
-| **Integration** | 1 file | ✅ Yes | Vitest | `npm test -- tests/integration/` |
-| **Journey** | 4 files | ✅ **Yes** | Vitest | `npm test -- tests/journeys/` |
-| **Contract** | 3 files | ✅ Yes | Vitest | `npm test -- tests/contract/` |
-| **E2E** | 11 files | ✅ Yes + Dev Server | Playwright | `npm run test:e2e` |
-| **Database** | 11 files | ✅ Yes | pgTAP | `npm run test:db` |
+| Test Type       | Count    | Needs Supabase      | Runner     | Command                          |
+| --------------- | -------- | ------------------- | ---------- | -------------------------------- |
+| **Unit**        | 23 files | ❌ No (uses mocks)  | Vitest     | `npm test -- tests/unit/`        |
+| **Integration** | 1 file   | ✅ Yes              | Vitest     | `npm test -- tests/integration/` |
+| **Journey**     | 4 files  | ✅ **Yes**          | Vitest     | `npm test -- tests/journeys/`    |
+| **Contract**    | 3 files  | ✅ Yes              | Vitest     | `npm test -- tests/contract/`    |
+| **E2E**         | 11 files | ✅ Yes + Dev Server | Playwright | `npm run test:e2e`               |
+| **Database**    | 11 files | ✅ Yes              | pgTAP      | `npm run test:db`                |
 
 ### Recommended Test Execution
 
 **Option 1: Run All Tests (Recommended)**
+
 ```bash
 # This script handles everything:
 # 1. Starts Supabase if not running
@@ -415,6 +446,7 @@ npm run start:test
 ```
 
 **Option 2: Run Specific Test Types**
+
 ```bash
 # Unit tests only (fast, no setup needed)
 npm test -- tests/unit/
@@ -433,37 +465,45 @@ npm run test:db
 ### Test Type Details
 
 #### 1. Unit Tests (`tests/unit/`)
+
 **Purpose:** Test individual functions/components in isolation
 **Dependencies:** Mocked repositories, fake-indexeddb
 **Supabase Required:** ❌ No
 **Examples:**
+
 - `services/BandService.test.ts` - Service layer with mocked repository
 - `hooks/useSyncStatus.test.ts` - React hooks
 - `components/SyncStatusIndicator.test.tsx` - UI components
 
 **Run:**
+
 ```bash
 npm test -- tests/unit/
 ```
 
 #### 2. Integration Tests (`tests/integration/`)
+
 **Purpose:** Test multiple components working together
 **Dependencies:** Real database interactions
 **Supabase Required:** ✅ Yes
 **Examples:**
+
 - `template.test.ts` - Template for integration tests
 
 **Run:**
+
 ```bash
 supabase start
 npm test -- tests/integration/
 ```
 
 #### 3. Journey Tests (`tests/journeys/`)
+
 **Purpose:** Test complete user workflows (offline sync, real-time, auth)
 **Dependencies:** **REQUIRES real Supabase** (calls `getSupabaseClient()` directly)
 **Supabase Required:** ✅ **Yes** (critical)
 **Examples:**
+
 - `sync-journeys.test.ts` - Offline/online sync scenarios
 - `realtime-sync-journeys.test.ts` - Multi-device sync
 - `auth-journeys.test.ts` - Session timeout, multi-tab auth
@@ -472,58 +512,69 @@ npm test -- tests/integration/
 **Important:** These tests simulate multi-device scenarios using the `TestDevice` class, which directly interacts with Supabase. They will fail if Supabase is not running.
 
 **Run:**
+
 ```bash
 supabase start
 npm test -- tests/journeys/
 ```
 
 #### 4. Contract Tests (`tests/contract/`)
+
 **Purpose:** Verify API contracts match expectations
 **Dependencies:** Real Supabase API
 **Supabase Required:** ✅ Yes
 **Examples:**
+
 - `songs-api.test.ts` - Songs API contract
 - `setlists-api.test.ts` - Setlists API contract
 - `practice-sessions-api.test.ts` - Practice sessions API
 
 **Run:**
+
 ```bash
 supabase start
 npm test -- tests/contract/
 ```
 
 #### 5. E2E Tests (`tests/e2e/`)
+
 **Purpose:** Test complete user flows in real browser
 **Dependencies:** Real Supabase + running dev server
 **Supabase Required:** ✅ Yes + dev server
 **Runner:** Playwright (separate from Vitest)
 **Examples:**
+
 - `auth/login-smoke.spec.ts` - Login flow
 - `bands/create-band.spec.ts` - Band creation
 - `songs/crud.spec.ts` - Song management
 
 **Run:**
+
 ```bash
 supabase start
 npm run test:e2e  # Playwright starts dev server automatically
 ```
 
 **E2E Best Practice:** Start from fresh database each time:
+
 ```bash
 supabase db reset
 npm run test:e2e
 ```
 
 #### 6. Database Tests (`supabase/tests/`)
+
 **Purpose:** Validate database schema, RLS policies, triggers
 **Dependencies:** Supabase with pgTAP extension
 **Supabase Required:** ✅ Yes
 **Examples:**
+
 - `001-schema-tables.test.sql` - Table existence
 - `006-rls-policies.test.sql` - RLS policy validation
 - `010-audit-log.test.sql` - Audit logging
 
 **Run:**
+
 ```bash
 npm run test:db
 ```
@@ -545,23 +596,27 @@ npm test
 ```
 
 **What `npm run start:test` does:**
+
 1. Checks if Supabase is running, starts it if not
 2. Copies `.env.test` → `.env.local` (sets environment variables)
 3. Runs `npm run test:all` (unit + integration + journey + contract + database tests)
 
 **Environment Variables Required:**
+
 - `VITE_SUPABASE_URL` - Local Supabase URL (usually `http://127.0.0.1:54321`)
 - `VITE_SUPABASE_ANON_KEY` - Local Supabase anon key (get from `supabase status`)
 
 ### Developer Workflow
 
 **During Development (Fast Feedback):**
+
 ```bash
 # Run unit tests in watch mode (no Supabase needed)
 npm test -- tests/unit/services/BandService.test.ts --watch
 ```
 
 **Before Committing:**
+
 ```bash
 # Run all tests
 npm run start:test
@@ -574,6 +629,7 @@ npm run lint
 ```
 
 **Debugging Test Failures:**
+
 ```bash
 # Run single test file
 npm test -- tests/journeys/sync-journeys.test.ts
@@ -620,18 +676,21 @@ Edit `scripts/seed_test_data.sql` and add your data, then:
 ## Scripts Reference
 
 ### reset_local_db.sh
+
 **Purpose:** Complete database reset to fresh state
 **Location:** `scripts/reset_local_db.sh`
 **Usage:** `./scripts/reset_local_db.sh`
 **Safe:** Yes - only affects local Supabase
 
 ### fresh_init.sql
+
 **Purpose:** Complete database schema
 **Location:** `scripts/fresh_init.sql`
 **Usage:** Applied automatically by reset script
 **Contains:** Tables, indexes, RLS policies, triggers
 
 ### seed_test_data.sql
+
 **Purpose:** Test data for development
 **Location:** `scripts/seed_test_data.sql`
 **Usage:** Applied automatically by reset script
@@ -649,6 +708,7 @@ VITE_SUPABASE_ANON_KEY=<your-local-anon-key>
 ```
 
 Get your local anon key:
+
 ```bash
 npx supabase status | grep "anon key"
 ```

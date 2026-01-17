@@ -751,7 +751,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => handleMockUserLogin('eric@ipodshuffle.com')}
+                  onClick={() => handleMockUserLogin('eric@testband.demo')}
                   disabled={loading}
                 >
                   Eric (Guitar, Vocals)
@@ -759,7 +759,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => handleMockUserLogin('mike@ipodshuffle.com')}
+                  onClick={() => handleMockUserLogin('mike@testband.demo')}
                   disabled={loading}
                 >
                   Mike (Bass, Harmonica, Vocals)
@@ -767,7 +767,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => handleMockUserLogin('sarah@ipodshuffle.com')}
+                  onClick={() => handleMockUserLogin('sarah@testband.demo')}
                   disabled={loading}
                 >
                   Sarah (Drums, Percussion)

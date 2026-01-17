@@ -24,6 +24,7 @@ import {
   setupRealtimeDebug,
   cleanupRealtimeDebug,
 } from '../utils/debugRealtime'
+import { RemoteRepository } from '../services/data/RemoteRepository'
 
 interface AuthContextType {
   // Legacy auth fields (keep for backward compatibility)
@@ -136,11 +137,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     // Then check every 30 seconds
     sessionCheckIntervalRef.current = setInterval(checkSession, 30000)
 
+    // Also check when tab becomes visible (handles "left open overnight" scenario)
+    // This is critical for mobile where tabs may be backgrounded for extended periods
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log(
+          '[AuthContext] Tab became visible - checking session validity'
+        )
+        checkSession()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     return () => {
       if (sessionCheckIntervalRef.current) {
         clearInterval(sessionCheckIntervalRef.current)
         sessionCheckIntervalRef.current = null
       }
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [session])
 
@@ -290,6 +305,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 bandIds
               )
               // Removed: console.log (security)
+
+              // Track user activity for multi-device sync optimization
+              try {
+                const remoteRepo = new RemoteRepository()
+                await remoteRepo.updateUserActivity()
+              } catch (activityError) {
+                // Non-fatal: activity tracking failure shouldn't block app
+                console.warn(
+                  '⚠️ Failed to update user activity:',
+                  activityError
+                )
+              }
             } catch (error) {
               console.error('❌ Failed to start real-time sync:', error)
               if (error instanceof Error) {
@@ -389,6 +416,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
               bandIds
             )
             // Removed: console.log (security)
+
+            // Track user activity for multi-device sync optimization
+            try {
+              const remoteRepo = new RemoteRepository()
+              await remoteRepo.updateUserActivity()
+            } catch (activityError) {
+              // Non-fatal: activity tracking failure shouldn't block sign-in
+              console.warn('⚠️ Failed to update user activity:', activityError)
+            }
           } catch (error) {
             console.error('❌ Failed to start real-time sync:', error)
             if (error instanceof Error) {

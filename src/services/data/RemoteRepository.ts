@@ -990,6 +990,45 @@ export class RemoteRepository implements IDataRepository {
 
   // ========== USER OPERATIONS ==========
 
+  /**
+   * Update the current user's last_active_at timestamp
+   * This is used for multi-device sync optimization
+   */
+  async updateUserActivity(): Promise<void> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { error } = await supabase.rpc('update_user_activity')
+
+    if (error) {
+      console.error('[RemoteRepository.updateUserActivity] Error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get the last active timestamp for a user
+   * Returns undefined if never active or column doesn't exist
+   */
+  async getUserLastActiveAt(userId: string): Promise<Date | undefined> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    // Select last_active_at column (added via migration, not in generated types)
+    const { data, error } = await supabase
+      .from('users')
+      .select('last_active_at')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') return undefined // Not found
+      throw error
+    }
+
+    // Cast to any since last_active_at isn't in the generated Supabase types
+    const row = data as any
+    return row?.last_active_at ? new Date(row.last_active_at) : undefined
+  }
+
   async getUser(id: string): Promise<User | null> {
     if (!supabase) throw new Error('Supabase client not initialized')
 

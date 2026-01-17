@@ -35,6 +35,14 @@ tests/
 # Run application tests (unit, integration)
 npm test
 
+# Quick tests for fast feedback (components, hooks, contexts ~2s)
+npm run test:quick
+
+# Run specific test categories
+npm run test:unit        # All unit tests
+npm run test:services    # Service layer tests only
+npm run test:integration # Integration tests
+
 # Run specific test file
 npm test -- tests/unit/services/data/SyncRepository.test.ts
 
@@ -42,7 +50,7 @@ npm test -- tests/unit/services/data/SyncRepository.test.ts
 npm test -- tests/unit/services/
 
 # Run tests in watch mode (for development)
-npm test -- --watch
+npm run test:watch
 
 # Run tests with coverage
 npm test -- --coverage
@@ -517,8 +525,57 @@ supabase test db          # Direct command
 - ✅ When RLS policies change
 - ✅ When adding/modifying triggers
 
+## Authentication Flow
+
+### Session Validation
+
+The app uses a multi-layer authentication check:
+
+1. **useAuthCheck hook** (`src/hooks/useAuthCheck.ts`)
+   - Validates localStorage keys (`currentUserId`, `currentBandId`)
+   - Checks session from `SessionManager.loadSession()`
+   - Applies **1.5-hour grace period** for expired sessions
+   - Cleans up stale localStorage on invalid sessions
+   - Re-runs on every route change to catch expired sessions
+
+2. **ProtectedRoute** (`src/components/ProtectedRoute.tsx`)
+   - Shows loading spinner during auth check (prevents content flash)
+   - Redirects based on failure reason:
+     - `no-user` → `/auth`
+     - `no-band` → `/auth?view=get-started`
+     - `session-expired` → `/auth?reason=session-expired`
+     - `session-invalid` → `/auth?reason=session-invalid`
+
+3. **SessionExpiredModal** (`src/components/auth/SessionExpiredModal.tsx`)
+   - Handles session expiry detected by AuthContext
+   - Shows toast notification and redirects to `/auth`
+   - Does NOT show a modal overlay (redirect-only)
+
+### Grace Period
+
+Sessions have a **1.5-hour grace period** after expiry to allow:
+
+- Brief offline periods during gigs/practices
+- Token refresh delays
+- Network connectivity issues
+
+After the grace period, users must re-authenticate.
+
+### Key Files
+
+| File                                          | Purpose                              |
+| --------------------------------------------- | ------------------------------------ |
+| `src/hooks/useAuthCheck.ts`                   | Unified auth validation hook         |
+| `src/components/ProtectedRoute.tsx`           | Route protection with loading states |
+| `src/components/auth/SessionExpiredModal.tsx` | Session expiry redirect handler      |
+| `src/contexts/AuthContext.tsx`                | Auth state management                |
+| `src/services/auth/SessionManager.ts`         | Session storage and validation       |
+
 ## Recent Changes
 
+- 2026-01-17: Improved auth flow - useAuthCheck hook with grace period, simplified SessionExpiredModal (redirect-only)
+- 2026-01-17: Test performance optimization - parallel threads, split test scripts (test:quick, test:unit, etc.)
+- 2026-01-17: Added E2E tests for session expiry scenarios (53 tests across all browsers)
 - 2025-11-07: Implemented pgTAP database test suite (269 tests covering schema, RLS, triggers, audit logging)
 - 2025-11-06: Consolidated 17 migrations into single baseline (supabase/migrations/20251106000000_baseline_schema.sql)
 - 2025-10-25: Phase 1 Supabase sync complete (73 tests passing)

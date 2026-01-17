@@ -12,6 +12,7 @@ purpose: Single source of truth for test data seeding - Supabase ONLY
 **⚠️ CRITICAL:** As of 2025-10-31, we use **SUPABASE ONLY** for seeding test data. IndexedDB is populated via sync from Supabase.
 
 ## Table of Contents
+
 - [Philosophy & Architecture](#philosophy--architecture)
 - [Seed Data Files](#seed-data-files)
 - [Standard Test Users](#standard-test-users)
@@ -55,12 +56,14 @@ purpose: Single source of truth for test data seeding - Supabase ONLY
 ### What Changed (2025-10-31)
 
 **DEPRECATED:**
+
 - ❌ `src/database/seedMvpData.ts` - Direct IndexedDB seeding
 - ❌ `src/database/seedData.ts` - Legacy IndexedDB seeding
 - ❌ `src/database/seedCatalog.ts` - Only used to generate SQL
 - ❌ Automatic seeding in `main.tsx`
 
 **ACTIVE:**
+
 - ✅ `supabase/seed-mvp-data.sql` - Single source of truth
 - ✅ `scripts/generateSeedSQL.ts` - Generates SQL from TypeScript catalog (helper only)
 - ✅ IndexedDB populated via `SyncEngine.performInitialSync()`
@@ -76,6 +79,7 @@ purpose: Single source of truth for test data seeding - Supabase ONLY
 **Purpose:** Seeds Supabase local development environment with realistic test data.
 
 **Contents:**
+
 - 3 auth users (Eric, Mike, Sarah)
 - 3 public.users records
 - 3 user_profiles
@@ -87,6 +91,7 @@ purpose: Single source of truth for test data seeding - Supabase ONLY
 - 2 practice sessions
 
 **How to Run:**
+
 ```bash
 # Reset database and reseed
 supabase db reset
@@ -102,6 +107,7 @@ psql postgresql://postgres:postgres@127.0.0.1:54322/postgres < supabase/seed-mvp
 **Purpose:** TypeScript catalog of songs for SQL generation. NOT used at runtime.
 
 **Usage:**
+
 ```bash
 # Generate SQL from catalog
 npm run generate-seed       # Full catalog
@@ -130,22 +136,24 @@ These files still exist but should NOT be used:
 
 All test users have password: `test123`
 
-| Name | Email | Role | Instruments | Band Role |
-|------|-------|------|-------------|-----------|
-| Eric Johnson | eric@ipodshuffle.com | Lead | Guitar, Vocals | Admin (Owner) |
-| Mike Thompson | mike@ipodshuffle.com | Multi | Bass, Harmonica, Vocals | Admin |
-| Sarah Chen | sarah@ipodshuffle.com | Rhythm | Drums, Percussion | Member |
+| Name          | Email                 | Role   | Instruments             | Band Role     |
+| ------------- | --------------------- | ------ | ----------------------- | ------------- |
+| Eric Johnson  | eric@ipodshuffle.com  | Lead   | Guitar, Vocals          | Admin (Owner) |
+| Mike Thompson | mike@ipodshuffle.com  | Multi  | Bass, Harmonica, Vocals | Admin         |
+| Sarah Chen    | sarah@ipodshuffle.com | Rhythm | Drums, Percussion       | Member        |
 
 ### User IDs
 
 **Note:** UUIDs are generated during seeding via `gen_random_uuid()`. They are NOT hardcoded.
 
 **To get user IDs:**
+
 ```sql
 SELECT id, name, email FROM users ORDER BY name;
 ```
 
 **Example output:**
+
 ```
                   id                  |      name       |         email
 --------------------------------------+-----------------+-----------------------
@@ -157,15 +165,17 @@ SELECT id, name, email FROM users ORDER BY name;
 ### Authentication
 
 **Login via UI:**
+
 1. Click "Show Mock Users for Testing"
 2. Click user button (Eric, Mike, or Sarah)
 3. Form auto-fills and submits
 
 **Login via API:**
+
 ```typescript
 const { data, error } = await supabase.auth.signInWithPassword({
   email: 'eric@ipodshuffle.com',
-  password: 'test123'
+  password: 'test123',
 })
 ```
 
@@ -188,6 +198,7 @@ const { data, error } = await supabase.auth.signInWithPassword({
 **Invite Code:** `ROCK2025`
 
 **Settings:**
+
 ```json
 {
   "defaultPracticeTime": 120,
@@ -198,11 +209,11 @@ const { data, error } = await supabase.auth.signInWithPassword({
 
 ### Band Memberships
 
-| User | Role | Joined | Status | Permissions |
-|------|------|--------|--------|-------------|
-| Eric | admin | 2024-01-15 | active | ['owner', 'admin'] |
-| Mike | admin | 2024-01-20 | active | ['admin'] |
-| Sarah | member | 2024-02-01 | active | ['member'] |
+| User  | Role   | Joined     | Status | Permissions        |
+| ----- | ------ | ---------- | ------ | ------------------ |
+| Eric  | admin  | 2024-01-15 | active | ['owner', 'admin'] |
+| Mike  | admin  | 2024-01-20 | active | ['admin']          |
+| Sarah | member | 2024-02-01 | active | ['member']         |
 
 ---
 
@@ -212,15 +223,16 @@ const { data, error } = await supabase.auth.signInWithPassword({
 
 **Breakdown by Decade:**
 
-| Decade | Count | Examples |
-|--------|-------|----------|
-| 60s | 1 | White Rabbit |
-| 70s | 6 | Hotel California, Dream On, Free Bird, La Grange, Heartache Tonight |
-| 80s | 4 | Sweet Child O' Mine, Livin' on a Prayer, Jump, Kickstart My Heart |
-| 90s | 20 | Wonderwall, Smells Like Teen Spirit, Black, Enter Sandman, etc |
-| 2000s | 14 | Mr. Brightside, Hey There Delilah, Seven Nation Army, etc |
+| Decade | Count | Examples                                                            |
+| ------ | ----- | ------------------------------------------------------------------- |
+| 60s    | 1     | White Rabbit                                                        |
+| 70s    | 6     | Hotel California, Dream On, Free Bird, La Grange, Heartache Tonight |
+| 80s    | 4     | Sweet Child O' Mine, Livin' on a Prayer, Jump, Kickstart My Heart   |
+| 90s    | 20    | Wonderwall, Smells Like Teen Spirit, Black, Enter Sandman, etc      |
+| 2000s  | 14    | Mr. Brightside, Hey There Delilah, Seven Nation Army, etc           |
 
 **All songs:**
+
 - Created by Eric (owner)
 - Scoped to band (contextType: 'band', contextId: bandId)
 - Visible to all band members
@@ -228,6 +240,7 @@ const { data, error } = await supabase.auth.signInWithPassword({
 - Most have standard tuning
 
 **Query to verify:**
+
 ```sql
 SELECT COUNT(*) FROM songs WHERE context_id = (SELECT id FROM bands WHERE name = 'iPod Shuffle');
 -- Expected: 45
@@ -235,26 +248,28 @@ SELECT COUNT(*) FROM songs WHERE context_id = (SELECT id FROM bands WHERE name =
 
 ### Setlists (3 total)
 
-| Name | Status | For Show | Song Count | Duration | Notes |
-|------|--------|----------|------------|----------|-------|
-| Toys 4 Tots Benefit | Active | Yes | 15 | 60 min | Family-friendly, high energy |
-| New Year's Eve Bash | Active | Yes | 20 | 90 min | Two sets with break |
-| Summer Festival | Active | Yes | 12 | 50 min | Outdoor, upbeat |
+| Name                | Status | For Show | Song Count | Duration | Notes                        |
+| ------------------- | ------ | -------- | ---------- | -------- | ---------------------------- |
+| Toys 4 Tots Benefit | Active | Yes      | 15         | 60 min   | Family-friendly, high energy |
+| New Year's Eve Bash | Active | Yes      | 20         | 90 min   | Two sets with break          |
+| Summer Festival     | Active | Yes      | 12         | 50 min   | Outdoor, upbeat              |
 
 **Setlist Items:**
+
 - Mix of songs, breaks, and sections
 - Items include breaks (15-30 min) and sections ("Acoustic Set", "Rock Out")
 - All linked to shows
 
 ### Shows (3 total)
 
-| Name | Venue | Date | Payment | Status |
-|------|-------|------|---------|--------|
-| Summer Music Festival | Woodland Park | 2025-11-30 | $750 | scheduled |
-| Toys 4 Tots Benefit | The Crocodile | 2025-12-08 | $500 | scheduled |
-| New Year's Eve Party | The Showbox | 2025-12-31 | $1200 | scheduled |
+| Name                  | Venue         | Date       | Payment | Status    |
+| --------------------- | ------------- | ---------- | ------- | --------- |
+| Summer Music Festival | Woodland Park | 2025-11-30 | $750    | scheduled |
+| Toys 4 Tots Benefit   | The Crocodile | 2025-12-08 | $500    | scheduled |
+| New Year's Eve Party  | The Showbox   | 2025-12-31 | $1200   | scheduled |
 
 **Each show includes:**
+
 - venue, scheduledDate, duration
 - loadInTime, soundcheckTime
 - payment (in cents)
@@ -263,12 +278,13 @@ SELECT COUNT(*) FROM songs WHERE context_id = (SELECT id FROM bands WHERE name =
 
 ### Practice Sessions (2 total)
 
-| Date | Location | Duration | Songs |
-|------|----------|----------|-------|
-| 2025-11-24 7:00 PM | Mike's Garage | 120 min | 5 songs |
-| 2025-12-01 7:00 PM | Eric's Studio | 90 min | 3 songs |
+| Date               | Location      | Duration | Songs   |
+| ------------------ | ------------- | -------- | ------- |
+| 2025-11-24 7:00 PM | Mike's Garage | 120 min  | 5 songs |
+| 2025-12-01 7:00 PM | Eric's Studio | 90 min   | 3 songs |
 
 **Each practice includes:**
+
 - scheduledDate, duration, location
 - type: 'rehearsal'
 - status: 'scheduled'
@@ -283,12 +299,14 @@ SELECT COUNT(*) FROM songs WHERE context_id = (SELECT id FROM bands WHERE name =
 ### Local Development Setup
 
 **Step 1: Start Supabase**
+
 ```bash
 cd /workspaces/rock-on
 supabase start
 ```
 
 **Step 2: Reset & Reseed Database**
+
 ```bash
 supabase db reset
 ```
@@ -296,11 +314,13 @@ supabase db reset
 This runs all migrations and applies `supabase/seed-mvp-data.sql`.
 
 **Step 3: Start App**
+
 ```bash
 npm run dev
 ```
 
 **Step 4: Login**
+
 - Go to http://localhost:5173
 - Click "Show Mock Users for Testing"
 - Click Eric, Mike, or Sarah
@@ -318,6 +338,7 @@ When a user logs in for the first time:
 6. **UI Ready:** App displays synced data
 
 **Console output:**
+
 ```
 🔄 Initial sync needed - downloading data from cloud...
 ✅ Initial sync complete
@@ -326,6 +347,7 @@ When a user logs in for the first time:
 ### Verifying Seed Data
 
 **In Browser Console:**
+
 ```javascript
 // Check IndexedDB
 const songs = await db.songs.toArray()
@@ -341,6 +363,7 @@ console.log('Songs for band:', songsByBand.length) // Should be 45
 ```
 
 **In Supabase SQL:**
+
 ```sql
 -- Verify users
 SELECT COUNT(*) FROM auth.users; -- Should be 3
@@ -377,6 +400,7 @@ supabase db reset
 ```
 
 This:
+
 1. Drops all tables
 2. Re-runs all migrations
 3. Applies seed-mvp-data.sql
@@ -456,6 +480,7 @@ SELECT
 ```
 
 **Expected output:**
+
 ```
  auth_users | public_users | bands | memberships | songs | setlists | shows | practices
 ------------+--------------+-------+-------------+-------+----------+-------+-----------
@@ -471,6 +496,7 @@ SELECT
 **Cause:** Initial sync didn't complete or failed
 
 **Solution:**
+
 ```javascript
 // Check sync status
 const needsSync = await repository.isInitialSyncNeeded()
@@ -485,6 +511,7 @@ await repository.performInitialSync(userId)
 **Cause:** IndexedDB was seeded directly via `seedMvpData()` AND synced from Supabase
 
 **Solution:**
+
 ```javascript
 // Clear IndexedDB completely
 await indexedDB.deleteDatabase('RockOnDB')
@@ -499,6 +526,7 @@ location.reload()
 **Cause:** RLS policy issue or band membership not seeded correctly
 
 **Solution:**
+
 ```sql
 -- Check band memberships
 SELECT
@@ -519,6 +547,7 @@ WHERE u.email IN ('eric@ipodshuffle.com', 'mike@ipodshuffle.com', 'sarah@ipodshu
 **Cause:** Initial sync failed silently
 
 **Check:**
+
 1. Supabase is running: `supabase status`
 2. Seed data exists: `SELECT COUNT(*) FROM songs;`
 3. RLS policies allow access
@@ -531,6 +560,7 @@ WHERE u.email IN ('eric@ipodshuffle.com', 'mike@ipodshuffle.com', 'sarah@ipodshu
 ### For Developers
 
 **If you see this code:**
+
 ```typescript
 // ❌ OLD - Do NOT use
 import { seedMvpData } from './database/seedMvpData'
@@ -538,6 +568,7 @@ await seedMvpData()
 ```
 
 **Replace with:**
+
 ```typescript
 // ✅ NEW - Let sync engine handle it
 // Just login, sync happens automatically
@@ -545,6 +576,7 @@ await authService.signIn({ email, password })
 ```
 
 **If you see this in tests:**
+
 ```typescript
 // ❌ OLD
 beforeEach(async () => {
@@ -554,6 +586,7 @@ beforeEach(async () => {
 ```
 
 **Replace with:**
+
 ```typescript
 // ✅ NEW
 beforeEach(async () => {
@@ -570,6 +603,7 @@ beforeEach(async () => {
 ### For CI/CD
 
 **Build scripts:**
+
 ```bash
 # ❌ OLD - Don't seed IndexedDB
 npm run seed
@@ -584,11 +618,11 @@ npm run dev        # App syncs from Supabase
 
 ## Version History
 
-| Date | Version | Changes |
-|------|---------|---------|
-| 2025-10-31 | 8.0 | **BREAKING:** Removed IndexedDB seeding, Supabase-only architecture |
-| 2025-10-27 | 7.0 | Added `shows` table, separated from `practice_sessions` |
-| 2024-11-01 | 6.0 | Added setlist items structure (breaks, sections) |
+| Date       | Version | Changes                                                             |
+| ---------- | ------- | ------------------------------------------------------------------- |
+| 2025-10-31 | 8.0     | **BREAKING:** Removed IndexedDB seeding, Supabase-only architecture |
+| 2025-10-27 | 7.0     | Added `shows` table, separated from `practice_sessions`             |
+| 2024-11-01 | 6.0     | Added setlist items structure (breaks, sections)                    |
 
 ---
 

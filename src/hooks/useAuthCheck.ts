@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { SessionManager } from '../services/auth/SessionManager'
 
 /**
@@ -42,13 +43,15 @@ export interface AuthCheckResult {
  * useAuthCheck - Unified authentication validation hook
  *
  * This hook provides reliable authentication checking for protected routes.
- * It addresses the race condition where ProtectedRoute might render before
- * AuthContext has finished loading by:
+ * It re-validates on EVERY route change to ensure expired sessions are caught
+ * even when navigating between protected pages.
  *
- * 1. Checking localStorage keys synchronously first (fast path)
- * 2. Validating the actual session from SessionManager
- * 3. Applying a grace period for briefly expired sessions
- * 4. Cleaning up invalid localStorage keys
+ * Key features:
+ * 1. Re-runs auth check on every route navigation (via location.pathname)
+ * 2. Checking localStorage keys synchronously first (fast path)
+ * 3. Validating the actual session from SessionManager
+ * 4. Applying a grace period for briefly expired sessions
+ * 5. Cleaning up invalid localStorage keys
  *
  * @example
  * ```tsx
@@ -63,6 +66,7 @@ export interface AuthCheckResult {
  * ```
  */
 export function useAuthCheck(): AuthCheckResult {
+  const location = useLocation()
   const [result, setResult] = useState<AuthCheckResult>({
     isAuthenticated: null,
     isChecking: true,
@@ -71,6 +75,9 @@ export function useAuthCheck(): AuthCheckResult {
   })
 
   useEffect(() => {
+    // Reset to checking state when location changes
+    setResult(prev => ({ ...prev, isChecking: true }))
+
     const checkAuth = async () => {
       // 1. Quick localStorage check (synchronous, fast path)
       const userId = localStorage.getItem('currentUserId')
@@ -154,7 +161,8 @@ export function useAuthCheck(): AuthCheckResult {
     }
 
     checkAuth()
-  }, [])
+    // Re-run auth check on every route change to catch expired sessions
+  }, [location.pathname])
 
   return result
 }

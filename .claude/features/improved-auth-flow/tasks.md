@@ -3,7 +3,7 @@
 **Feature**: improved-auth-flow
 **Estimate**: 4-6 hours
 **Strategy**: Browser-strict session validation, short grace period for brief offline
-**Status**: Phase 1 (Auth Fix) COMPLETE ✅ | Phase 2/3 (Sync + Conflict Resolution) COMPLETE ✅
+**Status**: Phases 1-4 COMPLETE ✅ | E2E Tests (T013-T014) COMPLETE ✅ | Remaining: T023-T029 (validation/polish)
 
 ---
 
@@ -147,33 +147,26 @@
     - Asserts redirected to `/auth?view=get-started`
   - Notes: Test should fail initially (TDD)
 
-### E2E Tests for Session Expiry
+### E2E Tests for Session Expiry ✅ COMPLETE
 
-- [ ] T013: Write E2E test - session expires on page [P]
-  - Files: `tests/e2e/auth/session-expiry.spec.ts` (create)
+- [x] T013: Write E2E test - session expires on page [P]
+  - Files: `tests/e2e/auth/session-expiry.spec.ts` ✅ Created
   - Depends: None
   - Acceptance:
-    - Test: `redirects to /auth when session expires on protected page`
-    - Login user
-    - Navigate to `/songs`
-    - Expire session (clear/modify Supabase token)
-    - Trigger auth check (wait for 30s interval or force)
-    - Asserts redirected to `/auth`
-    - Asserts protected content NOT visible
-  - Notes: May need to mock timer to speed up test
+    - ✅ Test: `redirects to /auth when session expires on protected page`
+    - ✅ Test: `allows access within grace period (1 hour expired)`
+    - ✅ Test: `redirects at exact grace period boundary (1.5 hours + 1 minute)`
+    - ✅ Test: `shows toast notification when session expires`
+  - Notes: Uses localStorage manipulation to set expired session timestamp (more reliable than timer mocking)
 
-- [ ] T014: Write E2E test - no modal on protected pages [P]
-  - Files: `tests/e2e/auth/session-expiry.spec.ts`
+- [x] T014: Write E2E test - no modal on protected pages [P]
+  - Files: `tests/e2e/auth/session-expiry.spec.ts` ✅ Created
   - Depends: None
   - Acceptance:
-    - Test: `does not show SessionExpiredModal on protected pages`
-    - Login user
-    - Navigate to `/songs`
-    - Expire session
-    - Trigger auth check
-    - Asserts SessionExpiredModal NOT visible
-    - Asserts redirected to `/auth`
-  - Notes: Verifies modal simplification
+    - ✅ Test: `does NOT show SessionExpiredModal on protected pages - redirects instead`
+    - ✅ Test: `localStorage is cleared when session expires`
+    - ✅ Test: `shows session expired message when redirected with reason param`
+  - Notes: SessionExpiredModal now returns null (redirect-only component)
 
 ---
 
@@ -227,7 +220,7 @@
 
 ---
 
-## Phase 4: Integration (1 hour) - PARTIAL
+## Phase 4: Integration (1 hour) ✅ COMPLETE
 
 - [x] T019: Add redirect logic to AuthContext on session expiry
   - Files: `src/contexts/AuthContext.tsx`
@@ -238,15 +231,14 @@
     - Log warning: "Session expired - redirecting to login"
   - Notes: May need to handle redirect via effect or callback pattern
 
-- [ ] T020: Simplify SessionExpiredModal
+- [x] T020: Simplify SessionExpiredModal
   - Files: `src/components/auth/SessionExpiredModal.tsx`
   - Depends: T019
   - Acceptance:
-    - Option A (recommended): Add useEffect that redirects to /auth on sessionExpired
-    - Option B: Only show modal if already on /auth page, otherwise redirect
-    - Shows toast notification on redirect: "Session expired. Please log in again."
-    - Modal removed from protected pages (redirect handles it)
-  - Notes: Discuss with team which option is preferred
+    - ✅ Option A implemented: useEffect redirects to /auth on sessionExpired
+    - ✅ Shows toast notification: "Your session has expired. Please log in again."
+    - ✅ Modal removed - component now returns null (redirect-only)
+  - Notes: Simplified to redirect + toast pattern
 
 - [x] T021: Add session expiry message on auth page
   - Files: `src/pages/AuthPages.tsx`
@@ -258,16 +250,14 @@
     - Styled consistently with existing UI
   - Notes: Use React Router's `useSearchParams` hook
 
-- [ ] T022: Add toast notification helper (if not exists)
-  - Files:
-    - `src/utils/toast.ts` (create or use existing)
-    - Components that show toast
+- [x] T022: Add toast notification helper (if not exists)
+  - Files: `src/contexts/ToastContext.tsx` (already exists)
   - Depends: T020
   - Acceptance:
-    - Toast helper function: `showToast(message: string, type: 'info' | 'error' | 'success')`
-    - Integrates with existing toast library (if any)
-    - Fallback: console.log if no toast library
-  - Notes: Check if toast utility already exists in codebase
+    - ✅ ToastContext already provides `useToast()` hook with `showToast(message, type)`
+    - ✅ Supports 'success' | 'error' | 'info' types
+    - ✅ Auto-dismisses after 4 seconds
+  - Notes: Already existed in codebase - no changes needed
 
 ---
 

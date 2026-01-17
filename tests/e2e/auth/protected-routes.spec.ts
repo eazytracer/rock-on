@@ -255,6 +255,97 @@ test.describe('Protected Routes', () => {
     })
   })
 
+  test.describe('Navigation Auth Re-validation', () => {
+    let testUserId: string | undefined
+
+    test.afterEach(async () => {
+      if (testUserId) {
+        await deleteTestUser(testUserId)
+        testUserId = undefined
+      }
+    })
+
+    test('navigating between pages with invalid session redirects to auth', async ({
+      page,
+    }) => {
+      const user = createTestUser()
+
+      // Sign up and create band
+      await signUpViaUI(page, user)
+      await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
+
+      const bandName = `Test Band ${Date.now()}`
+      await page.fill(
+        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
+        bandName
+      )
+      await page.click(
+        '[data-testid="create-band-button"], button:has-text("Create Band")'
+      )
+
+      await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+      // Store user ID for cleanup
+      testUserId =
+        (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
+        undefined
+
+      // Now invalidate the session but keep localStorage keys
+      // This simulates what happens when session expires while user is away
+      await page.evaluate(() => {
+        localStorage.removeItem('rock_on_session')
+      })
+
+      // Navigate to another protected page
+      // With our fix, this should trigger re-validation and redirect
+      await page.goto('/setlists')
+
+      // Should be redirected to auth page
+      await expect(page).toHaveURL(/\/auth/, { timeout: 5000 })
+    })
+
+    test('navigating via link with invalid session redirects to auth', async ({
+      page,
+    }) => {
+      const user = createTestUser()
+
+      // Sign up and create band
+      await signUpViaUI(page, user)
+      await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
+
+      const bandName = `Test Band ${Date.now()}`
+      await page.fill(
+        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
+        bandName
+      )
+      await page.click(
+        '[data-testid="create-band-button"], button:has-text("Create Band")'
+      )
+
+      await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+      // Store user ID for cleanup
+      testUserId =
+        (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
+        undefined
+
+      // Now invalidate the session
+      await page.evaluate(() => {
+        localStorage.removeItem('rock_on_session')
+      })
+
+      // Click a navigation link instead of direct URL navigation
+      // This tests the React Router navigation path
+      const setlistsLink = page
+        .locator('a[href="/setlists"], nav >> text=Setlists')
+        .first()
+      await setlistsLink.click()
+
+      // Should be redirected to auth page
+      await expect(page).toHaveURL(/\/auth/, { timeout: 5000 })
+    })
+  })
+
   test.describe('No Flash of Content', () => {
     test('protected page does not flash "Not logged in" message', async ({
       page,
