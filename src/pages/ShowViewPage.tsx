@@ -188,9 +188,25 @@ export const ShowViewPage: React.FC = () => {
   // Detect "new" mode
   const isNewMode = !showId || showId === 'new'
 
+  // Get IDs early for initialization
+  const currentBandId = localStorage.getItem('currentBandId') || ''
+  const currentUserId = localStorage.getItem('currentUserId') || ''
+
   // Core state
   const [loading, setLoading] = useState(!isNewMode)
-  const [show, setShow] = useState<Show | null>(null)
+  const [show, setShow] = useState<Show | null>(() => {
+    if (isNewMode) {
+      const now = new Date()
+      return {
+        name: 'New Show',
+        scheduledDate: now,
+        status: 'scheduled' as const,
+        duration: DEFAULT_SHOW_DURATION,
+        bandId: currentBandId,
+      } as Show
+    }
+    return null
+  })
   const [setlist, setSetlist] = useState<Setlist | null>(null)
   const [setlistItems, setSetlistItems] = useState<UISetlistItem[]>([])
   const [availableSetlists, setAvailableSetlists] = useState<Setlist[]>([])
@@ -204,9 +220,6 @@ export const ShowViewPage: React.FC = () => {
   // Expandable notes state
   const [expandedSongId, setExpandedSongId] = useState<string | null>(null)
 
-  const currentBandId = localStorage.getItem('currentBandId') || ''
-  const currentUserId = localStorage.getItem('currentUserId') || ''
-
   // Load show data
   useEffect(() => {
     const loadShow = async () => {
@@ -217,17 +230,8 @@ export const ShowViewPage: React.FC = () => {
         .toArray()
       setAvailableSetlists(allSetlists)
 
-      // For new mode, create a default show
+      // For new mode, show is already initialized
       if (isNewMode) {
-        const now = new Date()
-        const defaultShow: Partial<Show> = {
-          name: 'New Show',
-          scheduledDate: now,
-          status: 'scheduled',
-          duration: DEFAULT_SHOW_DURATION,
-          bandId: currentBandId,
-        }
-        setShow(defaultShow as Show)
         return
       }
 
@@ -597,6 +601,7 @@ export const ShowViewPage: React.FC = () => {
           options: SHOW_STATUS_OPTIONS,
         }}
         isNew={isNewMode}
+        data-testid="show"
       />
 
       {/* Content */}
@@ -633,6 +638,8 @@ export const ShowViewPage: React.FC = () => {
               onSave={val => saveField('location', String(val) || undefined)}
               placeholder="Add address"
               icon={<MapPin size={16} />}
+              autoEdit={isNewMode}
+              name="location"
               data-testid="show-location"
             />
 

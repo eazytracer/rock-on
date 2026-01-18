@@ -132,6 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             key={item.path}
             onClick={() => handleNavigation(item.path)}
+            data-testid={`${item.label.toLowerCase().replace(/\s+/g, '-')}-link`}
             className={`
               w-full flex items-center gap-3 px-3 py-2 rounded-lg
               text-sm font-medium transition-colors duration-200
@@ -159,6 +160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="space-y-1 pt-4 border-t border-[#1f1f1f]">
         <button
           onClick={() => handleNavigation('/settings')}
+          data-testid="settings-link"
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[#a0a0a0] hover:bg-[#1f1f1f] hover:text-white transition-colors duration-200"
         >
           <Settings size={20} />
@@ -166,6 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
         <button
           onClick={onSignOut}
+          data-testid="logout-button"
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[#a0a0a0] hover:bg-[#1f1f1f] hover:text-white transition-colors duration-200"
         >
           <LogOut size={20} />

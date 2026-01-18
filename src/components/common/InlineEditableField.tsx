@@ -19,6 +19,7 @@ interface InlineEditableFieldProps {
   // Behavior
   type?: 'text' | 'select' | 'date' | 'time' | 'duration' | 'textarea' | 'title'
   options?: SelectOption[] // For select type
+  autoEdit?: boolean // Start in edit mode
 
   // Save on blur - accepts string or number, caller can cast as needed
   onSave: (value: string | number) => void | Promise<void>
@@ -31,8 +32,10 @@ interface InlineEditableFieldProps {
   className?: string
   valueClassName?: string // For custom value styling (e.g., titles)
 
-  // Test IDs
+  // Test IDs and attributes
   'data-testid'?: string
+  name?: string
+  id?: string
 }
 
 export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
@@ -43,14 +46,17 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
   placeholder = 'Click to edit',
   type = 'text',
   options = [],
+  autoEdit = false,
   onSave,
   required = false,
   validate,
   className = '',
   valueClassName = '',
   'data-testid': testId,
+  name,
+  id,
 }) => {
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(autoEdit)
   const [editValue, setEditValue] = useState<string | number>(value)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,6 +64,13 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
     HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
   >(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Handle autoEdit prop changes - important for new entity creation
+  useEffect(() => {
+    if (autoEdit) {
+      setIsEditing(true)
+    }
+  }, [autoEdit])
 
   // Handle cancel (Escape key or click outside)
   const handleCancel = useCallback(() => {
@@ -234,6 +247,8 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
             onBlur={handleBlur}
             placeholder={placeholder}
             className={`w-full px-2 py-1 bg-[#121212] border border-[#f17827ff] rounded text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/30 ${valueClassName}`}
+            name={name}
+            id={id}
             data-testid={testId ? `${testId}-input` : undefined}
           />
         )
@@ -249,6 +264,8 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
             placeholder={placeholder}
             rows={3}
             className={`${baseInputClass} resize-none`}
+            name={name}
+            id={id}
             data-testid={testId ? `${testId}-input` : undefined}
           />
         )
@@ -261,6 +278,8 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
             onChange={e => handleSelectChange(e.target.value)}
             onBlur={handleBlur}
             className={`${baseInputClass} h-8`}
+            name={name}
+            id={id}
             data-testid={testId ? `${testId}-input` : undefined}
           >
             {options.map(opt => (
@@ -290,6 +309,9 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
                 setIsSaving(false)
               }
             }}
+            autoEdit={autoEdit}
+            name={name}
+            id={id}
             data-testid={testId ? `${testId}-input` : undefined}
           />
         )
@@ -313,6 +335,8 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
                 setIsSaving(false)
               }
             }}
+            name={name}
+            id={id}
             data-testid={testId ? `${testId}-input` : undefined}
           />
         )
@@ -332,6 +356,8 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
               min={0}
               max={1440}
               className="w-24 px-2 py-1 bg-[#121212] border border-[#f17827ff] rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/30"
+              name={name}
+              id={id}
               data-testid={testId ? `${testId}-input` : undefined}
             />
             <span className="text-xs text-[#707070]">minutes</span>
@@ -349,6 +375,8 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
             onBlur={handleBlur}
             placeholder={placeholder}
             className={`${baseInputClass} ${valueClassName}`}
+            name={name}
+            id={id}
             data-testid={testId ? `${testId}-input` : undefined}
           />
         )

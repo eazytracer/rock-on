@@ -48,16 +48,34 @@ test.describe('Settings Page', () => {
     )
     await page.fill('[data-testid="signup-email-input"]', testUser.email)
     await page.fill('[data-testid="signup-password-input"]', testUser.password)
+    await page.fill(
+      '[data-testid="signup-confirm-password-input"]',
+      testUser.password
+    )
     await page.click('button[type="submit"]:has-text("Create Account")')
-    await page.waitForURL(/\/(get-started|songs)/, { timeout: 10000 })
+    await page.waitForURL(/\/get-started/, { timeout: 10000 })
+
+    // Create a band to access protected pages
+    const bandName = `Settings Test Band ${Date.now()}`
+    await page.fill('[data-testid="create-band-name-input"]', bandName)
+    await page.click('[data-testid="create-band-button"]')
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
   })
 
   test.afterEach(async ({ page }) => {
-    // Sign out after each test
+    // Sign out after each test - with shorter timeout to avoid blocking
     try {
-      await logoutViaUI(page)
+      // Check if logout button is visible before clicking
+      const logoutButton = page.locator('[data-testid="logout-button"]')
+      const isVisible = await logoutButton
+        .isVisible({ timeout: 2000 })
+        .catch(() => false)
+      if (isVisible) {
+        await logoutButton.click()
+        await page.waitForURL('/auth', { timeout: 3000 }).catch(() => {})
+      }
     } catch {
-      // Ignore logout errors (user may already be logged out)
+      // Ignore logout errors (user may already be logged out or page closed)
     }
   })
 
@@ -65,8 +83,8 @@ test.describe('Settings Page', () => {
     test('should navigate to settings page from sidebar', async ({ page }) => {
       const errors = setupConsoleErrorTracking(page)
 
-      // Click Settings link in sidebar (desktop)
-      await page.click('text=Settings')
+      // Click Settings link in sidebar using test ID
+      await page.click('[data-testid="settings-link"]')
 
       // Should be on settings page
       await expect(page).toHaveURL(/\/settings/)
@@ -94,13 +112,24 @@ test.describe('Settings Page', () => {
       // Try to access settings
       await page.goto('/settings')
 
+      // Wait for page to settle
+      await page.waitForTimeout(1000)
+
       // Should redirect to auth page or show sign-in message
       const url = page.url()
       const isAuth = url.includes('/auth')
+
+      // Also check for sign-in message (with wait since it may take time to render)
       const hasSignInMessage = await page
         .getByText(/please sign in/i)
-        .isVisible()
+        .isVisible({ timeout: 2000 })
         .catch(() => false)
+
+      // If neither condition is met, log current state for debugging
+      if (!isAuth && !hasSignInMessage) {
+        console.log('Current URL:', url)
+        console.log('Page content visible for debugging')
+      }
 
       expect(isAuth || hasSignInMessage).toBe(true)
     })
@@ -139,7 +168,12 @@ test.describe('Settings Page', () => {
     test('should have account section heading', async ({ page }) => {
       await page.goto('/settings')
 
-      await expect(page.getByRole('heading', { name: 'Account' })).toBeVisible()
+      // Scope to account section to avoid matching "Delete Account" heading
+      await expect(
+        page
+          .getByTestId('account-section')
+          .getByRole('heading', { name: 'Account' })
+      ).toBeVisible()
     })
   })
 
@@ -223,13 +257,17 @@ test.describe('Settings Page', () => {
       // Open modal
       await page.click('[data-testid="delete-account-button"]')
 
-      // Should show warning
+      // Wait for modal to be visible
+      const modal = page.getByTestId('delete-account-modal')
+      await expect(modal).toBeVisible()
+
+      // Should show warning (scoped to modal to avoid matching page text)
       await expect(
-        page.getByText(/this action cannot be undone/i)
+        modal.getByText(/this action cannot be undone/i)
       ).toBeVisible()
-      await expect(page.getByText(/all bands you created/i)).toBeVisible()
+      await expect(modal.getByText(/all bands you created/i)).toBeVisible()
       await expect(
-        page.getByText(/all songs, setlists, and practices/i)
+        modal.getByText(/all songs, setlists, and practices/i)
       ).toBeVisible()
     })
 
@@ -259,17 +297,22 @@ test.describe('Settings Page', () => {
     test('should have proper heading hierarchy', async ({ page }) => {
       await page.goto('/settings')
 
-      // Main heading
+      const settingsPage = page.getByTestId('settings-page')
+      await expect(settingsPage).toBeVisible()
+
+      // Main heading (scoped to settings page to avoid sidebar band name h1)
       await expect(
-        page.getByRole('heading', { level: 1, name: 'Settings' })
+        settingsPage.getByRole('heading', { level: 1, name: 'Settings' })
       ).toBeVisible()
 
-      // Section headings
+      // Section headings (scoped to avoid matching modal headings)
       await expect(
-        page.getByRole('heading', { level: 2, name: 'Account' })
+        page
+          .getByTestId('account-section')
+          .getByRole('heading', { level: 2, name: 'Account' })
       ).toBeVisible()
       await expect(
-        page.getByRole('heading', { level: 2, name: /data.*privacy/i })
+        settingsPage.getByRole('heading', { level: 2, name: /data.*privacy/i })
       ).toBeVisible()
     })
 

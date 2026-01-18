@@ -553,7 +553,7 @@ export const SetlistViewPage: React.FC = () => {
           options: SETLIST_STATUS_OPTIONS,
         }}
         isNew={isNewMode}
-        data-testid="setlist-header"
+        data-testid="setlist"
       />
 
       {/* Content */}
@@ -568,6 +568,7 @@ export const SetlistViewPage: React.FC = () => {
               </p>
             </div>
             <button
+              type="submit"
               onClick={createSetlist}
               disabled={saving}
               className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white font-medium rounded-lg transition-colors disabled:opacity-50"

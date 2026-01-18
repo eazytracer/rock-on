@@ -633,6 +633,46 @@ Migration files DO use timestamps, but in Supabase's special format (`YYYYMMDDHH
 ❌ Wrong (test):           supabase/tests/2025-11-07T21:30_rls-test.test.sql
 ```
 
+## Agent File Creation (CRITICAL)
+
+**Sub-agents (Task tool) cannot persist files to the filesystem directly.**
+
+When a sub-agent attempts to create files (especially in `.claude/` directories), the file operations shown in the agent's output are **internal to that agent's context** and do NOT actually create files on disk.
+
+**After any agent attempts to create a file, you MUST:**
+
+1. Verify the file exists: `ls -la <path>` or check with the Read tool
+2. If the file doesn't exist, create the directory and write the file yourself
+3. Use the content from the agent's output to populate the file
+
+**Example workflow:**
+
+```bash
+# Agent reports creating: .claude/active-work/issues/my-issue/diagnosis.md
+
+# Step 1: Verify (will likely fail)
+ls -la .claude/active-work/issues/my-issue/
+
+# Step 2: Create directory if missing
+mkdir -p .claude/active-work/issues/my-issue/
+
+# Step 3: Write the file using the agent's content
+# Use the Write tool with content from agent output
+```
+
+**Why this happens:**
+
+- Sub-agents run in isolated contexts
+- Their file operations are simulated within their execution
+- Only the parent conversation can persist files to the actual filesystem
+- This is by design for security and isolation
+
+**Directories commonly affected:**
+
+- `.claude/active-work/` - Diagnosis reports, research docs
+- `.claude/artifacts/` - Design documents, summaries
+- `.claude/features/` - Feature plans and specs
+
 <!-- MANUAL ADDITIONS END -->
 
 - please do not suggest skipping tests or addressing them later. If it was important enough to make the test case then it should pass. If they are truly frivolous we should delete them. When asked to address test findings you should always work to fix the source code after validating the test is correct and necessary.

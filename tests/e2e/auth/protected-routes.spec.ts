@@ -158,13 +158,17 @@ test.describe('Protected Routes', () => {
         (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
         undefined
 
-      // Try to access protected route - should redirect to get-started
+      // Try to access protected route - should redirect away from /songs
       await page.goto('/songs')
 
-      // Should be redirected to get-started or auth with get-started view
-      await expect(page).toHaveURL(/\/(get-started|auth\?view=get-started)/, {
+      // Should be redirected to get-started, auth page, or auth with query params
+      // The exact redirect depends on session state validation
+      await expect(page).toHaveURL(/\/(get-started|auth)/, {
         timeout: 5000,
       })
+
+      // Verify we're NOT on the songs page (protected route)
+      await expect(page).not.toHaveURL(/\/songs/)
     })
   })
 

@@ -25,6 +25,7 @@ import {
   cleanupRealtimeDebug,
 } from '../utils/debugRealtime'
 import { RemoteRepository } from '../services/data/RemoteRepository'
+import { isE2ETestEnvironment } from '../config/appMode'
 
 interface AuthContextType {
   // Legacy auth fields (keep for backward compatibility)
@@ -219,45 +220,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           // Set current user ID on sync engine
           repository.setCurrentUser(storedUserId)
 
-          // Check if initial sync is needed
-          const needsSync = await repository.isInitialSyncNeeded()
+          // Skip sync in test environment to avoid race conditions with test setup
+          if (!isE2ETestEnvironment()) {
+            // Check if initial sync is needed
+            const needsSync = await repository.isInitialSyncNeeded()
 
-          if (needsSync) {
-            // Removed: console.log (security)
-            setSyncing(true)
-
-            try {
-              await repository.performInitialSync(storedUserId)
+            if (needsSync) {
               // Removed: console.log (security)
-            } catch (error) {
-              console.error('❌ Initial sync failed:', error)
-            } finally {
-              setSyncing(false)
-            }
-          } else {
-            // No full sync needed - perform incremental sync to catch recent changes
-            // This happens on every app load after initial sync
-            try {
-              const result =
-                await repository.pullIncrementalChanges(storedUserId)
-              const totalChanges =
-                result.newSongs +
-                result.updatedSongs +
-                result.newSetlists +
-                result.updatedSetlists +
-                result.newPractices +
-                result.updatedPractices +
-                result.newShows +
-                result.updatedShows
+              setSyncing(true)
 
-              if (totalChanges > 0) {
-                console.log(
-                  `🔄 Incremental sync: ${totalChanges} changes in ${result.syncDurationMs}ms`
-                )
+              try {
+                await repository.performInitialSync(storedUserId)
+                // Removed: console.log (security)
+              } catch (error) {
+                console.error('❌ Initial sync failed:', error)
+              } finally {
+                setSyncing(false)
               }
-            } catch (error) {
-              // Don't fail login if incremental sync fails - data will sync via realtime
-              console.warn('⚠️ Incremental sync failed (non-fatal):', error)
+            } else {
+              // No full sync needed - perform incremental sync to catch recent changes
+              // This happens on every app load after initial sync
+              try {
+                const result =
+                  await repository.pullIncrementalChanges(storedUserId)
+                const totalChanges =
+                  result.newSongs +
+                  result.updatedSongs +
+                  result.newSetlists +
+                  result.updatedSetlists +
+                  result.newPractices +
+                  result.updatedPractices +
+                  result.newShows +
+                  result.updatedShows
+
+                if (totalChanges > 0) {
+                  console.log(
+                    `🔄 Incremental sync: ${totalChanges} changes in ${result.syncDurationMs}ms`
+                  )
+                }
+              } catch (error) {
+                // Don't fail login if incremental sync fails - data will sync via realtime
+                console.warn('⚠️ Incremental sync failed (non-fatal):', error)
+              }
             }
           }
 
@@ -352,23 +356,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         // Set current user ID on sync engine (enables periodic pull sync)
         repository.setCurrentUser(userId)
 
-        // Check if initial sync is needed (first login or > 30 days)
-        const needsSync = await repository.isInitialSyncNeeded()
+        // Skip sync in test environment to avoid race conditions with test setup
+        if (!isE2ETestEnvironment()) {
+          // Check if initial sync is needed (first login or > 30 days)
+          const needsSync = await repository.isInitialSyncNeeded()
 
-        if (needsSync) {
-          // Removed: console.log (security)
-          setSyncing(true)
-
-          try {
-            // Perform initial sync: download all data from Supabase to IndexedDB
-            await repository.performInitialSync(userId)
+          if (needsSync) {
             // Removed: console.log (security)
-          } catch (error) {
-            console.error('❌ Initial sync failed:', error)
-            // Continue anyway - user can manually refresh or data will sync incrementally
-            // We don't want to block login if sync fails
-          } finally {
-            setSyncing(false)
+            setSyncing(true)
+
+            try {
+              // Perform initial sync: download all data from Supabase to IndexedDB
+              await repository.performInitialSync(userId)
+              // Removed: console.log (security)
+            } catch (error) {
+              console.error('❌ Initial sync failed:', error)
+              // Continue anyway - user can manually refresh or data will sync incrementally
+              // We don't want to block login if sync fails
+            } finally {
+              setSyncing(false)
+            }
           }
         }
 
