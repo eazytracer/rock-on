@@ -67,6 +67,8 @@ export interface AuthCheckResult {
  */
 export function useAuthCheck(): AuthCheckResult {
   const location = useLocation()
+  // Track if this is the initial mount
+  const [isInitialCheck, setIsInitialCheck] = useState(true)
   const [result, setResult] = useState<AuthCheckResult>({
     isAuthenticated: null,
     isChecking: true,
@@ -75,8 +77,12 @@ export function useAuthCheck(): AuthCheckResult {
   })
 
   useEffect(() => {
-    // Reset to checking state when location changes
-    setResult(prev => ({ ...prev, isChecking: true }))
+    // Only show loading spinner on initial mount, not on subsequent route changes
+    // This prevents white screen flicker during navigation
+    if (!isInitialCheck) {
+      // For subsequent checks, keep current auth state while re-validating
+      // Don't reset isChecking to true - the check is fast (synchronous localStorage)
+    }
 
     const checkAuth = async () => {
       // 1. Quick localStorage check (synchronous, fast path)
@@ -160,8 +166,15 @@ export function useAuthCheck(): AuthCheckResult {
       })
     }
 
-    checkAuth()
+    checkAuth().finally(() => {
+      // Mark initial check as complete after first auth check finishes
+      // This ensures subsequent route changes don't show loading spinner
+      if (isInitialCheck) {
+        setIsInitialCheck(false)
+      }
+    })
     // Re-run auth check on every route change to catch expired sessions
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 
   return result

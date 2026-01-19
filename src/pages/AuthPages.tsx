@@ -1633,7 +1633,7 @@ export const AuthPages: React.FC = () => {
   const errorParam = searchParams.get('error')
   const reasonParam = searchParams.get('reason')
 
-  // Display session expiry message if redirected from ProtectedRoute
+  // Display session expiry message if redirected from ProtectedLayoutRoute
   useEffect(() => {
     if (reasonParam === 'session-expired') {
       setToast({

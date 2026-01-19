@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ModernLayout } from '../components/layout/ModernLayout'
-import { useAuth } from '../contexts/AuthContext'
+import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { useToast } from '../contexts/ToastContext'
 import {
   ChevronDown,
@@ -761,7 +759,6 @@ const SongCard: React.FC<SongRowProps> = ({
 }
 
 export const SongsPage: React.FC = () => {
-  const navigate = useNavigate()
   const { showToast } = useToast()
 
   // DATABASE INTEGRATION: Get currentBandId from localStorage
@@ -794,12 +791,13 @@ export const SongsPage: React.FC = () => {
 
   // DATABASE INTEGRATION: Transform database songs to display format and calculate "Next Show"
   useEffect(() => {
-    const transformSongs = async () => {
-      if (!dbSongs || dbSongs.length === 0) {
-        setSongs([])
-        return
-      }
+    // Handle empty case synchronously to avoid race condition
+    if (!dbSongs || dbSongs.length === 0) {
+      setSongs([])
+      return
+    }
 
+    const transformSongs = async () => {
       try {
         const transformedSongs = await Promise.all(
           dbSongs.map(async dbSong => {
@@ -1167,29 +1165,9 @@ export const SongsPage: React.FC = () => {
     )
   }
 
-  // Get auth context for user info and sign out
-  const { currentUser, currentBand, signOut } = useAuth()
-
-  const handleSignOut = async () => {
-    // signOut() now calls logout() internally to clear all state
-    await signOut()
-    navigate('/auth')
-  }
-
   return (
-    <ModernLayout
-      bandName={currentBand?.name || 'No Band Selected'}
-      userEmail={currentUser?.email || 'Not logged in'}
-      onSignOut={handleSignOut}
-    >
-      <div className="max-w-6xl mx-auto">
-        {/* DATABASE INTEGRATION: Show loading state */}
-        {loading && (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-white">Loading songs...</div>
-          </div>
-        )}
-
+    <ContentLoadingSpinner isLoading={loading}>
+      <div data-testid="songs-page" className="max-w-6xl mx-auto">
         {/* DATABASE INTEGRATION: Show error state */}
         {error && (
           <div className="flex items-center justify-center py-16">
@@ -1687,7 +1665,7 @@ export const SongsPage: React.FC = () => {
 
       {/* Delete confirmation dialog */}
       <ConfirmDialog {...dialogProps} />
-    </ModernLayout>
+    </ContentLoadingSpinner>
   )
 }
 

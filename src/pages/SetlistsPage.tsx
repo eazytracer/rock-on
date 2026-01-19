@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ModernLayout } from '../components/layout/ModernLayout'
-import { useAuth } from '../contexts/AuthContext'
+import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { useToast } from '../contexts/ToastContext'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import {
@@ -1382,8 +1381,6 @@ export const SetlistsPage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Get auth context for user info and sign out
-  const { currentUser, currentBand, signOut } = useAuth()
   const { showToast } = useToast()
 
   // DATABASE INTEGRATION: Get currentBandId from localStorage
@@ -1804,53 +1801,6 @@ export const SetlistsPage: React.FC = () => {
     }
   }
 
-  const handleSignOut = async () => {
-    // signOut() now calls logout() internally to clear all state
-    await signOut()
-    navigate('/auth')
-  }
-
-  // DATABASE INTEGRATION: Show loading state
-  if (loading) {
-    return (
-      <ModernLayout
-        bandName={currentBand?.name || 'No Band Selected'}
-        userEmail={currentUser?.email || 'Not logged in'}
-        onSignOut={handleSignOut}
-      >
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f17827ff] mx-auto mb-4"></div>
-            <p className="text-[#a0a0a0] text-sm">Loading setlists...</p>
-          </div>
-        </div>
-      </ModernLayout>
-    )
-  }
-
-  // DATABASE INTEGRATION: Show error state
-  if (error) {
-    return (
-      <ModernLayout
-        bandName={currentBand?.name || 'No Band Selected'}
-        userEmail={currentUser?.email || 'Not logged in'}
-        onSignOut={handleSignOut}
-      >
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <p className="text-red-500 text-sm mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </ModernLayout>
-    )
-  }
-
   // If editing, show full-page editor
   if (editingSetlist) {
     return (
@@ -1869,100 +1819,115 @@ export const SetlistsPage: React.FC = () => {
 
   // Otherwise, show grid view
   return (
-    <ModernLayout
-      bandName={currentBand?.name || 'No Band Selected'}
-      userEmail={currentUser?.email || 'Not logged in'}
-      onSignOut={handleSignOut}
-    >
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-6">
-            <h1 className="text-2xl font-bold text-white">Setlists</h1>
-            <ChevronDown size={20} className="text-[#a0a0a0]" />
+    <ContentLoadingSpinner isLoading={loading}>
+      <div data-testid="setlists-page" className="max-w-6xl mx-auto">
+        {/* Show error state */}
+        {error && (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <p className="text-red-500 text-sm mb-4">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+              >
+                Retry
+              </button>
+            </div>
           </div>
+        )}
 
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <select
-              value={filterStatus}
-              onChange={e =>
-                setFilterStatus(e.target.value as typeof filterStatus)
-              }
-              className="h-10 px-4 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-            >
-              <option value="all">All Setlists</option>
-              <option value="active">Active</option>
-              <option value="draft">Drafts</option>
-              <option value="archived">Archived</option>
-            </select>
+        {!error && (
+          <>
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-6">
+                <h1 className="text-2xl font-bold text-white">Setlists</h1>
+                <ChevronDown size={20} className="text-[#a0a0a0]" />
+              </div>
 
-            <div className="flex items-center gap-3 flex-1 max-w-md">
-              <div className="relative flex-1">
-                <Search
-                  size={20}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
-                />
-                <input
-                  type="text"
-                  placeholder="Search setlists"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full h-10 pl-11 pr-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                />
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <select
+                  value={filterStatus}
+                  onChange={e =>
+                    setFilterStatus(e.target.value as typeof filterStatus)
+                  }
+                  className="h-10 px-4 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                >
+                  <option value="all">All Setlists</option>
+                  <option value="active">Active</option>
+                  <option value="draft">Drafts</option>
+                  <option value="archived">Archived</option>
+                </select>
+
+                <div className="flex items-center gap-3 flex-1 max-w-md">
+                  <div className="relative flex-1">
+                    <Search
+                      size={20}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search setlists"
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full h-10 pl-11 pr-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleCreateNew}
+                  data-testid="create-setlist-button"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                >
+                  <Plus size={20} />
+                  <span>Create Setlist</span>
+                </button>
               </div>
             </div>
 
-            <button
-              onClick={handleCreateNew}
-              data-testid="create-setlist-button"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
-            >
-              <Plus size={20} />
-              <span>Create Setlist</span>
-            </button>
-          </div>
-        </div>
-
-        {filteredSetlists.length === 0 ? (
-          <div
-            data-testid="setlist-empty-state"
-            className="flex flex-col items-center justify-center py-20"
-          >
-            <ListMusic size={64} className="text-[#2a2a2a] mb-4" />
-            <h3 className="text-white font-semibold text-lg mb-2">
-              No setlists yet
-            </h3>
-            <p className="text-[#707070] text-sm mb-6">
-              Create your first setlist to get started
-            </p>
-            <button
-              onClick={handleCreateNew}
-              data-testid="create-setlist-button"
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
-            >
-              <Plus size={20} />
-              <span>Create Setlist</span>
-            </button>
-          </div>
-        ) : (
-          <div
-            data-testid="setlist-list"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-sm md:max-w-none mx-auto md:mx-0"
-          >
-            {filteredSetlists.map(setlist => (
-              <SetlistCard
-                key={setlist.id}
-                setlist={setlist}
-                onClick={() => navigate(`/setlists/${setlist.id}`)}
-                onEdit={handleEdit}
-                onDuplicate={handleDuplicate}
-                onArchive={handleArchive}
-                onDelete={handleDelete}
-                onNavigateToShow={showId => navigate(`/shows/${showId}`)}
-              />
-            ))}
-          </div>
+            {filteredSetlists.length === 0 ? (
+              <div
+                data-testid="setlist-empty-state"
+                className="flex flex-col items-center justify-center py-20"
+              >
+                <ListMusic size={64} className="text-[#2a2a2a] mb-4" />
+                <h3 className="text-white font-semibold text-lg mb-2">
+                  No setlists yet
+                </h3>
+                <p className="text-[#707070] text-sm mb-6">
+                  Create your first setlist to get started
+                </p>
+                <button
+                  onClick={handleCreateNew}
+                  data-testid="create-setlist-button"
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                >
+                  <Plus size={20} />
+                  <span>Create Setlist</span>
+                </button>
+              </div>
+            ) : (
+              <div
+                data-testid="setlist-list"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-sm md:max-w-none mx-auto md:mx-0"
+              >
+                {filteredSetlists.map(setlist => (
+                  <SetlistCard
+                    key={setlist.id}
+                    setlist={setlist}
+                    onClick={() => navigate(`/setlists/${setlist.id}`)}
+                    onEdit={handleEdit}
+                    onDuplicate={handleDuplicate}
+                    onArchive={handleArchive}
+                    onDelete={handleDelete}
+                    onNavigateToShow={showId => navigate(`/shows/${showId}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
-    </ModernLayout>
+    </ContentLoadingSpinner>
   )
 }

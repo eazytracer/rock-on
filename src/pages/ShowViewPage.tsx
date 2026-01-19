@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ModernLayout } from '../components/layout/ModernLayout'
+import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { EntityHeader } from '../components/common/EntityHeader'
 import { InlineEditableField } from '../components/common/InlineEditableField'
 import { SHOW_STATUS_OPTIONS } from '../components/common/InlineStatusBadge'
@@ -14,7 +14,6 @@ import {
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
-import { useAuth } from '../contexts/AuthContext'
 import { db } from '../services/database'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import { secondsToDuration } from '../utils/formatters'
@@ -183,7 +182,6 @@ export const ShowViewPage: React.FC = () => {
   const { showId } = useParams<{ showId: string }>()
   const { showToast } = useToast()
   const { confirm, dialogProps } = useConfirm()
-  const { currentUser, currentBand, signOut } = useAuth()
 
   // Detect "new" mode
   const isNewMode = !showId || showId === 'new'
@@ -543,20 +541,6 @@ export const ShowViewPage: React.FC = () => {
     }
   }
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0f0f0f]">
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f17827ff] mx-auto mb-4"></div>
-            <p className="text-[#a0a0a0] text-sm">Loading show...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   if (!show) return null
 
   // Display values
@@ -574,312 +558,314 @@ export const ShowViewPage: React.FC = () => {
   }, 0)
 
   return (
-    <ModernLayout
-      bandName={currentBand?.name}
-      userEmail={currentUser?.email}
-      onSignOut={signOut}
-    >
-      {/* Header with inline editing */}
-      <EntityHeader
-        backPath="/shows"
-        title={show.name}
-        onTitleSave={val => saveField('name', String(val))}
-        titlePlaceholder="Show name"
-        entityType="show"
-        date={formattedDate}
-        time={formattedTime}
-        dateLabel={dateLabel}
-        timeLabel={formattedTime}
-        onDateSave={val => saveDateTime(String(val), formattedTime)}
-        onTimeSave={val => saveDateTime(formattedDate, String(val))}
-        venue={show.venue}
-        location={show.location}
-        onVenueSave={val => saveField('venue', String(val) || undefined)}
-        status={{
-          value: show.status,
-          onSave: val => saveField('status', val as Show['status']),
-          options: SHOW_STATUS_OPTIONS,
-        }}
-        isNew={isNewMode}
-        data-testid="show"
-      />
+    <ContentLoadingSpinner isLoading={loading}>
+      <div data-testid="show-view-page">
+        {/* Header with inline editing */}
+        <EntityHeader
+          backPath="/shows"
+          title={show.name}
+          onTitleSave={val => saveField('name', String(val))}
+          titlePlaceholder="Show name"
+          entityType="show"
+          date={formattedDate}
+          time={formattedTime}
+          dateLabel={dateLabel}
+          timeLabel={formattedTime}
+          onDateSave={val => saveDateTime(String(val), formattedTime)}
+          onTimeSave={val => saveDateTime(formattedDate, String(val))}
+          venue={show.venue}
+          location={show.location}
+          onVenueSave={val => saveField('venue', String(val) || undefined)}
+          status={{
+            value: show.status,
+            onSave: val => saveField('status', val as Show['status']),
+            options: SHOW_STATUS_OPTIONS,
+          }}
+          isNew={isNewMode}
+          data-testid="show"
+        />
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* New mode save button */}
-        {isNewMode && (
-          <div className="bg-[#121212] border border-[#f17827ff] rounded-lg p-4 flex items-center justify-between">
-            <div>
-              <p className="text-white font-medium">Creating new show</p>
-              <p className="text-sm text-[#707070]">
-                Click any field above to edit, then save when ready
-              </p>
-            </div>
-            <button
-              onClick={createShow}
-              className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white font-medium rounded-lg transition-colors"
-              data-testid="create-show-button"
-            >
-              Create Show
-            </button>
-          </div>
-        )}
-
-        {/* Additional Details Section */}
-        <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Details</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Address */}
-            <InlineEditableField
-              label="Address"
-              value={show.location || ''}
-              displayValue={show.location || undefined}
-              onSave={val => saveField('location', String(val) || undefined)}
-              placeholder="Add address"
-              icon={<MapPin size={16} />}
-              autoEdit={isNewMode}
-              name="location"
-              data-testid="show-location"
-            />
-
-            {/* Load-in Time */}
-            <InlineEditableField
-              label="Load-in Time"
-              value={show.loadInTime || ''}
-              onSave={val => saveField('loadInTime', String(val) || undefined)}
-              type="time"
-              placeholder="Add load-in time"
-              icon={<Clock size={16} />}
-              data-testid="show-load-in"
-            />
-
-            {/* Soundcheck Time */}
-            <InlineEditableField
-              label="Soundcheck"
-              value={show.soundcheckTime || ''}
-              onSave={val =>
-                saveField('soundcheckTime', String(val) || undefined)
-              }
-              type="time"
-              placeholder="Add soundcheck time"
-              icon={<Clock size={16} />}
-              data-testid="show-soundcheck"
-            />
-
-            {/* Set Duration */}
-            <InlineEditableField
-              label="Set Duration"
-              value={show.duration || DEFAULT_SHOW_DURATION}
-              displayValue={
-                show.duration ? `${show.duration} minutes` : undefined
-              }
-              onSave={val =>
-                saveField(
-                  'duration',
-                  parseInt(String(val)) || DEFAULT_SHOW_DURATION
-                )
-              }
-              placeholder="Duration in minutes"
-              data-testid="show-duration"
-            />
-
-            {/* Payment */}
-            <InlineEditableField
-              label="Payment"
-              value={show.payment ? String(show.payment / 100) : ''}
-              displayValue={
-                show.payment ? `$${(show.payment / 100).toFixed(2)}` : undefined
-              }
-              onSave={val =>
-                saveField(
-                  'payment',
-                  val ? Math.round(parseFloat(String(val)) * 100) : undefined
-                )
-              }
-              placeholder="Amount in dollars"
-              icon={<DollarSign size={16} />}
-              data-testid="show-payment"
-            />
-          </div>
-
-          {/* Notes - Full Width */}
-          <div className="mt-6 pt-6 border-t border-[#2a2a2a]">
-            <InlineEditableField
-              label="Notes"
-              value={show.notes || ''}
-              onSave={val => saveField('notes', String(val) || undefined)}
-              type="textarea"
-              placeholder="Add notes, special instructions..."
-              icon={<FileText size={16} />}
-              data-testid="show-notes"
-            />
-          </div>
-        </div>
-
-        {/* Contacts Section */}
-        <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Contacts</h2>
-            <button
-              onClick={addContact}
-              className="flex items-center gap-1 px-3 py-1.5 text-[#f17827ff] hover:bg-[#f17827ff]/10 rounded-lg transition-colors text-sm"
-              data-testid="add-contact-button"
-            >
-              <Plus size={16} />
-              Add Contact
-            </button>
-          </div>
-
-          {contacts.length === 0 ? (
-            <div className="text-center py-8 text-[#707070]">
-              <User size={32} className="mx-auto mb-2 text-[#505050]" />
-              <p className="text-sm">No contacts added</p>
+        {/* Content */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+          {/* New mode save button */}
+          {isNewMode && (
+            <div className="bg-[#121212] border border-[#f17827ff] rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <p className="text-white font-medium">Creating new show</p>
+                <p className="text-sm text-[#707070]">
+                  Click any field above to edit, then save when ready
+                </p>
+              </div>
               <button
-                onClick={addContact}
-                className="mt-2 text-[#f17827ff] hover:underline text-sm"
+                onClick={createShow}
+                className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white font-medium rounded-lg transition-colors"
+                data-testid="create-show-button"
               >
-                Add a contact
+                Create Show
               </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {contacts.map((contact, index) =>
-                editingContactIndex === index ? (
-                  <EditableContactCard
-                    key={contact.id}
-                    contact={contact}
-                    index={index}
-                    onChange={c => updateContact(index, c)}
-                    onRemove={() => removeContact(index)}
-                    onBlur={finishEditingContact}
-                  />
-                ) : (
-                  <ContactCard
-                    key={contact.id}
-                    contact={contact}
-                    index={index}
-                    onRemove={() => removeContact(index)}
-                  />
-                )
-              )}
-            </div>
           )}
-        </div>
 
-        {/* Setlist Section - Always visible */}
-        <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Setlist</h2>
-            {setlist && (
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-[#a0a0a0]">
-                  {setlistItems.filter(i => i.type === 'song').length} songs
-                </span>
-                <span className="text-sm text-[#a0a0a0]">
-                  {secondsToDuration(totalDuration)}
-                </span>
+          {/* Additional Details Section */}
+          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Details</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Address */}
+              <InlineEditableField
+                label="Address"
+                value={show.location || ''}
+                displayValue={show.location || undefined}
+                onSave={val => saveField('location', String(val) || undefined)}
+                placeholder="Add address"
+                icon={<MapPin size={16} />}
+                autoEdit={isNewMode}
+                name="location"
+                data-testid="show-location"
+              />
+
+              {/* Load-in Time */}
+              <InlineEditableField
+                label="Load-in Time"
+                value={show.loadInTime || ''}
+                onSave={val =>
+                  saveField('loadInTime', String(val) || undefined)
+                }
+                type="time"
+                placeholder="Add load-in time"
+                icon={<Clock size={16} />}
+                data-testid="show-load-in"
+              />
+
+              {/* Soundcheck Time */}
+              <InlineEditableField
+                label="Soundcheck"
+                value={show.soundcheckTime || ''}
+                onSave={val =>
+                  saveField('soundcheckTime', String(val) || undefined)
+                }
+                type="time"
+                placeholder="Add soundcheck time"
+                icon={<Clock size={16} />}
+                data-testid="show-soundcheck"
+              />
+
+              {/* Set Duration */}
+              <InlineEditableField
+                label="Set Duration"
+                value={show.duration || DEFAULT_SHOW_DURATION}
+                displayValue={
+                  show.duration ? `${show.duration} minutes` : undefined
+                }
+                onSave={val =>
+                  saveField(
+                    'duration',
+                    parseInt(String(val)) || DEFAULT_SHOW_DURATION
+                  )
+                }
+                placeholder="Duration in minutes"
+                data-testid="show-duration"
+              />
+
+              {/* Payment */}
+              <InlineEditableField
+                label="Payment"
+                value={show.payment ? String(show.payment / 100) : ''}
+                displayValue={
+                  show.payment
+                    ? `$${(show.payment / 100).toFixed(2)}`
+                    : undefined
+                }
+                onSave={val =>
+                  saveField(
+                    'payment',
+                    val ? Math.round(parseFloat(String(val)) * 100) : undefined
+                  )
+                }
+                placeholder="Amount in dollars"
+                icon={<DollarSign size={16} />}
+                data-testid="show-payment"
+              />
+            </div>
+
+            {/* Notes - Full Width */}
+            <div className="mt-6 pt-6 border-t border-[#2a2a2a]">
+              <InlineEditableField
+                label="Notes"
+                value={show.notes || ''}
+                onSave={val => saveField('notes', String(val) || undefined)}
+                type="textarea"
+                placeholder="Add notes, special instructions..."
+                icon={<FileText size={16} />}
+                data-testid="show-notes"
+              />
+            </div>
+          </div>
+
+          {/* Contacts Section */}
+          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Contacts</h2>
+              <button
+                onClick={addContact}
+                className="flex items-center gap-1 px-3 py-1.5 text-[#f17827ff] hover:bg-[#f17827ff]/10 rounded-lg transition-colors text-sm"
+                data-testid="add-contact-button"
+              >
+                <Plus size={16} />
+                Add Contact
+              </button>
+            </div>
+
+            {contacts.length === 0 ? (
+              <div className="text-center py-8 text-[#707070]">
+                <User size={32} className="mx-auto mb-2 text-[#505050]" />
+                <p className="text-sm">No contacts added</p>
                 <button
-                  onClick={() => navigate(`/setlists/${setlist.id}`)}
-                  data-testid="edit-setlist-button"
-                  className="px-3 py-1.5 text-sm bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg hover:bg-[#252525] hover:border-[#3a3a3a] transition-colors"
+                  onClick={addContact}
+                  className="mt-2 text-[#f17827ff] hover:underline text-sm"
                 >
-                  Edit Setlist
+                  Add a contact
                 </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {contacts.map((contact, index) =>
+                  editingContactIndex === index ? (
+                    <EditableContactCard
+                      key={contact.id}
+                      contact={contact}
+                      index={index}
+                      onChange={c => updateContact(index, c)}
+                      onRemove={() => removeContact(index)}
+                      onBlur={finishEditingContact}
+                    />
+                  ) : (
+                    <ContactCard
+                      key={contact.id}
+                      contact={contact}
+                      index={index}
+                      onRemove={() => removeContact(index)}
+                    />
+                  )
+                )}
               </div>
             )}
           </div>
 
-          {/* Setlist Selector - shown when no setlist attached */}
-          {!setlist ? (
-            <div className="flex flex-col items-center py-8">
-              <Music size={48} className="text-[#2a2a2a] mb-3" />
-              <p className="text-[#707070] mb-4">No setlist attached</p>
-              <div className="w-full max-w-md">
-                <select
-                  value=""
-                  onChange={e => {
-                    if (e.target.value === '__create_new__') {
-                      handleCreateNewSetlist()
-                    } else if (e.target.value) {
-                      handleSetlistChange(e.target.value)
-                    }
-                  }}
-                  className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f17827ff] focus:outline-none"
-                  data-testid="show-setlist-select"
-                >
-                  <option value="">Select a setlist...</option>
-                  <option value="__create_new__">+ Create new setlist</option>
-                  {availableSetlists.length > 0 && (
-                    <option disabled>───────────</option>
-                  )}
-                  {availableSetlists.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Setlist Section - Always visible */}
+          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Setlist</h2>
+              {setlist && (
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-[#a0a0a0]">
+                    {setlistItems.filter(i => i.type === 'song').length} songs
+                  </span>
+                  <span className="text-sm text-[#a0a0a0]">
+                    {secondsToDuration(totalDuration)}
+                  </span>
+                  <button
+                    onClick={() => navigate(`/setlists/${setlist.id}`)}
+                    data-testid="edit-setlist-button"
+                    className="px-3 py-1.5 text-sm bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg hover:bg-[#252525] hover:border-[#3a3a3a] transition-colors"
+                  >
+                    Edit Setlist
+                  </button>
+                </div>
+              )}
             </div>
-          ) : (
-            <>
-              {/* Setlist Info */}
-              <div className="flex items-center gap-3 mb-4 p-4 bg-[#0f0f0f] rounded-lg border border-[#2a2a2a]">
-                <Music size={20} className="text-[#f17827ff]" />
-                <div className="flex-1">
-                  <div className="text-white font-medium">{setlist.name}</div>
-                  {setlist.notes && (
-                    <div className="text-xs text-[#a0a0a0] mt-1">
-                      {setlist.notes}
+
+            {/* Setlist Selector - shown when no setlist attached */}
+            {!setlist ? (
+              <div className="flex flex-col items-center py-8">
+                <Music size={48} className="text-[#2a2a2a] mb-3" />
+                <p className="text-[#707070] mb-4">No setlist attached</p>
+                <div className="w-full max-w-md">
+                  <select
+                    value=""
+                    onChange={e => {
+                      if (e.target.value === '__create_new__') {
+                        handleCreateNewSetlist()
+                      } else if (e.target.value) {
+                        handleSetlistChange(e.target.value)
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f17827ff] focus:outline-none"
+                    data-testid="show-setlist-select"
+                  >
+                    <option value="">Select a setlist...</option>
+                    <option value="__create_new__">+ Create new setlist</option>
+                    {availableSetlists.length > 0 && (
+                      <option disabled>───────────</option>
+                    )}
+                    {availableSetlists.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Setlist Info */}
+                <div className="flex items-center gap-3 mb-4 p-4 bg-[#0f0f0f] rounded-lg border border-[#2a2a2a]">
+                  <Music size={20} className="text-[#f17827ff]" />
+                  <div className="flex-1">
+                    <div className="text-white font-medium">{setlist.name}</div>
+                    {setlist.notes && (
+                      <div className="text-xs text-[#a0a0a0] mt-1">
+                        {setlist.notes}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleSetlistChange('')}
+                    className="text-xs text-[#707070] hover:text-white transition-colors"
+                    data-testid="remove-setlist-button"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <p className="text-xs text-[#505050] mb-4">
+                  This is a copy for this show. Changes won't affect the
+                  original setlist.
+                </p>
+
+                {/* Songs List */}
+                <div className="space-y-2" data-testid="setlist-songs">
+                  {setlistItems.length > 0 ? (
+                    setlistItems.map(item => (
+                      <SortableSongListItem
+                        key={item.id}
+                        item={item}
+                        isEditing={false}
+                        userId={currentUserId}
+                        bandId={currentBandId}
+                        isNotesExpanded={item.song?.id === expandedSongId}
+                        onToggleNotes={() =>
+                          setExpandedSongId(
+                            item.song?.id === expandedSongId
+                              ? null
+                              : item.song?.id || null
+                          )
+                        }
+                      />
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-[#707070]">
+                      No songs in this setlist
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => handleSetlistChange('')}
-                  className="text-xs text-[#707070] hover:text-white transition-colors"
-                  data-testid="remove-setlist-button"
-                >
-                  Remove
-                </button>
-              </div>
-              <p className="text-xs text-[#505050] mb-4">
-                This is a copy for this show. Changes won't affect the original
-                setlist.
-              </p>
-
-              {/* Songs List */}
-              <div className="space-y-2" data-testid="setlist-songs">
-                {setlistItems.length > 0 ? (
-                  setlistItems.map(item => (
-                    <SortableSongListItem
-                      key={item.id}
-                      item={item}
-                      isEditing={false}
-                      userId={currentUserId}
-                      bandId={currentBandId}
-                      isNotesExpanded={item.song?.id === expandedSongId}
-                      onToggleNotes={() =>
-                        setExpandedSongId(
-                          item.song?.id === expandedSongId
-                            ? null
-                            : item.song?.id || null
-                        )
-                      }
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-[#707070]">
-                    No songs in this setlist
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Confirm Dialog */}
-      <ConfirmDialog {...dialogProps} />
-    </ModernLayout>
+        {/* Confirm Dialog */}
+        <ConfirmDialog {...dialogProps} />
+      </div>
+    </ContentLoadingSpinner>
   )
 }
