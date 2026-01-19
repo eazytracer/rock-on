@@ -207,13 +207,17 @@ export class RemoteRepository implements IDataRepository {
     if (!supabase) throw new Error('Supabase client not initialized')
     if (bandIds.length === 0) return { songs: [], total: 0 }
 
+    // Query both created_date and updated_date to catch:
+    // - New records (updated_date may be NULL, but created_date is set)
+    // - Updated records (updated_date is set)
+    const sinceIso = since.toISOString()
     const { data, error, count } = await supabase
       .from('songs')
       .select('*', { count: 'exact' })
       .in('context_id', bandIds)
       .eq('context_type', 'band')
-      .gte('updated_date', since.toISOString())
-      .order('updated_date', { ascending: false })
+      .or(`created_date.gte.${sinceIso},updated_date.gte.${sinceIso}`)
+      .order('created_date', { ascending: false })
 
     if (error) throw error
 
@@ -471,12 +475,16 @@ export class RemoteRepository implements IDataRepository {
     if (!supabase) throw new Error('Supabase client not initialized')
     if (bandIds.length === 0) return { setlists: [], total: 0 }
 
+    // Query both created_date and last_modified to catch:
+    // - New records (last_modified may be NULL, but created_date is set)
+    // - Updated records (last_modified is set)
+    const sinceIso = since.toISOString()
     const { data, error, count } = await supabase
       .from('setlists')
       .select('*', { count: 'exact' })
       .in('band_id', bandIds)
-      .gte('last_modified', since.toISOString())
-      .order('last_modified', { ascending: false })
+      .or(`created_date.gte.${sinceIso},last_modified.gte.${sinceIso}`)
+      .order('created_date', { ascending: false })
 
     if (error) throw error
 
@@ -758,8 +766,9 @@ export class RemoteRepository implements IDataRepository {
   }
 
   /**
-   * Get shows modified since a given time (for incremental sync)
-   * Uses updated_date field in Supabase
+   * Get shows created or modified since a given time (for incremental sync)
+   * Uses OR condition to catch both newly created shows (created_date) and
+   * updated shows (updated_date) since new records may have NULL updated_date
    */
   async getShowsSince(
     bandIds: string[],
@@ -768,12 +777,13 @@ export class RemoteRepository implements IDataRepository {
     if (!supabase) throw new Error('Supabase client not initialized')
     if (bandIds.length === 0) return { shows: [], total: 0 }
 
+    const sinceIso = since.toISOString()
     const { data, error, count } = await supabase
       .from('shows')
       .select('*', { count: 'exact' })
       .in('band_id', bandIds)
-      .gte('updated_date', since.toISOString())
-      .order('updated_date', { ascending: false })
+      .or(`created_date.gte.${sinceIso},updated_date.gte.${sinceIso}`)
+      .order('created_date', { ascending: false })
 
     if (error) throw error
 

@@ -203,7 +203,10 @@ describe('RealtimeManager', () => {
       )
     })
 
-    it('should NOT mark as unread if current user created item', async () => {
+    it('should STILL sync data for current user creates (cross-device support) but skip toast', async () => {
+      // This test verifies that same-user creates from OTHER devices are processed.
+      // Before the fix, we would skip ALL changes from the same user, breaking cross-device sync.
+      // Now we process data changes from same user but skip toast notifications.
       const userId = 'user-1'
       const bandIds = ['band-1']
 
@@ -219,7 +222,7 @@ describe('RealtimeManager', () => {
           id: 'audit-1',
           table_name: 'songs',
           action: 'INSERT',
-          user_id: 'user-1', // Current user
+          user_id: 'user-1', // Current user (but could be from different device)
           user_name: 'Alice',
           record_id: 'song-1',
           band_id: 'band-1',
@@ -243,8 +246,13 @@ describe('RealtimeManager', () => {
       await handler(auditPayload)
       await new Promise(resolve => setImmediate(resolve))
 
-      // Should NOT update local repository (current user's own change)
-      expect(mockDb.songs.put).not.toHaveBeenCalled()
+      // Data SHOULD be synced (for cross-device sync)
+      expect(mockDb.songs.put).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'song-1',
+          title: 'Test Song',
+        })
+      )
     })
 
     it('should show toast notification for remote INSERT', async () => {
@@ -347,7 +355,10 @@ describe('RealtimeManager', () => {
       )
     })
 
-    it('should NOT mark as unread if current user updated item', async () => {
+    it('should STILL sync data for current user changes (cross-device support) but skip toast', async () => {
+      // This test verifies that same-user changes from OTHER devices are processed.
+      // Before the fix, we would skip ALL changes from the same user, breaking cross-device sync.
+      // Now we process data changes from same user but skip toast notifications.
       const userId = 'user-1'
       const bandIds = ['band-1']
 
@@ -363,7 +374,7 @@ describe('RealtimeManager', () => {
           id: 'audit-1',
           table_name: 'songs',
           action: 'UPDATE',
-          user_id: 'user-1', // Current user
+          user_id: 'user-1', // Current user (but could be from different device)
           user_name: 'Alice',
           record_id: 'song-1',
           band_id: 'band-1',
@@ -389,7 +400,13 @@ describe('RealtimeManager', () => {
       await handler(auditPayload)
       await new Promise(resolve => setImmediate(resolve))
 
-      expect(mockDb.songs.put).not.toHaveBeenCalled()
+      // Data SHOULD be synced (for cross-device sync)
+      expect(mockDb.songs.put).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Updated Title',
+          version: 2,
+        })
+      )
     })
   })
 
@@ -434,7 +451,10 @@ describe('RealtimeManager', () => {
       expect(mockRepository.deleteSong).toHaveBeenCalledWith('song-1')
     })
 
-    it('should NOT delete if current user deleted item', async () => {
+    it('should STILL delete locally for current user deletes (cross-device support) but skip toast', async () => {
+      // This test verifies that same-user deletes from OTHER devices are processed.
+      // Before the fix, we would skip ALL changes from the same user, breaking cross-device sync.
+      // Now we process data changes from same user but skip toast notifications.
       const userId = 'user-1'
       const bandIds = ['band-1']
 
@@ -451,7 +471,7 @@ describe('RealtimeManager', () => {
           id: 'audit-1',
           table_name: 'songs',
           action: 'DELETE',
-          user_id: 'user-1', // Current user
+          user_id: 'user-1', // Current user (but could be from different device)
           user_name: 'Alice',
           record_id: 'song-1',
           band_id: 'band-1',
@@ -471,8 +491,8 @@ describe('RealtimeManager', () => {
       await handler(auditPayload)
       await new Promise(resolve => setImmediate(resolve))
 
-      // Should NOT delete if current user (audit log user_id = 'user-1')
-      expect(mockRepository.deleteSong).not.toHaveBeenCalled()
+      // Data SHOULD be deleted (for cross-device sync)
+      expect(mockRepository.deleteSong).toHaveBeenCalledWith('song-1')
     })
   })
 

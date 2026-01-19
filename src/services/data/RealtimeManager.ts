@@ -784,11 +784,10 @@ export class RealtimeManager extends EventEmitter {
       }
     )
 
-    // Skip if current user made this change (avoid redundant refetches and toasts)
-    if (audit.user_id === this.currentUserId) {
-      console.log('[RealtimeManager] Skipping own change')
-      return
-    }
+    // Note: We do NOT skip changes from the same user anymore.
+    // The same user may be on multiple devices, and all devices need the update.
+    // We only skip toasts for own changes (handled in queueToastFromAudit).
+    const isOwnChange = audit.user_id === this.currentUserId
 
     // Handle based on action type
     try {
@@ -807,12 +806,15 @@ export class RealtimeManager extends EventEmitter {
       const itemName = this.extractItemName(audit)
 
       // Show toast with ACTUAL user name (not "Someone"!)
-      await this.queueToastFromAudit(
-        audit.user_name,
-        audit.action,
-        audit.table_name,
-        itemName
-      )
+      // Skip toast for own changes (but still process the data sync above)
+      if (!isOwnChange) {
+        await this.queueToastFromAudit(
+          audit.user_name,
+          audit.action,
+          audit.table_name,
+          itemName
+        )
+      }
 
       // Emit change event for UI reactivity
       // Map table_name to event name (practice_sessions → practices)
