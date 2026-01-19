@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ModernLayout } from '../components/layout/ModernLayout'
-import { useAuth } from '../contexts/AuthContext'
+import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import { DatePicker } from '../components/common/DatePicker'
 import { TimePickerDropdown } from '../components/common/TimePickerDropdown'
@@ -220,7 +219,6 @@ const SortableSongItem: React.FC<SortableSongItemProps> = ({
 export const PracticeBuilderPage: React.FC = () => {
   const navigate = useNavigate()
   const { practiceId } = useParams<{ practiceId?: string }>()
-  const { currentUser, currentBand, signOut } = useAuth()
 
   // Get currentBandId from localStorage
   const [currentBandId] = useState(
@@ -439,215 +437,169 @@ export const PracticeBuilderPage: React.FC = () => {
     navigate('/practices')
   }
 
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/auth')
-  }
-
   // Filter songs that are already in the practice
   const songsInPractice = selectedSongs.map(item => item.songId)
 
-  // Loading state
-  if (loading) {
-    return (
-      <ModernLayout
-        bandName={currentBand?.name || 'No Band Selected'}
-        userEmail={currentUser?.email || 'Not logged in'}
-        onSignOut={handleSignOut}
-      >
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f17827ff] mx-auto mb-4"></div>
-            <p className="text-[#a0a0a0] text-sm">Loading practice...</p>
-          </div>
-        </div>
-      </ModernLayout>
-    )
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <ModernLayout
-        bandName={currentBand?.name || 'No Band Selected'}
-        userEmail={currentUser?.email || 'Not logged in'}
-        onSignOut={handleSignOut}
-      >
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <p className="text-red-500 text-sm mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </ModernLayout>
-    )
-  }
-
   return (
-    <div className="fixed inset-0 bg-[#0f0f0f] z-50 flex flex-col">
-      {/* Header */}
-      <div className="border-b border-[#2a2a2a] bg-[#121212] flex-shrink-0">
-        <div className="flex items-center justify-between gap-3 px-3 sm:px-6 py-2 sm:py-4">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-            <button
-              onClick={handleBack}
-              data-testid="back-button"
-              className="p-1.5 sm:p-2 text-[#707070] hover:text-white transition-colors rounded-lg hover:bg-[#1a1a1a] flex-shrink-0"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-base sm:text-xl font-bold text-white">
-                {practiceId ? 'Edit Practice' : 'Schedule Practice'}
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-            {/* Mobile: Icon buttons */}
-            <button
-              onClick={handleBack}
-              data-testid="cancel-button"
-              className="sm:hidden p-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f] transition-colors"
-              title="Cancel"
-            >
-              <X size={18} />
-            </button>
-            <button
-              onClick={handleSave}
-              data-testid="save-button"
-              disabled={creating || updating}
-              className="sm:hidden p-2 rounded-lg bg-[#f17827ff] text-white hover:bg-[#d66920] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Save"
-            >
-              <Check size={18} />
-            </button>
-
-            {/* Desktop: Text buttons */}
-            <button
-              onClick={handleBack}
-              data-testid="cancel-button"
-              className="hidden sm:block px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              data-testid="save-button"
-              disabled={creating || updating}
-              className="hidden sm:block px-6 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {creating || updating ? 'Saving...' : 'Save Practice'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col sm:flex-row">
-        {/* Left Panel - Practice Details */}
-        <div className="w-full sm:w-[400px] border-b sm:border-b-0 sm:border-r border-[#2a2a2a] p-4 sm:p-6 overflow-y-auto custom-scrollbar bg-[#0f0f0f]">
-          <div className="space-y-4">
-            <DatePicker
-              label="Date"
-              name="practiceDate"
-              id="practice-date"
-              data-testid="practice-date-input"
-              value={date}
-              onChange={setDate}
-              required
-            />
-
-            <TimePickerDropdown
-              label="Time"
-              name="practiceTime"
-              id="practice-time"
-              data-testid="practice-time-input"
-              value={time}
-              onChange={setTime}
-              required
-            />
-
-            <div>
-              <label className="block text-sm text-[#a0a0a0] mb-2">
-                Duration
-              </label>
-              <DurationPicker
-                value={duration}
-                onChange={setDuration}
-                placeholder="Select duration"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="practice-location"
-                className="block text-sm text-[#a0a0a0] mb-2"
-              >
-                Location
-              </label>
-              <input
-                type="text"
-                name="location"
-                id="practice-location"
-                data-testid="practice-location-input"
-                value={location}
-                onChange={e => setLocation(e.target.value)}
-                placeholder="Practice space, studio, etc."
-                className="w-full h-10 px-3 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="practice-notes"
-                className="block text-sm text-[#a0a0a0] mb-2"
-              >
-                Notes
-              </label>
-              <textarea
-                name="notes"
-                id="practice-notes"
-                data-testid="practice-notes-input"
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Practice goals, what to focus on, etc."
-                rows={4}
-                className="w-full px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 resize-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Right Panel - Songs */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-white font-semibold text-lg">
-                Songs to Practice
-              </h3>
+    <ContentLoadingSpinner isLoading={loading}>
+      <div
+        data-testid="practice-builder-page"
+        className="fixed inset-0 bg-[#0f0f0f] z-50 flex flex-col"
+      >
+        {error && (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <p className="text-red-500 text-sm mb-4">{error}</p>
               <button
-                onClick={() => setIsDrawerOpen(true)}
-                data-testid="add-songs-button"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
               >
-                <Plus size={18} />
-                <span>Add Songs</span>
+                Retry
               </button>
             </div>
+          </div>
+        )}
+        {/* Header */}
+        <div className="border-b border-[#2a2a2a] bg-[#121212] flex-shrink-0">
+          <div className="flex items-center justify-between gap-3 px-3 sm:px-6 py-2 sm:py-4">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+              <button
+                onClick={handleBack}
+                data-testid="back-button"
+                className="p-1.5 sm:p-2 text-[#707070] hover:text-white transition-colors rounded-lg hover:bg-[#1a1a1a] flex-shrink-0"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base sm:text-xl font-bold text-white">
+                  {practiceId ? 'Edit Practice' : 'Schedule Practice'}
+                </h1>
+              </div>
+            </div>
 
-            {selectedSongs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-[#2a2a2a] rounded-xl">
-                <ListMusic size={48} className="text-[#2a2a2a] mb-3" />
-                <p className="text-[#707070] text-sm mb-1">No songs yet</p>
-                <p className="text-[#505050] text-xs mb-4">
-                  Add songs to practice during this session
-                </p>
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+              {/* Mobile: Icon buttons */}
+              <button
+                onClick={handleBack}
+                data-testid="cancel-button"
+                className="sm:hidden p-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f] transition-colors"
+                title="Cancel"
+              >
+                <X size={18} />
+              </button>
+              <button
+                onClick={handleSave}
+                data-testid="save-button"
+                disabled={creating || updating}
+                className="sm:hidden p-2 rounded-lg bg-[#f17827ff] text-white hover:bg-[#d66920] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Save"
+              >
+                <Check size={18} />
+              </button>
+
+              {/* Desktop: Text buttons */}
+              <button
+                onClick={handleBack}
+                data-testid="cancel-button"
+                className="hidden sm:block px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                data-testid="save-button"
+                disabled={creating || updating}
+                className="hidden sm:block px-6 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creating || updating ? 'Saving...' : 'Save Practice'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden flex flex-col sm:flex-row">
+          {/* Left Panel - Practice Details */}
+          <div className="w-full sm:w-[400px] border-b sm:border-b-0 sm:border-r border-[#2a2a2a] p-4 sm:p-6 overflow-y-auto custom-scrollbar bg-[#0f0f0f]">
+            <div className="space-y-4">
+              <DatePicker
+                label="Date"
+                name="practiceDate"
+                id="practice-date"
+                data-testid="practice-date-input"
+                value={date}
+                onChange={setDate}
+                required
+              />
+
+              <TimePickerDropdown
+                label="Time"
+                name="practiceTime"
+                id="practice-time"
+                data-testid="practice-time-input"
+                value={time}
+                onChange={setTime}
+                required
+              />
+
+              <div>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Duration
+                </label>
+                <DurationPicker
+                  value={duration}
+                  onChange={setDuration}
+                  placeholder="Select duration"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="practice-location"
+                  className="block text-sm text-[#a0a0a0] mb-2"
+                >
+                  Location
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  id="practice-location"
+                  data-testid="practice-location-input"
+                  value={location}
+                  onChange={e => setLocation(e.target.value)}
+                  placeholder="Practice space, studio, etc."
+                  className="w-full h-10 px-3 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="practice-notes"
+                  className="block text-sm text-[#a0a0a0] mb-2"
+                >
+                  Notes
+                </label>
+                <textarea
+                  name="notes"
+                  id="practice-notes"
+                  data-testid="practice-notes-input"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="Practice goals, what to focus on, etc."
+                  rows={4}
+                  className="w-full px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 resize-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel - Songs */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-white font-semibold text-lg">
+                  Songs to Practice
+                </h3>
                 <button
                   onClick={() => setIsDrawerOpen(true)}
                   data-testid="add-songs-button"
@@ -657,42 +609,63 @@ export const PracticeBuilderPage: React.FC = () => {
                   <span>Add Songs</span>
                 </button>
               </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={selectedSongs.map(i => i.id)}
-                  strategy={verticalListSortingStrategy}
+
+              {selectedSongs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-[#2a2a2a] rounded-xl">
+                  <ListMusic size={48} className="text-[#2a2a2a] mb-3" />
+                  <p className="text-[#707070] text-sm mb-1">No songs yet</p>
+                  <p className="text-[#505050] text-xs mb-4">
+                    Add songs to practice during this session
+                  </p>
+                  <button
+                    onClick={() => setIsDrawerOpen(true)}
+                    data-testid="add-songs-button"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                  >
+                    <Plus size={18} />
+                    <span>Add Songs</span>
+                  </button>
+                </div>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
                 >
-                  <div data-testid="practice-songs-list" className="space-y-2">
-                    {selectedSongs.map(item => (
-                      <SortableSongItem
-                        key={item.id}
-                        item={item}
-                        onRemove={removeSongFromPractice}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
+                  <SortableContext
+                    items={selectedSongs.map(i => i.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div
+                      data-testid="practice-songs-list"
+                      className="space-y-2"
+                    >
+                      {selectedSongs.map(item => (
+                        <SortableSongItem
+                          key={item.id}
+                          item={item}
+                          onRemove={removeSongFromPractice}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Browse Songs Drawer */}
-      <BrowseSongsDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        songs={dbSongs}
-        selectedSongIds={songsInPractice}
-        onAddSong={addSongToPractice}
-        setlists={dbSetlists}
-        onAddAllFromSetlist={addAllSongsFromSetlist}
-      />
-    </div>
+        {/* Browse Songs Drawer */}
+        <BrowseSongsDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          songs={dbSongs}
+          selectedSongIds={songsInPractice}
+          onAddSong={addSongToPractice}
+          setlists={dbSetlists}
+          onAddAllFromSetlist={addAllSongsFromSetlist}
+        />
+      </div>
+    </ContentLoadingSpinner>
   )
 }

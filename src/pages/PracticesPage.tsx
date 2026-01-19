@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ModernLayout } from '../components/layout/ModernLayout'
-import { useAuth } from '../contexts/AuthContext'
+import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { useToast } from '../contexts/ToastContext'
 import {
   ChevronDown,
@@ -16,7 +15,6 @@ import {
   Edit2,
   CheckCircle,
   XCircle,
-  Loader2,
 } from 'lucide-react'
 import { CalendarDateBadge } from '../components/common/CalendarDateBadge'
 
@@ -287,8 +285,6 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 export const PracticesPage: React.FC = () => {
   const navigate = useNavigate()
 
-  // Get auth context for user info and sign out
-  const { currentUser, currentBand, signOut } = useAuth()
   const { showToast } = useToast()
 
   // DATABASE: Get current band ID from localStorage
@@ -311,12 +307,6 @@ export const PracticesPage: React.FC = () => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const now = new Date()
-
-  const handleSignOut = async () => {
-    // signOut() now calls logout() internally to clear all state
-    await signOut()
-    navigate('/auth')
-  }
 
   // DATABASE: Combine and filter practices based on filter
   const allPractices = [...upcomingPractices, ...pastPractices]
@@ -435,47 +425,20 @@ export const PracticesPage: React.FC = () => {
     }
   }
 
-  // DATABASE: Show loading state
-  if (loading) {
-    return (
-      <ModernLayout
-        bandName={currentBand?.name || 'No Band Selected'}
-        userEmail={currentUser?.email || 'Not logged in'}
-        onSignOut={handleSignOut}
-      >
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={48} className="text-[#f17827ff] animate-spin" />
-        </div>
-      </ModernLayout>
-    )
-  }
-
-  // DATABASE: Show error state
-  if (error) {
-    return (
-      <ModernLayout
-        bandName={currentBand?.name || 'No Band Selected'}
-        userEmail={currentUser?.email || 'Not logged in'}
-        onSignOut={handleSignOut}
-      >
-        <div className="flex flex-col items-center justify-center py-20">
-          <AlertCircle size={48} className="text-red-500 mb-4" />
-          <h3 className="text-white font-semibold text-lg mb-2">
-            Error Loading Practices
-          </h3>
-          <p className="text-[#a0a0a0] text-sm">{error.message}</p>
-        </div>
-      </ModernLayout>
-    )
-  }
-
+  // RENDER
   return (
-    <ModernLayout
-      bandName={currentBand?.name || 'No Band Selected'}
-      userEmail={currentUser?.email || 'Not logged in'}
-      onSignOut={handleSignOut}
-    >
-      <div className="max-w-6xl mx-auto">
+    <ContentLoadingSpinner isLoading={loading}>
+      <div data-testid="practices-page" className="max-w-6xl mx-auto">
+        {/* Error state */}
+        {error && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <AlertCircle size={48} className="text-red-500 mb-4" />
+            <h3 className="text-white font-semibold text-lg mb-2">
+              Error Loading Practices
+            </h3>
+            <p className="text-[#a0a0a0] text-sm">{error.message}</p>
+          </div>
+        )}
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-6">
@@ -652,6 +615,6 @@ export const PracticesPage: React.FC = () => {
           }
         />
       </div>
-    </ModernLayout>
+    </ContentLoadingSpinner>
   )
 }

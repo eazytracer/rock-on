@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ModernLayout } from '../components/layout/ModernLayout'
+import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import {
@@ -103,19 +103,19 @@ export const SettingsPage: React.FC = () => {
 
   if (!user) {
     return (
-      <ModernLayout>
-        <div className="max-w-4xl mx-auto">
+      <ContentLoadingSpinner isLoading={false}>
+        <div data-testid="settings-page" className="max-w-4xl mx-auto">
           <div className="text-center py-12">
             <p className="text-gray-400">Please sign in to view settings</p>
           </div>
         </div>
-      </ModernLayout>
+      </ContentLoadingSpinner>
     )
   }
 
   return (
-    <ModernLayout>
-      <div className="max-w-4xl mx-auto space-y-6" data-testid="settings-page">
+    <ContentLoadingSpinner isLoading={false}>
+      <div data-testid="settings-page" className="max-w-4xl mx-auto space-y-6">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
@@ -391,6 +391,6 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
       )}
-    </ModernLayout>
+    </ContentLoadingSpinner>
   )
 }

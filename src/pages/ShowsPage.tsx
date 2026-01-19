@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ModernLayout } from '../components/layout/ModernLayout'
-import { useAuth } from '../contexts/AuthContext'
+import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { useToast } from '../contexts/ToastContext'
 import { DatePicker } from '../components/common/DatePicker'
 import { TimePickerDropdown } from '../components/common/TimePickerDropdown'
@@ -106,8 +105,6 @@ type FilterType =
 export const ShowsPage: React.FC = () => {
   const navigate = useNavigate()
 
-  // Get auth context for user info and sign out
-  const { currentUser, currentBand, signOut } = useAuth()
   const { showToast } = useToast()
 
   // ============================================
@@ -131,12 +128,6 @@ export const ShowsPage: React.FC = () => {
   // Setlist data for display (loaded dynamically)
   const [setlistsData, setSetlistsData] = useState<Record<string, Setlist>>({})
   const [availableSetlists, setAvailableSetlists] = useState<Setlist[]>([])
-
-  const handleSignOut = async () => {
-    // signOut() now calls logout() internally to clear all state
-    await signOut()
-    navigate('/auth')
-  }
 
   // ============================================
   // LOAD SETLISTS FOR SHOWS - REAL DATABASE
@@ -268,45 +259,19 @@ export const ShowsPage: React.FC = () => {
   const filteredShows = getFilteredShows()
 
   // ============================================
-  // LOADING & ERROR STATES
+  // RENDER
   // ============================================
-  if (loading) {
-    return (
-      <ModernLayout
-        bandName="Loading..."
-        userEmail={currentUser?.email || 'Not logged in'}
-        onSignOut={handleSignOut}
-      >
-        <div className="flex items-center justify-center py-16">
-          <div className="text-white">Loading shows...</div>
-        </div>
-      </ModernLayout>
-    )
-  }
-
-  if (error) {
-    return (
-      <ModernLayout
-        bandName="Error"
-        userEmail={currentUser?.email || 'Not logged in'}
-        onSignOut={handleSignOut}
-      >
-        <div className="flex items-center justify-center py-16">
-          <div className="text-red-500">
-            Error loading shows: {error.message}
-          </div>
-        </div>
-      </ModernLayout>
-    )
-  }
-
   return (
-    <ModernLayout
-      bandName={currentBand?.name || 'No Band Selected'}
-      userEmail={currentUser?.email || 'Not logged in'}
-      onSignOut={handleSignOut}
-    >
-      <div className="max-w-6xl mx-auto">
+    <ContentLoadingSpinner isLoading={loading}>
+      <div data-testid="shows-page" className="max-w-6xl mx-auto">
+        {/* Error state */}
+        {error && (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-red-500">
+              Error loading shows: {error.message}
+            </div>
+          </div>
+        )}
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
@@ -555,7 +520,7 @@ export const ShowsPage: React.FC = () => {
           />
         )}
       </div>
-    </ModernLayout>
+    </ContentLoadingSpinner>
   )
 }
 

@@ -121,16 +121,8 @@ export class SyncRepository implements IDataRepository {
     await this.syncEngine.queueDelete('songs', id)
     console.log('[SyncRepository] Step 2: Complete')
 
-    // 3. Sync if online
-    if (this.isOnline) {
-      console.log(
-        '[SyncRepository] Step 3: Triggering immediate sync (online)...'
-      )
-      this.syncEngine.syncNow()
-    } else {
-      console.log('[SyncRepository] Step 3: Skipping sync (offline)')
-    }
-
+    // 3. queueDelete() already schedules an immediate push via scheduleImmediateSync()
+    // Don't call syncNow() here - it pulls first which would re-add the deleted song
     console.log('[SyncRepository] deleteSong complete for:', id)
   }
 

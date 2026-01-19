@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ModernLayout } from '../components/layout/ModernLayout'
+import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { EntityHeader } from '../components/common/EntityHeader'
 import { InlineEditableField } from '../components/common/InlineEditableField'
 import { PRACTICE_STATUS_OPTIONS } from '../components/common/InlineStatusBadge'
@@ -16,7 +16,6 @@ import { EditSongModal } from '../components/songs/EditSongModal'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
-import { useAuth } from '../contexts/AuthContext'
 import { db } from '../services/database'
 import {
   formatShowDate,
@@ -108,7 +107,6 @@ export const PracticeViewPage: React.FC = () => {
   const { practiceId } = useParams<{ practiceId: string }>()
   const { showToast } = useToast()
   const { confirm, dialogProps } = useConfirm()
-  const { currentUser, currentBand, signOut } = useAuth()
 
   // Detect "new" mode
   const isNewMode = !practiceId || practiceId === 'new'
@@ -424,20 +422,6 @@ export const PracticeViewPage: React.FC = () => {
     }
   }
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0f0f0f]">
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f17827ff] mx-auto mb-4"></div>
-            <p className="text-[#a0a0a0] text-sm">Loading practice...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   if (!practice) return null
 
   // Build display data
@@ -468,254 +452,252 @@ export const PracticeViewPage: React.FC = () => {
   }))
 
   return (
-    <ModernLayout
-      bandName={currentBand?.name}
-      userEmail={currentUser?.email}
-      onSignOut={signOut}
-    >
-      {/* Header with inline editing */}
-      <EntityHeader
-        backPath="/practices"
-        title={headerTitle}
-        titleEditable={false}
-        entityType="practice"
-        date={formattedDate}
-        time={formattedTime}
-        dateLabel={dateLabel}
-        timeLabel={formattedTime}
-        onDateSave={val => saveDateTime(String(val), formattedTime)}
-        onTimeSave={val => saveDateTime(formattedDate, String(val))}
-        venue={practice.location}
-        onVenueSave={val => saveField('location', String(val) || undefined)}
-        status={
-          !isNewMode
-            ? {
-                value: status,
-                onSave: () => {}, // Status is computed, not directly editable
-                options: PRACTICE_STATUS_OPTIONS,
-                disabled: true, // Practice status is auto-computed
-              }
-            : undefined
-        }
-        isNew={isNewMode}
-      />
+    <ContentLoadingSpinner isLoading={loading}>
+      <div data-testid="practice-view-page">
+        {/* Header with inline editing */}
+        <EntityHeader
+          backPath="/practices"
+          title={headerTitle}
+          titleEditable={false}
+          entityType="practice"
+          date={formattedDate}
+          time={formattedTime}
+          dateLabel={dateLabel}
+          timeLabel={formattedTime}
+          onDateSave={val => saveDateTime(String(val), formattedTime)}
+          onTimeSave={val => saveDateTime(formattedDate, String(val))}
+          venue={practice.location}
+          onVenueSave={val => saveField('location', String(val) || undefined)}
+          status={
+            !isNewMode
+              ? {
+                  value: status,
+                  onSave: () => {}, // Status is computed, not directly editable
+                  options: PRACTICE_STATUS_OPTIONS,
+                  disabled: true, // Practice status is auto-computed
+                }
+              : undefined
+          }
+          isNew={isNewMode}
+        />
 
-      {/* Start Practice Button - shown for existing practices with songs */}
-      {!isNewMode && songs.length > 0 && (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6">
-          <button
-            onClick={() => navigate(`/practices/${practiceId}/session`)}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-[#f17827ff] to-[#d66920] hover:from-[#ff8c3d] hover:to-[#e07830] text-white font-semibold rounded-xl transition-all shadow-lg shadow-[#f17827ff]/20 hover:shadow-xl hover:shadow-[#f17827ff]/30"
-            data-testid="start-practice-button"
-          >
-            <Play size={24} fill="currentColor" />
-            <span className="text-lg">Start Practice Session</span>
-          </button>
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* New mode save button */}
-        {isNewMode && (
-          <div className="bg-[#121212] border border-[#f17827ff] rounded-lg p-4 flex items-center justify-between">
-            <div>
-              <p className="text-white font-medium">Creating new practice</p>
-              <p className="text-sm text-[#707070]">
-                Click any field above to edit, then save when ready
-              </p>
-            </div>
+        {/* Start Practice Button - shown for existing practices with songs */}
+        {!isNewMode && songs.length > 0 && (
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6">
             <button
-              onClick={createPracticeHandler}
-              className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white font-medium rounded-lg transition-colors"
-              data-testid="create-practice-button"
+              onClick={() => navigate(`/practices/${practiceId}/session`)}
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-[#f17827ff] to-[#d66920] hover:from-[#ff8c3d] hover:to-[#e07830] text-white font-semibold rounded-xl transition-all shadow-lg shadow-[#f17827ff]/20 hover:shadow-xl hover:shadow-[#f17827ff]/30"
+              data-testid="start-practice-button"
             >
-              Create Practice
+              <Play size={24} fill="currentColor" />
+              <span className="text-lg">Start Practice Session</span>
             </button>
           </div>
         )}
 
-        {/* Details Section */}
-        <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Details</h2>
+        {/* Content */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+          {/* New mode save button */}
+          {isNewMode && (
+            <div className="bg-[#121212] border border-[#f17827ff] rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <p className="text-white font-medium">Creating new practice</p>
+                <p className="text-sm text-[#707070]">
+                  Click any field above to edit, then save when ready
+                </p>
+              </div>
+              <button
+                onClick={createPracticeHandler}
+                className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white font-medium rounded-lg transition-colors"
+                data-testid="create-practice-button"
+              >
+                Create Practice
+              </button>
+            </div>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Duration */}
-            <InlineEditableField
-              label="Duration"
-              value={practice.duration}
-              displayValue={formatDuration(practice.duration)}
-              onSave={val => saveField('duration', Number(val))}
-              type="duration"
-              icon={<Clock size={16} />}
-              data-testid="practice-duration"
-            />
+          {/* Details Section */}
+          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Details</h2>
 
-            {/* Location */}
-            <InlineEditableField
-              label="Location"
-              value={practice.location || ''}
-              onSave={val => saveField('location', String(val) || undefined)}
-              placeholder="Practice space, studio, etc."
-              icon={<MapPin size={16} />}
-              data-testid="practice-location"
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Duration */}
+              <InlineEditableField
+                label="Duration"
+                value={practice.duration}
+                displayValue={formatDuration(practice.duration)}
+                onSave={val => saveField('duration', Number(val))}
+                type="duration"
+                icon={<Clock size={16} />}
+                data-testid="practice-duration"
+              />
+
+              {/* Location */}
+              <InlineEditableField
+                label="Location"
+                value={practice.location || ''}
+                onSave={val => saveField('location', String(val) || undefined)}
+                placeholder="Practice space, studio, etc."
+                icon={<MapPin size={16} />}
+                data-testid="practice-location"
+              />
+            </div>
+
+            {/* Pre-practice Notes - Full Width */}
+            <div className="mt-6 pt-6 border-t border-[#2a2a2a]">
+              <InlineEditableField
+                label="Notes"
+                value={practice.notes || ''}
+                onSave={val => saveField('notes', String(val) || undefined)}
+                type="textarea"
+                placeholder="What to focus on, parts to work on, objectives for the band..."
+                icon={<FileText size={16} />}
+                data-testid="practice-notes"
+              />
+            </div>
           </div>
 
-          {/* Pre-practice Notes - Full Width */}
-          <div className="mt-6 pt-6 border-t border-[#2a2a2a]">
-            <InlineEditableField
-              label="Notes"
-              value={practice.notes || ''}
-              onSave={val => saveField('notes', String(val) || undefined)}
-              type="textarea"
-              placeholder="What to focus on, parts to work on, objectives for the band..."
-              icon={<FileText size={16} />}
-              data-testid="practice-notes"
-            />
-          </div>
-        </div>
-
-        {/* Songs Section - ALWAYS editable */}
-        <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">
-              Songs ({songs.length})
-            </h2>
-            <button
-              onClick={() => setIsDrawerOpen(true)}
-              data-testid="add-songs-button"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
-            >
-              <Plus size={18} />
-              <span>Add Songs</span>
-            </button>
-          </div>
-
-          {songs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-[#2a2a2a] rounded-lg">
-              <ListMusic size={48} className="text-[#2a2a2a] mb-3" />
-              <p className="text-[#707070] text-sm mb-1">
-                No songs in this practice
-              </p>
-              <p className="text-[#505050] text-xs mb-4">
-                Add songs to practice during this session
-              </p>
+          {/* Songs Section - ALWAYS editable */}
+          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">
+                Songs ({songs.length})
+              </h2>
               <button
                 onClick={() => setIsDrawerOpen(true)}
+                data-testid="add-songs-button"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
               >
                 <Plus size={18} />
                 <span>Add Songs</span>
               </button>
             </div>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={songs.map(i => i.id)}
-                strategy={verticalListSortingStrategy}
+
+            {songs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-[#2a2a2a] rounded-lg">
+                <ListMusic size={48} className="text-[#2a2a2a] mb-3" />
+                <p className="text-[#707070] text-sm mb-1">
+                  No songs in this practice
+                </p>
+                <p className="text-[#505050] text-xs mb-4">
+                  Add songs to practice during this session
+                </p>
+                <button
+                  onClick={() => setIsDrawerOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                >
+                  <Plus size={18} />
+                  <span>Add Songs</span>
+                </button>
+              </div>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                <div data-testid="practice-songs-list" className="space-y-2">
-                  {displayItems.map(item => (
-                    <SortableSongListItem
-                      key={item.id}
-                      item={item}
-                      isEditing={true}
-                      onRemove={() =>
-                        removeSongFromPractice(
-                          item.id,
-                          item.song?.title || 'this song'
-                        )
-                      }
-                      onEdit={() => {
-                        const song = dbSongs.find(s => s.id === item.songId)
-                        if (song) setEditingSong(song)
-                      }}
-                      userId={currentUserId}
-                      bandId={currentBandId}
-                      isNotesExpanded={item.song?.id === expandedSongId}
-                      onToggleNotes={() =>
-                        setExpandedSongId(
-                          item.song?.id === expandedSongId
-                            ? null
-                            : item.song?.id || null
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
+                <SortableContext
+                  items={songs.map(i => i.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div data-testid="practice-songs-list" className="space-y-2">
+                    {displayItems.map(item => (
+                      <SortableSongListItem
+                        key={item.id}
+                        item={item}
+                        isEditing={true}
+                        onRemove={() =>
+                          removeSongFromPractice(
+                            item.id,
+                            item.song?.title || 'this song'
+                          )
+                        }
+                        onEdit={() => {
+                          const song = dbSongs.find(s => s.id === item.songId)
+                          if (song) setEditingSong(song)
+                        }}
+                        userId={currentUserId}
+                        bandId={currentBandId}
+                        isNotesExpanded={item.song?.id === expandedSongId}
+                        onToggleNotes={() =>
+                          setExpandedSongId(
+                            item.song?.id === expandedSongId
+                              ? null
+                              : item.song?.id || null
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
+
+          {/* Wrap-up Notes Section */}
+          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Wrap-up Notes
+            </h2>
+            <p className="text-sm text-[#707070] mb-4">
+              Capture your thoughts after the practice - what went well, what to
+              improve, or any action items.
+            </p>
+            <InlineEditableField
+              value={practice.wrapupNotes || ''}
+              onSave={val => saveField('wrapupNotes', String(val) || undefined)}
+              type="textarea"
+              placeholder="How did it go? What to focus on next time?"
+              icon={<FileText size={16} />}
+              data-testid="practice-wrapup-notes"
+            />
+          </div>
         </div>
 
-        {/* Wrap-up Notes Section */}
-        <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
-            Wrap-up Notes
-          </h2>
-          <p className="text-sm text-[#707070] mb-4">
-            Capture your thoughts after the practice - what went well, what to
-            improve, or any action items.
-          </p>
-          <InlineEditableField
-            value={practice.wrapupNotes || ''}
-            onSave={val => saveField('wrapupNotes', String(val) || undefined)}
-            type="textarea"
-            placeholder="How did it go? What to focus on next time?"
-            icon={<FileText size={16} />}
-            data-testid="practice-wrapup-notes"
-          />
-        </div>
-      </div>
-
-      {/* Browse Songs Drawer */}
-      <BrowseSongsDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        songs={dbSongs}
-        selectedSongIds={songsInPractice}
-        onAddSong={addSongToPractice}
-        setlists={dbSetlists}
-        onAddAllFromSetlist={addAllSongsFromSetlist}
-      />
-
-      {/* Confirm Dialog */}
-      <ConfirmDialog {...dialogProps} />
-
-      {/* Edit Song Modal */}
-      {editingSong && (
-        <EditSongModal
-          song={editingSong}
-          onClose={() => setEditingSong(null)}
-          onSave={async updatedSong => {
-            try {
-              await db.songs.update(updatedSong.id!, updatedSong)
-              // Update the song in our local state
-              setDbSongs(prev =>
-                prev.map(s => (s.id === updatedSong.id ? updatedSong : s))
-              )
-              // Also update the displayed songs list
-              setSongs(prev =>
-                prev.map(ps =>
-                  ps.songId === updatedSong.id
-                    ? { ...ps, song: dbSongToUISong(updatedSong) }
-                    : ps
-                )
-              )
-              setEditingSong(null)
-              showToast('Song updated', 'success')
-            } catch (error) {
-              console.error('Error updating song:', error)
-              showToast('Failed to update song', 'error')
-            }
-          }}
+        {/* Browse Songs Drawer */}
+        <BrowseSongsDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          songs={dbSongs}
+          selectedSongIds={songsInPractice}
+          onAddSong={addSongToPractice}
+          setlists={dbSetlists}
+          onAddAllFromSetlist={addAllSongsFromSetlist}
         />
-      )}
-    </ModernLayout>
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog {...dialogProps} />
+
+        {/* Edit Song Modal */}
+        {editingSong && (
+          <EditSongModal
+            song={editingSong}
+            onClose={() => setEditingSong(null)}
+            onSave={async updatedSong => {
+              try {
+                await db.songs.update(updatedSong.id!, updatedSong)
+                // Update the song in our local state
+                setDbSongs(prev =>
+                  prev.map(s => (s.id === updatedSong.id ? updatedSong : s))
+                )
+                // Also update the displayed songs list
+                setSongs(prev =>
+                  prev.map(ps =>
+                    ps.songId === updatedSong.id
+                      ? { ...ps, song: dbSongToUISong(updatedSong) }
+                      : ps
+                  )
+                )
+                setEditingSong(null)
+                showToast('Song updated', 'success')
+              } catch (error) {
+                console.error('Error updating song:', error)
+                showToast('Failed to update song', 'error')
+              }
+            }}
+          />
+        )}
+      </div>
+    </ContentLoadingSpinner>
   )
 }

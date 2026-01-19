@@ -8,7 +8,7 @@ import {
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
 import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
-import { ProtectedRoute } from './components/ProtectedRoute'
+import { ProtectedLayoutRoute } from './components/layout/ProtectedLayoutRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { AuthCallback } from './pages/auth/AuthCallback'
 import { SessionExpiredModal } from './components/auth/SessionExpiredModal'
@@ -163,130 +163,42 @@ const AppContent: React.FC = () => {
         }
       >
         <Routes>
-          {/* Auth routes - public */}
+          {/* Auth routes - public (no layout) */}
           <Route path="/auth" element={<AuthPages />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/get-started" element={<AuthPages />} />
 
-          {/* Protected routes */}
-          <Route
-            path="/songs"
-            element={
-              <ProtectedRoute>
-                <SongsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/setlists"
-            element={
-              <ProtectedRoute>
-                <SetlistsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/setlists/new"
-            element={
-              <ProtectedRoute>
-                <SetlistViewPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/setlists/:setlistId"
-            element={
-              <ProtectedRoute>
-                <SetlistViewPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/shows"
-            element={
-              <ProtectedRoute>
-                <ShowsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/shows/new"
-            element={
-              <ProtectedRoute>
-                <ShowViewPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/shows/:showId"
-            element={
-              <ProtectedRoute>
-                <ShowViewPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/practices"
-            element={
-              <ProtectedRoute>
-                <PracticesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/practices/new"
-            element={
-              <ProtectedRoute>
-                <PracticeViewPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/practices/:practiceId"
-            element={
-              <ProtectedRoute>
-                <PracticeViewPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/practices/:practiceId/edit"
-            element={
-              <ProtectedRoute>
-                <PracticeBuilderPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/practices/:practiceId/session"
-            element={
-              <ProtectedRoute>
-                <PracticeSessionPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/band-members"
-            element={
-              <ProtectedRoute>
-                <BandMembersPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Default route - redirect to songs */}
-          <Route path="/" element={<Navigate to="/songs" replace />} />
-
-          {/* Dev Dashboard - accessible in development only */}
+          {/* Dev Dashboard - accessible in development only (no layout) */}
           <Route path="/dev/dashboard" element={<DevDashboard />} />
+
+          {/* Protected routes - with persistent layout */}
+          {/* ModernLayout stays mounted during navigation between these routes */}
+          <Route element={<ProtectedLayoutRoute />}>
+            <Route path="/" element={<Navigate to="/songs" replace />} />
+            <Route path="/songs" element={<SongsPage />} />
+            <Route path="/setlists" element={<SetlistsPage />} />
+            <Route path="/setlists/new" element={<SetlistViewPage />} />
+            <Route path="/setlists/:setlistId" element={<SetlistViewPage />} />
+            <Route path="/shows" element={<ShowsPage />} />
+            <Route path="/shows/new" element={<ShowViewPage />} />
+            <Route path="/shows/:showId" element={<ShowViewPage />} />
+            <Route path="/practices" element={<PracticesPage />} />
+            <Route path="/practices/new" element={<PracticeViewPage />} />
+            <Route
+              path="/practices/:practiceId"
+              element={<PracticeViewPage />}
+            />
+            <Route
+              path="/practices/:practiceId/edit"
+              element={<PracticeBuilderPage />}
+            />
+            <Route
+              path="/practices/:practiceId/session"
+              element={<PracticeSessionPage />}
+            />
+            <Route path="/band-members" element={<BandMembersPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
         </Routes>
       </Suspense>
     </div>
