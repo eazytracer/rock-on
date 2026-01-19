@@ -58,6 +58,7 @@ User visits rockon.app
 ```
 
 **Pain Points:**
+
 - User must make a decision (create vs join)
 - Joining requires knowing and typing a 6-character code
 - No context about which band they're joining until after code entry
@@ -177,6 +178,7 @@ Logged In    Not Logged In
 ```
 
 **Key Improvements:**
+
 - No decision needed (user knows they're joining a specific band)
 - Band context shown before sign-in
 - Single "Join Band" action after authentication
@@ -606,12 +608,12 @@ User clicks /join?code=MAXEDOUT
 
 ## 9. Summary: Key Differences from Current Flow
 
-| Aspect | Current Flow | New Invitation Flow |
-|--------|--------------|---------------------|
-| Entry Point | Always /login | /join?code=xxx |
-| Band Context | Unknown until code entered | Shown immediately |
-| Decision Required | Create vs Join | None (join only) |
-| Code Entry | Manual 6-char typing | Automatic from URL |
-| Post-Auth | Create/Join decision | Direct to confirmation |
-| Join Action | Enter code + validate + join | Single "Join Band" click |
-| Clicks to Join | 4-5 clicks | 2 clicks |
+| Aspect            | Current Flow                 | New Invitation Flow      |
+| ----------------- | ---------------------------- | ------------------------ |
+| Entry Point       | Always /login                | /join?code=xxx           |
+| Band Context      | Unknown until code entered   | Shown immediately        |
+| Decision Required | Create vs Join               | None (join only)         |
+| Code Entry        | Manual 6-char typing         | Automatic from URL       |
+| Post-Auth         | Create/Join decision         | Direct to confirmation   |
+| Join Action       | Enter code + validate + join | Single "Join Band" click |
+| Clicks to Join    | 4-5 clicks                   | 2 clicks                 |

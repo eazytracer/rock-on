@@ -42,13 +42,18 @@ Complete a feature implementation with final quality checks, documentation updat
    - Creates/updates relevant specs in `.claude/specifications/`
    - Adds JSDoc comments where needed
 
-4. **Archives feature documentation**:
+4. **Completes feature**:
    - Creates `SUMMARY.md` with consolidated feature overview
-   - Archives all `.md` files to `archive.tar` (gitignored)
-   - Summary includes: branch/commits, plan overview, changes made
-   - Documents: pages, schemas, and user flows altered
+   - **Deletes** research, plan, and tasks files (no archive.tar)
+   - Moves directory to `.claude/completed/<feature-name>/`
+   - Updates `CHANGELOG.md` with feature entry
 
-5. **Prepares git workflow**:
+5. **Handles versioning** (optional):
+   - Prompts for version bump if warranted
+   - Updates `package.json` version
+   - Suggests GitHub release tag
+
+6. **Prepares git workflow**:
    - Shows `git status` summary
    - Suggests commit message
    - Optionally creates commit
@@ -87,48 +92,115 @@ Accessibility (for UI changes)
 - [ ] Color contrast sufficient
 ```
 
-## Output
+## Feature Completion
 
-Creates a finalization report:
+When finalization completes, the feature is moved to `.claude/completed/`:
+
+**What gets deleted:**
+
+- All timestamped `.md` files (research, plans)
+- `tasks.md` task breakdown file
+- `archive.tar` (if exists from old workflow)
+
+**What gets created:**
+
+- `SUMMARY.md` - Technical reference for the feature
+
+**Final location:**
+
+- `.claude/completed/<feature-name>/SUMMARY.md`
+
+**Why no archive.tar?**
+
+- Git history preserves actual code changes
+- SUMMARY.md captures key technical decisions
+- Research/plans have diminishing value once implemented
+- Reduces repository bloat
+
+## SUMMARY.md Format
 
 ```markdown
-# Finalization Report: <feature-name>
+# <Feature Name> - Summary
 
-## Quality Checks
+**Completed:** YYYY-MM-DD
+**Version:** 0.2.0 (if version was bumped)
+**PR:** #123
 
-- [x] TypeScript: PASS
-- [x] Lint: PASS
-- [x] Tests: 142 passed, 0 failed
-- [ ] E2E: SKIPPED (no new E2E tests)
+## Overview
 
-## Task Completion
+Brief description of what was implemented and why.
 
-- Total tasks: 12
-- Completed: 12
-- Remaining: 0
+## Key Changes
 
-## Files Changed
+### New Files
 
-- 8 files modified
-- 3 files created
-- 0 files deleted
+- `src/components/NewComponent.tsx` - Description
+- `src/hooks/useNewHook.ts` - Description
 
-## Suggested Commit Message
+### Modified Files
 
-feat(auth): implement unified auth check for protected routes
+- `src/App.tsx` - What changed and why
 
-- Add useAuthCheck hook for session validation
-- Update ProtectedRoute to use auth context
-- Redirect to login on session expiry
-- Add unit tests for auth flow
+### Deleted Files
 
-## Next Steps
+- `src/components/OldComponent.tsx` - Why removed
 
-- [ ] Review changes: `git diff`
-- [ ] Create commit: `git add . && git commit`
-- [ ] Push branch: `git push -u origin feature/improved-auth-flow`
-- [ ] Create PR: `gh pr create`
+## Database Changes
+
+Tables, columns, RLS policies added/modified (if any).
+
+## Testing
+
+- Unit tests: X new tests
+- E2E tests: X new tests
+- Coverage: Key areas tested
+
+## Breaking Changes
+
+List any breaking changes (or "None").
+
+## Related
+
+- Depends on: <other-feature> (if applicable)
+- Enables: <future-feature> (if applicable)
 ```
+
+## CHANGELOG.md Entry
+
+The finalize command adds an entry to the project's `CHANGELOG.md`:
+
+```markdown
+## [Unreleased]
+
+### Added
+
+- Persistent layout architecture - eliminates white screen flicker (#6)
+
+### Fixed
+
+- Delete song sync issue - songs no longer reappear after deletion
+```
+
+## Version Bump (Optional)
+
+For features that warrant a version bump, the finalize command prompts:
+
+```
+Feature complete! Does this warrant a version bump?
+
+1. No version change (internal refactor, tests only)
+2. Patch (0.1.1) - Bug fixes only
+3. Minor (0.2.0) - New feature, backward compatible
+4. Major (1.0.0) - Breaking changes
+
+Select [1-4]:
+```
+
+If a version bump is selected:
+
+1. Updates `package.json` version
+2. Moves CHANGELOG [Unreleased] items to new version section
+3. Suggests creating a GitHub release tag
 
 ## Git Workflow Options
 
@@ -148,6 +220,14 @@ Ask the agent to create the commit with the suggested message.
 **Option 3: Create PR**
 Ask the agent to push and create a pull request.
 
+**Option 4: Create Release** (after merging)
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+gh release create v0.2.0 --generate-notes
+```
+
 ## Handling Issues
 
 If quality checks fail:
@@ -161,67 +241,24 @@ If tasks incomplete:
 - Agent will list remaining tasks
 - Suggest continuing with `/implement`
 
-## Feature Archiving
+## Directory Structure
 
-When finalization completes, feature documentation is archived to keep `.claude/features/` clean:
-
-**What gets archived:**
-
-- All timestamped `.md` files (research, plans, progress notes)
-- `tasks.md` task breakdown file
-
-**What remains:**
-
-- `SUMMARY.md` - Consolidated summary for future reference
-
-**Archive location:**
-
-- `.claude/features/<feature-name>/archive.tar` (gitignored)
-
-**SUMMARY.md includes:**
-
-```markdown
-# Feature Name - Feature Summary
-
-**Branch:** feature/<name>
-**Base Commit:** <hash>
-**Completed Date:** <date>
-
-## Overview
-
-Brief description of what was implemented
-
-## Original Plan
-
-Summary of initial plan
-
-## Plan Changes
-
-What changed during implementation
-
-## Database Schema Changes
-
-Tables, columns, RLS policies added/modified
-
-## Pages Modified
-
-Table of pages and changes
-
-## Components Created
-
-New components added
-
-## User Flows Altered
-
-Before/after descriptions
-
-## Key Commits
-
-Important commits with descriptions
-
-## Archive Contents
-
-List of archived files
+```
+.claude/
+├── backlog/           <- Researched but not started
+│   └── future-feature/
+│
+├── features/          <- Active work
+│   └── current-feature/
+│       ├── *_research.md
+│       ├── *_plan.md
+│       └── tasks.md
+│
+└── completed/         <- Done (SUMMARY.md only)
+    ├── persistent-layout/
+    │   └── SUMMARY.md
+    └── improved-auth-sync/
+        └── SUMMARY.md
 ```
 
 ## User Input

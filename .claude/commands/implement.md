@@ -16,11 +16,13 @@ Execute the implementation plan by working through tasks in `tasks.md`. This com
 
 **Plan and tasks must exist first!** Run `/research` then `/plan` before `/implement`.
 
-The implement workflow expects to find:
+The implement workflow expects to find in `.claude/features/<feature-name>/`:
 
-- `.claude/features/<feature-name>/*_research.md`
-- `.claude/features/<feature-name>/*_plan.md`
-- `.claude/features/<feature-name>/tasks.md`
+- `*_research.md` - Background research
+- `*_plan.md` - Architecture and design decisions
+- `tasks.md` - Task breakdown with acceptance criteria
+
+Note: If your feature is still in `.claude/backlog/`, run `/plan` first to activate it.
 
 ## Examples
 
@@ -83,7 +85,7 @@ As tasks complete, they're marked in `tasks.md`:
 
 - [x] T002: Write unit tests for useAuthCheck hook ✓
 - [x] T003: Write unit tests for ProtectedRoute ✓
-- [ ] T004: Write E2E test for session expiry redirect ← Current
+- [ ] T004: Write E2E test for session expiry redirect <- Current
 
 ## Phase 3: Core Implementation
 
@@ -123,6 +125,13 @@ Once all tasks complete:
 ```
 /finalize <feature-name>
 ```
+
+This will:
+
+- Run final quality checks
+- Create SUMMARY.md
+- Move feature to `.claude/completed/`
+- Optionally bump version and update CHANGELOG.md
 
 ## User Input
 

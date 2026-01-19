@@ -13,15 +13,16 @@ description: Technical research on email providers, implementation approaches, a
 
 **Why Resend for Rock On:**
 
-| Aspect | Details |
-|--------|---------|
-| **Pricing** | Free: 3,000 emails/mo, Pro: $20/mo for 50k emails |
-| **API Quality** | Modern, TypeScript-first, excellent DX |
-| **React Email** | First-class support for building emails with React |
-| **Deliverability** | High deliverability, managed sending domains |
-| **Supabase Integration** | Works great with Edge Functions |
+| Aspect                   | Details                                            |
+| ------------------------ | -------------------------------------------------- |
+| **Pricing**              | Free: 3,000 emails/mo, Pro: $20/mo for 50k emails  |
+| **API Quality**          | Modern, TypeScript-first, excellent DX             |
+| **React Email**          | First-class support for building emails with React |
+| **Deliverability**       | High deliverability, managed sending domains       |
+| **Supabase Integration** | Works great with Edge Functions                    |
 
 **Setup Requirements:**
+
 1. Create Resend account at https://resend.com
 2. Verify sending domain (DNS records)
 3. Generate API key
@@ -31,29 +32,29 @@ description: Technical research on email providers, implementation approaches, a
 
 ```typescript
 // supabase/functions/send-invitation/index.ts
-import { Resend } from 'resend';
+import { Resend } from 'resend'
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
 
 const { data, error } = await resend.emails.send({
   from: 'Rock On <invites@rockon.app>',
   to: recipientEmail,
   subject: `You've been invited to join ${bandName}`,
   html: emailHtml,
-});
+})
 ```
 
 ### 1.2 Alternative Providers Comparison
 
-| Provider | Free Tier | Cost at Scale | Best For |
-|----------|-----------|---------------|----------|
-| **Resend** | 3k/mo | $20/50k | Modern apps, DX |
-| **SendGrid** | 100/day | $15/100k | High volume |
-| **Postmark** | 100/mo | $15/10k | Transactional |
-| **AWS SES** | 62k/mo* | $0.10/1k | Cost-sensitive |
-| **Mailgun** | 1k/mo (3mo) | $15/50k | Flexibility |
+| Provider     | Free Tier   | Cost at Scale | Best For        |
+| ------------ | ----------- | ------------- | --------------- |
+| **Resend**   | 3k/mo       | $20/50k       | Modern apps, DX |
+| **SendGrid** | 100/day     | $15/100k      | High volume     |
+| **Postmark** | 100/mo      | $15/10k       | Transactional   |
+| **AWS SES**  | 62k/mo\*    | $0.10/1k      | Cost-sensitive  |
+| **Mailgun**  | 1k/mo (3mo) | $15/50k       | Flexibility     |
 
-*AWS SES free tier requires sending from EC2
+\*AWS SES free tier requires sending from EC2
 
 **Recommendation:** Start with Resend. If email volume grows significantly (>50k/mo), evaluate SendGrid migration.
 
@@ -90,10 +91,11 @@ import { Resend } from 'https://esm.sh/resend@4.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+serve(async req => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -123,7 +125,11 @@ serve(async (req) => {
     // Get band and inviter details
     const [{ data: band }, { data: inviter }] = await Promise.all([
       supabaseAdmin.from('bands').select('name').eq('id', bandId).single(),
-      supabaseAdmin.from('users').select('name').eq('id', inviterUserId).single(),
+      supabaseAdmin
+        .from('users')
+        .select('name')
+        .eq('id', inviterUserId)
+        .single(),
     ])
 
     // Generate invite code
@@ -186,13 +192,12 @@ serve(async (req) => {
       JSON.stringify({ success: true, inviteCodeId: inviteCode.id }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-
   } catch (error) {
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   }
@@ -276,16 +281,16 @@ import { nanoid } from 'nanoid'
 
 // 10 characters = ~60 bits of entropy
 // ~10^14 possible combinations
-const code = nanoid(10)  // e.g., "V1StGXR8_Z"
+const code = nanoid(10) // e.g., "V1StGXR8_Z"
 ```
 
 **Comparison:**
 
-| Approach | Length | Entropy | Example |
-|----------|--------|---------|---------|
-| Current (6 char) | 6 | ~31 bits | `ABC123` |
-| nanoid(10) | 10 | ~60 bits | `V1StGXR8_Z` |
-| UUID | 36 | ~122 bits | `550e8400-e29b-41d4-a716-446655440000` |
+| Approach         | Length | Entropy   | Example                                |
+| ---------------- | ------ | --------- | -------------------------------------- |
+| Current (6 char) | 6      | ~31 bits  | `ABC123`                               |
+| nanoid(10)       | 10     | ~60 bits  | `V1StGXR8_Z`                           |
+| UUID             | 36     | ~122 bits | `550e8400-e29b-41d4-a716-446655440000` |
 
 **Recommendation:** Use 10-character nanoid for good balance of entropy and usability.
 
@@ -296,7 +301,8 @@ const code = nanoid(10)  // e.g., "V1StGXR8_Z"
 async function validateInviteCode(code: string): Promise<ValidationResult> {
   const { data, error } = await supabase
     .from('invite_codes')
-    .select(`
+    .select(
+      `
       id,
       band_id,
       expires_at,
@@ -305,7 +311,8 @@ async function validateInviteCode(code: string): Promise<ValidationResult> {
       is_active,
       bands (name),
       users!created_by (name)
-    `)
+    `
+    )
     .eq('code', code)
     .single()
 
@@ -322,7 +329,10 @@ async function validateInviteCode(code: string): Promise<ValidationResult> {
   }
 
   if (data.current_uses >= data.max_uses) {
-    return { valid: false, error: 'This invitation has reached its usage limit' }
+    return {
+      valid: false,
+      error: 'This invitation has reached its usage limit',
+    }
   }
 
   return {
@@ -388,9 +398,7 @@ export const BandInvitation = ({
           height="40"
           alt="Rock On"
         />
-        <Heading style={heading}>
-          You're invited to join {bandName}!
-        </Heading>
+        <Heading style={heading}>You're invited to join {bandName}!</Heading>
         <Text style={paragraph}>
           {inviterName} has invited you to join their band on Rock On.
         </Text>
@@ -403,8 +411,8 @@ export const BandInvitation = ({
           Join {bandName}
         </Button>
         <Text style={footer}>
-          Rock On is a band management app that helps bands organize
-          setlists, track practices, and coordinate shows.
+          Rock On is a band management app that helps bands organize setlists,
+          track practices, and coordinate shows.
         </Text>
       </Container>
     </Body>
@@ -412,12 +420,27 @@ export const BandInvitation = ({
 )
 
 const main = { backgroundColor: '#f6f9fc', padding: '20px 0' }
-const container = { backgroundColor: '#ffffff', padding: '40px', borderRadius: '8px' }
+const container = {
+  backgroundColor: '#ffffff',
+  padding: '40px',
+  borderRadius: '8px',
+}
 const heading = { fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }
 const paragraph = { fontSize: '16px', lineHeight: '24px', color: '#374151' }
-const messageBox = { backgroundColor: '#f3f4f6', padding: '16px', borderRadius: '8px', margin: '24px 0' }
+const messageBox = {
+  backgroundColor: '#f3f4f6',
+  padding: '16px',
+  borderRadius: '8px',
+  margin: '24px 0',
+}
 const messageText = { fontStyle: 'italic', margin: 0 }
-const button = { backgroundColor: '#f97316', color: '#ffffff', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold' }
+const button = {
+  backgroundColor: '#f97316',
+  color: '#ffffff',
+  padding: '12px 24px',
+  borderRadius: '8px',
+  fontWeight: 'bold',
+}
 const footer = { fontSize: '14px', color: '#6b7280', marginTop: '40px' }
 
 export default BandInvitation
@@ -429,11 +452,13 @@ export default BandInvitation
 import { render } from '@react-email/render'
 import { BandInvitation } from './emails/BandInvitation'
 
-const html = render(BandInvitation({
-  bandName: 'iPod Shuffle',
-  inviterName: 'Eric',
-  joinUrl: 'https://rockon.app/join?code=abc123',
-}))
+const html = render(
+  BandInvitation({
+    bandName: 'iPod Shuffle',
+    inviterName: 'Eric',
+    joinUrl: 'https://rockon.app/join?code=abc123',
+  })
+)
 ```
 
 ---
@@ -519,8 +544,8 @@ interface AuthContextType {
 }
 
 // In provider
-const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(
-  () => sessionStorage.getItem('pendingInviteCode')
+const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() =>
+  sessionStorage.getItem('pendingInviteCode')
 )
 
 const clearPendingInvite = () => {
@@ -549,7 +574,11 @@ useEffect(() => {
 // Simple in-memory rate limiting (use Redis for production)
 const rateLimits = new Map<string, { count: number; resetAt: number }>()
 
-function checkRateLimit(userId: string, limit: number, windowMs: number): boolean {
+function checkRateLimit(
+  userId: string,
+  limit: number,
+  windowMs: number
+): boolean {
   const now = Date.now()
   const record = rateLimits.get(userId)
 
@@ -614,7 +643,7 @@ function isValidEmail(email: string): boolean {
   if (!emailRegex.test(email)) return false
 
   // Block common disposable email domains
-  const disposableDomains = ['tempmail.com', 'throwaway.com', /* ... */]
+  const disposableDomains = ['tempmail.com', 'throwaway.com' /* ... */]
   const domain = email.split('@')[1].toLowerCase()
   if (disposableDomains.includes(domain)) return false
 
@@ -685,14 +714,14 @@ test.describe('Invitation Join Flow', () => {
 
 ## 8. Open Questions Resolved
 
-| Question | Answer |
-|----------|--------|
-| **Invitation code format?** | 10-char nanoid (URL-safe, high entropy) |
-| **Where to store pending code?** | sessionStorage (survives auth redirect) |
-| **Email provider?** | Resend (modern API, React Email support) |
-| **Rate limiting approach?** | Server-side in Edge Function + optional DB trigger |
-| **Handle existing members?** | Check membership, show "already a member" message |
-| **Weekly summaries?** | Future feature using pg_cron + Edge Function |
+| Question                         | Answer                                             |
+| -------------------------------- | -------------------------------------------------- |
+| **Invitation code format?**      | 10-char nanoid (URL-safe, high entropy)            |
+| **Where to store pending code?** | sessionStorage (survives auth redirect)            |
+| **Email provider?**              | Resend (modern API, React Email support)           |
+| **Rate limiting approach?**      | Server-side in Edge Function + optional DB trigger |
+| **Handle existing members?**     | Check membership, show "already a member" message  |
+| **Weekly summaries?**            | Future feature using pg_cron + Edge Function       |
 
 ---
 

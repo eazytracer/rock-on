@@ -12,6 +12,7 @@ description: Email service integration with Resend for band invitations and the 
 This feature adds email capabilities to Rock On for sending band invitations and implements an enhanced invitation link flow that streamlines the onboarding experience for invited users.
 
 **Key Deliverables:**
+
 1. Email service integration using Resend
 2. Enhanced invitation link flow (`/join?code=abc123`)
 3. Invitation management UI in band settings
@@ -22,11 +23,13 @@ This feature adds email capabilities to Rock On for sending band invitations and
 ## User Stories
 
 ### US-1: Band Admin Sends Email Invitation
+
 **As a** band admin
 **I want to** send an email invitation to a potential band member
 **So that** they can easily join my band with one click
 
 **Acceptance Criteria:**
+
 - [ ] Can enter email address in band settings
 - [ ] System sends invitation email via Resend
 - [ ] Email contains a clickable link with invitation code
@@ -34,11 +37,13 @@ This feature adds email capabilities to Rock On for sending band invitations and
 - [ ] Can track sent invitations and their status
 
 ### US-2: User Joins via Invitation Link
+
 **As a** potential band member
 **I want to** click an invitation link and join a band
 **So that** I don't have to manually enter codes or make decisions
 
 **Acceptance Criteria:**
+
 - [ ] `/join?code=abc123` routes to sign-in/sign-up
 - [ ] After authentication, user sees confirmation page (not create/join band choice)
 - [ ] Confirmation shows band name and who invited them
@@ -46,22 +51,26 @@ This feature adds email capabilities to Rock On for sending band invitations and
 - [ ] User is redirected to dashboard after joining
 
 ### US-3: Shareable Invitation Links
+
 **As a** band admin
 **I want to** generate shareable invitation links
 **So that** I can send invitations via text message or other channels
 
 **Acceptance Criteria:**
+
 - [ ] Can generate invitation link from band settings
 - [ ] Can copy link to clipboard
 - [ ] Link works for both new and existing users
 - [ ] Can set expiration and usage limits
 
 ### US-4: Existing User Receives Invitation
+
 **As an** existing Rock On user
 **I want to** use an invitation link to join another band
 **So that** I can be in multiple bands easily
 
 **Acceptance Criteria:**
+
 - [ ] Clicking link while logged in goes directly to confirmation
 - [ ] Shows "You're already signed in as [email]" message
 - [ ] Can join band without re-authenticating
@@ -140,20 +149,21 @@ CREATE TABLE public.email_logs (
 ```typescript
 // POST /functions/v1/send-invitation
 interface SendInvitationRequest {
-  bandId: string;
-  recipientEmail: string;
-  inviterUserId: string;
-  message?: string;  // Optional personal message
+  bandId: string
+  recipientEmail: string
+  inviterUserId: string
+  message?: string // Optional personal message
 }
 
 interface SendInvitationResponse {
-  success: boolean;
-  inviteCodeId?: string;
-  error?: string;
+  success: boolean
+  inviteCodeId?: string
+  error?: string
 }
 ```
 
 **Logic:**
+
 1. Validate inviter has admin role in band
 2. Generate new invite code (or reuse existing for same email)
 3. Send email via Resend
@@ -165,16 +175,16 @@ interface SendInvitationResponse {
 ```typescript
 // POST /functions/v1/validate-invitation
 interface ValidateInvitationRequest {
-  code: string;
+  code: string
 }
 
 interface ValidateInvitationResponse {
-  valid: boolean;
-  bandName?: string;
-  bandId?: string;
-  inviterName?: string;
-  expiresAt?: string;
-  error?: string;
+  valid: boolean
+  bandName?: string
+  bandId?: string
+  inviterName?: string
+  expiresAt?: string
+  error?: string
 }
 ```
 
@@ -187,6 +197,7 @@ interface ValidateInvitationResponse {
 **Subject:** You've been invited to join {bandName} on Rock On
 
 **Content:**
+
 ```
 Hi there!
 
@@ -308,14 +319,14 @@ Weekly digest of band activity.
 
 ## Error States
 
-| Error | Message | Action |
-|-------|---------|--------|
-| Invalid code | "This invitation code is invalid" | Show "Request new invitation" suggestion |
-| Expired code | "This invitation has expired" | Show expiration date, suggest new invite |
-| Max uses reached | "This invitation has been fully used" | Contact band admin |
-| Already member | "You're already a member of {band}" | Link to dashboard |
-| Band deleted | "This band no longer exists" | Generic error |
-| Email send failed | "Failed to send invitation" | Retry button |
+| Error             | Message                               | Action                                   |
+| ----------------- | ------------------------------------- | ---------------------------------------- |
+| Invalid code      | "This invitation code is invalid"     | Show "Request new invitation" suggestion |
+| Expired code      | "This invitation has expired"         | Show expiration date, suggest new invite |
+| Max uses reached  | "This invitation has been fully used" | Contact band admin                       |
+| Already member    | "You're already a member of {band}"   | Link to dashboard                        |
+| Band deleted      | "This band no longer exists"          | Generic error                            |
+| Email send failed | "Failed to send invitation"           | Retry button                             |
 
 ---
 
@@ -328,8 +339,8 @@ Weekly digest of band activity.
 - Example: `Xk9Lm2pQr7`
 
 ```typescript
-import { nanoid } from 'nanoid';
-const code = nanoid(10);
+import { nanoid } from 'nanoid'
+const code = nanoid(10)
 ```
 
 ### Rate Limiting
@@ -398,30 +409,35 @@ supabase/
 ## Implementation Phases
 
 ### Phase 1: Schema & Infrastructure
+
 1. Update `invite_codes` table schema
 2. Create `email_logs` table (optional)
 3. Set up Resend account and API key
 4. Create Edge Function scaffold
 
 ### Phase 2: Invitation Link Flow
+
 1. Create `/join` route handler
 2. Create `/join/confirm` page
 3. Modify auth flow to handle pending invitations
 4. Update `AuthContext` to store pending code
 
 ### Phase 3: Email Sending
+
 1. Implement `send-invitation` Edge Function
 2. Create email template with React Email
 3. Build `InviteMemberForm` component
 4. Integrate into band settings
 
 ### Phase 4: Invitation Management
+
 1. Create `InvitationsList` component
 2. Add invitation status tracking
 3. Build `InvitationLinkGenerator` for shareable links
 4. Add copy-to-clipboard functionality
 
 ### Phase 5: Testing & Polish
+
 1. E2E tests for invitation flow
 2. Error handling for all edge cases
 3. Mobile responsiveness

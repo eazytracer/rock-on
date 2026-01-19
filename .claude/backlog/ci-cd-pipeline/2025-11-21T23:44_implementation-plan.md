@@ -1,7 +1,7 @@
 ---
 created: 2025-11-21T23:44
 feature: CI/CD Testing Pipeline
-prompt: "Create detailed implementation plan for CI/CD pipeline"
+prompt: 'Create detailed implementation plan for CI/CD pipeline'
 status: ready-for-implementation
 ---
 
@@ -12,12 +12,14 @@ status: ready-for-implementation
 This document provides a complete, step-by-step implementation plan for establishing a production-grade CI/CD testing pipeline for the rock-on project.
 
 **Current State:**
+
 - 555 tests across 63 files (491 passing, 64 failing)
 - No CI/CD pipeline
 - No pre-commit hooks
 - Manual test execution required
 
 **Target State:**
+
 - Automated pre-commit validation (< 30s)
 - Full CI pipeline on every PR/push
 - Branch protection requiring all checks to pass
@@ -125,6 +127,7 @@ echo "✅ Pre-commit checks passed!"
 ```
 
 **Commands:**
+
 ```bash
 cat > .husky/pre-commit << 'EOF'
 #!/usr/bin/env sh
@@ -148,20 +151,10 @@ chmod +x .husky/pre-commit
 
 ```json
 {
-  "*.{ts,tsx}": [
-    "eslint --max-warnings 0 --fix",
-    "prettier --write"
-  ],
-  "*.{js,jsx,cjs,mjs}": [
-    "eslint --max-warnings 0 --fix",
-    "prettier --write"
-  ],
-  "*.{json,md,yml,yaml}": [
-    "prettier --write"
-  ],
-  "*.{css,scss}": [
-    "prettier --write"
-  ]
+  "*.{ts,tsx}": ["eslint --max-warnings 0 --fix", "prettier --write"],
+  "*.{js,jsx,cjs,mjs}": ["eslint --max-warnings 0 --fix", "prettier --write"],
+  "*.{json,md,yml,yaml}": ["prettier --write"],
+  "*.{css,scss}": ["prettier --write"]
 }
 ```
 
@@ -192,6 +185,7 @@ git reset --soft HEAD~1
 ```
 
 **Success Criteria:**
+
 - ✅ Pre-commit hook runs automatically
 - ✅ Lint-staged formats staged files
 - ✅ Type check catches errors
@@ -330,6 +324,7 @@ git push origin test/ci-validation
 ```
 
 **Success Criteria:**
+
 - ✅ Workflow runs on PR
 - ✅ Validate stage passes
 - ✅ Unit tests pass with coverage
@@ -349,65 +344,65 @@ git push origin test/ci-validation
 Add to `.github/workflows/ci.yml` after unit-tests job:
 
 ```yaml
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: unit-tests
+integration-tests:
+  name: Integration Tests
+  runs-on: ubuntu-latest
+  timeout-minutes: 10
+  needs: unit-tests
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+    - name: Install dependencies
+      run: npm ci
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
+    - name: Setup Supabase CLI
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
 
-      - name: Start Supabase
-        run: |
-          echo "🚀 Starting Supabase..."
-          supabase start
-          supabase status
+    - name: Start Supabase
+      run: |
+        echo "🚀 Starting Supabase..."
+        supabase start
+        supabase status
 
-      - name: Wait for Supabase
-        run: |
-          timeout 60 bash -c 'until curl -sf http://127.0.0.1:54321/health; do sleep 2; done'
-          echo "✅ Supabase is ready"
+    - name: Wait for Supabase
+      run: |
+        timeout 60 bash -c 'until curl -sf http://127.0.0.1:54321/health; do sleep 2; done'
+        echo "✅ Supabase is ready"
 
-      - name: Run integration tests
-        run: npm test -- tests/integration/ --reporter=verbose
-        env:
-          VITE_SUPABASE_URL: http://127.0.0.1:54321
-          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+    - name: Run integration tests
+      run: npm test -- tests/integration/ --reporter=verbose
+      env:
+        VITE_SUPABASE_URL: http://127.0.0.1:54321
+        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 
-      - name: Run journey tests
-        run: npm test -- tests/journeys/ --reporter=verbose
-        env:
-          VITE_SUPABASE_URL: http://127.0.0.1:54321
-          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+    - name: Run journey tests
+      run: npm test -- tests/journeys/ --reporter=verbose
+      env:
+        VITE_SUPABASE_URL: http://127.0.0.1:54321
+        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 
-      - name: Run contract tests
-        run: npm test -- tests/contract/ --reporter=verbose
-        env:
-          VITE_SUPABASE_URL: http://127.0.0.1:54321
-          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+    - name: Run contract tests
+      run: npm test -- tests/contract/ --reporter=verbose
+      env:
+        VITE_SUPABASE_URL: http://127.0.0.1:54321
+        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 
-      - name: Run database tests
-        run: npm run test:db
+    - name: Run database tests
+      run: npm run test:db
 
-      - name: Stop Supabase
-        if: always()
-        run: supabase stop --no-backup
+    - name: Stop Supabase
+      if: always()
+      run: supabase stop --no-backup
 ```
 
 ### Validation
@@ -426,6 +421,7 @@ git push
 ```
 
 **Success Criteria:**
+
 - ✅ Supabase starts in CI (< 30s)
 - ✅ All test types pass
 - ✅ Stage completes < 2 minutes
@@ -444,67 +440,67 @@ git push
 Add to `.github/workflows/ci.yml` after integration-tests:
 
 ```yaml
-  e2e-tests:
-    name: E2E Tests (Shard ${{ matrix.shard }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: integration-tests
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
+e2e-tests:
+  name: E2E Tests (Shard ${{ matrix.shard }})
+  runs-on: ubuntu-latest
+  timeout-minutes: 15
+  needs: integration-tests
+  strategy:
+    fail-fast: false
+    matrix:
+      shard: [1, 2, 3, 4]
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+    - name: Install dependencies
+      run: npm ci
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
-      - name: Install Playwright
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+    - name: Install Playwright
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      run: npx playwright install --with-deps chromium
 
-      - name: Setup Supabase
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
+    - name: Setup Supabase
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
 
-      - name: Start Supabase
-        run: |
-          supabase start
-          timeout 60 bash -c 'until curl -sf http://127.0.0.1:54321/health; do sleep 2; done'
+    - name: Start Supabase
+      run: |
+        supabase start
+        timeout 60 bash -c 'until curl -sf http://127.0.0.1:54321/health; do sleep 2; done'
 
-      - name: Run E2E tests
-        run: npx playwright test --shard=${{ matrix.shard }}/4
-        env:
-          VITE_SUPABASE_URL: http://127.0.0.1:54321
-          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+    - name: Run E2E tests
+      run: npx playwright test --shard=${{ matrix.shard }}/4
+      env:
+        VITE_SUPABASE_URL: http://127.0.0.1:54321
+        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report-shard-${{ matrix.shard }}
-          path: playwright-report/
-          retention-days: 7
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report-shard-${{ matrix.shard }}
+        path: playwright-report/
+        retention-days: 7
 
-      - name: Stop Supabase
-        if: always()
-        run: supabase stop --no-backup
+    - name: Stop Supabase
+      if: always()
+      run: supabase stop --no-backup
 ```
 
 ### Task 4.2: Update Playwright Config
@@ -544,7 +540,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
-});
+})
 ```
 
 ### Validation
@@ -558,6 +554,7 @@ npx playwright test --shard=4/4
 ```
 
 **Success Criteria:**
+
 - ✅ E2E tests run across 4 shards
 - ✅ Each shard completes < 5 minutes
 - ✅ Total E2E time ~2 minutes
@@ -577,40 +574,40 @@ npx playwright test --shard=4/4
 Add to `.github/workflows/ci.yml`:
 
 ```yaml
-  report:
-    name: Test Report
-    runs-on: ubuntu-latest
-    needs: [validate, unit-tests, integration-tests, e2e-tests]
-    if: always() && github.event_name == 'pull_request'
-    permissions:
-      pull-requests: write
+report:
+  name: Test Report
+  runs-on: ubuntu-latest
+  needs: [validate, unit-tests, integration-tests, e2e-tests]
+  if: always() && github.event_name == 'pull_request'
+  permissions:
+    pull-requests: write
 
-    steps:
-      - name: Comment PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const comment = `## 🤖 CI Test Results
+  steps:
+    - name: Comment PR
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const comment = `## 🤖 CI Test Results
 
-            ### ✅ Validation
-            - Lint: Passed
-            - Type Check: Passed
-            - Format: Passed
+          ### ✅ Validation
+          - Lint: Passed
+          - Type Check: Passed
+          - Format: Passed
 
-            ### 🧪 Tests
-            - Unit Tests: Passed
-            - Integration Tests: Passed
-            - E2E Tests (4 shards): Passed
+          ### 🧪 Tests
+          - Unit Tests: Passed
+          - Integration Tests: Passed
+          - E2E Tests (4 shards): Passed
 
-            ---
-            *All checks passed! ✨*`;
+          ---
+          *All checks passed! ✨*`;
 
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
 ```
 
 ### Task 5.2: Update CLAUDE.md
@@ -635,6 +632,7 @@ Rock-On uses GitHub Actions for continuous integration.
 ### Pre-Commit Hooks
 
 Runs automatically on `git commit`:
+
 - Lint staged files
 - Type check
 - Fast unit tests (~30s)
@@ -644,6 +642,7 @@ Runs automatically on `git commit`:
 ### Branch Protection
 
 Main branch requires:
+
 - ✅ All CI checks pass
 - ✅ Branch up to date
 - ✅ 1 approval (recommended)
@@ -662,6 +661,7 @@ See full content in research document.
 See full content in research document.
 
 **Success Criteria:**
+
 - ✅ PR comments show test results
 - ✅ CLAUDE.md updated
 - ✅ Troubleshooting guide created
@@ -679,6 +679,7 @@ See full content in research document.
 ### Task 6.1: Enable Branch Protection
 
 **Steps:**
+
 1. Navigate to Settings → Branches
 2. Add branch protection rule for `main`
 3. Configure:
@@ -698,20 +699,24 @@ See full content in research document.
 
 ```markdown
 ## Description
+
 <!-- Describe your changes -->
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation
 
 ## Testing
+
 - [ ] Unit tests pass (`npm run test:unit`)
 - [ ] E2E tests pass (`npm run test:e2e`)
 - [ ] Manual testing completed
 
 ## Checklist
+
 - [ ] Code follows style guidelines
 - [ ] Self-reviewed code
 - [ ] Added tests for changes
@@ -721,6 +726,7 @@ See full content in research document.
 ### Task 6.3: Team Training
 
 **Topics to cover:**
+
 1. Pre-commit hooks
 2. CI pipeline stages
 3. How to read CI results
@@ -728,6 +734,7 @@ See full content in research document.
 5. When/how to bypass hooks
 
 **Success Criteria:**
+
 - ✅ Branch protection enabled
 - ✅ PR template created
 - ✅ Team trained
@@ -777,15 +784,15 @@ Phase 6 (Launch) - 2 hrs
 
 ## Success Metrics
 
-| Metric | Target | Status |
-|--------|--------|--------|
-| Pre-commit time | < 30s | TBD |
-| Validate stage | < 1 min | TBD |
-| Unit test stage | < 30s | TBD |
-| Integration stage | < 2 min | TBD |
-| E2E stage (total) | < 2 min | TBD |
-| Total CI time | < 5 min | TBD |
-| Flaky test rate | < 5% | TBD |
+| Metric            | Target  | Status |
+| ----------------- | ------- | ------ |
+| Pre-commit time   | < 30s   | TBD    |
+| Validate stage    | < 1 min | TBD    |
+| Unit test stage   | < 30s   | TBD    |
+| Integration stage | < 2 min | TBD    |
+| E2E stage (total) | < 2 min | TBD    |
+| Total CI time     | < 5 min | TBD    |
+| Flaky test rate   | < 5%    | TBD    |
 
 ---
 
@@ -810,12 +817,14 @@ git push
 ### Phase-Specific Rollback
 
 **Phase 1 (Pre-commit):**
+
 ```bash
 rm -rf .husky .lintstagedrc.json
 npm uninstall husky lint-staged
 ```
 
 **Phase 2-6:**
+
 ```bash
 rm .github/workflows/ci.yml
 git checkout vite.config.ts playwright.config.ts

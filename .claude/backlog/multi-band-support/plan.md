@@ -14,6 +14,7 @@ estimated_effort: 14 hours
 **Key Finding:** Rock-On already has complete backend support for users in multiple bands. The database schema, state management, data filtering, RLS policies, and sync engine all work correctly. What's missing is UI integration and testing.
 
 **Total Effort Estimate:**
+
 - **Best Case:** 9 hours
 - **Likely Case:** 14 hours
 - **Worst Case:** 24 hours
@@ -318,6 +319,7 @@ estimated_effort: 14 hours
 ### Manual Testing Checklist
 
 **Desktop (Chrome, Firefox, Safari):**
+
 - [ ] Band selector appears in sidebar
 - [ ] Dropdown opens/closes correctly
 - [ ] Switching updates Dashboard
@@ -329,6 +331,7 @@ estimated_effort: 14 hours
 - [ ] Current band selection persists after refresh
 
 **Mobile (iOS Safari, Android Chrome):**
+
 - [ ] Band selector appears in header
 - [ ] Dropdown doesn't overflow screen
 - [ ] Touch interaction works
@@ -337,6 +340,7 @@ estimated_effort: 14 hours
 - [ ] Works in landscape mode
 
 **Edge Cases:**
+
 - [ ] User with 0 bands
 - [ ] User with 1 band
 - [ ] User with 10+ bands (scroll behavior)
@@ -349,20 +353,24 @@ estimated_effort: 14 hours
 ### Low Risk Areas
 
 **Database Schema** (No Changes)
+
 - Risk: None
 - Mitigation: N/A - already supports multi-band
 
 **RLS Policies** (No Changes)
+
 - Risk: None
 - Mitigation: N/A - already enforce band isolation
 
 **Backward Compatibility** (Purely Additive)
+
 - Risk: Very Low
 - Mitigation: Feature is additive, users with 1 band see no change
 
 ### Medium Risk Areas
 
 **Data Hook Refresh**
+
 - Risk: Hooks might not auto-refresh on band switch
 - Mitigation:
   - Phase 1: Validate hooks have `currentBandId` in deps
@@ -370,6 +378,7 @@ estimated_effort: 14 hours
   - Fallback: Force re-mount of pages on switch
 
 **Mobile UX**
+
 - Risk: Dropdown overflow on small screens
 - Mitigation:
   - Test early on real devices
@@ -377,6 +386,7 @@ estimated_effort: 14 hours
   - Add max-height with scroll
 
 **Unsaved Changes**
+
 - Risk: Complex state tracking across forms
 - Mitigation:
   - Start with simple confirm dialog
@@ -386,18 +396,22 @@ estimated_effort: 14 hours
 ### Contingency Plans
 
 **If hooks don't auto-refresh:**
+
 - Add manual `refetch()` call in `switchBand()`
 - Force re-render via key prop on pages
 
 **If mobile dropdown overflows:**
+
 - Use modal instead of dropdown on mobile
 - Add separate mobile menu item
 
 **If unsaved changes too complex:**
+
 - Ship v1 without this feature
 - Add in follow-up PR
 
 **If testing reveals major issues:**
+
 - Feature flag to hide BandSelector
 - Revert in < 5 minutes
 
@@ -471,21 +485,25 @@ estimated_effort: 14 hours
 ### Parallel Work Opportunities
 
 **After Phase 2:**
+
 - Task 5 (Sidebar) and Task 6 (Mobile) can be done in parallel
 - Task 7 (Indicators) independent of 5+6
 
 **During Phase 5:**
+
 - Documentation can be written while tests run
 - Screenshots can be captured during manual testing
 
 ### Recommended Sprint
 
 **Sprint 1 (Week 1):**
+
 - Day 1-2: Phases 1-2 (Prep + Component)
 - Day 3-4: Phase 3 (Integration)
 - Day 5: Phase 4 (UX + Edge Cases)
 
 **Sprint 2 (Week 2):**
+
 - Day 1-2: Phase 5 (Testing)
 - Day 3: Rollout to staging
 - Day 4-5: Production rollout + monitoring

@@ -16,7 +16,7 @@ import {
 import { isDev } from '../config/environment'
 import { db } from '../services/database'
 import { logger } from '../utils/logger'
-import { BUILD_ID } from '../config/buildInfo'
+import { VERSION_DISPLAY, BUILD_ID } from '../config/buildInfo'
 
 /**
  * Settings Page
@@ -240,14 +240,15 @@ export const SettingsPage: React.FC = () => {
               <Code className="w-5 h-5 text-gray-400 mt-0.5" />
               <div className="flex-1">
                 <label className="text-sm text-gray-400 block mb-1">
-                  Build Version
+                  Version
                 </label>
                 <p
                   className="text-white font-mono text-sm"
                   data-testid="version-info"
                 >
-                  {BUILD_ID}
+                  {VERSION_DISPLAY}
                 </p>
+                <p className="text-xs text-gray-500 mt-1">Build: {BUILD_ID}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   If your app is outdated, try refreshing or clearing browser
                   cache.

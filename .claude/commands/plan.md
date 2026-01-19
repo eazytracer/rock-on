@@ -14,11 +14,12 @@ Create a detailed implementation plan from existing research. This command spawn
 
 ## Prerequisites
 
-**Research must exist first!** Run `/research <feature-name>` before `/plan`.
+**Research should exist first!** Run `/research <feature-name>` before `/plan`.
 
-The plan-agent expects to find:
+The plan-agent looks for research in:
 
-- `.claude/features/<feature-name>/*_research.md`
+1. `.claude/backlog/<feature-name>/` (will be moved to features/)
+2. `.claude/features/<feature-name>/` (already active)
 
 ## Examples
 
@@ -29,15 +30,16 @@ The plan-agent expects to find:
 
 ## What This Does
 
-1. **Reads research document** from `.claude/features/<feature-name>/`
-2. **Designs architecture**: Component hierarchy, data flow, state management
-3. **Creates implementation plan**: `YYYY-MM-DDTHH:MM_plan.md` with:
+1. **Activates the feature**: Moves from `backlog/` to `features/` if needed
+2. **Reads research document** from the feature directory
+3. **Designs architecture**: Component hierarchy, data flow, state management
+4. **Creates implementation plan**: `YYYY-MM-DDTHH:MM_plan.md` with:
    - Architecture overview (ASCII diagrams)
    - File structure (what to create/modify)
    - Component specifications
    - Database changes (if any)
    - Testing strategy
-4. **Creates task breakdown**: `tasks.md` with:
+5. **Creates task breakdown**: `tasks.md` with:
    - Ordered, dependency-aware tasks
    - TDD approach (tests before implementation)
    - Parallel execution markers [P]
@@ -47,38 +49,70 @@ The plan-agent expects to find:
 
 The plan-agent will:
 
-1. **Review Research**
+1. **Locate and Activate Feature**
+   - Check `.claude/features/<feature-name>/` first
+   - If not found, check `.claude/backlog/<feature-name>/`
+   - Move backlog contents to `features/` to mark as active
+   - Log: "Activating feature: moving from backlog to features"
+
+2. **Review Research**
    - Load research document
    - Read `CLAUDE.md` for project conventions
    - Check database schema and design guides
    - Verify all open questions are answered
 
-2. **Design Architecture**
+3. **Design Architecture**
    - Sketch component hierarchy
    - Define data flow
    - Plan state management
    - Identify integration points
 
-3. **Plan File Structure**
+4. **Plan File Structure**
    - List files to create
    - List files to modify (with specific sections)
    - Follow existing project patterns
 
-4. **Create Task Breakdown**
+5. **Create Task Breakdown**
    - Order by dependencies
-   - Group by phase (Setup → Tests → Core → Integration → Polish)
+   - Group by phase (Setup -> Tests -> Core -> Integration -> Polish)
    - Mark parallelizable tasks with [P]
    - Include clear file paths and acceptance criteria
 
-5. **Generate Artifacts**
+6. **Generate Artifacts**
    - `YYYY-MM-DDTHH:MM_plan.md` - Architecture and design
    - `tasks.md` - Executable task list
+
+## Directory Structure
+
+Planning **activates** a feature by moving it to the features directory:
+
+```
+.claude/
+├── backlog/           <- Research lives here initially
+│   └── <feature>/
+│       └── *_research.md
+│
+├── features/          <- /plan moves feature here (active work)
+│   └── <feature>/
+│       ├── *_research.md   (moved from backlog)
+│       ├── *_plan.md       (created by /plan)
+│       └── tasks.md        (created by /plan)
+│
+└── completed/         <- /finalize moves feature here when done
+```
 
 ## Task Format
 
 Tasks in `tasks.md` follow this format:
 
 ```markdown
+---
+feature: <Feature Name>
+created: YYYY-MM-DDTHH:MM
+status: in-progress
+based-on: <plan-filename>
+---
+
 ## Phase 1: Setup
 
 - [ ] T001: Initialize feature structure
