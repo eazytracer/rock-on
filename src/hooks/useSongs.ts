@@ -66,13 +66,16 @@ export function useSongs(bandId: string) {
     const handleSyncChange = (status: any) => {
       // Only refetch when sync COMPLETES, not when it starts
       // This prevents double-fetching during deletion
-      if (status.status === 'idle' || status.status === 'synced') {
+      // Note: SyncStatus has isSyncing/pendingCount fields, not a 'status' string
+      if (!status.isSyncing && status.pendingCount === 0) {
         console.log('[useSongs] Sync completed, refetching songs...')
         fetchSongs(true) // Silent mode
       } else {
         console.log(
-          '[useSongs] Sync status changed to:',
-          status.status,
+          '[useSongs] Sync status changed - isSyncing:',
+          status.isSyncing,
+          'pending:',
+          status.pendingCount,
           '- not refetching'
         )
       }
