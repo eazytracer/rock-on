@@ -398,7 +398,7 @@ describe('SyncRepository', () => {
       expect(mockSyncEngine.syncNow).not.toHaveBeenCalled()
     })
 
-    it('should attempt sync when online after deleting song', async () => {
+    it('should queue delete for sync when online after deleting song', async () => {
       mockLocal.deleteSong.mockResolvedValue(undefined)
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
@@ -409,10 +409,15 @@ describe('SyncRepository', () => {
       syncRepository = new SyncRepository()
       await syncRepository.deleteSong('test-song-1')
 
-      expect(mockSyncEngine.syncNow).toHaveBeenCalled()
+      // queueDelete handles sync scheduling internally via scheduleImmediateSync
+      // We don't call syncNow() directly because it pulls first, which would re-add the deleted song
+      expect(mockSyncEngine.queueDelete).toHaveBeenCalledWith(
+        'songs',
+        'test-song-1'
+      )
     })
 
-    it('should not sync when offline after deleting song', async () => {
+    it('should queue delete for sync when offline after deleting song', async () => {
       mockLocal.deleteSong.mockResolvedValue(undefined)
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
@@ -423,7 +428,11 @@ describe('SyncRepository', () => {
       syncRepository = new SyncRepository()
       await syncRepository.deleteSong('test-song-1')
 
-      expect(mockSyncEngine.syncNow).not.toHaveBeenCalled()
+      // Delete is queued regardless of online status - sync happens when back online
+      expect(mockSyncEngine.queueDelete).toHaveBeenCalledWith(
+        'songs',
+        'test-song-1'
+      )
     })
   })
 
