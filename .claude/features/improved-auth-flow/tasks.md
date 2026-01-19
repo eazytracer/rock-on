@@ -3,13 +3,13 @@
 **Feature**: improved-auth-flow
 **Estimate**: 4-6 hours
 **Strategy**: Browser-strict session validation, short grace period for brief offline
-**Status**: Ready for implementation
+**Status**: Phases 1-4 COMPLETE ✅ | E2E Tests (T013-T014) COMPLETE ✅ | Remaining: T023-T029 (validation/polish)
 
 ---
 
-## Phase 1: Setup (30 minutes)
+## Phase 1: Setup (30 minutes) ✅ COMPLETE
 
-- [ ] T001: Create hooks directory and skeleton files
+- [x] T001: Create hooks directory and skeleton files
   - Files:
     - `src/hooks/useAuthCheck.ts` (create)
     - `src/hooks/index.ts` (create or update)
@@ -20,7 +20,7 @@
     - Hook exported from `index.ts`
   - Notes: Create directory if it doesn't exist
 
-- [ ] T002: Add helper utilities for auth check
+- [x] T002: Add helper utilities for auth check
   - Files: `src/hooks/useAuthCheck.ts`
   - Depends: T001
   - Acceptance:
@@ -31,11 +31,11 @@
 
 ---
 
-## Phase 2: Tests (Write Tests First) (1.5-2 hours)
+## Phase 2: Tests (Write Tests First) (1.5-2 hours) ✅ COMPLETE
 
 ### Unit Tests for useAuthCheck Hook
 
-- [ ] T003: Write unit test - no localStorage keys [P]
+- [x] T003: Write unit test - no localStorage keys [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts` (create)
   - Depends: T001
   - Acceptance:
@@ -45,7 +45,7 @@
     - Asserts `isChecking = false`
   - Notes: Test should fail initially (TDD)
 
-- [ ] T004: Write unit test - no session [P]
+- [x] T004: Write unit test - no session [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -56,7 +56,7 @@
     - Asserts `isAuthenticated = false`
   - Notes: Test should fail initially (TDD)
 
-- [ ] T005: Write unit test - valid session [P]
+- [x] T005: Write unit test - valid session [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -67,7 +67,7 @@
     - Asserts `isAuthenticated = true`
   - Notes: Test should fail initially (TDD)
 
-- [ ] T006: Write unit test - expired session beyond grace [P]
+- [x] T006: Write unit test - expired session beyond grace [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -78,7 +78,7 @@
     - Asserts `isAuthenticated = false`
   - Notes: Test should fail initially (TDD)
 
-- [ ] T007: Write unit test - expired session within grace [P]
+- [x] T007: Write unit test - expired session within grace [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -89,7 +89,7 @@
     - Logs warning message about grace period
   - Notes: Test should fail initially (TDD)
 
-- [ ] T008: Write unit test - clears localStorage on invalid [P]
+- [x] T008: Write unit test - clears localStorage on invalid [P]
   - Files: `tests/unit/hooks/useAuthCheck.test.ts`
   - Depends: T001
   - Acceptance:
@@ -102,7 +102,7 @@
 
 ### E2E Tests for Protected Routes
 
-- [ ] T009: Write E2E test - redirect without session [P]
+- [x] T009: Write E2E test - redirect without session [P]
   - Files: `tests/e2e/auth/protected-routes.spec.ts` (create)
   - Depends: None
   - Acceptance:
@@ -113,7 +113,7 @@
     - Asserts protected content NOT visible
   - Notes: Test should fail initially (TDD), parallelizable with other E2E tests
 
-- [ ] T010: Write E2E test - redirect with expired session [P]
+- [x] T010: Write E2E test - redirect with expired session [P]
   - Files: `tests/e2e/auth/protected-routes.spec.ts`
   - Depends: None
   - Acceptance:
@@ -125,7 +125,7 @@
     - Asserts protected content NOT visible
   - Notes: Test should fail initially (TDD)
 
-- [ ] T011: Write E2E test - shows loading state [P]
+- [x] T011: Write E2E test - shows loading state [P]
   - Files: `tests/e2e/auth/protected-routes.spec.ts`
   - Depends: None
   - Acceptance:
@@ -136,7 +136,7 @@
     - Asserts `/songs` page renders after loading
   - Notes: May need to slow down check with mock delay
 
-- [ ] T012: Write E2E test - redirect to get-started [P]
+- [x] T012: Write E2E test - redirect to get-started [P]
   - Files: `tests/e2e/auth/protected-routes.spec.ts`
   - Depends: None
   - Acceptance:
@@ -147,39 +147,32 @@
     - Asserts redirected to `/auth?view=get-started`
   - Notes: Test should fail initially (TDD)
 
-### E2E Tests for Session Expiry
+### E2E Tests for Session Expiry ✅ COMPLETE
 
-- [ ] T013: Write E2E test - session expires on page [P]
-  - Files: `tests/e2e/auth/session-expiry.spec.ts` (create)
+- [x] T013: Write E2E test - session expires on page [P]
+  - Files: `tests/e2e/auth/session-expiry.spec.ts` ✅ Created
   - Depends: None
   - Acceptance:
-    - Test: `redirects to /auth when session expires on protected page`
-    - Login user
-    - Navigate to `/songs`
-    - Expire session (clear/modify Supabase token)
-    - Trigger auth check (wait for 30s interval or force)
-    - Asserts redirected to `/auth`
-    - Asserts protected content NOT visible
-  - Notes: May need to mock timer to speed up test
+    - ✅ Test: `redirects to /auth when session expires on protected page`
+    - ✅ Test: `allows access within grace period (1 hour expired)`
+    - ✅ Test: `redirects at exact grace period boundary (1.5 hours + 1 minute)`
+    - ✅ Test: `shows toast notification when session expires`
+  - Notes: Uses localStorage manipulation to set expired session timestamp (more reliable than timer mocking)
 
-- [ ] T014: Write E2E test - no modal on protected pages [P]
-  - Files: `tests/e2e/auth/session-expiry.spec.ts`
+- [x] T014: Write E2E test - no modal on protected pages [P]
+  - Files: `tests/e2e/auth/session-expiry.spec.ts` ✅ Created
   - Depends: None
   - Acceptance:
-    - Test: `does not show SessionExpiredModal on protected pages`
-    - Login user
-    - Navigate to `/songs`
-    - Expire session
-    - Trigger auth check
-    - Asserts SessionExpiredModal NOT visible
-    - Asserts redirected to `/auth`
-  - Notes: Verifies modal simplification
+    - ✅ Test: `does NOT show SessionExpiredModal on protected pages - redirects instead`
+    - ✅ Test: `localStorage is cleared when session expires`
+    - ✅ Test: `shows session expired message when redirected with reason param`
+  - Notes: SessionExpiredModal now returns null (redirect-only component)
 
 ---
 
-## Phase 3: Core Implementation (1.5-2 hours)
+## Phase 3: Core Implementation (1.5-2 hours) ✅ COMPLETE
 
-- [ ] T015: Implement useAuthCheck hook
+- [x] T015: Implement useAuthCheck hook
   - Files: `src/hooks/useAuthCheck.ts`
   - Depends: T002, T003-T008 (tests written)
   - Acceptance:
@@ -192,7 +185,7 @@
     - All unit tests (T003-T008) pass
   - Notes: Follow TDD - make tests pass one by one
 
-- [ ] T016: Update ProtectedRoute to use useAuthCheck
+- [x] T016: Update ProtectedRoute to use useAuthCheck
   - Files: `src/components/ProtectedRoute.tsx`
   - Depends: T015
   - Acceptance:
@@ -204,7 +197,7 @@
     - Renders children when `isAuthenticated === true`
   - Notes: Keep existing redirect logic for no-band case
 
-- [ ] T017: Add loading state component
+- [x] T017: Add loading state component
   - Files: `src/components/ProtectedRoute.tsx`
   - Depends: T016
   - Acceptance:
@@ -214,7 +207,7 @@
     - No flash of content before check completes
   - Notes: Can be simple spinner div, doesn't need to be fancy
 
-- [ ] T018: Clear localStorage on session expiry in AuthContext
+- [x] T018: Clear localStorage on session expiry in AuthContext
   - Files: `src/contexts/AuthContext.tsx`
   - Depends: T015
   - Acceptance:
@@ -227,9 +220,9 @@
 
 ---
 
-## Phase 4: Integration (1 hour)
+## Phase 4: Integration (1 hour) ✅ COMPLETE
 
-- [ ] T019: Add redirect logic to AuthContext on session expiry
+- [x] T019: Add redirect logic to AuthContext on session expiry
   - Files: `src/contexts/AuthContext.tsx`
   - Depends: T018
   - Acceptance:
@@ -238,18 +231,17 @@
     - Log warning: "Session expired - redirecting to login"
   - Notes: May need to handle redirect via effect or callback pattern
 
-- [ ] T020: Simplify SessionExpiredModal
+- [x] T020: Simplify SessionExpiredModal
   - Files: `src/components/auth/SessionExpiredModal.tsx`
   - Depends: T019
   - Acceptance:
-    - Option A (recommended): Add useEffect that redirects to /auth on sessionExpired
-    - Option B: Only show modal if already on /auth page, otherwise redirect
-    - Shows toast notification on redirect: "Session expired. Please log in again."
-    - Modal removed from protected pages (redirect handles it)
-  - Notes: Discuss with team which option is preferred
+    - ✅ Option A implemented: useEffect redirects to /auth on sessionExpired
+    - ✅ Shows toast notification: "Your session has expired. Please log in again."
+    - ✅ Modal removed - component now returns null (redirect-only)
+  - Notes: Simplified to redirect + toast pattern
 
-- [ ] T021: Add session expiry message on auth page
-  - Files: `src/pages/AuthPage.tsx` or relevant auth component
+- [x] T021: Add session expiry message on auth page
+  - Files: `src/pages/AuthPages.tsx`
   - Depends: T019
   - Acceptance:
     - Checks for `?reason=session-expired` query param
@@ -258,16 +250,14 @@
     - Styled consistently with existing UI
   - Notes: Use React Router's `useSearchParams` hook
 
-- [ ] T022: Add toast notification helper (if not exists)
-  - Files:
-    - `src/utils/toast.ts` (create or use existing)
-    - Components that show toast
+- [x] T022: Add toast notification helper (if not exists)
+  - Files: `src/contexts/ToastContext.tsx` (already exists)
   - Depends: T020
   - Acceptance:
-    - Toast helper function: `showToast(message: string, type: 'info' | 'error' | 'success')`
-    - Integrates with existing toast library (if any)
-    - Fallback: console.log if no toast library
-  - Notes: Check if toast utility already exists in codebase
+    - ✅ ToastContext already provides `useToast()` hook with `showToast(message, type)`
+    - ✅ Supports 'success' | 'error' | 'info' types
+    - ✅ Auto-dismisses after 4 seconds
+  - Notes: Already existed in codebase - no changes needed
 
 ---
 

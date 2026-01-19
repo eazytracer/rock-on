@@ -18,6 +18,7 @@ interface DatePickerProps {
   id?: string
   'data-testid'?: string
   className?: string
+  autoEdit?: boolean // Start in manual entry mode with text input
 }
 
 const DAYS_OF_WEEK = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
@@ -49,6 +50,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   id,
   'data-testid': dataTestId,
   className = '',
+  autoEdit = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [viewDate, setViewDate] = useState<Date>(() => {
@@ -57,7 +59,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     }
     return new Date()
   })
-  const [isManualEntry, setIsManualEntry] = useState(false)
+  const [isManualEntry, setIsManualEntry] = useState(autoEdit)
   const [manualValue, setManualValue] = useState('')
 
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -271,19 +273,28 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       {isManualEntry ? (
         <input
           ref={inputRef}
-          type="text"
-          value={manualValue}
-          onChange={e => setManualValue(e.target.value)}
-          onBlur={handleManualSubmit}
+          type={autoEdit ? 'date' : 'text'}
+          value={autoEdit ? value : manualValue}
+          onChange={e => {
+            if (autoEdit) {
+              onChange(e.target.value)
+            } else {
+              setManualValue(e.target.value)
+            }
+          }}
+          onBlur={autoEdit ? undefined : handleManualSubmit}
           onKeyDown={e => {
-            if (e.key === 'Enter') handleManualSubmit()
+            if (e.key === 'Enter' && !autoEdit) handleManualSubmit()
             if (e.key === 'Escape') {
               setIsManualEntry(false)
               setManualValue('')
             }
           }}
-          placeholder="Enter date (e.g., 1/15/2026)"
+          placeholder={autoEdit ? '' : 'Enter date (e.g., 1/15/2026)'}
           autoFocus
+          name={name}
+          id={id}
+          data-testid={dataTestId}
           className="w-full h-10 px-3 bg-[#121212] border border-[#f17827ff] rounded-lg text-white text-sm placeholder-[#505050] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
         />
       ) : (

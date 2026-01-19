@@ -71,6 +71,7 @@ npx supabase start
 ```
 
 **Supabase will start:**
+
 - PostgreSQL database (port 54322)
 - API server (port 54321)
 - Studio dashboard (port 54323)
@@ -87,6 +88,7 @@ cat .env.local
 ```
 
 **Should show:**
+
 ```bash
 VITE_MOCK_AUTH=false
 VITE_SUPABASE_URL=http://127.0.0.1:54321
@@ -114,6 +116,7 @@ Run the reset script to set up a fresh database with test data:
 ```
 
 This script:
+
 - Drops all existing tables
 - Creates fresh schema from `scripts/fresh_init.sql`
 - Seeds test data from `scripts/seed_test_data.sql`
@@ -136,6 +139,7 @@ npm run dev
 ```
 
 **Features:**
+
 - ✅ Fast hot module reload (HMR)
 - ✅ Direct access to node_modules
 - ✅ Easy debugging
@@ -159,11 +163,13 @@ docker-compose --profile dev --env-file .env.local up -d
 ```
 
 **Features:**
+
 - ✅ Isolated environment
 - ✅ Consistent across machines
 - ✅ Production-like setup
 
 **To stop:**
+
 ```bash
 # If running in foreground
 Ctrl+C
@@ -173,6 +179,7 @@ docker-compose --profile dev down
 ```
 
 **To view logs:**
+
 ```bash
 docker-compose --profile dev logs -f rock-on-dev
 ```
@@ -184,24 +191,28 @@ docker-compose --profile dev logs -f rock-on-dev
 After running `./scripts/reset_local_db.sh`, you'll have 3 test users:
 
 ### Eric (Admin)
+
 - **Email:** `eric@ipodshuffle.com`
 - **Password:** `test123`
 - **Role:** Band admin
 - **Instruments:** Guitar, Vocals
 
 ### Mike (Member)
+
 - **Email:** `mike@ipodshuffle.com`
 - **Password:** `test123`
 - **Role:** Band member
 - **Instruments:** Bass, Harmonica, Vocals
 
 ### Sarah (Member)
+
 - **Email:** `sarah@ipodshuffle.com`
 - **Password:** `test123`
 - **Role:** Band member
 - **Instruments:** Drums, Percussion
 
 **Quick Login:**
+
 1. Open http://localhost:5173
 2. Click "Show Mock Users for Testing"
 3. Click any user to auto-fill and log in
@@ -357,6 +368,7 @@ docker-compose --profile dev build --no-cache
 **Problem:** `npx supabase start` fails or hangs
 
 **Solutions:**
+
 ```bash
 # 1. Check Docker is running
 docker ps
@@ -375,6 +387,7 @@ npx supabase start
 **Problem:** App shows connection errors or sync failures
 
 **Solutions:**
+
 ```bash
 # 1. Verify Supabase is running
 npx supabase status
@@ -395,6 +408,7 @@ npx supabase status | grep "Publishable key"
 **Problem:** `./scripts/reset_local_db.sh` errors
 
 **Solutions:**
+
 ```bash
 # 1. Verify container name
 docker ps | grep supabase_db
@@ -412,6 +426,7 @@ docker exec supabase_db_rock-on psql -U postgres -d postgres -f /tmp/fresh_init.
 **Problem:** Port 5173 already in use
 
 **Solutions:**
+
 ```bash
 # 1. Find what's using the port
 lsof -i :5173
@@ -430,6 +445,7 @@ kill -9 <PID>
 **Problem:** Changes don't reflect in browser
 
 **Solutions:**
+
 ```bash
 # 1. Hard refresh browser
 Ctrl+Shift+R  # Windows/Linux
@@ -452,6 +468,7 @@ sudo sysctl -p
 **Problem:** Queries fail with RLS permission errors
 
 **Solutions:**
+
 ```bash
 # 1. Reset database with fixed policies
 ./scripts/reset_local_db.sh
@@ -482,6 +499,7 @@ VITE_SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
 ```
 
 **Start with:**
+
 ```bash
 npm run dev
 # Automatically uses .env.local
@@ -498,6 +516,7 @@ VITE_SUPABASE_ANON_KEY=mock
 ```
 
 **Start with:**
+
 ```bash
 cp .env.local.dev .env.local
 npm run dev
@@ -513,6 +532,7 @@ VITE_SUPABASE_ANON_KEY=<production-key>
 ```
 
 **Build with:**
+
 ```bash
 npm run build
 # Outputs to /dist
@@ -576,17 +596,20 @@ npx supabase stop
 If port 54321 is taken:
 
 1. **Stop Supabase:**
+
    ```bash
    npx supabase stop
    ```
 
 2. **Edit `supabase/config.toml`:**
+
    ```toml
    [api]
    port = 54325  # Change to available port
    ```
 
 3. **Update `.env.local`:**
+
    ```bash
    VITE_SUPABASE_URL=http://127.0.0.1:54325
    ```

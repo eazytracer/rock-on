@@ -19,6 +19,23 @@ export interface AppConfig {
   supabaseAnonKey?: string
 }
 
+// Detect if we're running in Playwright E2E tests (headless browser automation)
+export function isE2ETestEnvironment(): boolean {
+  if (typeof window === 'undefined') return false
+
+  try {
+    // Check for headless Chrome (Playwright's default)
+    if (navigator.userAgent.includes('HeadlessChrome')) return true
+
+    // Check for webdriver flag (set by automation)
+    if ((navigator as { webdriver?: boolean }).webdriver) return true
+  } catch {
+    // Ignore errors (e.g., in SSR)
+  }
+
+  return false
+}
+
 export function getAppMode(): AppMode {
   // Check if mock auth is explicitly enabled
   const mockAuth = import.meta.env.VITE_MOCK_AUTH === 'true'

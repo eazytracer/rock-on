@@ -7,6 +7,9 @@
  * Updated 2026-01: Tests use new page-based flow (PracticeViewPage)
  * instead of the old modal-based workflow.
  *
+ * The PracticeViewPage uses InlineEditableField components which require
+ * clicking to enter edit mode before filling values.
+ *
  * @see /workspaces/rock-on/.claude/plans/02-create-e2e-tests.md
  * @see /workspaces/rock-on/.claude/specifications/testing-overview-and-strategy.md
  */
@@ -18,6 +21,12 @@ import {
   getInviteCodeViaUI,
   joinBandViaUI,
 } from '../../fixtures/bands'
+import {
+  fillInlineEditableField,
+  clickToEdit,
+  clickButtonReliably,
+  closeBrowseSongsDrawer,
+} from '../../helpers/inlineEditable'
 
 test.describe('Practice Sessions CRUD Operations', () => {
   test.beforeEach(async ({ page }) => {
@@ -49,27 +58,14 @@ test.describe('Practice Sessions CRUD Operations', () => {
     // Wait for the page to fully load (Details section should be visible)
     await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
 
-    // Fill in location using inline editable field
-    // Click on the display to enter edit mode
-    const locationDisplay = page.locator(
-      '[data-testid="practice-location-display"]'
-    )
-    await expect(locationDisplay).toBeVisible({ timeout: 5000 })
-    await locationDisplay.click()
+    // Fill in location using InlineEditableField helper
+    await fillInlineEditableField(page, 'practice-location', 'Studio A')
 
-    // Wait for input to appear and fill it
-    const locationInput = page.locator(
-      '[data-testid="practice-location-input"]'
-    )
-    await expect(locationInput).toBeVisible({ timeout: 3000 })
-    await locationInput.fill('Studio A')
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer if open (it auto-opens on new practice)
+    await closeBrowseSongsDrawer(page)
 
-    // Save by clicking Create Practice button
-    const saveButton = page.locator('[data-testid="create-practice-button"]')
-    await expect(saveButton).toBeVisible({ timeout: 5000 })
-    await saveButton.click()
+    // Save by clicking Create Practice button (use reliable JS click)
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
 
     // ASSERT: Verify we navigate to the created practice
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
@@ -86,25 +82,14 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
     await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
 
-    // Set location using inline editable field
-    const locationDisplay = page.locator(
-      '[data-testid="practice-location-display"]'
-    )
-    await expect(locationDisplay).toBeVisible({ timeout: 5000 })
-    await locationDisplay.click()
+    // Set location using InlineEditableField helper
+    await fillInlineEditableField(page, 'practice-location', 'Rehearsal Room')
 
-    const locationInput = page.locator(
-      '[data-testid="practice-location-input"]'
-    )
-    await expect(locationInput).toBeVisible({ timeout: 3000 })
-    await locationInput.fill('Rehearsal Room')
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer if open
+    await closeBrowseSongsDrawer(page)
 
-    // Save the practice
-    const saveButton = page.locator('[data-testid="create-practice-button"]')
-    await expect(saveButton).toBeVisible({ timeout: 5000 })
-    await saveButton.click()
+    // Save the practice (use reliable JS click)
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
 
     // Wait for navigation to the created practice
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
@@ -124,40 +109,17 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
     await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
 
-    // Set location
-    const locationDisplay = page.locator(
-      '[data-testid="practice-location-display"]'
-    )
-    await expect(locationDisplay).toBeVisible({ timeout: 5000 })
-    await locationDisplay.click()
+    // Set location using InlineEditableField helper
+    await fillInlineEditableField(page, 'practice-location', 'Main Studio')
 
-    const locationInput = page.locator(
-      '[data-testid="practice-location-input"]'
-    )
-    await expect(locationInput).toBeVisible({ timeout: 3000 })
-    await locationInput.fill('Main Studio')
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(500)
+    // Set notes using InlineEditableField helper (textarea type)
+    await fillInlineEditableField(page, 'practice-notes', 'Focus on new songs')
 
-    // Set notes using inline editable field
-    const notesDisplay = page.locator('[data-testid="practice-notes-display"]')
-    await expect(notesDisplay).toBeVisible({ timeout: 5000 })
-    await notesDisplay.click()
+    // Close the Browse Songs drawer if open
+    await closeBrowseSongsDrawer(page)
 
-    const notesInput = page.locator('[data-testid="practice-notes-input"]')
-    await expect(notesInput).toBeVisible({ timeout: 3000 })
-    await notesInput.fill('Focus on new songs')
-    await page.keyboard.press('Escape') // Save and close (textarea uses Escape to cancel, click outside to save)
-    await page.waitForTimeout(500)
-
-    // Actually click outside to save since Escape cancels
-    await page.locator('text=Details').click()
-    await page.waitForTimeout(500)
-
-    // Save the practice
-    const saveButton = page.locator('[data-testid="create-practice-button"]')
-    await expect(saveButton).toBeVisible({ timeout: 5000 })
-    await saveButton.click()
+    // Save the practice (use reliable JS click)
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
 
     // Wait for navigation
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
@@ -175,22 +137,17 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
 
     // Set initial location
-    const locationDisplay = page.locator(
-      '[data-testid="practice-location-display"]'
+    await fillInlineEditableField(
+      page,
+      'practice-location',
+      'Original Location'
     )
-    await expect(locationDisplay).toBeVisible({ timeout: 5000 })
-    await locationDisplay.click()
 
-    const locationInput = page.locator(
-      '[data-testid="practice-location-input"]'
-    )
-    await expect(locationInput).toBeVisible({ timeout: 3000 })
-    await locationInput.fill('Original Location')
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer if open
+    await closeBrowseSongsDrawer(page)
 
-    // Save the practice
-    await page.click('[data-testid="create-practice-button"]')
+    // Save the practice (use reliable JS click)
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
 
     // Verify original location
@@ -199,18 +156,7 @@ test.describe('Practice Sessions CRUD Operations', () => {
     })
 
     // ACT: Edit the location (inline editing)
-    const locationDisplayEdit = page.locator(
-      '[data-testid="practice-location-display"]'
-    )
-    await expect(locationDisplayEdit).toBeVisible({ timeout: 5000 })
-    await locationDisplayEdit.click()
-
-    // Clear and type new value
-    const editInput = page.locator('[data-testid="practice-location-input"]')
-    await expect(editInput).toBeVisible({ timeout: 3000 })
-    await editInput.fill('Updated Location')
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(1000)
+    await fillInlineEditableField(page, 'practice-location', 'Updated Location')
 
     // ASSERT: Verify changes
     await expect(page.locator('text=Updated Location').first()).toBeVisible({
@@ -226,22 +172,17 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
 
     // Set location
-    const locationDisplay = page.locator(
-      '[data-testid="practice-location-display"]'
+    await fillInlineEditableField(
+      page,
+      'practice-location',
+      'Delete Test Location'
     )
-    await expect(locationDisplay).toBeVisible({ timeout: 5000 })
-    await locationDisplay.click()
 
-    const locationInput = page.locator(
-      '[data-testid="practice-location-input"]'
-    )
-    await expect(locationInput).toBeVisible({ timeout: 3000 })
-    await locationInput.fill('Delete Test Location')
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer if open
+    await closeBrowseSongsDrawer(page)
 
-    // Save the practice
-    await page.click('[data-testid="create-practice-button"]')
+    // Save the practice (use reliable JS click)
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
 
     // Verify practice was created
@@ -335,23 +276,14 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
     await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
 
-    // Set location
-    const locationDisplay = page.locator(
-      '[data-testid="practice-location-display"]'
-    )
-    await expect(locationDisplay).toBeVisible({ timeout: 5000 })
-    await locationDisplay.click()
+    // Set location using InlineEditableField helper
+    await fillInlineEditableField(page, 'practice-location', 'Synced Location')
 
-    const locationInput = page.locator(
-      '[data-testid="practice-location-input"]'
-    )
-    await expect(locationInput).toBeVisible({ timeout: 3000 })
-    await locationInput.fill('Synced Location')
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer if open
+    await closeBrowseSongsDrawer(page)
 
-    // Save the practice
-    await page.click('[data-testid="create-practice-button"]')
+    // Save the practice (use reliable JS click)
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
 
     // User A goes back to list

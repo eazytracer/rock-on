@@ -94,7 +94,7 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
   durationLabel,
   onDurationSave,
   status,
-  isNew: _isNew,
+  isNew,
   'data-testid': testId = 'entity-header',
 }) => {
   const navigate = useNavigate()
@@ -166,7 +166,9 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
                   type="title"
                   placeholder={titlePlaceholder}
                   required
-                  data-testid={`${testId}-title`}
+                  autoEdit={isNew}
+                  name="name"
+                  data-testid={`${testId}-name`}
                 />
               ) : (
                 <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
@@ -201,6 +203,8 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
                     displayValue={dateLabel}
                     onSave={onDateSave}
                     type="date"
+                    autoEdit={isNew}
+                    name="date"
                     data-testid={`${testId}-date`}
                   />
                 ) : (
@@ -244,6 +248,8 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
                       displayValue={locationDisplay || undefined}
                       onSave={onVenueSave}
                       placeholder="Add venue"
+                      autoEdit={isNew}
+                      name="venue"
                       data-testid={`${testId}-venue`}
                     />
                   ) : (

@@ -38,10 +38,86 @@ export interface SyncConflict {
   recordId: string
   localData: any
   remoteData: any
-  timestamp: Date
-  resolution?: 'local' | 'remote' | 'merged'
+  localModifiedAt?: Date
+  remoteModifiedAt?: Date
+  localModifiedBy?: string
+  remoteModifiedBy?: string
+  timestamp: Date // When conflict was detected
+  status: 'pending' | 'resolved_local' | 'resolved_remote' | 'resolved_merged'
+  resolution?: 'local' | 'remote' | 'merged' // Deprecated: use status instead
   resolvedAt?: Date
   resolvedBy?: string
+}
+
+/**
+ * Conflict resolution choice made by user
+ */
+export type ConflictResolution = 'local' | 'remote'
+
+/**
+ * Event emitted when a conflict is detected
+ */
+export interface ConflictEvent {
+  type: 'conflict_detected' | 'conflict_resolved'
+  conflict: SyncConflict
+}
+
+/**
+ * Result of an incremental sync operation
+ * Used to track what changed during sync-on-load
+ */
+export interface IncrementalSyncResult {
+  // Songs
+  newSongs: number
+  updatedSongs: number
+  deletedSongs: number
+
+  // Setlists
+  newSetlists: number
+  updatedSetlists: number
+  deletedSetlists: number
+
+  // Practice Sessions
+  newPractices: number
+  updatedPractices: number
+  deletedPractices: number
+
+  // Shows
+  newShows: number
+  updatedShows: number
+  deletedShows: number
+
+  // Conflict tracking
+  skippedDueToPending: number // Records skipped because of pending local changes
+  conflictsDetected: number // Version conflicts detected during push
+
+  // Timing
+  lastSyncTime: Date
+  syncDurationMs: number
+}
+
+/**
+ * Creates an empty IncrementalSyncResult with all counts at zero
+ */
+export function createEmptyIncrementalSyncResult(): IncrementalSyncResult {
+  return {
+    newSongs: 0,
+    updatedSongs: 0,
+    deletedSongs: 0,
+    newSetlists: 0,
+    updatedSetlists: 0,
+    deletedSetlists: 0,
+    newPractices: 0,
+    updatedPractices: 0,
+    deletedPractices: 0,
+    newShows: 0,
+    updatedShows: 0,
+    deletedShows: 0,
+    skippedDueToPending: 0,
+    conflictsDetected: 0,
+    lastSyncTime: new Date(),
+    syncDurationMs: 0,
+  }
 }
 
 /**

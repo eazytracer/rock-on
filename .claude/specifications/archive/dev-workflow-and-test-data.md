@@ -29,21 +29,23 @@ description: Dev environment setup, test users/bands, and development workflows
 
 Three test users are maintained for development and testing:
 
-| Name | Email | User ID | Role in Band | Password |
-|------|-------|---------|--------------|----------|
-| Eric | eric@ipodshuffle.com | `7e75840e-9d91-422e-a949-849f0b8e2ea4` | admin | test123 |
-| Mike | mike@ipodshuffle.com | `0c9c3e47-a4e0-4b70-99db-3e14c89ba9b3` | member | test123 |
-| Sarah | sarah@ipodshuffle.com | `b7e6bb62-5c26-4a78-be6b-2e7a1cbe5f77` | member | test123 |
+| Name  | Email                 | User ID                                | Role in Band | Password |
+| ----- | --------------------- | -------------------------------------- | ------------ | -------- |
+| Eric  | eric@ipodshuffle.com  | `7e75840e-9d91-422e-a949-849f0b8e2ea4` | admin        | test123  |
+| Mike  | mike@ipodshuffle.com  | `0c9c3e47-a4e0-4b70-99db-3e14c89ba9b3` | member       | test123  |
+| Sarah | sarah@ipodshuffle.com | `b7e6bb62-5c26-4a78-be6b-2e7a1cbe5f77` | member       | test123  |
 
 ### User Setup
 
 **Location:** Supabase Dashboard > Authentication > Users
 
 **Created via:**
+
 - Manual creation in Supabase Auth Dashboard
 - Seeded in `public.users` table via `supabase/seed-dev-users.sql`
 
 **Properties:**
+
 - All users use `email` auth provider
 - All users are auto-confirmed (no email verification needed)
 - All users have access to the "iPod Shuffle" test band
@@ -55,12 +57,14 @@ Three test users are maintained for development and testing:
 ### iPod Shuffle (Primary Test Band)
 
 **Band Details:**
+
 - Name: `iPod Shuffle`
 - Description: `Dev test band`
 - Created by: Eric (admin)
 - Status: Active
 
 **Members:**
+
 - Eric (admin, owner)
 - Mike (member)
 - Sarah (member)
@@ -68,6 +72,7 @@ Three test users are maintained for development and testing:
 **Band ID:** Generated dynamically by seed script (save after running)
 
 **Purpose:** Primary band for testing all multi-user features including:
+
 - Song sharing
 - Setlist collaboration
 - Practice session scheduling
@@ -99,12 +104,14 @@ Three test users are maintained for development and testing:
 ### Local-First Strategy
 
 **Development Mode:**
+
 1. Data writes go to IndexedDB first (optimistic UI)
 2. SyncRepository queues changes for remote sync
 3. SyncEngine syncs to Supabase in background
 4. Offline-capable: app works without internet
 
 **Production Mode:**
+
 - Same architecture
 - Requires initial auth with Supabase
 - User data syncs across devices
@@ -124,6 +131,7 @@ Three test users are maintained for development and testing:
 ### Current Implementation (Dev Mode)
 
 **Mock User Login:**
+
 1. User clicks "Show Mock Users for Testing" on login page
 2. Selects Eric, Mike, or Sarah
 3. App authenticates with Supabase Auth using stored credentials
@@ -159,6 +167,7 @@ Three test users are maintained for development and testing:
 ### Initial Setup (First Time)
 
 1. **Create Auth Users** (Supabase Dashboard):
+
    ```
    Authentication > Users > Add User
    - eric@ipodshuffle.com (password: test123)
@@ -167,6 +176,7 @@ Three test users are maintained for development and testing:
    ```
 
 2. **Update Seed Script** with actual UUIDs:
+
    ```sql
    -- Edit: supabase/seed-dev-users.sql
    v_eric_id UUID := 'YOUR-ERIC-UUID-HERE'::uuid;
@@ -175,6 +185,7 @@ Three test users are maintained for development and testing:
    ```
 
 3. **Run Seed Script** (Supabase SQL Editor):
+
    ```sql
    -- Copy entire contents of supabase/seed-dev-users.sql
    -- Paste into SQL Editor
@@ -189,6 +200,7 @@ Three test users are maintained for development and testing:
 ### Daily Development Workflow
 
 1. **Start Dev Server:**
+
    ```bash
    npm run dev
    ```
@@ -200,6 +212,7 @@ Three test users are maintained for development and testing:
    - You should be redirected to /songs
 
 3. **Verify Authentication:**
+
    ```javascript
    // In browser console:
    const session = await supabase.auth.getSession()
@@ -209,6 +222,7 @@ Three test users are maintained for development and testing:
    ```
 
 4. **Test Sync:**
+
    ```javascript
    // Create a test song
    // Then check sync queue:
@@ -341,32 +355,37 @@ console.log('Sync queue:', queue)
 ### "No items in sync queue"
 
 **Symptoms:**
+
 - Songs created but queue empty
 - No data in Supabase
 
 **Cause:** Hooks bypassing SyncRepository (should be fixed)
 
 **Verify Fix:**
+
 ```typescript
 // Check: src/hooks/useSongs.ts line 77
 // Should call:
 await getSyncRepository().addSong(newSong)
 // NOT:
-await db.songs.add(newSong)  // ❌ WRONG
+await db.songs.add(newSong) // ❌ WRONG
 ```
 
 ### "RLS policy violation"
 
 **Symptoms:**
+
 - 500 errors on sync
 - "Row violates row-level security policy"
 
 **Causes:**
+
 1. Not authenticated with Supabase
 2. User not in `public.users` table
 3. `auth.uid()` doesn't match `currentUserId`
 
 **Solutions:**
+
 ```javascript
 // 1. Verify auth session
 const { data } = await supabase.auth.getSession()
@@ -385,26 +404,30 @@ console.log('Local ID:', localStorage.getItem('currentUserId'))
 ### "Auth session is null"
 
 **Symptoms:**
+
 - Mock login doesn't work
 - No session after login
 
 **Cause:** Not calling Supabase Auth
 
 **Fix:** Verify `handleMockUserLogin` uses:
+
 ```typescript
 const { data, error } = await supabase.auth.signInWithPassword({
   email: mockEmail,
-  password: 'test123'
+  password: 'test123',
 })
 ```
 
 ### "Sync queue stuck"
 
 **Symptoms:**
+
 - Items stay in "pending" or "syncing" state
 - Never complete
 
 **Debug:**
+
 ```javascript
 // Check queue details
 const queue = await db.syncQueue.toArray()
@@ -418,6 +441,7 @@ console.log('Failed items:', failed)
 ```
 
 **Common Fixes:**
+
 - Check network (offline?)
 - Check RLS policies (denied?)
 - Check Supabase logs (errors?)
@@ -489,6 +513,7 @@ Current: Mock users for dev
 Future: Real user registration/login
 
 **Todo:**
+
 - Implement proper signup flow
 - Email verification
 - Password reset
@@ -500,6 +525,7 @@ Current: Basic queue-based sync
 Future: Conflict resolution
 
 **Todo:**
+
 - Detect conflicts (last-write-wins?)
 - Merge strategies
 - User conflict resolution UI
@@ -510,6 +536,7 @@ Current: Works but not thoroughly tested
 Future: Full cross-device support
 
 **Todo:**
+
 - Test on multiple devices
 - Handle concurrent edits
 - Optimize sync frequency
@@ -518,9 +545,9 @@ Future: Full cross-device support
 
 ## Version History
 
-| Date | Version | Changes |
-|------|---------|---------|
-| 2025-10-26 | 1.0 | Initial specification created |
+| Date       | Version | Changes                       |
+| ---------- | ------- | ----------------------------- |
+| 2025-10-26 | 1.0     | Initial specification created |
 
 ---
 

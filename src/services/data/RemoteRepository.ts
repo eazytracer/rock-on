@@ -18,6 +18,10 @@ import {
   SongNoteEntryUpdate,
 } from '../../models/SongNoteEntry'
 import { supabase } from '../supabase/client'
+import {
+  IncrementalSyncResult,
+  createEmptyIncrementalSyncResult,
+} from './syncTypes'
 
 /**
  * Remote repository implementation using Supabase
@@ -189,6 +193,33 @@ export class RemoteRepository implements IDataRepository {
       visibility: row.visibility ?? 'band', // Default to 'band' for MVP
       songGroupId: row.song_group_id,
       lastModifiedBy: row.last_modified_by ?? undefined,
+    }
+  }
+
+  /**
+   * Get songs modified since a given time (for incremental sync)
+   * Uses updated_date field in Supabase
+   */
+  async getSongsSince(
+    bandIds: string[],
+    since: Date
+  ): Promise<{ songs: Song[]; total: number }> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    if (bandIds.length === 0) return { songs: [], total: 0 }
+
+    const { data, error, count } = await supabase
+      .from('songs')
+      .select('*', { count: 'exact' })
+      .in('context_id', bandIds)
+      .eq('context_type', 'band')
+      .gte('updated_date', since.toISOString())
+      .order('updated_date', { ascending: false })
+
+    if (error) throw error
+
+    return {
+      songs: (data || []).map(row => this.mapSongFromSupabase(row)),
+      total: count || 0,
     }
   }
 
@@ -429,6 +460,32 @@ export class RemoteRepository implements IDataRepository {
     }
   }
 
+  /**
+   * Get setlists modified since a given time (for incremental sync)
+   * Uses last_modified field in Supabase
+   */
+  async getSetlistsSince(
+    bandIds: string[],
+    since: Date
+  ): Promise<{ setlists: Setlist[]; total: number }> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    if (bandIds.length === 0) return { setlists: [], total: 0 }
+
+    const { data, error, count } = await supabase
+      .from('setlists')
+      .select('*', { count: 'exact' })
+      .in('band_id', bandIds)
+      .gte('last_modified', since.toISOString())
+      .order('last_modified', { ascending: false })
+
+    if (error) throw error
+
+    return {
+      setlists: (data || []).map(row => this.mapSetlistFromSupabase(row)),
+      total: count || 0,
+    }
+  }
+
   // ========== PRACTICE SESSIONS ==========
 
   async getPracticeSessions(bandId: string): Promise<PracticeSession[]> {
@@ -555,6 +612,34 @@ export class RemoteRepository implements IDataRepository {
     }
   }
 
+  /**
+   * Get practice sessions created since a given time (for incremental sync)
+   * Uses created_date field since practice_sessions doesn't have updated_date
+   */
+  async getPracticeSessionsSince(
+    bandIds: string[],
+    since: Date
+  ): Promise<{ practiceSessions: PracticeSession[]; total: number }> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    if (bandIds.length === 0) return { practiceSessions: [], total: 0 }
+
+    const { data, error, count } = await supabase
+      .from('practice_sessions')
+      .select('*', { count: 'exact' })
+      .in('band_id', bandIds)
+      .gte('created_date', since.toISOString())
+      .order('created_date', { ascending: false })
+
+    if (error) throw error
+
+    return {
+      practiceSessions: (data || []).map(row =>
+        this.mapPracticeSessionFromSupabase(row)
+      ),
+      total: count || 0,
+    }
+  }
+
   // ========== SHOWS ==========
 
   async getShows(bandId: string): Promise<Show[]> {
@@ -669,6 +754,32 @@ export class RemoteRepository implements IDataRepository {
       createdDate: new Date(row.created_date),
       updatedDate: new Date(row.updated_date),
       lastModifiedBy: row.last_modified_by ?? undefined,
+    }
+  }
+
+  /**
+   * Get shows modified since a given time (for incremental sync)
+   * Uses updated_date field in Supabase
+   */
+  async getShowsSince(
+    bandIds: string[],
+    since: Date
+  ): Promise<{ shows: Show[]; total: number }> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    if (bandIds.length === 0) return { shows: [], total: 0 }
+
+    const { data, error, count } = await supabase
+      .from('shows')
+      .select('*', { count: 'exact' })
+      .in('band_id', bandIds)
+      .gte('updated_date', since.toISOString())
+      .order('updated_date', { ascending: false })
+
+    if (error) throw error
+
+    return {
+      shows: (data || []).map(row => this.mapShowFromSupabase(row)),
+      total: count || 0,
     }
   }
 
@@ -878,6 +989,45 @@ export class RemoteRepository implements IDataRepository {
   }
 
   // ========== USER OPERATIONS ==========
+
+  /**
+   * Update the current user's last_active_at timestamp
+   * This is used for multi-device sync optimization
+   */
+  async updateUserActivity(): Promise<void> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { error } = await supabase.rpc('update_user_activity')
+
+    if (error) {
+      console.error('[RemoteRepository.updateUserActivity] Error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get the last active timestamp for a user
+   * Returns undefined if never active or column doesn't exist
+   */
+  async getUserLastActiveAt(userId: string): Promise<Date | undefined> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    // Select last_active_at column (added via migration, not in generated types)
+    const { data, error } = await supabase
+      .from('users')
+      .select('last_active_at')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') return undefined // Not found
+      throw error
+    }
+
+    // Cast to any since last_active_at isn't in the generated Supabase types
+    const row = data as any
+    return row?.last_active_at ? new Date(row.last_active_at) : undefined
+  }
 
   async getUser(id: string): Promise<User | null> {
     if (!supabase) throw new Error('Supabase client not initialized')
@@ -1251,5 +1401,12 @@ export class RemoteRepository implements IDataRepository {
 
   async pullFromRemote(_userId: string): Promise<void> {
     // No-op: RemoteRepository doesn't handle sync orchestration
+  }
+
+  async pullIncrementalChanges(
+    _userId: string
+  ): Promise<IncrementalSyncResult> {
+    // No-op: RemoteRepository doesn't handle sync orchestration
+    return createEmptyIncrementalSyncResult()
   }
 }

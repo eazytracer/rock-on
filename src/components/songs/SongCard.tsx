@@ -181,6 +181,7 @@ export const SongCard: React.FC<SongCardProps> = ({
               onClick={handleEdit}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors touch-manipulation rounded-lg hover:bg-gray-100"
               aria-label="Edit song"
+              data-testid="edit-song-button"
             >
               <svg
                 className="h-5 w-5"
@@ -200,6 +201,7 @@ export const SongCard: React.FC<SongCardProps> = ({
               onClick={handleDelete}
               className="p-2 text-gray-400 hover:text-red-600 transition-colors touch-manipulation rounded-lg hover:bg-red-50"
               aria-label="Delete song"
+              data-testid="delete-song-button"
             >
               <svg
                 className="h-5 w-5"

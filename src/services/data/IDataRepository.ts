@@ -4,6 +4,7 @@ import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
 import { BandMembership, InviteCode } from '../../models/BandMembership'
+import { IncrementalSyncResult } from './syncTypes'
 
 export interface SongFilter {
   id?: string
@@ -136,4 +137,16 @@ export interface IDataRepository {
    * Pull changes from remote (incremental sync)
    */
   pullFromRemote(userId: string): Promise<void>
+
+  /**
+   * Pull incremental changes from remote since last sync
+   * Called on every app load to catch updates from other devices
+   */
+  pullIncrementalChanges(userId: string): Promise<IncrementalSyncResult>
+
+  /**
+   * Get the sync engine instance (if available)
+   * Only SyncRepository has a sync engine
+   */
+  getSyncEngine?(): import('./SyncEngine').SyncEngine | null
 }

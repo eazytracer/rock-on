@@ -13,6 +13,11 @@
 import { test, expect } from '@playwright/test'
 import { signUpViaUI, createTestUser } from '../../fixtures/auth'
 import { createBandViaUI } from '../../fixtures/bands'
+import {
+  clickButtonReliably,
+  closeBrowseSongsDrawer,
+  clickInDrawer,
+} from '../../helpers/inlineEditable'
 
 test.describe('Practice Session Mode', () => {
   test.beforeEach(async ({ page }) => {
@@ -65,31 +70,19 @@ test.describe('Practice Session Mode', () => {
       await addSongsButton.click()
       await page.waitForTimeout(500)
 
-      // Click on songs to add them
-      const song1 = page.locator('button:has-text("Test Song One")')
-      if (await song1.isVisible({ timeout: 3000 })) {
-        await song1.click()
-        await page.waitForTimeout(300)
-      }
+      // Click on songs to add them (use JS click to handle viewport issues)
+      await clickInDrawer(page, 'button:has-text("Test Song One")')
+      await page.waitForTimeout(300)
 
-      const song2 = page.locator('button:has-text("Test Song Two")')
-      if (await song2.isVisible({ timeout: 3000 })) {
-        await song2.click()
-        await page.waitForTimeout(300)
-      }
+      await clickInDrawer(page, 'button:has-text("Test Song Two")')
+      await page.waitForTimeout(300)
     }
 
-    // Close the drawer using the close button
-    const closeButton = page.locator('[data-testid="slide-out-tray-close"]')
-    await expect(closeButton).toBeVisible({ timeout: 3000 })
-    await closeButton.click()
-    // Wait for drawer to slide out (it uses transform, not visibility)
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer
+    await closeBrowseSongsDrawer(page)
 
     // Step 3: Save the practice (click Create Practice button)
-    const createButton = page.locator('[data-testid="create-practice-button"]')
-    await expect(createButton).toBeVisible({ timeout: 5000 })
-    await createButton.click()
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
 
     // Wait for navigation to the saved practice
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
@@ -198,24 +191,16 @@ Capo: 2nd fret
       await addSongsButton2.click()
       await page.waitForTimeout(500)
 
-      const song = page.locator('button:has-text("Markdown Test Song")')
-      if (await song.isVisible({ timeout: 3000 })) {
-        await song.click()
-        await page.waitForTimeout(300)
-      }
+      // Use JS click to handle viewport issues
+      await clickInDrawer(page, 'button:has-text("Markdown Test Song")')
+      await page.waitForTimeout(300)
     }
 
-    // Close the drawer using the close button
-    const closeButton = page.locator('[data-testid="slide-out-tray-close"]')
-    await expect(closeButton).toBeVisible({ timeout: 3000 })
-    await closeButton.click()
-    // Wait for drawer to slide out (it uses transform, not visibility)
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer
+    await closeBrowseSongsDrawer(page)
 
     // Save the practice
-    const createButton = page.locator('[data-testid="create-practice-button"]')
-    await expect(createButton).toBeVisible({ timeout: 5000 })
-    await createButton.click()
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
 
     // Start practice session
@@ -272,30 +257,19 @@ Capo: 2nd fret
       await addSongsButton.click()
       await page.waitForTimeout(500)
 
-      const song1 = page.locator('button:has-text("Keyboard Nav Song 1")')
-      if (await song1.isVisible({ timeout: 3000 })) {
-        await song1.click()
-        await page.waitForTimeout(300)
-      }
+      // Use JS click to handle viewport issues
+      await clickInDrawer(page, 'button:has-text("Keyboard Nav Song 1")')
+      await page.waitForTimeout(300)
 
-      const song2 = page.locator('button:has-text("Keyboard Nav Song 2")')
-      if (await song2.isVisible({ timeout: 3000 })) {
-        await song2.click()
-        await page.waitForTimeout(300)
-      }
+      await clickInDrawer(page, 'button:has-text("Keyboard Nav Song 2")')
+      await page.waitForTimeout(300)
     }
 
-    // Close the drawer using the close button
-    const closeButton = page.locator('[data-testid="slide-out-tray-close"]')
-    await expect(closeButton).toBeVisible({ timeout: 3000 })
-    await closeButton.click()
-    // Wait for drawer to slide out (it uses transform, not visibility)
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer
+    await closeBrowseSongsDrawer(page)
 
     // Save the practice
-    const createButton = page.locator('[data-testid="create-practice-button"]')
-    await expect(createButton).toBeVisible({ timeout: 5000 })
-    await createButton.click()
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
 
     // Start practice
@@ -367,30 +341,21 @@ Capo: 2nd fret
       await addSongsButton.click()
       await page.waitForTimeout(500)
 
+      // Use JS click to handle viewport issues
       for (let i = 1; i <= 4; i++) {
-        const song = page.locator(`button:has-text("Progress Song ${i}")`)
-        if (await song.isVisible({ timeout: 3000 })) {
-          await song.click()
-          await page.waitForTimeout(200)
-        }
+        await clickInDrawer(page, `button:has-text("Progress Song ${i}")`)
+        await page.waitForTimeout(200)
       }
     }
 
     // Wait for UI to stabilize after adding songs
     await page.waitForTimeout(500)
 
-    // Close the drawer by clicking the backdrop (more reliable than close button)
-    const backdrop = page.locator('[data-testid="slide-out-tray-backdrop"]')
-    if (await backdrop.isVisible({ timeout: 2000 })) {
-      await backdrop.click()
-    }
-    // Wait for drawer to slide out
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer
+    await closeBrowseSongsDrawer(page)
 
     // Save the practice
-    const createButton = page.locator('[data-testid="create-practice-button"]')
-    await expect(createButton).toBeVisible({ timeout: 5000 })
-    await createButton.click()
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
 
     // Start practice
@@ -451,24 +416,16 @@ Capo: 2nd fret
       await addSongsButton.click()
       await page.waitForTimeout(500)
 
-      const song = page.locator('button:has-text("Timer Test Song")')
-      if (await song.isVisible({ timeout: 3000 })) {
-        await song.click()
-        await page.waitForTimeout(300)
-      }
+      // Use JS click to handle viewport issues
+      await clickInDrawer(page, 'button:has-text("Timer Test Song")')
+      await page.waitForTimeout(300)
     }
 
-    // Close the drawer using the close button
-    const closeButton = page.locator('[data-testid="slide-out-tray-close"]')
-    await expect(closeButton).toBeVisible({ timeout: 3000 })
-    await closeButton.click()
-    // Wait for drawer to slide out (it uses transform, not visibility)
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer
+    await closeBrowseSongsDrawer(page)
 
     // Save the practice
-    const createButton = page.locator('[data-testid="create-practice-button"]')
-    await expect(createButton).toBeVisible({ timeout: 5000 })
-    await createButton.click()
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
 
     // Start practice
@@ -522,30 +479,19 @@ Capo: 2nd fret
       await addSongsButton.click()
       await page.waitForTimeout(500)
 
-      const song1 = page.locator('button:has-text("Standard Tuning Song")')
-      if (await song1.isVisible({ timeout: 3000 })) {
-        await song1.click()
-        await page.waitForTimeout(300)
-      }
+      // Use JS click to handle viewport issues
+      await clickInDrawer(page, 'button:has-text("Standard Tuning Song")')
+      await page.waitForTimeout(300)
 
-      const song2 = page.locator('button:has-text("Drop D Song")')
-      if (await song2.isVisible({ timeout: 3000 })) {
-        await song2.click()
-        await page.waitForTimeout(300)
-      }
+      await clickInDrawer(page, 'button:has-text("Drop D Song")')
+      await page.waitForTimeout(300)
     }
 
-    // Close the drawer using the close button
-    const closeButton = page.locator('[data-testid="slide-out-tray-close"]')
-    await expect(closeButton).toBeVisible({ timeout: 3000 })
-    await closeButton.click()
-    // Wait for drawer to slide out (it uses transform, not visibility)
-    await page.waitForTimeout(500)
+    // Close the Browse Songs drawer
+    await closeBrowseSongsDrawer(page)
 
     // Save the practice
-    const createButton = page.locator('[data-testid="create-practice-button"]')
-    await expect(createButton).toBeVisible({ timeout: 5000 })
-    await createButton.click()
+    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
 
     // Start practice

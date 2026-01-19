@@ -44,6 +44,9 @@ import { SyncIcon } from '../components/sync/SyncIcon'
 import { useItemStatus } from '../hooks/useItemSyncStatus'
 // Expandable notes for songs
 import { ExpandableSongNotes } from '../components/songs/ExpandableSongNotes'
+// Confirmation dialog (replaces window.confirm)
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { useConfirm } from '../hooks/useConfirm'
 
 interface SongLink {
   id: string
@@ -538,6 +541,7 @@ const SongRow: React.FC<SongRowProps> = ({
               setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
             }
             className="p-1 text-[#707070] hover:text-white transition-colors"
+            data-testid="song-actions-menu-button"
           >
             <MoreVertical size={20} />
           </button>
@@ -552,6 +556,7 @@ const SongRow: React.FC<SongRowProps> = ({
                 <button
                   onClick={() => onEdit(song)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                  data-testid="edit-song-button"
                 >
                   <Edit size={16} />
                   <span>Edit Song</span>
@@ -559,6 +564,7 @@ const SongRow: React.FC<SongRowProps> = ({
                 <button
                   onClick={() => onAddToSetlist(song)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                  data-testid="add-to-setlist-button"
                 >
                   <ListPlus size={16} />
                   <span>Add to Setlist</span>
@@ -566,6 +572,7 @@ const SongRow: React.FC<SongRowProps> = ({
                 <button
                   onClick={() => onDuplicate(song)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                  data-testid="duplicate-song-button"
                 >
                   <Copy size={16} />
                   <span>Duplicate Song</span>
@@ -574,6 +581,7 @@ const SongRow: React.FC<SongRowProps> = ({
                 <button
                   onClick={() => onDelete(song)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
+                  data-testid="delete-song-button"
                 >
                   <Trash2 size={16} />
                   <span>Delete Song</span>
@@ -765,6 +773,7 @@ export const SongsPage: React.FC = () => {
   const { createSong } = useCreateSong()
   const { updateSong } = useUpdateSong()
   const { deleteSong, checkSongInSetlists } = useDeleteSong()
+  const { confirm, dialogProps } = useConfirm()
 
   // Display songs with transformed data
   const [songs, setSongs] = useState<Song[]>([])
@@ -1082,25 +1091,27 @@ export const SongsPage: React.FC = () => {
       // Check if song is in any setlists
       const setlists = await checkSongInSetlists(song.id)
 
+      let confirmed: boolean
       if (setlists.length > 0) {
         const setlistNames = setlists.map(s => s.name).join(', ')
-        const confirmed = window.confirm(
-          `This song is in ${setlists.length} setlist(s): ${setlistNames}.\n\nDeleting will remove it from all setlists. Continue?`
-        )
-
-        if (!confirmed) {
-          setOpenActionMenuId(null)
-          return
-        }
+        confirmed = await confirm({
+          title: 'Delete Song',
+          message: `This song is in ${setlists.length} setlist(s): ${setlistNames}.\n\nDeleting will remove it from all setlists. Continue?`,
+          confirmLabel: 'Delete',
+          variant: 'danger',
+        })
       } else {
-        const confirmed = window.confirm(
-          `Are you sure you want to delete "${song.title}" by ${song.artist}?\n\nThis action cannot be undone.`
-        )
+        confirmed = await confirm({
+          title: 'Delete Song',
+          message: `Are you sure you want to delete "${song.title}" by ${song.artist}?\n\nThis action cannot be undone.`,
+          confirmLabel: 'Delete',
+          variant: 'danger',
+        })
+      }
 
-        if (!confirmed) {
-          setOpenActionMenuId(null)
-          return
-        }
+      if (!confirmed) {
+        setOpenActionMenuId(null)
+        return
       }
 
       // Delete the song (hook handles setlist cleanup)
@@ -1263,6 +1274,7 @@ export const SongsPage: React.FC = () => {
                   <button
                     onClick={() => setIsAddModalOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
+                    data-testid="add-song-button"
                   >
                     <Plus size={20} />
                     <span>Add Song</span>
@@ -1413,6 +1425,7 @@ export const SongsPage: React.FC = () => {
                   <button
                     onClick={() => setIsAddModalOpen(true)}
                     className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
+                    data-testid="add-song-button"
                   >
                     <Plus size={20} />
                     <span>Add Song</span>
@@ -1671,6 +1684,9 @@ export const SongsPage: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog {...dialogProps} />
     </ModernLayout>
   )
 }
@@ -1884,6 +1900,7 @@ const AddEditSongModal: React.FC<AddEditSongModalProps> = ({
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
+      data-testid="song-form-modal"
     >
       <div
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar-thin"
@@ -2386,6 +2403,7 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
           <button
             onClick={onConfirm}
             className="flex-1 px-4 py-2.5 bg-[#D7263D] text-white text-sm font-medium rounded-lg hover:bg-[#b51f33] transition-colors"
+            data-testid="confirm-delete-song-button"
           >
             Delete Song
           </button>

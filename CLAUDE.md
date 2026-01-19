@@ -35,6 +35,14 @@ tests/
 # Run application tests (unit, integration)
 npm test
 
+# Quick tests for fast feedback (components, hooks, contexts ~2s)
+npm run test:quick
+
+# Run specific test categories
+npm run test:unit        # All unit tests
+npm run test:services    # Service layer tests only
+npm run test:integration # Integration tests
+
 # Run specific test file
 npm test -- tests/unit/services/data/SyncRepository.test.ts
 
@@ -42,7 +50,7 @@ npm test -- tests/unit/services/data/SyncRepository.test.ts
 npm test -- tests/unit/services/
 
 # Run tests in watch mode (for development)
-npm test -- --watch
+npm run test:watch
 
 # Run tests with coverage
 npm test -- --coverage
@@ -517,8 +525,57 @@ supabase test db          # Direct command
 - ✅ When RLS policies change
 - ✅ When adding/modifying triggers
 
+## Authentication Flow
+
+### Session Validation
+
+The app uses a multi-layer authentication check:
+
+1. **useAuthCheck hook** (`src/hooks/useAuthCheck.ts`)
+   - Validates localStorage keys (`currentUserId`, `currentBandId`)
+   - Checks session from `SessionManager.loadSession()`
+   - Applies **1.5-hour grace period** for expired sessions
+   - Cleans up stale localStorage on invalid sessions
+   - Re-runs on every route change to catch expired sessions
+
+2. **ProtectedRoute** (`src/components/ProtectedRoute.tsx`)
+   - Shows loading spinner during auth check (prevents content flash)
+   - Redirects based on failure reason:
+     - `no-user` → `/auth`
+     - `no-band` → `/auth?view=get-started`
+     - `session-expired` → `/auth?reason=session-expired`
+     - `session-invalid` → `/auth?reason=session-invalid`
+
+3. **SessionExpiredModal** (`src/components/auth/SessionExpiredModal.tsx`)
+   - Handles session expiry detected by AuthContext
+   - Shows toast notification and redirects to `/auth`
+   - Does NOT show a modal overlay (redirect-only)
+
+### Grace Period
+
+Sessions have a **1.5-hour grace period** after expiry to allow:
+
+- Brief offline periods during gigs/practices
+- Token refresh delays
+- Network connectivity issues
+
+After the grace period, users must re-authenticate.
+
+### Key Files
+
+| File                                          | Purpose                              |
+| --------------------------------------------- | ------------------------------------ |
+| `src/hooks/useAuthCheck.ts`                   | Unified auth validation hook         |
+| `src/components/ProtectedRoute.tsx`           | Route protection with loading states |
+| `src/components/auth/SessionExpiredModal.tsx` | Session expiry redirect handler      |
+| `src/contexts/AuthContext.tsx`                | Auth state management                |
+| `src/services/auth/SessionManager.ts`         | Session storage and validation       |
+
 ## Recent Changes
 
+- 2026-01-17: Improved auth flow - useAuthCheck hook with grace period, simplified SessionExpiredModal (redirect-only)
+- 2026-01-17: Test performance optimization - parallel threads, split test scripts (test:quick, test:unit, etc.)
+- 2026-01-17: Added E2E tests for session expiry scenarios (53 tests across all browsers)
 - 2025-11-07: Implemented pgTAP database test suite (269 tests covering schema, RLS, triggers, audit logging)
 - 2025-11-06: Consolidated 17 migrations into single baseline (supabase/migrations/20251106000000_baseline_schema.sql)
 - 2025-10-25: Phase 1 Supabase sync complete (73 tests passing)
@@ -575,6 +632,46 @@ Migration files DO use timestamps, but in Supabase's special format (`YYYYMMDDHH
 ❌ Wrong (code):           src/services/data/2025-11-07T21:30_SyncEngine.ts
 ❌ Wrong (test):           supabase/tests/2025-11-07T21:30_rls-test.test.sql
 ```
+
+## Agent File Creation (CRITICAL)
+
+**Sub-agents (Task tool) cannot persist files to the filesystem directly.**
+
+When a sub-agent attempts to create files (especially in `.claude/` directories), the file operations shown in the agent's output are **internal to that agent's context** and do NOT actually create files on disk.
+
+**After any agent attempts to create a file, you MUST:**
+
+1. Verify the file exists: `ls -la <path>` or check with the Read tool
+2. If the file doesn't exist, create the directory and write the file yourself
+3. Use the content from the agent's output to populate the file
+
+**Example workflow:**
+
+```bash
+# Agent reports creating: .claude/active-work/issues/my-issue/diagnosis.md
+
+# Step 1: Verify (will likely fail)
+ls -la .claude/active-work/issues/my-issue/
+
+# Step 2: Create directory if missing
+mkdir -p .claude/active-work/issues/my-issue/
+
+# Step 3: Write the file using the agent's content
+# Use the Write tool with content from agent output
+```
+
+**Why this happens:**
+
+- Sub-agents run in isolated contexts
+- Their file operations are simulated within their execution
+- Only the parent conversation can persist files to the actual filesystem
+- This is by design for security and isolation
+
+**Directories commonly affected:**
+
+- `.claude/active-work/` - Diagnosis reports, research docs
+- `.claude/artifacts/` - Design documents, summaries
+- `.claude/features/` - Feature plans and specs
 
 <!-- MANUAL ADDITIONS END -->
 

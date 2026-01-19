@@ -685,6 +685,23 @@ export class SyncRepository implements IDataRepository {
     await this.syncEngine.performInitialSync(userId)
   }
 
+  /**
+   * Pull incremental changes from remote since last sync
+   * Called on every app load to catch updates from other devices
+   */
+  async pullIncrementalChanges(
+    userId: string
+  ): Promise<import('./syncTypes').IncrementalSyncResult> {
+    return this.syncEngine.pullIncrementalChanges(userId)
+  }
+
+  /**
+   * Get the sync engine instance for direct access to conflict management
+   */
+  getSyncEngine(): import('./SyncEngine').SyncEngine {
+    return this.syncEngine
+  }
+
   // ========== USERS ==========
   // READ: getUser() is cloud-first for multi-user access
 

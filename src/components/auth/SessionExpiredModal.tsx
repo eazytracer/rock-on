@@ -1,110 +1,42 @@
-import React, { useState } from 'react'
+import { useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { SignInCredentials } from '../../services/auth/types'
+import { useToast } from '../../contexts/ToastContext'
 
+/**
+ * SessionExpiredModal - Handles session expiry by redirecting to auth page
+ *
+ * When session expires:
+ * 1. AuthContext sets sessionExpired=true and clears localStorage
+ * 2. This component detects sessionExpired and:
+ *    - Shows a toast notification
+ *    - Redirects to /auth?reason=session-expired
+ *
+ * Note: On protected pages, ProtectedRoute's useAuthCheck may also trigger
+ * a redirect. This component handles the case where user is on a public page
+ * when their session expires.
+ */
 export const SessionExpiredModal: React.FC = () => {
-  const { sessionExpired, signIn } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { sessionExpired } = useAuth()
+  const { showToast } = useToast()
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  if (!sessionExpired) {
-    return null
-  }
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
-    try {
-      const credentials: SignInCredentials = { email, password }
-      const result = await signIn(credentials)
-
-      if (result.error) {
-        setError(result.error)
+  useEffect(() => {
+    if (sessionExpired) {
+      // Don't redirect if already on auth page
+      if (location.pathname === '/auth') {
+        return
       }
-      // If successful, modal will auto-close because sessionExpired becomes false
-    } catch (err) {
-      setError('Failed to sign in. Please try again.')
-    } finally {
-      setLoading(false)
+
+      // Show toast notification
+      showToast('Your session has expired. Please log in again.', 'info')
+
+      // Redirect to auth page with reason parameter
+      navigate('/auth?reason=session-expired', { replace: true })
     }
-  }
+  }, [sessionExpired, navigate, location.pathname, showToast])
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">Session Expired</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Your session has expired. Please sign in again to continue.
-          </p>
-          <p className="mt-1 text-sm text-gray-500">
-            Your local data is safe and will sync once you re-authenticate.
-          </p>
-        </div>
-
-        <form onSubmit={handleSignIn} className="space-y-4">
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="you@example.com"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <p className="text-xs text-gray-500 text-center">
-            You can still view your local data while signed out, but you won't
-            be able to sync changes until you sign in.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
+  // No UI - this component only handles the redirect
+  return null
 }

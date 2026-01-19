@@ -2,16 +2,27 @@
 import { db } from '../database'
 import { LocalRepository } from './LocalRepository'
 import { RemoteRepository } from './RemoteRepository'
-import { SyncQueueItem, SyncStatus, SyncStatusListener } from './syncTypes'
+import {
+  SyncQueueItem,
+  SyncStatus,
+  SyncStatusListener,
+  SyncConflict,
+  ConflictEvent,
+  IncrementalSyncResult,
+  createEmptyIncrementalSyncResult,
+} from './syncTypes'
 import { createLogger } from '../../utils/logger'
 
 const log = createLogger('SyncEngine')
+
+export type ConflictListener = (event: ConflictEvent) => void
 
 export class SyncEngine {
   private syncInterval: number | null = null
   private isSyncing: boolean = false
   private isOnline: boolean = navigator.onLine
   private listeners: Set<SyncStatusListener> = new Set()
+  private conflictListeners: Set<ConflictListener> = new Set()
   private currentUserId: string | null = null
   private immediateSyncTimer: NodeJS.Timeout | null = null
   private readonly IMMEDIATE_SYNC_DELAY = 100 // 100ms debounce for immediate sync
@@ -193,7 +204,38 @@ export class SyncEngine {
       } catch (error) {
         log.error(`Failed to sync ${item.table}:`, error)
 
-        // Increment retry count
+        // Check if this is a version conflict
+        if (
+          this.isVersionConflict(error) &&
+          item.operation === 'update' &&
+          item.data?.id
+        ) {
+          log.info(
+            `[Conflict] Version conflict detected for ${item.table}:${item.data.id}`
+          )
+
+          try {
+            // Fetch the current remote version
+            const remoteVersion = await this.fetchRemoteVersion(
+              item.table,
+              item.data.id
+            )
+
+            if (remoteVersion) {
+              // Create conflict record
+              await this.createConflict(item, remoteVersion)
+
+              // Remove from sync queue - conflict is now tracked separately
+              await db.syncQueue.delete(item.id!)
+              continue // Move to next item in queue
+            }
+          } catch (conflictError) {
+            log.error('Failed to create conflict record:', conflictError)
+            // Fall through to normal error handling
+          }
+        }
+
+        // Normal error handling (non-conflict or conflict creation failed)
         const currentRetries = item.retryCount || item.retries || 0
         const newRetries = currentRetries + 1
 
@@ -446,6 +488,208 @@ export class SyncEngine {
     this.listeners.forEach(listener => listener(status))
   }
 
+  // ========== CONFLICT LISTENERS ==========
+
+  /**
+   * Subscribe to conflict events
+   */
+  onConflict(listener: ConflictListener): () => void {
+    this.conflictListeners.add(listener)
+    return () => {
+      this.conflictListeners.delete(listener)
+    }
+  }
+
+  /**
+   * Emit a conflict event to all listeners
+   */
+  private emitConflictEvent(event: ConflictEvent): void {
+    this.conflictListeners.forEach(listener => listener(event))
+  }
+
+  /**
+   * Get all pending conflicts
+   */
+  async getPendingConflicts(): Promise<SyncConflict[]> {
+    try {
+      if (!db.syncConflicts) return []
+      return await db.syncConflicts.where('status').equals('pending').toArray()
+    } catch {
+      // Database may not be initialized yet
+      return []
+    }
+  }
+
+  /**
+   * Resolve a conflict by choosing local or remote version
+   */
+  async resolveConflict(
+    conflictId: number,
+    resolution: 'local' | 'remote',
+    resolvedBy?: string
+  ): Promise<void> {
+    if (!db.syncConflicts) return
+
+    const conflict = await db.syncConflicts.get(conflictId)
+    if (!conflict) {
+      throw new Error(`Conflict ${conflictId} not found`)
+    }
+
+    // Apply the chosen version
+    if (resolution === 'local') {
+      // Push local version to remote
+      await this.applyLocalVersion(conflict)
+    } else {
+      // Apply remote version to local
+      await this.applyRemoteVersion(conflict)
+    }
+
+    // Mark conflict as resolved
+    const status = resolution === 'local' ? 'resolved_local' : 'resolved_remote'
+    await db.syncConflicts.update(conflictId, {
+      status,
+      resolution,
+      resolvedAt: new Date(),
+      resolvedBy,
+    })
+
+    // Emit resolution event
+    const updatedConflict = await db.syncConflicts.get(conflictId)
+    if (updatedConflict) {
+      this.emitConflictEvent({
+        type: 'conflict_resolved',
+        conflict: updatedConflict,
+      })
+    }
+
+    this.notifyListeners()
+  }
+
+  /**
+   * Apply local version to remote (overwrite remote)
+   */
+  private async applyLocalVersion(conflict: SyncConflict): Promise<void> {
+    const { table, localData } = conflict
+
+    switch (table) {
+      case 'songs':
+        await this.remote.updateSong(localData.id, localData)
+        break
+      case 'setlists':
+        await this.remote.updateSetlist(localData.id, localData)
+        break
+      case 'shows':
+        await this.remote.updateShow(localData.id, localData)
+        break
+      case 'practice_sessions':
+        await this.remote.updatePracticeSession(localData.id, localData)
+        break
+      default:
+        log.warn(`Unsupported table for conflict resolution: ${table}`)
+    }
+  }
+
+  /**
+   * Apply remote version to local (overwrite local)
+   */
+  private async applyRemoteVersion(conflict: SyncConflict): Promise<void> {
+    const { table, recordId, remoteData } = conflict
+
+    switch (table) {
+      case 'songs':
+        await this.local.updateSong(recordId, remoteData)
+        break
+      case 'setlists':
+        await this.local.updateSetlist(recordId, remoteData)
+        break
+      case 'shows':
+        await this.local.updateShow(recordId, remoteData)
+        break
+      case 'practice_sessions':
+        await this.local.updatePracticeSession(recordId, remoteData)
+        break
+      default:
+        log.warn(`Unsupported table for conflict resolution: ${table}`)
+    }
+  }
+
+  /**
+   * Check if an error is a version conflict
+   */
+  private isVersionConflict(error: unknown): boolean {
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase()
+      // Supabase returns various error messages for conflicts
+      return (
+        message.includes('conflict') ||
+        message.includes('version') ||
+        message.includes('modified') ||
+        message.includes('409') ||
+        message.includes('row was updated or deleted')
+      )
+    }
+    return false
+  }
+
+  /**
+   * Fetch the current remote version of a record
+   */
+  private async fetchRemoteVersion(
+    table: string,
+    recordId: string
+  ): Promise<unknown | null> {
+    switch (table) {
+      case 'songs':
+        return this.remote.getSong(recordId)
+      case 'setlists':
+        return this.remote.getSetlist(recordId)
+      case 'shows':
+        return this.remote.getShow(recordId)
+      case 'practice_sessions':
+        return this.remote.getPracticeSession(recordId)
+      default:
+        return null
+    }
+  }
+
+  /**
+   * Create a conflict record and emit event
+   */
+  private async createConflict(
+    item: SyncQueueItem,
+    remoteData: unknown
+  ): Promise<SyncConflict> {
+    if (!db.syncConflicts) {
+      throw new Error('syncConflicts table not initialized')
+    }
+
+    const conflict: SyncConflict = {
+      table: item.table,
+      recordId: item.data.id,
+      localData: item.data,
+      remoteData,
+      localModifiedAt: item.timestamp,
+      timestamp: new Date(),
+      status: 'pending',
+    }
+
+    const id = await db.syncConflicts.add(conflict)
+    conflict.id = id as number
+
+    log.warn(
+      `[Conflict] Detected conflict for ${item.table}:${item.data.id}`,
+      conflict
+    )
+
+    // Emit conflict event
+    this.emitConflictEvent({
+      type: 'conflict_detected',
+      conflict,
+    })
+
+    return conflict
+  }
+
   // ========== PHASE 5: INITIAL SYNC (CLOUD → LOCAL) ==========
 
   /**
@@ -693,6 +937,322 @@ export class SyncEngine {
       console.error('❌ Pull from remote failed:', error)
       throw error
     }
+  }
+
+  // ========== PHASE 2: INCREMENTAL SYNC (SYNC-ON-LOAD) ==========
+
+  /**
+   * Pull incremental changes from remote since last sync
+   * Called on every app load to catch updates from other devices
+   * Implements Last-Write-Wins with pending changes protection
+   *
+   * @param userId - Current user ID
+   * @returns IncrementalSyncResult with counts of changes
+   */
+  async pullIncrementalChanges(userId: string): Promise<IncrementalSyncResult> {
+    const startTime = Date.now()
+    const result = createEmptyIncrementalSyncResult()
+
+    try {
+      log.info('[IncrementalSync] Starting incremental sync...')
+
+      // Get user's band IDs
+      const memberships = await this.remote.getUserMemberships(userId)
+      const bandIds = memberships.map(m => m.bandId)
+
+      if (bandIds.length === 0) {
+        log.info('[IncrementalSync] No bands found, skipping')
+        result.syncDurationMs = Date.now() - startTime
+        return result
+      }
+
+      // Get last sync time (default to 24 hours ago for first sync-on-load)
+      const lastSync = await this.getLastIncrementalSyncTime()
+      log.info(`[IncrementalSync] Last sync: ${lastSync.toISOString()}`)
+
+      // Get IDs of records with pending local changes (to skip during pull)
+      const pendingIds = await this.getPendingRecordIds()
+      log.info(`[IncrementalSync] Pending local changes: ${pendingIds.size}`)
+
+      // Pull and merge each entity type
+      const songResult = await this.pullSongsIncremental(
+        bandIds,
+        lastSync,
+        pendingIds
+      )
+      result.newSongs = songResult.new
+      result.updatedSongs = songResult.updated
+      result.skippedDueToPending += songResult.skipped
+
+      const setlistResult = await this.pullSetlistsIncremental(
+        bandIds,
+        lastSync,
+        pendingIds
+      )
+      result.newSetlists = setlistResult.new
+      result.updatedSetlists = setlistResult.updated
+      result.skippedDueToPending += setlistResult.skipped
+
+      const practiceResult = await this.pullPracticeSessionsIncremental(
+        bandIds,
+        lastSync,
+        pendingIds
+      )
+      result.newPractices = practiceResult.new
+      result.updatedPractices = practiceResult.updated
+      result.skippedDueToPending += practiceResult.skipped
+
+      const showResult = await this.pullShowsIncremental(
+        bandIds,
+        lastSync,
+        pendingIds
+      )
+      result.newShows = showResult.new
+      result.updatedShows = showResult.updated
+      result.skippedDueToPending += showResult.skipped
+
+      // Update last sync time
+      await this.setLastIncrementalSyncTime(new Date())
+
+      result.lastSyncTime = new Date()
+      result.syncDurationMs = Date.now() - startTime
+
+      const totalChanges =
+        result.newSongs +
+        result.updatedSongs +
+        result.newSetlists +
+        result.updatedSetlists +
+        result.newPractices +
+        result.updatedPractices +
+        result.newShows +
+        result.updatedShows
+
+      log.info(
+        `[IncrementalSync] Complete: ${totalChanges} changes in ${result.syncDurationMs}ms`
+      )
+      this.notifyListeners()
+
+      return result
+    } catch (error) {
+      log.error('[IncrementalSync] Failed:', error)
+      result.syncDurationMs = Date.now() - startTime
+      throw error
+    }
+  }
+
+  /**
+   * Get the last incremental sync time from metadata
+   * Defaults to 24 hours ago if never synced
+   */
+  private async getLastIncrementalSyncTime(): Promise<Date> {
+    if (!db.syncMetadata) {
+      // Default: 24 hours ago
+      return new Date(Date.now() - 24 * 60 * 60 * 1000)
+    }
+
+    const metadata = await db.syncMetadata.get('lastIncrementalSync')
+    if (metadata?.value) {
+      return new Date(metadata.value)
+    }
+
+    // Default: 24 hours ago
+    return new Date(Date.now() - 24 * 60 * 60 * 1000)
+  }
+
+  /**
+   * Set the last incremental sync time in metadata
+   */
+  private async setLastIncrementalSyncTime(time: Date): Promise<void> {
+    if (!db.syncMetadata) return
+
+    await db.syncMetadata.put({
+      id: 'lastIncrementalSync',
+      value: time.toISOString(),
+      updatedAt: new Date(),
+    })
+  }
+
+  /**
+   * Get IDs of records that have pending local changes
+   * These should be skipped during pull to avoid overwriting local edits
+   */
+  private async getPendingRecordIds(): Promise<Set<string>> {
+    if (!db.syncQueue) return new Set()
+
+    const pendingItems = await db.syncQueue
+      .where('status')
+      .equals('pending')
+      .toArray()
+
+    const ids = new Set<string>()
+    for (const item of pendingItems) {
+      if (item.data?.id) {
+        ids.add(item.data.id)
+      }
+    }
+    return ids
+  }
+
+  /**
+   * Pull songs incrementally since last sync
+   */
+  private async pullSongsIncremental(
+    bandIds: string[],
+    since: Date,
+    pendingIds: Set<string>
+  ): Promise<{ new: number; updated: number; skipped: number }> {
+    const counts = { new: 0, updated: 0, skipped: 0 }
+
+    const { songs } = await this.remote.getSongsSince(bandIds, since)
+
+    for (const remoteSong of songs) {
+      // Skip if there are pending local changes for this record
+      if (pendingIds.has(remoteSong.id)) {
+        counts.skipped++
+        continue
+      }
+
+      const localSong = await this.local.getSong(remoteSong.id)
+
+      if (!localSong) {
+        // New record from remote
+        await this.local.addSong(remoteSong)
+        counts.new++
+      } else {
+        // Existing record - apply Last-Write-Wins
+        const localTime = localSong.createdDate
+        const remoteTime = remoteSong.createdDate
+
+        if (new Date(remoteTime) > new Date(localTime)) {
+          await this.local.updateSong(remoteSong.id, remoteSong)
+          counts.updated++
+        }
+      }
+    }
+
+    return counts
+  }
+
+  /**
+   * Pull setlists incrementally since last sync
+   */
+  private async pullSetlistsIncremental(
+    bandIds: string[],
+    since: Date,
+    pendingIds: Set<string>
+  ): Promise<{ new: number; updated: number; skipped: number }> {
+    const counts = { new: 0, updated: 0, skipped: 0 }
+
+    const { setlists } = await this.remote.getSetlistsSince(bandIds, since)
+
+    for (const remoteSetlist of setlists) {
+      if (pendingIds.has(remoteSetlist.id)) {
+        counts.skipped++
+        continue
+      }
+
+      const localSetlist = await this.local.getSetlist(remoteSetlist.id)
+
+      if (!localSetlist) {
+        await this.local.addSetlist(remoteSetlist)
+        counts.new++
+      } else {
+        const localTime = localSetlist.lastModified || localSetlist.createdDate
+        const remoteTime =
+          remoteSetlist.lastModified || remoteSetlist.createdDate
+
+        if (new Date(remoteTime) > new Date(localTime)) {
+          await this.local.updateSetlist(remoteSetlist.id, remoteSetlist)
+          counts.updated++
+        }
+      }
+    }
+
+    return counts
+  }
+
+  /**
+   * Pull practice sessions incrementally since last sync
+   */
+  private async pullPracticeSessionsIncremental(
+    bandIds: string[],
+    since: Date,
+    pendingIds: Set<string>
+  ): Promise<{ new: number; updated: number; skipped: number }> {
+    const counts = { new: 0, updated: 0, skipped: 0 }
+
+    const { practiceSessions } = await this.remote.getPracticeSessionsSince(
+      bandIds,
+      since
+    )
+
+    for (const remotePractice of practiceSessions) {
+      if (pendingIds.has(remotePractice.id)) {
+        counts.skipped++
+        continue
+      }
+
+      const localPractice = await this.local.getPracticeSession(
+        remotePractice.id
+      )
+
+      if (!localPractice) {
+        await this.local.addPracticeSession(remotePractice)
+        counts.new++
+      } else {
+        const localTime =
+          localPractice.createdDate || localPractice.scheduledDate
+        const remoteTime =
+          remotePractice.createdDate || remotePractice.scheduledDate
+
+        if (new Date(remoteTime) > new Date(localTime)) {
+          await this.local.updatePracticeSession(
+            remotePractice.id,
+            remotePractice
+          )
+          counts.updated++
+        }
+      }
+    }
+
+    return counts
+  }
+
+  /**
+   * Pull shows incrementally since last sync
+   */
+  private async pullShowsIncremental(
+    bandIds: string[],
+    since: Date,
+    pendingIds: Set<string>
+  ): Promise<{ new: number; updated: number; skipped: number }> {
+    const counts = { new: 0, updated: 0, skipped: 0 }
+
+    const { shows } = await this.remote.getShowsSince(bandIds, since)
+
+    for (const remoteShow of shows) {
+      if (pendingIds.has(remoteShow.id)) {
+        counts.skipped++
+        continue
+      }
+
+      const localShow = await this.local.getShow(remoteShow.id)
+
+      if (!localShow) {
+        await this.local.addShow(remoteShow)
+        counts.new++
+      } else {
+        const localTime = localShow.updatedDate || localShow.createdDate
+        const remoteTime = remoteShow.updatedDate || remoteShow.createdDate
+
+        if (new Date(remoteTime) > new Date(localTime)) {
+          await this.local.updateShow(remoteShow.id, remoteShow)
+          counts.updated++
+        }
+      }
+    }
+
+    return counts
   }
 
   /**
