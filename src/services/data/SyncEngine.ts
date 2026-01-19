@@ -879,6 +879,9 @@ export class SyncEngine {
 
     // Also set in localStorage for quick check
     localStorage.setItem('last_full_sync', now.toISOString())
+
+    // Set lastIncrementalSync so subsequent incremental syncs have a valid baseline
+    await this.setLastIncrementalSyncTime(now)
   }
 
   /**
@@ -946,6 +949,9 @@ export class SyncEngine {
    * Called on every app load to catch updates from other devices
    * Implements Last-Write-Wins with pending changes protection
    *
+   * If no sync timestamp exists, performs a full sync instead to ensure
+   * all data is present (no arbitrary time fallbacks).
+   *
    * @param userId - Current user ID
    * @returns IncrementalSyncResult with counts of changes
    */
@@ -955,6 +961,18 @@ export class SyncEngine {
 
     try {
       log.info('[IncrementalSync] Starting incremental sync...')
+
+      // Get last sync time - if null, we need a full sync
+      const lastSync = await this.getLastIncrementalSyncTime()
+
+      if (!lastSync) {
+        log.info(
+          '[IncrementalSync] No sync timestamp found, performing full sync instead'
+        )
+        await this.performInitialSync(userId)
+        result.syncDurationMs = Date.now() - startTime
+        return result
+      }
 
       // Get user's band IDs
       const memberships = await this.remote.getUserMemberships(userId)
@@ -966,8 +984,6 @@ export class SyncEngine {
         return result
       }
 
-      // Get last sync time (default to 24 hours ago for first sync-on-load)
-      const lastSync = await this.getLastIncrementalSyncTime()
       log.info(`[IncrementalSync] Last sync: ${lastSync.toISOString()}`)
 
       // Get IDs of records with pending local changes (to skip during pull)
@@ -1042,12 +1058,11 @@ export class SyncEngine {
 
   /**
    * Get the last incremental sync time from metadata
-   * Defaults to 24 hours ago if never synced
+   * Returns null if no timestamp exists (triggers full sync)
    */
-  private async getLastIncrementalSyncTime(): Promise<Date> {
+  private async getLastIncrementalSyncTime(): Promise<Date | null> {
     if (!db.syncMetadata) {
-      // Default: 24 hours ago
-      return new Date(Date.now() - 24 * 60 * 60 * 1000)
+      return null // No timestamp → triggers full sync
     }
 
     const metadata = await db.syncMetadata.get('lastIncrementalSync')
@@ -1055,8 +1070,7 @@ export class SyncEngine {
       return new Date(metadata.value)
     }
 
-    // Default: 24 hours ago
-    return new Date(Date.now() - 24 * 60 * 60 * 1000)
+    return null // No timestamp → triggers full sync
   }
 
   /**

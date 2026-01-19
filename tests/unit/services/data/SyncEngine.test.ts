@@ -10,7 +10,7 @@ import {
   createSupabaseSong,
   createTestSetlist,
   createTestPractice,
-  type TestIds
+  type TestIds,
 } from '../../../helpers/testFixtures'
 
 describe('SyncEngine - Queue Management', () => {
@@ -35,7 +35,7 @@ describe('SyncEngine - Queue Management', () => {
   it('should queue a create operation', async () => {
     await syncEngine.queueCreate('songs', {
       id: 'test-song-1',
-      title: 'Test Song'
+      title: 'Test Song',
     })
 
     const queue = await db.syncQueue?.toArray()
@@ -47,7 +47,7 @@ describe('SyncEngine - Queue Management', () => {
 
   it('should queue an update operation', async () => {
     await syncEngine.queueUpdate('songs', 'test-song-1', {
-      title: 'Updated Title'
+      title: 'Updated Title',
     })
 
     const queue = await db.syncQueue?.toArray()
@@ -58,11 +58,11 @@ describe('SyncEngine - Queue Management', () => {
 
   it('should merge multiple updates for same record', async () => {
     await syncEngine.queueUpdate('songs', 'test-song-1', {
-      title: 'Update 1'
+      title: 'Update 1',
     })
 
     await syncEngine.queueUpdate('songs', 'test-song-1', {
-      artist: 'New Artist'
+      artist: 'New Artist',
     })
 
     const queue = await db.syncQueue?.toArray()
@@ -95,7 +95,7 @@ describe('SyncEngine - Sync Operations', () => {
       title: 'Synced Song',
       contextType: 'band',
       contextId: 'band-1',
-      createdBy: 'user-1'
+      createdBy: 'user-1',
     } as any)
 
     syncEngine = new SyncEngine(localRepo, remoteRepo)
@@ -109,7 +109,7 @@ describe('SyncEngine - Sync Operations', () => {
   it('should push queued create operations', async () => {
     await syncEngine.queueCreate('songs', {
       id: 'test-song-1',
-      title: 'Test Song'
+      title: 'Test Song',
     })
 
     await syncEngine['pushQueuedChanges']()
@@ -121,11 +121,13 @@ describe('SyncEngine - Sync Operations', () => {
   })
 
   it('should handle sync failures with retry', async () => {
-    vi.spyOn(remoteRepo, 'addSong').mockRejectedValue(new Error('Network error'))
+    vi.spyOn(remoteRepo, 'addSong').mockRejectedValue(
+      new Error('Network error')
+    )
 
     await syncEngine.queueCreate('songs', {
       id: 'test-song-1',
-      title: 'Test Song'
+      title: 'Test Song',
     })
 
     await syncEngine['pushQueuedChanges']()
@@ -137,11 +139,13 @@ describe('SyncEngine - Sync Operations', () => {
   })
 
   it('should mark as failed after max retries', async () => {
-    vi.spyOn(remoteRepo, 'addSong').mockRejectedValue(new Error('Network error'))
+    vi.spyOn(remoteRepo, 'addSong').mockRejectedValue(
+      new Error('Network error')
+    )
 
     await syncEngine.queueCreate('songs', {
       id: 'test-song-1',
-      title: 'Test Song'
+      title: 'Test Song',
     })
 
     // Simulate 3 failed attempts
@@ -175,13 +179,13 @@ describe('SyncEngine - Conflict Resolution', () => {
     const localRecord = {
       id: 'song-1',
       title: 'Local Version',
-      updated_date: '2025-01-01T10:00:00Z'
+      updated_date: '2025-01-01T10:00:00Z',
     }
 
     const remoteRecord = {
       id: 'song-1',
       title: 'Remote Version',
-      updated_date: '2025-01-01T12:00:00Z' // Newer
+      updated_date: '2025-01-01T12:00:00Z', // Newer
     }
 
     await db.songs.add(localRecord as any)
@@ -196,13 +200,13 @@ describe('SyncEngine - Conflict Resolution', () => {
     const localRecord = {
       id: 'song-1',
       title: 'Local Version',
-      updated_date: '2025-01-01T12:00:00Z' // Newer
+      updated_date: '2025-01-01T12:00:00Z', // Newer
     }
 
     const remoteRecord = {
       id: 'song-1',
       title: 'Remote Version',
-      updated_date: '2025-01-01T10:00:00Z'
+      updated_date: '2025-01-01T10:00:00Z',
     }
 
     await db.songs.add(localRecord as any)
@@ -277,7 +281,7 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
 
     // Mock ALL RemoteRepository methods to prevent real Supabase calls
     vi.spyOn(remoteRepo, 'getUserMemberships').mockResolvedValue([
-      createTestMembership(testIds)
+      createTestMembership(testIds),
     ])
 
     vi.spyOn(remoteRepo, 'getBand').mockResolvedValue({
@@ -290,15 +294,15 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
     vi.spyOn(remoteRepo, 'getBandMemberships').mockResolvedValue([])
 
     vi.spyOn(remoteRepo, 'getSongs').mockResolvedValue([
-      createSupabaseSong(testIds, { id: testIds.song1 })
+      createSupabaseSong(testIds, { id: testIds.song1 }),
     ])
 
     vi.spyOn(remoteRepo, 'getSetlists').mockResolvedValue([
-      createTestSetlist(testIds)
+      createTestSetlist(testIds),
     ])
 
     vi.spyOn(remoteRepo, 'getPracticeSessions').mockResolvedValue([
-      createTestPractice(testIds)
+      createTestPractice(testIds),
     ])
 
     vi.spyOn(remoteRepo, 'getShows').mockResolvedValue([])
@@ -347,6 +351,19 @@ describe('SyncEngine - Initial Sync (Cloud → Local)', () => {
     // Verify sync metadata was updated
     const meta = await db.syncMetadata?.get('songs_lastFullSync')
     expect(meta).toBeTruthy()
+  })
+
+  it('should set lastIncrementalSync after initial sync', async () => {
+    await syncEngine.performInitialSync(testIds.user1)
+
+    // Verify lastIncrementalSync was set in IndexedDB
+    const meta = await db.syncMetadata?.get('lastIncrementalSync')
+    expect(meta).toBeTruthy()
+    expect(meta?.value).toBeTruthy()
+
+    // Verify it's a valid ISO date string
+    const date = new Date(meta!.value)
+    expect(date.getTime()).not.toBeNaN()
   })
 
   it('should handle user with no bands gracefully', async () => {
@@ -411,13 +428,13 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
       id: testIds.song1,
       title: 'Old Title',
       notes: 'Old notes',
-      createdDate: new Date('2025-01-01T10:00:00Z') // Older timestamp
+      createdDate: new Date('2025-01-01T10:00:00Z'), // Older timestamp
     })
     await db.songs.add(oldSong as any)
 
     // Mock ALL RemoteRepository methods to prevent real Supabase calls
     vi.spyOn(remoteRepo, 'getUserMemberships').mockResolvedValue([
-      createTestMembership(testIds)
+      createTestMembership(testIds),
     ])
 
     // Mock to return new song2 only (tests will override for specific scenarios)
@@ -428,8 +445,8 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
         artist: 'New Artist',
         bpm: 140, // Use 'bpm', not 'tempo'
         key: 'D',
-        createdDate: new Date('2025-01-02')
-      })
+        createdDate: new Date('2025-01-02'),
+      }),
     ])
 
     vi.spyOn(remoteRepo, 'getSetlists').mockResolvedValue([])
@@ -457,8 +474,8 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
         id: testIds.song1,
         title: 'Updated Title',
         notes: 'Updated notes',
-        createdDate: new Date('2025-01-01T12:00:00Z') // Newer timestamp
-      })
+        createdDate: new Date('2025-01-01T12:00:00Z'), // Newer timestamp
+      }),
     ])
 
     await syncEngine.pullFromRemote(testIds.user1)
@@ -485,7 +502,7 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
       id: testIds.song3,
       title: 'Local Newer',
       notes: 'Local is newer',
-      createdDate: new Date('2025-01-01T14:00:00Z') // Very recent
+      createdDate: new Date('2025-01-01T14:00:00Z'), // Very recent
     })
     await db.songs.put(localNewerSong as any)
 
@@ -495,8 +512,8 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
         id: testIds.song3,
         title: 'Remote Older',
         notes: 'Remote is older',
-        createdDate: new Date('2025-01-01T10:00:00Z') // Older timestamp
-      })
+        createdDate: new Date('2025-01-01T10:00:00Z'), // Older timestamp
+      }),
     ])
 
     await syncEngine.pullFromRemote(testIds.user1)
@@ -511,5 +528,134 @@ describe('SyncEngine - Pull from Remote (Incremental Sync)', () => {
     const meta = await db.syncMetadata?.get('songs_lastSync')
     expect(meta).toBeTruthy()
     expect(meta?.value).toBeInstanceOf(Date)
+  })
+})
+
+describe('SyncEngine - Incremental Sync (pullIncrementalChanges)', () => {
+  let syncEngine: SyncEngine
+  let localRepo: LocalRepository
+  let remoteRepo: RemoteRepository
+  let testIds: TestIds
+
+  beforeEach(async () => {
+    localRepo = new LocalRepository()
+    remoteRepo = new RemoteRepository()
+
+    // Generate consistent test IDs using shared fixtures
+    testIds = createTestIds()
+
+    // Clear all local data
+    await db.songs.clear()
+    await db.setlists.clear()
+    await db.practiceSessions.clear()
+    await db.bands.clear()
+    await db.bandMemberships.clear()
+    await db.syncMetadata?.clear()
+    localStorage.clear()
+
+    // Mock ALL RemoteRepository methods to prevent real Supabase calls
+    vi.spyOn(remoteRepo, 'getUserMemberships').mockResolvedValue([
+      createTestMembership(testIds),
+    ])
+
+    vi.spyOn(remoteRepo, 'getBand').mockResolvedValue({
+      id: testIds.band1,
+      name: 'Test Band',
+      createdDate: new Date().toISOString(),
+      updatedDate: new Date().toISOString(),
+    } as any)
+
+    vi.spyOn(remoteRepo, 'getBandMemberships').mockResolvedValue([])
+
+    vi.spyOn(remoteRepo, 'getSongs').mockResolvedValue([
+      createSupabaseSong(testIds, { id: testIds.song1 }),
+    ])
+
+    vi.spyOn(remoteRepo, 'getSetlists').mockResolvedValue([
+      createTestSetlist(testIds),
+    ])
+
+    vi.spyOn(remoteRepo, 'getPracticeSessions').mockResolvedValue([
+      createTestPractice(testIds),
+    ])
+
+    vi.spyOn(remoteRepo, 'getShows').mockResolvedValue([])
+
+    vi.spyOn(remoteRepo, 'getInviteCodes').mockResolvedValue([])
+
+    // Mock incremental sync methods
+    vi.spyOn(remoteRepo, 'getSongsSince').mockResolvedValue({ songs: [] })
+    vi.spyOn(remoteRepo, 'getSetlistsSince').mockResolvedValue({ setlists: [] })
+    vi.spyOn(remoteRepo, 'getPracticeSessionsSince').mockResolvedValue({
+      practiceSessions: [],
+    })
+    vi.spyOn(remoteRepo, 'getShowsSince').mockResolvedValue({ shows: [] })
+
+    syncEngine = new SyncEngine(localRepo, remoteRepo)
+  })
+
+  afterEach(async () => {
+    syncEngine.destroy()
+    await db.songs.clear()
+    await db.setlists.clear()
+    await db.practiceSessions.clear()
+    await db.bands.clear()
+    await db.bandMemberships.clear()
+    await db.syncMetadata?.clear()
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  it('should perform full sync when no lastIncrementalSync exists', async () => {
+    // Ensure no lastIncrementalSync exists
+    await db.syncMetadata?.delete('lastIncrementalSync')
+
+    // Spy on performInitialSync
+    const performInitialSyncSpy = vi.spyOn(syncEngine, 'performInitialSync')
+
+    await syncEngine.pullIncrementalChanges(testIds.user1)
+
+    // Should have called performInitialSync instead of incremental
+    expect(performInitialSyncSpy).toHaveBeenCalledWith(testIds.user1)
+  })
+
+  it('should use incremental sync when lastIncrementalSync exists', async () => {
+    // Set lastIncrementalSync
+    const lastSync = new Date(Date.now() - 60 * 60 * 1000) // 1 hour ago
+    await db.syncMetadata?.put({
+      id: 'lastIncrementalSync',
+      value: lastSync.toISOString(),
+      updatedAt: new Date(),
+    })
+
+    // Spy on performInitialSync - should NOT be called
+    const performInitialSyncSpy = vi.spyOn(syncEngine, 'performInitialSync')
+
+    await syncEngine.pullIncrementalChanges(testIds.user1)
+
+    // Should NOT have called performInitialSync
+    expect(performInitialSyncSpy).not.toHaveBeenCalled()
+
+    // Should have called the incremental fetch methods
+    expect(remoteRepo.getSongsSince).toHaveBeenCalled()
+  })
+
+  it('should set lastIncrementalSync after successful incremental sync', async () => {
+    // Set initial lastIncrementalSync
+    const oldSync = new Date(Date.now() - 60 * 60 * 1000) // 1 hour ago
+    await db.syncMetadata?.put({
+      id: 'lastIncrementalSync',
+      value: oldSync.toISOString(),
+      updatedAt: new Date(),
+    })
+
+    await syncEngine.pullIncrementalChanges(testIds.user1)
+
+    // Verify lastIncrementalSync was updated
+    const meta = await db.syncMetadata?.get('lastIncrementalSync')
+    expect(meta).toBeTruthy()
+
+    const newSyncTime = new Date(meta!.value)
+    expect(newSyncTime.getTime()).toBeGreaterThan(oldSync.getTime())
   })
 })
