@@ -529,7 +529,7 @@ supabase test db          # Direct command
 
 ### Session Validation
 
-The app uses a multi-layer authentication check:
+The app uses a multi-layer authentication check with persistent layout:
 
 1. **useAuthCheck hook** (`src/hooks/useAuthCheck.ts`)
    - Validates localStorage keys (`currentUserId`, `currentBandId`)
@@ -537,19 +537,53 @@ The app uses a multi-layer authentication check:
    - Applies **1.5-hour grace period** for expired sessions
    - Cleans up stale localStorage on invalid sessions
    - Re-runs on every route change to catch expired sessions
+   - Only shows loading spinner on initial mount (prevents flicker during navigation)
 
-2. **ProtectedRoute** (`src/components/ProtectedRoute.tsx`)
-   - Shows loading spinner during auth check (prevents content flash)
-   - Redirects based on failure reason:
+2. **ProtectedLayoutRoute** (`src/components/layout/ProtectedLayoutRoute.tsx`)
+   - Combines authentication check with persistent layout
+   - Shows full-screen loading spinner only on initial auth check
+   - Wraps all protected routes in `ModernLayout` with `<Outlet />`
+   - Redirects BEFORE rendering layout if unauthenticated:
      - `no-user` → `/auth`
      - `no-band` → `/auth?view=get-started`
      - `session-expired` → `/auth?reason=session-expired`
      - `session-invalid` → `/auth?reason=session-invalid`
 
-3. **SessionExpiredModal** (`src/components/auth/SessionExpiredModal.tsx`)
+3. **ContentLoadingSpinner** (`src/components/common/ContentLoadingSpinner.tsx`)
+   - Used by individual pages for content-area-only loading states
+   - Keeps sidebar/navbar visible while page content loads
+   - Provides dark theme background matching the app
+
+4. **SessionExpiredModal** (`src/components/auth/SessionExpiredModal.tsx`)
    - Handles session expiry detected by AuthContext
    - Shows toast notification and redirects to `/auth`
    - Does NOT show a modal overlay (redirect-only)
+
+### Persistent Layout Architecture
+
+The layout uses React Router's nested routes pattern:
+
+```tsx
+// In App.tsx
+<Route element={<ProtectedLayoutRoute />}>
+  <Route path="/songs" element={<SongsPage />} />
+  <Route path="/setlists" element={<SetlistsPage />} />
+  {/* ... other protected routes */}
+</Route>
+```
+
+**Benefits:**
+
+- Sidebar and navbar persist during navigation (no remount)
+- No white screen flicker when changing pages
+- Content loading happens in the main content area only
+- True SPA feel with smooth transitions
+
+**Individual pages should:**
+
+- NOT import or wrap with `ModernLayout` (it's in ProtectedLayoutRoute)
+- Use `ContentLoadingSpinner` for loading states
+- Have `data-testid="<page-name>-page"` on root div
 
 ### Grace Period
 
@@ -563,16 +597,20 @@ After the grace period, users must re-authenticate.
 
 ### Key Files
 
-| File                                          | Purpose                              |
-| --------------------------------------------- | ------------------------------------ |
-| `src/hooks/useAuthCheck.ts`                   | Unified auth validation hook         |
-| `src/components/ProtectedRoute.tsx`           | Route protection with loading states |
-| `src/components/auth/SessionExpiredModal.tsx` | Session expiry redirect handler      |
-| `src/contexts/AuthContext.tsx`                | Auth state management                |
-| `src/services/auth/SessionManager.ts`         | Session storage and validation       |
+| File                                              | Purpose                          |
+| ------------------------------------------------- | -------------------------------- |
+| `src/hooks/useAuthCheck.ts`                       | Unified auth validation hook     |
+| `src/components/layout/ProtectedLayoutRoute.tsx`  | Auth + persistent layout wrapper |
+| `src/components/common/ContentLoadingSpinner.tsx` | Content-area loading spinner     |
+| `src/components/auth/SessionExpiredModal.tsx`     | Session expiry redirect handler  |
+| `src/contexts/AuthContext.tsx`                    | Auth state management            |
+| `src/services/auth/SessionManager.ts`             | Session storage and validation   |
 
 ## Recent Changes
 
+- 2026-01-19: Persistent layout - ProtectedLayoutRoute wraps all protected routes with ModernLayout, eliminating white screen flicker during navigation
+- 2026-01-19: ContentLoadingSpinner component for content-area-only loading states
+- 2026-01-19: Removed old ProtectedRoute component (replaced by ProtectedLayoutRoute)
 - 2026-01-17: Improved auth flow - useAuthCheck hook with grace period, simplified SessionExpiredModal (redirect-only)
 - 2026-01-17: Test performance optimization - parallel threads, split test scripts (test:quick, test:unit, etc.)
 - 2026-01-17: Added E2E tests for session expiry scenarios (53 tests across all browsers)
