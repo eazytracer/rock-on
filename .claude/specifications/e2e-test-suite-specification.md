@@ -4,10 +4,10 @@
 
 Rock-On's E2E test suite uses Playwright to verify end-to-end functionality across all major app features. Tests run against Chromium, Firefox, and WebKit browsers.
 
-**Current Status** (as of 2026-01-18):
+**Current Status** (as of 2026-01-19):
 
-- **Total Tests:** 112 (108 passing, 0 failing, 4 skipped)
-- **Total Runtime (Chromium):** ~55 seconds
+- **Total Tests:** 112 (109 passing, 0 failing, 3 skipped)
+- **Total Runtime (Chromium):** ~56 seconds
 - **Browsers:** Chromium (default), Firefox, WebKit
 - **All tests passing** ✅
 
@@ -76,7 +76,7 @@ Rock-On's E2E test suite uses Playwright to verify end-to-end functionality acro
 - Case-insensitive search works
 - Empty state shown when no songs
 
-**Status:** 12 passing, 0 failing, 1 skipped
+**Status:** 13 passing, 0 failing
 **Runtime:** ~18 seconds
 
 ### 4. Practices (`tests/e2e/practices/`)

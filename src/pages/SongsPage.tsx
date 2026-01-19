@@ -44,6 +44,9 @@ import { SyncIcon } from '../components/sync/SyncIcon'
 import { useItemStatus } from '../hooks/useItemSyncStatus'
 // Expandable notes for songs
 import { ExpandableSongNotes } from '../components/songs/ExpandableSongNotes'
+// Confirmation dialog (replaces window.confirm)
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { useConfirm } from '../hooks/useConfirm'
 
 interface SongLink {
   id: string
@@ -770,6 +773,7 @@ export const SongsPage: React.FC = () => {
   const { createSong } = useCreateSong()
   const { updateSong } = useUpdateSong()
   const { deleteSong, checkSongInSetlists } = useDeleteSong()
+  const { confirm, dialogProps } = useConfirm()
 
   // Display songs with transformed data
   const [songs, setSongs] = useState<Song[]>([])
@@ -1087,25 +1091,27 @@ export const SongsPage: React.FC = () => {
       // Check if song is in any setlists
       const setlists = await checkSongInSetlists(song.id)
 
+      let confirmed: boolean
       if (setlists.length > 0) {
         const setlistNames = setlists.map(s => s.name).join(', ')
-        const confirmed = window.confirm(
-          `This song is in ${setlists.length} setlist(s): ${setlistNames}.\n\nDeleting will remove it from all setlists. Continue?`
-        )
-
-        if (!confirmed) {
-          setOpenActionMenuId(null)
-          return
-        }
+        confirmed = await confirm({
+          title: 'Delete Song',
+          message: `This song is in ${setlists.length} setlist(s): ${setlistNames}.\n\nDeleting will remove it from all setlists. Continue?`,
+          confirmLabel: 'Delete',
+          variant: 'danger',
+        })
       } else {
-        const confirmed = window.confirm(
-          `Are you sure you want to delete "${song.title}" by ${song.artist}?\n\nThis action cannot be undone.`
-        )
+        confirmed = await confirm({
+          title: 'Delete Song',
+          message: `Are you sure you want to delete "${song.title}" by ${song.artist}?\n\nThis action cannot be undone.`,
+          confirmLabel: 'Delete',
+          variant: 'danger',
+        })
+      }
 
-        if (!confirmed) {
-          setOpenActionMenuId(null)
-          return
-        }
+      if (!confirmed) {
+        setOpenActionMenuId(null)
+        return
       }
 
       // Delete the song (hook handles setlist cleanup)
@@ -1678,6 +1684,9 @@ export const SongsPage: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog {...dialogProps} />
     </ModernLayout>
   )
 }

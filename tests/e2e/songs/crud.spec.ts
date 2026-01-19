@@ -276,10 +276,93 @@ test.describe('Songs CRUD Operations', () => {
     await assertNoConsoleErrors(page, errors)
   })
 
-  test.skip('member can delete song', async ({ page }) => {
-    // SKIPPED: Delete functionality uses window.confirm() which violates CLAUDE.md guidelines.
-    // This test will be enabled once the implementation is updated to use DeleteConfirmationDialog.
-    // See /workspaces/rock-on/src/pages/SongsPage.tsx line 1092 and 1101
+  test('member can delete song', async ({ page }) => {
+    const errors = setupConsoleErrorTracking(page)
+    const user = createTestUser()
+
+    // Sign up and create band
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `Delete Song Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    // Create a song to delete
+    const addButton = page.locator('button:has-text("Add Song")').first()
+    await expect(addButton).toBeVisible({ timeout: 5000 })
+    await addButton.click()
+    await page.waitForTimeout(500)
+
+    await page.fill('input[name="title"]', 'Song To Delete')
+    await page.fill('input[name="artist"]', 'Delete Test Artist')
+
+    // Select key using the Circle of Fifths picker
+    const keyButton = page.locator('[data-testid="song-key-button"]').first()
+    await keyButton.click()
+    await page.waitForTimeout(300)
+    const keyPicker = page.locator('[data-testid="key-picker-C"]').first()
+    await keyPicker.click()
+    await page.waitForTimeout(300)
+    const confirmKeyButton = page
+      .locator('[data-testid="key-picker-confirm"]')
+      .first()
+    await confirmKeyButton.click()
+    await page.waitForTimeout(300)
+
+    // Save the song
+    await page.locator('[data-testid="song-submit-button"]').first().click()
+    await page.waitForTimeout(2000)
+
+    // Verify song was created
+    await expect(page.locator('text=Song To Delete').first()).toBeVisible({
+      timeout: 5000,
+    })
+
+    // Click the action menu on the song
+    const actionMenuButton = page
+      .locator('[data-testid="song-actions-menu-button"]')
+      .first()
+    await expect(actionMenuButton).toBeVisible({ timeout: 5000 })
+    await actionMenuButton.click()
+    await page.waitForTimeout(300)
+
+    // Click delete button in action menu
+    const deleteButton = page.locator('[data-testid="delete-song-button"]')
+    await expect(deleteButton).toBeVisible({ timeout: 2000 })
+    await deleteButton.click()
+
+    // Confirm dialog should appear
+    const confirmDialog = page.locator('[data-testid="confirm-dialog"]')
+    await expect(confirmDialog).toBeVisible({ timeout: 2000 })
+
+    // Verify dialog content
+    await expect(
+      page.locator('[data-testid="confirm-dialog-title"]')
+    ).toHaveText('Delete Song')
+
+    // Click confirm to delete
+    const confirmButton = page.locator('[data-testid="confirm-dialog-confirm"]')
+    await confirmButton.click()
+    await page.waitForTimeout(2000)
+
+    // Verify success toast appeared (this contains the song title, so check first)
+    await expect(page.locator('text=Successfully deleted').first()).toBeVisible(
+      { timeout: 3000 }
+    )
+    console.log('✓ Delete success toast appeared')
+
+    // Wait for toast to potentially fade and page to update
+    await page.waitForTimeout(1000)
+
+    // Verify song count shows 0 (since we only created one song)
+    const songCount = page.locator('text=(0 songs)')
+    await expect(songCount).toBeVisible({ timeout: 5000 })
+    console.log('✓ Song count shows 0 after deletion')
+
+    // Verify empty state is shown
+    const emptyState = page.locator('text=No songs yet')
+    await expect(emptyState).toBeVisible({ timeout: 5000 })
+    console.log('✓ Empty state shown after deletion')
+
+    await assertNoConsoleErrors(page, errors)
   })
 
   test('song changes sync to all band members', async ({ browser }) => {
