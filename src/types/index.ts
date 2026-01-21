@@ -6,7 +6,7 @@ export interface SongSection {
 }
 
 export interface ReferenceLink {
-  type: 'spotify' | 'youtube' | 'tabs' | 'lyrics' | 'other'
+  icon: string // Icon type: 'spotify', 'youtube', 'tabs', 'lyrics', 'drive', 'dropbox', 'soundcloud', 'other'
   url: string
   description?: string
 }

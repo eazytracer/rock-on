@@ -1,9 +1,22 @@
 /* eslint-disable react-refresh/only-export-components */
-import React from 'react'
-import { GripVertical, X, Coffee, Layers, Pencil } from 'lucide-react'
+import React, { useState } from 'react'
+import {
+  GripVertical,
+  X,
+  Coffee,
+  Layers,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  FileText,
+  Clock,
+  Guitar,
+} from 'lucide-react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ExpandableSongNotes } from '../songs/ExpandableSongNotes'
+import { LinkIcons } from '../songs/LinkIcons'
+import { InlineEditableField } from './InlineEditableField'
+import type { ReferenceLink } from '../../types'
 
 // Shared UI song type
 export interface UISong {
@@ -17,6 +30,7 @@ export interface UISong {
   bpm?: string
   initials: string
   avatarColor: string
+  referenceLinks?: ReferenceLink[]
 }
 
 // For setlist items that can be song, break, or section
@@ -38,12 +52,14 @@ interface SongListItemProps {
   onRemove?: () => void
   onEdit?: () => void // Open song edit modal
   showDragHandle?: boolean
+  showLinks?: boolean // Show quick-access link icons
   'data-testid'?: string
-  // Optional expandable notes props
-  userId?: string
-  bandId?: string
-  isNotesExpanded?: boolean
-  onToggleNotes?: () => void
+  // Session notes (inline editable)
+  onSaveSessionNotes?: (notes: string) => Promise<void>
+  // Song notes modal
+  onOpenSongNotes?: () => void
+  // Display position (for song-only numbering, overrides item.position)
+  songNumber?: number
 }
 
 // Sortable wrapper for drag-and-drop
@@ -82,7 +98,6 @@ export const SortableSongListItem: React.FC<SongListItemProps> = props => {
 interface InternalSongListItemProps extends SongListItemProps {
   isDragging?: boolean
   dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>
-  onEdit?: () => void
 }
 
 export const SongListItem: React.FC<InternalSongListItemProps> = ({
@@ -91,16 +106,19 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
   onRemove,
   onEdit,
   showDragHandle = true,
+  showLinks = false,
   isDragging = false,
   dragHandleProps,
   'data-testid': testId,
-  userId,
-  bandId,
-  isNotesExpanded,
-  onToggleNotes,
+  onSaveSessionNotes,
+  onOpenSongNotes,
+  songNumber,
 }) => {
-  // Check if expandable notes should be shown
-  const canShowNotes = userId && bandId && onToggleNotes !== undefined
+  // Use songNumber for display if provided (for song-only numbering), otherwise use item.position
+  const displayPosition = songNumber ?? item.position
+  // Kebab menu state
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
   // Render Break Item
   if (item.type === 'break') {
     return (
@@ -187,129 +205,273 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
     )
   }
 
-  // Render Song Item
+  // Render Song Item - Card style matching SongsPage
   if (item.type === 'song' && item.song) {
     const song = item.song
 
+    // Shared kebab menu content
+    const renderKebabMenu = () =>
+      isEditing &&
+      (onEdit || onRemove) && (
+        <div className="relative">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="p-1.5 text-[#707070] hover:text-white rounded transition-colors"
+            data-testid={`song-actions-menu-${item.position}`}
+          >
+            <MoreVertical size={18} />
+          </button>
+
+          {isMenuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setIsMenuOpen(false)}
+              />
+              <div className="absolute right-0 top-8 z-20 w-40 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
+                {onEdit && (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false)
+                      onEdit()
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                    data-testid={`edit-song-${item.position}`}
+                  >
+                    <Pencil size={16} />
+                    <span>Edit Song</span>
+                  </button>
+                )}
+                {onRemove && (
+                  <>
+                    {onEdit && <div className="h-px bg-[#2a2a2a]" />}
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        onRemove()
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
+                      data-testid={`remove-song-${item.position}`}
+                    >
+                      <Trash2 size={16} />
+                      <span>Remove</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )
+
+    // Shared session notes content
+    const renderSessionNotes = () => (
+      <>
+        {onSaveSessionNotes && (
+          <InlineEditableField
+            value={item.notes || ''}
+            onSave={async val => {
+              await onSaveSessionNotes(String(val))
+            }}
+            type="text"
+            placeholder="Add session notes..."
+            validate={val => {
+              if (String(val).length > 150) {
+                return 'Maximum 150 characters'
+              }
+              return null
+            }}
+            data-testid={`session-notes-${item.position}`}
+          />
+        )}
+        {!onSaveSessionNotes && item.notes && (
+          <div className="text-[#a0a0a0] text-sm">{item.notes}</div>
+        )}
+      </>
+    )
+
     return (
       <div
-        data-testid={testId || `list-item-song-${item.position}`}
-        className={`group flex flex-col bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg ${
+        data-testid={testId || `list-item-song-${displayPosition}`}
+        className={`group bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] ${
           isEditing ? 'hover:border-[#3a3a3a]' : ''
         } ${isDragging ? 'shadow-lg shadow-black/50' : ''} transition-colors`}
       >
-        {/* Main row */}
-        <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
-          {isEditing && showDragHandle && (
-            <button
-              {...dragHandleProps}
-              className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
-              data-testid={`drag-handle-${item.position}`}
+        {/* Mobile/Tablet Layout (< 1280px) */}
+        <div className="xl:hidden p-4">
+          {/* Row 1: Position, Avatar, Title/Artist, Actions */}
+          <div className="flex items-start gap-3">
+            <div className="w-6 text-center text-[#707070] text-sm font-medium flex-shrink-0 pt-1">
+              {displayPosition}
+            </div>
+
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
+              style={{ backgroundColor: song.avatarColor }}
             >
-              <GripVertical size={18} />
-            </button>
-          )}
-
-          <div className="w-5 sm:w-6 text-center text-[#707070] text-sm font-medium flex-shrink-0">
-            {item.position}
-          </div>
-
-          <div
-            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm uppercase flex-shrink-0"
-            style={{ backgroundColor: song.avatarColor }}
-          >
-            {song.initials}
-          </div>
-
-          {/* Mobile: Title/Artist + Duration stacked */}
-          <div className="flex-1 min-w-0 sm:hidden">
-            <div className="text-white text-sm font-semibold truncate">
-              {song.title}
+              {song.initials}
             </div>
-            <div className="flex items-center gap-2 text-xs text-[#707070]">
-              <span className="truncate">{song.artist}</span>
-              <span className="text-[#505050]">•</span>
-              <span className="flex-shrink-0">{song.duration}</span>
-              {song.key && (
-                <>
-                  <span className="text-[#505050]">•</span>
-                  <span className="flex-shrink-0">{song.key}</span>
-                </>
-              )}
+
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-semibold text-sm">
+                {song.title}
+              </div>
+              <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
             </div>
-          </div>
 
-          {/* Desktop: Full layout */}
-          <div className="hidden sm:block flex-1 min-w-[200px]">
-            <div className="text-white text-sm font-semibold truncate">
-              {song.title}
-            </div>
-            <div className="text-[#707070] text-xs truncate">{song.artist}</div>
-          </div>
-
-          <div className="hidden sm:block w-[90px] text-[#a0a0a0] text-sm flex-shrink-0">
-            {song.duration}
-          </div>
-
-          {song.key && (
-            <div className="hidden sm:block w-[60px] text-[#a0a0a0] text-sm flex-shrink-0">
-              {song.key}
-            </div>
-          )}
-
-          {song.tuning && (
-            <div className="hidden sm:block w-[130px] text-[#a0a0a0] text-sm flex-shrink-0">
-              {song.tuning}
-            </div>
-          )}
-
-          {/* Action buttons - visible on hover in edit mode */}
-          {isEditing && (
-            <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-all flex-shrink-0">
-              {onEdit && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {onOpenSongNotes && (
                 <button
-                  onClick={onEdit}
-                  data-testid={`edit-song-${item.position}`}
-                  className="p-1.5 text-[#707070] hover:text-[#f17827ff] hover:bg-[#f17827ff]/10 rounded transition-all"
-                  title="Edit song"
+                  onClick={e => {
+                    e.stopPropagation()
+                    onOpenSongNotes()
+                  }}
+                  className="p-1.5 text-[#707070] hover:text-[#f17827ff] rounded transition-colors"
+                  title="Song Notes"
+                  data-testid={`song-notes-icon-${item.position}`}
                 >
-                  <Pencil size={16} />
+                  <FileText size={18} />
                 </button>
               )}
-              {onRemove && (
-                <button
-                  onClick={onRemove}
-                  data-testid={`remove-song-${item.position}`}
-                  className="p-1.5 text-[#707070] hover:text-red-500 hover:bg-red-500/10 rounded transition-all"
-                  title="Remove"
-                >
-                  <X size={16} />
-                </button>
+              {renderKebabMenu()}
+            </div>
+          </div>
+
+          {/* Row 2: Metadata and Links - aligned with avatar */}
+          <div className="mt-3 flex items-start gap-3">
+            {isEditing && showDragHandle ? (
+              <button
+                {...dragHandleProps}
+                className="w-6 flex justify-center cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
+                data-testid={`drag-handle-${item.position}`}
+              >
+                <GripVertical size={18} />
+              </button>
+            ) : (
+              <div className="w-6 flex-shrink-0" />
+            )}
+
+            <div className="flex-1 min-w-0">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2">
+                <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+                  <Clock size={14} className="flex-shrink-0 text-[#606060]" />
+                  <span>{song.duration}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+                  <Guitar size={14} className="flex-shrink-0 text-[#606060]" />
+                  <span className="truncate">{song.tuning || 'Standard'}</span>
+                </div>
+              </div>
+
+              {showLinks &&
+                song.referenceLinks &&
+                song.referenceLinks.length > 0 && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[#606060] text-xs">Links:</span>
+                    <LinkIcons
+                      links={song.referenceLinks}
+                      size="sm"
+                      maxVisible={4}
+                    />
+                  </div>
+                )}
+
+              {(onSaveSessionNotes || item.notes) && (
+                <div className="pt-2 border-t border-[#2a2a2a]">
+                  {renderSessionNotes()}
+                </div>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout (≥ 1280px) */}
+        <div className="hidden xl:block p-4">
+          {/* Row 1: All metadata inline */}
+          <div className="flex items-center gap-4">
+            {isEditing && showDragHandle && (
+              <button
+                {...dragHandleProps}
+                className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
+                data-testid={`drag-handle-${item.position}`}
+              >
+                <GripVertical size={18} />
+              </button>
+            )}
+
+            <div className="w-6 text-center text-[#707070] text-sm font-medium flex-shrink-0">
+              {displayPosition}
+            </div>
+
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
+              style={{ backgroundColor: song.avatarColor }}
+            >
+              {song.initials}
+            </div>
+
+            {/* Title/Artist - takes available space */}
+            <div className="flex-1 min-w-[200px]">
+              <div className="text-white font-semibold text-sm truncate">
+                {song.title}
+              </div>
+              <div className="text-[#a0a0a0] text-xs truncate">
+                {song.artist}
+              </div>
+            </div>
+
+            {/* Links */}
+            {showLinks && (
+              <div className="w-[100px] flex-shrink-0">
+                {song.referenceLinks && song.referenceLinks.length > 0 ? (
+                  <LinkIcons
+                    links={song.referenceLinks}
+                    size="sm"
+                    maxVisible={3}
+                  />
+                ) : (
+                  <span className="text-[#404040] text-sm">—</span>
+                )}
+              </div>
+            )}
+
+            {/* Duration with icon */}
+            <div className="w-[80px] flex items-center gap-2 text-[#a0a0a0] text-sm flex-shrink-0">
+              <Clock size={14} className="text-[#606060]" />
+              <span>{song.duration}</span>
+            </div>
+
+            {/* Tuning with icon */}
+            <div className="w-[120px] flex items-center gap-2 text-[#a0a0a0] text-sm flex-shrink-0">
+              <Guitar size={14} className="text-[#606060]" />
+              <span className="truncate">{song.tuning || 'Standard'}</span>
+            </div>
+
+            {/* Song Notes button */}
+            {onOpenSongNotes && (
+              <button
+                onClick={e => {
+                  e.stopPropagation()
+                  onOpenSongNotes()
+                }}
+                className="p-1.5 text-[#707070] hover:text-[#f17827ff] rounded transition-colors flex-shrink-0"
+                title="Song Notes"
+                data-testid={`song-notes-icon-${item.position}`}
+              >
+                <FileText size={18} />
+              </button>
+            )}
+
+            {renderKebabMenu()}
+          </div>
+
+          {/* Row 2: Session Notes */}
+          {(onSaveSessionNotes || item.notes) && (
+            <div className="mt-3 pl-[76px] border-t border-[#2a2a2a] pt-3">
+              {renderSessionNotes()}
             </div>
           )}
         </div>
-
-        {/* Notes row (if present) */}
-        {item.notes && (
-          <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
-            <div className="text-[#a0a0a0] text-sm">{item.notes}</div>
-          </div>
-        )}
-
-        {/* Expandable Band/Personal Notes */}
-        {canShowNotes && (
-          <div className="px-3 sm:px-4 pb-3 sm:pb-4">
-            <ExpandableSongNotes
-              songId={song.id}
-              bandNotes={undefined} // Will fetch from song in the hook
-              userId={userId!}
-              bandId={bandId!}
-              isExpanded={isNotesExpanded || false}
-              onToggle={onToggleNotes!}
-            />
-          </div>
-        )}
       </div>
     )
   }

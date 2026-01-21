@@ -13,6 +13,7 @@ import {
 } from '../components/common/SongListItem'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import { EditSongModal } from '../components/songs/EditSongModal'
+import { SongNotesModal } from '../components/songs/SongNotesModal'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
@@ -60,6 +61,7 @@ const dbSongToUISong = (dbSong: DBSong): UISong => {
     bpm: dbSong.bpm ? `${dbSong.bpm}` : '',
     initials: generateInitials(dbSong.title),
     avatarColor: generateAvatarColor(dbSong.title),
+    referenceLinks: dbSong.referenceLinks,
   }
 }
 
@@ -99,6 +101,7 @@ interface UIPracticeSong {
   songId: string
   song: UISong
   position: number
+  notes?: string // Session-specific notes for this song
 }
 
 // Main PracticeViewPage Component
@@ -121,11 +124,14 @@ export const PracticeViewPage: React.FC = () => {
   const [dbSongs, setDbSongs] = useState<DBSong[]>([])
   const [dbSetlists, setDbSetlists] = useState<DBSetlist[]>([])
 
-  // Expandable notes state
-  const [expandedSongId, setExpandedSongId] = useState<string | null>(null)
-
   // Edit song modal state
   const [editingSong, setEditingSong] = useState<DBSong | null>(null)
+
+  // Song notes modal state
+  const [songNotesModal, setSongNotesModal] = useState<{
+    songId: string
+    songTitle: string
+  } | null>(null)
 
   // Hooks
   const { createPractice } = useCreatePractice()
@@ -204,6 +210,7 @@ export const PracticeViewPage: React.FC = () => {
                 songId: song.id!,
                 song: dbSongToUISong(song),
                 position: practiceSongs.length + 1,
+                notes: sessionSong.notes, // Session-specific notes
               })
             }
           }
@@ -343,6 +350,7 @@ export const PracticeViewPage: React.FC = () => {
           songId: s.songId,
           timeSpent: 0,
           status: 'not-started' as const,
+          notes: s.notes, // Preserve session notes
           sectionsWorked: [],
           improvements: [],
           needsWork: [],
@@ -353,6 +361,39 @@ export const PracticeViewPage: React.FC = () => {
       console.error('Error saving song order:', err)
     }
   }
+
+  // Save session notes for a specific song
+  const handleSaveSessionNotes = useCallback(
+    async (itemId: string, notes: string) => {
+      // Update local state first
+      const newSongs = songs.map(song =>
+        song.id === itemId ? { ...song, notes } : song
+      )
+      setSongs(newSongs)
+
+      // Save to database if we have an existing practice
+      if (practiceId && !isNewMode) {
+        try {
+          await updatePractice(practiceId, {
+            songs: newSongs.map(s => ({
+              songId: s.songId,
+              timeSpent: 0,
+              status: 'not-started' as const,
+              notes: s.notes,
+              sectionsWorked: [],
+              improvements: [],
+              needsWork: [],
+              memberRatings: [],
+            })),
+          })
+        } catch (err) {
+          console.error('Error saving session notes:', err)
+          showToast('Failed to save notes', 'error')
+        }
+      }
+    },
+    [songs, practiceId, isNewMode, updatePractice, showToast]
+  )
 
   // Add song to practice (always available)
   const addSongToPractice = (song: DBSong) => {
@@ -449,6 +490,7 @@ export const PracticeViewPage: React.FC = () => {
     position: s.position,
     song: s.song,
     songId: s.songId,
+    notes: s.notes, // Session-specific notes
   }))
 
   return (
@@ -483,7 +525,7 @@ export const PracticeViewPage: React.FC = () => {
 
         {/* Start Practice Button - shown for existing practices with songs */}
         {!isNewMode && songs.length > 0 && (
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
             <button
               onClick={() => navigate(`/practices/${practiceId}/session`)}
               className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-[#f17827ff] to-[#d66920] hover:from-[#ff8c3d] hover:to-[#e07830] text-white font-semibold rounded-xl transition-all shadow-lg shadow-[#f17827ff]/20 hover:shadow-xl hover:shadow-[#f17827ff]/30"
@@ -496,7 +538,7 @@ export const PracticeViewPage: React.FC = () => {
         )}
 
         {/* Content */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <div className="max-w-6xl mx-auto py-6 space-y-6">
           {/* New mode save button */}
           {isNewMode && (
             <div className="bg-[#121212] border border-[#f17827ff] rounded-lg p-4 flex items-center justify-between">
@@ -557,8 +599,27 @@ export const PracticeViewPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Songs Section - ALWAYS editable */}
+          {/* Wrap-up Notes Section - Above songs list */}
           <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Wrap-up Notes
+            </h2>
+            <p className="text-sm text-[#707070] mb-4">
+              Capture your thoughts after the practice - what went well, what to
+              improve, or any action items.
+            </p>
+            <InlineEditableField
+              value={practice.wrapupNotes || ''}
+              onSave={val => saveField('wrapupNotes', String(val) || undefined)}
+              type="textarea"
+              placeholder="How did it go? What to focus on next time?"
+              icon={<FileText size={16} />}
+              data-testid="practice-wrapup-notes"
+            />
+          </div>
+
+          {/* Divider and Songs Section - Full width, no container */}
+          <div className="border-t border-[#2a2a2a] pt-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">
                 Songs ({songs.length})
@@ -601,56 +662,51 @@ export const PracticeViewPage: React.FC = () => {
                   strategy={verticalListSortingStrategy}
                 >
                   <div data-testid="practice-songs-list" className="space-y-2">
-                    {displayItems.map(item => (
-                      <SortableSongListItem
-                        key={item.id}
-                        item={item}
-                        isEditing={true}
-                        onRemove={() =>
-                          removeSongFromPractice(
-                            item.id,
-                            item.song?.title || 'this song'
-                          )
-                        }
-                        onEdit={() => {
-                          const song = dbSongs.find(s => s.id === item.songId)
-                          if (song) setEditingSong(song)
-                        }}
-                        userId={currentUserId}
-                        bandId={currentBandId}
-                        isNotesExpanded={item.song?.id === expandedSongId}
-                        onToggleNotes={() =>
-                          setExpandedSongId(
-                            item.song?.id === expandedSongId
-                              ? null
-                              : item.song?.id || null
-                          )
-                        }
-                      />
-                    ))}
+                    {displayItems.map((item, index) => {
+                      // Calculate song number (only count songs, not breaks/sections)
+                      const songNumber =
+                        item.type === 'song'
+                          ? displayItems
+                              .slice(0, index + 1)
+                              .filter(i => i.type === 'song').length
+                          : undefined
+
+                      return (
+                        <SortableSongListItem
+                          key={item.id}
+                          item={item}
+                          isEditing={true}
+                          showLinks={true}
+                          songNumber={songNumber}
+                          onRemove={() =>
+                            removeSongFromPractice(
+                              item.id,
+                              item.song?.title || 'this song'
+                            )
+                          }
+                          onEdit={() => {
+                            const song = dbSongs.find(s => s.id === item.songId)
+                            if (song) setEditingSong(song)
+                          }}
+                          onSaveSessionNotes={async notes =>
+                            handleSaveSessionNotes(item.id, notes)
+                          }
+                          onOpenSongNotes={
+                            item.song
+                              ? () =>
+                                  setSongNotesModal({
+                                    songId: item.song!.id,
+                                    songTitle: item.song!.title,
+                                  })
+                              : undefined
+                          }
+                        />
+                      )
+                    })}
                   </div>
                 </SortableContext>
               </DndContext>
             )}
-          </div>
-
-          {/* Wrap-up Notes Section */}
-          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">
-              Wrap-up Notes
-            </h2>
-            <p className="text-sm text-[#707070] mb-4">
-              Capture your thoughts after the practice - what went well, what to
-              improve, or any action items.
-            </p>
-            <InlineEditableField
-              value={practice.wrapupNotes || ''}
-              onSave={val => saveField('wrapupNotes', String(val) || undefined)}
-              type="textarea"
-              placeholder="How did it go? What to focus on next time?"
-              icon={<FileText size={16} />}
-              data-testid="practice-wrapup-notes"
-            />
           </div>
         </div>
 
@@ -695,6 +751,18 @@ export const PracticeViewPage: React.FC = () => {
                 showToast('Failed to update song', 'error')
               }
             }}
+          />
+        )}
+
+        {/* Song Notes Modal */}
+        {songNotesModal && (
+          <SongNotesModal
+            isOpen={true}
+            onClose={() => setSongNotesModal(null)}
+            songId={songNotesModal.songId}
+            songTitle={songNotesModal.songTitle}
+            userId={currentUserId}
+            bandId={currentBandId}
           />
         )}
       </div>

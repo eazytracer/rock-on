@@ -1,7 +1,38 @@
-import { describe, it, expect } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import { ItemSyncStatusProvider, useItemSyncStatus, useItemStatus } from '../../../src/hooks/useItemSyncStatus.tsx'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook, act, waitFor } from '@testing-library/react'
+import {
+  ItemSyncStatusProvider,
+  useItemSyncStatus,
+  useItemStatus,
+} from '../../../src/hooks/useItemSyncStatus.tsx'
 import type { ReactNode } from 'react'
+
+// Mock the database module
+vi.mock('../../../src/services/database', () => ({
+  db: {
+    syncQueue: {
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          toArray: vi.fn().mockResolvedValue([]),
+        })),
+      })),
+      filter: vi.fn(() => ({
+        toArray: vi.fn().mockResolvedValue([]),
+      })),
+      toArray: vi.fn().mockResolvedValue([]),
+    },
+  },
+}))
+
+// Mock the SyncRepository module
+vi.mock('../../../src/services/data/SyncRepository', () => ({
+  getSyncRepository: vi.fn(() => ({
+    onSyncStatusChange: vi.fn(() => vi.fn()), // Returns an unsubscribe function
+  })),
+}))
+
+// Import the mocked module
+import { db } from '../../../src/services/database'
 
 // Wrapper component for tests
 function wrapper({ children }: { children: ReactNode }) {
@@ -9,6 +40,10 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 describe('useItemSyncStatus', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('should initialize with undefined status', () => {
     const { result } = renderHook(() => useItemSyncStatus(), { wrapper })
     expect(result.current.getStatus('item-1')).toBeUndefined()
@@ -86,6 +121,22 @@ describe('useItemSyncStatus', () => {
     expect(result.current.getStatus('item-3')).toBeUndefined()
   })
 
+  it('should have refreshAll function', () => {
+    const { result } = renderHook(() => useItemSyncStatus(), { wrapper })
+    expect(typeof result.current.refreshAll).toBe('function')
+  })
+
+  it('should increment refreshCounter on refreshAll', () => {
+    const { result } = renderHook(() => useItemSyncStatus(), { wrapper })
+    const initialCounter = result.current.refreshCounter
+
+    act(() => {
+      result.current.refreshAll()
+    })
+
+    expect(result.current.refreshCounter).toBe(initialCounter + 1)
+  })
+
   it('should throw error when used without provider', () => {
     // Suppress console.error for this test
     const originalError = console.error
@@ -100,43 +151,187 @@ describe('useItemSyncStatus', () => {
 })
 
 describe('useItemStatus', () => {
-  it('should return synced status by default', () => {
-    const { result } = renderHook(() => useItemStatus('item-1'), { wrapper })
-    expect(result.current).toBe('synced')
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  it('should return current status for specific item', () => {
-    // Render both hooks together so they share the same provider
-    const { result } = renderHook(
-      () => ({
-        manager: useItemSyncStatus(),
-        itemStatus: useItemStatus('item-1'),
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should return synced status when no queue item exists', async () => {
+    // Mock empty syncQueue
+    vi.mocked(db.syncQueue!.where).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([]),
       }),
-      { wrapper }
-    )
+    } as any)
+    vi.mocked(db.syncQueue!.filter).mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]),
+    } as any)
+    vi.mocked(db.syncQueue!.toArray).mockResolvedValue([])
 
-    // Initially should be synced
-    expect(result.current.itemStatus).toBe('synced')
+    const { result } = renderHook(() => useItemStatus('item-1'), { wrapper })
 
-    // Set status and check
-    act(() => {
-      result.current.manager.setStatus('item-1', 'syncing')
+    await waitFor(() => {
+      expect(result.current).toBe('synced')
     })
-
-    expect(result.current.itemStatus).toBe('syncing')
   })
 
-  it('should update when status changes', () => {
-    const { result: statusManager } = renderHook(() => useItemSyncStatus(), { wrapper })
-    const { result: itemStatus } = renderHook(() => useItemStatus('item-1'), { wrapper })
+  it('should return pending status when queue item is pending', async () => {
+    const pendingItem = {
+      id: 1,
+      table: 'songs',
+      operation: 'create',
+      data: { id: 'item-1', title: 'Test Song' },
+      timestamp: new Date(),
+      status: 'pending',
+      retryCount: 0,
+    }
+    // Mock syncQueue with pending item
+    vi.mocked(db.syncQueue!.where).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([pendingItem]),
+      }),
+    } as any)
+    vi.mocked(db.syncQueue!.filter).mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([pendingItem]),
+    } as any)
+    vi.mocked(db.syncQueue!.toArray).mockResolvedValue([pendingItem])
 
-    expect(itemStatus.current).toBe('synced')
+    const { result } = renderHook(() => useItemStatus('item-1'), { wrapper })
 
-    act(() => {
-      statusManager.current.setStatus('item-1', 'pending')
+    await waitFor(() => {
+      expect(result.current).toBe('pending')
+    })
+  })
+
+  it('should return syncing status when queue item is syncing', async () => {
+    const syncingItem = {
+      id: 1,
+      table: 'songs',
+      operation: 'create',
+      data: { id: 'item-1', title: 'Test Song' },
+      timestamp: new Date(),
+      status: 'syncing',
+      retryCount: 0,
+    }
+    // Mock syncQueue with syncing item
+    vi.mocked(db.syncQueue!.where).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([syncingItem]),
+      }),
+    } as any)
+    vi.mocked(db.syncQueue!.filter).mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([syncingItem]),
+    } as any)
+    vi.mocked(db.syncQueue!.toArray).mockResolvedValue([syncingItem])
+
+    const { result } = renderHook(() => useItemStatus('item-1'), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current).toBe('syncing')
+    })
+  })
+
+  it('should return error status when queue item has failed', async () => {
+    const failedItem = {
+      id: 1,
+      table: 'songs',
+      operation: 'create',
+      data: { id: 'item-1', title: 'Test Song' },
+      timestamp: new Date(),
+      status: 'failed',
+      retryCount: 3,
+      lastError: 'Invalid UUID',
+    }
+    // Mock syncQueue with failed item
+    vi.mocked(db.syncQueue!.where).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([failedItem]),
+      }),
+    } as any)
+    vi.mocked(db.syncQueue!.filter).mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([failedItem]),
+    } as any)
+    vi.mocked(db.syncQueue!.toArray).mockResolvedValue([failedItem])
+
+    const { result } = renderHook(() => useItemStatus('item-1'), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current).toBe('error')
+    })
+  })
+
+  it('should use the most recent queue item when multiple exist', async () => {
+    const oldDate = new Date('2024-01-01')
+    const newDate = new Date('2024-12-01')
+
+    const items = [
+      {
+        id: 1,
+        table: 'songs',
+        operation: 'create',
+        data: { id: 'item-1' },
+        timestamp: oldDate,
+        status: 'pending',
+      },
+      {
+        id: 2,
+        table: 'songs',
+        operation: 'update',
+        data: { id: 'item-1' },
+        timestamp: newDate,
+        status: 'failed',
+        lastError: 'Server error',
+      },
+    ]
+
+    // Mock syncQueue with multiple items (old pending, new failed)
+    vi.mocked(db.syncQueue!.where).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(items),
+      }),
+    } as any)
+    vi.mocked(db.syncQueue!.filter).mockReturnValue({
+      toArray: vi.fn().mockResolvedValue(items),
+    } as any)
+    vi.mocked(db.syncQueue!.toArray).mockResolvedValue(items)
+
+    const { result } = renderHook(() => useItemStatus('item-1'), { wrapper })
+
+    // Should show error because the most recent item is failed
+    await waitFor(() => {
+      expect(result.current).toBe('error')
+    })
+  })
+
+  it('should handle database errors gracefully', async () => {
+    // Mock syncQueue to throw an error
+    vi.mocked(db.syncQueue!.where).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockRejectedValue(new Error('DB Error')),
+      }),
+    } as any)
+    vi.mocked(db.syncQueue!.filter).mockReturnValue({
+      toArray: vi.fn().mockRejectedValue(new Error('DB Error')),
+    } as any)
+    vi.mocked(db.syncQueue!.toArray).mockRejectedValue(new Error('DB Error'))
+
+    // Suppress console.error and console.log for this test
+    const originalError = console.error
+    const originalLog = console.log
+    console.error = vi.fn()
+    console.log = vi.fn()
+
+    const { result } = renderHook(() => useItemStatus('item-1'), { wrapper })
+
+    // Should fallback to synced on error
+    await waitFor(() => {
+      expect(result.current).toBe('synced')
     })
 
-    // Note: The hook should re-render and reflect the new status
-    // In real usage, React will handle this automatically
+    console.error = originalError
+    console.log = originalLog
   })
 })

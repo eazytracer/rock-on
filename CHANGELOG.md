@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-21
+
 ### Added
 
+- **External Links & Spotify Integration** (#7)
+  - Reference links for songs (Spotify, YouTube, tabs, lyrics, other)
+  - URL auto-detection when pasting/typing links
+  - Link icons in song lists with one-click access
+  - Spotify search with album art and metadata auto-fill
+  - Edge Function proxy for Spotify API authentication
 - Persistent layout architecture - sidebar/navbar stay mounted during navigation, eliminating white screen flicker (#6)
 - `ContentLoadingSpinner` component for content-area-only loading states
 - `ProtectedLayoutRoute` component combining auth check with persistent layout
@@ -65,7 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
-| Version | Date        | Highlights                         |
-| ------- | ----------- | ---------------------------------- |
-| 0.1.0   | 2026-01-18  | Auth flow, sync-on-load, E2E tests |
-| 0.0.x   | Pre-release | Initial development                |
+| Version | Date        | Highlights                          |
+| ------- | ----------- | ----------------------------------- |
+| 0.2.0   | 2026-01-21  | External links, Spotify integration |
+| 0.1.0   | 2026-01-18  | Auth flow, sync-on-load, E2E tests  |
+| 0.0.x   | Pre-release | Initial development                 |

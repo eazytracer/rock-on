@@ -188,7 +188,6 @@ export const ShowViewPage: React.FC = () => {
 
   // Get IDs early for initialization
   const currentBandId = localStorage.getItem('currentBandId') || ''
-  const currentUserId = localStorage.getItem('currentUserId') || ''
 
   // Core state
   const [loading, setLoading] = useState(!isNewMode)
@@ -214,9 +213,6 @@ export const ShowViewPage: React.FC = () => {
     null
   )
   const [contacts, setContacts] = useState<ShowContact[]>([])
-
-  // Expandable notes state
-  const [expandedSongId, setExpandedSongId] = useState<string | null>(null)
 
   // Load show data
   useEffect(() => {
@@ -835,23 +831,24 @@ export const ShowViewPage: React.FC = () => {
                 {/* Songs List */}
                 <div className="space-y-2" data-testid="setlist-songs">
                   {setlistItems.length > 0 ? (
-                    setlistItems.map(item => (
-                      <SortableSongListItem
-                        key={item.id}
-                        item={item}
-                        isEditing={false}
-                        userId={currentUserId}
-                        bandId={currentBandId}
-                        isNotesExpanded={item.song?.id === expandedSongId}
-                        onToggleNotes={() =>
-                          setExpandedSongId(
-                            item.song?.id === expandedSongId
-                              ? null
-                              : item.song?.id || null
-                          )
-                        }
-                      />
-                    ))
+                    setlistItems.map((item, index) => {
+                      // Calculate song number (only count songs, not breaks/sections)
+                      const songNumber =
+                        item.type === 'song'
+                          ? setlistItems
+                              .slice(0, index + 1)
+                              .filter(i => i.type === 'song').length
+                          : undefined
+
+                      return (
+                        <SortableSongListItem
+                          key={item.id}
+                          item={item}
+                          isEditing={false}
+                          songNumber={songNumber}
+                        />
+                      )
+                    })
                   ) : (
                     <div className="text-center py-8 text-[#707070]">
                       No songs in this setlist

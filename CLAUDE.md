@@ -263,6 +263,35 @@ const confirmed = await confirm({
 - They provide poor UX on mobile devices
 - Native scrollbars break the visual design
 
+### Logging
+
+**Use the environment-aware logger instead of `console.*` calls:**
+
+```typescript
+// ❌ WRONG - console.log shows in production
+console.log('Debug info')
+
+// ✅ CORRECT - Use namespaced logger
+import { createLogger } from '../utils/logger'
+const log = createLogger('MyComponent')
+
+log.debug('Detailed info') // Dev only
+log.info('User action') // Dev + test
+log.warn('Recoverable issue') // Dev + test
+log.error('Failure', error) // Always logged
+```
+
+**Log levels by environment:**
+
+| Level   | Dev | Test | Prod |
+| ------- | --- | ---- | ---- |
+| `debug` | ✅  | ❌   | ❌   |
+| `info`  | ✅  | ✅   | ❌   |
+| `warn`  | ✅  | ✅   | ❌   |
+| `error` | ✅  | ✅   | ✅   |
+
+**Full Reference:** `.claude/specifications/logging.md`
+
 ## Database Setup & Migration Policy
 
 ### Fresh Installation (New Supabase Project)
