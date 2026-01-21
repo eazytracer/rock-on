@@ -8,6 +8,14 @@ import type { Song } from '../../models/Song'
 import type { Setlist } from '../../models/Setlist'
 import type { Show } from '../../models/Show'
 import type { PracticeSession } from '../../models/PracticeSession'
+import type { AuditLogEntry } from './syncTypes'
+import {
+  mapAuditToSong,
+  mapAuditToSetlist,
+  mapAuditToShow,
+  mapAuditToPractice,
+  extractItemName,
+} from './auditMappers'
 
 interface RealtimePayload {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE'
@@ -15,23 +23,6 @@ interface RealtimePayload {
   old: Record<string, any>
   schema: string
   table: string
-}
-
-/**
- * Audit log entry structure from Supabase
- */
-interface AuditLogEntry {
-  id: string
-  table_name: 'songs' | 'setlists' | 'shows' | 'practice_sessions'
-  record_id: string
-  action: 'INSERT' | 'UPDATE' | 'DELETE'
-  user_id: string | null
-  user_name: string // Denormalized user name - always available!
-  changed_at: string // ISO timestamp
-  old_values: any // Complete JSONB record before change (NULL for INSERT)
-  new_values: any // Complete JSONB record after change (NULL for DELETE)
-  band_id: string
-  client_info?: any // Optional metadata
 }
 
 interface PendingToast {
@@ -803,7 +794,12 @@ export class RealtimeManager extends EventEmitter {
       }
 
       // Extract item name for toast
-      const itemName = this.extractItemName(audit)
+      const itemName = extractItemName(
+        audit.table_name,
+        audit.action,
+        audit.old_values,
+        audit.new_values
+      )
 
       // Show toast with ACTUAL user name (not "Someone"!)
       // Skip toast for own changes (but still process the data sync above)
@@ -853,28 +849,28 @@ export class RealtimeManager extends EventEmitter {
 
     switch (table_name) {
       case 'songs': {
-        const song = this.mapAuditToSong(new_values)
+        const song = mapAuditToSong(new_values)
         await db.songs.put(song)
         console.log(`✅ Synced song from audit log:`, song.title)
         break
       }
 
       case 'setlists': {
-        const setlist = this.mapAuditToSetlist(new_values)
+        const setlist = mapAuditToSetlist(new_values)
         await db.setlists.put(setlist)
         console.log(`✅ Synced setlist from audit log:`, setlist.name)
         break
       }
 
       case 'shows': {
-        const show = this.mapAuditToShow(new_values)
+        const show = mapAuditToShow(new_values)
         await db.shows.put(show)
         console.log(`✅ Synced show from audit log:`, show.name)
         break
       }
 
       case 'practice_sessions': {
-        const practice = this.mapAuditToPractice(new_values)
+        const practice = mapAuditToPractice(new_values)
         await db.practiceSessions.put(practice)
         console.log(`✅ Synced practice from audit log`)
         break
@@ -918,148 +914,6 @@ export class RealtimeManager extends EventEmitter {
           `[RealtimeManager] Unknown table_name for DELETE: ${table_name}`
         )
     }
-  }
-
-  /**
-   * Safely parse a date string, returning a default date if invalid
-   */
-  private parseDate(dateString: any, defaultDate?: Date): Date {
-    if (!dateString) {
-      return defaultDate || new Date()
-    }
-    const parsed = new Date(dateString)
-    if (isNaN(parsed.getTime())) {
-      console.warn(
-        `[RealtimeManager] Invalid date: ${dateString}, using default`
-      )
-      return defaultDate || new Date()
-    }
-    return parsed
-  }
-
-  /**
-   * Map audit log JSONB to Song model
-   * Handles snake_case → camelCase conversion
-   */
-  private mapAuditToSong(jsonb: any): Song {
-    return {
-      id: jsonb.id,
-      title: jsonb.title || '',
-      artist: jsonb.artist || '',
-      album: jsonb.album || undefined,
-      key: jsonb.key || '',
-      bpm: jsonb.tempo || 120, // tempo → bpm
-      duration: jsonb.duration || 0,
-      difficulty: (jsonb.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
-      guitarTuning: jsonb.guitar_tuning || undefined,
-      structure: jsonb.structure || [],
-      lyrics: jsonb.lyrics || undefined,
-      chords: jsonb.chords || [],
-      notes: jsonb.notes || '',
-      referenceLinks: jsonb.reference_links || [],
-      tags: jsonb.tags || [],
-      createdDate: this.parseDate(jsonb.created_date),
-      lastPracticed: jsonb.last_practiced
-        ? this.parseDate(jsonb.last_practiced)
-        : undefined,
-      confidenceLevel: jsonb.confidence_level || 1,
-      contextType: jsonb.context_type,
-      contextId: jsonb.context_id,
-      createdBy: jsonb.created_by,
-      visibility: jsonb.visibility || 'band',
-      songGroupId: jsonb.song_group_id || undefined,
-      linkedFromSongId: jsonb.linked_from_song_id || undefined,
-      version: jsonb.version || 0,
-      lastModifiedBy: jsonb.last_modified_by || undefined,
-    }
-  }
-
-  /**
-   * Map audit log JSONB to Setlist model
-   */
-  private mapAuditToSetlist(jsonb: any): Setlist {
-    return {
-      id: jsonb.id,
-      name: jsonb.name || '',
-      bandId: jsonb.band_id,
-      items: jsonb.items || [], // Already JSONB
-      totalDuration: 0, // Calculate from items if needed
-      status: jsonb.status || 'draft',
-      createdDate: this.parseDate(jsonb.created_date),
-      lastModified: this.parseDate(jsonb.last_modified),
-      version: jsonb.version || 0,
-      lastModifiedBy: jsonb.last_modified_by || undefined,
-    }
-  }
-
-  /**
-   * Map audit log JSONB to Show model
-   */
-  private mapAuditToShow(jsonb: any): Show {
-    return {
-      id: jsonb.id,
-      name: jsonb.name || '',
-      venue: jsonb.venue || '',
-      scheduledDate: this.parseDate(jsonb.scheduled_date),
-      duration: jsonb.duration || 120,
-      bandId: jsonb.band_id,
-      setlistId: jsonb.setlist_id || undefined,
-      status: jsonb.status || 'upcoming',
-      notes: jsonb.notes || '',
-      createdDate: this.parseDate(jsonb.created_date),
-      updatedDate: this.parseDate(jsonb.updated_date),
-      version: jsonb.version || 0,
-      lastModifiedBy: jsonb.last_modified_by || undefined,
-    }
-  }
-
-  /**
-   * Map audit log JSONB to PracticeSession model
-   */
-  private mapAuditToPractice(jsonb: any): PracticeSession {
-    return {
-      id: jsonb.id,
-      scheduledDate: this.parseDate(jsonb.scheduled_date),
-      startTime: jsonb.start_time
-        ? this.parseDate(jsonb.start_time)
-        : undefined,
-      endTime: jsonb.end_time ? this.parseDate(jsonb.end_time) : undefined,
-      duration: jsonb.duration || 120,
-      location: jsonb.location || '',
-      type: jsonb.type || 'rehearsal',
-      status: 'scheduled', // Default status for IndexedDB model
-      objectives: jsonb.objectives || [],
-      completedObjectives: jsonb.completed_objectives || [],
-      songs: jsonb.songs || [],
-      bandId: jsonb.band_id,
-      setlistId: jsonb.setlist_id || undefined,
-      notes: jsonb.notes || '',
-      attendees: jsonb.attendees || [],
-      createdDate: this.parseDate(jsonb.created_date),
-      version: jsonb.version || 0,
-      lastModifiedBy: jsonb.last_modified_by || undefined,
-    }
-  }
-
-  /**
-   * Extract item name from audit entry for toast display
-   */
-  private extractItemName(audit: AuditLogEntry): string {
-    // For DELETE, use old_values; for INSERT/UPDATE, use new_values
-    const values =
-      audit.action === 'DELETE' ? audit.old_values : audit.new_values
-
-    if (!values) {
-      return 'item'
-    }
-
-    // Special handling for practice_sessions - use scheduled_date
-    if (audit.table_name === 'practice_sessions') {
-      return values.scheduled_date || 'item'
-    }
-
-    // Try common name fields
-    return values.title || values.name || 'item'
   }
 
   /**

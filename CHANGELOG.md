@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Feature flag system for toggling experimental features (`src/config/featureFlags.ts`)
+- Shared audit log mappers for consistent JSONB to model conversions (`src/services/data/auditMappers.ts`)
+- Audit log-based incremental sync (behind feature flag `SYNC_USE_AUDIT_LOG`)
+- Docker configuration for mobile browser testing (`Dockerfile`, `docker-compose.yml`, `start-docker.sh`)
+
+### Fixed
+
+- Song updates not syncing to other devices - incremental sync was comparing `createdDate` which never changes after creation, now uses `audit_log` table
+
+### Changed
+
+- `RealtimeManager` now uses shared audit mappers for consistency with `SyncEngine`
+- Incremental sync can use `audit_log` table instead of per-record timestamps (feature flagged)
+
 ## [0.2.0] - 2026-01-21
 
 ### Added

@@ -10,7 +10,15 @@ import {
   ConflictEvent,
   IncrementalSyncResult,
   createEmptyIncrementalSyncResult,
+  AuditLogEntry,
 } from './syncTypes'
+import {
+  mapAuditToSong,
+  mapAuditToSetlist,
+  mapAuditToShow,
+  mapAuditToPractice,
+} from './auditMappers'
+import { FEATURE_FLAGS } from '../../config/featureFlags'
 import { createLogger } from '../../utils/logger'
 
 const log = createLogger('SyncEngine')
@@ -956,11 +964,20 @@ export class SyncEngine {
    * @returns IncrementalSyncResult with counts of changes
    */
   async pullIncrementalChanges(userId: string): Promise<IncrementalSyncResult> {
+    // Use new audit-log based sync if feature flag is enabled
+    if (FEATURE_FLAGS.SYNC_USE_AUDIT_LOG) {
+      log.info(
+        '[IncrementalSync] Using audit-log based sync (feature flag enabled)'
+      )
+      return this.pullFromAuditLog(userId)
+    }
+
+    // Legacy per-table sync (kept for fallback if issues arise)
     const startTime = Date.now()
     const result = createEmptyIncrementalSyncResult()
 
     try {
-      log.info('[IncrementalSync] Starting incremental sync...')
+      log.info('[IncrementalSync] Starting legacy incremental sync...')
 
       // Get last sync time - if null, we need a full sync
       const lastSync = await this.getLastIncrementalSyncTime()
@@ -1268,6 +1285,291 @@ export class SyncEngine {
 
     return counts
   }
+
+  // ========== AUDIT LOG BASED SYNC ==========
+
+  /**
+   * Apply a single audit log entry to local IndexedDB.
+   *
+   * This handles INSERT, UPDATE, and DELETE operations for all entity types.
+   * Records with pending local changes are skipped to avoid overwriting edits.
+   *
+   * @param entry - The audit log entry to apply
+   * @param pendingIds - Set of record IDs that have pending local changes
+   * @param counts - Running counts of applied changes (mutated in place)
+   * @returns true if the entry was applied, false if skipped
+   */
+  private async applyAuditEntry(
+    entry: AuditLogEntry,
+    pendingIds: Set<string>,
+    counts: IncrementalSyncResult
+  ): Promise<boolean> {
+    const { table_name, record_id, action, new_values } = entry
+
+    // Skip if there are pending local changes for this record
+    if (pendingIds.has(record_id)) {
+      counts.skippedDueToPending++
+      log.debug(
+        `[AuditSync] Skipping ${action} on ${table_name}:${record_id} (pending local changes)`
+      )
+      return false
+    }
+
+    try {
+      switch (action) {
+        case 'INSERT':
+        case 'UPDATE':
+          if (!new_values) {
+            log.warn(
+              `[AuditSync] No new_values for ${action} on ${table_name}:${record_id}`
+            )
+            return false
+          }
+          await this.applyUpsertFromAudit(
+            table_name,
+            new_values,
+            action,
+            counts
+          )
+          break
+
+        case 'DELETE':
+          await this.applyDeleteFromAudit(table_name, record_id, counts)
+          break
+
+        default:
+          log.warn(`[AuditSync] Unknown action: ${action}`)
+          return false
+      }
+
+      return true
+    } catch (error) {
+      log.error(
+        `[AuditSync] Failed to apply ${action} on ${table_name}:${record_id}:`,
+        error
+      )
+      return false
+    }
+  }
+
+  /**
+   * Apply an INSERT or UPDATE from audit log
+   */
+  private async applyUpsertFromAudit(
+    tableName: AuditLogEntry['table_name'],
+    newValues: any,
+    action: 'INSERT' | 'UPDATE',
+    counts: IncrementalSyncResult
+  ): Promise<void> {
+    switch (tableName) {
+      case 'songs': {
+        const song = mapAuditToSong(newValues)
+        const existing = await this.local.getSong(song.id)
+        if (existing) {
+          await this.local.updateSong(song.id, song)
+          counts.updatedSongs++
+        } else {
+          await this.local.addSong(song)
+          counts.newSongs++
+        }
+        log.debug(`[AuditSync] ${action} song: ${song.title} (${song.id})`)
+        break
+      }
+
+      case 'setlists': {
+        const setlist = mapAuditToSetlist(newValues)
+        const existing = await this.local.getSetlist(setlist.id)
+        if (existing) {
+          await this.local.updateSetlist(setlist.id, setlist)
+          counts.updatedSetlists++
+        } else {
+          await this.local.addSetlist(setlist)
+          counts.newSetlists++
+        }
+        log.debug(
+          `[AuditSync] ${action} setlist: ${setlist.name} (${setlist.id})`
+        )
+        break
+      }
+
+      case 'shows': {
+        const show = mapAuditToShow(newValues)
+        const existing = await this.local.getShow(show.id)
+        if (existing) {
+          await this.local.updateShow(show.id, show)
+          counts.updatedShows++
+        } else {
+          await this.local.addShow(show)
+          counts.newShows++
+        }
+        log.debug(`[AuditSync] ${action} show: ${show.name} (${show.id})`)
+        break
+      }
+
+      case 'practice_sessions': {
+        const practice = mapAuditToPractice(newValues)
+        const existing = await this.local.getPracticeSession(practice.id)
+        if (existing) {
+          await this.local.updatePracticeSession(practice.id, practice)
+          counts.updatedPractices++
+        } else {
+          await this.local.addPracticeSession(practice)
+          counts.newPractices++
+        }
+        log.debug(`[AuditSync] ${action} practice: ${practice.id}`)
+        break
+      }
+
+      default:
+        log.warn(`[AuditSync] Unknown table: ${tableName}`)
+    }
+  }
+
+  /**
+   * Apply a DELETE from audit log
+   */
+  private async applyDeleteFromAudit(
+    tableName: AuditLogEntry['table_name'],
+    recordId: string,
+    counts: IncrementalSyncResult
+  ): Promise<void> {
+    switch (tableName) {
+      case 'songs':
+        await this.local.deleteSong(recordId)
+        counts.deletedSongs++
+        log.debug(`[AuditSync] DELETE song: ${recordId}`)
+        break
+
+      case 'setlists':
+        await this.local.deleteSetlist(recordId)
+        counts.deletedSetlists++
+        log.debug(`[AuditSync] DELETE setlist: ${recordId}`)
+        break
+
+      case 'shows':
+        await this.local.deleteShow(recordId)
+        counts.deletedShows++
+        log.debug(`[AuditSync] DELETE show: ${recordId}`)
+        break
+
+      case 'practice_sessions':
+        await this.local.deletePracticeSession(recordId)
+        counts.deletedPractices++
+        log.debug(`[AuditSync] DELETE practice: ${recordId}`)
+        break
+
+      default:
+        log.warn(`[AuditSync] Unknown table for delete: ${tableName}`)
+    }
+  }
+
+  /**
+   * Pull changes from audit_log since last sync.
+   *
+   * This is the new incremental sync approach that replaces per-table
+   * timestamp comparisons. It queries the audit_log table for all changes
+   * since the last sync and applies them in chronological order.
+   *
+   * Benefits over per-table sync:
+   * - Works correctly for all entity types (no createdDate vs updatedDate bugs)
+   * - Handles deletes properly
+   * - Single query instead of 4 separate queries
+   * - Audit log is already RLS-protected by band membership
+   *
+   * @param userId - Current user ID
+   * @returns IncrementalSyncResult with counts of all changes
+   */
+  async pullFromAuditLog(userId: string): Promise<IncrementalSyncResult> {
+    const startTime = Date.now()
+    const result = createEmptyIncrementalSyncResult()
+
+    try {
+      log.info('[AuditSync] Starting audit-log based incremental sync...')
+
+      // Get last sync time - if null, we need a full sync
+      const lastSync = await this.getLastIncrementalSyncTime()
+
+      if (!lastSync) {
+        log.info(
+          '[AuditSync] No sync timestamp found, performing full sync instead'
+        )
+        await this.performInitialSync(userId)
+        result.syncDurationMs = Date.now() - startTime
+        return result
+      }
+
+      // Get user's band IDs
+      const memberships = await this.remote.getUserMemberships(userId)
+      const bandIds = memberships.map(m => m.bandId)
+
+      if (bandIds.length === 0) {
+        log.info('[AuditSync] No bands found, skipping')
+        result.syncDurationMs = Date.now() - startTime
+        return result
+      }
+
+      log.info(`[AuditSync] Last sync: ${lastSync.toISOString()}`)
+
+      // Get IDs of records with pending local changes (to skip during pull)
+      const pendingIds = await this.getPendingRecordIds()
+      if (pendingIds.size > 0) {
+        log.info(`[AuditSync] Pending local changes: ${pendingIds.size}`)
+      }
+
+      // Process each band's audit log
+      let totalEntries = 0
+      for (const bandId of bandIds) {
+        const entries = await this.remote.getAuditLogSince(bandId, lastSync)
+        totalEntries += entries.length
+
+        log.debug(`[AuditSync] Band ${bandId}: ${entries.length} audit entries`)
+
+        // Apply entries in chronological order (already sorted by RemoteRepository)
+        for (const entry of entries) {
+          await this.applyAuditEntry(entry, pendingIds, result)
+        }
+      }
+
+      // Update last sync time
+      await this.setLastIncrementalSyncTime(new Date())
+
+      result.lastSyncTime = new Date()
+      result.syncDurationMs = Date.now() - startTime
+
+      const totalChanges =
+        result.newSongs +
+        result.updatedSongs +
+        result.deletedSongs +
+        result.newSetlists +
+        result.updatedSetlists +
+        result.deletedSetlists +
+        result.newPractices +
+        result.updatedPractices +
+        result.deletedPractices +
+        result.newShows +
+        result.updatedShows +
+        result.deletedShows
+
+      log.info(
+        `[AuditSync] Complete: ${totalChanges} changes from ${totalEntries} audit entries in ${result.syncDurationMs}ms`
+      )
+
+      if (result.skippedDueToPending > 0) {
+        log.info(
+          `[AuditSync] Skipped ${result.skippedDueToPending} records due to pending local changes`
+        )
+      }
+
+      this.notifyListeners()
+      return result
+    } catch (error) {
+      log.error('[AuditSync] Failed:', error)
+      result.syncDurationMs = Date.now() - startTime
+      throw error
+    }
+  }
+
+  // ========== LEGACY FULL SYNC METHODS ==========
 
   /**
    * Pull songs from remote

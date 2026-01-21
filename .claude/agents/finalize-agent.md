@@ -256,7 +256,30 @@ npm run test:all
 - Fix the issue or loop back to appropriate agent
 - Re-run all checks
 
-### Phase 4: Create Conventional Commit
+### Phase 4: Check Current Version
+
+**IMPORTANT: Always check the current version before suggesting a bump:**
+
+```bash
+# Check current version from package.json
+cat package.json | grep '"version"'
+
+# Check CHANGELOG.md for current version section
+head -20 CHANGELOG.md
+```
+
+**Record the current version** (e.g., `0.2.1`) so you can suggest the correct next version:
+
+- Current: `0.2.1` → Patch: `0.2.2`, Minor: `0.3.0`
+- Current: `1.0.0` → Patch: `1.0.1`, Minor: `1.1.0`
+
+**When updating CHANGELOG.md:**
+
+- Add entries under `## [Unreleased]` section
+- DO NOT create new version sections (that happens at release time)
+- Verify you're looking at the actual current file, not a cached version
+
+### Phase 5: Create Conventional Commit
 
 **Write a conventional commit message:**
 
@@ -369,7 +392,7 @@ No functional changes. All tests passing.
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
-### Phase 5: Git Workflow
+### Phase 6: Git Workflow
 
 **Create commit and push:**
 
@@ -433,7 +456,7 @@ mcp__git__commit --message="..." --all
 mcp__git__push origin [feature-branch]
 ```
 
-### Phase 6: Create Pull Request
+### Phase 7: Create Pull Request
 
 **Option A: Manual PR Creation (Current)**
 
@@ -510,7 +533,7 @@ mcp__github__add_label --label frontend
 mcp__github__add_label --label backend
 ```
 
-### Phase 7: Create Finalization Summary
+### Phase 8: Create Finalization Summary
 
 **Document what was finalized:**
 

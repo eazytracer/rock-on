@@ -21,6 +21,7 @@ import { supabase } from '../supabase/client'
 import {
   IncrementalSyncResult,
   createEmptyIncrementalSyncResult,
+  AuditLogEntry,
 } from './syncTypes'
 
 /**
@@ -798,6 +799,52 @@ export class RemoteRepository implements IDataRepository {
       shows: (data || []).map(row => this.mapShowFromSupabase(row)),
       total: count || 0,
     }
+  }
+
+  // ========== AUDIT LOG ==========
+
+  /**
+   * Get audit log entries since a given time (for incremental sync)
+   *
+   * This is the new approach for incremental sync that replaces per-table
+   * timestamp comparisons. The audit_log captures all INSERT/UPDATE/DELETE
+   * operations with complete record snapshots.
+   *
+   * @param bandId - The band ID to filter audit entries
+   * @param since - Get entries where changed_at > since
+   * @returns Array of AuditLogEntry in chronological order (oldest first)
+   */
+  async getAuditLogSince(
+    bandId: string,
+    since: Date
+  ): Promise<AuditLogEntry[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const sinceIso = since.toISOString()
+    const { data, error } = await supabase
+      .from('audit_log')
+      .select('*')
+      .eq('band_id', bandId)
+      .gt('changed_at', sinceIso) // Strictly greater than last sync
+      .order('changed_at', { ascending: true }) // Chronological order
+
+    if (error) throw error
+
+    // Map to AuditLogEntry type (already snake_case from Supabase)
+    // Cast needed because Supabase client doesn't have audit_log types
+    return ((data as any[]) || []).map(row => ({
+      id: row.id as string,
+      table_name: row.table_name as AuditLogEntry['table_name'],
+      record_id: row.record_id as string,
+      action: row.action as AuditLogEntry['action'],
+      user_id: row.user_id as string | null,
+      user_name: row.user_name as string,
+      changed_at: row.changed_at as string,
+      old_values: row.old_values,
+      new_values: row.new_values,
+      band_id: row.band_id as string,
+      client_info: row.client_info,
+    }))
   }
 
   // ========== BAND MEMBERSHIPS ==========

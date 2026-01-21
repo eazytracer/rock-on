@@ -1,265 +1,93 @@
-# Rock-On Development Stack with Supabase
-# Usage: docker-compose up (development is default)
-# Production: docker-compose --profile prod up
+# Rock-On Development Stack
+# ============================================================================
+# Uses Supabase CLI (via init container) to manage database services.
+# This ensures proper role creation, migrations, and seed data.
+#
+# Usage:
+#   ./start-docker.sh                           # Start everything
+#   HOST_IP=192.168.1.100 ./start-docker.sh     # Start for phone testing
+#
+# Or manually:
+#   docker compose run --rm supabase-init       # Initialize Supabase
+#   docker compose up rock-on-dev               # Start the app
+# ============================================================================
 
 version: '3.8'
 
 services:
-  # =============================================================================
-  # SUPABASE CORE SERVICES
-  # =============================================================================
+  # ===========================================================================
+  # SUPABASE INITIALIZATION (one-time setup via CLI)
+  # ===========================================================================
+  supabase-init:
+    image: node:22-alpine
+    container_name: rock-on-supabase-init
+    volumes:
+      # Mount docker.sock to control host Docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount project directory
+      - .:/app
+    working_dir: /app
+    environment:
+      - HOST_IP=${HOST_IP:-localhost}
+    command: >
+      sh -c "
+        echo '=============================================='
+        echo 'Supabase Initialization'
+        echo '=============================================='
 
-  # PostgreSQL Database
-  db:
-    image: supabase/postgres:15.8.1.060
-    container_name: rock-on-db
+        # Install dependencies for Supabase CLI
+        apk add --no-cache curl docker-cli
+
+        # Install Supabase CLI via direct binary download
+        echo '[1/3] Installing Supabase CLI...'
+        curl -sSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
+
+        # Check if Supabase is already running
+        echo '[2/3] Checking Supabase status...'
+        if supabase status 2>/dev/null | grep -q 'API URL'; then
+          echo '  ✓ Supabase is already running'
+        else
+          echo '  Starting Supabase...'
+          supabase start
+          echo '  ✓ Supabase started'
+        fi
+
+        # Show status
+        echo ''
+        echo '[3/3] Supabase Status:'
+        supabase status
+
+        echo ''
+        echo '=============================================='
+        echo 'Initialization complete!'
+        echo '=============================================='
+      "
+    profiles:
+      - init
+
+  # ===========================================================================
+  # SUPABASE PROXY (exposes localhost-bound Supabase to external IPs)
+  # ===========================================================================
+  # Supabase CLI binds to 127.0.0.1, so we need a proxy for phone testing.
+  # This nginx container forwards external requests to the local Supabase services.
+  supabase-proxy:
+    image: nginx:alpine
+    container_name: rock-on-supabase-proxy
     restart: unless-stopped
     ports:
-      - "54322:5432"
-    environment:
-      POSTGRES_HOST: /var/run/postgresql
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: postgres
-      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      JWT_EXP: 3600
+      - "54321:54321"   # Supabase API
+      - "54323:54323"   # Supabase Studio
+      - "54324:54324"   # Inbucket (email testing)
     volumes:
-      - db-data:/var/lib/postgresql/data
-      - ./supabase/migrations:/docker-entrypoint-initdb.d/migrations
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - rock-on-network
+      - ./docker/nginx-proxy.conf:/etc/nginx/nginx.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    profiles:
+      - proxy
 
-  # Kong API Gateway
-  kong:
-    image: kong:2.8.1
-    container_name: rock-on-kong
-    restart: unless-stopped
-    ports:
-      - "54321:8000"
-      - "54320:8443"
-    environment:
-      KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
-      KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
-      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
-      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
-    volumes:
-      - ./docker/kong.yml:/var/lib/kong/kong.yml:ro
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - rock-on-network
-
-  # GoTrue Auth Service
-  auth:
-    image: supabase/gotrue:v2.164.0
-    container_name: rock-on-auth
-    restart: unless-stopped
-    environment:
-      GOTRUE_API_HOST: 0.0.0.0
-      GOTRUE_API_PORT: 9999
-      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:54321}
-
-      GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-postgres}@db:5432/postgres
-
-      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:5173}
-      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
-      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
-
-      GOTRUE_JWT_ADMIN_ROLES: service_role
-      GOTRUE_JWT_AUD: authenticated
-      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
-      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
-      GOTRUE_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-
-      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP:-true}
-      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS:-false}
-      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM:-true}
-
-      # SMTP settings (using Inbucket for local dev)
-      GOTRUE_SMTP_HOST: inbucket
-      GOTRUE_SMTP_PORT: 2500
-      GOTRUE_SMTP_ADMIN_EMAIL: admin@localhost
-      GOTRUE_SMTP_MAX_FREQUENCY: 1s
-      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
-      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
-      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
-      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
-
-      # Rate limiting
-      GOTRUE_RATE_LIMIT_EMAIL_SENT: 100
-      GOTRUE_RATE_LIMIT_HEADER: X-Forwarded-For
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - rock-on-network
-
-  # Supabase Realtime
-  realtime:
-    image: supabase/realtime:v2.33.58
-    container_name: rock-on-realtime
-    restart: unless-stopped
-    environment:
-      PORT: 4000
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: supabase_admin
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      DB_NAME: postgres
-      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
-      DB_ENC_KEY: supabaserealtime
-      API_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq}
-      ERL_AFLAGS: -proto_dist inet_tcp
-      DNS_NODES: "''"
-      RLIMIT_NOFILE: 10000
-      APP_NAME: realtime
-      SEED_SELF_HOST: "true"
-      REPLICATION_MODE: RLS
-      REPLICATION_POLL_INTERVAL: 100
-      SECURE_CHANNELS: "true"
-      SLOT_NAME: supabase_realtime_rls
-      TEMPORARY_SLOT: "true"
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - rock-on-network
-
-  # Supabase REST API (PostgREST)
-  rest:
-    image: postgrest/postgrest:v12.2.0
-    container_name: rock-on-rest
-    restart: unless-stopped
-    environment:
-      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD:-postgres}@db:5432/postgres
-      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,graphql_public}
-      PGRST_DB_ANON_ROLE: anon
-      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      PGRST_DB_USE_LEGACY_GUCS: "false"
-      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - rock-on-network
-
-  # Supabase Storage API
-  storage:
-    image: supabase/storage-api:v1.11.13
-    container_name: rock-on-storage
-    restart: unless-stopped
-    environment:
-      ANON_KEY: ${ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
-      SERVICE_KEY: ${SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
-      POSTGREST_URL: http://rest:3000
-      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD:-postgres}@db:5432/postgres
-      FILE_SIZE_LIMIT: 52428800
-      STORAGE_BACKEND: file
-      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-      TENANT_ID: stub
-      REGION: stub
-      GLOBAL_S3_BUCKET: stub
-      ENABLE_IMAGE_TRANSFORMATION: "true"
-      IMGPROXY_URL: http://imgproxy:8080
-    volumes:
-      - storage-data:/var/lib/storage
-    depends_on:
-      db:
-        condition: service_healthy
-      rest:
-        condition: service_started
-    networks:
-      - rock-on-network
-
-  # Postgres Meta (for Studio)
-  meta:
-    image: supabase/postgres-meta:v0.84.2
-    container_name: rock-on-meta
-    restart: unless-stopped
-    environment:
-      PG_META_PORT: 8080
-      PG_META_DB_HOST: db
-      PG_META_DB_PORT: 5432
-      PG_META_DB_NAME: postgres
-      PG_META_DB_USER: supabase_admin
-      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - rock-on-network
-
-  # Supabase Studio (Dashboard)
-  studio:
-    image: supabase/studio:20241202-71e5240
-    container_name: rock-on-studio
-    restart: unless-stopped
-    ports:
-      - "54323:3000"
-    environment:
-      STUDIO_PG_META_URL: http://meta:8080
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      DEFAULT_ORGANIZATION_NAME: Rock-On Dev
-      DEFAULT_PROJECT_NAME: rock-on
-
-      SUPABASE_URL: http://kong:8000
-      SUPABASE_PUBLIC_URL: ${API_EXTERNAL_URL:-http://localhost:54321}
-      SUPABASE_ANON_KEY: ${ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
-
-      AUTH_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      LOGFLARE_API_KEY: ${LOGFLARE_API_KEY:-}
-      LOGFLARE_URL: http://analytics:4000
-      NEXT_PUBLIC_ENABLE_LOGS: "true"
-      NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
-    depends_on:
-      - meta
-      - kong
-    networks:
-      - rock-on-network
-
-  # Inbucket - Email Testing
-  inbucket:
-    image: inbucket/inbucket:3.0.3
-    container_name: rock-on-inbucket
-    restart: unless-stopped
-    ports:
-      - "54324:9000"   # Web UI
-      - "54325:2500"   # SMTP
-    networks:
-      - rock-on-network
-
-  # Image Proxy (for storage transformations)
-  imgproxy:
-    image: darthsim/imgproxy:v3.8.0
-    container_name: rock-on-imgproxy
-    restart: unless-stopped
-    environment:
-      IMGPROXY_BIND: ":8080"
-      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
-      IMGPROXY_USE_ETAG: "true"
-      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
-    volumes:
-      - storage-data:/var/lib/storage:ro
-    networks:
-      - rock-on-network
-
-  # =============================================================================
-  # APPLICATION SERVICES
-  # =============================================================================
-
-  # Development mode (default - no profile needed)
+  # ===========================================================================
+  # APPLICATION SERVICE
+  # ===========================================================================
   rock-on-dev:
     build:
       context: .
@@ -271,22 +99,22 @@ services:
       - "5173:5173"
     volumes:
       - .:/app
-      - /app/node_modules
+      - node_modules:/app/node_modules
     environment:
       - NODE_ENV=development
       - VITE_MOCK_AUTH=false
-      - VITE_SUPABASE_URL=http://localhost:54321
+      # For phone testing, set HOST_IP to your machine's IP
+      # host.docker.internal resolves to host on Docker Desktop (Win/Mac)
+      - VITE_SUPABASE_URL=http://${HOST_IP:-host.docker.internal}:54321
       - VITE_SUPABASE_ANON_KEY=${ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID:-mock}
-    depends_on:
-      kong:
-        condition: service_started
-      auth:
-        condition: service_started
-    networks:
-      - rock-on-network
+    extra_hosts:
+      # Allows container to reach host services on Windows/Mac Docker Desktop
+      - "host.docker.internal:host-gateway"
 
-  # Production mode
+  # ===========================================================================
+  # PRODUCTION BUILD (optional)
+  # ===========================================================================
   rock-on-prod:
     build:
       context: .
@@ -302,19 +130,10 @@ services:
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     profiles:
       - prod
-    networks:
-      - rock-on-network
 
 # =============================================================================
-# VOLUMES AND NETWORKS
+# VOLUMES
 # =============================================================================
-
 volumes:
-  db-data:
+  node_modules:
     driver: local
-  storage-data:
-    driver: local
-
-networks:
-  rock-on-network:
-    driver: bridge
