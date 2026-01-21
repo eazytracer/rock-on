@@ -83,6 +83,12 @@ describe('SyncEngine - Audit Log Based Sync', () => {
     } as unknown as RemoteRepository
 
     syncEngine = new SyncEngine(mockLocal, mockRemote)
+
+    // Spy on notifyListeners to prevent it from calling getStatus() which needs real db
+    vi.spyOn(
+      syncEngine as unknown as { notifyListeners: () => void },
+      'notifyListeners'
+    ).mockImplementation(() => {})
   })
 
   describe('applyAuditEntry', () => {
