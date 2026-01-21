@@ -165,6 +165,7 @@ CREATE TABLE public.songs (
   lyrics_url TEXT,
   chords_url TEXT,
   recording_url TEXT,
+  reference_links JSONB DEFAULT '[]'::jsonb,
   created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_date TIMESTAMPTZ,
   last_practiced TIMESTAMPTZ,

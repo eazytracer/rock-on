@@ -18,8 +18,7 @@ import {
   Trash2,
   Edit,
   ExternalLink,
-  Play,
-  Music2,
+  FileText,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database hooks and utilities
 import {
@@ -36,12 +35,17 @@ import {
 } from '../utils/formatters'
 import { db } from '../services/database'
 // DBSong type imported but not currently used directly
-import CircleOfFifths from '../components/songs/CircleOfFifths'
 // PHASE 2: Sync status visualization
 import { SyncIcon } from '../components/sync/SyncIcon'
 import { useItemStatus } from '../hooks/useItemSyncStatus'
-// Expandable notes for songs
-import { ExpandableSongNotes } from '../components/songs/ExpandableSongNotes'
+// Song notes modal
+import { SongNotesModal } from '../components/songs/SongNotesModal'
+// Link icons for quick access to external resources
+import { LinkIcons } from '../components/songs/LinkIcons'
+import type { ReferenceLink } from '../types'
+// Shared song edit modal with Spotify search and URL auto-detection
+import { EditSongModal } from '../components/songs/EditSongModal'
+import type { Song as ModelSong } from '../models/Song'
 // Confirmation dialog (replaces window.confirm)
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
@@ -51,6 +55,29 @@ interface SongLink {
   type: 'spotify' | 'youtube' | 'ultimate-guitar' | 'other'
   name: string
   url: string
+}
+
+// Convert SongLink array to ReferenceLink array for LinkIcons component
+const songLinksToReferenceLinks = (links?: SongLink[]): ReferenceLink[] => {
+  if (!links) return []
+  return links.map(link => ({
+    icon: link.type === 'ultimate-guitar' ? 'tabs' : link.type,
+    url: link.url,
+    description: link.name,
+  }))
+}
+
+// Convert ReferenceLink array to SongLink array for UI display
+const referenceLinksToSongLinks = (
+  links?: ReferenceLink[]
+): SongLink[] | undefined => {
+  if (!links || links.length === 0) return undefined
+  return links.map((link, index) => ({
+    id: `link-${index}`,
+    type: link.icon as SongLink['type'],
+    name: link.description || link.icon,
+    url: link.url,
+  }))
 }
 
 // DATABASE INTEGRATION: Extended Song interface for display
@@ -459,13 +486,9 @@ interface SongRowProps {
   onDelete: (song: Song) => void
   onDuplicate: (song: Song) => void
   onAddToSetlist: (song: Song) => void
+  onOpenNotes: (song: Song) => void
   openActionMenuId: string | null
   setOpenActionMenuId: (id: string | null) => void
-  // Expandable notes props
-  userId: string
-  bandId: string
-  isExpanded: boolean
-  onToggleExpand: () => void
 }
 
 const SongRow: React.FC<SongRowProps> = ({
@@ -474,12 +497,9 @@ const SongRow: React.FC<SongRowProps> = ({
   onDelete,
   onDuplicate,
   onAddToSetlist,
+  onOpenNotes,
   openActionMenuId,
   setOpenActionMenuId,
-  userId,
-  bandId,
-  isExpanded,
-  onToggleExpand,
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
@@ -508,6 +528,15 @@ const SongRow: React.FC<SongRowProps> = ({
           </div>
         </div>
 
+        {/* Link Icons */}
+        <div className="w-[100px] flex-shrink-0">
+          <LinkIcons
+            links={songLinksToReferenceLinks(song.referenceLinks)}
+            size="sm"
+            maxVisible={2}
+          />
+        </div>
+
         {/* Duration */}
         <div className="w-[90px] text-[#a0a0a0] text-sm">{song.duration}</div>
 
@@ -531,6 +560,16 @@ const SongRow: React.FC<SongRowProps> = ({
             <div className="text-[#707070] text-sm">No shows scheduled</div>
           )}
         </div>
+
+        {/* Notes Button */}
+        <button
+          onClick={() => onOpenNotes(song)}
+          className="p-1.5 text-[#707070] hover:text-[#f17827ff] transition-colors"
+          title="Song Notes"
+          data-testid="song-notes-button"
+        >
+          <FileText size={18} />
+        </button>
 
         {/* Actions Menu */}
         <div className="w-[40px] relative">
@@ -589,18 +628,6 @@ const SongRow: React.FC<SongRowProps> = ({
           )}
         </div>
       </div>
-
-      {/* Expandable Notes Section */}
-      <div className="px-4 pb-3">
-        <ExpandableSongNotes
-          songId={song.id}
-          bandNotes={song.notes}
-          userId={userId}
-          bandId={bandId}
-          isExpanded={isExpanded}
-          onToggle={onToggleExpand}
-        />
-      </div>
     </div>
   )
 }
@@ -612,12 +639,9 @@ const SongCard: React.FC<SongRowProps> = ({
   onDelete,
   onDuplicate,
   onAddToSetlist,
+  onOpenNotes,
   openActionMenuId,
   setOpenActionMenuId,
-  userId,
-  bandId,
-  isExpanded,
-  onToggleExpand,
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
@@ -641,6 +665,18 @@ const SongCard: React.FC<SongRowProps> = ({
           <div className="text-white font-semibold text-sm">{song.title}</div>
           <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
         </div>
+
+        {/* Notes Button */}
+        <button
+          onClick={() => onOpenNotes(song)}
+          className="p-1.5 text-[#707070] hover:text-[#f17827ff] transition-colors"
+          title="Song Notes"
+          data-testid="song-notes-button"
+        >
+          <FileText size={18} />
+        </button>
+
+        {/* Kebab Menu */}
         <button
           onClick={() =>
             setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
@@ -726,6 +762,18 @@ const SongCard: React.FC<SongRowProps> = ({
         </div>
       )}
 
+      {/* Link Icons - Quick access to external resources */}
+      {song.referenceLinks && song.referenceLinks.length > 0 && (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[#606060] text-xs">Links:</span>
+          <LinkIcons
+            links={songLinksToReferenceLinks(song.referenceLinks)}
+            size="sm"
+            maxVisible={8}
+          />
+        </div>
+      )}
+
       {/* Next Show */}
       {song.nextShow && (
         <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
@@ -742,18 +790,6 @@ const SongCard: React.FC<SongRowProps> = ({
           <span className="text-[#707070]">No shows scheduled</span>
         </div>
       )}
-
-      {/* Expandable Notes Section */}
-      <div className="mt-3">
-        <ExpandableSongNotes
-          songId={song.id}
-          bandNotes={song.notes}
-          userId={userId}
-          bandId={bandId}
-          isExpanded={isExpanded}
-          onToggle={onToggleExpand}
-        />
-      </div>
     </div>
   )
 }
@@ -786,7 +822,11 @@ export const SongsPage: React.FC = () => {
   const [isSetlistMenuOpen, setIsSetlistMenuOpen] = useState(false)
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
-  const [expandedSongId, setExpandedSongId] = useState<string | null>(null)
+  // Song notes modal state
+  const [songNotesModal, setSongNotesModal] = useState<{
+    songId: string
+    songTitle: string
+  } | null>(null)
   // State for tracking songs in setlists - reserved for future feature
 
   // DATABASE INTEGRATION: Transform database songs to display format and calculate "Next Show"
@@ -907,7 +947,7 @@ export const SongsPage: React.FC = () => {
               initials,
               avatarColor,
               notes: dbSong.notes,
-              referenceLinks: dbSong.referenceLinks as SongLink[] | undefined,
+              referenceLinks: referenceLinksToSongLinks(dbSong.referenceLinks),
               createdDate: new Date(dbSong.createdDate)
                 .toISOString()
                 .split('T')[0],
@@ -1044,16 +1084,9 @@ export const SongsPage: React.FC = () => {
         notes: song.notes,
         referenceLinks:
           song.referenceLinks?.map(link => ({
-            ...link,
-            type:
-              link.type === 'ultimate-guitar'
-                ? ('tabs' as const)
-                : (link.type as
-                    | 'spotify'
-                    | 'youtube'
-                    | 'tabs'
-                    | 'lyrics'
-                    | 'other'),
+            icon: link.type === 'ultimate-guitar' ? 'tabs' : link.type,
+            url: link.url,
+            description: link.name,
           })) || [],
         contextType: 'band',
         contextId: currentBandId,
@@ -1441,8 +1474,13 @@ export const SongsPage: React.FC = () => {
               <div className="hidden xl:block">
                 {/* Table Header */}
                 <div className="flex items-center gap-4 px-4 pb-3 mb-2 border-b border-[#2a2a2a]">
+                  {/* Sync Icon placeholder - matches SongRow sync icon */}
+                  <div className="flex-shrink-0 w-[20px]"></div>
                   <div className="flex-1 min-w-[220px] text-xs font-semibold text-[#707070] uppercase tracking-wider">
                     Song
+                  </div>
+                  <div className="w-[100px] flex-shrink-0 flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                    <ExternalLink size={16} />
                   </div>
                   <div className="w-[90px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
                     <Clock size={16} />
@@ -1459,6 +1497,9 @@ export const SongsPage: React.FC = () => {
                   <div className="w-[180px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
                     <Calendar size={16} />
                   </div>
+                  {/* Notes button placeholder */}
+                  <div className="w-[30px]"></div>
+                  {/* Kebab menu placeholder */}
                   <div className="w-[40px]"></div>
                 </div>
 
@@ -1472,16 +1513,11 @@ export const SongsPage: React.FC = () => {
                       onDelete={handleDelete}
                       onDuplicate={handleDuplicate}
                       onAddToSetlist={handleAddToSetlist}
+                      onOpenNotes={s =>
+                        setSongNotesModal({ songId: s.id, songTitle: s.title })
+                      }
                       openActionMenuId={openActionMenuId}
                       setOpenActionMenuId={setOpenActionMenuId}
-                      userId={currentUserId}
-                      bandId={currentBandId}
-                      isExpanded={expandedSongId === song.id}
-                      onToggleExpand={() =>
-                        setExpandedSongId(
-                          expandedSongId === song.id ? null : song.id
-                        )
-                      }
                     />
                   ))}
                 </div>
@@ -1499,16 +1535,11 @@ export const SongsPage: React.FC = () => {
                     onDelete={handleDelete}
                     onDuplicate={handleDuplicate}
                     onAddToSetlist={handleAddToSetlist}
+                    onOpenNotes={s =>
+                      setSongNotesModal({ songId: s.id, songTitle: s.title })
+                    }
                     openActionMenuId={openActionMenuId}
                     setOpenActionMenuId={setOpenActionMenuId}
-                    userId={currentUserId}
-                    bandId={currentBandId}
-                    isExpanded={expandedSongId === song.id}
-                    onToggleExpand={() =>
-                      setExpandedSongId(
-                        expandedSongId === song.id ? null : song.id
-                      )
-                    }
                   />
                 ))}
               </div>
@@ -1518,41 +1549,26 @@ export const SongsPage: React.FC = () => {
 
         {/* DATABASE INTEGRATION: Add Song Modal with database operations */}
         {isAddModalOpen && (
-          <AddEditSongModal
+          <EditSongModal
             mode="add"
             onClose={() => setIsAddModalOpen(false)}
-            onSave={async newSong => {
+            onSave={async (newSong: ModelSong) => {
               try {
-                // Convert display formats to database formats
-                const duration = durationToSeconds(newSong.duration)
-                const bpm = parseBpm(newSong.bpm)
-
+                // EditSongModal returns model format (duration in seconds, bpm as number)
                 await createSong({
                   title: newSong.title,
                   artist: newSong.artist,
                   album: newSong.album,
-                  duration,
+                  duration: newSong.duration,
                   key: newSong.key,
-                  bpm,
+                  bpm: newSong.bpm,
                   difficulty: (newSong.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
-                  guitarTuning: newSong.tuning,
+                  guitarTuning: newSong.guitarTuning,
                   structure: [],
                   chords: [],
                   tags: newSong.tags || [],
                   notes: newSong.notes,
-                  referenceLinks:
-                    newSong.referenceLinks?.map(link => ({
-                      ...link,
-                      type:
-                        link.type === 'ultimate-guitar'
-                          ? ('tabs' as const)
-                          : (link.type as
-                              | 'spotify'
-                              | 'youtube'
-                              | 'tabs'
-                              | 'lyrics'
-                              | 'other'),
-                    })) || [],
+                  referenceLinks: newSong.referenceLinks || [],
                   contextType: 'band',
                   contextId: currentBandId,
                   createdBy: currentUserId,
@@ -1570,54 +1586,62 @@ export const SongsPage: React.FC = () => {
                 showToast('Failed to create song. Please try again.', 'error')
               }
             }}
-            currentUserId={currentUserId}
           />
         )}
 
         {/* DATABASE INTEGRATION: Edit Song Modal with database operations */}
         {isEditModalOpen && selectedSong && (
-          <AddEditSongModal
+          <EditSongModal
             mode="edit"
-            song={selectedSong}
+            song={{
+              // Convert display Song to ModelSong format
+              id: selectedSong.id,
+              title: selectedSong.title,
+              artist: selectedSong.artist,
+              album: selectedSong.album,
+              duration: durationToSeconds(selectedSong.duration),
+              key: selectedSong.key,
+              bpm: parseBpm(selectedSong.bpm),
+              difficulty: (selectedSong.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
+              guitarTuning: selectedSong.tuning,
+              structure: [],
+              chords: [],
+              tags: selectedSong.tags || [],
+              notes: selectedSong.notes,
+              referenceLinks: songLinksToReferenceLinks(
+                selectedSong.referenceLinks
+              ),
+              createdDate: new Date(selectedSong.createdDate),
+              confidenceLevel: selectedSong.confidenceLevel || 1,
+              contextType: 'band',
+              contextId: currentBandId,
+              createdBy: selectedSong.createdBy,
+              visibility: 'band',
+            }}
             onClose={() => {
               setIsEditModalOpen(false)
               setSelectedSong(null)
             }}
-            onSave={async updatedSong => {
+            onSave={async (updatedSong: ModelSong) => {
               try {
-                // Convert display formats to database formats
-                const duration = durationToSeconds(updatedSong.duration)
-                const bpm = parseBpm(updatedSong.bpm)
-
+                // EditSongModal returns model format (duration in seconds, bpm as number)
                 await updateSong(updatedSong.id, {
                   title: updatedSong.title,
                   artist: updatedSong.artist,
                   album: updatedSong.album,
-                  duration,
+                  duration: updatedSong.duration,
                   key: updatedSong.key,
-                  bpm,
+                  bpm: updatedSong.bpm,
                   difficulty: (updatedSong.difficulty || 1) as
                     | 1
                     | 2
                     | 3
                     | 4
                     | 5,
-                  guitarTuning: updatedSong.tuning,
+                  guitarTuning: updatedSong.guitarTuning,
                   tags: updatedSong.tags || [],
                   notes: updatedSong.notes,
-                  referenceLinks:
-                    updatedSong.referenceLinks?.map(link => ({
-                      ...link,
-                      type:
-                        link.type === 'ultimate-guitar'
-                          ? ('tabs' as const)
-                          : (link.type as
-                              | 'spotify'
-                              | 'youtube'
-                              | 'tabs'
-                              | 'lyrics'
-                              | 'other'),
-                    })) || [],
+                  referenceLinks: updatedSong.referenceLinks || [],
                   confidenceLevel: updatedSong.confidenceLevel || 1,
                 })
 
@@ -1635,7 +1659,6 @@ export const SongsPage: React.FC = () => {
                 showToast('Failed to update song. Please try again.', 'error')
               }
             }}
-            currentUserId={currentUserId}
           />
         )}
 
@@ -1663,670 +1686,26 @@ export const SongsPage: React.FC = () => {
         )}
       </div>
 
+      {/* Song Notes Modal */}
+      {songNotesModal && (
+        <SongNotesModal
+          isOpen={true}
+          songId={songNotesModal.songId}
+          songTitle={songNotesModal.songTitle}
+          userId={currentUserId}
+          bandId={currentBandId}
+          onClose={() => setSongNotesModal(null)}
+        />
+      )}
+
       {/* Delete confirmation dialog */}
       <ConfirmDialog {...dialogProps} />
     </ContentLoadingSpinner>
   )
 }
 
-// DATABASE INTEGRATION: Add/Edit Song Modal Component with async save support
-interface AddEditSongModalProps {
-  mode: 'add' | 'edit'
-  song?: Song
-  onClose: () => void
-  onSave: (song: Song) => void | Promise<void>
-  currentUserId: string
-}
-
-const AddEditSongModal: React.FC<AddEditSongModalProps> = ({
-  mode,
-  song,
-  onClose,
-  onSave,
-  currentUserId,
-}) => {
-  const [formData, setFormData] = useState({
-    title: song?.title || '',
-    artist: song?.artist || '',
-    album: song?.album || '',
-    durationMin: song?.duration.split(':')[0] || '',
-    durationSec: song?.duration.split(':')[1] || '',
-    key: song?.key || '',
-    tuning: song?.tuning || 'Standard',
-    bpm: song?.bpm || '',
-    tags: song?.tags.join(', ') || '',
-    notes: song?.notes || '',
-  })
-
-  // Circle of Fifths visibility state
-  const [showCircleOfFifths, setShowCircleOfFifths] = useState(false)
-
-  // Link management state
-  const [links, setLinks] = useState<SongLink[]>(song?.referenceLinks || [])
-  const [linkType, setLinkType] = useState<
-    'spotify' | 'youtube' | 'ultimate-guitar' | 'other'
-  >('youtube')
-  const [linkName, setLinkName] = useState('')
-  const [linkUrl, setLinkUrl] = useState('')
-  const [editingLinkId, setEditingLinkId] = useState<string | null>(null)
-
-  // Preset link names based on type
-  const getLinkPresetName = (type: string) => {
-    switch (type) {
-      case 'spotify':
-        return 'Spotify Track'
-      case 'youtube':
-        return 'YouTube Video'
-      case 'ultimate-guitar':
-        return 'Ultimate-Guitar Tab'
-      case 'other':
-        return ''
-      default:
-        return ''
-    }
-  }
-
-  // Update link name when type changes
-  const handleLinkTypeChange = (newType: typeof linkType) => {
-    setLinkType(newType)
-    if (!editingLinkId) {
-      setLinkName(getLinkPresetName(newType))
-    }
-  }
-
-  // Add or update link
-  const handleAddLink = () => {
-    if (!linkUrl.trim()) {
-      alert('Please enter a URL')
-      return
-    }
-
-    const finalName = linkName.trim() || getLinkPresetName(linkType)
-
-    if (editingLinkId) {
-      // Update existing link
-      setLinks(
-        links.map(link =>
-          link.id === editingLinkId
-            ? { ...link, type: linkType, name: finalName, url: linkUrl.trim() }
-            : link
-        )
-      )
-      setEditingLinkId(null)
-    } else {
-      // Add new link
-      const newLink: SongLink = {
-        id: `${Date.now()}`,
-        type: linkType,
-        name: finalName,
-        url: linkUrl.trim(),
-      }
-      setLinks([...links, newLink])
-    }
-
-    // Reset form
-    setLinkType('youtube')
-    setLinkName('')
-    setLinkUrl('')
-  }
-
-  // Edit link
-  const handleEditLink = (link: SongLink) => {
-    setEditingLinkId(link.id)
-    setLinkType(link.type)
-    setLinkName(link.name)
-    setLinkUrl(link.url)
-  }
-
-  // Cancel edit
-  const handleCancelEdit = () => {
-    setEditingLinkId(null)
-    setLinkType('youtube')
-    setLinkName('')
-    setLinkUrl('')
-  }
-
-  // Delete link
-  const handleDeleteLink = (linkId: string) => {
-    setLinks(links.filter(link => link.id !== linkId))
-  }
-
-  // Get icon for link type
-  const getLinkIcon = (type: string) => {
-    switch (type) {
-      case 'spotify':
-        return <Music2 size={16} className="text-[#1DB954]" />
-      case 'youtube':
-        return <Play size={16} className="text-[#FF0000]" />
-      case 'ultimate-guitar':
-        return <Guitar size={16} className="text-[#FFC600]" />
-      default:
-        return <ExternalLink size={16} className="text-[#a0a0a0]" />
-    }
-  }
-
-  // DATABASE INTEGRATION: Async submit handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // Validate required fields
-    if (!formData.title || !formData.artist || !formData.key) {
-      alert('Please fill in all required fields (Title, Artist, Key)')
-      return
-    }
-
-    const duration = `${formData.durationMin.padStart(1, '0')}:${formData.durationSec.padStart(2, '0')}`
-    const tags = formData.tags
-      .split(',')
-      .map(t => t.trim())
-      .filter(Boolean)
-
-    // Generate initials from title
-    const initials = formData.title
-      .split(' ')
-      .slice(0, 2)
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-
-    // Random color for new songs
-    const colors = [
-      '#3b82f6',
-      '#8b5cf6',
-      '#ec4899',
-      '#f59e0b',
-      '#14b8a6',
-      '#ef4444',
-      '#10b981',
-      '#a855f7',
-    ]
-    const avatarColor =
-      song?.avatarColor || colors[Math.floor(Math.random() * colors.length)]
-
-    const savedSong: Song = {
-      id: song?.id || crypto.randomUUID(),
-      title: formData.title,
-      artist: formData.artist,
-      album: formData.album || undefined,
-      duration,
-      key: formData.key,
-      tuning: formData.tuning,
-      bpm: formData.bpm,
-      tempo:
-        parseInt(formData.bpm) > 140
-          ? 'fast'
-          : parseInt(formData.bpm) < 90
-            ? 'slow'
-            : 'moderate',
-      tags,
-      nextShow: song?.nextShow,
-      initials,
-      avatarColor,
-      notes: formData.notes || undefined,
-      referenceLinks: links.length > 0 ? links : undefined,
-      createdDate: song?.createdDate || new Date().toISOString().split('T')[0],
-      createdBy: song?.createdBy || currentUserId,
-      difficulty: song?.difficulty,
-      confidenceLevel: song?.confidenceLevel,
-    }
-
-    // DATABASE INTEGRATION: Call async onSave
-    await onSave(savedSong)
-  }
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-      data-testid="song-form-modal"
-    >
-      <div
-        className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar-thin"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-white font-medium">Songs</span>
-            <span className="text-[#707070]">&gt;</span>
-            <span className="text-[#a0a0a0]">
-              {mode === 'add' ? 'New Song' : 'Edit Song'}
-            </span>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-[#707070] hover:text-white transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-4">
-              {/* Title */}
-              <div>
-                <label
-                  htmlFor="song-title"
-                  className="block text-sm text-[#a0a0a0] mb-2"
-                >
-                  Title <span className="text-[#D7263D]">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  id="song-title"
-                  data-testid="song-title-input"
-                  value={formData.title}
-                  onChange={e =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  placeholder="Enter song title"
-                  className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  required
-                />
-              </div>
-
-              {/* Artist */}
-              <div>
-                <label
-                  htmlFor="song-artist"
-                  className="block text-sm text-[#a0a0a0] mb-2"
-                >
-                  Artist <span className="text-[#D7263D]">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="artist"
-                  id="song-artist"
-                  data-testid="song-artist-input"
-                  value={formData.artist}
-                  onChange={e =>
-                    setFormData({ ...formData, artist: e.target.value })
-                  }
-                  placeholder="Enter artist name"
-                  className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  required
-                />
-              </div>
-
-              {/* Album */}
-              <div>
-                <label
-                  htmlFor="song-album"
-                  className="block text-sm text-[#a0a0a0] mb-2"
-                >
-                  Album
-                </label>
-                <input
-                  type="text"
-                  name="album"
-                  id="song-album"
-                  data-testid="song-album-input"
-                  value={formData.album}
-                  onChange={e =>
-                    setFormData({ ...formData, album: e.target.value })
-                  }
-                  placeholder="Enter album name"
-                  className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                />
-              </div>
-
-              {/* Duration, BPM, Key Row */}
-              <div className="grid grid-cols-3 gap-3">
-                {/* Duration */}
-                <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">
-                    Duration
-                  </label>
-                  <div className="flex gap-1">
-                    <input
-                      type="text"
-                      name="durationMinutes"
-                      id="song-duration-minutes"
-                      data-testid="song-duration-minutes-input"
-                      value={formData.durationMin}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          durationMin: e.target.value.replace(/\D/g, ''),
-                        })
-                      }
-                      placeholder="0"
-                      maxLength={2}
-                      className="w-full h-11 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                    />
-                    <span className="flex items-center text-[#505050]">:</span>
-                    <input
-                      type="text"
-                      name="durationSeconds"
-                      id="song-duration-seconds"
-                      data-testid="song-duration-seconds-input"
-                      value={formData.durationSec}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          durationSec: e.target.value.replace(/\D/g, ''),
-                        })
-                      }
-                      placeholder="00"
-                      maxLength={2}
-                      className="w-full h-11 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                    />
-                  </div>
-                </div>
-
-                {/* BPM */}
-                <div>
-                  <label
-                    htmlFor="song-bpm"
-                    className="block text-sm text-[#a0a0a0] mb-2"
-                  >
-                    BPM
-                  </label>
-                  <input
-                    type="text"
-                    name="bpm"
-                    id="song-bpm"
-                    data-testid="song-bpm-input"
-                    value={formData.bpm}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        bpm: e.target.value.replace(/\D/g, ''),
-                      })
-                    }
-                    placeholder="120"
-                    className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  />
-                </div>
-
-                {/* Key */}
-                <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">
-                    Key <span className="text-[#D7263D]">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    id="song-key"
-                    data-testid="song-key-button"
-                    onClick={() => setShowCircleOfFifths(true)}
-                    className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm flex items-center justify-between hover:border-[#f17827ff] transition-colors group"
-                  >
-                    <span
-                      className={
-                        formData.key
-                          ? 'text-white font-medium'
-                          : 'text-[#505050]'
-                      }
-                    >
-                      {formData.key || 'Select key'}
-                    </span>
-                    <Music
-                      size={18}
-                      className="text-[#707070] group-hover:text-[#f17827ff] transition-colors"
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div>
-                <label
-                  htmlFor="song-tags"
-                  className="block text-sm text-[#a0a0a0] mb-2"
-                >
-                  Tags (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  name="tags"
-                  id="song-tags"
-                  data-testid="song-tags-input"
-                  value={formData.tags}
-                  onChange={e =>
-                    setFormData({ ...formData, tags: e.target.value })
-                  }
-                  placeholder="Rock, Cover, 90s"
-                  className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                />
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-4">
-              {/* Guitar Tuning */}
-              <div>
-                <label
-                  htmlFor="song-tuning"
-                  className="block text-sm text-[#a0a0a0] mb-2"
-                >
-                  Guitar Tuning
-                </label>
-                <select
-                  name="tuning"
-                  id="song-tuning"
-                  data-testid="song-tuning-select"
-                  value={formData.tuning}
-                  onChange={e =>
-                    setFormData({ ...formData, tuning: e.target.value })
-                  }
-                  className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                >
-                  <option value="Standard">Standard</option>
-                  <option value="Drop D">Drop D</option>
-                  <option value="Drop C#">Drop C#</option>
-                  <option value="Drop C">Drop C</option>
-                  <option value="Drop B">Drop B</option>
-                  <option value="Half-step down">Half-step down</option>
-                  <option value="Whole-step down">Whole-step down</option>
-                  <option value="Open G">Open G</option>
-                  <option value="Open D">Open D</option>
-                  <option value="DADGAD">DADGAD</option>
-                </select>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label
-                  htmlFor="song-notes"
-                  className="block text-sm text-[#a0a0a0] mb-2"
-                >
-                  Notes
-                </label>
-                <textarea
-                  name="notes"
-                  id="song-notes"
-                  data-testid="song-notes-textarea"
-                  value={formData.notes}
-                  onChange={e =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  placeholder="Add notes about the song..."
-                  rows={5}
-                  className="w-full px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 resize-none"
-                />
-              </div>
-
-              {/* Reference Links */}
-              <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">
-                  Reference Links
-                </label>
-
-                {/* Link Input Form */}
-                <div className="space-y-3 mb-4">
-                  {/* Link Type Dropdown */}
-                  <select
-                    value={linkType}
-                    onChange={e =>
-                      handleLinkTypeChange(e.target.value as typeof linkType)
-                    }
-                    className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  >
-                    <option value="youtube">YouTube</option>
-                    <option value="spotify">Spotify</option>
-                    <option value="ultimate-guitar">Ultimate-Guitar</option>
-                    <option value="other">Other</option>
-                  </select>
-
-                  {/* Link Name Input */}
-                  <input
-                    type="text"
-                    value={linkName}
-                    onChange={e => setLinkName(e.target.value)}
-                    placeholder={getLinkPresetName(linkType) || 'Link name'}
-                    className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  />
-
-                  {/* URL Input */}
-                  <input
-                    type="url"
-                    value={linkUrl}
-                    onChange={e => setLinkUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  />
-
-                  {/* Add/Update Button */}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleAddLink}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#f17827ff] text-white text-sm font-medium rounded-lg hover:bg-[#d66620] transition-colors"
-                    >
-                      <Plus size={16} />
-                      <span>{editingLinkId ? 'Update Link' : 'Add Link'}</span>
-                    </button>
-                    {editingLinkId && (
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        className="px-4 py-2 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Links List */}
-                {links.length > 0 && (
-                  <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar-thin">
-                    {links.map(link => (
-                      <div
-                        key={link.id}
-                        className="flex items-center gap-2 p-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg group hover:border-[#3a3a3a] transition-colors"
-                      >
-                        {/* Icon */}
-                        <div className="flex-shrink-0">
-                          {getLinkIcon(link.type)}
-                        </div>
-
-                        {/* Link Info */}
-                        <div className="flex-1 min-w-0">
-                          <a
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-white text-sm hover:text-[#f17827ff] transition-colors truncate block"
-                          >
-                            {link.name}
-                          </a>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleEditLink(link)}
-                            className="p-1.5 text-[#707070] hover:text-white hover:bg-[#2a2a2a] rounded transition-colors"
-                            title="Edit link"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteLink(link.id)}
-                            className="p-1.5 text-[#707070] hover:text-[#D7263D] hover:bg-[#2a2a2a] rounded transition-colors"
-                            title="Delete link"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {links.length === 0 && (
-                  <p className="text-xs text-[#505050] text-center py-4">
-                    No links added yet
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-[#2a2a2a]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              data-testid="song-submit-button"
-              className="px-6 py-2.5 bg-[#f17827ff] text-white text-sm font-medium rounded-lg hover:bg-[#d66620] transition-colors"
-            >
-              {mode === 'add' ? 'Create Song' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Circle of Fifths Modal */}
-      {showCircleOfFifths && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
-          onClick={() => setShowCircleOfFifths(false)}
-        >
-          <div
-            className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-4 sm:p-6 w-full max-w-[min(90vw,500px)] max-h-[90vh] overflow-y-auto custom-scrollbar-thin"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-semibold text-white">
-                Select Key
-              </h3>
-              <button
-                onClick={() => setShowCircleOfFifths(false)}
-                className="p-1 text-[#707070] hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Circle of Fifths */}
-            <CircleOfFifths
-              selectedKey={formData.key}
-              onKeySelect={key => {
-                setFormData({ ...formData, key })
-                setShowCircleOfFifths(false)
-              }}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
+// Old AddEditSongModal removed - now using shared EditSongModal from components/songs/EditSongModal.tsx
+// (The shared component includes Spotify search and URL auto-detection)
 
 // Delete Confirmation Dialog
 interface DeleteConfirmationDialogProps {

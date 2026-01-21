@@ -138,7 +138,7 @@ export class RemoteRepository implements IDataRepository {
 
   private mapSongToSupabase(song: Partial<Song>): Record<string, any> {
     // Note: Only include fields that exist in Supabase schema
-    // Fields like album, guitarTuning, lyrics, chords, tags, structure, referenceLinks
+    // Fields like album, lyrics, chords, tags, structure
     // are IndexedDB-only and should NOT be sent to Supabase
     return {
       id: song.id,
@@ -160,11 +160,12 @@ export class RemoteRepository implements IDataRepository {
       visibility: song.visibility,
       song_group_id: song.songGroupId,
       last_modified_by: song.lastModifiedBy ?? null,
+      reference_links: song.referenceLinks ?? [], // referenceLinks (IndexedDB) -> reference_links (Supabase JSONB)
     }
   }
 
   private mapSongFromSupabase(row: any): Song {
-    // Note: Supabase doesn't store album, guitarTuning, lyrics, chords, tags, structure, referenceLinks
+    // Note: Supabase doesn't store album, lyrics, chords, tags, structure
     // These fields are IndexedDB-only and will be empty when reading from Supabase
     return {
       id: row.id,
@@ -179,7 +180,13 @@ export class RemoteRepository implements IDataRepository {
       structure: [], // IndexedDB only - not in Supabase
       lyrics: '', // IndexedDB only - not in Supabase (Supabase has lyrics_url instead)
       chords: [], // IndexedDB only - not in Supabase (Supabase has chords_url instead)
-      referenceLinks: [], // IndexedDB only - not in Supabase
+      // reference_links (Supabase JSONB) -> referenceLinks (IndexedDB)
+      // Support both old 'type' and new 'icon' field names for backward compatibility
+      referenceLinks: (row.reference_links ?? []).map((link: any) => ({
+        icon: link.icon ?? link.type ?? 'other',
+        url: link.url,
+        description: link.description,
+      })),
       tags: [], // IndexedDB only - not in Supabase
       notes: row.notes ?? '',
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),

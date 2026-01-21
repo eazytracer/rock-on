@@ -13,6 +13,7 @@ import {
 } from '../components/common/SongListItem'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import { EditSongModal } from '../components/songs/EditSongModal'
+import { SongNotesModal } from '../components/songs/SongNotesModal'
 import { AddItemDropdown } from '../components/common/AddItemDropdown'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
@@ -52,6 +53,7 @@ const dbSongToUISong = (dbSong: DBSong): UISong => {
     tuning: dbSong.guitarTuning,
     initials: generateInitials(dbSong.title),
     avatarColor: generateAvatarColor(dbSong.title),
+    referenceLinks: dbSong.referenceLinks,
   }
 }
 
@@ -112,11 +114,14 @@ export const SetlistViewPage: React.FC = () => {
   const [dbSongs, setDbSongs] = useState<DBSong[]>([])
   const [dbSetlists, setDbSetlists] = useState<DBSetlist[]>([])
 
-  // Expandable notes state
-  const [expandedSongId, setExpandedSongId] = useState<string | null>(null)
-
   // Edit song modal state
   const [editingSong, setEditingSong] = useState<DBSong | null>(null)
+
+  // Song notes modal state
+  const [songNotesModal, setSongNotesModal] = useState<{
+    songId: string
+    songTitle: string
+  } | null>(null)
 
   const currentBandId = localStorage.getItem('currentBandId') || ''
   const currentUserId = localStorage.getItem('currentUserId') || ''
@@ -396,6 +401,43 @@ export const SetlistViewPage: React.FC = () => {
     showToast(`Added ${songs.length} songs`, 'success')
   }
 
+  // Save session notes for a specific item
+  const handleSaveItemNotes = useCallback(
+    async (itemId: string, notes: string) => {
+      // Update local state first
+      const newItems = items.map(item =>
+        item.id === itemId ? { ...item, notes } : item
+      )
+      setItems(newItems)
+
+      // Save to database if we have an existing setlist
+      if (setlistId && !isNewMode) {
+        try {
+          const repo = getSyncRepository()
+          const dbItems = newItems.map((item, index) => ({
+            id: item.id,
+            type: item.type,
+            position: index + 1,
+            songId: item.songId,
+            breakDuration: item.breakDuration,
+            breakNotes: item.breakNotes,
+            sectionTitle: item.sectionTitle,
+            notes: item.notes,
+          }))
+
+          await repo.updateSetlist(setlistId, {
+            items: dbItems,
+            lastModified: new Date(),
+          })
+        } catch (err) {
+          console.error('Error saving item notes:', err)
+          showToast('Failed to save notes', 'error')
+        }
+      }
+    },
+    [items, setlistId, isNewMode, showToast]
+  )
+
   // Remove item with confirmation
   const removeItem = async (itemId: string, itemTitle: string) => {
     const confirmed = await confirm({
@@ -538,7 +580,7 @@ export const SetlistViewPage: React.FC = () => {
         />
 
         {/* Content */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <div className="max-w-6xl mx-auto py-6 space-y-6">
           {/* New mode - Create button */}
           {isNewMode && (
             <div className="bg-[#121212] border border-[#f17827ff] rounded-lg p-4 flex items-center justify-between">
@@ -564,7 +606,9 @@ export const SetlistViewPage: React.FC = () => {
           <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Details</h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div
+              className={`grid gap-4 ${associatedShow ? 'grid-cols-3' : 'grid-cols-2'}`}
+            >
               {/* Associated Show (read-only, clickable link) */}
               {associatedShow && (
                 <div
@@ -616,29 +660,29 @@ export const SetlistViewPage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Notes - editable inline */}
-            <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
-              <div className="flex items-start gap-2">
-                <FileText size={16} className="text-[#f17827ff] mt-1" />
-                <div className="flex-1">
-                  <label className="block text-sm text-[#707070] mb-1">
-                    Notes
-                  </label>
-                  <InlineEditableField
-                    value={displayNotes}
-                    onSave={val => saveField('notes', String(val))}
-                    type="textarea"
-                    placeholder="Add notes about this setlist..."
-                    data-testid="setlist-notes"
-                  />
-                </div>
+          {/* Notes Section - Separate container */}
+          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+            <div className="flex items-start gap-2">
+              <FileText size={16} className="text-[#f17827ff] mt-1" />
+              <div className="flex-1">
+                <label className="block text-sm text-[#707070] mb-1">
+                  Notes
+                </label>
+                <InlineEditableField
+                  value={displayNotes}
+                  onSave={val => saveField('notes', String(val))}
+                  type="textarea"
+                  placeholder="Add notes about this setlist..."
+                  data-testid="setlist-notes"
+                />
               </div>
             </div>
           </div>
 
-          {/* Items Section - ALWAYS editable */}
-          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+          {/* Divider and Items Header */}
+          <div className="border-t border-[#2a2a2a] pt-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">
                 Setlist Items ({items.length})
@@ -651,6 +695,7 @@ export const SetlistViewPage: React.FC = () => {
               />
             </div>
 
+            {/* Items - Full width, no container */}
             {items.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-[#2a2a2a] rounded-lg">
                 <ListMusic size={48} className="text-[#2a2a2a] mb-3" />
@@ -677,41 +722,60 @@ export const SetlistViewPage: React.FC = () => {
                   strategy={verticalListSortingStrategy}
                 >
                   <div data-testid="setlist-items-list" className="space-y-2">
-                    {items.map(item => (
-                      <SortableSongListItem
-                        key={item.id}
-                        item={item}
-                        isEditing={true}
-                        onRemove={() =>
-                          removeItem(
-                            item.id,
-                            item.song?.title || item.sectionTitle || 'this item'
-                          )
-                        }
-                        onEdit={
-                          item.type === 'song' && item.song
-                            ? () => {
-                                const songToEdit = dbSongs.find(
-                                  s => s.id === item.song?.id
-                                )
-                                if (songToEdit) {
-                                  setEditingSong(songToEdit)
+                    {items.map((item, index) => {
+                      // Calculate song number (only count songs, not breaks/sections)
+                      const songNumber =
+                        item.type === 'song'
+                          ? items
+                              .slice(0, index + 1)
+                              .filter(i => i.type === 'song').length
+                          : undefined
+
+                      return (
+                        <SortableSongListItem
+                          key={item.id}
+                          item={item}
+                          isEditing={true}
+                          showLinks={true}
+                          songNumber={songNumber}
+                          onRemove={() =>
+                            removeItem(
+                              item.id,
+                              item.song?.title ||
+                                item.sectionTitle ||
+                                'this item'
+                            )
+                          }
+                          onEdit={
+                            item.type === 'song' && item.song
+                              ? () => {
+                                  const songToEdit = dbSongs.find(
+                                    s => s.id === item.song?.id
+                                  )
+                                  if (songToEdit) {
+                                    setEditingSong(songToEdit)
+                                  }
                                 }
-                              }
-                            : undefined
-                        }
-                        userId={currentUserId}
-                        bandId={currentBandId}
-                        isNotesExpanded={item.song?.id === expandedSongId}
-                        onToggleNotes={() =>
-                          setExpandedSongId(
-                            item.song?.id === expandedSongId
-                              ? null
-                              : item.song?.id || null
-                          )
-                        }
-                      />
-                    ))}
+                              : undefined
+                          }
+                          onSaveSessionNotes={
+                            item.type === 'song'
+                              ? async notes =>
+                                  handleSaveItemNotes(item.id, notes)
+                              : undefined
+                          }
+                          onOpenSongNotes={
+                            item.type === 'song' && item.song
+                              ? () =>
+                                  setSongNotesModal({
+                                    songId: item.song!.id,
+                                    songTitle: item.song!.title,
+                                  })
+                              : undefined
+                          }
+                        />
+                      )
+                    })}
                   </div>
                 </SortableContext>
               </DndContext>
@@ -813,6 +877,18 @@ export const SetlistViewPage: React.FC = () => {
                 showToast('Failed to update song', 'error')
               }
             }}
+          />
+        )}
+
+        {/* Song Notes Modal */}
+        {songNotesModal && (
+          <SongNotesModal
+            isOpen={true}
+            onClose={() => setSongNotesModal(null)}
+            songId={songNotesModal.songId}
+            songTitle={songNotesModal.songTitle}
+            userId={currentUserId}
+            bandId={currentBandId}
           />
         )}
       </div>

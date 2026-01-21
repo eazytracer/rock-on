@@ -4,7 +4,7 @@
  * This file is generated from the baseline schema migration.
  * To regenerate: npx ts-node scripts/generate-er-diagram.ts
  *
- * Generated: 2026-01-12T05:06:42.969Z
+ * Generated: 2026-01-21T04:46:52.779Z
  * Source: supabase/migrations/20251106000000_baseline_schema.sql
  */
 
@@ -117,6 +117,7 @@ erDiagram
         text lyrics_url
         text chords_url
         text recording_url
+        jsonb reference_links "DEFAULT"
         timestamptz created_date "NOT NULL, DEFAULT"
         timestamptz updated_date
         timestamptz last_practiced
@@ -301,6 +302,6 @@ erDiagram
 
 `
 
-export const generatedAt = '2026-01-12T05:06:42.969Z'
+export const generatedAt = '2026-01-21T04:46:52.779Z'
 export const sourceFile =
   'supabase/migrations/20251106000000_baseline_schema.sql'

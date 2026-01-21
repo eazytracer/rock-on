@@ -722,12 +722,12 @@ export async function seedMvpData() {
         chords: [],
         referenceLinks: [
           {
-            type: 'youtube',
+            icon: 'youtube',
             url: `https://youtube.com/watch/${song.key}`,
             description: 'Tutorial',
           },
           {
-            type: 'spotify',
+            icon: 'spotify',
             url: `https://spotify.com/track/${song.key}`,
             description: 'Original',
           },

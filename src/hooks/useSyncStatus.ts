@@ -10,6 +10,7 @@ export interface SyncStatus {
   isSupabaseConnected: boolean // NEW: actual Supabase connectivity
   isSyncing: boolean
   pendingCount: number
+  failedCount: number
   lastSyncTime: Date | null
   syncError: string | null
 }
@@ -54,6 +55,7 @@ export function useSyncStatus(): UseSyncStatusReturn {
     isSupabaseConnected: true, // Assume connected initially
     isSyncing: false,
     pendingCount: 0,
+    failedCount: 0,
     lastSyncTime: null,
     syncError: null,
   })
@@ -110,6 +112,7 @@ export function useSyncStatus(): UseSyncStatusReturn {
           const hasChanged =
             prevStatus.isSyncing !== engineStatus.isSyncing ||
             prevStatus.pendingCount !== engineStatus.pendingCount ||
+            prevStatus.failedCount !== engineStatus.failedCount ||
             prevStatus.lastSyncTime?.getTime() !== newLastSyncTime?.getTime()
 
           if (!hasChanged) {
@@ -126,6 +129,7 @@ export function useSyncStatus(): UseSyncStatusReturn {
             ...prevStatus,
             isSyncing: engineStatus.isSyncing,
             pendingCount: engineStatus.pendingCount,
+            failedCount: engineStatus.failedCount,
             lastSyncTime: newLastSyncTime,
             isSupabaseConnected,
           }

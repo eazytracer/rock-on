@@ -8,6 +8,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { MarkdownRenderer } from '../components/notes/MarkdownRenderer'
+import { LinkIcons } from '../components/songs/LinkIcons'
 import { db } from '../services/database'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song } from '../models/Song'
@@ -175,6 +176,16 @@ const SongDisplay: React.FC<SongDisplayProps> = ({ song }) => {
           </div>
         )}
       </div>
+
+      {/* Reference Links */}
+      {song.referenceLinks && song.referenceLinks.length > 0 && (
+        <div
+          className="flex justify-center mb-4"
+          data-testid="session-reference-links"
+        >
+          <LinkIcons links={song.referenceLinks} size="md" />
+        </div>
+      )}
 
       {/* Band Notes - Takes remaining space */}
       {song.notes && (
@@ -427,7 +438,7 @@ export const PracticeSessionPage: React.FC = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-[#0f0f0f] flex items-center justify-center">
+      <div className="fixed inset-0 md:left-60 bg-[#0f0f0f] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f17827ff] mx-auto mb-4"></div>
           <p className="text-[#a0a0a0] text-sm">Loading practice session...</p>
@@ -439,7 +450,7 @@ export const PracticeSessionPage: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <div className="fixed inset-0 bg-[#0f0f0f] flex items-center justify-center">
+      <div className="fixed inset-0 md:left-60 bg-[#0f0f0f] flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 text-lg mb-4">{error}</p>
           <button
@@ -456,7 +467,7 @@ export const PracticeSessionPage: React.FC = () => {
   if (!currentSong) return null
 
   return (
-    <div className="fixed inset-0 bg-[#0f0f0f] flex flex-col">
+    <div className="fixed inset-0 md:left-60 bg-[#0f0f0f] flex flex-col">
       {/* Header - Now shows song title and artist */}
       <header className="bg-[#0a0a0a] border-b border-[#2a2a2a] px-4 py-3">
         <div className="flex items-center justify-between">

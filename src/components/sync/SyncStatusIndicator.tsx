@@ -14,6 +14,7 @@ export function SyncStatusIndicator() {
     isSyncing,
     lastSyncTime,
     pendingCount,
+    failedCount,
     isOnline,
     isSupabaseConnected,
     syncError,
@@ -22,6 +23,7 @@ export function SyncStatusIndicator() {
   // Map hook fields to component expectations
   const lastSyncedAt = lastSyncTime
   const pendingChanges = pendingCount
+  const failedChanges = failedCount
   const error = syncError ? new Error(syncError) : null
 
   // Determine connection indicator color:
@@ -145,6 +147,18 @@ export function SyncStatusIndicator() {
           </div>
         )}
 
+        {/* Failed Items - show with warning */}
+        {!isSyncing && !error && isOnline && failedChanges > 0 && (
+          <div className="flex items-center gap-1.5 text-red-600">
+            <span
+              data-testid="failed-badge"
+              className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800"
+            >
+              {failedChanges} failed
+            </span>
+          </div>
+        )}
+
         {/* Synced State with Pending Changes */}
         {!isSyncing && !error && isOnline && pendingChanges > 0 && (
           <div className="flex items-center gap-1.5 text-blue-600">
@@ -152,7 +166,7 @@ export function SyncStatusIndicator() {
               data-testid="pending-badge"
               className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800"
             >
-              {pendingChanges} changes pending
+              {pendingChanges} pending
             </span>
           </div>
         )}
