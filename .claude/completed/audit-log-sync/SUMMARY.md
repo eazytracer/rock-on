@@ -42,8 +42,11 @@ Fixed critical sync bug where song updates made on desktop PC were not syncing t
 
 The new sync is controlled by `SYNC_USE_AUDIT_LOG` feature flag:
 
-- Default: `false` (uses legacy per-table sync)
-- Enable: Set `VITE_FEATURE_SYNC_USE_AUDIT_LOG=true` or `localStorage.setItem('feature_SYNC_USE_AUDIT_LOG', 'true')`
+- **Default: `true` (enabled)** - The bugfix is active by default
+- Disable (rollback): `localStorage.setItem('SYNC_USE_AUDIT_LOG', 'false')`
+- Environment override: `VITE_SYNC_USE_AUDIT_LOG=false`
+
+The feature flag exists as a safety mechanism for rollback capability without code changes.
 
 ## Breaking Changes
 
