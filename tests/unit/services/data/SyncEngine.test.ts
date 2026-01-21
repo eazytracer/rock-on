@@ -583,13 +583,16 @@ describe('SyncEngine - Incremental Sync (pullIncrementalChanges)', () => {
 
     vi.spyOn(remoteRepo, 'getInviteCodes').mockResolvedValue([])
 
-    // Mock incremental sync methods
+    // Mock incremental sync methods (legacy)
     vi.spyOn(remoteRepo, 'getSongsSince').mockResolvedValue({ songs: [] })
     vi.spyOn(remoteRepo, 'getSetlistsSince').mockResolvedValue({ setlists: [] })
     vi.spyOn(remoteRepo, 'getPracticeSessionsSince').mockResolvedValue({
       practiceSessions: [],
     })
     vi.spyOn(remoteRepo, 'getShowsSince').mockResolvedValue({ shows: [] })
+
+    // Mock audit log sync (new)
+    vi.spyOn(remoteRepo, 'getAuditLogSince').mockResolvedValue([])
 
     syncEngine = new SyncEngine(localRepo, remoteRepo)
   })
@@ -636,8 +639,8 @@ describe('SyncEngine - Incremental Sync (pullIncrementalChanges)', () => {
     // Should NOT have called performInitialSync
     expect(performInitialSyncSpy).not.toHaveBeenCalled()
 
-    // Should have called the incremental fetch methods
-    expect(remoteRepo.getSongsSince).toHaveBeenCalled()
+    // Should have called the audit log sync method (feature flag enabled by default)
+    expect(remoteRepo.getAuditLogSince).toHaveBeenCalled()
   })
 
   it('should set lastIncrementalSync after successful incremental sync', async () => {
