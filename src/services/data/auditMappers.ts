@@ -124,6 +124,8 @@ export function mapAuditToPractice(jsonb: any): PracticeSession {
     bandId: jsonb.band_id,
     setlistId: jsonb.setlist_id || undefined,
     notes: jsonb.notes || '',
+    wrapupNotes: jsonb.wrapup_notes || '',
+    // sessionRating: jsonb.session_rating ?? undefined, // TODO: Enable when sessionRating feature is implemented
     attendees: jsonb.attendees || [],
     createdDate: parseDate(jsonb.created_date),
     version: jsonb.version || 0,

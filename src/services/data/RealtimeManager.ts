@@ -44,21 +44,25 @@ export type RealtimeEvents = {
     bandId: string
     action: 'INSERT' | 'UPDATE' | 'DELETE'
     recordId: string
+    userId: string // User who made the change
   }
   'setlists:changed': {
     bandId: string
     action: 'INSERT' | 'UPDATE' | 'DELETE'
     recordId: string
+    userId: string
   }
   'shows:changed': {
     bandId: string
     action: 'INSERT' | 'UPDATE' | 'DELETE'
     recordId: string
+    userId: string
   }
   'practices:changed': {
     bandId: string
     action: 'INSERT' | 'UPDATE' | 'DELETE'
     recordId: string
+    userId: string
   }
   toast: { message: string; type: 'info' | 'success' | 'error' }
 }
@@ -827,6 +831,7 @@ export class RealtimeManager extends EventEmitter {
         bandId: audit.band_id,
         action: audit.action,
         recordId: audit.record_id,
+        userId: audit.user_id, // Include userId so subscribers can skip own changes
       })
     } catch (error) {
       console.error('[RealtimeManager] Error processing audit change:', error)
@@ -870,9 +875,22 @@ export class RealtimeManager extends EventEmitter {
       }
 
       case 'practice_sessions': {
+        console.log(`[RealtimeManager] practice_sessions new_values:`, {
+          id: new_values.id,
+          songs: new_values.songs,
+          wrapup_notes: new_values.wrapup_notes,
+        })
         const practice = mapAuditToPractice(new_values)
+        console.log(`[RealtimeManager] Mapped practice:`, {
+          id: practice.id,
+          songs: practice.songs,
+          wrapupNotes: practice.wrapupNotes,
+        })
         await db.practiceSessions.put(practice)
-        console.log(`✅ Synced practice from audit log`)
+        console.log(
+          `✅ Synced practice from audit log, songs count:`,
+          practice.songs?.length || 0
+        )
         break
       }
 

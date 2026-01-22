@@ -40,8 +40,9 @@ export interface UpdateSessionRequest {
   location?: string
   objectives?: string[]
   notes?: string
-  songs?: string[]
+  songs?: SessionSong[]
   status?: SessionStatus
+  wrapupNotes?: string
 }
 
 export interface EndSessionRequest {
@@ -180,19 +181,15 @@ export class PracticeSessionService {
     if (updateData.notes !== undefined) {
       updates.notes = updateData.notes
     }
+    if (updateData.wrapupNotes !== undefined) {
+      updates.wrapupNotes = updateData.wrapupNotes
+    }
     if (updateData.status) {
       updates.status = updateData.status
     }
     if (updateData.songs) {
-      updates.songs = updateData.songs.map(songId => ({
-        songId,
-        timeSpent: 0,
-        status: 'not-started' as const,
-        sectionsWorked: [],
-        improvements: [],
-        needsWork: [],
-        memberRatings: [],
-      }))
+      // Preserve full song objects including notes
+      updates.songs = updateData.songs
     }
 
     await repository.updatePracticeSession(sessionId, updates)

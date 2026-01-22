@@ -224,8 +224,9 @@ export function useUpdatePractice() {
         location: updates.location,
         objectives: updates.objectives,
         notes: updates.notes,
+        wrapupNotes: updates.wrapupNotes,
         status: updates.status,
-        songs: updates.songs?.map(s => (typeof s === 'string' ? s : s.songId)),
+        songs: updates.songs,
       })
 
       return true

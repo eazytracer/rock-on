@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-01-22
+
+### Fixed
+
+- Practice session notes (wrapupNotes) not saving or syncing to other devices
+- Song reorder in practices not syncing to other users despite toast notifications
+- Song session notes being stripped when updating practice
+- Partial updates wiping unrelated fields due to `?? []` converting undefined to empty arrays
+- Scroll position lost during real-time sync updates on practice view page
+- Race condition in `useRealtimeSync` where inline array dependencies caused effect re-runs
+
+### Changed
+
+- `useRealtimeSync` now uses stable event key via `useMemo` and executes pending sync on cleanup
+- `RemoteRepository` mappers only include fields that are actually present in update objects
+- `PracticeViewPage` only shows loading spinner on initial load, not on realtime-triggered refetches
+
 ## [0.2.1] - 2026-01-21
 
 ### Added
