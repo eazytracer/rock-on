@@ -10,6 +10,8 @@ import {
 import { MarkdownRenderer } from '../components/notes/MarkdownRenderer'
 import { LinkIcons } from '../components/songs/LinkIcons'
 import { db } from '../services/database'
+import { useAuth } from '../contexts/AuthContext'
+import { useRealtimeSync } from '../hooks/useRealtimeSync'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song } from '../models/Song'
 
@@ -315,6 +317,7 @@ const SessionNavigation: React.FC<SessionNavigationProps> = ({
 export const PracticeSessionPage: React.FC = () => {
   const navigate = useNavigate()
   const { practiceId } = useParams<{ practiceId: string }>()
+  const { currentBandId } = useAuth()
 
   // State
   const [, setPractice] = useState<PracticeSession | null>(null)
@@ -331,53 +334,63 @@ export const PracticeSessionPage: React.FC = () => {
   const canGoNext = currentIndex < songs.length - 1
 
   // Load practice and songs
-  useEffect(() => {
-    const loadData = async () => {
-      if (!practiceId) {
-        setError('No practice ID provided')
+  const loadData = useCallback(async () => {
+    if (!practiceId) {
+      setError('No practice ID provided')
+      setLoading(false)
+      return
+    }
+
+    try {
+      // Load practice session
+      const practiceSession = await db.practiceSessions.get(practiceId)
+      if (!practiceSession) {
+        setError('Practice not found')
         setLoading(false)
         return
       }
 
-      try {
-        // Load practice session
-        const practiceSession = await db.practiceSessions.get(practiceId)
-        if (!practiceSession) {
-          setError('Practice not found')
-          setLoading(false)
-          return
-        }
+      setPractice(practiceSession)
 
-        setPractice(practiceSession)
-
-        // Load songs in order
-        const loadedSongs: Song[] = []
-        if (practiceSession.songs && practiceSession.songs.length > 0) {
-          for (const sessionSong of practiceSession.songs) {
-            const song = await db.songs.get(sessionSong.songId)
-            if (song) {
-              loadedSongs.push(song)
-            }
+      // Load songs in order
+      const loadedSongs: Song[] = []
+      if (practiceSession.songs && practiceSession.songs.length > 0) {
+        for (const sessionSong of practiceSession.songs) {
+          const song = await db.songs.get(sessionSong.songId)
+          if (song) {
+            loadedSongs.push(song)
           }
         }
-
-        if (loadedSongs.length === 0) {
-          setError('No songs in this practice')
-          setLoading(false)
-          return
-        }
-
-        setSongs(loadedSongs)
-        setLoading(false)
-      } catch (err) {
-        console.error('Error loading practice:', err)
-        setError('Failed to load practice')
-        setLoading(false)
       }
-    }
 
-    loadData()
+      if (loadedSongs.length === 0) {
+        setError('No songs in this practice')
+        setLoading(false)
+        return
+      }
+
+      setSongs(loadedSongs)
+      setLoading(false)
+    } catch (err) {
+      console.error('Error loading practice:', err)
+      setError('Failed to load practice')
+      setLoading(false)
+    }
   }, [practiceId])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // Subscribe to real-time sync events
+  useRealtimeSync({
+    events: ['songs:changed', 'practices:changed'],
+    bandId: currentBandId || '',
+    onSync: () => {
+      // Reload practice session and songs when changes are detected
+      loadData()
+    },
+  })
 
   // Timer effect
   useEffect(() => {

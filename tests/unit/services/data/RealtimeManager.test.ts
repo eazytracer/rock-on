@@ -761,11 +761,12 @@ describe('RealtimeManager', () => {
       await handler(auditPayload)
       await new Promise(resolve => setImmediate(resolve))
 
-      // Should emit event
+      // Should emit event (includes userId for skipOwnChanges feature)
       expect(eventSpy).toHaveBeenCalledWith({
         bandId: 'band-1',
         action: 'INSERT',
         recordId: 'song-1',
+        userId: 'user-2',
       })
     })
 
@@ -1178,10 +1179,12 @@ describe('RealtimeManager', () => {
 
       // Should emit 'practices:changed' (plural, matches event type definition)
       // NOT 'practice_sessions:changed' (which would break listeners)
+      // Includes userId for skipOwnChanges feature
       expect(receivedEvent).toEqual({
         bandId: 'band-1',
         action: 'INSERT',
         recordId: 'practice-1',
+        userId: 'user-2',
       })
     })
   })

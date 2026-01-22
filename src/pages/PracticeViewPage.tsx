@@ -17,7 +17,9 @@ import { SongNotesModal } from '../components/songs/SongNotesModal'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
+import { useRealtimeSync } from '../hooks/useRealtimeSync'
 import { db } from '../services/database'
+import { getSyncRepository } from '../services/data/SyncRepository'
 import {
   formatShowDate,
   formatTime12Hour,
@@ -141,6 +143,19 @@ export const PracticeViewPage: React.FC = () => {
   const currentBandId = localStorage.getItem('currentBandId') || ''
   const currentUserId = localStorage.getItem('currentUserId') || ''
 
+  // Refetch trigger for real-time sync
+  const [refetchTrigger, setRefetchTrigger] = useState(0)
+
+  // Subscribe to real-time sync events
+  useRealtimeSync({
+    events: ['songs:changed', 'practices:changed'],
+    bandId: currentBandId,
+    onSync: () => {
+      // Trigger refetch of practice data
+      setRefetchTrigger(prev => prev + 1)
+    },
+  })
+
   // Drag & drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -186,8 +201,13 @@ export const PracticeViewPage: React.FC = () => {
         return
       }
 
+      // Only show loading spinner on initial load, not on realtime-triggered refetches
+      // This prevents scroll position loss when other users make changes
+      const isInitialLoad = refetchTrigger === 0
       try {
-        setLoading(true)
+        if (isInitialLoad) {
+          setLoading(true)
+        }
 
         // Load the practice session
         const practiceSession = await db.practiceSessions.get(practiceId)
@@ -220,12 +240,14 @@ export const PracticeViewPage: React.FC = () => {
         console.error('Error loading practice:', err)
         navigate('/practices')
       } finally {
-        setLoading(false)
+        if (isInitialLoad) {
+          setLoading(false)
+        }
       }
     }
 
     loadPractice()
-  }, [practiceId, navigate, currentBandId, isNewMode])
+  }, [practiceId, navigate, currentBandId, isNewMode, refetchTrigger])
 
   // Save a single field
   const saveField = useCallback(
@@ -731,7 +753,10 @@ export const PracticeViewPage: React.FC = () => {
             onClose={() => setEditingSong(null)}
             onSave={async updatedSong => {
               try {
-                await db.songs.update(updatedSong.id!, updatedSong)
+                await getSyncRepository().updateSong(
+                  updatedSong.id!,
+                  updatedSong
+                )
                 // Update the song in our local state
                 setDbSongs(prev =>
                   prev.map(s => (s.id === updatedSong.id ? updatedSong : s))

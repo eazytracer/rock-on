@@ -13,6 +13,7 @@ import {
 } from '../components/common/SongListItem'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
+import { useRealtimeSync } from '../hooks/useRealtimeSync'
 import { useToast } from '../contexts/ToastContext'
 import { db } from '../services/database'
 import { getSyncRepository } from '../services/data/SyncRepository'
@@ -215,83 +216,90 @@ export const ShowViewPage: React.FC = () => {
   const [contacts, setContacts] = useState<ShowContact[]>([])
 
   // Load show data
-  useEffect(() => {
-    const loadShow = async () => {
-      // Load available setlists for picker
-      const allSetlists = await db.setlists
-        .where('bandId')
-        .equals(currentBandId)
-        .toArray()
-      setAvailableSetlists(allSetlists)
+  const loadShow = useCallback(async () => {
+    // Load available setlists for picker
+    const allSetlists = await db.setlists
+      .where('bandId')
+      .equals(currentBandId)
+      .toArray()
+    setAvailableSetlists(allSetlists)
 
-      // For new mode, show is already initialized
-      if (isNewMode) {
+    // For new mode, show is already initialized
+    if (isNewMode) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const showData = await db.shows.get(showId)
+
+      if (!showData) {
+        navigate('/shows')
         return
       }
 
-      try {
-        setLoading(true)
-        const showData = await db.shows.get(showId)
+      setShow(showData)
+      setContacts(showData.contacts || [])
 
-        if (!showData) {
-          navigate('/shows')
-          return
-        }
+      // Load setlist if linked
+      if (showData.setlistId) {
+        const setlistData = await db.setlists.get(showData.setlistId)
+        if (setlistData) {
+          setSetlist(setlistData)
 
-        setShow(showData)
-        setContacts(showData.contacts || [])
-
-        // Load setlist if linked
-        if (showData.setlistId) {
-          const setlistData = await db.setlists.get(showData.setlistId)
-          if (setlistData) {
-            setSetlist(setlistData)
-
-            // Load songs from setlist
-            const items: UISetlistItem[] = []
-            for (const item of setlistData.items || []) {
-              if (item.type === 'song' && item.songId) {
-                const song = await db.songs.get(item.songId)
-                if (song) {
-                  items.push({
-                    id: item.id || crypto.randomUUID(),
-                    type: 'song',
-                    position: item.position,
-                    song: dbSongToUISong(song),
-                    songId: song.id!,
-                    notes: item.notes,
-                  })
-                }
-              } else if (item.type === 'break') {
+          // Load songs from setlist
+          const items: UISetlistItem[] = []
+          for (const item of setlistData.items || []) {
+            if (item.type === 'song' && item.songId) {
+              const song = await db.songs.get(item.songId)
+              if (song) {
                 items.push({
                   id: item.id || crypto.randomUUID(),
-                  type: 'break',
+                  type: 'song',
                   position: item.position,
-                  breakDuration: item.breakDuration,
-                  breakNotes: item.breakNotes,
-                })
-              } else if (item.type === 'section') {
-                items.push({
-                  id: item.id || crypto.randomUUID(),
-                  type: 'section',
-                  position: item.position,
-                  sectionTitle: item.sectionTitle,
+                  song: dbSongToUISong(song),
+                  songId: song.id!,
+                  notes: item.notes,
                 })
               }
+            } else if (item.type === 'break') {
+              items.push({
+                id: item.id || crypto.randomUUID(),
+                type: 'break',
+                position: item.position,
+                breakDuration: item.breakDuration,
+                breakNotes: item.breakNotes,
+              })
+            } else if (item.type === 'section') {
+              items.push({
+                id: item.id || crypto.randomUUID(),
+                type: 'section',
+                position: item.position,
+                sectionTitle: item.sectionTitle,
+              })
             }
-            setSetlistItems(items)
           }
+          setSetlistItems(items)
         }
-      } catch (error) {
-        console.error('Error loading show:', error)
-        navigate('/shows')
-      } finally {
-        setLoading(false)
       }
+    } catch (error) {
+      console.error('Error loading show:', error)
+      navigate('/shows')
+    } finally {
+      setLoading(false)
     }
-
-    loadShow()
   }, [showId, navigate, currentBandId, isNewMode])
+
+  useEffect(() => {
+    loadShow()
+  }, [loadShow])
+
+  // Subscribe to real-time sync events
+  useRealtimeSync({
+    events: ['shows:changed', 'setlists:changed', 'songs:changed'],
+    bandId: currentBandId,
+    onSync: loadShow,
+  })
 
   // Save a single field
   const saveField = useCallback(

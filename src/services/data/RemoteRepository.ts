@@ -141,28 +141,37 @@ export class RemoteRepository implements IDataRepository {
     // Note: Only include fields that exist in Supabase schema
     // Fields like album, lyrics, chords, tags, structure
     // are IndexedDB-only and should NOT be sent to Supabase
-    return {
-      id: song.id,
-      title: song.title,
-      artist: song.artist,
-      // album: IndexedDB only - do NOT send to Supabase
-      duration: song.duration,
-      key: song.key,
-      tempo: song.bpm, // bpm (IndexedDB) -> tempo (Supabase)
-      difficulty: song.difficulty,
-      guitar_tuning: song.guitarTuning, // guitarTuning (IndexedDB) -> guitar_tuning (Supabase)
-      notes: song.notes,
-      created_date: song.createdDate,
-      last_practiced: song.lastPracticed,
-      confidence_level: song.confidenceLevel,
-      context_type: song.contextType,
-      context_id: song.contextId,
-      created_by: song.createdBy,
-      visibility: song.visibility,
-      song_group_id: song.songGroupId,
-      last_modified_by: song.lastModifiedBy ?? null,
-      reference_links: song.referenceLinks ?? [], // referenceLinks (IndexedDB) -> reference_links (Supabase JSONB)
-    }
+    // Only include fields that are actually present in the update
+    // to avoid wiping out existing data with undefined values
+    const result: Record<string, any> = {}
+
+    if (song.id !== undefined) result.id = song.id
+    if (song.title !== undefined) result.title = song.title
+    if (song.artist !== undefined) result.artist = song.artist
+    // album: IndexedDB only - do NOT send to Supabase
+    if (song.duration !== undefined) result.duration = song.duration
+    if (song.key !== undefined) result.key = song.key
+    if (song.bpm !== undefined) result.tempo = song.bpm // bpm (IndexedDB) -> tempo (Supabase)
+    if (song.difficulty !== undefined) result.difficulty = song.difficulty
+    if (song.guitarTuning !== undefined)
+      result.guitar_tuning = song.guitarTuning
+    if (song.notes !== undefined) result.notes = song.notes
+    if (song.createdDate !== undefined) result.created_date = song.createdDate
+    if (song.lastPracticed !== undefined)
+      result.last_practiced = song.lastPracticed
+    if (song.confidenceLevel !== undefined)
+      result.confidence_level = song.confidenceLevel
+    if (song.contextType !== undefined) result.context_type = song.contextType
+    if (song.contextId !== undefined) result.context_id = song.contextId
+    if (song.createdBy !== undefined) result.created_by = song.createdBy
+    if (song.visibility !== undefined) result.visibility = song.visibility
+    if (song.songGroupId !== undefined) result.song_group_id = song.songGroupId
+    if (song.lastModifiedBy !== undefined)
+      result.last_modified_by = song.lastModifiedBy
+    if (song.referenceLinks !== undefined)
+      result.reference_links = song.referenceLinks
+
+    return result
   }
 
   private mapSongFromSupabase(row: any): Song {
@@ -584,25 +593,31 @@ export class RemoteRepository implements IDataRepository {
   private mapPracticeSessionToSupabase(
     session: Partial<PracticeSession>
   ): Record<string, any> {
-    return {
-      id: session.id,
-      band_id: session.bandId,
-      setlist_id: session.setlistId ?? null,
-      scheduled_date: session.scheduledDate,
-      duration: session.duration,
-      location: session.location,
-      type: session.type,
-      notes: session.notes,
-      wrapup_notes: session.wrapupNotes,
-      objectives: session.objectives ?? [],
-      completed_objectives: session.completedObjectives ?? [],
-      songs: session.songs ?? [],
-      attendees: session.attendees ?? [],
-      last_modified_by: session.lastModifiedBy ?? null,
-      // Note: status exists in IndexedDB only, not in Supabase
-      // Note: Supabase has created_date but NOT updated_date
-      // Note: Show-specific fields (name, venue, etc.) are now in the Show model
-    }
+    // Only include fields that are actually present in the update
+    // Using undefined causes Supabase to ignore the field (keep existing value)
+    // Using ?? [] would wipe out existing array data!
+    const result: Record<string, any> = {}
+
+    if (session.id !== undefined) result.id = session.id
+    if (session.bandId !== undefined) result.band_id = session.bandId
+    if (session.setlistId !== undefined) result.setlist_id = session.setlistId
+    if (session.scheduledDate !== undefined)
+      result.scheduled_date = session.scheduledDate
+    if (session.duration !== undefined) result.duration = session.duration
+    if (session.location !== undefined) result.location = session.location
+    if (session.type !== undefined) result.type = session.type
+    if (session.notes !== undefined) result.notes = session.notes
+    if (session.wrapupNotes !== undefined)
+      result.wrapup_notes = session.wrapupNotes
+    if (session.objectives !== undefined) result.objectives = session.objectives
+    if (session.completedObjectives !== undefined)
+      result.completed_objectives = session.completedObjectives
+    if (session.songs !== undefined) result.songs = session.songs
+    if (session.attendees !== undefined) result.attendees = session.attendees
+    if (session.lastModifiedBy !== undefined)
+      result.last_modified_by = session.lastModifiedBy
+
+    return result
   }
 
   private mapPracticeSessionFromSupabase(row: any): PracticeSession {

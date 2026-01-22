@@ -18,6 +18,7 @@ import { AddItemDropdown } from '../components/common/AddItemDropdown'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
+import { useRealtimeSync } from '../hooks/useRealtimeSync'
 import { db } from '../services/database'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import { secondsToDuration } from '../utils/formatters'
@@ -126,6 +127,9 @@ export const SetlistViewPage: React.FC = () => {
   const currentBandId = localStorage.getItem('currentBandId') || ''
   const currentUserId = localStorage.getItem('currentUserId') || ''
 
+  // Refetch trigger for real-time sync
+  const [refetchTrigger, setRefetchTrigger] = useState(0)
+
   // Drag & drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -135,6 +139,16 @@ export const SetlistViewPage: React.FC = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  // Subscribe to real-time sync events
+  useRealtimeSync({
+    events: ['setlists:changed', 'songs:changed', 'shows:changed'],
+    bandId: currentBandId,
+    onSync: () => {
+      // Trigger data refetch
+      setRefetchTrigger(prev => prev + 1)
+    },
+  })
 
   // Load setlist data
   useEffect(() => {
@@ -230,7 +244,7 @@ export const SetlistViewPage: React.FC = () => {
     }
 
     loadSetlist()
-  }, [setlistId, navigate, currentBandId, isNewMode])
+  }, [setlistId, navigate, currentBandId, isNewMode, refetchTrigger])
 
   // Save a single field (for inline editing of existing setlists)
   const saveField = useCallback(

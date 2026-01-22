@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
@@ -41,6 +41,7 @@ import { secondsToDuration } from '../utils/formatters'
 import type { Song as DBSong } from '../models/Song'
 import type { Setlist as DBSetlist } from '../models/Setlist'
 import { useCreatePractice, useUpdatePractice } from '../hooks/usePractices'
+import { useRealtimeSync } from '../hooks/useRealtimeSync'
 
 // UI-specific types for display
 interface UISong {
@@ -258,73 +259,84 @@ export const PracticeBuilderPage: React.FC = () => {
     })
   )
 
-  // Load data on mount
-  useEffect(() => {
-    const loadData = async () => {
-      if (!currentBandId) {
-        setError('No band selected')
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Load songs for the band
-        const loadedDbSongs = await db.songs
-          .where('contextType')
-          .equals('band')
-          .and(s => s.contextId === currentBandId)
-          .toArray()
-
-        // Load setlists for the band
-        const loadedDbSetlists = await db.setlists
-          .where('bandId')
-          .equals(currentBandId)
-          .toArray()
-
-        setDbSongs(loadedDbSongs)
-        setDbSetlists(loadedDbSetlists)
-
-        // If editing, load existing practice
-        if (practiceId) {
-          const practice = await db.practiceSessions.get(practiceId)
-          if (practice) {
-            setDate(formatDateForInput(practice.scheduledDate))
-            setTime(formatTime12Hour(practice.scheduledDate))
-            setDuration(practice.duration)
-            setLocation(practice.location || '')
-            setNotes(practice.notes || '')
-
-            // Load songs for this practice
-            if (practice.songs && practice.songs.length > 0) {
-              const practiceSongs: UIPracticeSong[] = []
-              for (const sessionSong of practice.songs) {
-                const song = await db.songs.get(sessionSong.songId)
-                if (song) {
-                  practiceSongs.push({
-                    id: crypto.randomUUID(),
-                    songId: song.id!,
-                    song: dbSongToUISong(song),
-                    position: practiceSongs.length + 1,
-                  })
-                }
-              }
-              setSelectedSongs(practiceSongs)
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error loading practice data:', err)
-        setError('Failed to load practice data')
-      } finally {
-        setLoading(false)
-      }
+  // Load data function (memoized to use in both useEffect and realtime sync)
+  const loadData = useCallback(async () => {
+    if (!currentBandId) {
+      setError('No band selected')
+      setLoading(false)
+      return
     }
 
-    loadData()
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Load songs for the band
+      const loadedDbSongs = await db.songs
+        .where('contextType')
+        .equals('band')
+        .and(s => s.contextId === currentBandId)
+        .toArray()
+
+      // Load setlists for the band
+      const loadedDbSetlists = await db.setlists
+        .where('bandId')
+        .equals(currentBandId)
+        .toArray()
+
+      setDbSongs(loadedDbSongs)
+      setDbSetlists(loadedDbSetlists)
+
+      // If editing, load existing practice
+      if (practiceId) {
+        const practice = await db.practiceSessions.get(practiceId)
+        if (practice) {
+          setDate(formatDateForInput(practice.scheduledDate))
+          setTime(formatTime12Hour(practice.scheduledDate))
+          setDuration(practice.duration)
+          setLocation(practice.location || '')
+          setNotes(practice.notes || '')
+
+          // Load songs for this practice
+          if (practice.songs && practice.songs.length > 0) {
+            const practiceSongs: UIPracticeSong[] = []
+            for (const sessionSong of practice.songs) {
+              const song = await db.songs.get(sessionSong.songId)
+              if (song) {
+                practiceSongs.push({
+                  id: crypto.randomUUID(),
+                  songId: song.id!,
+                  song: dbSongToUISong(song),
+                  position: practiceSongs.length + 1,
+                })
+              }
+            }
+            setSelectedSongs(practiceSongs)
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error loading practice data:', err)
+      setError('Failed to load practice data')
+    } finally {
+      setLoading(false)
+    }
   }, [currentBandId, practiceId])
+
+  // Subscribe to real-time sync events
+  useRealtimeSync({
+    events: ['songs:changed', 'setlists:changed', 'practices:changed'],
+    bandId: currentBandId,
+    onSync: () => {
+      // Reload data when songs, setlists, or practices change
+      loadData()
+    },
+  })
+
+  // Load data on mount
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
