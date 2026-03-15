@@ -1,7 +1,7 @@
 # Bug Report: Mobile Sidebar Cannot Scroll
 
 **Created:** 2025-12-05T20:58
-**Status:** Open
+**Status:** Open (confirmed 2026-03-15)
 **Priority:** Medium
 **Category:** UI / Mobile UX
 
@@ -38,28 +38,38 @@ When opening the hamburger menu sidebar on mobile (or small viewport), the sideb
 
 ---
 
-## Technical Investigation Needed
+## Technical Investigation (2026-03-15)
 
-### Files to Check
+### Root Cause Confirmed
 
-1. `src/components/layout/ModernLayout.tsx` - Main layout with sidebar
-2. `src/components/common/Sidebar.tsx` or similar - Sidebar component
-3. CSS/Tailwind classes on sidebar container
-
-### Likely Fix
-
-Add scrolling to sidebar container:
+`src/components/layout/Sidebar.tsx` line 79:
 
 ```tsx
-// Sidebar container needs:
-<div className="overflow-y-auto max-h-screen">{/* sidebar content */}</div>
+<aside className="fixed left-0 top-0 h-screen w-60 bg-[#141414] border-r border-[#1f1f1f] flex flex-col p-6 z-50">
 ```
 
-Or with Tailwind:
+The `<aside>` uses `h-screen flex flex-col` but has no `overflow-y-auto`. The `MobileDrawer.tsx` renders this `<Sidebar>` component directly inside a `h-screen` div — content that exceeds viewport height is clipped.
+
+### Fix Required
+
+In `src/components/layout/Sidebar.tsx`, add `overflow-y-auto custom-scrollbar` to the aside element and ensure the nav section grows/scrolls while the bottom actions (settings/sign out) remain accessible:
 
 ```tsx
-<aside className="fixed inset-y-0 left-0 w-64 overflow-y-auto">
+// Option A: Make entire sidebar scroll
+<aside className="fixed left-0 top-0 h-screen w-60 bg-[#141414] border-r border-[#1f1f1f] flex flex-col p-6 z-50 overflow-y-auto custom-scrollbar">
+
+// Option B: Scroll middle section, pin top/bottom
+<aside className="fixed left-0 top-0 h-screen w-60 bg-[#141414] border-r border-[#1f1f1f] flex flex-col p-6 z-50">
+  {/* Brand header - fixed */}
+  <div>...</div>
+  {/* Nav links - scrollable */}
+  <nav className="flex-1 overflow-y-auto custom-scrollbar">...</nav>
+  {/* Settings/Sign Out - fixed at bottom */}
+  <div>...</div>
+</aside>
 ```
+
+Option B is preferred — it keeps Settings and Sign Out always visible at the bottom.
 
 ---
 

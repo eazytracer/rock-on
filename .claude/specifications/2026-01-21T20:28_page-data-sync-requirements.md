@@ -1,9 +1,10 @@
 ---
 timestamp: 2026-01-21T20:28
+updated: 2026-03-15T16:00
 prompt: 'Create specification documenting all pages, their data requirements, and sync integration status'
 type: specification
 status: active
-related-issue: practices-audit-sync
+related-issue: practices-audit-sync (resolved in v0.2.2)
 ---
 
 # Page Data & Sync Requirements Specification
@@ -111,22 +112,18 @@ The app uses an audit-log based sync system:
 **Path:** `/setlists/:setlistId`
 **File:** `src/pages/SetlistViewPage.tsx`
 
-| Aspect             | Status | Details                           |
-| ------------------ | ------ | --------------------------------- |
-| **Primary Data**   | ❌     | Direct `db.setlists.get()`        |
-| **Secondary Data** | ❌     | Songs, shows via direct `db.*`    |
-| **Sync Events**    | ❌     | None                              |
-| **Overall Status** | ❌     | **BROKEN** - no real-time updates |
+| Aspect             | Status | Details                                                            |
+| ------------------ | ------ | ------------------------------------------------------------------ |
+| **Primary Data**   | ✅     | Direct `db.*` with RealtimeManager subscription                    |
+| **Secondary Data** | ✅     | Songs, shows via direct `db.*` with subscription                   |
+| **Sync Events**    | ✅     | Subscribes to `setlists:changed`, `songs:changed`, `shows:changed` |
+| **Overall Status** | ✅     | Fixed — real-time updates working                                  |
 
 **Data Loaded:**
 
-- Setlist (direct `db.setlists.get`) ❌
-- Songs (for items - direct `db.songs`) ❌
-- Shows (for association - direct `db.shows`) ❌
-
-**Required Hooks:** `useSetlists` (or single `useSetlist(id)`), `useSongs`, `useShows`
-
-**🔧 Fix Needed:** Add RealtimeManager event subscription
+- Setlist (direct `db.setlists.get` + subscription) ✅
+- Songs (for items - direct `db.songs` + subscription) ✅
+- Shows (for association - direct `db.shows` + subscription) ✅
 
 ---
 
@@ -158,24 +155,18 @@ The app uses an audit-log based sync system:
 **Path:** `/practices/:practiceId`
 **File:** `src/pages/PracticeViewPage.tsx`
 
-| Aspect             | Status | Details                            |
-| ------------------ | ------ | ---------------------------------- |
-| **Primary Data**   | ❌     | Direct `db.practiceSessions.get()` |
-| **Secondary Data** | ❌     | Songs, setlists via direct `db.*`  |
-| **Sync Events**    | ❌     | None                               |
-| **Overall Status** | ❌     | **BROKEN** - no real-time updates  |
+| Aspect             | Status | Details                                             |
+| ------------------ | ------ | --------------------------------------------------- |
+| **Primary Data**   | ✅     | Direct `db.*` with RealtimeManager subscription     |
+| **Secondary Data** | ✅     | Songs, setlists via direct `db.*` with subscription |
+| **Sync Events**    | ✅     | Subscribes to `songs:changed`, `practices:changed`  |
+| **Overall Status** | ✅     | Fixed in v0.2.2 — real-time updates working         |
 
 **Data Loaded:**
 
-- Practice session (direct `db.practiceSessions.get`) ❌
-- Songs (direct `db.songs.where()`) ❌
-- Setlists (direct `db.setlists.where()`) ❌
-
-**Required Hooks:** `usePractices` (or single `usePractice(id)`), `useSongs`, `useSetlists`
-
-**🔧 Fix Needed:** Add RealtimeManager event subscription for `songs:changed` and `practices:changed`
-
-**Additional Issue:** Song edits use `db.songs.update()` directly instead of `SyncRepository`
+- Practice session (direct `db.practiceSessions.get` + subscription) ✅
+- Songs (direct `db.songs.where()` + subscription) ✅
+- Setlists (direct `db.setlists.where()` + subscription) ✅
 
 ---
 
@@ -184,21 +175,17 @@ The app uses an audit-log based sync system:
 **Path:** `/practices/:practiceId/session`
 **File:** `src/pages/PracticeSessionPage.tsx`
 
-| Aspect             | Status | Details                            |
-| ------------------ | ------ | ---------------------------------- |
-| **Primary Data**   | ❌     | Direct `db.practiceSessions.get()` |
-| **Secondary Data** | ❌     | Songs via direct `db.songs.get()`  |
-| **Sync Events**    | ❌     | None                               |
-| **Overall Status** | ❌     | **BROKEN** - no real-time updates  |
+| Aspect             | Status | Details                                            |
+| ------------------ | ------ | -------------------------------------------------- |
+| **Primary Data**   | ✅     | Direct `db.*` with RealtimeManager subscription    |
+| **Secondary Data** | ✅     | Songs with subscription                            |
+| **Sync Events**    | ✅     | Subscribes to `songs:changed`, `practices:changed` |
+| **Overall Status** | ✅     | Fixed in v0.2.2 — real-time updates working        |
 
 **Data Loaded:**
 
-- Practice session (direct `db.practiceSessions.get`) ❌
-- Songs (direct `db.songs.get` per song) ❌
-
-**Required Hooks:** `usePractices`, `useSongs`
-
-**🔧 Fix Needed:** Add RealtimeManager event subscription
+- Practice session (direct `db.practiceSessions.get` + subscription) ✅
+- Songs (direct `db.songs.get` per song + subscription) ✅
 
 ---
 
@@ -207,22 +194,18 @@ The app uses an audit-log based sync system:
 **Path:** `/practices/new` or `/practices/:practiceId/edit`
 **File:** `src/pages/PracticeBuilderPage.tsx`
 
-| Aspect             | Status | Details                            |
-| ------------------ | ------ | ---------------------------------- |
-| **Primary Data**   | ❌     | Direct `db.practiceSessions.get()` |
-| **Secondary Data** | ❌     | Songs, setlists via direct `db.*`  |
-| **Sync Events**    | ❌     | None                               |
-| **Overall Status** | ❌     | **BROKEN** - no real-time updates  |
+| Aspect             | Status | Details                                                                |
+| ------------------ | ------ | ---------------------------------------------------------------------- |
+| **Primary Data**   | ✅     | Direct `db.*` with RealtimeManager subscription                        |
+| **Secondary Data** | ✅     | Songs, setlists with subscription                                      |
+| **Sync Events**    | ✅     | Subscribes to `songs:changed`, `setlists:changed`, `practices:changed` |
+| **Overall Status** | ✅     | Fixed — real-time updates working                                      |
 
 **Data Loaded:**
 
-- Practice session (direct `db.practiceSessions.get`) ❌
-- Songs (direct `db.songs.where()`) ❌
-- Setlists (direct `db.setlists.where()`) ❌
-
-**Required Hooks:** `usePractices`, `useSongs`, `useSetlists`
-
-**🔧 Fix Needed:** Add RealtimeManager event subscription
+- Practice session (direct `db.practiceSessions.get` + subscription) ✅
+- Songs (direct `db.songs.where()` + subscription) ✅
+- Setlists (direct `db.setlists.where()` + subscription) ✅
 
 ---
 
@@ -257,22 +240,18 @@ The app uses an audit-log based sync system:
 **Path:** `/shows/:showId`
 **File:** `src/pages/ShowViewPage.tsx`
 
-| Aspect             | Status | Details                           |
-| ------------------ | ------ | --------------------------------- |
-| **Primary Data**   | ❌     | Direct `db.shows.get()`           |
-| **Secondary Data** | ❌     | Setlists, songs via direct `db.*` |
-| **Sync Events**    | ❌     | None                              |
-| **Overall Status** | ❌     | **BROKEN** - no real-time updates |
+| Aspect             | Status | Details                                                            |
+| ------------------ | ------ | ------------------------------------------------------------------ |
+| **Primary Data**   | ✅     | Direct `db.*` with RealtimeManager subscription                    |
+| **Secondary Data** | ✅     | Setlists, songs with subscription                                  |
+| **Sync Events**    | ✅     | Subscribes to `shows:changed`, `setlists:changed`, `songs:changed` |
+| **Overall Status** | ✅     | Fixed — real-time updates working                                  |
 
 **Data Loaded:**
 
-- Show (direct `db.shows.get`) ❌
-- Setlists (direct `db.setlists`) ❌
-- Songs (direct `db.songs.get`) ❌
-
-**Required Hooks:** `useShows` (or single `useShow(id)`), `useSetlists`, `useSongs`
-
-**🔧 Fix Needed:** Add RealtimeManager event subscription
+- Show (direct `db.shows.get` + subscription) ✅
+- Setlists (direct `db.setlists` + subscription) ✅
+- Songs (direct `db.songs.get` + subscription) ✅
 
 ---
 
@@ -341,43 +320,33 @@ The app uses an audit-log based sync system:
 
 ---
 
-## Summary: Pages Requiring Fix
+## Summary: Sync Status (as of 2026-03-15)
 
-### Critical (User-Facing, Multi-User Collaboration)
+All previously broken pages have been fixed. Every page now subscribes to relevant `RealtimeManager` events.
 
-| Page                    | File                                | Issue                                       |
-| ----------------------- | ----------------------------------- | ------------------------------------------- |
-| **PracticeViewPage**    | `src/pages/PracticeViewPage.tsx`    | No sync events - stale data during practice |
-| **PracticeSessionPage** | `src/pages/PracticeSessionPage.tsx` | No sync events - stale data during session  |
-| **SetlistViewPage**     | `src/pages/SetlistViewPage.tsx`     | No sync events - stale setlist data         |
-| **ShowViewPage**        | `src/pages/ShowViewPage.tsx`        | No sync events - stale show data            |
+### All Pages — Current Status
 
-### Important (Builder/Editor Pages)
+| Page                    | File                                | Status | Events Subscribed                                            |
+| ----------------------- | ----------------------------------- | ------ | ------------------------------------------------------------ |
+| **SongsPage**           | `src/pages/SongsPage.tsx`           | ✅     | `songs:changed`                                              |
+| **SetlistsPage**        | `src/pages/SetlistsPage.tsx`        | ⚠️     | via `useSetlists` (some secondary data still direct db)      |
+| **SetlistViewPage**     | `src/pages/SetlistViewPage.tsx`     | ✅     | `setlists:changed`, `songs:changed`, `shows:changed`         |
+| **ShowsPage**           | `src/pages/ShowsPage.tsx`           | ⚠️     | via `useShows` (secondary setlist/song data still direct db) |
+| **ShowViewPage**        | `src/pages/ShowViewPage.tsx`        | ✅     | `shows:changed`, `setlists:changed`, `songs:changed`         |
+| **PracticesPage**       | `src/pages/PracticesPage.tsx`       | ✅     | via `useUpcomingPractices`, `useSongs`                       |
+| **PracticeViewPage**    | `src/pages/PracticeViewPage.tsx`    | ✅     | `songs:changed`, `practices:changed`                         |
+| **PracticeSessionPage** | `src/pages/PracticeSessionPage.tsx` | ✅     | `songs:changed`, `practices:changed`                         |
+| **PracticeBuilderPage** | `src/pages/PracticeBuilderPage.tsx` | ✅     | `songs:changed`, `setlists:changed`, `practices:changed`     |
+| **BandMembersPage**     | `src/pages/BandMembersPage.tsx`     | ✅     | via `useBandMembers`, `useBand`                              |
+| **SettingsPage**        | `src/pages/SettingsPage.tsx`        | ✅     | N/A (no band data)                                           |
 
-| Page                    | File                                | Issue                          |
-| ----------------------- | ----------------------------------- | ------------------------------ |
-| **PracticeBuilderPage** | `src/pages/PracticeBuilderPage.tsx` | No sync events during editing  |
-| **SetlistsPage**        | `src/pages/SetlistsPage.tsx`        | Mixed hook + direct db pattern |
+### Remaining Minor Issues
 
-### Minor (Secondary Data)
-
-| Page          | File                      | Issue                                       |
-| ------------- | ------------------------- | ------------------------------------------- |
-| **SongsPage** | `src/pages/SongsPage.tsx` | Secondary data (next show) not reactive     |
-| **ShowsPage** | `src/pages/ShowsPage.tsx` | Secondary data (setlist songs) not reactive |
-
----
-
-## Fix Priority Order
-
-1. **mapAuditToPractice** - Add missing `wrapupNotes`, `sessionRating` fields (data loss bug)
-2. **PracticeViewPage** - Critical for practice sessions
-3. **PracticeSessionPage** - Critical for live practice sessions
-4. **SetlistViewPage** - Important for performance prep
-5. **ShowViewPage** - Important for show prep
-6. **PracticeBuilderPage** - Important for editing
-7. **SetlistsPage** - Refactor for consistency
-8. **ShowsPage/SongsPage** - Minor improvements
+| Page             | Issue                                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **SetlistsPage** | Secondary data (songs, shows, practices) still loaded via direct `db.*` — not reactive to remote changes. Low priority. |
+| **ShowsPage**    | Secondary data (setlist songs) still loaded via direct `db.*`. Low priority.                                            |
+| **SongsPage**    | "Next performance" data loaded via direct `db.*`. Low priority.                                                         |
 
 ---
 

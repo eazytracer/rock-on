@@ -221,14 +221,3 @@ For complex migrations or RLS policy fixes:
 3. **One logical change per migration** - Don't bundle unrelated changes
 4. **Include verification queries** - Add SELECT queries at the end to verify the migration worked
 5. **Document breaking changes** - Add comments explaining why changes were made
-
-## Current Issue: Apply Latest Migration
-
-Right now, you need to apply the `audit_log` realtime migration:
-
-```bash
-cd /workspaces/rock-on
-supabase db reset
-```
-
-This will fix the "mismatch between server and client bindings" error.
