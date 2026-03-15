@@ -1553,9 +1553,13 @@ CREATE POLICY "jam_sessions_delete"
   USING (host_user_id = (select auth.uid()));
 
 -- jam_participants: active participants can read all participants in their session
+-- Also allows users to read their own row (needed for RETURNING * after INSERT)
 CREATE POLICY "jam_participants_select"
   ON public.jam_participants FOR SELECT TO authenticated
-  USING (is_jam_participant(jam_session_id, (select auth.uid())));
+  USING (
+    user_id = (select auth.uid()) OR
+    is_jam_participant(jam_session_id, (select auth.uid()))
+  );
 
 -- Users can join a session themselves
 CREATE POLICY "jam_participants_insert_self"

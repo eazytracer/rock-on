@@ -46,6 +46,7 @@ import { CSS } from '@dnd-kit/utilities'
 // DATABASE INTEGRATION: Import database hooks and utilities
 import { db } from '../services/database'
 import { getSyncRepository } from '../services/data/SyncRepository'
+import { SongService } from '../services/SongService'
 import { secondsToDuration } from '../utils/formatters'
 import { formatShowDate } from '../utils/dateHelpers'
 import type {
@@ -773,10 +774,13 @@ interface SetlistEditorPageProps {
   availableSongs: UISong[] // DATABASE INTEGRATION: Updated to use UI type
   availableShows: UIShow[] // DATABASE INTEGRATION: Updated to use UI type
   availablePractices: UIPractice[] // DATABASE INTEGRATION: Updated to use UI type
-  dbSongs: DBSong[] // Raw database songs for BrowseSongsDrawer
+  dbSongs: DBSong[] // Primary songs for BrowseSongsDrawer (band or personal based on setlist context)
+  bandDbSongs?: DBSong[] // Band songs (always available for cross-catalog picker)
   dbSetlists: DBSetlist[] // Raw database setlists for BrowseSongsDrawer
+  isPersonalSetlist?: boolean // Whether editing a personal setlist
   onBack: () => void
   onSave: (setlist: UISetlist) => void
+  onCopySongToPersonal?: (song: DBSong) => Promise<void> // Copy band song to personal catalog
 }
 
 const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
@@ -784,9 +788,12 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
   availableShows,
   availablePractices,
   dbSongs,
+  bandDbSongs,
   dbSetlists,
+  isPersonalSetlist = false,
   onBack,
   onSave,
+  onCopySongToPersonal,
 }) => {
   const { showToast } = useToast()
   const [editedSetlist, setEditedSetlist] = useState<UISetlist>(setlist)
@@ -832,11 +839,11 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
     const newPosition = editedSetlist.items.length + 1
     const uiSong = dbSongToUISong(song)
     const newItem: UISetlistItem = {
-      id: crypto.randomUUID(), // DATABASE INTEGRATION: Use crypto.randomUUID()
+      id: crypto.randomUUID(),
       type: 'song',
       position: newPosition,
       song: uiSong,
-      songId: song.id!, // DATABASE INTEGRATION: Store songId for database
+      songId: song.id!,
     }
 
     setEditedSetlist(prev => ({
@@ -844,6 +851,31 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
       items: [...prev.items, newItem],
       songCount: prev.items.filter(i => i.type === 'song').length + 1,
     }))
+
+    // If this is a personal setlist and the song is from a band catalog,
+    // offer to copy it to the user's personal catalog
+    if (
+      isPersonalSetlist &&
+      song.contextType === 'band' &&
+      onCopySongToPersonal
+    ) {
+      // Check if the user already has this song in their personal catalog
+      const alreadyPersonal = dbSongs.some(
+        s =>
+          s.contextType === 'personal' &&
+          s.title?.toLowerCase() === song.title?.toLowerCase() &&
+          s.artist?.toLowerCase() === song.artist?.toLowerCase()
+      )
+      if (!alreadyPersonal) {
+        // Show a non-blocking prompt (toast with action) — user can dismiss
+        showToast(
+          `"${song.title}" is a band song. Copy it to My Songs?`,
+          'info'
+        )
+        // Fire and forget — the copy happens async and doesn't block the add
+        void onCopySongToPersonal(song)
+      }
+    }
   }
 
   const addAllSongsFromSetlist = (songs: DBSong[]) => {
@@ -1369,7 +1401,11 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
         <BrowseSongsDrawer
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
-          songs={dbSongs}
+          songs={
+            isPersonalSetlist && bandDbSongs && bandDbSongs.length > 0
+              ? [...dbSongs, ...bandDbSongs] // personal setlist: show personal + band songs
+              : dbSongs
+          }
           selectedSongIds={songsInSetlist}
           onAddSong={addSongToSetlist}
           setlists={dbSetlists}
@@ -1410,7 +1446,8 @@ export const SetlistsPage: React.FC = () => {
   const [availableSongs, setAvailableSongs] = useState<UISong[]>([])
   const [availableShows, setAvailableShows] = useState<UIShow[]>([])
   const [availablePractices, setAvailablePractices] = useState<UIPractice[]>([])
-  const [dbSongs, setDbSongs] = useState<DBSong[]>([]) // Raw database songs
+  const [dbSongs, setDbSongs] = useState<DBSong[]>([]) // Raw band songs
+  const [personalDbSongs, setPersonalDbSongs] = useState<DBSong[]>([]) // Raw personal songs
   const [dbSetlists, setDbSetlists] = useState<DBSetlist[]>([]) // Raw database setlists
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -1447,8 +1484,18 @@ export const SetlistsPage: React.FC = () => {
           .and(s => s.contextId === currentBandId)
           .toArray()
 
+        // Load personal songs for the current user (for personal setlist picker)
+        const loadedPersonalSongs = currentUserId
+          ? await db.songs
+              .where('contextType')
+              .equals('personal')
+              .and(s => s.contextId === currentUserId)
+              .toArray()
+          : []
+
         // Store raw database data
         setDbSongs(loadedDbSongs)
+        setPersonalDbSongs(loadedPersonalSongs)
         setDbSetlists(loadedDbSetlists)
 
         // Convert songs to UI format
@@ -1555,7 +1602,8 @@ export const SetlistsPage: React.FC = () => {
     }
 
     loadData()
-  }, [currentBandId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentBandId]) // currentUserId is stable (from localStorage on mount)
 
   // Handle opening editor from navigation state (e.g., from view page)
   useEffect(() => {
@@ -1835,16 +1883,55 @@ export const SetlistsPage: React.FC = () => {
 
   // If editing, show full-page editor
   if (editingSetlist) {
+    const isPersonal = editingSetlist.contextType === 'personal'
+
+    // When copying a band song to personal catalog
+    const handleCopySongToPersonal = async (song: DBSong) => {
+      try {
+        await SongService.createSong({
+          title: song.title,
+          artist: song.artist ?? '',
+          album: song.album,
+          duration: song.duration ?? 0,
+          key: song.key ?? 'C',
+          bpm: song.bpm ?? 120,
+          difficulty: (song.difficulty ?? 1) as 1 | 2 | 3 | 4 | 5,
+          guitarTuning: song.guitarTuning,
+          notes: song.notes,
+          referenceLinks: song.referenceLinks ?? [],
+          bandId: '', // Not used for personal songs
+          contextType: 'personal',
+          contextId: currentUserId,
+          createdBy: currentUserId,
+          visibility: 'personal',
+        })
+        // Refresh personal songs in state
+        if (currentUserId) {
+          const refreshed = await db.songs
+            .where('contextType')
+            .equals('personal')
+            .and(s => s.contextId === currentUserId)
+            .toArray()
+          setPersonalDbSongs(refreshed)
+        }
+      } catch (err) {
+        console.error('Failed to copy song to personal catalog:', err)
+      }
+    }
+
     return (
       <SetlistEditorPage
         setlist={editingSetlist}
         availableSongs={availableSongs}
         availableShows={availableShows}
         availablePractices={availablePractices}
-        dbSongs={dbSongs}
+        dbSongs={isPersonal ? personalDbSongs : dbSongs}
+        bandDbSongs={isPersonal ? dbSongs : undefined}
         dbSetlists={dbSetlists}
+        isPersonalSetlist={isPersonal}
         onBack={() => setEditingSetlist(null)}
         onSave={handleSave}
+        onCopySongToPersonal={isPersonal ? handleCopySongToPersonal : undefined}
       />
     )
   }

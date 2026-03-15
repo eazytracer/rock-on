@@ -1533,11 +1533,9 @@ export class RemoteRepository implements IDataRepository {
       .from('jam_sessions')
       .select('*')
       .eq('id', id)
-      .single()
-    if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
-    }
+      .maybeSingle()
+    if (error) throw error
+    if (!data) return null
     return this.mapJamSessionFromSupabase(data)
   }
 
@@ -1547,11 +1545,9 @@ export class RemoteRepository implements IDataRepository {
       .from('jam_sessions')
       .select('*')
       .eq('short_code', shortCode)
-      .single()
-    if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
-    }
+      .maybeSingle() // Returns null instead of 406 when no row found
+    if (error) throw error
+    if (!data) return null
     return this.mapJamSessionFromSupabase(data)
   }
 
