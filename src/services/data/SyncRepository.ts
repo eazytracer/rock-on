@@ -1,6 +1,11 @@
 import { IDataRepository, SongFilter, BandFilter } from './IDataRepository'
 import { LocalRepository } from './LocalRepository'
 import { RemoteRepository } from './RemoteRepository'
+import {
+  JamSession,
+  JamParticipant,
+  JamSongMatch,
+} from '../../models/JamSession'
 import { SyncEngine } from './SyncEngine'
 import { Song } from '../../models/Song'
 import { Band } from '../../models/Band'
@@ -208,6 +213,10 @@ export class SyncRepository implements IDataRepository {
 
   async getSetlists(bandId: string): Promise<Setlist[]> {
     return this.local.getSetlists(bandId)
+  }
+
+  async getPersonalSetlists(userId: string): Promise<Setlist[]> {
+    return this.local.getPersonalSetlists(userId)
   }
 
   async getSetlist(id: string): Promise<Setlist | null> {
@@ -732,6 +741,50 @@ export class SyncRepository implements IDataRepository {
    */
   async pullFromRemote(userId: string): Promise<void> {
     await this.syncEngine.pullFromRemote(userId)
+  }
+
+  // ========== JAM SESSIONS (delegate to remote — no local cache) ==========
+
+  async getJamSession(id: string): Promise<JamSession | null> {
+    return this.remote.getJamSession(id)
+  }
+  async getJamSessionByCode(shortCode: string): Promise<JamSession | null> {
+    return this.remote.getJamSessionByCode(shortCode)
+  }
+  async createJamSession(session: Omit<JamSession, 'id'>): Promise<JamSession> {
+    return this.remote.createJamSession(session)
+  }
+  async updateJamSession(
+    id: string,
+    updates: Partial<JamSession>
+  ): Promise<JamSession> {
+    return this.remote.updateJamSession(id, updates)
+  }
+  async deleteJamSession(id: string): Promise<void> {
+    return this.remote.deleteJamSession(id)
+  }
+  async getJamParticipants(sessionId: string): Promise<JamParticipant[]> {
+    return this.remote.getJamParticipants(sessionId)
+  }
+  async addJamParticipant(
+    participant: Omit<JamParticipant, 'id'>
+  ): Promise<JamParticipant> {
+    return this.remote.addJamParticipant(participant)
+  }
+  async updateJamParticipant(
+    id: string,
+    updates: Partial<JamParticipant>
+  ): Promise<JamParticipant> {
+    return this.remote.updateJamParticipant(id, updates)
+  }
+  async getJamSongMatches(sessionId: string): Promise<JamSongMatch[]> {
+    return this.remote.getJamSongMatches(sessionId)
+  }
+  async upsertJamSongMatches(
+    sessionId: string,
+    matches: Omit<JamSongMatch, 'id'>[]
+  ): Promise<JamSongMatch[]> {
+    return this.remote.upsertJamSongMatches(sessionId, matches)
   }
 
   /**

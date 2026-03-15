@@ -6,7 +6,16 @@ export type { SetlistItem } from '../types'
 export interface Setlist {
   id: string
   name: string
-  bandId: string
+  /** Band ID — nullable for personal setlists */
+  bandId?: string
+  /** Context type — 'band' (uses bandId) or 'personal' (uses contextId=userId) */
+  contextType?: 'band' | 'personal'
+  /** Context ID — userId for personal setlists, bandId for band setlists */
+  contextId?: string
+  /** Source jam session ID (set when setlist was saved from a jam session) */
+  jamSessionId?: string
+  /** Tags — e.g. ['jam'] for setlists saved from jam sessions */
+  tags?: string[]
   /** @deprecated Use showId instead */
   showDate?: Date
   showId?: string // Version 5: Reference to show (practiceSessions with type='gig')

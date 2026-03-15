@@ -57,6 +57,7 @@ import {
   useCreateSetlist,
   useUpdateSetlist,
   useDeleteSetlist,
+  usePersonalSetlists,
 } from '../hooks/useSetlists'
 // PHASE 2: Sync status visualization
 import { SyncIcon } from '../components/sync/SyncIcon'
@@ -105,8 +106,11 @@ interface UISetlist {
   lastModified: string
   notes: string
   // Database fields
-  bandId: string
+  bandId?: string // nullable for personal setlists
   showId?: string
+  contextType?: 'band' | 'personal'
+  contextId?: string
+  tags?: string[]
 }
 
 interface UIShow {
@@ -1387,6 +1391,14 @@ export const SetlistsPage: React.FC = () => {
   const [currentBandId] = useState(
     () => localStorage.getItem('currentBandId') || ''
   )
+  const currentUserId = localStorage.getItem('currentUserId') || ''
+
+  // Tab state: 'band' = band setlists, 'personal' = user's personal setlists
+  const [activeTab, setActiveTab] = useState<'band' | 'personal'>('band')
+
+  // Personal setlists (loaded separately when personal tab is active)
+  const { setlists: personalSetlistData, loading: personalSetlistsLoading } =
+    usePersonalSetlists(activeTab === 'personal' ? currentUserId : '')
 
   // DATABASE INTEGRATION: Use hooks for setlist operations
   const { createSetlist } = useCreateSetlist()
@@ -1558,7 +1570,27 @@ export const SetlistsPage: React.FC = () => {
     }
   }, [location.state, uiSetlists, navigate, location.pathname])
 
-  const filteredSetlists = uiSetlists.filter(setlist => {
+  // Convert personal setlist data to UI format for display
+  const personalUISetlists: UISetlist[] = personalSetlistData.map(s => ({
+    id: s.id,
+    name: s.name,
+    songCount: s.items?.filter(i => i.type === 'song').length ?? 0,
+    totalDuration: '0:00', // Calculated client-side on load
+    status: s.status,
+    items: (s.items ?? []) as UISetlistItem[],
+    lastModified: s.lastModified?.toLocaleDateString() ?? '',
+    notes: s.notes ?? '',
+    bandId: undefined,
+    contextType: 'personal' as const,
+    contextId: s.contextId,
+    tags: s.tags ?? [],
+  }))
+
+  // Setlists to display (band or personal based on active tab)
+  const activeSetlists =
+    activeTab === 'personal' ? personalUISetlists : uiSetlists
+
+  const filteredSetlists = activeSetlists.filter(setlist => {
     const matchesStatus =
       filterStatus === 'all' || setlist.status === filterStatus
     const matchesSearch = setlist.name
@@ -1839,9 +1871,38 @@ export const SetlistsPage: React.FC = () => {
         {!error && (
           <>
             <div className="mb-8">
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <h1 className="text-2xl font-bold text-white">Setlists</h1>
                 <ChevronDown size={20} className="text-[#a0a0a0]" />
+              </div>
+
+              {/* Band / Personal tab switcher */}
+              <div className="flex gap-1 mb-6 bg-[#1a1a1a] rounded-lg p-1 w-fit">
+                <button
+                  data-testid="setlists-band-tab"
+                  onClick={() => setActiveTab('band')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'band'
+                      ? 'bg-[#f17827ff] text-white'
+                      : 'text-[#a0a0a0] hover:text-white'
+                  }`}
+                >
+                  Band Setlists
+                </button>
+                <button
+                  data-testid="setlists-personal-tab"
+                  onClick={() => setActiveTab('personal')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'personal'
+                      ? 'bg-[#f17827ff] text-white'
+                      : 'text-[#a0a0a0] hover:text-white'
+                  }`}
+                >
+                  My Setlists
+                  {activeTab === 'personal' && personalSetlistsLoading && (
+                    <span className="ml-2 text-xs opacity-60">...</span>
+                  )}
+                </button>
               </div>
 
               <div className="flex items-center justify-between gap-4 flex-wrap">

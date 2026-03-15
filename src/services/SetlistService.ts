@@ -76,6 +76,17 @@ export interface SongReadiness {
 }
 
 export class SetlistService {
+  /**
+   * Get personal setlists for a user (contextType='personal')
+   */
+  static async getPersonalSetlists(
+    userId: string
+  ): Promise<SetlistListResponse> {
+    const setlists = await repository.getPersonalSetlists(userId)
+    setlists.sort((a, b) => b.createdDate.getTime() - a.createdDate.getTime())
+    return { setlists, total: setlists.length }
+  }
+
   static async getSetlists(
     filters: SetlistFilters
   ): Promise<SetlistListResponse> {

@@ -313,3 +313,64 @@ export function useDeleteSong() {
 
   return { deleteSong, checkSongInSetlists, loading, error }
 }
+
+/**
+ * Hook to fetch personal songs for the current user.
+ * Personal songs have contextType='personal' and contextId=userId.
+ * Mirrors the useSongs(bandId) pattern.
+ */
+export function usePersonalSongs(userId: string) {
+  const [songs, setSongs] = useState<Song[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const { realtimeManager } = useAuth()
+
+  const fetchPersonalSongs = useCallback(
+    async (silent = false) => {
+      if (!userId) {
+        setSongs([])
+        setLoading(false)
+        return
+      }
+      try {
+        if (!silent) setLoading(true)
+        const response = await SongService.getPersonalSongs(userId)
+        setSongs(response.songs)
+        setError(null)
+      } catch (err) {
+        setError(err as Error)
+        setSongs([])
+      } finally {
+        if (!silent) setLoading(false)
+      }
+    },
+    [userId]
+  )
+
+  useEffect(() => {
+    fetchPersonalSongs()
+  }, [fetchPersonalSongs])
+
+  // Subscribe to realtime changes for personal songs
+  useEffect(() => {
+    if (!realtimeManager || !userId) return
+
+    const handleChange = (event: {
+      bandId: string
+      action: string
+      recordId: string
+    }) => {
+      // Personal songs don't have a bandId, but the event fires on any songs change
+      // Re-fetch silently to stay in sync
+      void fetchPersonalSongs(true)
+      void event // suppress unused warning
+    }
+
+    realtimeManager.on('songs:changed', handleChange)
+    return () => {
+      realtimeManager.off('songs:changed', handleChange)
+    }
+  }, [realtimeManager, userId, fetchPersonalSongs])
+
+  return { songs, loading, error, refetch: () => fetchPersonalSongs() }
+}

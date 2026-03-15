@@ -76,6 +76,16 @@ const SettingsPage = lazy(() =>
     default: module.SettingsPage,
   }))
 )
+const JamSessionPage = lazy(() =>
+  import('./pages/JamSessionPage').then(module => ({
+    default: module.JamSessionPage,
+  }))
+)
+const JamViewPage = lazy(() =>
+  import('./pages/JamViewPage').then(module => ({
+    default: module.JamViewPage,
+  }))
+)
 
 // Dev-only pages
 const DevDashboard = lazy(() =>
@@ -171,6 +181,9 @@ const AppContent: React.FC = () => {
           {/* Dev Dashboard - accessible in development only (no layout) */}
           <Route path="/dev/dashboard" element={<DevDashboard />} />
 
+          {/* Public jam session view — no auth required */}
+          <Route path="/jam/view/:shortCode" element={<JamViewPage />} />
+
           {/* Protected routes - with persistent layout */}
           {/* ModernLayout stays mounted during navigation between these routes */}
           <Route element={<ProtectedLayoutRoute />}>
@@ -198,6 +211,8 @@ const AppContent: React.FC = () => {
             />
             <Route path="/band-members" element={<BandMembersPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/jam" element={<JamSessionPage />} />
+            <Route path="/jam/:sessionId" element={<JamSessionPage />} />
           </Route>
         </Routes>
       </Suspense>

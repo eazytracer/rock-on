@@ -5,7 +5,7 @@
 
 begin;
 
-select plan(19);
+select plan(22);
 
 -- Core tables
 select has_table('users', 'users table should exist');
@@ -35,6 +35,11 @@ select has_table('song_note_entries', 'song_note_entries table should exist');
 
 -- Audit table
 select has_table('audit_log', 'audit_log table should exist');
+
+-- Jam session tables (Social Catalog feature)
+select has_table('jam_sessions', 'jam_sessions table should exist');
+select has_table('jam_participants', 'jam_participants table should exist');
+select has_table('jam_song_matches', 'jam_song_matches table should exist');
 
 select * from finish();
 rollback;

@@ -5,7 +5,7 @@
 
 begin;
 
-select plan(99);
+select plan(125); -- 99 original + 2 songs (normalized) + 2 users (account_tier) + 3 setlists (context) + 7 jam_sessions + 5 jam_participants + 7 jam_song_matches = 125
 
 -- ============================================================================
 -- Users table (6 tests)
@@ -153,6 +153,56 @@ select has_column('song_note_entries', 'session_type', 'song_note_entries should
 select has_column('song_note_entries', 'content', 'song_note_entries should have content column');
 select has_column('song_note_entries', 'visibility', 'song_note_entries should have visibility column');
 select has_column('song_note_entries', 'version', 'song_note_entries should have version column');
+
+-- ============================================================================
+-- New Social Catalog columns (2 tests)
+-- ============================================================================
+select has_column('songs', 'normalized_title', 'songs should have normalized_title generated column');
+select has_column('songs', 'normalized_artist', 'songs should have normalized_artist generated column');
+
+-- ============================================================================
+-- Users account_tier columns (2 tests)
+-- ============================================================================
+select has_column('users', 'account_tier', 'users should have account_tier column');
+select col_type_is('users', 'account_tier', 'text', 'users.account_tier should be text');
+
+-- ============================================================================
+-- Setlists personal context columns (3 tests)
+-- ============================================================================
+select has_column('setlists', 'context_type', 'setlists should have context_type column');
+select has_column('setlists', 'context_id', 'setlists should have context_id column');
+select has_column('setlists', 'jam_session_id', 'setlists should have jam_session_id column');
+
+-- ============================================================================
+-- jam_sessions table (7 tests)
+-- ============================================================================
+select has_column('jam_sessions', 'id', 'jam_sessions should have id column');
+select col_is_pk('jam_sessions', 'id', 'jam_sessions.id should be primary key');
+select has_column('jam_sessions', 'short_code', 'jam_sessions should have short_code column');
+select has_column('jam_sessions', 'host_user_id', 'jam_sessions should have host_user_id column');
+select has_column('jam_sessions', 'status', 'jam_sessions should have status column');
+select has_column('jam_sessions', 'expires_at', 'jam_sessions should have expires_at column');
+select has_column('jam_sessions', 'view_token', 'jam_sessions should have view_token column');
+
+-- ============================================================================
+-- jam_participants table (5 tests)
+-- ============================================================================
+select has_column('jam_participants', 'id', 'jam_participants should have id column');
+select col_is_pk('jam_participants', 'id', 'jam_participants.id should be primary key');
+select has_column('jam_participants', 'jam_session_id', 'jam_participants should have jam_session_id column');
+select has_column('jam_participants', 'user_id', 'jam_participants should have user_id column');
+select has_column('jam_participants', 'shared_contexts', 'jam_participants should have shared_contexts column');
+
+-- ============================================================================
+-- jam_song_matches table (7 tests)
+-- ============================================================================
+select has_column('jam_song_matches', 'id', 'jam_song_matches should have id column');
+select col_is_pk('jam_song_matches', 'id', 'jam_song_matches.id should be primary key');
+select has_column('jam_song_matches', 'jam_session_id', 'jam_song_matches should have jam_session_id column');
+select has_column('jam_song_matches', 'canonical_title', 'jam_song_matches should have canonical_title column');
+select has_column('jam_song_matches', 'canonical_artist', 'jam_song_matches should have canonical_artist column');
+select has_column('jam_song_matches', 'match_confidence', 'jam_song_matches should have match_confidence column');
+select has_column('jam_song_matches', 'matched_songs', 'jam_song_matches should have matched_songs column');
 
 select * from finish();
 rollback;

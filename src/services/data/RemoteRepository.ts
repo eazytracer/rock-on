@@ -23,6 +23,11 @@ import {
   createEmptyIncrementalSyncResult,
   AuditLogEntry,
 } from './syncTypes'
+import {
+  JamSession,
+  JamParticipant,
+  JamSongMatch,
+} from '../../models/JamSession'
 
 /**
  * Remote repository implementation using Supabase
@@ -371,7 +376,23 @@ export class RemoteRepository implements IDataRepository {
     const { data, error } = await supabase
       .from('setlists')
       .select('*')
+      .eq('context_type', 'band')
       .eq('band_id', bandId)
+      .order('created_date', { ascending: false })
+
+    if (error) throw error
+
+    return data.map(row => this.mapSetlistFromSupabase(row))
+  }
+
+  async getPersonalSetlists(userId: string): Promise<Setlist[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('setlists')
+      .select('*')
+      .eq('context_type', 'personal')
+      .eq('context_id', userId)
       .order('created_date', { ascending: false })
 
     if (error) throw error
@@ -444,26 +465,41 @@ export class RemoteRepository implements IDataRepository {
   // ========== SETLIST FIELD MAPPING ==========
 
   private mapSetlistToSupabase(setlist: Partial<Setlist>): Record<string, any> {
-    return {
-      id: setlist.id,
-      name: setlist.name,
-      band_id: setlist.bandId,
-      show_id: setlist.showId ?? null,
-      source_setlist_id: setlist.sourceSetlistId ?? null,
-      notes: setlist.notes,
-      status: setlist.status,
-      created_date: setlist.createdDate,
-      last_modified: setlist.lastModified || new Date(),
-      items: setlist.items || [], // Store items as JSONB in Supabase
-      last_modified_by: setlist.lastModifiedBy ?? null,
-    }
+    const result: Record<string, any> = {}
+    if (setlist.id !== undefined) result.id = setlist.id
+    if (setlist.name !== undefined) result.name = setlist.name
+    if (setlist.bandId !== undefined) result.band_id = setlist.bandId ?? null
+    if (setlist.contextType !== undefined)
+      result.context_type = setlist.contextType
+    if (setlist.contextId !== undefined)
+      result.context_id = setlist.contextId ?? null
+    if (setlist.jamSessionId !== undefined)
+      result.jam_session_id = setlist.jamSessionId ?? null
+    if (setlist.tags !== undefined) result.tags = setlist.tags ?? []
+    if (setlist.showId !== undefined) result.show_id = setlist.showId ?? null
+    if (setlist.sourceSetlistId !== undefined)
+      result.source_setlist_id = setlist.sourceSetlistId ?? null
+    if (setlist.notes !== undefined) result.notes = setlist.notes
+    if (setlist.status !== undefined) result.status = setlist.status
+    if (setlist.createdDate !== undefined)
+      result.created_date = setlist.createdDate
+    if (setlist.lastModified !== undefined)
+      result.last_modified = setlist.lastModified
+    if (setlist.items !== undefined) result.items = setlist.items || []
+    if (setlist.lastModifiedBy !== undefined)
+      result.last_modified_by = setlist.lastModifiedBy ?? null
+    return result
   }
 
   private mapSetlistFromSupabase(row: any): Setlist {
     return {
       id: row.id,
       name: row.name,
-      bandId: row.band_id,
+      bandId: row.band_id ?? undefined,
+      contextType: row.context_type ?? 'band',
+      contextId: row.context_id ?? undefined,
+      jamSessionId: row.jam_session_id ?? undefined,
+      tags: row.tags ?? [],
       showId: row.show_id ?? undefined,
       sourceSetlistId: row.source_setlist_id ?? undefined,
       showDate: undefined, // Not in Supabase
@@ -1487,5 +1523,249 @@ export class RemoteRepository implements IDataRepository {
   ): Promise<IncrementalSyncResult> {
     // No-op: RemoteRepository doesn't handle sync orchestration
     return createEmptyIncrementalSyncResult()
+  }
+
+  // ========== JAM SESSIONS ==========
+
+  async getJamSession(id: string): Promise<JamSession | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    const { data, error } = await supabase
+      .from('jam_sessions')
+      .select('*')
+      .eq('id', id)
+      .single()
+    if (error) {
+      if (error.code === 'PGRST116') return null
+      throw error
+    }
+    return this.mapJamSessionFromSupabase(data)
+  }
+
+  async getJamSessionByCode(shortCode: string): Promise<JamSession | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    const { data, error } = await supabase
+      .from('jam_sessions')
+      .select('*')
+      .eq('short_code', shortCode)
+      .single()
+    if (error) {
+      if (error.code === 'PGRST116') return null
+      throw error
+    }
+    return this.mapJamSessionFromSupabase(data)
+  }
+
+  async createJamSession(session: Omit<JamSession, 'id'>): Promise<JamSession> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    const { data, error } = await supabase
+      .from('jam_sessions')
+      .insert(this.mapJamSessionToSupabase(session) as any)
+      .select()
+      .single()
+    if (error) throw error
+    return this.mapJamSessionFromSupabase(data)
+  }
+
+  async updateJamSession(
+    id: string,
+    updates: Partial<JamSession>
+  ): Promise<JamSession> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    const { data, error } = await supabase
+      .from('jam_sessions')
+      // @ts-expect-error - Supabase generated types are overly strict for new tables
+      .update(this.mapJamSessionToSupabase(updates))
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return this.mapJamSessionFromSupabase(data)
+  }
+
+  async deleteJamSession(id: string): Promise<void> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    const { error } = await supabase.from('jam_sessions').delete().eq('id', id)
+    if (error) throw error
+  }
+
+  async getJamParticipants(sessionId: string): Promise<JamParticipant[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    const { data, error } = await supabase
+      .from('jam_participants')
+      .select('*')
+      .eq('jam_session_id', sessionId)
+      .eq('status', 'active')
+    if (error) throw error
+    return data.map(row => this.mapJamParticipantFromSupabase(row))
+  }
+
+  async addJamParticipant(
+    participant: Omit<JamParticipant, 'id'>
+  ): Promise<JamParticipant> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    const { data, error } = await supabase
+      .from('jam_participants')
+      .insert(this.mapJamParticipantToSupabase(participant) as any)
+      .select()
+      .single()
+    if (error) throw error
+    return this.mapJamParticipantFromSupabase(data)
+  }
+
+  async updateJamParticipant(
+    id: string,
+    updates: Partial<JamParticipant>
+  ): Promise<JamParticipant> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    const { data, error } = await supabase
+      .from('jam_participants')
+      // @ts-expect-error - Supabase generated types are overly strict for new tables
+      .update(this.mapJamParticipantToSupabase(updates))
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return this.mapJamParticipantFromSupabase(data)
+  }
+
+  async getJamSongMatches(sessionId: string): Promise<JamSongMatch[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    const { data, error } = await supabase
+      .from('jam_song_matches')
+      .select('*')
+      .eq('jam_session_id', sessionId)
+      .order('participant_count', { ascending: false })
+    if (error) throw error
+    return data.map(row => this.mapJamSongMatchFromSupabase(row))
+  }
+
+  async upsertJamSongMatches(
+    sessionId: string,
+    matches: Omit<JamSongMatch, 'id'>[]
+  ): Promise<JamSongMatch[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    // Delete existing matches for this session
+    await supabase
+      .from('jam_song_matches')
+      .delete()
+      .eq('jam_session_id', sessionId)
+    if (matches.length === 0) return []
+    // Insert new matches
+    const { data, error } = await supabase
+      .from('jam_song_matches')
+      .insert(
+        matches.map(m =>
+          this.mapJamSongMatchToSupabase({ ...m, id: crypto.randomUUID() })
+        ) as any
+      )
+      .select()
+    if (error) throw error
+    return data.map(row => this.mapJamSongMatchFromSupabase(row))
+  }
+
+  // ========== JAM SESSION FIELD MAPPING ==========
+
+  private mapJamSessionToSupabase(
+    session: Partial<JamSession>
+  ): Record<string, any> {
+    const result: Record<string, any> = {}
+    if (session.shortCode !== undefined) result.short_code = session.shortCode
+    if (session.name !== undefined) result.name = session.name ?? null
+    if (session.hostUserId !== undefined)
+      result.host_user_id = session.hostUserId
+    if (session.status !== undefined) result.status = session.status
+    if (session.createdDate !== undefined)
+      result.created_date = session.createdDate
+    if (session.expiresAt !== undefined) result.expires_at = session.expiresAt
+    if (session.savedSetlistId !== undefined)
+      result.saved_setlist_id = session.savedSetlistId ?? null
+    if (session.viewToken !== undefined)
+      result.view_token = session.viewToken ?? null
+    if (session.viewTokenExpiresAt !== undefined)
+      result.view_token_expires_at = session.viewTokenExpiresAt ?? null
+    if (session.settings !== undefined) result.settings = session.settings ?? {}
+    if (session.version !== undefined) result.version = session.version
+    if (session.lastModifiedBy !== undefined)
+      result.last_modified_by = session.lastModifiedBy ?? null
+    return result
+  }
+
+  private mapJamSessionFromSupabase(row: any): JamSession {
+    return {
+      id: row.id,
+      shortCode: row.short_code,
+      name: row.name ?? undefined,
+      hostUserId: row.host_user_id,
+      status: row.status,
+      createdDate: new Date(row.created_date),
+      expiresAt: new Date(row.expires_at),
+      savedSetlistId: row.saved_setlist_id ?? undefined,
+      viewToken: row.view_token ?? undefined,
+      viewTokenExpiresAt: row.view_token_expires_at
+        ? new Date(row.view_token_expires_at)
+        : undefined,
+      settings: row.settings ?? {},
+      version: row.version,
+      lastModifiedBy: row.last_modified_by ?? undefined,
+    }
+  }
+
+  private mapJamParticipantToSupabase(
+    participant: Partial<JamParticipant>
+  ): Record<string, any> {
+    const result: Record<string, any> = {}
+    if (participant.jamSessionId !== undefined)
+      result.jam_session_id = participant.jamSessionId
+    if (participant.userId !== undefined) result.user_id = participant.userId
+    if (participant.joinedDate !== undefined)
+      result.joined_date = participant.joinedDate
+    if (participant.status !== undefined) result.status = participant.status
+    if (participant.sharedContexts !== undefined)
+      result.shared_contexts = participant.sharedContexts
+    return result
+  }
+
+  private mapJamParticipantFromSupabase(row: any): JamParticipant {
+    return {
+      id: row.id,
+      jamSessionId: row.jam_session_id,
+      userId: row.user_id,
+      joinedDate: new Date(row.joined_date),
+      status: row.status,
+      sharedContexts: row.shared_contexts ?? [],
+      displayName: undefined, // Enriched separately
+    }
+  }
+
+  private mapJamSongMatchToSupabase(match: JamSongMatch): Record<string, any> {
+    return {
+      id: match.id,
+      jam_session_id: match.jamSessionId,
+      canonical_title: match.canonicalTitle,
+      canonical_artist: match.canonicalArtist,
+      display_title: match.displayTitle,
+      display_artist: match.displayArtist,
+      match_confidence: match.matchConfidence,
+      is_confirmed: match.isConfirmed,
+      matched_songs: match.matchedSongs,
+      participant_count: match.participantCount,
+      computed_at: match.computedAt,
+    }
+  }
+
+  private mapJamSongMatchFromSupabase(row: any): JamSongMatch {
+    return {
+      id: row.id,
+      jamSessionId: row.jam_session_id,
+      canonicalTitle: row.canonical_title,
+      canonicalArtist: row.canonical_artist,
+      displayTitle: row.display_title,
+      displayArtist: row.display_artist,
+      matchConfidence: row.match_confidence,
+      isConfirmed: row.is_confirmed,
+      matchedSongs: row.matched_songs ?? [],
+      participantCount: row.participant_count,
+      computedAt: new Date(row.computed_at),
+    }
   }
 }

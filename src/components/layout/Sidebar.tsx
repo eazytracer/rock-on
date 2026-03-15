@@ -9,6 +9,7 @@ import {
   LogOut,
   Wifi,
   WifiOff,
+  Radio,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 // PHASE 2: Connection status indicator
@@ -63,6 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Shows', path: '/shows', icon: <Ticket size={20} /> },
     { label: 'Practices', path: '/practices', icon: <Calendar size={20} /> },
     { label: 'Band Members', path: '/band-members', icon: <Users size={20} /> },
+    { label: 'Jam', path: '/jam', icon: <Radio size={20} /> },
   ]
 
   const isActive = (path: string) => {
