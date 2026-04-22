@@ -5,9 +5,15 @@
 
 begin;
 
--- Plan: 22 RLS enabled + 74 policy existence + 13 policy counts + 8 command validation = 109 (wait - counted 109 select ok/is above, but need to recount, using 109)
--- Updated from 83: +3 new RLS tables, +8 new song policies, +8 new setlist policies, -8 old songs, -4 old setlists, +12 jam policies, +3 jam counts
-select plan(109);
+-- Plan was 109; +5 net (added users_select_self/band_member/jam_coparticipant,
+-- user_profiles_select_jam_coparticipant, songs_select_jam_coparticipant,
+-- jam_song_matches_insert_participant; removed renamed users_select_authenticated)
+-- = 114.
+-- 2026-04-22: synced to post-RLS-hardening schema (d3bd973). New cross-band-read policies
+-- on users/user_profiles/songs for jam coparticipants; new insert policy on jam_song_matches
+-- for participants (recompute writes). Counts updated; renamed users_select_authenticated
+-- → users_select_self.
+select plan(114);
 
 -- ============================================================================
 -- RLS Enabled Tests (17 tables)
@@ -124,12 +130,22 @@ select ok(
 );
 
 -- ============================================================================
--- Users Policies (3 policies)
+-- Users Policies (5 policies)
 -- ============================================================================
 
 select ok(
-  tests.policy_exists('users', 'users_select_authenticated'),
-  'users_select_authenticated policy should exist'
+  tests.policy_exists('users', 'users_select_self'),
+  'users_select_self policy should exist (own row)'
+);
+
+select ok(
+  tests.policy_exists('users', 'users_select_band_member'),
+  'users_select_band_member policy should exist (read fellow band members)'
+);
+
+select ok(
+  tests.policy_exists('users', 'users_select_jam_coparticipant'),
+  'users_select_jam_coparticipant policy should exist (read jam coparticipants)'
 );
 
 select ok(
@@ -143,12 +159,17 @@ select ok(
 );
 
 -- ============================================================================
--- User Profiles Policies (3 policies)
+-- User Profiles Policies (4 policies)
 -- ============================================================================
 
 select ok(
   tests.policy_exists('user_profiles', 'user_profiles_select_own'),
   'user_profiles_select_own policy should exist'
+);
+
+select ok(
+  tests.policy_exists('user_profiles', 'user_profiles_select_jam_coparticipant'),
+  'user_profiles_select_jam_coparticipant policy should exist (display_name in jams)'
 );
 
 select ok(
@@ -229,12 +250,17 @@ select ok(
 );
 
 -- ============================================================================
--- Songs Policies (8 policies: 4 personal + 4 band)
+-- Songs Policies (9 policies: 4 personal + 4 band + 1 jam coparticipant read)
 -- ============================================================================
 
 select ok(
   tests.policy_exists('songs', 'songs_select_personal_own'),
   'songs_select_personal_own policy should exist'
+);
+
+select ok(
+  tests.policy_exists('songs', 'songs_select_jam_coparticipant'),
+  'songs_select_jam_coparticipant policy should exist (read coparticipants personal songs)'
 );
 
 select ok(
@@ -442,12 +468,17 @@ select ok(
 );
 
 -- ============================================================================
--- Jam Song Matches Policies (3 policies)
+-- Jam Song Matches Policies (4 policies)
 -- ============================================================================
 
 select ok(
   tests.policy_exists('jam_song_matches', 'jam_song_matches_select'),
   'jam_song_matches_select policy should exist'
+);
+
+select ok(
+  tests.policy_exists('jam_song_matches', 'jam_song_matches_insert_participant'),
+  'jam_song_matches_insert_participant policy should exist (recompute writes from any participant)'
 );
 
 select ok(
@@ -466,14 +497,14 @@ select ok(
 
 select is(
   tests.policy_count('users'),
-  3,
-  'users table should have exactly 3 policies'
+  5,
+  'users table should have exactly 5 policies (self + band-member + jam-coparticipant + insert + update)'
 );
 
 select is(
   tests.policy_count('user_profiles'),
-  3,
-  'user_profiles table should have exactly 3 policies'
+  4,
+  'user_profiles table should have exactly 4 policies (own select + jam-coparticipant select + insert + update)'
 );
 
 select is(
@@ -496,8 +527,8 @@ select is(
 
 select is(
   tests.policy_count('songs'),
-  8,
-  'songs table should have exactly 8 policies (4 personal + 4 band)'
+  9,
+  'songs table should have exactly 9 policies (4 personal + 4 band + 1 jam-coparticipant select)'
 );
 
 select is(
@@ -538,8 +569,8 @@ select is(
 
 select is(
   tests.policy_count('jam_song_matches'),
-  3,
-  'jam_song_matches table should have exactly 3 policies'
+  4,
+  'jam_song_matches table should have exactly 4 policies (select + insert-participant + update-host + delete-host)'
 );
 
 -- ============================================================================

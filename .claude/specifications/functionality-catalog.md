@@ -264,9 +264,17 @@ Any authenticated user joins via the short code; default shares their personal c
 
 Participants in the same active jam can read each other's personal songs via `songs_select_jam_coparticipant`. Other personal songs remain hidden.
 
-- db: `supabase/tests/006-rls-policies.test.sql` (policies exist)
+- db: `supabase/tests/006-rls-policies.test.sql` (policies exist + counts)
 - harness: end-to-end flow proves reads succeed (`seed-songs alice; seed-songs bob; create-jam alice; join-jam bob; recompute`)
 - unit: `tests/unit/utils/songMatcher.test.ts` (matcher logic, no RLS)
+
+### Jam session schema integrity
+
+Indexes on `jam_sessions` (short_code, view_token, host, status), FK on-delete actions (CASCADE for participants/matches, SET NULL for seed/saved setlist refs), check constraints on the status / match_confidence enums, and the functional cascade behavior when a jam session is deleted.
+
+- db: `supabase/tests/013-jam-sessions.test.sql`
+- db: `supabase/tests/002-schema-columns.test.sql` (column existence including `seed_setlist_id`, `settings`, `view_token_expires_at`)
+- db: `supabase/tests/010-realtime-config.test.sql` (realtime publication + REPLICA IDENTITY FULL)
 
 ### Participant display names
 

@@ -236,5 +236,16 @@ begin
 end;
 $$ language plpgsql;
 
--- No tests in this file, just setup
--- This file runs first (000-) to set up helpers for other tests
+-- One trivial pgTAP plan so the prove harness sees a valid TAP stream and
+-- doesn't exit non-zero (the empty-plan + parse-error case made `supabase
+-- test db` exit 1 even when every real test passed). The pass()ing test
+-- also doubles as a smoke check that the helper schema and key functions
+-- were installed by the statements above.
+select plan(1);
+select ok(
+  exists(select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'tests' and p.proname = 'policy_exists'),
+  'tests.policy_exists() helper should be installed'
+);
+select * from finish();

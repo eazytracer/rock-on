@@ -5,7 +5,7 @@
 
 begin;
 
-select plan(125); -- 99 original + 2 songs (normalized) + 2 users (account_tier) + 3 setlists (context) + 7 jam_sessions + 5 jam_participants + 7 jam_song_matches = 125
+select plan(131); -- 99 original + 2 songs (normalized) + 2 users (account_tier) + 3 setlists (context) + 13 jam_sessions + 5 jam_participants + 7 jam_song_matches = 131 (was 125; +6 jam_sessions cols 2026-04-22)
 
 -- ============================================================================
 -- Users table (6 tests)
@@ -174,7 +174,7 @@ select has_column('setlists', 'context_id', 'setlists should have context_id col
 select has_column('setlists', 'jam_session_id', 'setlists should have jam_session_id column');
 
 -- ============================================================================
--- jam_sessions table (7 tests)
+-- jam_sessions table (13 tests — was 7; added missing-column coverage 2026-04-22)
 -- ============================================================================
 select has_column('jam_sessions', 'id', 'jam_sessions should have id column');
 select col_is_pk('jam_sessions', 'id', 'jam_sessions.id should be primary key');
@@ -183,6 +183,16 @@ select has_column('jam_sessions', 'host_user_id', 'jam_sessions should have host
 select has_column('jam_sessions', 'status', 'jam_sessions should have status column');
 select has_column('jam_sessions', 'expires_at', 'jam_sessions should have expires_at column');
 select has_column('jam_sessions', 'view_token', 'jam_sessions should have view_token column');
+-- name + settings JSONB (settings holds setlistItems / hostSongIds / matchThreshold)
+select has_column('jam_sessions', 'name', 'jam_sessions should have optional name column');
+select has_column('jam_sessions', 'settings', 'jam_sessions should have settings JSONB column');
+select col_type_is('jam_sessions', 'settings', 'jsonb', 'jam_sessions.settings should be jsonb');
+-- view_token_expires_at (paired with view_token; jam-view edge fn enforces it)
+select has_column('jam_sessions', 'view_token_expires_at', 'jam_sessions should have view_token_expires_at column');
+-- saved_setlist_id (set when host saves jam → personal setlist) and seed_setlist_id
+-- (set when host pre-seeds the broadcast setlist from a personal setlist)
+select has_column('jam_sessions', 'saved_setlist_id', 'jam_sessions should have saved_setlist_id column');
+select has_column('jam_sessions', 'seed_setlist_id', 'jam_sessions should have seed_setlist_id column');
 
 -- ============================================================================
 -- jam_participants table (5 tests)
