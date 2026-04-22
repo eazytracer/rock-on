@@ -479,33 +479,5 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
   return null
 }
 
-// Helper functions to generate avatar data
-export const generateAvatarColor = (title: string): string => {
-  const colors = [
-    '#3b82f6',
-    '#8b5cf6',
-    '#ec4899',
-    '#f59e0b',
-    '#f43f5e',
-    '#14b8a6',
-    '#ef4444',
-    '#6366f1',
-    '#a855f7',
-    '#84cc16',
-    '#eab308',
-    '#10b981',
-    '#06b6d4',
-    '#d946ef',
-    '#f97316',
-  ]
-  const index = title.charCodeAt(0) % colors.length
-  return colors[index]
-}
-
-export const generateInitials = (title: string): string => {
-  const words = title.split(' ').filter(w => w.length > 0)
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase()
-  }
-  return title.substring(0, 2).toUpperCase()
-}
+// Re-export from canonical source — import from src/utils/songAvatar.ts directly in new code
+export { generateAvatarColor, generateInitials } from '../../utils/songAvatar'

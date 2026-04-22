@@ -10,12 +10,12 @@
  */
 
 import { repository } from './data/RepositoryFactory'
-import { SongService } from './SongService'
+import { getSupabaseClient } from './supabase/client'
 // SetlistService not used directly — we use repository.addSetlist for personal setlists
 import type { JamSession, JamSongMatch } from '../models/JamSession'
 import type { Setlist } from '../models/Setlist'
+import type { Song } from '../models/Song'
 import type { SetlistItem } from '../types'
-import { mergeMatches } from '../utils/songMatcher'
 
 // ============================================================================
 // Constants
@@ -77,11 +77,17 @@ export class JamSessionService {
   /**
    * Create a new jam session.
    * Returns the session + the raw (pre-hash) view token for embedding in URLs.
+   *
+   * When `seedSetlistId` is provided, the referenced setlist's song items are
+   * copied into `settings.setlistSongIds` so the host's setlist panel is
+   * pre-populated. The seedSetlistId is also persisted on the session row for
+   * provenance/UI display.
    */
   static async createSession(
     hostUserId: string,
     name?: string,
-    settings?: JamSession['settings']
+    settings?: JamSession['settings'],
+    seedSetlistId?: string
   ): Promise<{ session: JamSession; rawViewToken: string }> {
     const { allowed, reason } = await this.canCreateJamSession(hostUserId)
     if (!allowed) {
@@ -107,6 +113,57 @@ export class JamSessionService {
     )
     const viewTokenExpiresAt = expiresAt
 
+    // If a seed setlist was provided, extract its song IDs into setlistSongIds
+    // so the host's Setlist panel is pre-populated. We only take items of
+    // type='song' with a resolvable songId (skip breaks and sections — the jam
+    // setlist is a flat list for now).
+    let mergedSettings: JamSession['settings'] = { ...(settings ?? {}) }
+    if (seedSetlistId) {
+      const seed = await repository.getSetlist(seedSetlistId)
+      if (!seed) {
+        throw new Error('Seed setlist not found')
+      }
+      // Ownership check: seed must be a personal setlist owned by the host.
+      // (Band setlists belong to the band, not a user — seeding from those is
+      // out of scope for this release per product decision.)
+      if (seed.contextType !== 'personal' || seed.contextId !== hostUserId) {
+        throw new Error(
+          'You can only seed a jam from your own personal setlists'
+        )
+      }
+      // Build setlist items with display data so participants / anon viewers
+      // don't need to resolve IDs against the host's catalog. We pull title +
+      // artist from the seed setlist's items when embedded, or do a best-effort
+      // lookup against songs the seed refers to.
+      const candidateSongIds: string[] = (seed.items ?? [])
+        .filter(item => item.type === 'song' && item.songId)
+        .map(item => item.songId as string)
+
+      const seedItems: Array<{
+        id: string
+        displayTitle: string
+        displayArtist: string
+      }> = []
+      for (const songId of candidateSongIds) {
+        const song = await repository.getSong(songId).catch(() => null)
+        if (song) {
+          seedItems.push({
+            id: song.id,
+            displayTitle: song.title,
+            displayArtist: song.artist ?? '',
+          })
+        } else {
+          // Song not available locally yet — skip rather than insert an
+          // un-renderable placeholder. The host can re-add manually if needed.
+        }
+      }
+
+      // Preserve anything the caller already put in settings; seed only if empty.
+      if (!mergedSettings.setlistItems?.length) {
+        mergedSettings = { ...mergedSettings, setlistItems: seedItems }
+      }
+    }
+
     const session = await repository.createJamSession({
       shortCode,
       name: name ?? undefined,
@@ -115,9 +172,10 @@ export class JamSessionService {
       createdDate: new Date(),
       expiresAt,
       savedSetlistId: undefined,
+      seedSetlistId: seedSetlistId ?? undefined,
       viewToken: hashedViewToken, // Store the hash, not the raw token
       viewTokenExpiresAt,
-      settings: settings ?? {},
+      settings: mergedSettings,
     })
 
     // Auto-add host as participant sharing their personal catalog
@@ -185,42 +243,35 @@ export class JamSessionService {
    * Recompute all song matches for a session.
    * Fetches all participant catalogs and runs the matching algorithm.
    */
+  /**
+   * Recompute song matches by delegating to the `jam-recompute` Edge Function.
+   *
+   * The Edge Function runs entirely server-side:
+   *   1. Fetches all participants' song catalogs directly from the DB
+   *   2. Runs the matching algorithm in Deno
+   *   3. Atomically replaces jam_song_matches via replace_jam_matches() RPC
+   *
+   * Both clients' existing Realtime subscriptions on jam_song_matches fire
+   * automatically — no manual refresh needed on the other client.
+   */
   static async recomputeMatches(sessionId: string): Promise<JamSongMatch[]> {
-    const participants = await repository.getJamParticipants(sessionId)
-    const activeParticipants = participants.filter(p => p.status === 'active')
+    const supabase = getSupabaseClient()
+    if (!supabase) return []
 
-    if (activeParticipants.length < 2) {
-      await repository.upsertJamSongMatches(sessionId, [])
-      return []
+    const { data, error } = await supabase.functions.invoke('jam-recompute', {
+      body: { sessionId },
+    })
+
+    if (error) {
+      throw new Error(`jam-recompute failed: ${error.message}`)
     }
 
-    // Fetch each participant's personal song catalog
-    const participantCatalogs = await Promise.all(
-      activeParticipants.map(async p => {
-        const response = await SongService.getPersonalSongs(p.userId)
-        return { userId: p.userId, songs: response.songs }
-      })
-    )
-
-    // Run the matching algorithm
-    const rawMatches = mergeMatches(participantCatalogs)
-
-    // Convert to JamSongMatch format
-    const now = new Date()
-    const jamMatches: Omit<JamSongMatch, 'id'>[] = rawMatches.map(m => ({
-      jamSessionId: sessionId,
-      canonicalTitle: m.canonicalTitle,
-      canonicalArtist: m.canonicalArtist,
-      displayTitle: m.displayTitle,
-      displayArtist: m.displayArtist,
-      matchConfidence: m.matchConfidence,
-      isConfirmed: m.isConfirmed,
-      matchedSongs: m.matchedSongs,
-      participantCount: m.participantCount,
-      computedAt: now,
+    // The Edge Function returns the new matches in camelCase format.
+    // Convert date strings to Date objects to match the JamSongMatch model.
+    return ((data as JamSongMatch[]) ?? []).map(m => ({
+      ...m,
+      computedAt: new Date(m.computedAt),
     }))
-
-    return repository.upsertJamSongMatches(sessionId, jamMatches)
   }
 
   /**
@@ -259,32 +310,87 @@ export class JamSessionService {
   }
 
   /**
+   * Update the session's settings JSONB (e.g. to persist hostSongIds).
+   */
+  static async updateSessionSettings(
+    sessionId: string,
+    settingsUpdate: JamSession['settings']
+  ): Promise<void> {
+    const session = await repository.getJamSession(sessionId)
+    if (!session) return
+    await repository.updateJamSession(sessionId, {
+      settings: { ...session.settings, ...settingsUpdate },
+    })
+  }
+
+  /**
    * Save a jam session as a personal setlist.
-   * Creates a personal setlist from confirmed matches.
+   *
+   * Two modes:
+   * - **Explicit** (`setlistSongs` provided): uses the host's curated ordered list directly.
+   * - **Auto** (no `setlistSongs`): builds from all confirmed matches, then appends `queuedSongs`.
+   *
+   * @param sessionId The jam session ID
+   * @param hostUserId The host user's ID (used to pick their song copy from matches)
+   * @param setlistName Optional name override for the setlist
+   * @param queuedSongs Optional manually queued songs to append after auto-matched items (auto mode only)
+   * @param setlistSongs Explicitly curated + ordered song list (takes priority over auto mode)
    */
   static async saveAsSetlist(
     sessionId: string,
     hostUserId: string,
-    setlistName?: string
+    setlistName?: string,
+    queuedSongs?: Song[],
+    setlistSongs?: Song[]
   ): Promise<Setlist> {
     const session = await repository.getJamSession(sessionId)
     if (!session) throw new Error('Jam session not found')
 
-    const matches = await repository.getJamSongMatches(sessionId)
-    const confirmedMatches = matches.filter(m => m.isConfirmed)
+    let items: SetlistItem[]
 
-    // Build setlist items from confirmed matches
-    // Use the host's song ID when available
-    const items: SetlistItem[] = confirmedMatches.map((match, index) => {
-      const hostSong = match.matchedSongs.find(ms => ms.userId === hostUserId)
-      return {
+    if (setlistSongs && setlistSongs.length > 0) {
+      // Explicit mode: host has curated the setlist in the Setlist panel
+      items = setlistSongs.map((song, index) => ({
         id: crypto.randomUUID(),
         type: 'song' as const,
         position: index + 1,
-        songId: hostSong?.songId,
-        notes: `Matched ${match.participantCount} participants`,
-      }
-    })
+        songId: song.id,
+        notes: undefined,
+      }))
+    } else {
+      // Auto mode: build from confirmed matches + optional queued songs
+      const matches = await repository.getJamSongMatches(sessionId)
+      const confirmedMatches = matches.filter(m => m.isConfirmed)
+
+      // Build setlist items from confirmed matches
+      // Use the host's song ID when available
+      const matchItems: SetlistItem[] = confirmedMatches.map((match, index) => {
+        const hostSong = match.matchedSongs.find(ms => ms.userId === hostUserId)
+        return {
+          id: crypto.randomUUID(),
+          type: 'song' as const,
+          position: index + 1,
+          songId: hostSong?.songId,
+          notes: `Matched ${match.participantCount} participants`,
+        }
+      })
+
+      // Append manually queued songs after auto-matched items (dedup by songId)
+      const matchedSongIds = new Set(
+        matchItems.map(i => i.songId).filter(Boolean)
+      )
+      const queueItems: SetlistItem[] = (queuedSongs ?? [])
+        .filter(s => !matchedSongIds.has(s.id))
+        .map((song, idx) => ({
+          id: crypto.randomUUID(),
+          type: 'song' as const,
+          position: matchItems.length + idx + 1,
+          songId: song.id,
+          notes: undefined,
+        }))
+
+      items = [...matchItems, ...queueItems]
+    }
 
     // Create the personal setlist using SetlistService
     const name =

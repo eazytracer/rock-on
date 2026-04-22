@@ -4,7 +4,7 @@
  * This file is generated from the baseline schema migration.
  * To regenerate: npx ts-node scripts/generate-er-diagram.ts
  *
- * Generated: 2026-03-15T23:27:10.968Z
+ * Generated: 2026-04-22T19:50:48.611Z
  * Source: supabase/migrations/20251106000000_baseline_schema.sql
  */
 
@@ -233,6 +233,7 @@ erDiagram
         timestamptz created_date "NOT NULL, DEFAULT"
         timestamptz expires_at "NOT NULL"
         uuid saved_setlist_id "FK"
+        uuid seed_setlist_id "FK"
         text view_token "UK"
         timestamptz view_token_expires_at
         jsonb settings "DEFAULT"
@@ -354,6 +355,6 @@ erDiagram
 
 `
 
-export const generatedAt = '2026-03-15T23:27:10.968Z'
+export const generatedAt = '2026-04-22T19:50:48.611Z'
 export const sourceFile =
   'supabase/migrations/20251106000000_baseline_schema.sql'

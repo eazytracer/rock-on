@@ -63,7 +63,9 @@ Deno.serve(async (req: Request) => {
   // Look up the jam session
   const { data: session, error: sessionError } = await supabase
     .from('jam_sessions')
-    .select('id, name, host_user_id, status, expires_at, view_token_expires_at')
+    .select(
+      'id, name, host_user_id, status, expires_at, view_token_expires_at, settings'
+    )
     .eq('short_code', shortCode)
     .eq('view_token', hashedToken)
     .single()
@@ -128,6 +130,77 @@ Deno.serve(async (req: Request) => {
     .eq('jam_session_id', session.id)
     .eq('status', 'active')
 
+  // Resolve the host-curated broadcast setlist.
+  // Canonical shape: settings.setlistItems is an ordered array of objects
+  // { id, displayTitle, displayArtist }. Older sessions may still carry the
+  // legacy settings.setlistSongIds (bare IDs) — resolve those against both
+  // songs and jam_song_matches as a best effort, silently dropping stale IDs.
+  const settings = (session as Record<string, unknown>).settings as
+    | Record<string, unknown>
+    | undefined
+  const setlistItems = Array.isArray(settings?.setlistItems)
+    ? (settings!.setlistItems as Array<{
+        id?: string
+        displayTitle?: string
+        displayArtist?: string
+      }>)
+    : []
+  const legacyIds = Array.isArray(settings?.setlistSongIds)
+    ? (settings!.setlistSongIds as string[])
+    : []
+
+  const setlistEntries: Array<{
+    displayTitle: string
+    displayArtist: string
+  }> = []
+
+  if (setlistItems.length > 0) {
+    for (const item of setlistItems) {
+      if (item?.displayTitle) {
+        setlistEntries.push({
+          displayTitle: item.displayTitle,
+          displayArtist: item.displayArtist ?? '',
+        })
+      }
+    }
+  } else if (legacyIds.length > 0) {
+    const [{ data: songRows }, { data: matchRows }] = await Promise.all([
+      supabase.from('songs').select('id, title, artist').in('id', legacyIds),
+      supabase
+        .from('jam_song_matches')
+        .select('id, display_title, display_artist')
+        .in('id', legacyIds),
+    ])
+
+    const byId = new Map<
+      string,
+      { displayTitle: string; displayArtist: string }
+    >()
+    for (const row of (songRows ?? []) as Array<{
+      id: string
+      title: string
+      artist: string
+    }>) {
+      byId.set(row.id, { displayTitle: row.title, displayArtist: row.artist })
+    }
+    for (const row of (matchRows ?? []) as Array<{
+      id: string
+      display_title: string
+      display_artist: string
+    }>) {
+      if (!byId.has(row.id)) {
+        byId.set(row.id, {
+          displayTitle: row.display_title,
+          displayArtist: row.display_artist,
+        })
+      }
+    }
+    for (const id of legacyIds) {
+      const entry = byId.get(id)
+      if (entry) setlistEntries.push(entry)
+    }
+  }
+
   // Build safe public payload — NO user IDs, emails, or raw catalog data
   const payload = {
     sessionName: session.name || 'Jam Session',
@@ -139,6 +212,7 @@ Deno.serve(async (req: Request) => {
       displayArtist: m.display_artist,
       matchConfidence: m.match_confidence,
     })),
+    setlist: setlistEntries,
   }
 
   return new Response(JSON.stringify(payload), {

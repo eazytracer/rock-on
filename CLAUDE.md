@@ -97,6 +97,17 @@ npm run build      # Build for production
 
 ### Local Development Setup
 
+**ALWAYS use `npm run start:dev` to start the development environment — never start Supabase, the dev server, or edge functions manually.**
+
+`npm run start:dev` (via `scripts/start-dev.sh`) handles the full startup sequence:
+
+1. Starts local Supabase (if not already running)
+2. Sets the `.env.local` to development config
+3. Starts the **Edge Functions runtime** in the background (`supabase functions serve --no-verify-jwt`) — required for Jam Session (`jam-view`) and Spotify search features
+4. Starts the Vite dev server
+
+Edge function logs are written to `/tmp/edge-functions.log`.
+
 ```bash
 # First time setup (generates .env.development and .env.test from local Supabase)
 npm run setup:local
@@ -106,6 +117,9 @@ npm run setup:local
 # - Extracts API keys from supabase status
 # - Generates .env.development with local config
 # - Generates .env.test with service role key for E2E tests
+
+# Start full dev environment (Supabase + edge functions + Vite)
+npm run start:dev
 ```
 
 ### Supabase Commands
@@ -741,6 +755,24 @@ mkdir -p .claude/active-work/issues/my-issue/
 - `.claude/features/` - Feature plans and specs
 
 <!-- MANUAL ADDITIONS END -->
+
+## Repository Layer Guardrails (CRITICAL)
+
+**Never write directly to `db.*` (Dexie/IndexedDB) outside the storage layer.**
+
+Direct writes bypass the sync queue — Supabase will never see the change.
+Always use `repository.addSong()`, `repository.updateSong()`, etc. (see `IDataRepository.ts`).
+
+Two enforced guardrails catch violations automatically:
+
+- **ESLint** (`npm run lint`) — `error` on new files, `warn` on known tech debt
+- **Static test** (`npm test`) — ratchet in `tests/unit/guardrails/db-direct-write.test.ts`
+
+**Allowed files** (storage layer — may write to `db.*` directly):
+`LocalRepository.ts`, `SyncEngine.ts`, `RealtimeManager.ts`, seed files, `DatabaseService.ts`, `src/services/database/index.ts`
+
+**Known violations** (existing tech debt — list must only ever shrink):
+See `KNOWN_VIOLATIONS` in `tests/unit/guardrails/db-direct-write.test.ts` and the `overrides` block in `.eslintrc.cjs`. When migrating a file, remove it from both.
 
 - please do not suggest skipping tests or addressing them later. If it was important enough to make the test case then it should pass. If they are truly frivolous we should delete them. When asked to address test findings you should always work to fix the source code after validating the test is correct and necessary.
 - We need to be using unique and logical identifiers for our viewport elements to assist in e2e testing and observability. If you are working on e2e tests and find an element that you need to check for that does not have an id, do not use alternative methods to find it, instead add an id to the element. If this causes significant changes, draft an artifact explaining what needs to be changed and prompt the user to have another agent apply the fixes

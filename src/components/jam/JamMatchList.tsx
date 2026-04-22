@@ -1,13 +1,16 @@
 import React from 'react'
-import { Music, AlertTriangle, Check, X, Users } from 'lucide-react'
+import { Music, AlertTriangle, Check, X, Users, Plus } from 'lucide-react'
 import type { JamSongMatch } from '../../models/JamSession'
 
 interface JamMatchListProps {
   matches: JamSongMatch[]
   isHost?: boolean
   readOnly?: boolean
+  /** IDs already added to the setlist — used to show added state on the button */
+  setlistMatchIds?: Set<string>
   onConfirm?: (matchId: string) => void
   onDismiss?: (matchId: string) => void
+  onAddToSetlist?: (match: JamSongMatch) => void
 }
 
 /**
@@ -21,8 +24,10 @@ export const JamMatchList: React.FC<JamMatchListProps> = ({
   matches,
   isHost = false,
   readOnly = false,
+  setlistMatchIds,
   onConfirm,
   onDismiss,
+  onAddToSetlist,
 }) => {
   const confirmedMatches = matches.filter(m => m.isConfirmed)
   const fuzzyMatches = matches.filter(m => !m.isConfirmed)
@@ -51,8 +56,10 @@ export const JamMatchList: React.FC<JamMatchListProps> = ({
           match={match}
           isHost={isHost}
           readOnly={readOnly}
+          inSetlist={setlistMatchIds?.has(match.id) ?? false}
           onConfirm={onConfirm}
           onDismiss={onDismiss}
+          onAddToSetlist={onAddToSetlist}
         />
       ))}
 
@@ -71,8 +78,10 @@ export const JamMatchList: React.FC<JamMatchListProps> = ({
               match={match}
               isHost={isHost}
               readOnly={readOnly}
+              inSetlist={false}
               onConfirm={onConfirm}
               onDismiss={onDismiss}
+              onAddToSetlist={onAddToSetlist}
             />
           ))}
         </>
@@ -95,16 +104,21 @@ interface MatchItemProps {
   match: JamSongMatch
   isHost: boolean
   readOnly: boolean
+  /** Whether this match has already been added to the setlist */
+  inSetlist: boolean
   onConfirm?: (id: string) => void
   onDismiss?: (id: string) => void
+  onAddToSetlist?: (match: JamSongMatch) => void
 }
 
 const MatchItem: React.FC<MatchItemProps> = ({
   match,
   isHost,
   readOnly,
+  inSetlist,
   onConfirm,
   onDismiss,
+  onAddToSetlist,
 }) => {
   const isFuzzy = !match.isConfirmed
 
@@ -142,6 +156,24 @@ const MatchItem: React.FC<MatchItemProps> = ({
       {/* Fuzzy match warning */}
       {isFuzzy && (
         <AlertTriangle size={14} className="text-amber-400 flex-shrink-0" />
+      )}
+
+      {/* Add to Setlist button — confirmed matches, host only, non-readonly */}
+      {!isFuzzy && isHost && !readOnly && onAddToSetlist && (
+        <button
+          data-testid={`jam-match-add-setlist-${match.id}`}
+          onClick={() => onAddToSetlist(match)}
+          disabled={inSetlist}
+          title={inSetlist ? 'Already in setlist' : 'Add to setlist'}
+          aria-label={`Add ${match.displayTitle} to setlist`}
+          className={`p-1 rounded-md transition-colors flex-shrink-0 ${
+            inSetlist
+              ? 'text-[#f17827ff] opacity-60 cursor-default'
+              : 'text-[#707070] hover:text-[#f17827ff] hover:bg-[#f17827ff]/10'
+          }`}
+        >
+          <Plus size={14} />
+        </button>
       )}
 
       {/* Confirm/dismiss buttons (host only, non-readonly, fuzzy matches) */}

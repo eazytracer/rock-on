@@ -686,6 +686,9 @@ export class LocalRepository implements IDataRepository {
     )
   }
 
+  async getActiveJamSessionsForUser(_userId: string): Promise<JamSession[]> {
+    return this._jamError()
+  }
   async getJamSession(_id: string): Promise<JamSession | null> {
     return this._jamError()
   }

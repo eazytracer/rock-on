@@ -1527,6 +1527,60 @@ export class RemoteRepository implements IDataRepository {
 
   // ========== JAM SESSIONS ==========
 
+  async getActiveJamSessionsForUser(userId: string): Promise<JamSession[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    // Sessions the user is hosting
+    const { data: hostedData, error: hostedError } = await supabase
+      .from('jam_sessions')
+      .select('*')
+      .eq('host_user_id', userId)
+      .eq('status', 'active')
+      .order('created_date', { ascending: false })
+    if (hostedError) throw hostedError
+
+    // Sessions the user joined as a participant (not necessarily host)
+    const { data: participantData, error: participantError } = await supabase
+      .from('jam_participants')
+      .select('jam_session_id')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+    if (participantError) throw participantError
+
+    const participantSessionIds = (participantData ?? []).map(
+      (r: { jam_session_id: string }) => r.jam_session_id
+    )
+
+    let participatingSessions: JamSession[] = []
+    if (participantSessionIds.length > 0) {
+      const { data: participatingData, error: participatingError } =
+        await supabase
+          .from('jam_sessions')
+          .select('*')
+          .in('id', participantSessionIds)
+          .eq('status', 'active')
+          .order('created_date', { ascending: false })
+      if (participatingError) throw participatingError
+      participatingSessions = (participatingData ?? []).map((row: any) =>
+        this.mapJamSessionFromSupabase(row)
+      )
+    }
+
+    // Merge and deduplicate (user may appear in both as host + participant)
+    const hosted = (hostedData ?? []).map((row: any) =>
+      this.mapJamSessionFromSupabase(row)
+    )
+    const seen = new Set(hosted.map(s => s.id))
+    const merged = [...hosted]
+    for (const s of participatingSessions) {
+      if (!seen.has(s.id)) {
+        merged.push(s)
+        seen.add(s.id)
+      }
+    }
+    return merged
+  }
+
   async getJamSession(id: string): Promise<JamSession | null> {
     if (!supabase) throw new Error('Supabase client not initialized')
     const { data, error } = await supabase
@@ -1586,13 +1640,40 @@ export class RemoteRepository implements IDataRepository {
 
   async getJamParticipants(sessionId: string): Promise<JamParticipant[]> {
     if (!supabase) throw new Error('Supabase client not initialized')
+    // Note: PostgREST cannot auto-embed user_profiles here — both jam_participants
+    // and user_profiles FK to users.id independently, with no direct FK between
+    // them. We do a separate lookup and merge. Reading other participants'
+    // display_name is gated by the user_profiles_select_jam_coparticipant RLS
+    // policy (added 2026-04-19).
     const { data, error } = await supabase
       .from('jam_participants')
       .select('*')
       .eq('jam_session_id', sessionId)
       .eq('status', 'active')
     if (error) throw error
-    return data.map(row => this.mapJamParticipantFromSupabase(row))
+    const rows = (data as any[]) ?? []
+    if (rows.length === 0) return []
+
+    const userIds = Array.from(new Set(rows.map(row => row.user_id as string)))
+    const { data: profiles, error: profilesError } = await supabase
+      .from('user_profiles')
+      .select('user_id, display_name')
+      .in('user_id', userIds)
+    if (profilesError) throw profilesError
+
+    const profileByUserId = new Map<string, { display_name?: string }>()
+    for (const profile of (profiles as any[]) ?? []) {
+      profileByUserId.set(profile.user_id, {
+        display_name: profile.display_name ?? undefined,
+      })
+    }
+
+    return rows.map(row =>
+      this.mapJamParticipantFromSupabase({
+        ...row,
+        user_profiles: profileByUserId.get(row.user_id) ?? null,
+      })
+    )
   }
 
   async addJamParticipant(
@@ -1675,6 +1756,8 @@ export class RemoteRepository implements IDataRepository {
     if (session.expiresAt !== undefined) result.expires_at = session.expiresAt
     if (session.savedSetlistId !== undefined)
       result.saved_setlist_id = session.savedSetlistId ?? null
+    if (session.seedSetlistId !== undefined)
+      result.seed_setlist_id = session.seedSetlistId ?? null
     if (session.viewToken !== undefined)
       result.view_token = session.viewToken ?? null
     if (session.viewTokenExpiresAt !== undefined)
@@ -1696,6 +1779,7 @@ export class RemoteRepository implements IDataRepository {
       createdDate: new Date(row.created_date),
       expiresAt: new Date(row.expires_at),
       savedSetlistId: row.saved_setlist_id ?? undefined,
+      seedSetlistId: row.seed_setlist_id ?? undefined,
       viewToken: row.view_token ?? undefined,
       viewTokenExpiresAt: row.view_token_expires_at
         ? new Date(row.view_token_expires_at)
@@ -1722,6 +1806,7 @@ export class RemoteRepository implements IDataRepository {
   }
 
   private mapJamParticipantFromSupabase(row: any): JamParticipant {
+    const profile = row.user_profiles as { display_name?: string } | null
     return {
       id: row.id,
       jamSessionId: row.jam_session_id,
@@ -1729,7 +1814,7 @@ export class RemoteRepository implements IDataRepository {
       joinedDate: new Date(row.joined_date),
       status: row.status,
       sharedContexts: row.shared_contexts ?? [],
-      displayName: undefined, // Enriched separately
+      displayName: profile?.display_name ?? undefined,
     }
   }
 

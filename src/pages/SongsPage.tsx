@@ -19,6 +19,7 @@ import {
   Edit,
   ExternalLink,
   FileText,
+  UserPlus,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database hooks and utilities
 import {
@@ -50,6 +51,7 @@ import type { Song as ModelSong } from '../models/Song'
 // Confirmation dialog (replaces window.confirm)
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
+import { SongLinkingService } from '../services/SongLinkingService'
 
 interface SongLink {
   id: string
@@ -488,6 +490,10 @@ interface SongRowProps {
   onDuplicate: (song: Song) => void
   onAddToSetlist: (song: Song) => void
   onOpenNotes: (song: Song) => void
+  /** When defined, shows "Copy to My Songs" in the kebab menu (band tab only) */
+  onCopyToPersonal?: (song: Song) => void
+  /** Whether this song has already been copied to the personal catalog */
+  alreadyCopied?: boolean
   openActionMenuId: string | null
   setOpenActionMenuId: (id: string | null) => void
 }
@@ -499,6 +505,8 @@ const SongRow: React.FC<SongRowProps> = ({
   onDuplicate,
   onAddToSetlist,
   onOpenNotes,
+  onCopyToPersonal,
+  alreadyCopied,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
@@ -607,6 +615,25 @@ const SongRow: React.FC<SongRowProps> = ({
                   <ListPlus size={16} />
                   <span>Add to Setlist</span>
                 </button>
+                {onCopyToPersonal && (
+                  <button
+                    onClick={() => !alreadyCopied && onCopyToPersonal(song)}
+                    disabled={alreadyCopied}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                      alreadyCopied
+                        ? 'text-[#707070] cursor-default'
+                        : 'text-white hover:bg-[#2a2a2a]'
+                    }`}
+                    data-testid="copy-to-personal-button"
+                  >
+                    <UserPlus size={16} />
+                    <span>
+                      {alreadyCopied
+                        ? 'Already in My Songs'
+                        : 'Copy to My Songs'}
+                    </span>
+                  </button>
+                )}
                 <button
                   onClick={() => onDuplicate(song)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
@@ -641,6 +668,8 @@ const SongCard: React.FC<SongRowProps> = ({
   onDuplicate,
   onAddToSetlist,
   onOpenNotes,
+  onCopyToPersonal,
+  alreadyCopied,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
@@ -709,6 +738,23 @@ const SongCard: React.FC<SongRowProps> = ({
                 <ListPlus size={16} />
                 <span>Add to Setlist</span>
               </button>
+              {onCopyToPersonal && (
+                <button
+                  onClick={() => !alreadyCopied && onCopyToPersonal(song)}
+                  disabled={alreadyCopied}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                    alreadyCopied
+                      ? 'text-[#707070] cursor-default'
+                      : 'text-white hover:bg-[#2a2a2a]'
+                  }`}
+                  data-testid="copy-to-personal-button"
+                >
+                  <UserPlus size={16} />
+                  <span>
+                    {alreadyCopied ? 'Already in My Songs' : 'Copy to My Songs'}
+                  </span>
+                </button>
+              )}
               <button
                 onClick={() => onDuplicate(song)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
@@ -1219,6 +1265,28 @@ export const SongsPage: React.FC = () => {
     setOpenActionMenuId(null)
   }
 
+  // IDs of band songs that have already been copied to the personal catalog
+  // (derived from linkedFromSongId on personal songs)
+  const copiedBandSongIds = useMemo(() => {
+    return new Set(
+      dbPersonalSongs
+        .map(s => s.linkedFromSongId)
+        .filter((id): id is string => !!id)
+    )
+  }, [dbPersonalSongs])
+
+  // Copy a band song to the personal catalog
+  const handleCopyToPersonal = async (song: Song) => {
+    setOpenActionMenuId(null)
+    try {
+      await SongLinkingService.copyBandSongToPersonal(song.id, currentUserId)
+      await personalRefetch()
+      showToast(`"${song.title}" added to My Songs`, 'success')
+    } catch (err) {
+      showToast(`Failed to copy song: ${(err as Error).message}`, 'error')
+    }
+  }
+
   // Toggle tag selection
   const toggleTag = (tag: string) => {
     setSelectedTags(prev =>
@@ -1570,6 +1638,12 @@ export const SongsPage: React.FC = () => {
                       onOpenNotes={s =>
                         setSongNotesModal({ songId: s.id, songTitle: s.title })
                       }
+                      onCopyToPersonal={
+                        !isPersonalTab ? handleCopyToPersonal : undefined
+                      }
+                      alreadyCopied={
+                        !isPersonalTab && copiedBandSongIds.has(song.id)
+                      }
                       openActionMenuId={openActionMenuId}
                       setOpenActionMenuId={setOpenActionMenuId}
                     />
@@ -1591,6 +1665,12 @@ export const SongsPage: React.FC = () => {
                     onAddToSetlist={handleAddToSetlist}
                     onOpenNotes={s =>
                       setSongNotesModal({ songId: s.id, songTitle: s.title })
+                    }
+                    onCopyToPersonal={
+                      !isPersonalTab ? handleCopyToPersonal : undefined
+                    }
+                    alreadyCopied={
+                      !isPersonalTab && copiedBandSongIds.has(song.id)
                     }
                     openActionMenuId={openActionMenuId}
                     setOpenActionMenuId={setOpenActionMenuId}

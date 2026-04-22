@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { Radio, Music, Users, ArrowRight } from 'lucide-react'
+import { Radio, Music, Users, ArrowRight, ListMusic } from 'lucide-react'
 import { JamMatchList } from '../components/jam/JamMatchList'
 import type { JamViewPublicPayload } from '../models/JamSession'
 
@@ -55,6 +55,13 @@ export const JamViewPage: React.FC = () => {
                 displayTitle: 'Bohemian Rhapsody',
                 displayArtist: 'Queen',
                 matchConfidence: 'exact',
+              },
+            ],
+            setlist: [
+              { displayTitle: 'Wonderwall', displayArtist: 'Oasis' },
+              {
+                displayTitle: 'Bohemian Rhapsody',
+                displayArtist: 'Queen',
               },
             ],
           })
@@ -177,6 +184,38 @@ export const JamViewPage: React.FC = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Broadcast setlist (host-curated, read-only).
+                  Shown when the host has added songs to the Setlist tab. */}
+              {payload.setlist && payload.setlist.length > 0 && (
+                <div data-testid="jam-view-setlist">
+                  <h2 className="text-[#a0a0a0] text-sm font-medium uppercase tracking-wide mb-4 flex items-center gap-2">
+                    <ListMusic size={14} />
+                    Tonight's Setlist
+                  </h2>
+                  <ol className="space-y-2">
+                    {payload.setlist.map((item, idx) => (
+                      <li
+                        key={`${item.displayTitle}-${idx}`}
+                        className="flex items-center gap-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3"
+                        data-testid={`jam-view-setlist-item-${idx}`}
+                      >
+                        <span className="text-amber-400 font-mono text-sm w-6 shrink-0">
+                          {idx + 1}.
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-white text-sm font-medium truncate">
+                            {item.displayTitle}
+                          </p>
+                          <p className="text-[#707070] text-xs truncate">
+                            {item.displayArtist}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
 
               {/* Match list (read-only) */}
               <div>

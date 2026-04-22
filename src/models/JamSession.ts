@@ -6,11 +6,46 @@
  * for impromptu performances.
  */
 
+/**
+ * One entry in the host's curated jam setlist. Stored as an object (not just an
+ * ID) because jam_song_matches rows are regenerated on every recompute — any
+ * stored match ID becomes orphan the moment another participant joins. Carrying
+ * `displayTitle` / `displayArtist` alongside the ID means:
+ *
+ *   1. Participants without the song in their own catalog can still see what's
+ *      on the setlist (no cross-user fetch needed).
+ *   2. Anonymous viewers (via jam-view Edge Function) get the full setlist
+ *      without server-side ID resolution.
+ *   3. If the underlying match row is regenerated, the setlist entry still
+ *      renders correctly using the captured display values.
+ *
+ * The `id` field is a stable reference when possible (host's personal song
+ * UUID) but may also be a non-resolving synthetic ID for external songs — UI
+ * code must not assume `id` corresponds to any table's row.
+ */
+export interface JamSetlistItem {
+  id: string
+  displayTitle: string
+  displayArtist: string
+}
+
 export interface JamSessionSettings {
   /** Jaro-Winkler similarity threshold for fuzzy matching (default: 0.92) */
   matchThreshold?: number
   /** Maximum number of participants (null = unlimited, pro only) */
   maxParticipants?: number | null
+  /** Host's manually queued song IDs (from personal catalog) */
+  hostSongIds?: string[]
+  /**
+   * Ordered host-curated setlist.
+   *
+   * Written as `setlistItems` going forward. The legacy `setlistSongIds`
+   * string[] field (pre-2026-04-20) may still exist on older sessions and is
+   * read as a fallback; new writes always populate `setlistItems`.
+   */
+  setlistItems?: JamSetlistItem[]
+  /** @deprecated Read-only legacy fallback; new code writes `setlistItems`. */
+  setlistSongIds?: string[]
 }
 
 export interface JamSession {
@@ -22,6 +57,13 @@ export interface JamSession {
   createdDate: Date
   expiresAt: Date
   savedSetlistId?: string // Set when session is saved as a setlist
+  /**
+   * Optional seed setlist used to pre-populate the host's curated setlist when
+   * the session was created. The referenced setlist's items are copied into
+   * settings.setlistSongIds at creation time; this column is retained for
+   * provenance/UI display only.
+   */
+  seedSetlistId?: string
   /** Raw (pre-hash) view token — only present immediately after session creation */
   viewToken?: string
   viewTokenExpiresAt?: Date
@@ -77,5 +119,15 @@ export interface JamViewPublicPayload {
     displayTitle: string
     displayArtist: string
     matchConfidence: 'exact' | 'fuzzy' | 'manual'
+  }>
+  /**
+   * Broadcast setlist curated by the host — the ordered list of songs the host
+   * has picked for this jam. Reflects the current value of
+   * `jam_sessions.settings.setlistSongIds`. When empty, the UI should fall back
+   * to just the match list.
+   */
+  setlist?: Array<{
+    displayTitle: string
+    displayArtist: string
   }>
 }

@@ -365,11 +365,17 @@ CREATE TABLE public.jam_sessions (
   expires_at TIMESTAMPTZ NOT NULL,            -- 24h for free tier, 7d for pro
   saved_setlist_id UUID REFERENCES public.setlists(id) ON DELETE SET NULL,
 
+  -- Optional seed setlist: when set, the session's setlistSongIds are pre-populated
+  -- from this setlist's items at creation time. Reference is kept after creation for
+  -- provenance/UI display. SET NULL on delete so seed-setlist removal doesn't break
+  -- the session.
+  seed_setlist_id UUID REFERENCES public.setlists(id) ON DELETE SET NULL,
+
   -- Read-only anonymous access token (SHA-256 hashed UUID, for Edge Function)
   view_token TEXT UNIQUE,
   view_token_expires_at TIMESTAMPTZ,
 
-  -- Session config (matchThreshold, maxParticipants, etc.)
+  -- Session config (matchThreshold, maxParticipants, hostSongIds, setlistSongIds, etc.)
   settings JSONB DEFAULT '{}'::jsonb,
 
   -- Version tracking
@@ -1130,6 +1136,34 @@ ALTER FUNCTION is_jam_participant(UUID, UUID) OWNER TO postgres;
 GRANT EXECUTE ON FUNCTION is_jam_participant(UUID, UUID) TO authenticated;
 COMMENT ON FUNCTION is_jam_participant IS 'Check if user is an active jam session participant - SECURITY DEFINER to prevent RLS recursion';
 
+-- Helper: check if two users are both active participants in the same active jam session.
+-- SECURITY DEFINER to avoid RLS recursion when called from RLS policies.
+CREATE OR REPLACE FUNCTION are_jam_coparticipants(p_caller UUID, p_song_owner UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.jam_participants jp_caller
+    JOIN public.jam_participants jp_owner
+      ON jp_caller.jam_session_id = jp_owner.jam_session_id
+    JOIN public.jam_sessions js
+      ON js.id = jp_caller.jam_session_id
+    WHERE jp_caller.user_id = p_caller
+      AND jp_owner.user_id  = p_song_owner
+      AND jp_caller.status  = 'active'
+      AND jp_owner.status   = 'active'
+      AND js.status         = 'active'
+  );
+$$;
+
+ALTER FUNCTION are_jam_coparticipants(UUID, UUID) OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION are_jam_coparticipants(UUID, UUID) TO authenticated;
+COMMENT ON FUNCTION are_jam_coparticipants IS 'Returns true when both users are active participants in the same active jam session. Used by RLS to allow cross-participant personal song reads.';
+
 -- ============================================================================
 -- SECTION 8: Row-Level Security (RLS) Policies
 -- ============================================================================
@@ -1170,9 +1204,31 @@ ALTER TABLE public.shows FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.practice_sessions FORCE ROW LEVEL SECURITY;
 
 -- Users policies (optimized with subquery)
-CREATE POLICY "users_select_authenticated"
+-- NOTE: The previous "users_select_authenticated USING (true)" policy allowed any
+-- authenticated user to read every other user's row (including email). Replaced with
+-- three scoped SELECT policies: self, band co-members, and jam co-participants.
+CREATE POLICY "users_select_self"
   ON public.users FOR SELECT TO authenticated
-  USING (true);
+  USING (id = (select auth.uid()));
+
+CREATE POLICY "users_select_band_member"
+  ON public.users FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.band_memberships bm_self
+      JOIN public.band_memberships bm_other
+        ON bm_self.band_id = bm_other.band_id
+      WHERE bm_self.user_id = (select auth.uid())
+        AND bm_other.user_id = users.id
+        AND bm_self.status = 'active'
+        AND bm_other.status = 'active'
+    )
+  );
+
+CREATE POLICY "users_select_jam_coparticipant"
+  ON public.users FOR SELECT TO authenticated
+  USING (are_jam_coparticipants((select auth.uid()), users.id));
 
 CREATE POLICY "users_update_own"
   ON public.users FOR UPDATE TO authenticated
@@ -1188,6 +1244,13 @@ CREATE POLICY "users_insert_own"
 CREATE POLICY "user_profiles_select_own"
   ON public.user_profiles FOR SELECT TO authenticated
   USING ((select auth.uid()) = user_id);
+
+-- Allow reading display_name of other users in the same active jam session.
+-- Mirrors the songs_select_jam_coparticipant pattern used for cross-participant
+-- personal song reads. Required so the jam UI can show participant names.
+CREATE POLICY "user_profiles_select_jam_coparticipant"
+  ON public.user_profiles FOR SELECT TO authenticated
+  USING (are_jam_coparticipants((select auth.uid()), user_id));
 
 CREATE POLICY "user_profiles_insert_own"
   ON public.user_profiles FOR INSERT TO authenticated
@@ -1293,6 +1356,15 @@ CREATE POLICY "songs_select_personal_own"
   USING (
     context_type = 'personal' AND
     context_id = (select auth.uid())::text
+  );
+
+-- Jam session matching: allow a participant to read co-participants' personal songs
+-- so that recomputeMatches() can see all participants' catalogs, not just the caller's.
+CREATE POLICY "songs_select_jam_coparticipant"
+  ON public.songs FOR SELECT TO authenticated
+  USING (
+    context_type = 'personal' AND
+    are_jam_coparticipants((select auth.uid()), songs.context_id::uuid)
   );
 
 CREATE POLICY "songs_insert_personal_own"
@@ -1598,7 +1670,14 @@ CREATE POLICY "jam_song_matches_update_host"
     )
   );
 
--- Matches are inserted by service via service_role; host can delete dismissed matches
+-- recomputeMatches() runs client-side, so any active participant can insert/replace matches
+CREATE POLICY "jam_song_matches_insert_participant"
+  ON public.jam_song_matches FOR INSERT TO authenticated
+  WITH CHECK (
+    is_jam_participant(jam_session_id, (select auth.uid()))
+  );
+
+-- Matches are replaced by any participant (upsert = delete + insert); host can also delete dismissed matches
 CREATE POLICY "jam_song_matches_delete_host"
   ON public.jam_song_matches FOR DELETE TO authenticated
   USING (
@@ -1635,6 +1714,87 @@ ALTER TABLE song_note_entries REPLICA IDENTITY FULL;
 ALTER TABLE jam_sessions REPLICA IDENTITY FULL;
 ALTER TABLE jam_participants REPLICA IDENTITY FULL;
 ALTER TABLE jam_song_matches REPLICA IDENTITY FULL;
+
+-- ============================================================================
+-- Jam Session: Atomic match replacement (used by jam-recompute Edge Function)
+-- ============================================================================
+
+/**
+ * replace_jam_matches(p_session_id, p_matches)
+ *
+ * Atomically replaces all jam_song_matches rows for a session in a single
+ * transaction. The Edge Function calls this RPC instead of doing a separate
+ * DELETE + INSERT so that:
+ *   - No Realtime subscriber ever sees a window of 0 matches
+ *   - Concurrent Edge Function invocations cannot interleave their writes
+ *
+ * p_matches JSONB format (array):
+ * [
+ *   {
+ *     "id": "uuid",
+ *     "canonical_title": "...",
+ *     "canonical_artist": "...",
+ *     "display_title": "...",
+ *     "display_artist": "...",
+ *     "match_confidence": "exact"|"fuzzy"|"manual",
+ *     "is_confirmed": true|false,
+ *     "matched_songs": [...],   -- stored as-is in JSONB
+ *     "participant_count": 2
+ *   }
+ * ]
+ *
+ * Security: SECURITY DEFINER runs as the function owner (postgres), bypassing
+ * RLS. The Edge Function is responsible for verifying the caller is a session
+ * participant before invoking this RPC.
+ */
+CREATE OR REPLACE FUNCTION public.replace_jam_matches(
+  p_session_id UUID,
+  p_matches    JSONB
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Delete all existing matches for this session
+  DELETE FROM jam_song_matches WHERE jam_session_id = p_session_id;
+
+  -- Insert the new computed matches (no-op if array is empty)
+  IF jsonb_array_length(p_matches) > 0 THEN
+    INSERT INTO jam_song_matches (
+      id,
+      jam_session_id,
+      canonical_title,
+      canonical_artist,
+      display_title,
+      display_artist,
+      match_confidence,
+      is_confirmed,
+      matched_songs,
+      participant_count,
+      computed_at
+    )
+    SELECT
+      (elem->>'id')::UUID,
+      p_session_id,
+      elem->>'canonical_title',
+      elem->>'canonical_artist',
+      elem->>'display_title',
+      elem->>'display_artist',
+      elem->>'match_confidence',
+      (elem->>'is_confirmed')::BOOLEAN,
+      elem->'matched_songs',
+      (elem->>'participant_count')::INTEGER,
+      NOW()
+    FROM jsonb_array_elements(p_matches) AS elem;
+  END IF;
+END;
+$$;
+
+-- Grant execute to authenticated users (Edge Function uses service role,
+-- but the grant ensures anon/authenticated tokens can also call it if needed)
+GRANT EXECUTE ON FUNCTION public.replace_jam_matches(UUID, JSONB) TO authenticated;
 
 -- ============================================================================
 -- Migration Complete

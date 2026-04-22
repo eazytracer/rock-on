@@ -159,6 +159,9 @@ export interface IDataRepository {
 
   // ========== JAM SESSIONS (Supabase-only, no local cache) ==========
 
+  /** Get all active jam sessions for a user (as host or active participant) */
+  getActiveJamSessionsForUser(userId: string): Promise<JamSession[]>
+
   /** Get a jam session by ID */
   getJamSession(id: string): Promise<JamSession | null>
 

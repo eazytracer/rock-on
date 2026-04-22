@@ -5,12 +5,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { repository } from '../services/data/RepositoryFactory'
 import { JamSessionService } from '../services/JamSessionService'
+import { getSupabaseClient } from '../services/supabase/client'
 import type {
   JamSession,
   JamParticipant,
   JamSongMatch,
 } from '../models/JamSession'
 import type { Setlist } from '../models/Setlist'
+import type { Song } from '../models/Song'
 
 interface UseJamSessionState {
   session: JamSession | null
@@ -22,11 +24,16 @@ interface UseJamSessionState {
 }
 
 interface UseJamSessionActions {
-  joinSession: (shortCode: string, userId: string) => Promise<void>
+  joinSession: (shortCode: string, userId: string) => Promise<JamSession>
   leaveSession: (participantId: string) => Promise<void>
   confirmMatch: (matchId: string) => Promise<void>
   dismissMatch: (matchId: string) => Promise<void>
-  saveAsSetlist: (hostUserId: string, name?: string) => Promise<Setlist>
+  saveAsSetlist: (
+    hostUserId: string,
+    name?: string,
+    queuedSongs?: Song[],
+    setlistSongs?: Song[]
+  ) => Promise<Setlist>
   refetch: () => Promise<void>
 }
 
@@ -40,36 +47,73 @@ export function useJamSession(
   const [error, setError] = useState<Error | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  const fetchSession = useCallback(async () => {
-    if (!sessionId) {
-      setSession(null)
-      setParticipants([])
-      setMatches([])
-      setLoading(false)
-      return
-    }
+  const fetchSession = useCallback(
+    async (silent = false) => {
+      if (!sessionId) {
+        setSession(null)
+        setParticipants([])
+        setMatches([])
+        setLoading(false)
+        return
+      }
 
-    try {
-      setLoading(true)
-      const [s, p, m] = await Promise.all([
-        repository.getJamSession(sessionId),
-        repository.getJamParticipants(sessionId),
-        repository.getJamSongMatches(sessionId),
-      ])
-      setSession(s)
-      setParticipants(p)
-      setMatches(m)
-      setError(null)
-    } catch (err) {
-      setError(err as Error)
-    } finally {
-      setLoading(false)
-    }
-  }, [sessionId])
+      try {
+        // Only show the loading spinner on the initial page load.
+        // Background refreshes (e.g. from Realtime subscription) pass silent=true
+        // so they don't flash the spinner and disrupt the in-session UI.
+        if (!silent) setLoading(true)
+        const [s, p, m] = await Promise.all([
+          repository.getJamSession(sessionId),
+          repository.getJamParticipants(sessionId),
+          repository.getJamSongMatches(sessionId),
+        ])
+        setSession(s)
+        setParticipants(p)
+        setMatches(m)
+        setError(null)
+      } catch (err) {
+        setError(err as Error)
+      } finally {
+        if (!silent) setLoading(false)
+      }
+    },
+    [sessionId]
+  )
 
   useEffect(() => {
     void fetchSession()
   }, [fetchSession])
+
+  // Realtime: subscribe to jam_sessions so all participants see settings
+  // changes (e.g. setlistSongIds written by the host) without a manual refresh.
+  useEffect(() => {
+    if (!sessionId) return
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+
+    const channel = supabase
+      .channel(`jam:session-meta:${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'jam_sessions',
+          filter: `id=eq.${sessionId}`,
+        },
+        () => {
+          // Re-fetch the full session so session.settings reflects the latest
+          // host writes (e.g. setlistSongIds, hostSongIds).
+          // silent=true: don't show loading spinner for background refreshes.
+          void fetchSession(true)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [sessionId, fetchSession])
 
   // Check for expiry on load
   useEffect(() => {
@@ -85,8 +129,10 @@ export function useJamSession(
 
   const joinSession = useCallback(
     async (shortCode: string, userId: string) => {
-      await JamSessionService.joinSession(shortCode, userId)
+      const joined = await JamSessionService.joinSession(shortCode, userId)
       await fetchSession()
+      // Return the session so callers can navigate to /jam/:id
+      return joined
     },
     [fetchSession]
   )
@@ -134,14 +180,21 @@ export function useJamSession(
   )
 
   const saveAsSetlist = useCallback(
-    async (hostUserId: string, name?: string): Promise<Setlist> => {
+    async (
+      hostUserId: string,
+      name?: string,
+      queuedSongs?: Song[],
+      setlistSongs?: Song[]
+    ): Promise<Setlist> => {
       if (!sessionId) throw new Error('No session to save')
       setIsSaving(true)
       try {
         const setlist = await JamSessionService.saveAsSetlist(
           sessionId,
           hostUserId,
-          name
+          name,
+          queuedSongs,
+          setlistSongs
         )
         setSession(prev =>
           prev
