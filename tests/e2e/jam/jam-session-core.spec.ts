@@ -208,3 +208,50 @@ test.describe('Jam Session — Navigation and Page Load', () => {
     await expect(joinButton).not.toBeDisabled({ timeout: 2000 })
   })
 })
+
+test.describe('Jam Session — Setlist tab and seed-from-setlist', () => {
+  test('Setlist tab is visible and switching to it shows the empty-state CTA', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `Setlist Tab Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
+
+    // The Setlist tab should be present alongside Common Songs and My Queue.
+    const setlistTab = page.locator('[data-testid="tab-setlist"]')
+    await expect(setlistTab).toBeVisible({ timeout: 5000 })
+
+    await setlistTab.click()
+
+    // Empty-state copy + the "Add from my catalog" CTA must be reachable
+    // for the host (this is what wires the setlist persistence path).
+    await expect(
+      page.locator('[data-testid="jam-setlist-add-from-catalog-button"]')
+    ).toBeVisible({ timeout: 5000 })
+  })
+
+  test('seed-setlist <select> is shown on the create form', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `Seed Picker Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+
+    // The seed-setlist picker is rendered on the host-a-jam form. With no
+    // personal setlists the dropdown is disabled, but it must still be
+    // present so the test confirms the create-flow surface is wired.
+    const seedSelect = page.locator('[data-testid="jam-seed-setlist-select"]')
+    await expect(seedSelect).toBeVisible({ timeout: 5000 })
+  })
+})

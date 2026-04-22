@@ -283,9 +283,11 @@ Participant list shows each user's `display_name` from `user_profiles`, gated by
 
 ### Host curated queue / setlist
 
-Host picks songs from the match list into an ordered, reorderable queue. (Setlist-tab UI + realtime broadcast is in flight — see active work.)
+Host picks songs from the match list (or directly from their personal catalog) into an ordered, drag-reorderable broadcast setlist. Persisted as `jam_sessions.settings.setlistItems` (objects with `id` + `displayTitle` + `displayArtist` so participants and anon viewers don't need to resolve song IDs against the host's catalog). Other participants receive updates live via the existing `jam_sessions` postgres_changes subscription.
 
-- (tests in progress alongside feature)
+- unit: `tests/unit/services/JamSessionService.test.ts` (`updateSetlistItems` group)
+- e2e: `tests/e2e/jam/jam-session-core.spec.ts` (Setlist tab visibility + add-from-catalog CTA)
+- harness: `dump-session` prints `setlistItems:` block — use after host edits to verify
 
 ### Save jam → personal setlist
 
@@ -295,9 +297,9 @@ Host saves the jam's working setlist as a personal setlist after the jam.
 
 ### Anonymous view via link
 
-`jam-view` Edge Function serves a public, read-only payload so anonymous visitors can see the current match list (and eventually the broadcast setlist).
+`jam-view` Edge Function serves a public, read-only payload that includes the host-curated broadcast setlist (`setlist[]`) alongside the match list. Anonymous visitors see what the host is queuing in real time without needing an account.
 
-- e2e: `tests/e2e/jam/jam-view-anon.spec.ts`
+- e2e: `tests/e2e/jam/jam-view-anon.spec.ts` (broadcast-setlist render + page surface)
 
 ### Jam session E2E happy path
 
@@ -305,11 +307,13 @@ Create → participants join → matches surface → save setlist.
 
 - e2e: `tests/e2e/jam/jam-session-core.spec.ts`
 
-### Seed jam from a personal setlist (planned)
+### Seed jam from a personal setlist
 
-Host can start a new jam pre-seeded with songs from one of their personal setlists.
+Host can start a new jam pre-seeded with songs from one of their personal setlists. The picker is shown on the create-jam form; on submission the chosen setlist's songs are projected into `settings.setlistItems` and the source setlist is recorded on `jam_sessions.seed_setlist_id`. Ownership is enforced — only the host's own personal setlists are accepted (band setlists are out of scope).
 
-- (tests will land with feature — uses `jam_sessions.seed_setlist_id`)
+- unit: `tests/unit/services/JamSessionService.test.ts` (`createSession > with seedSetlistId` group)
+- e2e: `tests/e2e/jam/jam-session-core.spec.ts` (seed-picker surface)
+- harness: `scripts/test-harness/commands/seed-setlist.ts` + `create-jam --seed-from=<id>`
 
 ---
 
@@ -457,7 +461,7 @@ These exist in the app but don't have tests. Good candidates for the next covera
 - Google OAuth login path
 - Show CRUD beyond the setlist-show-sync scenario
 - Delete account + data purge
-- Jam anonymous view realtime updates (setlist broadcast) — pending feature
+- Jam anonymous view auto-refresh — the `jam-view` payload now includes the host's broadcast setlist (covered by `jam-view-anon.spec.ts`), but the page itself fetches once on mount. A realtime/poll loop so anon viewers see setlist edits without a page refresh is still a gap.
 - Personal song → setlist drag coverage (separate from jam flow)
 - Billing/tier transitions (no paying tier yet, but placeholder `account_tier` exists)
 

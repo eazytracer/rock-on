@@ -289,8 +289,9 @@ export const JamSessionPage: React.FC = () => {
 
   // Build a persistent, stable setlist-item tuple (id + display data) so the
   // ID can never go orphan from a match recompute. Writes the canonical
-  // `setlistItems` shape; the legacy `setlistSongIds` field is intentionally
-  // left untouched (and ignored by the resolver when setlistItems is present).
+  // `setlistItems` shape via the dedicated mutator, which strips any legacy
+  // `setlistSongIds` field in the same write to keep the broadcast shape
+  // unambiguous for participants and the jam-view edge function.
   const persistSetlistItems = (songs: Song[]) => {
     if (!session) return
     const items = songs.map(s => ({
@@ -298,9 +299,7 @@ export const JamSessionPage: React.FC = () => {
       displayTitle: s.title,
       displayArtist: s.artist ?? '',
     }))
-    void JamSessionService.updateSessionSettings(session.id, {
-      setlistItems: items,
-    })
+    void JamSessionService.updateSetlistItems(session.id, items)
   }
 
   // Add a confirmed common-song match to the curated setlist

@@ -23,6 +23,7 @@ vi.mock('../../../src/services/data/RepositoryFactory', () => {
     getSetlist: vi.fn(),
     addSetlist: vi.fn(),
     updateSetlist: vi.fn(),
+    getSong: vi.fn(),
   }
   return { repository: repo }
 })
@@ -200,6 +201,249 @@ describe('JamSessionService', () => {
         JamSessionService.createSession('host-user')
       ).rejects.toThrow('Limit reached')
       spy.mockRestore()
+    })
+
+    // ----------------------------------------------------------------------
+    // createSession({ seedSetlistId }) — projection from a personal setlist
+    // ----------------------------------------------------------------------
+
+    describe('with seedSetlistId', () => {
+      const seedSetlist = {
+        id: 'setlist-001',
+        name: 'My Practice Set',
+        contextType: 'personal' as const,
+        contextId: 'host-user',
+        items: [
+          { id: 'i1', type: 'song' as const, position: 1, songId: 'song-aa' },
+          // breaks/sections must be skipped — only songs project into the jam
+          { id: 'i2', type: 'break' as const, position: 2, duration: 600 },
+          { id: 'i3', type: 'song' as const, position: 3, songId: 'song-bb' },
+          { id: 'i4', type: 'section' as const, position: 4, name: 'Encore' },
+          // song with no songId — must be skipped (nothing to look up)
+          { id: 'i5', type: 'song' as const, position: 5, songId: undefined },
+        ],
+      }
+
+      const songRows = {
+        'song-aa': { id: 'song-aa', title: 'Wonderwall', artist: 'Oasis' },
+        'song-bb': { id: 'song-bb', title: 'Black Parade', artist: 'MCR' },
+      } as Record<string, { id: string; title: string; artist: string }>
+
+      beforeEach(() => {
+        mockRepository.getSetlist.mockResolvedValue(seedSetlist)
+        mockRepository.getSong.mockImplementation((id: string) =>
+          Promise.resolve(songRows[id] ?? null)
+        )
+      })
+
+      it('projects the seed setlist into settings.setlistItems (songs only)', async () => {
+        const { session } = await JamSessionService.createSession(
+          'host-user',
+          undefined,
+          undefined,
+          'setlist-001'
+        )
+
+        const stored = mockRepository.createJamSession.mock.calls[0][0] as Omit<
+          JamSession,
+          'id'
+        >
+        expect(stored.seedSetlistId).toBe('setlist-001')
+        expect(stored.settings.setlistItems).toHaveLength(2)
+        expect(stored.settings.setlistItems).toEqual([
+          { id: 'song-aa', displayTitle: 'Wonderwall', displayArtist: 'Oasis' },
+          { id: 'song-bb', displayTitle: 'Black Parade', displayArtist: 'MCR' },
+        ])
+        // Returned session should reflect the same shape
+        expect(session.settings.setlistItems).toHaveLength(2)
+      })
+
+      it('throws when the seed setlist does not exist', async () => {
+        mockRepository.getSetlist.mockResolvedValueOnce(null)
+        await expect(
+          JamSessionService.createSession(
+            'host-user',
+            undefined,
+            undefined,
+            'missing-setlist'
+          )
+        ).rejects.toThrow(/Seed setlist not found/i)
+      })
+
+      it("rejects seeding from another user's personal setlist", async () => {
+        mockRepository.getSetlist.mockResolvedValueOnce({
+          ...seedSetlist,
+          contextId: 'someone-else',
+        })
+        await expect(
+          JamSessionService.createSession(
+            'host-user',
+            undefined,
+            undefined,
+            'setlist-001'
+          )
+        ).rejects.toThrow(/your own personal setlists/i)
+      })
+
+      it('rejects seeding from a band setlist (not in scope)', async () => {
+        mockRepository.getSetlist.mockResolvedValueOnce({
+          ...seedSetlist,
+          contextType: 'band',
+          contextId: 'some-band-id',
+        })
+        await expect(
+          JamSessionService.createSession(
+            'host-user',
+            undefined,
+            undefined,
+            'setlist-001'
+          )
+        ).rejects.toThrow(/your own personal setlists/i)
+      })
+
+      it('does not overwrite caller-supplied setlistItems', async () => {
+        const provided = [
+          { id: 'pre-1', displayTitle: 'Caller Pick', displayArtist: 'X' },
+        ]
+        await JamSessionService.createSession(
+          'host-user',
+          undefined,
+          { setlistItems: provided },
+          'setlist-001'
+        )
+        const stored = mockRepository.createJamSession.mock.calls[0][0] as Omit<
+          JamSession,
+          'id'
+        >
+        expect(stored.settings.setlistItems).toEqual(provided)
+      })
+
+      it('skips songs not resolvable in the host catalog rather than inserting placeholders', async () => {
+        mockRepository.getSong.mockImplementation((id: string) =>
+          // Only resolve song-aa; song-bb returns null
+          Promise.resolve(id === 'song-aa' ? songRows[id] : null)
+        )
+        await JamSessionService.createSession(
+          'host-user',
+          undefined,
+          undefined,
+          'setlist-001'
+        )
+        const stored = mockRepository.createJamSession.mock.calls[0][0] as Omit<
+          JamSession,
+          'id'
+        >
+        expect(stored.settings.setlistItems).toEqual([
+          { id: 'song-aa', displayTitle: 'Wonderwall', displayArtist: 'Oasis' },
+        ])
+      })
+    })
+  })
+
+  // --------------------------------------------------------------------------
+  // updateSetlistItems — host-curated broadcast setlist mutator
+  // --------------------------------------------------------------------------
+
+  describe('updateSetlistItems', () => {
+    beforeEach(() => {
+      mockRepository.updateJamSession.mockResolvedValue(makeSession())
+    })
+
+    it('writes settings.setlistItems with the provided ordered list', async () => {
+      mockRepository.getJamSession.mockResolvedValue(
+        makeSession({ settings: { matchThreshold: 0.92 } })
+      )
+      const items = [
+        { id: 's1', displayTitle: 'Wonderwall', displayArtist: 'Oasis' },
+        { id: 's2', displayTitle: 'Black Parade', displayArtist: 'MCR' },
+      ]
+      await JamSessionService.updateSetlistItems('session-001', items)
+
+      expect(mockRepository.updateJamSession).toHaveBeenCalledOnce()
+      const [sid, patch] = mockRepository.updateJamSession.mock.calls[0]
+      expect(sid).toBe('session-001')
+      expect(patch.settings.setlistItems).toEqual(items)
+    })
+
+    it('preserves other settings keys when writing setlistItems', async () => {
+      mockRepository.getJamSession.mockResolvedValue(
+        makeSession({
+          settings: {
+            matchThreshold: 0.85,
+            hostSongIds: ['hs-1', 'hs-2'],
+          },
+        })
+      )
+      await JamSessionService.updateSetlistItems('session-001', [
+        { id: 's1', displayTitle: 'Wonderwall', displayArtist: 'Oasis' },
+      ])
+      const patch = mockRepository.updateJamSession.mock.calls[0][1]
+      expect(patch.settings.matchThreshold).toBe(0.85)
+      expect(patch.settings.hostSongIds).toEqual(['hs-1', 'hs-2'])
+    })
+
+    it('strips legacy setlistSongIds in the same write', async () => {
+      mockRepository.getJamSession.mockResolvedValue(
+        makeSession({
+          settings: {
+            setlistSongIds: ['legacy-1', 'legacy-2'],
+            hostSongIds: ['kept'],
+          },
+        })
+      )
+      await JamSessionService.updateSetlistItems('session-001', [
+        { id: 's1', displayTitle: 'Wonderwall', displayArtist: 'Oasis' },
+      ])
+      const patch = mockRepository.updateJamSession.mock.calls[0][1]
+      expect(patch.settings.setlistSongIds).toBeUndefined()
+      expect(patch.settings.hostSongIds).toEqual(['kept'])
+      expect(patch.settings.setlistItems).toHaveLength(1)
+    })
+
+    it('drops malformed items (missing id or displayTitle)', async () => {
+      mockRepository.getJamSession.mockResolvedValue(makeSession())
+      const items = [
+        { id: 's1', displayTitle: 'Good', displayArtist: 'X' },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { id: '', displayTitle: 'Empty Id', displayArtist: 'Y' } as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { id: 's3', displayTitle: '', displayArtist: 'Z' } as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        null as any,
+        { id: 's4', displayTitle: 'Also Good', displayArtist: 'W' },
+      ]
+      await JamSessionService.updateSetlistItems('session-001', items)
+      const patch = mockRepository.updateJamSession.mock.calls[0][1]
+      expect(patch.settings.setlistItems).toEqual([
+        { id: 's1', displayTitle: 'Good', displayArtist: 'X' },
+        { id: 's4', displayTitle: 'Also Good', displayArtist: 'W' },
+      ])
+    })
+
+    it('coerces missing displayArtist to empty string', async () => {
+      mockRepository.getJamSession.mockResolvedValue(makeSession())
+      const items = [
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { id: 's1', displayTitle: 'Solo', displayArtist: undefined } as any,
+      ]
+      await JamSessionService.updateSetlistItems('session-001', items)
+      const patch = mockRepository.updateJamSession.mock.calls[0][1]
+      expect(patch.settings.setlistItems[0].displayArtist).toBe('')
+    })
+
+    it('no-ops silently when the session does not exist', async () => {
+      mockRepository.getJamSession.mockResolvedValueOnce(null)
+      await JamSessionService.updateSetlistItems('missing-session', [
+        { id: 's1', displayTitle: 'Wonderwall', displayArtist: 'Oasis' },
+      ])
+      expect(mockRepository.updateJamSession).not.toHaveBeenCalled()
+    })
+
+    it('writes an empty array when the host clears the setlist', async () => {
+      mockRepository.getJamSession.mockResolvedValue(makeSession())
+      await JamSessionService.updateSetlistItems('session-001', [])
+      const patch = mockRepository.updateJamSession.mock.calls[0][1]
+      expect(patch.settings.setlistItems).toEqual([])
     })
   })
 

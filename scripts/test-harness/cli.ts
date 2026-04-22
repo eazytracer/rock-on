@@ -15,6 +15,7 @@ import { runJoinJam } from './commands/join-jam'
 import { runListSongs } from './commands/list-songs'
 import { runRecompute } from './commands/recompute'
 import { runReset } from './commands/reset'
+import { runSeedSetlist } from './commands/seed-setlist'
 import { runSeedSongs } from './commands/seed-songs'
 import { runSignIn } from './commands/sign-in'
 import { runWatch } from './commands/watch'
@@ -52,8 +53,12 @@ Commands:
   sign-in <persona> [--json]                Print tokens for a persona.
   seed-songs <persona> [--count=N]
             [--file=<path>] [--preset=<n>]  Insert songs into persona's personal catalog.
+  seed-setlist <persona> [--name=<n>]
+            [--count=N] [--json]            Create a personal setlist from persona's catalog.
   list-songs <persona>                      Print persona's personal catalog.
-  create-jam <persona> [--name=<n>] [--json]  Persona creates a jam session.
+  create-jam <persona> [--name=<n>]
+            [--seed-from=<setlistId>] [--json]  Persona creates a jam session
+                                              (optionally seeded from a personal setlist).
   join-jam <persona> <joinCode>             Persona joins an existing session.
   recompute <sessionId> [--as=<persona>]    Trigger jam-recompute Edge Function.
   dump-session <sessionId>                  Service-role snapshot of a jam session.
@@ -96,11 +101,24 @@ async function main(): Promise<void> {
       requirePositional(positional, 1, command)
       await runListSongs({ name: positional[0] })
       break
+    case 'seed-setlist':
+      requirePositional(positional, 1, command)
+      await runSeedSetlist({
+        name: positional[0],
+        setlistName: typeof flags.name === 'string' ? flags.name : undefined,
+        count: flags.count ? parseInt(String(flags.count), 10) : undefined,
+        json: Boolean(flags.json),
+      })
+      break
     case 'create-jam':
       requirePositional(positional, 1, command)
       await runCreateJam({
         name: positional[0],
         sessionName: typeof flags.name === 'string' ? flags.name : undefined,
+        seedFrom:
+          typeof flags['seed-from'] === 'string'
+            ? (flags['seed-from'] as string)
+            : undefined,
         json: Boolean(flags.json),
       })
       break

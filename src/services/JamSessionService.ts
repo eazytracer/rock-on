@@ -12,7 +12,11 @@
 import { repository } from './data/RepositoryFactory'
 import { getSupabaseClient } from './supabase/client'
 // SetlistService not used directly — we use repository.addSetlist for personal setlists
-import type { JamSession, JamSongMatch } from '../models/JamSession'
+import type {
+  JamSession,
+  JamSetlistItem,
+  JamSongMatch,
+} from '../models/JamSession'
 import type { Setlist } from '../models/Setlist'
 import type { Song } from '../models/Song'
 import type { SetlistItem } from '../types'
@@ -321,6 +325,67 @@ export class JamSessionService {
     await repository.updateJamSession(sessionId, {
       settings: { ...session.settings, ...settingsUpdate },
     })
+  }
+
+  /**
+   * Replace the host's curated setlist on a jam session.
+   *
+   * Dedicated mutator (rather than calling `updateSessionSettings` directly) so
+   * the host's setlist edits — drag reorder, add, remove — write through a
+   * single, narrowly-scoped path that:
+   *
+   *   1. **Normalizes** the items (drops anything missing `id`/`displayTitle`),
+   *      so a malformed UI payload can't poison the broadcast.
+   *   2. **Strips legacy `setlistSongIds`** in the same write so the resolver
+   *      in JamSessionPage / jam-view never sees a contradictory pair of
+   *      fields when both shapes coexist on an older session.
+   *   3. Preserves all other settings keys (hostSongIds, matchThreshold, etc.)
+   *      from the most-recent server snapshot rather than the stale client
+   *      copy — narrowing the merge race when the host has multiple panels
+   *      open and is firing concurrent writes (e.g. queue change + setlist
+   *      reorder within a few hundred ms).
+   *
+   * Realtime: any writer on jam_sessions (including this method) emits an
+   * UPDATE event over the row, so other clients refresh via their existing
+   * `jam:session-meta:<id>` channel — no extra plumbing needed.
+   *
+   * Host-only by convention. RLS on jam_sessions enforces this server-side.
+   */
+  static async updateSetlistItems(
+    sessionId: string,
+    items: JamSetlistItem[]
+  ): Promise<void> {
+    const session = await repository.getJamSession(sessionId)
+    if (!session) return
+
+    const normalized: JamSetlistItem[] = items
+      .filter(
+        (it): it is JamSetlistItem =>
+          !!it &&
+          typeof it.id === 'string' &&
+          it.id.length > 0 &&
+          typeof it.displayTitle === 'string' &&
+          it.displayTitle.length > 0
+      )
+      .map(it => ({
+        id: it.id,
+        displayTitle: it.displayTitle,
+        // Always store a string for displayArtist — anon viewers / participants
+        // expect it to render directly, never undefined.
+        displayArtist:
+          typeof it.displayArtist === 'string' ? it.displayArtist : '',
+      }))
+
+    // Re-derive the merged settings against the freshest server snapshot, then
+    // explicitly drop any legacy setlistSongIds field so the canonical shape
+    // is the only source of truth after this write.
+    const { setlistSongIds: _legacy, ...rest } = session.settings ?? {}
+    const nextSettings: JamSession['settings'] = {
+      ...rest,
+      setlistItems: normalized,
+    }
+
+    await repository.updateJamSession(sessionId, { settings: nextSettings })
   }
 
   /**

@@ -32,8 +32,9 @@ All commands run via `npm run harness -- <command> [args]` (or
 | `reset [<persona>...]`                                                    | Delete one, many, or all personas and their data. No args = all.                                                                                                  |
 | `sign-in <persona>`                                                       | Print access + refresh tokens (JSON) for the persona. Use the access token as `Authorization: Bearer ...` or paste into browser localStorage via the dev snippet. |
 | `seed-songs <persona> [--count=N] [--file=songs.json] [--preset=default]` | Insert songs into the persona's **personal** catalog. Uses the persona's JWT (respects RLS).                                                                      |
+| `seed-setlist <persona> [--name=<n>] [--count=N] [--json]`                | Create a **personal** setlist from songs already in the persona's catalog. Returns the setlist id.                                                                |
 | `list-songs <persona>`                                                    | Print the persona's personal catalog.                                                                                                                             |
-| `create-jam <persona> [--name=<n>]`                                       | Persona creates a jam session. Prints `id` + `joinCode`.                                                                                                          |
+| `create-jam <persona> [--name=<n>] [--seed-from=<setlistId>] [--json]`    | Persona creates a jam session. With `--seed-from`, projects that personal setlist's songs into the jam's broadcast `setlistItems`.                                |
 | `join-jam <persona> <joinCode>`                                           | Persona joins an existing jam session via join code.                                                                                                              |
 | `recompute <sessionId> [--as=<persona>]`                                  | Invoke the `jam-recompute` Edge Function (default acts as alice). Mirrors the auto-recompute the app does on participant changes.                                 |
 | `dump-session <sessionId>`                                                | Full snapshot — session row, participants (with display names), matches, host queue, working setlist.                                                             |
@@ -59,6 +60,28 @@ npm run harness -- watch "$SESSION_ID"
 npm run harness -- join-jam bob "$JOIN_CODE"
 
 # Inspect
+npm run harness -- dump-session "$SESSION_ID"
+```
+
+## Example flow — seed jam from a personal setlist
+
+```bash
+npm run harness -- ensure
+npm run harness -- seed-songs alice --preset=default
+npm run harness -- seed-songs bob --preset=default
+
+# Alice creates a personal setlist from her catalog
+SETLIST=$(npm run harness -- seed-setlist alice --name="Friday Set" --json)
+SETLIST_ID=$(echo "$SETLIST" | jq -r .id)
+
+# Alice starts a jam pre-seeded with that setlist; bob joins.
+JAM=$(npm run harness -- create-jam alice --seed-from="$SETLIST_ID" --json)
+SESSION_ID=$(echo "$JAM" | jq -r .id)
+JOIN_CODE=$(echo "$JAM" | jq -r .joinCode)
+npm run harness -- join-jam bob "$JOIN_CODE"
+
+# Confirm the broadcast setlist is populated. dump-session will show
+# `seedSetlist:` and N entries under `setlistItems:`.
 npm run harness -- dump-session "$SESSION_ID"
 ```
 
