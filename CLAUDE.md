@@ -513,6 +513,29 @@ git commit -m "<feature>: <what schema change was added>"
 - `DO $$ BEGIN ALTER PUBLICATION ... ADD TABLE ...; EXCEPTION WHEN duplicate_object THEN NULL; END $$;`
   for publication adds
 
+**🚨 Any new table in an incremental migration MUST include an explicit
+`GRANT` statement for the `authenticated` role.** The baseline's
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+```
+
+is a **snapshot grant** — it only applies to tables that exist when that
+migration runs. Tables created later do NOT inherit it. Without an
+explicit grant, PostgREST returns 403 on every query despite valid JWTs.
+
+For every new table:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.<new_table> TO authenticated;
+-- If the table uses a SERIAL / BIGSERIAL column (not gen_random_uuid):
+GRANT USAGE ON SEQUENCE public.<new_table>_<col>_seq TO authenticated;
+```
+
+Local Supabase has more permissive default privileges than hosted, so
+missing grants may not surface in `supabase db reset` / pgTAP testing —
+they only fail on production. This bit us in v0.3.0 (fixed in v0.3.1).
+
 **Deploying to production:**
 
 ```bash

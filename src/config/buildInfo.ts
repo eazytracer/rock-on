@@ -2,7 +2,7 @@
 // Do not edit manually - regenerated on every build
 
 /** Semantic version from package.json */
-export const VERSION = '0.3.0'
+export const VERSION = '0.3.1'
 
 /** Unique build identifier (git hash + timestamp) */
 export const BUILD_ID = '4f9b8f7-20260423-211852'

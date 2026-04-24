@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-24
+
+### Fixed
+
+- **Hotfix:** 403 errors on all jam session operations in production. The
+  v0.3.0 incremental migration created the `jam_sessions`,
+  `jam_participants`, and `jam_song_matches` tables with RLS policies but
+  never granted DML privileges to the `authenticated` role. PostgREST
+  rejected every SELECT/INSERT/UPDATE/DELETE with 403 despite valid JWTs,
+  breaking the entire jam session flow. Fixed by migration
+  `20260424000000_hotfix_grant_jam_tables.sql` which explicitly grants
+  SELECT/INSERT/UPDATE/DELETE on the three jam tables to `authenticated`.
+  Local development Supabase defaults are more permissive, so this didn't
+  surface in pre-deploy testing.
+
+### Changed
+
+- Migration-authoring checklist in `CLAUDE.md` now includes: **any new
+  table in an incremental migration needs an explicit `GRANT SELECT,
+INSERT, UPDATE, DELETE ... TO authenticated` statement**, because the
+  baseline's "GRANT ON ALL TABLES" is a snapshot, not a default-privilege
+  rule.
+
 ## [0.3.0] - 2026-04-23
 
 This release ships the social catalog + jam sessions feature set alongside a
