@@ -36,10 +36,12 @@ import { JamSessionService } from '../services/JamSessionService'
 import type { JamSession } from '../models/JamSession'
 import { useJamSession } from '../hooks/useJamSession'
 import { useJamSessionMatches } from '../hooks/useJamSessionMatches'
+import { useJamPresence } from '../hooks/useJamPresence'
 import { usePersonalSongs } from '../hooks/useSongs'
 import { usePersonalSetlists } from '../hooks/useSetlists'
 import { JamSessionCard } from '../components/jam/JamSessionCard'
 import { JamParticipantList } from '../components/jam/JamParticipantList'
+import { JamWatcherList } from '../components/jam/JamWatcherList'
 import { JamMatchList } from '../components/jam/JamMatchList'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
@@ -89,6 +91,14 @@ export const JamSessionPage: React.FC = () => {
     isComputing: isRecomputing,
     recompute: recomputeMatches,
   } = useJamSessionMatches(sessionId ?? null)
+
+  // Anonymous viewer presence. Listener mode (no selfName) — the host
+  // is already in jam_participants and shouldn't pollute the watcher
+  // list. Subscribes as soon as we know the session's shortCode.
+  const { watchers } = useJamPresence({
+    shortCode: session?.shortCode,
+    enabled: !!session?.shortCode,
+  })
 
   // Personal songs for the host's manual queue
   const { songs: personalSongs } = usePersonalSongs(userId)
@@ -659,15 +669,23 @@ export const JamSessionPage: React.FC = () => {
 
             {/* Participants + panels */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Left: participants */}
-              <div className="md:col-span-1">
-                <h3 className="text-[#a0a0a0] text-sm font-medium mb-3 uppercase tracking-wide">
-                  Participants
-                </h3>
-                <JamParticipantList
-                  participants={participants}
-                  hostUserId={session.hostUserId}
-                />
+              {/* Left: participants + anon watchers */}
+              <div className="md:col-span-1 space-y-5">
+                <div>
+                  <h3 className="text-[#a0a0a0] text-sm font-medium mb-3 uppercase tracking-wide">
+                    Participants
+                  </h3>
+                  <JamParticipantList
+                    participants={participants}
+                    hostUserId={session.hostUserId}
+                  />
+                </div>
+
+                {/* Anonymous viewers via Supabase Realtime Presence.
+                    Separate from the participants list because they
+                    can't contribute songs — they're read-only
+                    audience. Collapses when nobody is watching. */}
+                <JamWatcherList watchers={watchers} />
               </div>
 
               {/* Right: panel switcher */}

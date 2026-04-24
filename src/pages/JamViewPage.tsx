@@ -1,10 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { Radio, Users, ArrowRight, ListMusic } from 'lucide-react'
+import { Radio, Users, ArrowRight, ListMusic, Edit3 } from 'lucide-react'
 import type { JamViewPublicPayload } from '../models/JamSession'
 import { createLogger } from '../utils/logger'
+import { useJamPresence } from '../hooks/useJamPresence'
 
 const log = createLogger('JamViewPage')
+
+/**
+ * localStorage key for the guest's chosen display name on this jam.
+ * Keyed by shortCode so multiple concurrent jam links (e.g. left open
+ * in different tabs) each remember their own name. Empty string is a
+ * valid value — "I set it explicitly to blank" (lurker) is distinct
+ * from "I haven't picked yet" (null).
+ */
+const NAME_STORAGE_PREFIX = 'rockon:jam:viewerName:'
 
 /**
  * Live-refresh interval for the anon view.
@@ -55,6 +65,51 @@ export const JamViewPage: React.FC = () => {
   // independent of shortCode/token — the UI time display refreshes
   // on its own schedule.
   const [nowTick, setNowTick] = useState(() => Date.now())
+
+  // Guest display name for presence. `null` means "haven't picked yet"
+  // — we render a name-entry card instead of the setlist. Empty string
+  // is a valid "picked, but blank" state (the user chose to lurk).
+  const [viewerName, setViewerName] = useState<string | null>(null)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+
+  // Hydrate the viewer name from localStorage on mount / shortCode
+  // change. Key is scoped to the shortCode so different jams don't
+  // clobber each other's names.
+  useEffect(() => {
+    if (!shortCode) return
+    try {
+      const stored = window.localStorage.getItem(
+        `${NAME_STORAGE_PREFIX}${shortCode}`
+      )
+      if (stored !== null) setViewerName(stored)
+    } catch {
+      /* storage blocked — user will be prompted fresh */
+    }
+  }, [shortCode])
+
+  // Track presence while the viewer has committed to a name
+  // (including the explicit lurker "" state). `enabled: false` until
+  // the user has picked means we don't broadcast before they've had
+  // a chance to choose.
+  const { watchers } = useJamPresence({
+    shortCode,
+    selfName: viewerName ?? undefined,
+    enabled: viewerName !== null,
+  })
+
+  const commitName = (next: string) => {
+    const trimmed = next.trim()
+    setViewerName(trimmed)
+    setIsEditingName(false)
+    setNameDraft('')
+    if (!shortCode) return
+    try {
+      window.localStorage.setItem(`${NAME_STORAGE_PREFIX}${shortCode}`, trimmed)
+    } catch {
+      /* storage unavailable — presence will still broadcast this tab */
+    }
+  }
 
   useEffect(() => {
     if (!shortCode) {
@@ -281,7 +336,7 @@ export const JamViewPage: React.FC = () => {
                 <h1 className="text-3xl font-bold text-white mb-2">
                   {payload.sessionName}
                 </h1>
-                <div className="flex items-center gap-4 text-[#707070] text-sm">
+                <div className="flex items-center gap-4 text-[#707070] text-sm flex-wrap">
                   <span>
                     Hosted by{' '}
                     <strong className="text-white">
@@ -295,86 +350,224 @@ export const JamViewPage: React.FC = () => {
                       ? 'participant'
                       : 'participants'}
                   </span>
+                  {watchers.length > 0 && (
+                    <span
+                      data-testid="jam-view-watcher-count"
+                      className="flex items-center gap-1"
+                    >
+                      <span
+                        className="inline-block h-1.5 w-1.5 rounded-full bg-primary/70"
+                        aria-hidden
+                      />
+                      {watchers.length}{' '}
+                      {watchers.length === 1 ? 'watching' : 'watching'}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Broadcast setlist — the primary content of the anon view.
+              {/* Name gate — on first visit, prompt the guest to
+                  introduce themselves before showing the setlist. Once
+                  picked (including an explicit empty "lurk"), the name
+                  is persisted to localStorage keyed by shortCode and
+                  drives the presence broadcast. A small "Watching as X"
+                  strip with a change link stays visible thereafter. */}
+              {viewerName === null ? (
+                <div
+                  data-testid="jam-view-name-entry"
+                  className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-8"
+                >
+                  <h2 className="text-white font-semibold text-lg mb-2">
+                    Let the host know you're here
+                  </h2>
+                  <p className="text-[#a0a0a0] text-sm mb-5">
+                    Your name shows up in the session as a watcher. Leave it
+                    blank to stay anonymous — the host will just see an audience
+                    count.
+                  </p>
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault()
+                      commitName(nameDraft)
+                    }}
+                    className="flex flex-col sm:flex-row gap-2"
+                  >
+                    <input
+                      data-testid="jam-view-name-input"
+                      type="text"
+                      name="viewerName"
+                      id="viewerName"
+                      autoFocus
+                      placeholder="Your name (or leave blank)"
+                      value={nameDraft}
+                      onChange={e => setNameDraft(e.target.value)}
+                      maxLength={40}
+                      className="flex-1 px-4 py-2 rounded-lg bg-[#0a0a0a] border border-[#2a2a2a] text-white text-sm placeholder:text-[#707070] focus:border-primary focus:outline-none"
+                    />
+                    <button
+                      data-testid="jam-view-name-submit"
+                      type="submit"
+                      className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-[#e53d01] transition-colors"
+                    >
+                      Join as watcher
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Persistent "you're here as ____" strip with quick
+                      edit affordance. For lurkers (empty name) it reads
+                      "Watching anonymously" and still shows the change
+                      link so they can add a name later. */}
+                  {isEditingName ? (
+                    <form
+                      onSubmit={e => {
+                        e.preventDefault()
+                        commitName(nameDraft)
+                      }}
+                      className="flex gap-2 items-center"
+                      data-testid="jam-view-name-edit-form"
+                    >
+                      <input
+                        type="text"
+                        name="viewerName"
+                        id="viewerName"
+                        autoFocus
+                        placeholder="Your name"
+                        value={nameDraft}
+                        onChange={e => setNameDraft(e.target.value)}
+                        maxLength={40}
+                        className="flex-1 px-3 py-1.5 rounded-md bg-[#0a0a0a] border border-[#2a2a2a] text-white text-sm focus:border-primary focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:bg-[#e53d01] transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingName(false)
+                          setNameDraft('')
+                        }}
+                        className="px-3 py-1.5 rounded-md text-[#a0a0a0] text-xs hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <div
+                      data-testid="jam-view-watching-as"
+                      className="flex items-center gap-2 text-xs text-[#a0a0a0]"
+                    >
+                      <span>
+                        Watching as{' '}
+                        <strong className="text-white">
+                          {viewerName.trim().length > 0
+                            ? viewerName
+                            : 'anonymous'}
+                        </strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNameDraft(viewerName ?? '')
+                          setIsEditingName(true)
+                        }}
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                        data-testid="jam-view-change-name"
+                      >
+                        <Edit3 size={11} />
+                        change
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Broadcast setlist — the primary content of the anon view.
                   Always rendered (even when empty) so the guest has a
                   stable "this is what the host is queuing" surface that
                   updates live as the host edits. The common-songs list
                   that appears on the authenticated view is intentionally
                   omitted — see JamViewPublicPayload docs for rationale. */}
-              <div data-testid="jam-view-setlist">
-                <h2 className="text-[#a0a0a0] text-sm font-medium uppercase tracking-wide mb-4 flex items-center gap-2">
-                  <ListMusic size={14} />
-                  Tonight's Setlist
-                </h2>
-                {setlist.length === 0 ? (
-                  <div
-                    data-testid="jam-view-setlist-empty"
-                    className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-6 py-10 text-center"
-                  >
-                    <ListMusic size={32} className="mx-auto mb-3 text-[#555]" />
-                    <p className="text-[#a0a0a0] text-sm font-medium mb-1">
-                      Host hasn't added any songs yet
+                  <div data-testid="jam-view-setlist">
+                    <h2 className="text-[#a0a0a0] text-sm font-medium uppercase tracking-wide mb-4 flex items-center gap-2">
+                      <ListMusic size={14} />
+                      Tonight's Setlist
+                    </h2>
+                    {setlist.length === 0 ? (
+                      <div
+                        data-testid="jam-view-setlist-empty"
+                        className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-6 py-10 text-center"
+                      >
+                        <ListMusic
+                          size={32}
+                          className="mx-auto mb-3 text-[#555]"
+                        />
+                        <p className="text-[#a0a0a0] text-sm font-medium mb-1">
+                          Host hasn't added any songs yet
+                        </p>
+                        <p className="text-[#707070] text-xs">
+                          This page will update automatically as the setlist
+                          fills in.
+                        </p>
+                      </div>
+                    ) : (
+                      <ol className="space-y-2">
+                        {setlist.map((item, idx) => (
+                          <li
+                            key={`${item.displayTitle}-${idx}`}
+                            className="flex items-center gap-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3"
+                            data-testid={`jam-view-setlist-item-${idx}`}
+                          >
+                            <span className="text-primary font-mono text-sm w-6 shrink-0">
+                              {idx + 1}.
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-white text-sm font-medium truncate">
+                                {item.displayTitle}
+                              </p>
+                              <p className="text-[#707070] text-xs truncate">
+                                {item.displayArtist}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+
+                  {/* CTA */}
+                  <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-8 text-center">
+                    <h3 className="text-white font-bold text-xl mb-2">
+                      Want to join this jam?
+                    </h3>
+                    <p className="text-[#a0a0a0] text-sm mb-6">
+                      Sign up free to add your songs to the mix and jam along
+                      with the band.
                     </p>
-                    <p className="text-[#707070] text-xs">
-                      This page will update automatically as the setlist fills
-                      in.
+                    <button
+                      data-testid="jam-view-signup-cta"
+                      onClick={handleSignUp}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-[#e53d01] transition-colors"
+                    >
+                      Sign up free
+                      <ArrowRight size={16} />
+                    </button>
+                    <p className="text-[#555] text-xs mt-4">
+                      Already have an account?{' '}
+                      <button
+                        onClick={() =>
+                          navigate(`/auth?redirect=/jam/${shortCode}`)
+                        }
+                        className="text-primary hover:underline"
+                      >
+                        Log in
+                      </button>
                     </p>
                   </div>
-                ) : (
-                  <ol className="space-y-2">
-                    {setlist.map((item, idx) => (
-                      <li
-                        key={`${item.displayTitle}-${idx}`}
-                        className="flex items-center gap-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3"
-                        data-testid={`jam-view-setlist-item-${idx}`}
-                      >
-                        <span className="text-primary font-mono text-sm w-6 shrink-0">
-                          {idx + 1}.
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-white text-sm font-medium truncate">
-                            {item.displayTitle}
-                          </p>
-                          <p className="text-[#707070] text-xs truncate">
-                            {item.displayArtist}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </div>
-
-              {/* CTA */}
-              <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-8 text-center">
-                <h3 className="text-white font-bold text-xl mb-2">
-                  Want to join this jam?
-                </h3>
-                <p className="text-[#a0a0a0] text-sm mb-6">
-                  Sign up free to add your songs to the mix and jam along with
-                  the band.
-                </p>
-                <button
-                  data-testid="jam-view-signup-cta"
-                  onClick={handleSignUp}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-[#e53d01] transition-colors"
-                >
-                  Sign up free
-                  <ArrowRight size={16} />
-                </button>
-                <p className="text-[#555] text-xs mt-4">
-                  Already have an account?{' '}
-                  <button
-                    onClick={() => navigate(`/auth?redirect=/jam/${shortCode}`)}
-                    className="text-primary hover:underline"
-                  >
-                    Log in
-                  </button>
-                </p>
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>
