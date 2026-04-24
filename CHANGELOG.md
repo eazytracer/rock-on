@@ -63,9 +63,40 @@ true`, BYPASSRLS does not confer table-level privileges — so every
 
 - Migration-authoring checklist in `CLAUDE.md` now includes: **any new
   table in an incremental migration needs an explicit `GRANT SELECT,
-INSERT, UPDATE, DELETE ... TO authenticated` statement**, because the
-  baseline's "GRANT ON ALL TABLES" is a snapshot, not a default-privilege
-  rule.
+INSERT, UPDATE, DELETE ... TO authenticated` AND `... TO service_role`
+  statement**, because the baseline's "GRANT ON ALL TABLES" is a
+  snapshot, not a default-privilege rule.
+
+### Infrastructure (post-mortem from v0.3.0 → v0.3.1)
+
+- `scripts/lint-migrations.mjs` (wired as `npm run lint:migrations`) —
+  static analysis of migration SQL text. For every `CREATE TABLE`,
+  verifies an explicit `GRANT` for both `authenticated` and `service_role`
+  exists in the same or a later migration (or a covering broad grant, or
+  prior default-privilege configuration). Runs at the SQL-text level, so
+  local Supabase's permissive default privileges cannot mask missing
+  grants. Red/green verified: removing the hotfix migrations reports 29
+  violations; restoring passes cleanly.
+- `supabase/tests/008-role-grants.test.sql` — pgTAP suite (181 tests)
+  asserting `has_table_privilege()` for authenticated + service_role on
+  every public table × every DML operation. Complements the linter by
+  catching runtime drift; stronger when run against hosted Supabase.
+- `supabase/functions/FUNCTIONS.md` — manifest of every edge function
+  with auth mode, role context, and expected smoke status. Eliminates
+  the "forgot `--no-verify-jwt`" class of bug.
+- `scripts/deploy-edge-functions.sh` — deploy wrapper that reads the
+  manifest and applies the correct auth flag per function. Never deploy
+  via ad-hoc `supabase functions deploy <name>`.
+- `scripts/smoke-edge-functions.sh` — post-deploy smoke verifying each
+  function returns its expected unauthenticated-GET status from the
+  manifest.
+- `.claude/process/pre-deploy-checklist.md` — required pre-merge and
+  pre-deploy gates, each item tied to a specific v0.3.1 production
+  failure.
+- Functionality catalog template extended — every capability now
+  documents "Who can / Who cannot / Tests (positive) / Tests (negative)"
+  plus role-grant and RLS-policy pointers. Jam session domain fully
+  backfilled as exemplar; remaining domains to follow incrementally.
 
 ## [0.3.0] - 2026-04-23
 
