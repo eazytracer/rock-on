@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { EntityHeader } from '../components/common/EntityHeader'
-import { InlineEditableField } from '../components/common/InlineEditableField'
 import { SETLIST_STATUS_OPTIONS } from '../components/common/InlineStatusBadge'
+import { SectionCard } from '../components/common/SectionCard'
+import { MarkdownField } from '../components/notes/MarkdownField'
 import {
   SortableSongListItem,
   UISong,
@@ -25,7 +26,7 @@ import { secondsToDuration } from '../utils/formatters'
 import { formatShowDate } from '../utils/dateHelpers'
 import type { Setlist as DBSetlist } from '../models/Setlist'
 import type { Song as DBSong } from '../models/Song'
-import { Clock, Music2, Calendar, ListMusic, FileText } from 'lucide-react'
+import { Clock, Music2, Calendar, ListMusic } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -617,9 +618,7 @@ export const SetlistViewPage: React.FC = () => {
           )}
 
           {/* Details Section */}
-          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Details</h2>
-
+          <SectionCard title="Details">
             <div
               className={`grid gap-4 ${associatedShow ? 'grid-cols-3' : 'grid-cols-2'}`}
             >
@@ -674,26 +673,17 @@ export const SetlistViewPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </SectionCard>
 
-          {/* Notes Section - Separate container */}
-          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-            <div className="flex items-start gap-2">
-              <FileText size={16} className="text-[#f17827ff] mt-1" />
-              <div className="flex-1">
-                <label className="block text-sm text-[#707070] mb-1">
-                  Notes
-                </label>
-                <InlineEditableField
-                  value={displayNotes}
-                  onSave={val => saveField('notes', String(val))}
-                  type="textarea"
-                  placeholder="Add notes about this setlist..."
-                  data-testid="setlist-notes"
-                />
-              </div>
-            </div>
-          </div>
+          {/* Notes Section */}
+          <SectionCard title="Notes">
+            <MarkdownField
+              value={displayNotes}
+              onSave={val => saveField('notes', val)}
+              placeholder="Add notes about this setlist..."
+              data-testid="setlist-notes"
+            />
+          </SectionCard>
 
           {/* Divider and Items Header */}
           <div className="border-t border-[#2a2a2a] pt-6">

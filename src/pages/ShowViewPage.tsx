@@ -4,6 +4,8 @@ import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinne
 import { EntityHeader } from '../components/common/EntityHeader'
 import { InlineEditableField } from '../components/common/InlineEditableField'
 import { SHOW_STATUS_OPTIONS } from '../components/common/InlineStatusBadge'
+import { SectionCard } from '../components/common/SectionCard'
+import { MarkdownField } from '../components/notes/MarkdownField'
 import {
   SortableSongListItem,
   UISong,
@@ -611,9 +613,7 @@ export const ShowViewPage: React.FC = () => {
           )}
 
           {/* Additional Details Section */}
-          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Details</h2>
-
+          <SectionCard title="Details">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Address */}
               <InlineEditableField
@@ -694,22 +694,23 @@ export const ShowViewPage: React.FC = () => {
 
             {/* Notes - Full Width */}
             <div className="mt-6 pt-6 border-t border-[#2a2a2a]">
-              <InlineEditableField
-                label="Notes"
+              <label className="block text-sm text-[#a0a0a0] mb-2 flex items-center gap-2">
+                <FileText size={16} />
+                Notes
+              </label>
+              <MarkdownField
                 value={show.notes || ''}
-                onSave={val => saveField('notes', String(val) || undefined)}
-                type="textarea"
+                onSave={val => saveField('notes', val || undefined)}
                 placeholder="Add notes, special instructions..."
-                icon={<FileText size={16} />}
                 data-testid="show-notes"
               />
             </div>
-          </div>
+          </SectionCard>
 
           {/* Contacts Section */}
-          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Contacts</h2>
+          <SectionCard
+            title="Contacts"
+            actions={
               <button
                 onClick={addContact}
                 className="flex items-center gap-1 px-3 py-1.5 text-[#f17827ff] hover:bg-[#f17827ff]/10 rounded-lg transition-colors text-sm"
@@ -718,8 +719,8 @@ export const ShowViewPage: React.FC = () => {
                 <Plus size={16} />
                 Add Contact
               </button>
-            </div>
-
+            }
+          >
             {contacts.length === 0 ? (
               <div className="text-center py-8 text-[#707070]">
                 <User size={32} className="mx-auto mb-2 text-[#505050]" />
@@ -754,14 +755,14 @@ export const ShowViewPage: React.FC = () => {
                 )}
               </div>
             )}
-          </div>
+          </SectionCard>
 
           {/* Setlist Section - Always visible */}
-          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Setlist</h2>
-              {setlist && (
-                <div className="flex items-center gap-4">
+          <SectionCard
+            title="Setlist"
+            actions={
+              setlist ? (
+                <>
                   <span className="text-sm text-[#a0a0a0]">
                     {setlistItems.filter(i => i.type === 'song').length} songs
                   </span>
@@ -775,10 +776,10 @@ export const ShowViewPage: React.FC = () => {
                   >
                     Edit Setlist
                   </button>
-                </div>
-              )}
-            </div>
-
+                </>
+              ) : undefined
+            }
+          >
             {/* Setlist Selector - shown when no setlist attached */}
             {!setlist ? (
               <div className="flex flex-col items-center py-8">
@@ -865,7 +866,7 @@ export const ShowViewPage: React.FC = () => {
                 </div>
               </>
             )}
-          </div>
+          </SectionCard>
         </div>
 
         {/* Confirm Dialog */}

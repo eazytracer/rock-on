@@ -93,6 +93,11 @@ const DevDashboard = lazy(() =>
     default: module.DevDashboard,
   }))
 )
+const DevUIPreviewPage = lazy(() =>
+  import('./pages/DevUIPreview/DevUIPreviewPage').then(module => ({
+    default: module.DevUIPreviewPage,
+  }))
+)
 
 const AppContent: React.FC = () => {
   const { syncing, realtimeManager } = useAuth()
@@ -180,6 +185,7 @@ const AppContent: React.FC = () => {
 
           {/* Dev Dashboard - accessible in development only (no layout) */}
           <Route path="/dev/dashboard" element={<DevDashboard />} />
+          <Route path="/dev/ui-preview" element={<DevUIPreviewPage />} />
 
           {/* Public jam session view — no auth required */}
           <Route path="/jam/view/:shortCode" element={<JamViewPage />} />

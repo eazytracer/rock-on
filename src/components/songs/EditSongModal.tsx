@@ -10,7 +10,7 @@
  * - Reference links (YouTube, Spotify, Ultimate-Guitar)
  */
 
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   X,
   Music,
@@ -36,6 +36,10 @@ import type { ReferenceLink } from '../../types'
 import type { SpotifyTrack } from '../../services/spotify/SpotifyService'
 import { SpotifyService } from '../../services/spotify/SpotifyService'
 import { detectLinkType } from '../../utils/linkDetection'
+import { builtInTuningLabels } from '../../utils/tunings'
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges'
+import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog'
+import { MarkdownField } from '../notes/MarkdownField'
 
 // Extended link type for UI that includes id and name
 interface UILink extends ReferenceLink {
@@ -169,6 +173,28 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   const [linkUrl, setLinkUrl] = useState('')
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null)
   const [iconDropdownOpen, setIconDropdownOpen] = useState(false)
+
+  // --- Unsaved changes tracking ---
+  // Serialize formData + links (minus transient id/name) and compare against
+  // a snapshot captured on first render. After a successful save we update
+  // the snapshot so the form reads as "clean" again.
+  const initialSnapshotRef = useRef<string>('')
+  const currentSnapshot = JSON.stringify({
+    formData,
+    links: links.map(l => ({
+      icon: l.icon,
+      url: l.url,
+      description: l.description,
+    })),
+  })
+  useEffect(() => {
+    if (!initialSnapshotRef.current) {
+      initialSnapshotRef.current = currentSnapshot
+    }
+  }, [currentSnapshot])
+  const isDirty =
+    initialSnapshotRef.current !== '' &&
+    currentSnapshot !== initialSnapshotRef.current
 
   // Get suggested label based on link type
   const getSuggestedLabel = (type: string): string => {
@@ -460,13 +486,12 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     )
   }
 
-  // Async submit handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // Validate required fields
+  // Core save function — used by both the form submit handler AND the
+  // unsaved-changes dialog's "Save" path. Throws on validation failure so
+  // the dialog stays open.
+  const doSave = async (): Promise<void> => {
     if (!formData.title || !formData.artist || !formData.key) {
-      return
+      throw new Error('Required fields missing')
     }
 
     const duration = minSecToSeconds(formData.durationMin, formData.durationSec)
@@ -475,14 +500,12 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
       .map(t => t.trim())
       .filter(Boolean)
 
-    // Convert UILinks back to ReferenceLinks
     const referenceLinks: ReferenceLink[] = links.map(link => ({
       icon: link.icon,
       url: link.url,
       description: link.name,
     }))
 
-    // For add mode, create a new song; for edit mode, preserve existing fields
     const savedSong: Song = isAddMode
       ? {
           id: crypto.randomUUID(),
@@ -496,19 +519,18 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           tags,
           notes: formData.notes || undefined,
           referenceLinks,
-          // Defaults for new songs (these will be set properly by SongsPage)
           difficulty: 1 as const,
           structure: [],
           chords: [],
           createdDate: new Date(),
           confidenceLevel: 1,
           contextType: 'band',
-          contextId: '', // Will be set by SongsPage
-          createdBy: '', // Will be set by SongsPage
+          contextId: '',
+          createdBy: '',
           visibility: 'band',
         }
       : {
-          ...song!, // Preserve existing fields
+          ...song!,
           title: formData.title,
           artist: formData.artist,
           album: formData.album || undefined,
@@ -521,14 +543,47 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           referenceLinks,
         }
 
-    // Call async onSave
     await onSave(savedSong)
+
+    // Mark the form clean so unsaved-changes checks read as pristine.
+    initialSnapshotRef.current = JSON.stringify({
+      formData,
+      links: links.map(l => ({
+        icon: l.icon,
+        url: l.url,
+        description: l.description,
+      })),
+    })
+  }
+
+  // Unsaved-changes guard wired to the form's dirty state.
+  const { dialogProps, requestClose } = useUnsavedChanges({
+    isDirty,
+    onSave: doSave,
+  })
+
+  // Close handler for backdrop / X / Cancel. Pops the blocking dialog if
+  // there are unsaved changes.
+  const handleClose = async () => {
+    const proceed = await requestClose()
+    if (proceed) onClose()
+  }
+
+  // Form submit handler — swallows doSave's validation error silently
+  // (required-field UI already prompts via the `required` attribute).
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      await doSave()
+    } catch {
+      // Validation errors are surfaced inline via required-field handling.
+    }
   }
 
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar-thin"
@@ -544,7 +599,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             </span>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1 text-[#707070] hover:text-white transition-colors"
           >
             <X size={20} />
@@ -797,39 +852,29 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                   }
                   className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                 >
-                  <option value="Standard">Standard</option>
-                  <option value="Drop D">Drop D</option>
-                  <option value="Drop C">Drop C</option>
-                  <option value="Drop B">Drop B</option>
-                  <option value="Half-step down">Half-step down</option>
-                  <option value="Whole-step down">Whole-step down</option>
-                  <option value="Open G">Open G</option>
-                  <option value="Open D">Open D</option>
-                  <option value="DADGAD">DADGAD</option>
+                  {builtInTuningLabels().map(label => (
+                    <option key={label} value={label}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Notes */}
-              <div>
-                <label
-                  htmlFor="song-notes"
-                  className="block text-sm text-[#a0a0a0] mb-2"
-                >
-                  Band Notes
-                </label>
-                <textarea
-                  name="notes"
-                  id="song-notes"
-                  data-testid="song-notes-textarea"
-                  value={formData.notes}
-                  onChange={e =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  placeholder="Add notes about the song..."
-                  rows={5}
-                  className="w-full px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 resize-none"
-                />
-              </div>
+              {/* Band Notes — edit mode only. On add, users create the song
+                  first then add notes from the song detail view. */}
+              {!isAddMode && (
+                <div>
+                  <label className="block text-sm text-[#a0a0a0] mb-2">
+                    Band Notes
+                  </label>
+                  <MarkdownField
+                    value={formData.notes}
+                    onSave={notes => setFormData({ ...formData, notes })}
+                    placeholder="Add notes about the song..."
+                    data-testid="song-notes-field"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -1093,7 +1138,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-[#2a2a2a]">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-6 py-2.5 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors"
             >
               Cancel
@@ -1143,6 +1188,9 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Unsaved changes guard */}
+      <UnsavedChangesDialog {...dialogProps} />
     </div>
   )
 }
