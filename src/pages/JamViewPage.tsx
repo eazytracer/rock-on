@@ -2,17 +2,25 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { Radio, Users, ArrowRight, ListMusic } from 'lucide-react'
 import type { JamViewPublicPayload } from '../models/JamSession'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('JamViewPage')
 
 /**
  * Live-refresh interval for the anon view.
  *
- * The anon caller has no JWT and can't subscribe to postgres_changes on
- * jam_sessions (RLS + publication are both authenticated-only), so we poll
- * the edge function instead. 10s is tight enough to feel "live" for setlist
- * edits (which are human-paced), loose enough that a popular session
- * doesn't hammer the edge function.
+ * The anon caller has no JWT and so cannot subscribe to
+ * `postgres_changes` on `jam_sessions` (the `jam_sessions_select` RLS
+ * policy is scoped `TO authenticated`, and realtime enforces RLS per
+ * subscriber). HTTP polling against the edge function is the only path
+ * that's already authenticated by the view-token pair.
+ *
+ * 5s balances "feels live for human-paced setlist edits" against
+ * "doesn't hammer the edge function for a session sitting idle on a
+ * guest's phone." The interval fires silently (no spinner) and keeps
+ * the last-known-good payload on screen through any transient failure.
  */
-const LIVE_POLL_INTERVAL_MS = 10_000
+const LIVE_POLL_INTERVAL_MS = 5_000
 
 /**
  * JamViewPage — public/unauthenticated read-only view of a jam session.
@@ -38,6 +46,15 @@ export const JamViewPage: React.FC = () => {
   const [payload, setPayload] = useState<JamViewPublicPayload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Timestamp of the most recent *successful* refresh. Powers the
+  // "Live · updated Ns ago" indicator; also serves as a visible proof
+  // that the poll loop is actually running.
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null)
+  // Tick every second so the "X ago" indicator re-renders without
+  // needing a data change. Pulled out of the fetch effect so it's
+  // independent of shortCode/token — the UI time display refreshes
+  // on its own schedule.
+  const [nowTick, setNowTick] = useState(() => Date.now())
 
   useEffect(() => {
     if (!shortCode) {
@@ -86,24 +103,39 @@ export const JamViewPage: React.FC = () => {
               },
             ],
           })
+          setLastUpdatedAt(Date.now())
           if (!silent) setLoading(false)
           return
         }
 
-        const url = `${supabaseUrl}/functions/v1/jam-view?code=${shortCode}&t=${encodeURIComponent(token)}`
-        const response = await fetch(url)
+        // Cache-buster: append a monotonically-changing query param so no
+        // intermediate cache (service worker, browser disk cache, CDN
+        // node) can return a stale snapshot even if our `no-store` hint
+        // is ignored. Also send `cache: 'no-store'` on the Request so
+        // the browser's HTTP cache skips the entry entirely.
+        const ts = Date.now()
+        const url = `${supabaseUrl}/functions/v1/jam-view?code=${shortCode}&t=${encodeURIComponent(token)}&_=${ts}`
+        const startedAt = performance.now()
+        const response = await fetch(url, { cache: 'no-store' })
 
         if (cancelled) return
 
         if (response.status === 404) {
+          log.warn('poll 404 — session not found', { shortCode, silent })
           setError('This jam session was not found or the link has expired.')
           return
         }
         if (response.status === 410) {
+          log.warn('poll 410 — session expired', { shortCode, silent })
           setError('This jam session has expired.')
           return
         }
         if (!response.ok) {
+          log.warn('poll non-ok', {
+            shortCode,
+            silent,
+            status: response.status,
+          })
           setError(
             'Unable to load jam session. Please check the link and try again.'
           )
@@ -112,15 +144,23 @@ export const JamViewPage: React.FC = () => {
 
         const data = (await response.json()) as JamViewPublicPayload
         if (cancelled) return
+        log.debug('poll ok', {
+          silent,
+          ms: Math.round(performance.now() - startedAt),
+          setlistLen: data.setlist?.length ?? 0,
+          participants: data.participantCount,
+        })
         // Successful refresh — clear any prior transient error that a
         // flaky poll may have produced.
         setError(null)
         setPayload(data)
-      } catch {
+        setLastUpdatedAt(Date.now())
+      } catch (err) {
         if (cancelled) return
-        // Swallow network errors on silent refreshes; the last-known-good
-        // payload stays on screen. Only surface an error to the user when
-        // we have nothing to show them yet.
+        // Swallow network errors on silent refreshes so the last-known-
+        // good payload stays on screen — but LOG them so we're not
+        // silently stuck if the poll starts failing in prod.
+        log.warn('poll exception', { silent, err: (err as Error).message })
         if (!silent) {
           setError('Unable to connect. Please check your internet connection.')
         }
@@ -136,22 +176,50 @@ export const JamViewPage: React.FC = () => {
     // Initial load (loud — shows spinner) + a poll loop (silent — never
     // flashes the spinner, never hides content during a transient failure).
     void fetchSession(false)
-    const intervalId = window.setInterval(
-      () => void fetchSession(true),
-      LIVE_POLL_INTERVAL_MS
-    )
+    const intervalId = window.setInterval(() => {
+      log.debug('poll tick', { shortCode })
+      void fetchSession(true)
+    }, LIVE_POLL_INTERVAL_MS)
+    log.debug('poll loop started', {
+      shortCode,
+      intervalMs: LIVE_POLL_INTERVAL_MS,
+    })
 
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
+      log.debug('poll loop stopped', { shortCode })
     }
   }, [shortCode, token])
+
+  // Re-render the "updated Ns ago" indicator every second. This is
+  // decoupled from the poll loop so the text stays fresh even if a
+  // poll is in flight / just failed.
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [])
 
   const handleSignUp = () => {
     navigate(`/auth?view=signup&redirect=/jam/${shortCode}`)
   }
 
   const setlist = payload?.setlist ?? []
+
+  // Small relative-time formatter. Covered cases:
+  //   - null / 0 seconds → "just now" (avoid showing 0s tick-noise)
+  //   - < 60s → "Xs ago"
+  //   - otherwise → "Xm ago"
+  // Hand-rolled (not a library) because the anon page must stay on the
+  // zero-dependency fetch path — no repository / supabase-js imports.
+  const formatAgo = (then: number | null, now: number): string => {
+    if (then == null) return 'connecting…'
+    const elapsed = Math.max(0, Math.floor((now - then) / 1000))
+    if (elapsed < 2) return 'just now'
+    if (elapsed < 60) return `${elapsed}s ago`
+    const m = Math.floor(elapsed / 60)
+    return `${m}m ago`
+  }
 
   return (
     <div
@@ -198,6 +266,17 @@ export const JamViewPage: React.FC = () => {
                 <div className="flex items-center gap-2 text-primary text-sm mb-2">
                   <Radio size={16} />
                   <span>Live Jam Session</span>
+                  {/* Visible confirmation that the poll loop is running.
+                      If this timestamp stops advancing, polling has
+                      stalled — an observable failure mode, not a silent
+                      one. */}
+                  <span
+                    data-testid="jam-view-last-updated"
+                    className="text-[#707070] text-xs"
+                    title="This page refreshes automatically every few seconds"
+                  >
+                    · updated {formatAgo(lastUpdatedAt, nowTick)}
+                  </span>
                 </div>
                 <h1 className="text-3xl font-bold text-white mb-2">
                   {payload.sessionName}
