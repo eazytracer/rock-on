@@ -329,7 +329,7 @@ Participants in the same active jam can read each other's personal songs via `so
 
 ### Anonymous view via short-code link
 
-Host shares `/jam/view/<short_code>?t=<raw_token>`. Anonymous viewers hit the `jam-view` edge function which verifies the SHA-256 hash of the raw token against `jam_sessions.view_token` and returns a scrubbed payload (no emails, no user IDs, no raw catalog data).
+Host shares `/jam/view/<short_code>?t=<raw_token>`. Anonymous viewers hit the `jam-view` edge function which verifies the SHA-256 hash of the raw token against `jam_sessions.view_token` and returns a scrubbed payload (no emails, no user IDs, no raw catalog data). The payload is the host's curated broadcast setlist (`setlist[]` from `jam_sessions.settings.setlistItems`) plus session metadata (host display name, participant count) — intentionally NOT the common-songs match list (dropped in v0.3.2: anon viewers have no personal catalog so the match set is irrelevant to them).
 
 **Who can:** `anonymous` with a valid `short_code + raw_token` pair. Host is identified in the payload only by their display name (preferring `user_profiles.display_name`, falling back to `users.name`).
 **Who cannot:** `anonymous` without token or with mismatched token → 400 (missing params) / 404 (hash doesn't match). Expired sessions → 410 Gone. Sessions with `status != 'active'` → 410 Gone.
@@ -337,9 +337,10 @@ Host shares `/jam/view/<short_code>?t=<raw_token>`. Anonymous viewers hit the `j
 **Tests:**
 
 - Positive (edge fn smoke): `scripts/smoke-edge-functions.sh` (returns 400 on missing params, proving JWT gate is off and function is reachable)
-- Positive (full happy path): `tests/e2e/jam/jam-view-anon.spec.ts` (pending expansion per v0.3.1 issue log)
-- Negative (wrong token → 404): `tests/e2e/jam/jam-view-anon.spec.ts` (pending)
-- Role grants (db) — `jam-view` calls via `service_role`, requires grants on `jam_sessions`, `jam_participants`, `jam_song_matches`, `user_profiles`, `users`: `supabase/tests/008-role-grants.test.sql`
+- Positive (page surface): `tests/e2e/jam/jam-view-anon.spec.ts` renders `jam-view-setlist` and empty-state, asserts no `Songs in Common` UI
+- Negative (wrong token → 404): `tests/e2e/jam/jam-view-anon.spec.ts`
+- Live refresh: `tests/e2e/jam/jam-view-anon.spec.ts` (polling surfaces host setlist edits without page refresh)
+- Role grants (db) — `jam-view` calls via `service_role`, requires grants on `jam_sessions`, `jam_participants`, `user_profiles`, `users`, `songs` (and `jam_song_matches` for legacy-only fallback): `supabase/tests/008-role-grants.test.sql`
 - Edge function auth mode: `supabase/functions/FUNCTIONS.md` (manifest) + `scripts/smoke-edge-functions.sh` (runtime check)
 
 ### Jam session schema integrity
@@ -379,9 +380,9 @@ Host saves the jam's working setlist as a personal setlist after the jam.
 
 ### Anonymous view via link
 
-`jam-view` Edge Function serves a public, read-only payload that includes the host-curated broadcast setlist (`setlist[]`) alongside the match list. Anonymous visitors see what the host is queuing in real time without needing an account.
+`jam-view` Edge Function serves a public, read-only payload whose primary content is the host-curated broadcast setlist (`setlist[]`). The page polls the edge function every 10s so anon visitors see setlist edits from the host without refreshing. No user IDs, emails, or raw catalog data in the payload; no common-songs section (intentionally excluded — see `JamViewPublicPayload` docstring).
 
-- e2e: `tests/e2e/jam/jam-view-anon.spec.ts` (broadcast-setlist render + page surface)
+- e2e: `tests/e2e/jam/jam-view-anon.spec.ts` (broadcast-setlist render, empty state, polled refresh, absence of common-songs UI, share-URL token persistence)
 
 ### Jam session E2E happy path
 
@@ -543,7 +544,6 @@ These exist in the app but don't have tests. Good candidates for the next covera
 - Google OAuth login path
 - Show CRUD beyond the setlist-show-sync scenario
 - Delete account + data purge
-- Jam anonymous view auto-refresh — the `jam-view` payload now includes the host's broadcast setlist (covered by `jam-view-anon.spec.ts`), but the page itself fetches once on mount. A realtime/poll loop so anon viewers see setlist edits without a page refresh is still a gap.
 - Personal song → setlist drag coverage (separate from jam flow)
 - Billing/tier transitions (no paying tier yet, but placeholder `account_tier` exists)
 

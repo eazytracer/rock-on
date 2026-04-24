@@ -1,16 +1,33 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { Radio, Music, Users, ArrowRight, ListMusic } from 'lucide-react'
-import { JamMatchList } from '../components/jam/JamMatchList'
+import { Radio, Users, ArrowRight, ListMusic } from 'lucide-react'
 import type { JamViewPublicPayload } from '../models/JamSession'
+
+/**
+ * Live-refresh interval for the anon view.
+ *
+ * The anon caller has no JWT and can't subscribe to postgres_changes on
+ * jam_sessions (RLS + publication are both authenticated-only), so we poll
+ * the edge function instead. 10s is tight enough to feel "live" for setlist
+ * edits (which are human-paced), loose enough that a popular session
+ * doesn't hammer the edge function.
+ */
+const LIVE_POLL_INTERVAL_MS = 10_000
 
 /**
  * JamViewPage — public/unauthenticated read-only view of a jam session.
  *
  * Accessed via: /jam/view/:shortCode?t={rawViewToken}
  *
- * This page fetches session data from the Edge Function (no auth required).
- * It shows the matched songs and a CTA to sign up and join the session.
+ * Product intent (post-v0.3.1 rebuild): a guest sees essentially the same
+ * content an authenticated participant sees — the host's curated broadcast
+ * setlist. The old "Songs in Common" section was intentionally removed —
+ * an anon viewer has no personal catalog, so they're neither a contributor
+ * to nor a beneficiary of the match set.
+ *
+ * The page polls the edge function every {@link LIVE_POLL_INTERVAL_MS} to
+ * pick up setlist edits from the host without requiring a page refresh.
+ * Initial load shows a spinner; subsequent refreshes are silent.
  */
 export const JamViewPage: React.FC = () => {
   const { shortCode } = useParams<{ shortCode: string }>()
@@ -22,6 +39,10 @@ export const JamViewPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Keep latest fetch state in a ref so the poll loop doesn't have to be
+  // re-created every time payload changes.
+  const isFetchingRef = useRef(false)
+
   useEffect(() => {
     if (!shortCode) {
       setError('Invalid jam session link')
@@ -29,48 +50,46 @@ export const JamViewPage: React.FC = () => {
       return
     }
 
-    const fetchSession = async () => {
+    let cancelled = false
+
+    const fetchSession = async (silent: boolean) => {
+      // Prevent overlapping fetches if a user-triggered refresh races the
+      // poll loop, or if the browser tab regains focus mid-request.
+      if (isFetchingRef.current) return
+      isFetchingRef.current = true
+
       try {
         // Construct Edge Function URL
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         if (!supabaseUrl) {
-          // In development without Supabase, show a placeholder
+          // In development without Supabase, show a placeholder so the
+          // page can still be exercised locally. The demo payload only
+          // populates `setlist` — there is no `matches` surface to demo.
+          if (cancelled) return
           setPayload({
             sessionName: 'Demo Jam Session',
             hostDisplayName: 'Host',
             participantCount: 2,
-            matchCount: 3,
-            matches: [
-              {
-                displayTitle: 'Wonderwall',
-                displayArtist: 'Oasis',
-                matchConfidence: 'exact',
-              },
-              {
-                displayTitle: 'Black Parade',
-                displayArtist: 'My Chemical Romance',
-                matchConfidence: 'exact',
-              },
-              {
-                displayTitle: 'Bohemian Rhapsody',
-                displayArtist: 'Queen',
-                matchConfidence: 'exact',
-              },
-            ],
             setlist: [
               { displayTitle: 'Wonderwall', displayArtist: 'Oasis' },
               {
                 displayTitle: 'Bohemian Rhapsody',
                 displayArtist: 'Queen',
               },
+              {
+                displayTitle: 'Black Parade',
+                displayArtist: 'My Chemical Romance',
+              },
             ],
           })
-          setLoading(false)
+          if (!silent) setLoading(false)
           return
         }
 
         const url = `${supabaseUrl}/functions/v1/jam-view?code=${shortCode}&t=${encodeURIComponent(token)}`
         const response = await fetch(url)
+
+        if (cancelled) return
 
         if (response.status === 404) {
           setError('This jam session was not found or the link has expired.')
@@ -88,35 +107,44 @@ export const JamViewPage: React.FC = () => {
         }
 
         const data = (await response.json()) as JamViewPublicPayload
+        if (cancelled) return
+        // Successful refresh — clear any prior transient error that a
+        // flaky poll may have produced.
+        setError(null)
         setPayload(data)
       } catch {
-        setError('Unable to connect. Please check your internet connection.')
+        if (cancelled) return
+        // Swallow network errors on silent refreshes; the last-known-good
+        // payload stays on screen. Only surface an error to the user when
+        // we have nothing to show them yet.
+        if (!silent) {
+          setError('Unable to connect. Please check your internet connection.')
+        }
       } finally {
-        setLoading(false)
+        isFetchingRef.current = false
+        if (!silent && !cancelled) setLoading(false)
       }
     }
 
-    void fetchSession()
+    // Initial load (loud — shows spinner) + a poll loop (silent — never
+    // flashes the spinner, never hides content during a transient failure).
+    void fetchSession(false)
+    const intervalId = window.setInterval(
+      () => void fetchSession(true),
+      LIVE_POLL_INTERVAL_MS
+    )
+
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
   }, [shortCode, token])
 
   const handleSignUp = () => {
     navigate(`/auth?view=signup&redirect=/jam/${shortCode}`)
   }
 
-  // Convert payload matches to JamSongMatch-like objects for JamMatchList
-  const displayMatches = (payload?.matches ?? []).map((m, i) => ({
-    id: `preview-${i}`,
-    jamSessionId: shortCode ?? '',
-    canonicalTitle: m.displayTitle.toLowerCase(),
-    canonicalArtist: m.displayArtist.toLowerCase(),
-    displayTitle: m.displayTitle,
-    displayArtist: m.displayArtist,
-    matchConfidence: m.matchConfidence,
-    isConfirmed: true,
-    matchedSongs: [],
-    participantCount: payload?.participantCount ?? 2,
-    computedAt: new Date(),
-  }))
+  const setlist = payload?.setlist ?? []
 
   return (
     <div
@@ -176,25 +204,42 @@ export const JamViewPage: React.FC = () => {
                   </span>
                   <span className="flex items-center gap-1">
                     <Users size={13} />
-                    {payload.participantCount} participants
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Music size={13} />
-                    {payload.matchCount} songs in common
+                    {payload.participantCount}{' '}
+                    {payload.participantCount === 1
+                      ? 'participant'
+                      : 'participants'}
                   </span>
                 </div>
               </div>
 
-              {/* Broadcast setlist (host-curated, read-only).
-                  Shown when the host has added songs to the Setlist tab. */}
-              {payload.setlist && payload.setlist.length > 0 && (
-                <div data-testid="jam-view-setlist">
-                  <h2 className="text-[#a0a0a0] text-sm font-medium uppercase tracking-wide mb-4 flex items-center gap-2">
-                    <ListMusic size={14} />
-                    Tonight's Setlist
-                  </h2>
+              {/* Broadcast setlist — the primary content of the anon view.
+                  Always rendered (even when empty) so the guest has a
+                  stable "this is what the host is queuing" surface that
+                  updates live as the host edits. The common-songs list
+                  that appears on the authenticated view is intentionally
+                  omitted — see JamViewPublicPayload docs for rationale. */}
+              <div data-testid="jam-view-setlist">
+                <h2 className="text-[#a0a0a0] text-sm font-medium uppercase tracking-wide mb-4 flex items-center gap-2">
+                  <ListMusic size={14} />
+                  Tonight's Setlist
+                </h2>
+                {setlist.length === 0 ? (
+                  <div
+                    data-testid="jam-view-setlist-empty"
+                    className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-6 py-10 text-center"
+                  >
+                    <ListMusic size={32} className="mx-auto mb-3 text-[#555]" />
+                    <p className="text-[#a0a0a0] text-sm font-medium mb-1">
+                      Host hasn't added any songs yet
+                    </p>
+                    <p className="text-[#707070] text-xs">
+                      This page will update automatically as the setlist fills
+                      in.
+                    </p>
+                  </div>
+                ) : (
                   <ol className="space-y-2">
-                    {payload.setlist.map((item, idx) => (
+                    {setlist.map((item, idx) => (
                       <li
                         key={`${item.displayTitle}-${idx}`}
                         className="flex items-center gap-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3"
@@ -214,19 +259,7 @@ export const JamViewPage: React.FC = () => {
                       </li>
                     ))}
                   </ol>
-                </div>
-              )}
-
-              {/* Match list (read-only) */}
-              <div>
-                <h2 className="text-[#a0a0a0] text-sm font-medium uppercase tracking-wide mb-4">
-                  Songs in Common
-                </h2>
-                <JamMatchList
-                  matches={displayMatches}
-                  isHost={false}
-                  readOnly={true}
-                />
+                )}
               </div>
 
               {/* CTA */}
@@ -235,8 +268,8 @@ export const JamViewPage: React.FC = () => {
                   Want to join this jam?
                 </h3>
                 <p className="text-[#a0a0a0] text-sm mb-6">
-                  Sign up free to add your songs, find more matches, and jam
-                  together.
+                  Sign up free to add your songs to the mix and jam along with
+                  the band.
                 </p>
                 <button
                   data-testid="jam-view-signup-cta"

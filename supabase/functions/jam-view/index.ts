@@ -7,6 +7,15 @@
  *
  * Endpoint: GET /functions/v1/jam-view?code={shortCode}&t={rawToken}
  *
+ * Product intent: an anonymous viewer sees essentially the same thing an
+ * authenticated participant would — the host's curated broadcast setlist.
+ * The "common songs" match list that drives the authenticated experience is
+ * intentionally NOT returned here: an anon viewer has no personal catalog
+ * and therefore can neither contribute to nor benefit from the match set,
+ * so surfacing it to them is irrelevant plumbing at best and misleading at
+ * worst. (See v0.3.1 post-mortem and v0.3.2 rebuild in
+ * `.claude/artifacts/2026-04-24T02:30_v0.3.1-post-mortem-and-next-session-handoff.md`.)
+ *
  * Rate limiting: handled by Supabase Edge Function infrastructure.
  * Additional rate limiting via Retry-After header on 429 responses.
  */
@@ -119,21 +128,6 @@ Deno.serve(async (req: Request) => {
   const hostDisplayName =
     hostProfileResult.data?.display_name || hostUserResult.data?.name || 'Host'
 
-  // Get confirmed song matches
-  const { data: matches, error: matchesError } = await supabase
-    .from('jam_song_matches')
-    .select('display_title, display_artist, match_confidence')
-    .eq('jam_session_id', session.id)
-    .eq('is_confirmed', true)
-    .order('participant_count', { ascending: false })
-
-  if (matchesError) {
-    return new Response(JSON.stringify({ error: 'Failed to load matches' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
   // Get participant count (NEVER return participant details)
   const { count: participantCount } = await supabase
     .from('jam_participants')
@@ -212,17 +206,14 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Build safe public payload — NO user IDs, emails, or raw catalog data
+  // Build safe public payload — NO user IDs, emails, or raw catalog data.
+  // The `setlist` is the anon view's primary content; `matches` (common
+  // songs) is intentionally omitted — see the module-level comment above
+  // for the product rationale.
   const payload = {
     sessionName: session.name || 'Jam Session',
     hostDisplayName,
     participantCount: participantCount ?? 0,
-    matchCount: matches?.length ?? 0,
-    matches: (matches ?? []).map((m: Record<string, string>) => ({
-      displayTitle: m.display_title,
-      displayArtist: m.display_artist,
-      matchConfidence: m.match_confidence,
-    })),
     setlist: setlistEntries,
   }
 
