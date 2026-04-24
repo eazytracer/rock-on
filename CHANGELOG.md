@@ -7,6 +7,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-24
+
+### Fixed
+
+- **Hotfix:** 403 errors on all jam session operations in production. The
+  v0.3.0 incremental migration created the `jam_sessions`,
+  `jam_participants`, and `jam_song_matches` tables with RLS policies but
+  never granted DML privileges to the `authenticated` role. PostgREST
+  rejected every SELECT/INSERT/UPDATE/DELETE with 403 despite valid JWTs,
+  breaking the entire jam session flow. Fixed by migration
+  `20260424000000_hotfix_grant_jam_tables.sql` which explicitly grants
+  SELECT/INSERT/UPDATE/DELETE on the three jam tables to `authenticated`.
+  Local development Supabase defaults are more permissive, so this didn't
+  surface in pre-deploy testing.
+- Jam session participant list showed `User abc123` instead of the real
+  name for users who had never set an extended profile. The
+  `getJamParticipants` query in `RemoteRepository` only read
+  `user_profiles.display_name`, but that row is only created when a user
+  explicitly visits profile settings — `users.name` (populated at signup)
+  is the more reliable source. Now queries both and prefers
+  `user_profiles.display_name` when set, falling back to `users.name`.
+- Anonymous jam-view page (`/jam/view/:shortCode`) returned 401 because
+  the `jam-view` edge function was deployed without `--no-verify-jwt`,
+  causing the Supabase gateway to reject unauthenticated requests before
+  the function ran. Redeployed with the flag.
+- Share URL for a jam session reset to a broken fallback
+  (`/jam/view/<code>` with no `?t=` token) after page remount / refresh.
+  The raw view token is only known at session creation (DB stores a
+  hash), so the host page couldn't rebuild it from server data. Now the
+  raw token is persisted to localStorage keyed by session id, rehydrated
+  on remount, and the JamSessionCard copy/QR buttons gracefully disable
+  themselves when the token isn't available (e.g. shared on a device
+  other than the one that created the session) with an explanatory
+  tooltip instead of handing out a URL that will 400.
+- Anonymous jam-view page returned 404 even with a valid
+  `/jam/view/<code>?t=<token>` URL. The `jam-view` edge function queries
+  `jam_sessions` via service_role, but the v0.3.0 migration granted DML
+  to `authenticated` only. Although `service_role` has `rolbypassrls =
+true`, BYPASSRLS does not confer table-level privileges — so every
+  service_role read returned "permission denied" and surfaced as 404.
+  Audit revealed ALL 19 public tables were missing service_role grants
+  (a gap in the original baseline migration, not just the jam tables).
+  Fixed by migration `20260424020000_grant_all_public_tables_to_service_role.sql`
+  which grants service_role DML on every existing public table AND sets
+  default privileges so future tables inherit the grant automatically.
+  Preceding migration `20260424013000_grant_jam_tables_to_service_role.sql`
+  first grants just the jam tables (kept for history).
+- Anonymous jam-view showed `Host` as the session host's display name
+  because the edge function only read `user_profiles.display_name`
+  (which is empty for users who never set an extended profile). Now
+  falls back to `users.name` (populated at signup).
+
+### Changed
+
+- Migration-authoring checklist in `CLAUDE.md` now includes: **any new
+  table in an incremental migration needs an explicit `GRANT SELECT,
+INSERT, UPDATE, DELETE ... TO authenticated` AND `... TO service_role`
+  statement**, because the baseline's "GRANT ON ALL TABLES" is a
+  snapshot, not a default-privilege rule.
+
+### Infrastructure (post-mortem from v0.3.0 → v0.3.1)
+
+- `scripts/lint-migrations.mjs` (wired as `npm run lint:migrations`) —
+  static analysis of migration SQL text. For every `CREATE TABLE`,
+  verifies an explicit `GRANT` for both `authenticated` and `service_role`
+  exists in the same or a later migration (or a covering broad grant, or
+  prior default-privilege configuration). Runs at the SQL-text level, so
+  local Supabase's permissive default privileges cannot mask missing
+  grants. Red/green verified: removing the hotfix migrations reports 29
+  violations; restoring passes cleanly.
+- `supabase/tests/008-role-grants.test.sql` — pgTAP suite (181 tests)
+  asserting `has_table_privilege()` for authenticated + service_role on
+  every public table × every DML operation. Complements the linter by
+  catching runtime drift; stronger when run against hosted Supabase.
+- `supabase/functions/FUNCTIONS.md` — manifest of every edge function
+  with auth mode, role context, and expected smoke status. Eliminates
+  the "forgot `--no-verify-jwt`" class of bug.
+- `scripts/deploy-edge-functions.sh` — deploy wrapper that reads the
+  manifest and applies the correct auth flag per function. Never deploy
+  via ad-hoc `supabase functions deploy <name>`.
+- `scripts/smoke-edge-functions.sh` — post-deploy smoke verifying each
+  function returns its expected unauthenticated-GET status from the
+  manifest.
+- `.claude/process/pre-deploy-checklist.md` — required pre-merge and
+  pre-deploy gates, each item tied to a specific v0.3.1 production
+  failure.
+- Functionality catalog template extended — every capability now
+  documents "Who can / Who cannot / Tests (positive) / Tests (negative)"
+  plus role-grant and RLS-policy pointers. Jam session domain fully
+  backfilled as exemplar; remaining domains to follow incrementally.
+
 ## [0.3.0] - 2026-04-23
 
 This release ships the social catalog + jam sessions feature set alongside a

@@ -1640,11 +1640,22 @@ export class RemoteRepository implements IDataRepository {
 
   async getJamParticipants(sessionId: string): Promise<JamParticipant[]> {
     if (!supabase) throw new Error('Supabase client not initialized')
-    // Note: PostgREST cannot auto-embed user_profiles here — both jam_participants
-    // and user_profiles FK to users.id independently, with no direct FK between
-    // them. We do a separate lookup and merge. Reading other participants'
-    // display_name is gated by the user_profiles_select_jam_coparticipant RLS
-    // policy (added 2026-04-19).
+    // Note: PostgREST cannot auto-embed user_profiles/users here —
+    // jam_participants has no direct FK to either, and users/user_profiles
+    // aren't related via FK the way PostgREST auto-joins want. We do
+    // separate lookups and merge.
+    //
+    // Display name resolution prefers user_profiles.display_name (the
+    // "richer" profile field), falling back to users.name (populated at
+    // signup and always non-null for authenticated users). user_profiles
+    // rows are only created when a user explicitly sets a profile, so
+    // many users won't have one — the fallback keeps the host name from
+    // collapsing to "User abc123" for those accounts.
+    //
+    // RLS gates:
+    //   - users_select_self / users_select_band_member /
+    //     users_select_jam_coparticipant (covers self + co-participants)
+    //   - user_profiles_select_own / user_profiles_select_jam_coparticipant
     const { data, error } = await supabase
       .from('jam_participants')
       .select('*')
@@ -1655,25 +1666,38 @@ export class RemoteRepository implements IDataRepository {
     if (rows.length === 0) return []
 
     const userIds = Array.from(new Set(rows.map(row => row.user_id as string)))
-    const { data: profiles, error: profilesError } = await supabase
-      .from('user_profiles')
-      .select('user_id, display_name')
-      .in('user_id', userIds)
-    if (profilesError) throw profilesError
+
+    const [profilesResult, usersResult] = await Promise.all([
+      supabase
+        .from('user_profiles')
+        .select('user_id, display_name')
+        .in('user_id', userIds),
+      supabase.from('users').select('id, name').in('id', userIds),
+    ])
+    if (profilesResult.error) throw profilesResult.error
+    if (usersResult.error) throw usersResult.error
 
     const profileByUserId = new Map<string, { display_name?: string }>()
-    for (const profile of (profiles as any[]) ?? []) {
+    for (const profile of (profilesResult.data as any[]) ?? []) {
       profileByUserId.set(profile.user_id, {
         display_name: profile.display_name ?? undefined,
       })
     }
+    const userNameById = new Map<string, string | undefined>()
+    for (const user of (usersResult.data as any[]) ?? []) {
+      userNameById.set(user.id, user.name ?? undefined)
+    }
 
-    return rows.map(row =>
-      this.mapJamParticipantFromSupabase({
+    return rows.map(row => {
+      const profile = profileByUserId.get(row.user_id)
+      const fallbackName = userNameById.get(row.user_id)
+      return this.mapJamParticipantFromSupabase({
         ...row,
-        user_profiles: profileByUserId.get(row.user_id) ?? null,
+        user_profiles: {
+          display_name: profile?.display_name ?? fallbackName ?? undefined,
+        },
       })
-    )
+    })
   }
 
   async addJamParticipant(
@@ -1686,7 +1710,9 @@ export class RemoteRepository implements IDataRepository {
       .select()
       .single()
     if (error) throw error
-    return this.mapJamParticipantFromSupabase(data)
+    return this.mapJamParticipantFromSupabase(
+      await this.attachParticipantDisplayName(data)
+    )
   }
 
   async updateJamParticipant(
@@ -1702,7 +1728,38 @@ export class RemoteRepository implements IDataRepository {
       .select()
       .single()
     if (error) throw error
-    return this.mapJamParticipantFromSupabase(data)
+    return this.mapJamParticipantFromSupabase(
+      await this.attachParticipantDisplayName(data)
+    )
+  }
+
+  /**
+   * Given a raw jam_participants row, look up the owning user's display
+   * name (user_profiles.display_name preferred, users.name fallback) and
+   * return the row augmented with `user_profiles: { display_name }` so
+   * mapJamParticipantFromSupabase can consume it uniformly. Used by
+   * add/update variants that can't rely on getJamParticipants' bulk
+   * lookup.
+   */
+  private async attachParticipantDisplayName(row: any): Promise<any> {
+    if (!supabase || !row?.user_id) return row
+    const [profileResult, userResult] = await Promise.all([
+      supabase
+        .from('user_profiles')
+        .select('display_name')
+        .eq('user_id', row.user_id)
+        .maybeSingle(),
+      supabase.from('users').select('name').eq('id', row.user_id).maybeSingle(),
+    ])
+    return {
+      ...row,
+      user_profiles: {
+        display_name:
+          (profileResult.data as any)?.display_name ??
+          (userResult.data as any)?.name ??
+          undefined,
+      },
+    }
   }
 
   async getJamSongMatches(sessionId: string): Promise<JamSongMatch[]> {

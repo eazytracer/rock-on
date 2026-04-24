@@ -151,6 +151,27 @@ export const JamSessionPage: React.FC = () => {
     setQueuedSongs(restored)
   }, [session?.settings?.hostSongIds, personalSongs])
 
+  // Rehydrate the raw view token from localStorage when the host returns to
+  // a session they already created (shareUrl state resets on component
+  // remount / page refresh; the DB only stores the hashed token, so the
+  // raw token can't be re-derived server-side). Without this, the share
+  // UI would fall back to a broken /jam/view/<code> URL with no `?t=...`
+  // parameter — the edge function rejects that with 400.
+  useEffect(() => {
+    if (!session?.id || rawToken) return
+    try {
+      const stored = localStorage.getItem(`rockon:jam:viewToken:${session.id}`)
+      if (stored) {
+        setRawToken(stored)
+        setShareUrl(
+          JamSessionService.generateShareUrl(session.shortCode, stored)
+        )
+      }
+    } catch {
+      /* storage unavailable; host will need to recreate session to share */
+    }
+  }, [session?.id, session?.shortCode, rawToken])
+
   // Derive the displayable setlist from session settings.
   // Reads `setlistItems` (objects with displayTitle/displayArtist embedded) —
   // the canonical shape since 2026-04-20. Falls back to the legacy
@@ -233,6 +254,17 @@ export const JamSessionPage: React.FC = () => {
       )
       setShareUrl(url)
       setRawToken(rawViewToken)
+      // Persist the raw view token so the share URL survives remounts /
+      // page refreshes. Only the host holds the raw token (DB stores a
+      // hash), so this is the only place to preserve it.
+      try {
+        localStorage.setItem(
+          `rockon:jam:viewToken:${newSession.id}`,
+          rawViewToken
+        )
+      } catch {
+        /* storage unavailable; share URL will need recreation */
+      }
       showToast('Jam session created!', 'success')
       navigate(`/jam/${newSession.id}`)
     } catch (err) {
@@ -572,13 +604,7 @@ export const JamSessionPage: React.FC = () => {
         {session && (
           <div className="space-y-6">
             {/* Session card */}
-            <JamSessionCard
-              session={session}
-              shareUrl={
-                shareUrl ||
-                `${window.location.origin}/jam/view/${session.shortCode}`
-              }
-            />
+            <JamSessionCard session={session} shareUrl={shareUrl} />
 
             {/* Participants + panels */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
