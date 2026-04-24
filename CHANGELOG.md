@@ -41,6 +41,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   themselves when the token isn't available (e.g. shared on a device
   other than the one that created the session) with an explanatory
   tooltip instead of handing out a URL that will 400.
+- Anonymous jam-view page returned 404 even with a valid
+  `/jam/view/<code>?t=<token>` URL. The `jam-view` edge function queries
+  `jam_sessions` via service_role, but the v0.3.0 migration granted DML
+  to `authenticated` only. Although `service_role` has `rolbypassrls =
+true`, BYPASSRLS does not confer table-level privileges — so every
+  service_role read returned "permission denied" and surfaced as 404.
+  Audit revealed ALL 19 public tables were missing service_role grants
+  (a gap in the original baseline migration, not just the jam tables).
+  Fixed by migration `20260424020000_grant_all_public_tables_to_service_role.sql`
+  which grants service_role DML on every existing public table AND sets
+  default privileges so future tables inherit the grant automatically.
+  Preceding migration `20260424013000_grant_jam_tables_to_service_role.sql`
+  first grants just the jam tables (kept for history).
+- Anonymous jam-view showed `Host` as the session host's display name
+  because the edge function only read `user_profiles.display_name`
+  (which is empty for users who never set an extended profile). Now
+  falls back to `users.name` (populated at signup).
 
 ### Changed
 

@@ -99,14 +99,25 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  // Get host display name (NEVER return email or user ID)
-  const { data: hostProfile } = await supabase
-    .from('user_profiles')
-    .select('display_name')
-    .eq('user_id', session.host_user_id)
-    .single()
+  // Get host display name (NEVER return email or user ID).
+  // Prefer user_profiles.display_name (explicitly set by user), fall back
+  // to users.name (populated at signup, always non-null for registered
+  // users), then to the literal "Host" if neither is available.
+  const [hostProfileResult, hostUserResult] = await Promise.all([
+    supabase
+      .from('user_profiles')
+      .select('display_name')
+      .eq('user_id', session.host_user_id)
+      .maybeSingle(),
+    supabase
+      .from('users')
+      .select('name')
+      .eq('id', session.host_user_id)
+      .maybeSingle(),
+  ])
 
-  const hostDisplayName = hostProfile?.display_name || 'Host'
+  const hostDisplayName =
+    hostProfileResult.data?.display_name || hostUserResult.data?.name || 'Host'
 
   // Get confirmed song matches
   const { data: matches, error: matchesError } = await supabase
