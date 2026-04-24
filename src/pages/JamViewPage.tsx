@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { Radio, Users, ArrowRight, ListMusic } from 'lucide-react'
 import type { JamViewPublicPayload } from '../models/JamSession'
@@ -39,10 +39,6 @@ export const JamViewPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Keep latest fetch state in a ref so the poll loop doesn't have to be
-  // re-created every time payload changes.
-  const isFetchingRef = useRef(false)
-
   useEffect(() => {
     if (!shortCode) {
       setError('Invalid jam session link')
@@ -50,14 +46,22 @@ export const JamViewPage: React.FC = () => {
       return
     }
 
+    // `cancelled` is a per-effect-invocation closure flag. React 18
+    // StrictMode mounts → unmounts → remounts components in dev, so the
+    // effect body runs twice with two separate closures (and two
+    // separate `cancelled` flags). Any in-flight fetch from the first
+    // mount reads its OWN `cancelled` (set to true by cleanup) and no-ops
+    // its state updates; the second mount's fetch drives the actual UI.
+    //
+    // Note: we intentionally do NOT gate with a cross-mount ref
+    // (`isFetchingRef`). A previous iteration did, and it caused the
+    // second mount's fetch to early-return because the first mount's
+    // fetch hadn't finished yet — leaving `loading=true` forever in
+    // dev. The poll interval is 10s; overlap is harmless and setState
+    // idempotent, so there's nothing to guard against here.
     let cancelled = false
 
     const fetchSession = async (silent: boolean) => {
-      // Prevent overlapping fetches if a user-triggered refresh races the
-      // poll loop, or if the browser tab regains focus mid-request.
-      if (isFetchingRef.current) return
-      isFetchingRef.current = true
-
       try {
         // Construct Edge Function URL
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -121,7 +125,10 @@ export const JamViewPage: React.FC = () => {
           setError('Unable to connect. Please check your internet connection.')
         }
       } finally {
-        isFetchingRef.current = false
+        // Only clear loading if this effect is still the active one.
+        // A cancelled fetch (StrictMode first-mount cleanup, or a
+        // subsequent prop change) lets its setState be a no-op against
+        // the stale closure; the live mount's fetch will drive the UI.
         if (!silent && !cancelled) setLoading(false)
       }
     }
