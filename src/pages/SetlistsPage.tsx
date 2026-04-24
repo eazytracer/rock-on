@@ -1866,8 +1866,18 @@ export const SetlistsPage: React.FC = () => {
       // Delete the setlist using hook
       await deleteSetlist(setlistId)
 
-      // Update UI state
-      setUISetlists(uiSetlists.filter(s => s.id !== setlistId))
+      // Optimistic UI update — filter from BOTH lists. We don't know at
+      // this point whether the deleted setlist was band-scoped (lives
+      // in uiSetlists) or personal (lives in personalUISetlists), and
+      // checking the setlist object up front is more code than just
+      // filtering both — a no-op on whichever list didn't contain it.
+      //
+      // Without filtering personalUISetlists here, the personal tab
+      // would keep showing the deleted row until the user navigates
+      // away or a realtime DELETE event lands — both slow / unreliable
+      // paths for the user's own write.
+      setUISetlists(prev => prev.filter(s => s.id !== setlistId))
+      setPersonalUISetlists(prev => prev.filter(s => s.id !== setlistId))
 
       showToast('Setlist deleted', 'success')
     } catch (err) {
