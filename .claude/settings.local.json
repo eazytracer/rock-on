@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(find:*)",
       "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
@@ -47,6 +46,9 @@
       "Bash(cat:*)"
     ],
     "deny": [],
-    "ask": []
-  }
+    "ask": [],
+    "defaultMode": "bypassPermissions"
+  },
+  "enabledMcpjsonServers": ["chrome-devtools"],
+  "enableAllProjectMcpServers": true
 }

@@ -22,6 +22,19 @@ npm install -g vercel
 vercel --version
 echo "✓ Vercel CLI installed"
 
+# Install GitHub CLI (gh) — used for PRs, releases, and tag operations
+echo "🐙 Installing GitHub CLI..."
+(type -p curl >/dev/null || sudo apt-get install curl -y) \
+  && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+     | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+  && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+     | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+  && sudo apt-get update \
+  && sudo apt-get install gh -y
+gh --version | head -1
+echo "✓ GitHub CLI installed (run 'gh auth login' to authenticate)"
+
 
 # Install Playwright dependencies for Firefox
 echo "Installing Playwright system dependencies for Firefox..."
