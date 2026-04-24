@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SELECT/INSERT/UPDATE/DELETE on the three jam tables to `authenticated`.
   Local development Supabase defaults are more permissive, so this didn't
   surface in pre-deploy testing.
+- Jam session participant list showed `User abc123` instead of the real
+  name for users who had never set an extended profile. The
+  `getJamParticipants` query in `RemoteRepository` only read
+  `user_profiles.display_name`, but that row is only created when a user
+  explicitly visits profile settings — `users.name` (populated at signup)
+  is the more reliable source. Now queries both and prefers
+  `user_profiles.display_name` when set, falling back to `users.name`.
+- Anonymous jam-view page (`/jam/view/:shortCode`) returned 401 because
+  the `jam-view` edge function was deployed without `--no-verify-jwt`,
+  causing the Supabase gateway to reject unauthenticated requests before
+  the function ran. Redeployed with the flag.
 
 ### Changed
 
