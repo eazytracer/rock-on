@@ -191,6 +191,39 @@ export class SyncEngine {
     }
   }
 
+  /**
+   * Block until every queued local write has been pushed to Supabase.
+   *
+   * Use this when a subsequent operation depends on the server-side
+   * presence of a row that was just queued via the sync queue (e.g. a
+   * foreign-key-bearing update on a table that bypasses the queue
+   * referencing a table that goes through it).
+   *
+   * Unlike {@link syncNow}:
+   *   - Does NOT pull from remote. This is a write-flush, not a full
+   *     round-trip — we don't want to overwrite fresh local state with
+   *     a remote snapshot mid-operation.
+   *   - Does NOT early-return when a sync is in flight. It waits for
+   *     the in-flight sync to finish, then runs its own flush. The
+   *     default syncNow() bail-out is what lets the jam-save FK race
+   *     slip past in the first place.
+   *
+   * Caps the in-flight wait at 10s so a stuck sync can't deadlock the
+   * caller; after the cap we proceed and let pushQueuedChanges race
+   * the stale sync, which is always idempotent (items are removed on
+   * success).
+   */
+  async flushPendingWrites(): Promise<void> {
+    if (!this.isOnline) return
+
+    const waitStart = Date.now()
+    while (this.isSyncing && Date.now() - waitStart < 10_000) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+
+    await this.pushQueuedChanges()
+  }
+
   private async pushQueuedChanges(): Promise<void> {
     if (!db.syncQueue) return
 
