@@ -32,6 +32,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `jam-view` edge function was deployed without `--no-verify-jwt`,
   causing the Supabase gateway to reject unauthenticated requests before
   the function ran. Redeployed with the flag.
+- Share URL for a jam session reset to a broken fallback
+  (`/jam/view/<code>` with no `?t=` token) after page remount / refresh.
+  The raw view token is only known at session creation (DB stores a
+  hash), so the host page couldn't rebuild it from server data. Now the
+  raw token is persisted to localStorage keyed by session id, rehydrated
+  on remount, and the JamSessionCard copy/QR buttons gracefully disable
+  themselves when the token isn't available (e.g. shared on a device
+  other than the one that created the session) with an explanatory
+  tooltip instead of handing out a URL that will 400.
 
 ### Changed
 

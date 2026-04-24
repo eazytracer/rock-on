@@ -95,7 +95,13 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
         <button
           data-testid="jam-copy-link-button"
           onClick={() => void handleCopy()}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2a2a2a] text-white text-sm font-medium hover:bg-[#333] transition-colors"
+          disabled={!shareUrl}
+          title={
+            shareUrl
+              ? undefined
+              : 'Share link unavailable on this device — create a new session from the device you want to share from'
+          }
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2a2a2a] text-white text-sm font-medium hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#2a2a2a]"
         >
           {copied ? (
             <>
@@ -113,7 +119,9 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
         <button
           data-testid="jam-show-qr-button"
           onClick={() => setShowQR(v => !v)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2a2a2a] text-white text-sm font-medium hover:bg-[#333] transition-colors"
+          disabled={!shareUrl}
+          title={shareUrl ? undefined : 'Share link unavailable on this device'}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2a2a2a] text-white text-sm font-medium hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#2a2a2a]"
         >
           <QrCode size={15} />
           {showQR ? 'Hide QR' : 'Show QR'}
