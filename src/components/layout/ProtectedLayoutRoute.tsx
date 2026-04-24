@@ -40,17 +40,20 @@ export const ProtectedLayoutRoute: React.FC = () => {
   const { isAuthenticated, isChecking, failureReason } = useAuthCheck()
   const { sessionExpired } = useAuth()
 
-  // Show loading spinner during auth check (full screen, dark theme)
-  // This preserves the auth-loading-spinner testid for E2E test compatibility
+  // Show loading spinner during auth check (full screen, dark theme).
+  // Preserves the auth-loading-spinner testid for E2E test compatibility.
+  // Palette: `bg-[#0a0a0a]` (app background), `border-primary` (brand
+  // orange `#FE4401` via tailwind semantic token), `text-[#a0a0a0]`
+  // (secondary text per style guide).
   if (isChecking) {
     return (
       <div
-        className="flex items-center justify-center min-h-screen bg-gray-900"
+        className="flex items-center justify-center min-h-screen bg-[#0a0a0a]"
         data-testid="auth-loading-spinner"
       >
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-400 text-sm">Loading...</span>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-[#a0a0a0] text-sm">Loading...</span>
         </div>
       </div>
     )

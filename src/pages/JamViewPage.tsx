@@ -149,12 +149,12 @@ export const JamViewPage: React.FC = () => {
   return (
     <div
       data-testid="jam-view-page"
-      className="min-h-screen bg-gray-900 flex flex-col"
+      className="min-h-screen bg-[#0a0a0a] flex flex-col"
     >
       {/* Header */}
-      <header className="border-b border-[#1f1f1f] px-6 py-4">
+      <header className="border-b border-[#2a2a2a] px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-[#c4340a] rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">R</span>
           </div>
           <span className="text-white font-semibold">Rock On</span>
@@ -166,7 +166,7 @@ export const JamViewPage: React.FC = () => {
         <div className="max-w-2xl mx-auto">
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <p className="text-[#707070] text-sm">Loading jam session...</p>
             </div>
           )}
@@ -188,7 +188,7 @@ export const JamViewPage: React.FC = () => {
             <div className="space-y-8">
               {/* Session title */}
               <div>
-                <div className="flex items-center gap-2 text-amber-400 text-sm mb-2">
+                <div className="flex items-center gap-2 text-primary text-sm mb-2">
                   <Radio size={16} />
                   <span>Live Jam Session</span>
                 </div>
@@ -245,7 +245,7 @@ export const JamViewPage: React.FC = () => {
                         className="flex items-center gap-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3"
                         data-testid={`jam-view-setlist-item-${idx}`}
                       >
-                        <span className="text-amber-400 font-mono text-sm w-6 shrink-0">
+                        <span className="text-primary font-mono text-sm w-6 shrink-0">
                           {idx + 1}.
                         </span>
                         <div className="min-w-0 flex-1">
@@ -263,7 +263,7 @@ export const JamViewPage: React.FC = () => {
               </div>
 
               {/* CTA */}
-              <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 rounded-2xl p-8 text-center">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-8 text-center">
                 <h3 className="text-white font-bold text-xl mb-2">
                   Want to join this jam?
                 </h3>
@@ -274,7 +274,7 @@ export const JamViewPage: React.FC = () => {
                 <button
                   data-testid="jam-view-signup-cta"
                   onClick={handleSignUp}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-[#e53d01] transition-colors"
                 >
                   Sign up free
                   <ArrowRight size={16} />
@@ -283,7 +283,7 @@ export const JamViewPage: React.FC = () => {
                   Already have an account?{' '}
                   <button
                     onClick={() => navigate(`/auth?redirect=/jam/${shortCode}`)}
-                    className="text-amber-400 hover:underline"
+                    className="text-primary hover:underline"
                   >
                     Log in
                   </button>
