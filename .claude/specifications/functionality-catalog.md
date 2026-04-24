@@ -16,6 +16,41 @@ This file is the master index of what the app does and where it's tested. Organi
 - **Adding a new capability?** Add a new entry in the right domain. Reference any new tests by relative path. If the capability covers multiple domains (e.g. "jam setlist-saving creates a personal setlist"), pick the primary domain and cross-link in the body.
 - **Deleting a capability?** Delete the entry. Dangling test references point to retired tests. Don't leave "deprecated" entries — use git history.
 
+## Entry template
+
+Every capability entry should answer three questions: who is allowed, who is NOT allowed, and how we prove both. Copy this template when adding a new entry:
+
+```markdown
+### Capability name
+
+One-sentence description of what this capability does from the user's
+perspective.
+
+**Who can:** `<role or condition>` — what they can do.
+**Who cannot:** `<role or condition>` — what they should be blocked from;
+expected error surface (403 / 404 / empty list / "unauthorized" toast).
+
+**Tests:**
+
+- Positive (allowed): `<path/to/test>`
+- Negative (denied): `<path/to/test>`
+- Role grants (db): `supabase/tests/008-role-grants.test.sql` — if any new tables
+- RLS policy (db): `supabase/tests/006-rls-policies.test.sql` — if scoped by RLS
+```
+
+**Role vocabulary** (standard terms used throughout the catalog):
+
+- `anonymous` — unauthenticated caller (no JWT)
+- `authenticated` — any signed-in user
+- `self` — the user performing the action on their own resource
+- `band member` — user with `band_memberships.status = 'active'` for the target band
+- `band admin` — user with role `admin` or `owner` on the target band
+- `jam host` — user whose id matches `jam_sessions.host_user_id`
+- `jam participant` — user with `jam_participants.status = 'active'` in the target session
+- `jam co-participant` — both the caller and the owner of the resource are active participants in the same active jam session
+
+Negative-test paths are as important as positive. A missing grant or a drifting RLS policy is caught by a negative test that asserts "X cannot do Y" — the positive tests don't catch the regression where X gains access unintentionally.
+
 ## Test categories
 
 | Category    | Path                        | When it runs                                                        |
@@ -242,31 +277,70 @@ Practice edits create audit entries; other band members see updates live.
 
 ### Create jam session
 
-A host creates a short-lived jam (24h free tier) with a 6-char `short_code` join key.
+A host creates a short-lived jam (24h free tier) with a 6-char `short_code` join key, a hashed view token for anonymous-read sharing, and an empty participant list.
 
-- unit: `tests/unit/services/JamSessionService.test.ts`
-- harness: `scripts/test-harness/commands/create-jam.ts`
+**Who can:** any `authenticated` user, becoming the `jam host` of the new row (`jam_sessions.host_user_id = auth.uid()`).
+**Who cannot:** `anonymous` — no JWT → 401 at gateway. An authenticated user trying to create a session with `host_user_id` set to someone else → 403 from `jam_sessions_insert` policy (`WITH CHECK (host_user_id = auth.uid())`).
+
+**Tests:**
+
+- Positive (allowed): `tests/unit/services/JamSessionService.test.ts`
+- Positive (harness): `scripts/test-harness/commands/create-jam.ts`
+- Negative (RLS denies foreign host_user_id): `supabase/tests/006-rls-policies.test.sql` (policy existence + WITH CHECK shape)
+- Role grants (db): `supabase/tests/008-role-grants.test.sql`
 
 ### Join jam by short code
 
-Any authenticated user joins via the short code; default shares their personal catalog.
+An authenticated user looks up a session by `short_code` and inserts themselves into `jam_participants`, sharing their personal catalog contexts by default.
 
-- unit: `tests/unit/hooks/useJamSession.test.ts`
-- harness: `scripts/test-harness/commands/join-jam.ts`
+**Who can:** any `authenticated` user (session row is visible via `jam_sessions_select_by_code` policy since status='active'; insert into `jam_participants` requires `user_id = auth.uid()`).
+**Who cannot:** `anonymous` — 401. Authenticated user trying to insert a jam_participants row with a different user_id → 403 from `jam_participants_insert_self` policy.
+
+**Tests:**
+
+- Positive (allowed): `tests/unit/hooks/useJamSession.test.ts`, `scripts/test-harness/commands/join-jam.ts`
+- Negative (RLS denies foreign user_id insert): `supabase/tests/006-rls-policies.test.sql`
+- Role grants (db): `supabase/tests/008-role-grants.test.sql`
 
 ### Resume active jam
 
 `/jam` landing shows "return to active jam" cards for sessions the user hosts or participates in.
 
-- unit: covered in `tests/unit/hooks/useJamSession.test.ts`
+**Who can:** `authenticated` user — sees sessions where they are `jam host` OR `jam participant` (active).
+**Who cannot:** `anonymous`; authenticated users who are not host or participant — their list is empty (not an error).
+
+**Tests:**
+
+- Positive: `tests/unit/hooks/useJamSession.test.ts`
 
 ### Cross-user personal-song reads (RLS)
 
 Participants in the same active jam can read each other's personal songs via `songs_select_jam_coparticipant`. Other personal songs remain hidden.
 
-- db: `supabase/tests/006-rls-policies.test.sql` (policies exist + counts)
-- harness: end-to-end flow proves reads succeed (`seed-songs alice; seed-songs bob; create-jam alice; join-jam bob; recompute`)
-- unit: `tests/unit/utils/songMatcher.test.ts` (matcher logic, no RLS)
+**Who can:** `jam co-participant` — both caller and song owner are active participants in the same active jam session.
+**Who cannot:** `authenticated` users not in a shared jam — 0 rows returned (RLS filter). `anonymous` — 401. Even a co-participant cannot read the owner's band-scoped songs through this policy (only `context_type = 'personal'`).
+
+**Tests:**
+
+- Positive (allowed): `scripts/test-harness/commands/recompute.ts` (full flow `seed-songs alice; seed-songs bob; create-jam alice; join-jam bob; recompute` succeeds only if the RLS policy permits bob's catalog read for alice during recompute)
+- Negative (denied outside shared session): covered by harness state — before `join-jam`, recompute returns no matches because alice can't see bob's songs
+- RLS policy (db): `supabase/tests/006-rls-policies.test.sql`
+- Matcher logic (unit, no RLS): `tests/unit/utils/songMatcher.test.ts`
+
+### Anonymous view via short-code link
+
+Host shares `/jam/view/<short_code>?t=<raw_token>`. Anonymous viewers hit the `jam-view` edge function which verifies the SHA-256 hash of the raw token against `jam_sessions.view_token` and returns a scrubbed payload (no emails, no user IDs, no raw catalog data).
+
+**Who can:** `anonymous` with a valid `short_code + raw_token` pair. Host is identified in the payload only by their display name (preferring `user_profiles.display_name`, falling back to `users.name`).
+**Who cannot:** `anonymous` without token or with mismatched token → 400 (missing params) / 404 (hash doesn't match). Expired sessions → 410 Gone. Sessions with `status != 'active'` → 410 Gone.
+
+**Tests:**
+
+- Positive (edge fn smoke): `scripts/smoke-edge-functions.sh` (returns 400 on missing params, proving JWT gate is off and function is reachable)
+- Positive (full happy path): `tests/e2e/jam/jam-view-anon.spec.ts` (pending expansion per v0.3.1 issue log)
+- Negative (wrong token → 404): `tests/e2e/jam/jam-view-anon.spec.ts` (pending)
+- Role grants (db) — `jam-view` calls via `service_role`, requires grants on `jam_sessions`, `jam_participants`, `jam_song_matches`, `user_profiles`, `users`: `supabase/tests/008-role-grants.test.sql`
+- Edge function auth mode: `supabase/functions/FUNCTIONS.md` (manifest) + `scripts/smoke-edge-functions.sh` (runtime check)
 
 ### Jam session schema integrity
 

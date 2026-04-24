@@ -536,6 +536,23 @@ Local Supabase has more permissive default privileges than hosted, so
 missing grants may not surface in `supabase db reset` / pgTAP testing —
 they only fail on production. This bit us in v0.3.0 (fixed in v0.3.1).
 
+**Automated enforcement:** `npm run lint:migrations` parses every migration
+file and verifies each `CREATE TABLE` has explicit `GRANT` statements (or
+a covering broad grant / default-privilege setup) for BOTH `authenticated`
+AND `service_role`. Runs at the SQL-text level so local permissive
+defaults cannot mask missing grants. Must pass before any PR that touches
+`supabase/migrations/` merges. Exit 1 on violations.
+
+```bash
+npm run lint:migrations    # pre-merge gate for migration content
+npm run test:db            # pgTAP schema integrity (488+ tests)
+```
+
+**Edge functions that query public tables via service_role** need those
+grants just like authenticated code paths — `rolbypassrls = true` disables
+RLS but does NOT confer table-level privileges. This was the root cause
+of v0.3.1's 404 cascade on `jam-view`.
+
 **Deploying to production:**
 
 ```bash
@@ -569,6 +586,54 @@ as a template for the structure of future feature migrations.
 - Shows schema evolution during development
 - Can be referenced to understand why changes were made
 - DO NOT apply these - all changes are in the baseline
+
+## Edge Function Policy
+
+Every Supabase edge function requires two explicit, documented decisions:
+
+1. **Auth mode** — does the function verify JWT at the Supabase gateway,
+   or is it intentionally exposed to anonymous callers?
+2. **Role context** — does the function query public tables via
+   service_role (needs grants per the Migration Policy above) or via the
+   caller's JWT (relies on RLS)?
+
+**Both decisions live in `supabase/functions/FUNCTIONS.md`.** Every
+function has a row in that table; a PR that adds a function without
+updating the manifest is incomplete.
+
+### Deployment
+
+Always deploy via a versioned script that consults the manifest. Do NOT
+run `supabase functions deploy <name>` ad-hoc — the auth-mode flag is
+easy to forget (v0.3.1 hit a 401 on anonymous jam-view because
+`--no-verify-jwt` was missing on first deploy).
+
+```bash
+# Correct deploy flow:
+source .env.supabase.local
+# Reads FUNCTIONS.md and deploys each function with its documented flag
+./scripts/deploy-edge-functions.sh <name>  # or all
+```
+
+### Post-deploy smoke
+
+After any function deploy, run `./scripts/smoke-edge-functions.sh` to
+verify each function returns its expected status code for its expected
+auth context (anonymous GET for `--no-verify-jwt` functions; 401 for
+auth-required functions without a JWT). Failure = rollback.
+
+### When a function queries public tables via service_role
+
+The tables it reads/writes MUST have `GRANT SELECT, INSERT, UPDATE,
+DELETE ... TO service_role` in a migration. `rolbypassrls=true` on the
+service_role lets it bypass RLS policies, but it does NOT confer
+table-level privileges — missing grants fail with "permission denied"
+which supabase-js typically surfaces as an empty result, which the
+function then returns as "not found" / 404.
+
+**This is the gotcha that caused v0.3.1's jam-view 404 cascade.** The
+`npm run lint:migrations` check now catches it at the migration-authoring
+layer.
 
 ## Database Schema Reference
 
