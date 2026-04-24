@@ -7,6 +7,126 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-23
+
+This release ships the social catalog + jam sessions feature set alongside a
+comprehensive UI unification pass. It also marks the transition from the
+pre-1.0 "modify baseline directly" schema policy to per-feature incremental
+migrations now that production data exists.
+
+### Added
+
+#### Social catalog + jam sessions
+
+- Personal song catalogs — songs can now be owned by a user directly (not
+  just a band) via `context_type = 'personal'`
+- Personal setlists — same treatment, scoped to the owning user
+- Jam sessions: ephemeral multi-user sessions for finding common songs
+  across participants' personal catalogs. Host creates a session, others
+  join via 6-char short code; matches are computed server-side and
+  broadcast to all participants via Realtime.
+- Anonymous read-only jam view via `jam-view` edge function — attendees
+  can follow along with a view-only link without signing in
+- `jam-recompute` edge function + atomic `replace_jam_matches()` RPC for
+  server-side match computation
+- Host in-session setlist mutator + "seed jam from personal setlist" flow
+- Test harness CLI (`scripts/test-harness/`) for multi-user jam testing
+  with alice/bob/carol personas driving real RLS paths
+- pgTAP coverage for jam sessions + RLS policy drift detection (suite
+  `supabase/tests/013-jam-sessions.test.sql`)
+
+#### UI unification
+
+- `<MetaPill>` + helpers (`KeyPill` / `BpmPill` / `DurationPill` /
+  `TuningPill`) — unified metadata chip used across song lists, detail
+  views, and the practice session viewer
+- `<SectionCard>` — shared container for the "dark card with section
+  heading + optional actions slot" pattern; adopted in PracticeView,
+  SetlistView, ShowView
+- `<MarkdownField>` — render-first notes editing surface with
+  pencil-to-edit, click-out auto-save + green "Notes saved" flash, discard
+  confirm on dirty cancel. Adopted for band notes in EditSongModal and for
+  notes fields in Practice/Setlist/Show view pages.
+- `<UnsavedChangesDialog>` + `useUnsavedChanges()` hook — blocking
+  three-button (Keep / Discard / Save) confirm dialog for forms with
+  unsaved changes. Wired into EditSongModal.
+- Tuning color registry (`src/utils/tunings.ts`) with 9 canonical tunings
+  in Palette A; colored left-border stripe + colored Guitar icon on
+  `SongListItem` for at-a-glance tuning-change spotting
+- Practice session viewer — four responsive layouts (TV / tablet
+  landscape / tablet portrait / mobile) auto-detected by viewport aspect
+  ratio, with a manual override toggle persisted to localStorage
+- Font-size S/M/L toggle in the session header (persisted to localStorage)
+- Kindle-style full-width top/bottom tap zones on the notes panel for
+  page-by-page scrolling; keyboard + BT foot-pedal shortcuts (PageUp /
+  PageDown / Space / Shift+Space)
+- Full-screen practice session on all viewports — sidebar hidden during
+  an active session
+- `<FooterNextPreview>` — shared next-song preview block for the session
+  footer across tablet/mobile layouts
+- `<ScrollableNotes>` — markdown notes panel with tap-zone scroll controls
+  (extracted from the practice session viewer for reuse)
+- `/dev/ui-preview` dev route — design sandbox with 5 tabs for reviewing
+  proposed patterns (practice layouts, tuning colors, markdown field,
+  unsaved changes, section card). Not linked from main nav.
+- `.claude/specifications/functionality-catalog.md` — plain-English index
+  of all app capabilities with test references across 11 domains
+
+### Changed
+
+- `MarkdownRenderer` migrated off legacy color tokens (`steel-gray`,
+  `energy-orange`, `smoke-white`, `electric-yellow`) to the modern hex
+  palette (`#f17827ff`, `#d4d4d4`, `#1f1f1f`, etc.)
+- Migration policy — now one consolidated incremental migration per
+  release/feature, not per-commit. Baseline is frozen for production
+  parity; new schema changes go into dated incremental files with
+  `IF NOT EXISTS` / `DROP POLICY IF EXISTS` / exception-handler guards
+  for idempotency. See `CLAUDE.md` "Migration Policy" section.
+- RLS policies hardened:
+  - `users_select_authenticated` (permissive) replaced with three scoped
+    policies: `users_select_self`, `users_select_band_member`,
+    `users_select_jam_coparticipant`
+  - Songs and setlists split into `*_personal_*` and `*_band_members`
+    policy variants to support per-catalog ownership
+  - New `is_jam_participant()` + `are_jam_coparticipants()` helper
+    functions (SECURITY DEFINER) to prevent RLS recursion
+- Practice session viewer completely rebuilt for the four-layout design;
+  previous single-column layout removed
+- Guitar tuning strings canonicalized via `canonicalTuningId()` —
+  `"Standard (EADGBE)"` and `"Standard"` now resolve to the same registry
+  entry; the modal dropdown shows one consistent list
+- Supabase production access procedure — documented in `CLAUDE.md` with
+  strict secret-handling rules (no byte dumps, no appends to the env
+  file, length/prefix checks only)
+
+### Removed
+
+- `src/components/songs/NewSongModal.tsx` — orphaned (unused, legacy blue
+  accent, `console.log` submit). `EditSongModal` handles both add and
+  edit modes.
+- Band Notes field in `EditSongModal` add-mode — users create the song
+  first, then add notes from the song detail view
+- Pre-1.0 "modify baseline migration directly" policy
+
+### Fixed
+
+- Tuning vocabulary drift between `NewSongModal` and `EditSongModal`
+  (`"Standard (EADGBE)"` vs `"Standard"`, `"Half Step Down"` vs
+  `"Half-step down"`) — both now source from
+  `src/utils/tunings.ts::builtInTuningLabels()`
+- Mobile metadata row left-justified instead of centered
+- Exit affordance redundancy on the TV layout — back arrow in the
+  top-left is now the sole exit
+
+### Infrastructure
+
+- Incremental migration
+  `supabase/migrations/20260422220000_social_catalog_and_jam_sessions.sql`
+  brings existing production databases up to parity with the
+  social-catalog baseline changes. Fully idempotent.
+- `.devcontainer/setup.sh` now installs the GitHub CLI (`gh`) for PR and
+  release management
+
 ## [0.2.2] - 2026-01-22
 
 ### Fixed
