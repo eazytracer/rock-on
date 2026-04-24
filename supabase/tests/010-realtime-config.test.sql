@@ -5,8 +5,10 @@
 
 begin;
 
--- Note: Plan updated from 10 to 14 - split publication check into 5 individual tests to avoid collation issues
-select plan(14);
+-- Plan was 14; +6 for jam tables in publication + REPLICA IDENTITY FULL (2026-04-22).
+-- jam_sessions/jam_participants/jam_song_matches all need realtime so participants
+-- + setlist edits + match recomputes propagate live to every open browser.
+select plan(20);
 
 -- ============================================================================
 -- Test Tables in Realtime Publication
@@ -53,6 +55,34 @@ select ok(
   'songs should be in realtime publication'
 );
 
+-- Jam tables — all three need realtime to power the live UI:
+--   jam_sessions      → host setlist edits / status changes propagate
+--   jam_participants  → join/leave events refresh the participant list
+--   jam_song_matches  → recompute writes show up live on every open browser
+select ok(
+  EXISTS(
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'jam_sessions'
+  ),
+  'jam_sessions should be in realtime publication (host setlist + status broadcasts)'
+);
+
+select ok(
+  EXISTS(
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'jam_participants'
+  ),
+  'jam_participants should be in realtime publication (join/leave events)'
+);
+
+select ok(
+  EXISTS(
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'jam_song_matches'
+  ),
+  'jam_song_matches should be in realtime publication (recompute fan-out)'
+);
+
 -- ============================================================================
 -- Test Replica Identity FULL on Sync Tables
 -- ============================================================================
@@ -81,6 +111,24 @@ select ok(
 select ok(
   (SELECT relreplident FROM pg_class WHERE relname = 'audit_log') = 'f',
   'Audit log should have REPLICA IDENTITY FULL'
+);
+
+-- Jam tables need FULL so the realtime payloads include the OLD/NEW row
+-- (otherwise UPDATEs only carry the PK and clients can't merge into local
+-- state without a re-fetch).
+select ok(
+  (SELECT relreplident FROM pg_class WHERE relname = 'jam_sessions') = 'f',
+  'jam_sessions should have REPLICA IDENTITY FULL'
+);
+
+select ok(
+  (SELECT relreplident FROM pg_class WHERE relname = 'jam_participants') = 'f',
+  'jam_participants should have REPLICA IDENTITY FULL'
+);
+
+select ok(
+  (SELECT relreplident FROM pg_class WHERE relname = 'jam_song_matches') = 'f',
+  'jam_song_matches should have REPLICA IDENTITY FULL'
 );
 
 -- ============================================================================

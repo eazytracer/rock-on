@@ -49,7 +49,11 @@ CREATE TABLE public.users (
   created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_login TIMESTAMPTZ,
   auth_provider TEXT DEFAULT 'email',
-  CONSTRAINT users_email_check CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+  -- Account tier for feature gating (stub: all users are 'free' by default)
+  account_tier TEXT NOT NULL DEFAULT 'free',
+  tier_updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT users_email_check CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+  CONSTRAINT users_account_tier_check CHECK (account_tier IN ('free', 'pro'))
 );
 
 -- ============================================================================
@@ -149,6 +153,28 @@ CREATE TABLE public.invite_codes (
 -- SECTION 2: Content Tables - Songs, Setlists, Shows, Practice Sessions
 -- ============================================================================
 
+-- ============================================================================
+-- Text normalization for jam session song matching
+-- Strips leading articles (the/a/an), punctuation, lowercases, collapses whitespace
+-- Must be defined BEFORE songs table so generated columns can reference it
+-- ============================================================================
+CREATE OR REPLACE FUNCTION normalize_text(input TEXT)
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+STRICT
+AS $$
+  SELECT trim(regexp_replace(
+    regexp_replace(
+      regexp_replace(lower(input), '^(the|a|an)\s+', '', 'i'),
+      '[^a-z0-9 ]', '', 'g'
+    ),
+    '\s+', ' ', 'g'
+  ));
+$$;
+
+COMMENT ON FUNCTION normalize_text IS 'Normalize song titles/artists for jam session matching: strips leading articles, punctuation, lowercases, collapses whitespace';
+
 -- Songs (with version tracking and audit fields)
 CREATE TABLE public.songs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -180,6 +206,10 @@ CREATE TABLE public.songs (
 
   -- Song variant linking
   song_group_id UUID,
+
+  -- Jam session matching: normalized computed columns (generated from title/artist)
+  normalized_title TEXT GENERATED ALWAYS AS (normalize_text(title)) STORED,
+  normalized_artist TEXT GENERATED ALWAYS AS (normalize_text(COALESCE(artist, ''))) STORED,
 
   -- Version tracking & audit (Phase 3)
   version INTEGER DEFAULT 1 NOT NULL,
@@ -214,13 +244,20 @@ CREATE TABLE public.song_group_memberships (
 CREATE TABLE public.setlists (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  band_id UUID NOT NULL REFERENCES public.bands(id) ON DELETE CASCADE,
+  -- band_id is nullable: NULL for personal setlists, set for band setlists
+  band_id UUID REFERENCES public.bands(id) ON DELETE CASCADE,
   show_id UUID,
   status TEXT DEFAULT 'draft',
   created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_modified TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID NOT NULL REFERENCES public.users(id),
   notes TEXT,
+
+  -- Context: 'band' (requires band_id) or 'personal' (requires context_id = userId)
+  context_type TEXT NOT NULL DEFAULT 'band',
+  context_id TEXT,           -- userId for personal, bandId for band
+  jam_session_id UUID,       -- FK to jam_sessions added after that table is defined
+  tags TEXT[] DEFAULT '{}',  -- e.g. ['jam'] for setlists saved from jam sessions
 
   -- Setlist items (songs, breaks, sections)
   items JSONB DEFAULT '[]'::jsonb,
@@ -236,7 +273,13 @@ CREATE TABLE public.setlists (
   -- Template/duplication tracking
   source_setlist_id UUID REFERENCES public.setlists(id) ON DELETE SET NULL,
 
-  CONSTRAINT setlist_status_check CHECK (status IN ('draft', 'active', 'archived'))
+  CONSTRAINT setlist_status_check CHECK (status IN ('draft', 'active', 'archived')),
+  CONSTRAINT setlist_context_type_check CHECK (context_type IN ('band', 'personal')),
+  -- Ensure context consistency: band setlist needs band_id, personal needs context_id
+  CONSTRAINT setlist_context_check CHECK (
+    (context_type = 'band' AND band_id IS NOT NULL) OR
+    (context_type = 'personal' AND context_id IS NOT NULL)
+  )
 );
 
 -- Shows (live performance gigs)
@@ -305,6 +348,93 @@ CREATE TABLE public.practice_sessions (
 );
 
 COMMENT ON TABLE practice_sessions IS 'Practice sessions - tracks version and last_modified_by (does NOT track created_by)';
+
+-- ============================================================================
+-- SECTION 2b: Jam Session Tables (Social Catalog Feature)
+-- ============================================================================
+
+-- Jam sessions: ephemeral collaborative sessions for finding common songs
+CREATE TABLE public.jam_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  short_code TEXT UNIQUE NOT NULL,           -- 6-char alphanumeric join code
+  name TEXT,                                  -- optional session name
+  host_user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'expired', 'saved')),
+  created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,            -- 24h for free tier, 7d for pro
+  saved_setlist_id UUID REFERENCES public.setlists(id) ON DELETE SET NULL,
+
+  -- Optional seed setlist: when set, the session's setlistSongIds are pre-populated
+  -- from this setlist's items at creation time. Reference is kept after creation for
+  -- provenance/UI display. SET NULL on delete so seed-setlist removal doesn't break
+  -- the session.
+  seed_setlist_id UUID REFERENCES public.setlists(id) ON DELETE SET NULL,
+
+  -- Read-only anonymous access token (SHA-256 hashed UUID, for Edge Function)
+  view_token TEXT UNIQUE,
+  view_token_expires_at TIMESTAMPTZ,
+
+  -- Session config (matchThreshold, maxParticipants, hostSongIds, setlistSongIds, etc.)
+  settings JSONB DEFAULT '{}'::jsonb,
+
+  -- Version tracking
+  version INTEGER DEFAULT 1 NOT NULL,
+  last_modified_by UUID REFERENCES public.users(id)
+);
+
+COMMENT ON TABLE jam_sessions IS 'Ephemeral jam sessions for finding common songs across personal catalogs';
+COMMENT ON COLUMN jam_sessions.view_token IS 'SHA-256 hashed token for anonymous read-only access via Edge Function';
+COMMENT ON COLUMN jam_sessions.short_code IS '6-character alphanumeric code for joining a session';
+
+-- Jam participants: users who have joined a session
+CREATE TABLE public.jam_participants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  jam_session_id UUID NOT NULL REFERENCES public.jam_sessions(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  joined_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  status TEXT NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'left', 'kicked')),
+  -- Which catalog contexts they are sharing: [{"type":"personal","id":"user-uuid"}]
+  shared_contexts JSONB NOT NULL DEFAULT '[]'::jsonb,
+  UNIQUE(jam_session_id, user_id)
+);
+
+COMMENT ON TABLE jam_participants IS 'Users who have joined a jam session and the catalog contexts they are sharing';
+
+-- Jam song matches: pre-computed common songs across all participants
+-- Never stores raw song catalog data — only the canonical match representation
+CREATE TABLE public.jam_song_matches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  jam_session_id UUID NOT NULL REFERENCES public.jam_sessions(id) ON DELETE CASCADE,
+
+  -- Canonical match representation (normalized for matching)
+  canonical_title TEXT NOT NULL,
+  canonical_artist TEXT NOT NULL,
+
+  -- Human-readable display values (from host's song record)
+  display_title TEXT NOT NULL,
+  display_artist TEXT NOT NULL,
+
+  -- Match quality
+  match_confidence TEXT NOT NULL DEFAULT 'exact'
+    CHECK (match_confidence IN ('exact', 'fuzzy', 'manual')),
+  is_confirmed BOOLEAN NOT NULL DEFAULT true,  -- false for fuzzy matches pending host confirmation
+
+  -- Per-participant match detail (no private data exposed)
+  -- [{"userId":"...","songId":"...","rawTitle":"...","rawArtist":"..."}]
+  matched_songs JSONB NOT NULL DEFAULT '[]'::jsonb,
+  participant_count INTEGER NOT NULL DEFAULT 0,
+
+  computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE jam_song_matches IS 'Pre-computed song matches for a jam session. Never stores full song catalog data.';
+
+-- Now that jam_sessions exists, add the FK from setlists
+ALTER TABLE public.setlists
+  ADD CONSTRAINT setlists_jam_session_id_fkey
+    FOREIGN KEY (jam_session_id) REFERENCES public.jam_sessions(id) ON DELETE SET NULL;
 
 -- ============================================================================
 -- SECTION 3: Casting System (Optional for MVP)
@@ -464,6 +594,7 @@ CREATE INDEX idx_band_memberships_status ON public.band_memberships(status);
 
 -- Song indexes
 CREATE INDEX idx_songs_context ON public.songs(context_type, context_id);
+CREATE INDEX idx_songs_normalized ON public.songs(normalized_title, normalized_artist);
 CREATE INDEX idx_songs_created_by ON public.songs(created_by);
 CREATE INDEX idx_songs_song_group_id ON public.songs(song_group_id);
 CREATE INDEX idx_song_group_memberships_song_id ON public.song_group_memberships(song_id);
@@ -520,6 +651,20 @@ CREATE INDEX idx_song_note_entries_band ON song_note_entries(band_id);
 CREATE INDEX idx_song_note_entries_session ON song_note_entries(session_type, session_id);
 CREATE INDEX idx_song_note_entries_created ON song_note_entries(created_date DESC);
 CREATE INDEX idx_song_note_entries_version ON song_note_entries(version);
+
+-- Jam session indexes
+CREATE INDEX idx_jam_sessions_host ON public.jam_sessions(host_user_id);
+CREATE INDEX idx_jam_sessions_short_code ON public.jam_sessions(short_code);
+CREATE INDEX idx_jam_sessions_status ON public.jam_sessions(status);
+CREATE INDEX idx_jam_sessions_view_token ON public.jam_sessions(view_token) WHERE view_token IS NOT NULL;
+
+-- Jam participant indexes
+CREATE INDEX idx_jam_participants_session ON public.jam_participants(jam_session_id);
+CREATE INDEX idx_jam_participants_user ON public.jam_participants(user_id);
+
+-- Jam song match indexes
+CREATE INDEX idx_jam_song_matches_session ON public.jam_song_matches(jam_session_id);
+CREATE INDEX idx_jam_song_matches_canonical ON public.jam_song_matches(canonical_title, canonical_artist);
 
 -- ============================================================================
 -- SECTION 6: Functions & Triggers
@@ -970,6 +1115,55 @@ ALTER FUNCTION public.increment_invite_code_usage(UUID) OWNER TO postgres;
 GRANT EXECUTE ON FUNCTION public.increment_invite_code_usage(UUID) TO authenticated;
 COMMENT ON FUNCTION public.increment_invite_code_usage(UUID) IS 'Securely increments invite code usage count. Can be called by any authenticated user when joining a band via invite code. Validates code is active, not expired, and under max uses before incrementing.';
 
+-- Helper function: Check if user is an active jam session participant
+-- SECURITY DEFINER owned by postgres to bypass RLS and prevent recursion
+CREATE OR REPLACE FUNCTION is_jam_participant(p_session_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.jam_participants
+    WHERE jam_session_id = p_session_id
+      AND user_id = p_user_id
+      AND status = 'active'
+  );
+$$;
+
+ALTER FUNCTION is_jam_participant(UUID, UUID) OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION is_jam_participant(UUID, UUID) TO authenticated;
+COMMENT ON FUNCTION is_jam_participant IS 'Check if user is an active jam session participant - SECURITY DEFINER to prevent RLS recursion';
+
+-- Helper: check if two users are both active participants in the same active jam session.
+-- SECURITY DEFINER to avoid RLS recursion when called from RLS policies.
+CREATE OR REPLACE FUNCTION are_jam_coparticipants(p_caller UUID, p_song_owner UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.jam_participants jp_caller
+    JOIN public.jam_participants jp_owner
+      ON jp_caller.jam_session_id = jp_owner.jam_session_id
+    JOIN public.jam_sessions js
+      ON js.id = jp_caller.jam_session_id
+    WHERE jp_caller.user_id = p_caller
+      AND jp_owner.user_id  = p_song_owner
+      AND jp_caller.status  = 'active'
+      AND jp_owner.status   = 'active'
+      AND js.status         = 'active'
+  );
+$$;
+
+ALTER FUNCTION are_jam_coparticipants(UUID, UUID) OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION are_jam_coparticipants(UUID, UUID) TO authenticated;
+COMMENT ON FUNCTION are_jam_coparticipants IS 'Returns true when both users are active participants in the same active jam session. Used by RLS to allow cross-participant personal song reads.';
+
 -- ============================================================================
 -- SECTION 8: Row-Level Security (RLS) Policies
 -- ============================================================================
@@ -999,6 +1193,9 @@ ALTER TABLE public.member_capabilities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.song_personal_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.song_note_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.jam_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.jam_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.jam_song_matches ENABLE ROW LEVEL SECURITY;
 
 -- Force RLS for table owners (needed for pgTAP test isolation)
 ALTER TABLE public.songs FORCE ROW LEVEL SECURITY;
@@ -1007,9 +1204,31 @@ ALTER TABLE public.shows FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.practice_sessions FORCE ROW LEVEL SECURITY;
 
 -- Users policies (optimized with subquery)
-CREATE POLICY "users_select_authenticated"
+-- NOTE: The previous "users_select_authenticated USING (true)" policy allowed any
+-- authenticated user to read every other user's row (including email). Replaced with
+-- three scoped SELECT policies: self, band co-members, and jam co-participants.
+CREATE POLICY "users_select_self"
   ON public.users FOR SELECT TO authenticated
-  USING (true);
+  USING (id = (select auth.uid()));
+
+CREATE POLICY "users_select_band_member"
+  ON public.users FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.band_memberships bm_self
+      JOIN public.band_memberships bm_other
+        ON bm_self.band_id = bm_other.band_id
+      WHERE bm_self.user_id = (select auth.uid())
+        AND bm_other.user_id = users.id
+        AND bm_self.status = 'active'
+        AND bm_other.status = 'active'
+    )
+  );
+
+CREATE POLICY "users_select_jam_coparticipant"
+  ON public.users FOR SELECT TO authenticated
+  USING (are_jam_coparticipants((select auth.uid()), users.id));
 
 CREATE POLICY "users_update_own"
   ON public.users FOR UPDATE TO authenticated
@@ -1025,6 +1244,13 @@ CREATE POLICY "users_insert_own"
 CREATE POLICY "user_profiles_select_own"
   ON public.user_profiles FOR SELECT TO authenticated
   USING ((select auth.uid()) = user_id);
+
+-- Allow reading display_name of other users in the same active jam session.
+-- Mirrors the songs_select_jam_coparticipant pattern used for cross-participant
+-- personal song reads. Required so the jam UI can show participant names.
+CREATE POLICY "user_profiles_select_jam_coparticipant"
+  ON public.user_profiles FOR SELECT TO authenticated
+  USING (are_jam_coparticipants((select auth.uid()), user_id));
 
 CREATE POLICY "user_profiles_insert_own"
   ON public.user_profiles FOR INSERT TO authenticated
@@ -1123,15 +1349,59 @@ CREATE POLICY "invite_codes_update_if_admin"
   ON public.invite_codes FOR UPDATE TO authenticated
   USING (is_band_admin(invite_codes.band_id, (select auth.uid())));
 
--- Songs policies (MVP: band-only, optimized with subquery)
-CREATE POLICY "songs_select_band_members_only"
+-- Songs policies: split into personal and band policies
+-- Personal songs: only visible/editable by the owner (context_id = user's own UUID)
+CREATE POLICY "songs_select_personal_own"
+  ON public.songs FOR SELECT TO authenticated
+  USING (
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  );
+
+-- Jam session matching: allow a participant to read co-participants' personal songs
+-- so that recomputeMatches() can see all participants' catalogs, not just the caller's.
+CREATE POLICY "songs_select_jam_coparticipant"
+  ON public.songs FOR SELECT TO authenticated
+  USING (
+    context_type = 'personal' AND
+    are_jam_coparticipants((select auth.uid()), songs.context_id::uuid)
+  );
+
+CREATE POLICY "songs_insert_personal_own"
+  ON public.songs FOR INSERT TO authenticated
+  WITH CHECK (
+    created_by = (select auth.uid()) AND
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  );
+
+CREATE POLICY "songs_update_personal_own"
+  ON public.songs FOR UPDATE TO authenticated
+  USING (
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  )
+  WITH CHECK (
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  );
+
+CREATE POLICY "songs_delete_personal_own"
+  ON public.songs FOR DELETE TO authenticated
+  USING (
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  );
+
+-- Band songs: visible/editable by band members (admin required for delete)
+CREATE POLICY "songs_select_band_members"
   ON public.songs FOR SELECT TO authenticated
   USING (
     context_type = 'band' AND
     is_band_member(songs.context_id::uuid, (select auth.uid()))
   );
 
-CREATE POLICY "songs_insert_band_members_only"
+CREATE POLICY "songs_insert_band_members"
   ON public.songs FOR INSERT TO authenticated
   WITH CHECK (
     created_by = (select auth.uid()) AND
@@ -1139,7 +1409,7 @@ CREATE POLICY "songs_insert_band_members_only"
     is_band_member(songs.context_id::uuid, (select auth.uid()))
   );
 
-CREATE POLICY "songs_update_band_members_only"
+CREATE POLICY "songs_update_band_members"
   ON public.songs FOR UPDATE TO authenticated
   USING (
     context_type = 'band' AND
@@ -1150,31 +1420,76 @@ CREATE POLICY "songs_update_band_members_only"
     is_band_member(songs.context_id::uuid, (select auth.uid()))
   );
 
-CREATE POLICY "songs_delete_band_admins_only"
+CREATE POLICY "songs_delete_band_admins"
   ON public.songs FOR DELETE TO authenticated
   USING (
     context_type = 'band' AND
     is_band_admin(songs.context_id::uuid, (select auth.uid()))
   );
 
--- Setlists policies (optimized with subquery)
-CREATE POLICY "setlists_select_if_member"
+-- Setlists policies: split into personal and band policies
+-- Personal setlists: only visible/editable by the owner
+CREATE POLICY "setlists_select_personal_own"
   ON public.setlists FOR SELECT TO authenticated
-  USING (is_band_member(setlists.band_id, (select auth.uid())));
+  USING (
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  );
 
-CREATE POLICY "setlists_insert_if_member"
+CREATE POLICY "setlists_insert_personal_own"
   ON public.setlists FOR INSERT TO authenticated
-  WITH CHECK (is_band_member(setlists.band_id, (select auth.uid())));
+  WITH CHECK (
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  );
 
-CREATE POLICY "setlists_update_if_member"
+CREATE POLICY "setlists_update_personal_own"
   ON public.setlists FOR UPDATE TO authenticated
-  USING (is_band_member(setlists.band_id, (select auth.uid())));
+  USING (
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  )
+  WITH CHECK (
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  );
 
-CREATE POLICY "setlists_delete_if_creator_or_admin"
+CREATE POLICY "setlists_delete_personal_own"
   ON public.setlists FOR DELETE TO authenticated
   USING (
-    created_by = (select auth.uid()) OR
-    is_band_admin(setlists.band_id, (select auth.uid()))
+    context_type = 'personal' AND
+    context_id = (select auth.uid())::text
+  );
+
+-- Band setlists: visible/editable by band members
+CREATE POLICY "setlists_select_band_members"
+  ON public.setlists FOR SELECT TO authenticated
+  USING (
+    context_type = 'band' AND
+    is_band_member(setlists.band_id, (select auth.uid()))
+  );
+
+CREATE POLICY "setlists_insert_band_members"
+  ON public.setlists FOR INSERT TO authenticated
+  WITH CHECK (
+    context_type = 'band' AND
+    is_band_member(setlists.band_id, (select auth.uid()))
+  );
+
+CREATE POLICY "setlists_update_band_members"
+  ON public.setlists FOR UPDATE TO authenticated
+  USING (
+    context_type = 'band' AND
+    is_band_member(setlists.band_id, (select auth.uid()))
+  );
+
+CREATE POLICY "setlists_delete_band_creator_or_admin"
+  ON public.setlists FOR DELETE TO authenticated
+  USING (
+    context_type = 'band' AND (
+      created_by = (select auth.uid()) OR
+      is_band_admin(setlists.band_id, (select auth.uid()))
+    )
   );
 
 -- Shows policies (optimized with subquery)
@@ -1281,6 +1596,99 @@ CREATE POLICY "note_entries_delete_own_or_admin"
   );
 
 -- ============================================================================
+-- SECTION 8c: Jam Session RLS Policies
+-- ============================================================================
+
+-- jam_sessions: host and active participants can read; only host can write
+CREATE POLICY "jam_sessions_select"
+  ON public.jam_sessions FOR SELECT TO authenticated
+  USING (
+    host_user_id = (select auth.uid()) OR
+    is_jam_participant(id, (select auth.uid()))
+  );
+
+-- Also allow SELECT by short_code for the join flow (any authenticated user can look up by code)
+CREATE POLICY "jam_sessions_select_by_code"
+  ON public.jam_sessions FOR SELECT TO authenticated
+  USING (status = 'active');
+
+CREATE POLICY "jam_sessions_insert"
+  ON public.jam_sessions FOR INSERT TO authenticated
+  WITH CHECK (host_user_id = (select auth.uid()));
+
+CREATE POLICY "jam_sessions_update"
+  ON public.jam_sessions FOR UPDATE TO authenticated
+  USING (host_user_id = (select auth.uid()));
+
+CREATE POLICY "jam_sessions_delete"
+  ON public.jam_sessions FOR DELETE TO authenticated
+  USING (host_user_id = (select auth.uid()));
+
+-- jam_participants: active participants can read all participants in their session
+-- Also allows users to read their own row (needed for RETURNING * after INSERT)
+CREATE POLICY "jam_participants_select"
+  ON public.jam_participants FOR SELECT TO authenticated
+  USING (
+    user_id = (select auth.uid()) OR
+    is_jam_participant(jam_session_id, (select auth.uid()))
+  );
+
+-- Users can join a session themselves
+CREATE POLICY "jam_participants_insert_self"
+  ON public.jam_participants FOR INSERT TO authenticated
+  WITH CHECK (user_id = (select auth.uid()));
+
+-- Participants can leave; host can kick
+CREATE POLICY "jam_participants_update_self"
+  ON public.jam_participants FOR UPDATE TO authenticated
+  USING (user_id = (select auth.uid()));
+
+CREATE POLICY "jam_participants_delete_self_or_host"
+  ON public.jam_participants FOR DELETE TO authenticated
+  USING (
+    user_id = (select auth.uid()) OR
+    EXISTS (
+      SELECT 1 FROM public.jam_sessions
+      WHERE id = jam_session_id
+        AND host_user_id = (select auth.uid())
+    )
+  );
+
+-- jam_song_matches: participants can read; computed server-side (no direct insert/update from app)
+CREATE POLICY "jam_song_matches_select"
+  ON public.jam_song_matches FOR SELECT TO authenticated
+  USING (is_jam_participant(jam_session_id, (select auth.uid())));
+
+-- Host can confirm/dismiss fuzzy matches
+CREATE POLICY "jam_song_matches_update_host"
+  ON public.jam_song_matches FOR UPDATE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.jam_sessions
+      WHERE id = jam_session_id
+        AND host_user_id = (select auth.uid())
+    )
+  );
+
+-- recomputeMatches() runs client-side, so any active participant can insert/replace matches
+CREATE POLICY "jam_song_matches_insert_participant"
+  ON public.jam_song_matches FOR INSERT TO authenticated
+  WITH CHECK (
+    is_jam_participant(jam_session_id, (select auth.uid()))
+  );
+
+-- Matches are replaced by any participant (upsert = delete + insert); host can also delete dismissed matches
+CREATE POLICY "jam_song_matches_delete_host"
+  ON public.jam_song_matches FOR DELETE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.jam_sessions
+      WHERE id = jam_session_id
+        AND host_user_id = (select auth.uid())
+    )
+  );
+
+-- ============================================================================
 -- SECTION 9: Realtime Configuration (Phase 4)
 -- ============================================================================
 
@@ -1291,6 +1699,10 @@ ALTER PUBLICATION supabase_realtime ADD TABLE shows;
 ALTER PUBLICATION supabase_realtime ADD TABLE practice_sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE audit_log;
 ALTER PUBLICATION supabase_realtime ADD TABLE song_note_entries;
+-- Jam session tables (real-time participant + match updates)
+ALTER PUBLICATION supabase_realtime ADD TABLE jam_sessions;
+ALTER PUBLICATION supabase_realtime ADD TABLE jam_participants;
+ALTER PUBLICATION supabase_realtime ADD TABLE jam_song_matches;
 
 -- Set REPLICA IDENTITY FULL (required for realtime UPDATE/DELETE events)
 ALTER TABLE songs REPLICA IDENTITY FULL;
@@ -1299,6 +1711,90 @@ ALTER TABLE shows REPLICA IDENTITY FULL;
 ALTER TABLE practice_sessions REPLICA IDENTITY FULL;
 ALTER TABLE audit_log REPLICA IDENTITY FULL;
 ALTER TABLE song_note_entries REPLICA IDENTITY FULL;
+ALTER TABLE jam_sessions REPLICA IDENTITY FULL;
+ALTER TABLE jam_participants REPLICA IDENTITY FULL;
+ALTER TABLE jam_song_matches REPLICA IDENTITY FULL;
+
+-- ============================================================================
+-- Jam Session: Atomic match replacement (used by jam-recompute Edge Function)
+-- ============================================================================
+
+/**
+ * replace_jam_matches(p_session_id, p_matches)
+ *
+ * Atomically replaces all jam_song_matches rows for a session in a single
+ * transaction. The Edge Function calls this RPC instead of doing a separate
+ * DELETE + INSERT so that:
+ *   - No Realtime subscriber ever sees a window of 0 matches
+ *   - Concurrent Edge Function invocations cannot interleave their writes
+ *
+ * p_matches JSONB format (array):
+ * [
+ *   {
+ *     "id": "uuid",
+ *     "canonical_title": "...",
+ *     "canonical_artist": "...",
+ *     "display_title": "...",
+ *     "display_artist": "...",
+ *     "match_confidence": "exact"|"fuzzy"|"manual",
+ *     "is_confirmed": true|false,
+ *     "matched_songs": [...],   -- stored as-is in JSONB
+ *     "participant_count": 2
+ *   }
+ * ]
+ *
+ * Security: SECURITY DEFINER runs as the function owner (postgres), bypassing
+ * RLS. The Edge Function is responsible for verifying the caller is a session
+ * participant before invoking this RPC.
+ */
+CREATE OR REPLACE FUNCTION public.replace_jam_matches(
+  p_session_id UUID,
+  p_matches    JSONB
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Delete all existing matches for this session
+  DELETE FROM jam_song_matches WHERE jam_session_id = p_session_id;
+
+  -- Insert the new computed matches (no-op if array is empty)
+  IF jsonb_array_length(p_matches) > 0 THEN
+    INSERT INTO jam_song_matches (
+      id,
+      jam_session_id,
+      canonical_title,
+      canonical_artist,
+      display_title,
+      display_artist,
+      match_confidence,
+      is_confirmed,
+      matched_songs,
+      participant_count,
+      computed_at
+    )
+    SELECT
+      (elem->>'id')::UUID,
+      p_session_id,
+      elem->>'canonical_title',
+      elem->>'canonical_artist',
+      elem->>'display_title',
+      elem->>'display_artist',
+      elem->>'match_confidence',
+      (elem->>'is_confirmed')::BOOLEAN,
+      elem->'matched_songs',
+      (elem->>'participant_count')::INTEGER,
+      NOW()
+    FROM jsonb_array_elements(p_matches) AS elem;
+  END IF;
+END;
+$$;
+
+-- Grant execute to authenticated users (Edge Function uses service role,
+-- but the grant ensures anon/authenticated tokens can also call it if needed)
+GRANT EXECUTE ON FUNCTION public.replace_jam_matches(UUID, JSONB) TO authenticated;
 
 -- ============================================================================
 -- Migration Complete

@@ -17,6 +17,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { LinkIcons } from '../songs/LinkIcons'
 import { InlineEditableField } from './InlineEditableField'
 import type { ReferenceLink } from '../../types'
+import { tuningColor } from '../../utils/tunings'
 
 // Shared UI song type
 export interface UISong {
@@ -290,12 +291,14 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
       </>
     )
 
+    const stripeColor = tuningColor(song.tuning ?? 'Standard')
     return (
       <div
         data-testid={testId || `list-item-song-${displayPosition}`}
-        className={`group bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] ${
+        className={`group bg-[#1a1a1a] rounded-xl border border-l-4 border-[#2a2a2a] ${
           isEditing ? 'hover:border-[#3a3a3a]' : ''
         } ${isDragging ? 'shadow-lg shadow-black/50' : ''} transition-colors`}
+        style={{ borderLeftColor: stripeColor }}
       >
         {/* Mobile/Tablet Layout (< 1280px) */}
         <div className="xl:hidden p-4">
@@ -358,7 +361,11 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                   <span>{song.duration}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
-                  <Guitar size={14} className="flex-shrink-0 text-[#606060]" />
+                  <Guitar
+                    size={14}
+                    className="flex-shrink-0"
+                    style={{ color: stripeColor }}
+                  />
                   <span className="truncate">{song.tuning || 'Standard'}</span>
                 </div>
               </div>
@@ -443,7 +450,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
 
             {/* Tuning with icon */}
             <div className="w-[120px] flex items-center gap-2 text-[#a0a0a0] text-sm flex-shrink-0">
-              <Guitar size={14} className="text-[#606060]" />
+              <Guitar size={14} style={{ color: stripeColor }} />
               <span className="truncate">{song.tuning || 'Standard'}</span>
             </div>
 
@@ -479,33 +486,5 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
   return null
 }
 
-// Helper functions to generate avatar data
-export const generateAvatarColor = (title: string): string => {
-  const colors = [
-    '#3b82f6',
-    '#8b5cf6',
-    '#ec4899',
-    '#f59e0b',
-    '#f43f5e',
-    '#14b8a6',
-    '#ef4444',
-    '#6366f1',
-    '#a855f7',
-    '#84cc16',
-    '#eab308',
-    '#10b981',
-    '#06b6d4',
-    '#d946ef',
-    '#f97316',
-  ]
-  const index = title.charCodeAt(0) % colors.length
-  return colors[index]
-}
-
-export const generateInitials = (title: string): string => {
-  const words = title.split(' ').filter(w => w.length > 0)
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase()
-  }
-  return title.substring(0, 2).toUpperCase()
-}
+// Re-export from canonical source — import from src/utils/songAvatar.ts directly in new code
+export { generateAvatarColor, generateInitials } from '../../utils/songAvatar'

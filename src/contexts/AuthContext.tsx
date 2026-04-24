@@ -641,6 +641,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     localStorage.removeItem('currentUserId')
     localStorage.removeItem('currentBandId')
 
+    // Dispatch custom event so useAuthCheck can react to same-tab signOut
+    window.dispatchEvent(new CustomEvent('auth-logout'))
+
     // Clear Supabase session from localStorage
     // Keys like 'sb-khzeuxxhigqcmrytsfux-auth-token'
     const keys = Object.keys(localStorage)

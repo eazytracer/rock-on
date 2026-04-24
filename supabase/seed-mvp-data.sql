@@ -734,6 +734,39 @@ BEGIN
     )
   ON CONFLICT (id) DO NOTHING;
 
+  -- ========================================
+  -- PERSONAL SONGS (for jam session testing)
+  -- Eric and Mike share All Star + Wonderwall so jam matching always finds 2 common songs.
+  -- ========================================
+  RAISE NOTICE '🎸 Seeding personal songs for jam session testing...';
+
+  INSERT INTO public.songs (
+    id, title, artist, duration, key, tempo, difficulty, guitar_tuning,
+    context_type, context_id, created_by, visibility, created_date, notes, version
+  ) VALUES
+    -- Eric's personal catalog
+    (gen_random_uuid(), 'All Star',    'Smash Mouth', 194, 'F#',  104, 2, 'Standard',
+     'personal', v_eric_id::text, v_eric_id, 'personal', NOW(), 'My personal copy', 1),
+    (gen_random_uuid(), 'Wonderwall',  'Oasis',       258, 'F#m',  87, 2, 'Standard',
+     'personal', v_eric_id::text, v_eric_id, 'personal', NOW(), 'Capo 2', 1),
+    (gen_random_uuid(), 'Sweet Home Chicago', 'Robert Johnson', 180, 'E', 120, 2, 'Standard',
+     'personal', v_eric_id::text, v_eric_id, 'personal', NOW(), 'Blues classic', 1),
+
+    -- Mike's personal catalog
+    (gen_random_uuid(), 'All Star',    'Smash Mouth', 194, 'F#',  104, 2, 'Standard',
+     'personal', v_mike_id::text, v_mike_id, 'personal', NOW(), 'My personal copy', 1),
+    (gen_random_uuid(), 'Wonderwall',  'Oasis',       258, 'F#m',  87, 2, 'Standard',
+     'personal', v_mike_id::text, v_mike_id, 'personal', NOW(), 'Capo 2', 1),
+    (gen_random_uuid(), 'Bohemian Rhapsody', 'Queen', 354, 'Bb', 72, 4, 'Standard',
+     'personal', v_mike_id::text, v_mike_id, 'personal', NOW(), 'Tricky key changes', 1),
+
+    -- Sarah's personal catalog
+    (gen_random_uuid(), 'Wonderwall',  'Oasis',       258, 'F#m',  87, 2, 'Standard',
+     'personal', v_sarah_id::text, v_sarah_id, 'personal', NOW(), 'Capo 2', 1),
+    (gen_random_uuid(), 'Bohemian Rhapsody', 'Queen', 354, 'Bb', 72, 4, 'Standard',
+     'personal', v_sarah_id::text, v_sarah_id, 'personal', NOW(), 'Epic drums', 1)
+  ON CONFLICT DO NOTHING;
+
   RAISE NOTICE '✅ MVP seed data complete!';
   RAISE NOTICE 'Test users: eric@testband.demo, mike@testband.demo, sarah@testband.demo';
   RAISE NOTICE 'Password for all: test123';

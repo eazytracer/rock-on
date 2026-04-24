@@ -19,10 +19,12 @@ import {
   Edit,
   ExternalLink,
   FileText,
+  UserPlus,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database hooks and utilities
 import {
   useSongs,
+  usePersonalSongs,
   useCreateSong,
   useUpdateSong,
   useDeleteSong,
@@ -49,6 +51,7 @@ import type { Song as ModelSong } from '../models/Song'
 // Confirmation dialog (replaces window.confirm)
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
+import { SongLinkingService } from '../services/SongLinkingService'
 
 interface SongLink {
   id: string
@@ -487,6 +490,10 @@ interface SongRowProps {
   onDuplicate: (song: Song) => void
   onAddToSetlist: (song: Song) => void
   onOpenNotes: (song: Song) => void
+  /** When defined, shows "Copy to My Songs" in the kebab menu (band tab only) */
+  onCopyToPersonal?: (song: Song) => void
+  /** Whether this song has already been copied to the personal catalog */
+  alreadyCopied?: boolean
   openActionMenuId: string | null
   setOpenActionMenuId: (id: string | null) => void
 }
@@ -498,6 +505,8 @@ const SongRow: React.FC<SongRowProps> = ({
   onDuplicate,
   onAddToSetlist,
   onOpenNotes,
+  onCopyToPersonal,
+  alreadyCopied,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
@@ -606,6 +615,25 @@ const SongRow: React.FC<SongRowProps> = ({
                   <ListPlus size={16} />
                   <span>Add to Setlist</span>
                 </button>
+                {onCopyToPersonal && (
+                  <button
+                    onClick={() => !alreadyCopied && onCopyToPersonal(song)}
+                    disabled={alreadyCopied}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                      alreadyCopied
+                        ? 'text-[#707070] cursor-default'
+                        : 'text-white hover:bg-[#2a2a2a]'
+                    }`}
+                    data-testid="copy-to-personal-button"
+                  >
+                    <UserPlus size={16} />
+                    <span>
+                      {alreadyCopied
+                        ? 'Already in My Songs'
+                        : 'Copy to My Songs'}
+                    </span>
+                  </button>
+                )}
                 <button
                   onClick={() => onDuplicate(song)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
@@ -640,6 +668,8 @@ const SongCard: React.FC<SongRowProps> = ({
   onDuplicate,
   onAddToSetlist,
   onOpenNotes,
+  onCopyToPersonal,
+  alreadyCopied,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
@@ -708,6 +738,23 @@ const SongCard: React.FC<SongRowProps> = ({
                 <ListPlus size={16} />
                 <span>Add to Setlist</span>
               </button>
+              {onCopyToPersonal && (
+                <button
+                  onClick={() => !alreadyCopied && onCopyToPersonal(song)}
+                  disabled={alreadyCopied}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                    alreadyCopied
+                      ? 'text-[#707070] cursor-default'
+                      : 'text-white hover:bg-[#2a2a2a]'
+                  }`}
+                  data-testid="copy-to-personal-button"
+                >
+                  <UserPlus size={16} />
+                  <span>
+                    {alreadyCopied ? 'Already in My Songs' : 'Copy to My Songs'}
+                  </span>
+                </button>
+              )}
               <button
                 onClick={() => onDuplicate(song)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
@@ -801,12 +848,39 @@ export const SongsPage: React.FC = () => {
   const currentBandId = localStorage.getItem('currentBandId') || ''
   const currentUserId = localStorage.getItem('currentUserId') || ''
 
+  // Tab state: 'band' = band songs, 'personal' = user's personal catalog
+  const [activeTab, setActiveTab] = useState<'band' | 'personal'>('band')
+  const isPersonalTab = activeTab === 'personal'
+
   // DATABASE INTEGRATION: Use database hooks instead of mock state
-  const { songs: dbSongs, loading, error, refetch } = useSongs(currentBandId)
+  const {
+    songs: dbBandSongs,
+    loading: bandLoading,
+    error: bandError,
+    refetch: bandRefetch,
+  } = useSongs(currentBandId)
+  const {
+    songs: dbPersonalSongs,
+    loading: personalLoading,
+    error: personalError,
+    refetch: personalRefetch,
+  } = usePersonalSongs(currentUserId)
+
+  // Determine which songs/loading/error/refetch to use based on active tab
+  const dbSongs = isPersonalTab ? dbPersonalSongs : dbBandSongs
+  const loading = isPersonalTab ? personalLoading : bandLoading
+  const error = isPersonalTab ? personalError : bandError
+  const refetch = isPersonalTab ? personalRefetch : bandRefetch
+
   const { createSong } = useCreateSong()
   const { updateSong } = useUpdateSong()
   const { deleteSong, checkSongInSetlists } = useDeleteSong()
   const { confirm, dialogProps } = useConfirm()
+
+  // Context values for song creation/edit based on active tab
+  const songContextType = isPersonalTab ? 'personal' : 'band'
+  const songContextId = isPersonalTab ? currentUserId : currentBandId
+  const songVisibility = isPersonalTab ? 'personal' : 'band'
 
   // Display songs with transformed data
   const [songs, setSongs] = useState<Song[]>([])
@@ -1088,10 +1162,10 @@ export const SongsPage: React.FC = () => {
             url: link.url,
             description: link.name,
           })) || [],
-        contextType: 'band',
-        contextId: currentBandId,
+        contextType: songContextType,
+        contextId: songContextId,
         createdBy: currentUserId,
-        visibility: 'band',
+        visibility: songVisibility,
         confidenceLevel: song.confidenceLevel || 1,
       })
 
@@ -1191,6 +1265,28 @@ export const SongsPage: React.FC = () => {
     setOpenActionMenuId(null)
   }
 
+  // IDs of band songs that have already been copied to the personal catalog
+  // (derived from linkedFromSongId on personal songs)
+  const copiedBandSongIds = useMemo(() => {
+    return new Set(
+      dbPersonalSongs
+        .map(s => s.linkedFromSongId)
+        .filter((id): id is string => !!id)
+    )
+  }, [dbPersonalSongs])
+
+  // Copy a band song to the personal catalog
+  const handleCopyToPersonal = async (song: Song) => {
+    setOpenActionMenuId(null)
+    try {
+      await SongLinkingService.copyBandSongToPersonal(song.id, currentUserId)
+      await personalRefetch()
+      showToast(`"${song.title}" added to My Songs`, 'success')
+    } catch (err) {
+      showToast(`Failed to copy song: ${(err as Error).message}`, 'error')
+    }
+  }
+
   // Toggle tag selection
   const toggleTag = (tag: string) => {
     setSelectedTags(prev =>
@@ -1214,13 +1310,39 @@ export const SongsPage: React.FC = () => {
         {!loading && !error && (
           <>
             <div className="mb-8">
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <h1 className="text-2xl font-bold text-white">Songs</h1>
                 <ChevronDown size={20} className="text-[#a0a0a0]" />
                 {/* DATABASE INTEGRATION: Show song count */}
                 <span className="text-sm text-[#a0a0a0] ml-2">
                   ({songs.length} songs)
                 </span>
+              </div>
+
+              {/* Band / Personal tab switcher */}
+              <div className="flex gap-1 mb-6 bg-[#1a1a1a] rounded-lg p-1 w-fit">
+                <button
+                  data-testid="songs-band-tab"
+                  onClick={() => setActiveTab('band')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'band'
+                      ? 'bg-[#f17827ff] text-white'
+                      : 'text-[#a0a0a0] hover:text-white'
+                  }`}
+                >
+                  Band Songs
+                </button>
+                <button
+                  data-testid="songs-personal-tab"
+                  onClick={() => setActiveTab('personal')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'personal'
+                      ? 'bg-[#f17827ff] text-white'
+                      : 'text-[#a0a0a0] hover:text-white'
+                  }`}
+                >
+                  My Songs
+                </button>
               </div>
 
               {/* Action Bar */}
@@ -1516,6 +1638,12 @@ export const SongsPage: React.FC = () => {
                       onOpenNotes={s =>
                         setSongNotesModal({ songId: s.id, songTitle: s.title })
                       }
+                      onCopyToPersonal={
+                        !isPersonalTab ? handleCopyToPersonal : undefined
+                      }
+                      alreadyCopied={
+                        !isPersonalTab && copiedBandSongIds.has(song.id)
+                      }
                       openActionMenuId={openActionMenuId}
                       setOpenActionMenuId={setOpenActionMenuId}
                     />
@@ -1537,6 +1665,12 @@ export const SongsPage: React.FC = () => {
                     onAddToSetlist={handleAddToSetlist}
                     onOpenNotes={s =>
                       setSongNotesModal({ songId: s.id, songTitle: s.title })
+                    }
+                    onCopyToPersonal={
+                      !isPersonalTab ? handleCopyToPersonal : undefined
+                    }
+                    alreadyCopied={
+                      !isPersonalTab && copiedBandSongIds.has(song.id)
                     }
                     openActionMenuId={openActionMenuId}
                     setOpenActionMenuId={setOpenActionMenuId}
@@ -1569,10 +1703,10 @@ export const SongsPage: React.FC = () => {
                   tags: newSong.tags || [],
                   notes: newSong.notes,
                   referenceLinks: newSong.referenceLinks || [],
-                  contextType: 'band',
-                  contextId: currentBandId,
+                  contextType: songContextType,
+                  contextId: songContextId,
                   createdBy: currentUserId,
-                  visibility: 'band',
+                  visibility: songVisibility,
                   confidenceLevel: newSong.confidenceLevel || 1,
                 })
 
@@ -1613,10 +1747,10 @@ export const SongsPage: React.FC = () => {
               ),
               createdDate: new Date(selectedSong.createdDate),
               confidenceLevel: selectedSong.confidenceLevel || 1,
-              contextType: 'band',
-              contextId: currentBandId,
+              contextType: songContextType,
+              contextId: songContextId,
               createdBy: selectedSong.createdBy,
-              visibility: 'band',
+              visibility: songVisibility,
             }}
             onClose={() => {
               setIsEditModalOpen(false)

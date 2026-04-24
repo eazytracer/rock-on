@@ -1,7 +1,7 @@
 ---
 title: Unified Database Schema Reference
 created: 2025-10-25T21:50
-updated: 2026-03-15T21:32 (Schema audit corrections + social-catalog new tables)
+updated: 2026-04-19T21:30 (RLS hardening — scoped users SELECT policies, jam co-participant profile reads, drift fixes)
 status: Authoritative Source of Truth
 description: Single unified reference for ALL database operations (IndexedDB + Supabase)
 ---
@@ -98,11 +98,12 @@ All tables with both naming conventions:
 | `authProvider`  | `authProvider` | `auth_provider`   | string           | Yes      | 'email' | Auth provider                          |
 | `accountTier`   | -              | `account_tier`    | enum             | Yes      | 'free'  | Account tier (Supabase only)           |
 | `tierUpdatedAt` | -              | `tier_updated_at` | Date/TIMESTAMPTZ | No       | NOW()   | When tier last changed (Supabase only) |
+| `lastActiveAt`  | -              | `last_active_at`  | Date/TIMESTAMPTZ | No       | -       | Last user activity (Supabase only)     |
 
 **Indexes:**
 
 - Dexie: `++id, email, name, createdDate, lastLogin, authProvider`
-- Supabase: `idx_users_email` on `email`
+- Supabase: `idx_users_email` on `email`, `idx_users_last_active` on `last_active_at`
 
 **Constraints (Supabase only):**
 
@@ -112,7 +113,17 @@ All tables with both naming conventions:
 
 **Mapping Notes:**
 
-- `accountTier` / `tierUpdatedAt` are Supabase-only tier fields; not synced to IndexedDB
+- `accountTier` / `tierUpdatedAt` / `lastActiveAt` are Supabase-only fields; not synced to IndexedDB
+
+**RLS (Supabase, three scoped SELECT policies — replaces the old `users_select_authenticated USING (true)` policy as of 2026-04-19):**
+
+- `users_select_self` — read your own row
+- `users_select_band_member` — read users who share at least one active band membership with you
+- `users_select_jam_coparticipant` — read users in the same active jam session (uses `are_jam_coparticipants()`)
+- `users_insert_own` — only insert your own row at signup
+- `users_update_own` — only update your own row
+
+**Privacy implication:** Authenticated users can no longer enumerate every email in the system. Display data for anonymous/cross-context cases should come from `user_profiles` (display_name) rather than `users` (email).
 
 ---
 
@@ -148,6 +159,14 @@ All tables with both naming conventions:
 
 - UNIQUE on `user_id`
 - FK `user_id` → `users(id)` CASCADE
+
+**RLS (Supabase):**
+
+- `user_profiles_select_own` — read your own profile
+- `user_profiles_select_jam_coparticipant` — read profiles of users in the same active jam session (added 2026-04-19, uses `are_jam_coparticipants()`)
+- `user_profiles_insert_own` / `user_profiles_update_own` — manage your own profile only
+
+**Note on PostgREST embeds:** `jam_participants` and `user_profiles` both FK to `users.id` independently — no direct FK between them. PostgREST cannot auto-embed `user_profiles(...)` from a `jam_participants` query. Use a parallel `.in('user_id', [...])` lookup instead. See `RemoteRepository.getJamParticipants()` for the canonical pattern.
 
 ---
 
@@ -1052,6 +1071,42 @@ All main tables (songs, setlists, shows, practice_sessions, jam_sessions) includ
 
 ---
 
+## Known Issues & Caveats
+
+### Tables with RLS enabled but NO policies (effectively deny-all)
+
+The following 7 tables exist in the baseline schema with RLS enabled but ZERO policies, which means non-service_role queries return empty without raising an error:
+
+- `assignment_roles`
+- `casting_templates`
+- `member_capabilities`
+- `song_assignments`
+- `song_castings`
+- `song_groups`
+- `song_group_memberships`
+
+**Current impact:** None. The application code does not query these tables (only referenced by `src/pages/DevDashboard/diagrams/generated/erDiagram.ts` for ER diagram generation).
+
+**Future risk:** The first time these tables are queried (e.g., when context-specific casting features ship), all queries will silently return empty arrays. Either drop the tables or add SELECT policies before using them.
+
+See `.claude/artifacts/2026-04-19T21:21_schema-review-and-forward-compat.md` (RLS-3) for context.
+
+### Polymorphic context_id has no FK
+
+`songs.context_id` and `setlists.context_id` are TEXT (not UUID) and have no FK because they're polymorphic — either a `band_id` or a `user_id` depending on `context_type`. Consequences:
+
+- No referential integrity. Deleting a band/user does not cascade to their songs/setlists. Orphan rows possible.
+- Joins require `::text` casting.
+- `setlists` carries both `band_id` (UUID, nullable) AND `context_id` (TEXT) for band setlists — drift risk between the two columns.
+
+Pre-1.0 cleanup proposed in the schema review artifact (R1, R2). Not blocking.
+
+### `bands.memberIds` IndexedDB legacy
+
+IndexedDB `bands` table still has a `memberIds` array. Supabase uses the normalized `band_memberships` table. The local array is not always kept in sync. Treat `band_memberships` as the source of truth; derive local membership from there.
+
+---
+
 ## Deprecated Schemas
 
 **DO NOT USE:**
@@ -1065,6 +1120,7 @@ All main tables (songs, setlists, shows, practice_sessions, jam_sessions) includ
 
 ---
 
-**Last Updated:** 2026-03-15T21:32 (Schema audit corrections: fixed guitar_tuning, reference_links, visibility enum, version defaults, gig_type, setlist fields, removed ghost band_membership fields; added song_personal_notes, song_note_entries, bands.created_by; added social-catalog tables: jam_sessions, jam_participants, jam_song_matches; added users.account_tier stub)
+**Last Updated:** 2026-04-19T21:30 (RLS hardening: replaced `users_select_authenticated USING (true)` with three scoped SELECT policies — self / band-co-member / jam-co-participant. Added `user_profiles_select_jam_coparticipant`. Added `users.last_active_at` column. Documented 7 RLS-no-policy tables. Documented PostgREST embed limitation between `jam_participants` and `user_profiles`.)
+**Previously:** 2026-03-15T21:32 (Schema audit corrections: fixed guitar_tuning, reference_links, visibility enum, version defaults, gig_type, setlist fields, removed ghost band_membership fields; added song_personal_notes, song_note_entries, bands.created_by; added social-catalog tables: jam_sessions, jam_participants, jam_song_matches; added users.account_tier stub)
 **Maintained By:** Claude Code Development Team
 **Status:** Authoritative Source of Truth

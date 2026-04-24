@@ -69,12 +69,30 @@ export function useAuthCheck(): AuthCheckResult {
   const location = useLocation()
   // Track if this is the initial mount
   const [isInitialCheck, setIsInitialCheck] = useState(true)
+  // Counter to force re-check when storage changes (e.g. after signOut)
+  const [storageVersion, setStorageVersion] = useState(0)
   const [result, setResult] = useState<AuthCheckResult>({
     isAuthenticated: null,
     isChecking: true,
     hasBand: false,
     failureReason: null,
   })
+
+  // Listen for same-tab signOut events and cross-tab localStorage changes
+  useEffect(() => {
+    const handleLogout = () => setStorageVersion(v => v + 1)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'currentUserId' || e.key === 'currentBandId') {
+        setStorageVersion(v => v + 1)
+      }
+    }
+    window.addEventListener('auth-logout', handleLogout)
+    window.addEventListener('storage', handleStorageChange)
+    return () => {
+      window.removeEventListener('auth-logout', handleLogout)
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [])
 
   useEffect(() => {
     // Only show loading spinner on initial mount, not on subsequent route changes
@@ -173,9 +191,9 @@ export function useAuthCheck(): AuthCheckResult {
         setIsInitialCheck(false)
       }
     })
-    // Re-run auth check on every route change to catch expired sessions
+    // Re-run auth check on every route change or signOut event
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname])
+  }, [location.pathname, storageVersion])
 
   return result
 }

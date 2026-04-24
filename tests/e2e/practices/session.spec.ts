@@ -593,8 +593,12 @@ async function createSongWithNotes(
     }
   }
 
-  // Save song - button is "Create Song"
-  const saveButton = page.locator('button:has-text("Create Song")').first()
+  // Save song - button uses data-testid "song-submit-button"
+  const saveButton = page
+    .locator(
+      '[data-testid="song-submit-button"], button:has-text("Save Changes")'
+    )
+    .first()
   await expect(saveButton).toBeVisible({ timeout: 3000 })
   await saveButton.click()
   await page.waitForTimeout(1500)

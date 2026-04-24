@@ -1,7 +1,7 @@
 {
   "name": "rock-on",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,6 +21,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
+    "harness": "tsx scripts/test-harness/cli.ts",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
     "schema:validate": "tsx scripts/validate-schema.ts",
@@ -69,6 +70,7 @@
     "lucide-react": "^0.546.0",
     "mermaid": "^11.12.2",
     "puppeteer": "^24.26.0",
+    "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",

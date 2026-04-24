@@ -1,6 +1,11 @@
 import { IDataRepository, SongFilter, BandFilter } from './IDataRepository'
 import { LocalRepository } from './LocalRepository'
 import { RemoteRepository } from './RemoteRepository'
+import {
+  JamSession,
+  JamParticipant,
+  JamSongMatch,
+} from '../../models/JamSession'
 import { SyncEngine } from './SyncEngine'
 import { Song } from '../../models/Song'
 import { Band } from '../../models/Band'
@@ -21,19 +26,35 @@ import type {
 } from '../../models/SongNoteEntry'
 
 /**
- * SyncRepository - Local-first repository with background sync
+ * SyncRepository — Cloud-first repository with local cache
  *
- * Architecture:
- * - READ operations: Always from LocalRepository (instant!)
- * - WRITE operations: Write to local first (optimistic), then queue for sync
- * - SYNC: Automatic background sync when online, queued when offline
+ * ## Mental model
+ * Supabase is the source of truth. IndexedDB is a performance cache that also
+ * provides a short offline grace period (gig-length, not indefinite).
+ * True offline-first is the responsibility of the future React Native app
+ * (SQLite), not this web layer.
  *
- * This provides:
- * - Instant reads from IndexedDB
- * - Optimistic writes for responsive UI
- * - Offline capability with sync queue
- * - Automatic sync when connection restored
- * - Real-time sync status updates via event listeners
+ * ## Read routing (getSongs is the canonical example)
+ *
+ *   Cross-user personal data         → always Supabase (not in our cache)
+ *   Own data / band data — cache hit  → IndexedDB (fast)
+ *   Own data / band data — cache miss → Supabase → backfill cache → return
+ *
+ * ## Write routing
+ *
+ *   All writes → IndexedDB immediately (optimistic UI) + queue for Supabase
+ *   On failure → stay in queue, retry on reconnect
+ *   NEVER write to db.* directly; always go through repository.* so the
+ *   sync queue is populated.
+ *
+ * ## Online-only entities (no local layer at all)
+ *   jam_sessions, jam_participants, jam_song_matches
+ *   bands, band_memberships, invite_codes (reads fall back to remote on miss)
+ *
+ * ## Mobile note
+ * When the React Native app ships, LocalRepository swaps for an SQLite
+ * implementation. The routing logic here stays identical; only the storage
+ * backend changes.
  */
 export class SyncRepository implements IDataRepository {
   private local: LocalRepository
@@ -41,6 +62,13 @@ export class SyncRepository implements IDataRepository {
   private syncEngine: SyncEngine
   private isOnline: boolean
   private syncStatusCallbacks: Set<SyncStatusListener> = new Set()
+  /**
+   * The authenticated user's ID, set on login via setCurrentUser().
+   * Used by getSongs() to decide whether to route to local cache or remote:
+   *   - Own data (contextId === currentUserId) or band data → local (fast, offline-capable)
+   *   - Another user's personal data                       → always remote (never in our IndexedDB)
+   */
+  private currentUserId: string | null = null
 
   constructor() {
     this.local = new LocalRepository()
@@ -65,10 +93,60 @@ export class SyncRepository implements IDataRepository {
   }
 
   // ========== SONGS ==========
-  // READ: Always from local (instant!)
+  // READ routing — three cases based on the "IndexedDB as cache" model:
+  //
+  //  1. Another user's personal songs
+  //     → always remote. Never in our IndexedDB. RLS governs access.
+  //
+  //  2. Our own data (personal or band) — cache hit
+  //     → return local immediately (fast, works offline).
+  //
+  //  3. Our own data — cache miss (empty local, but we're online)
+  //     → fall back to remote, backfill local cache so next read is fast.
+  //     This handles: fresh logins on new devices, personal songs added via
+  //     workflows that bypassed the sync queue (defensive), post-reset states.
+  //
+  // When the React Native app ships, cases 2+3 stay identical — only the
+  // local store implementation changes (SQLite instead of IndexedDB).
 
   async getSongs(filter?: SongFilter): Promise<Song[]> {
-    return this.local.getSongs(filter)
+    const isOtherUsersPersonalData =
+      filter?.contextType === 'personal' &&
+      filter.contextId !== undefined &&
+      this.currentUserId !== null &&
+      filter.contextId !== this.currentUserId
+
+    // Case 1 — cross-user read: always go remote
+    if (isOtherUsersPersonalData) {
+      return this.remote.getSongs(filter)
+    }
+
+    // Cases 2+3 — own data: try local first
+    const localResults = await this.local.getSongs(filter)
+
+    // Case 3 — cache miss recovery: if local is empty but a specific context was
+    // requested and we're online, fetch from Supabase and backfill the cache.
+    // A request with no filter intentionally gets whatever is locally cached.
+    const hasSpecificContext = filter?.contextId !== undefined
+    if (localResults.length === 0 && hasSpecificContext && this.isOnline) {
+      const remoteResults = await this.remote.getSongs(filter).catch(() => [])
+      if (remoteResults.length > 0) {
+        // Backfill cache — fire-and-forget, don't block the read
+        Promise.allSettled(
+          remoteResults.map(song => this.local.addSong(song).catch(() => {}))
+        )
+        return remoteResults
+      }
+    }
+
+    return localResults
+  }
+
+  // getSongsRemote intentionally removed — callers should always use getSongs().
+  // The routing decision (local vs remote) belongs here, not at the call site.
+  async getSongsRemote(filter?: SongFilter): Promise<Song[]> {
+    // Delegate to the smart getSongs so this shim stays correct while callers migrate
+    return this.getSongs(filter)
   }
 
   async getSong(id: string): Promise<Song | null> {
@@ -208,6 +286,10 @@ export class SyncRepository implements IDataRepository {
 
   async getSetlists(bandId: string): Promise<Setlist[]> {
     return this.local.getSetlists(bandId)
+  }
+
+  async getPersonalSetlists(userId: string): Promise<Setlist[]> {
+    return this.local.getPersonalSetlists(userId)
   }
 
   async getSetlist(id: string): Promise<Setlist | null> {
@@ -587,6 +669,7 @@ export class SyncRepository implements IDataRepository {
    * @param userId User ID to sync data for
    */
   setCurrentUser(userId: string): void {
+    this.currentUserId = userId
     this.syncEngine.setCurrentUser(userId)
   }
 
@@ -732,6 +815,53 @@ export class SyncRepository implements IDataRepository {
    */
   async pullFromRemote(userId: string): Promise<void> {
     await this.syncEngine.pullFromRemote(userId)
+  }
+
+  // ========== JAM SESSIONS (delegate to remote — no local cache) ==========
+
+  async getActiveJamSessionsForUser(userId: string): Promise<JamSession[]> {
+    return this.remote.getActiveJamSessionsForUser(userId)
+  }
+  async getJamSession(id: string): Promise<JamSession | null> {
+    return this.remote.getJamSession(id)
+  }
+  async getJamSessionByCode(shortCode: string): Promise<JamSession | null> {
+    return this.remote.getJamSessionByCode(shortCode)
+  }
+  async createJamSession(session: Omit<JamSession, 'id'>): Promise<JamSession> {
+    return this.remote.createJamSession(session)
+  }
+  async updateJamSession(
+    id: string,
+    updates: Partial<JamSession>
+  ): Promise<JamSession> {
+    return this.remote.updateJamSession(id, updates)
+  }
+  async deleteJamSession(id: string): Promise<void> {
+    return this.remote.deleteJamSession(id)
+  }
+  async getJamParticipants(sessionId: string): Promise<JamParticipant[]> {
+    return this.remote.getJamParticipants(sessionId)
+  }
+  async addJamParticipant(
+    participant: Omit<JamParticipant, 'id'>
+  ): Promise<JamParticipant> {
+    return this.remote.addJamParticipant(participant)
+  }
+  async updateJamParticipant(
+    id: string,
+    updates: Partial<JamParticipant>
+  ): Promise<JamParticipant> {
+    return this.remote.updateJamParticipant(id, updates)
+  }
+  async getJamSongMatches(sessionId: string): Promise<JamSongMatch[]> {
+    return this.remote.getJamSongMatches(sessionId)
+  }
+  async upsertJamSongMatches(
+    sessionId: string,
+    matches: Omit<JamSongMatch, 'id'>[]
+  ): Promise<JamSongMatch[]> {
+    return this.remote.upsertJamSongMatches(sessionId, matches)
   }
 
   /**

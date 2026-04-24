@@ -6,6 +6,7 @@
  */
 
 import { db } from './database'
+import { repository } from './data/RepositoryFactory'
 import { Song } from '../models/Song'
 import { SongGroup } from '../models/SongGroup'
 
@@ -61,8 +62,8 @@ export class SongLinkingService {
       notes,
     })
 
-    // Update the song's songGroupId field
-    await db.songs.update(songId, { songGroupId })
+    // Update the song's songGroupId field — go through repository so it syncs
+    await repository.updateSong(songId, { songGroupId })
 
     return membershipId
   }
@@ -293,8 +294,8 @@ export class SongLinkingService {
       await db.songGroupMemberships.delete(membership.id!)
     }
 
-    // Remove songGroupId from the song
-    await db.songs.update(songId, { songGroupId: undefined })
+    // Remove songGroupId from the song — go through repository so it syncs
+    await repository.updateSong(songId, { songGroupId: undefined })
   }
 
   /**
@@ -307,9 +308,9 @@ export class SongLinkingService {
       .equals(songGroupId)
       .toArray()
 
-    // Unlink all songs
+    // Unlink all songs — go through repository so changes sync
     for (const membership of memberships) {
-      await db.songs.update(membership.songId, { songGroupId: undefined })
+      await repository.updateSong(membership.songId, { songGroupId: undefined })
       await db.songGroupMemberships.delete(membership.id!)
     }
 
@@ -347,7 +348,8 @@ export class SongLinkingService {
       createdDate: new Date(),
     }
 
-    await db.songs.add(bandSong)
+    // Write through the repository so this song syncs to Supabase
+    await repository.addSong(bandSong)
 
     // Create or use existing song group
     let groupId: string
@@ -403,7 +405,10 @@ export class SongLinkingService {
       createdDate: new Date(),
     }
 
-    await db.songs.add(personalSong)
+    // Write through the repository so this personal copy syncs to Supabase immediately.
+    // Previously this used db.songs.add() directly, which wrote to IndexedDB only and
+    // never reached Supabase — causing jam session matching to find zero songs.
+    await repository.addSong(personalSong)
 
     // Create or use existing song group
     let groupId: string

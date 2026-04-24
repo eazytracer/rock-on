@@ -5,6 +5,11 @@ import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
 import { BandMembership, InviteCode } from '../../models/BandMembership'
 import { IncrementalSyncResult } from './syncTypes'
+import {
+  JamSession,
+  JamParticipant,
+  JamSongMatch,
+} from '../../models/JamSession'
 
 export interface SongFilter {
   id?: string
@@ -42,6 +47,8 @@ export interface IDataRepository {
 
   // ========== SETLISTS ==========
   getSetlists(bandId: string): Promise<Setlist[]>
+  /** Get personal setlists for a specific user (contextType='personal') */
+  getPersonalSetlists(userId: string): Promise<Setlist[]>
   getSetlist(id: string): Promise<Setlist | null>
   addSetlist(setlist: Setlist): Promise<Setlist>
   updateSetlist(id: string, updates: Partial<Setlist>): Promise<Setlist>
@@ -149,4 +156,53 @@ export interface IDataRepository {
    * Only SyncRepository has a sync engine
    */
   getSyncEngine?(): import('./SyncEngine').SyncEngine | null
+
+  // ========== JAM SESSIONS (Supabase-only, no local cache) ==========
+
+  /** Get all active jam sessions for a user (as host or active participant) */
+  getActiveJamSessionsForUser(userId: string): Promise<JamSession[]>
+
+  /** Get a jam session by ID */
+  getJamSession(id: string): Promise<JamSession | null>
+
+  /** Get a jam session by its short_code (for join flow) */
+  getJamSessionByCode(shortCode: string): Promise<JamSession | null>
+
+  /** Create a new jam session */
+  createJamSession(session: Omit<JamSession, 'id'>): Promise<JamSession>
+
+  /** Update a jam session */
+  updateJamSession(
+    id: string,
+    updates: Partial<JamSession>
+  ): Promise<JamSession>
+
+  /** Delete a jam session */
+  deleteJamSession(id: string): Promise<void>
+
+  /** Get all participants for a jam session */
+  getJamParticipants(sessionId: string): Promise<JamParticipant[]>
+
+  /** Add a participant to a jam session */
+  addJamParticipant(
+    participant: Omit<JamParticipant, 'id'>
+  ): Promise<JamParticipant>
+
+  /** Update a jam participant (e.g. status change) */
+  updateJamParticipant(
+    id: string,
+    updates: Partial<JamParticipant>
+  ): Promise<JamParticipant>
+
+  /** Get all song matches for a jam session */
+  getJamSongMatches(sessionId: string): Promise<JamSongMatch[]>
+
+  /**
+   * Replace all song matches for a jam session.
+   * Deletes existing matches then inserts new ones atomically.
+   */
+  upsertJamSongMatches(
+    sessionId: string,
+    matches: Omit<JamSongMatch, 'id'>[]
+  ): Promise<JamSongMatch[]>
 }

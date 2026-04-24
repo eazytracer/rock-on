@@ -172,9 +172,14 @@ export class SongService {
     // Validate required fields
     this.validateSongData(songData)
 
-    // Check for duplicate song (fetch all and check client-side for now)
-    const allSongs = await repository.getSongs({})
-    const existingSong = allSongs.find(
+    // Check for duplicate song within the same catalog (contextType + contextId)
+    const resolvedContextType = songData.contextType || 'band'
+    const resolvedContextId = songData.contextId || songData.bandId
+    const catalogSongs = await repository.getSongs({
+      contextType: resolvedContextType,
+      contextId: resolvedContextId,
+    })
+    const existingSong = catalogSongs.find(
       song => song.title === songData.title && song.artist === songData.artist
     )
 

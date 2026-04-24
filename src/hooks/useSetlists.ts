@@ -378,3 +378,55 @@ export function useReorderSetlistItems() {
 
   return { reorderItems, loading, error }
 }
+
+/**
+ * Hook to fetch personal setlists for the current user.
+ * Personal setlists have contextType='personal' and contextId=userId.
+ */
+export function usePersonalSetlists(userId: string) {
+  const [setlists, setSetlists] = useState<Setlist[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const { realtimeManager } = useAuth()
+
+  const fetchPersonalSetlists = useCallback(
+    async (silent = false) => {
+      if (!userId) {
+        setSetlists([])
+        setLoading(false)
+        return
+      }
+      try {
+        if (!silent) setLoading(true)
+        const response = await SetlistService.getPersonalSetlists(userId)
+        setSetlists(response.setlists)
+        setError(null)
+      } catch (err) {
+        console.error('[usePersonalSetlists] Error fetching:', err)
+        setError(err as Error)
+      } finally {
+        if (!silent) setLoading(false)
+      }
+    },
+    [userId]
+  )
+
+  useEffect(() => {
+    fetchPersonalSetlists()
+  }, [fetchPersonalSetlists])
+
+  // Subscribe to realtime changes
+  useEffect(() => {
+    if (!realtimeManager || !userId) return
+
+    const handleChange = () => {
+      void fetchPersonalSetlists(true)
+    }
+    realtimeManager.on('setlists:changed', handleChange)
+    return () => {
+      realtimeManager.off('setlists:changed', handleChange)
+    }
+  }, [realtimeManager, userId, fetchPersonalSetlists])
+
+  return { setlists, loading, error, refetch: () => fetchPersonalSetlists() }
+}

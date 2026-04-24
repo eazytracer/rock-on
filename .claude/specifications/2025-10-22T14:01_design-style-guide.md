@@ -8,28 +8,33 @@ update: Added mobile drawer navigation specifications (hamburger menu with slide
 # Rock-On Design Style Guide
 
 ## Overview
+
 This style guide documents the visual design system for the rock-on application, featuring a modern, clean interface with sidebar navigation and table-based content views. The design prioritizes clarity, accessibility, and mobile-first responsive patterns.
 
 ## Color System
 
 ### Background Colors
+
 - **Primary Background**: `#0a0a0a` - Main app background
 - **Surface**: `#1a1a1a` - Cards, panels, elevated surfaces
 - **Surface Hover**: `#252525` - Hover states for interactive surfaces
 - **Sidebar Background**: `#141414` - Sidebar/navigation background
 
 ### Text Colors
+
 - **Primary Text**: `#ffffff` - Headers, primary content
 - **Secondary Text**: `#a0a0a0` - Subtext, labels, metadata
 - **Tertiary Text**: `#707070` - Placeholder text, disabled states
 
 ### Accent Colors
+
 - **Primary Accent**: `#3b82f6` - Links, primary actions, active states
 - **Success**: `#10b981` - Positive actions, confirmations
 - **Warning**: `#f59e0b` - Warnings, alerts
 - **Error**: `#ef4444` - Errors, destructive actions
 
 ### Border & Divider
+
 - **Border**: `#2a2a2a` - Subtle borders between elements
 - **Border Focus**: `#3b82f6` - Focused input borders
 - **Divider**: `#1f1f1f` - Section dividers
@@ -37,10 +42,12 @@ This style guide documents the visual design system for the rock-on application,
 ## Typography
 
 ### Font Family
+
 - **Primary**: System font stack: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`
 - **Monospace**: `"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace`
 
 ### Font Sizes
+
 - **XS**: `0.75rem` (12px) - Metadata, timestamps
 - **SM**: `0.875rem` (14px) - Secondary text, labels
 - **Base**: `1rem` (16px) - Body text
@@ -50,13 +57,16 @@ This style guide documents the visual design system for the rock-on application,
 - **3XL**: `1.875rem` (30px) - Large headlines
 
 ### Font Weights
+
 - **Normal**: `400`
 - **Medium**: `500`
 - **Semibold**: `600`
 - **Bold**: `700`
 
 ## Spacing System
+
 Based on 8px grid system:
+
 - **0**: `0`
 - **1**: `0.25rem` (4px)
 - **2**: `0.5rem` (8px)
@@ -74,6 +84,7 @@ Based on 8px grid system:
 ### Sidebar Navigation
 
 #### Desktop (≥768px)
+
 - **Width**: `240px` (fixed)
 - **Position**: Fixed left
 - **Background**: `#141414`
@@ -81,6 +92,7 @@ Based on 8px grid system:
 - **Z-index**: `50`
 
 **Structure**:
+
 ```
 ┌─────────────────────┐
 │  Brand Header       │ (Logo + Band/User info)
@@ -101,6 +113,7 @@ Based on 8px grid system:
 ```
 
 **Navigation Item**:
+
 - Height: `40px`
 - Padding: `8px 12px`
 - Border Radius: `8px`
@@ -110,11 +123,13 @@ Based on 8px grid system:
 - Font weight: `500` (Medium)
 
 **States**:
+
 - Default: `transparent` background, `#a0a0a0` text
 - Hover: `#1f1f1f` background
 - Active: `#252525` background, `#ffffff` text, `#3b82f6` icon tint
 
 **Brand Header**:
+
 - Logo/Icon: `40px × 40px`
 - Band name: `16px` (Base), `600` (Semibold)
 - User email: `12px` (XS), `#707070`
@@ -122,17 +137,20 @@ Based on 8px grid system:
 - Border bottom: `1px solid #1f1f1f`
 
 #### Mobile (<768px)
+
 - Sidebar collapses into bottom navigation
 - See "Bottom Navigation" section below
 
 ### Main Content Area
 
 #### Desktop Layout
+
 - **Margin Left**: `240px` (sidebar width)
 - **Padding**: `24px`
 - **Max Width**: `1400px` (optional, for very wide screens)
 
 #### Mobile Layout
+
 - **Margin Left**: `0`
 - **Padding**: `16px`
 - **Padding Bottom**: `80px` (to accommodate bottom nav)
@@ -140,16 +158,19 @@ Based on 8px grid system:
 ### Page Header
 
 **Structure**:
+
 - Page Title + Optional Dropdown
 - Action Buttons (Filter, Search, Add)
 
 **Page Title**:
+
 - Font size: `24px` (2XL)
 - Font weight: `700` (Bold)
 - Margin bottom: `24px`
 - Color: `#ffffff`
 
 **Action Bar**:
+
 - Display: `flex`
 - Justify: `space-between`
 - Align: `center`
@@ -158,6 +179,7 @@ Based on 8px grid system:
 - Flex wrap on mobile
 
 **Buttons**:
+
 - Height: `40px`
 - Padding: `8px 16px`
 - Border radius: `8px`
@@ -167,12 +189,15 @@ Based on 8px grid system:
 ### Table/List View (Songs Catalog)
 
 #### Desktop Table
+
 **Container**:
+
 - Background: `transparent`
 - Border radius: `12px`
 - Overflow: Hidden
 
 **Header Row**:
+
 - Background: `transparent`
 - Padding: `12px 16px`
 - Border bottom: `1px solid #2a2a2a`
@@ -183,12 +208,14 @@ Based on 8px grid system:
 - Letter spacing: `0.05em`
 
 **Header Cells**:
+
 - Display icon above or beside label
 - Icon size: `20px`
 - Icon color: `#707070`
 - Gap: `8px`
 
 **Data Row**:
+
 - Background: `#1a1a1a`
 - Padding: `16px`
 - Margin bottom: `8px`
@@ -196,13 +223,16 @@ Based on 8px grid system:
 - Transition: `background 0.2s ease`
 
 **Data Row Hover**:
+
 - Background: `#252525`
 - Cursor: `pointer`
 
 **Cell Spacing**:
+
 - Gap between cells: `16px`
 
 **Column Widths** (suggested):
+
 - Song Info: `flex-1` (min-width: 200px)
 - Duration: `100px`
 - Key: `80px`
@@ -211,6 +241,7 @@ Based on 8px grid system:
 - Next Show: `180px`
 
 #### Song Info Cell
+
 - **Avatar**: `40px × 40px` circle
 - **Avatar Background**: Generate color from song/artist name
 - **Avatar Text**: Initials, `14px`, `600`, centered
@@ -219,9 +250,11 @@ Based on 8px grid system:
 - Gap: `12px`
 
 #### Mobile Cards
+
 On screens <768px, table converts to stacked cards:
 
 **Card Structure**:
+
 - Background: `#1a1a1a`
 - Padding: `16px`
 - Border radius: `12px`
@@ -229,6 +262,7 @@ On screens <768px, table converts to stacked cards:
 - Border: `1px solid #2a2a2a`
 
 **Card Layout**:
+
 ```
 ┌─────────────────────────────┐
 │ Avatar | Song Name           │
@@ -248,6 +282,7 @@ On screens <768px, table converts to stacked cards:
 ### Mobile Header
 
 **Container**:
+
 - Position: `fixed`
 - Top: `0`
 - Width: `100%`
@@ -260,6 +295,7 @@ On screens <768px, table converts to stacked cards:
 - Align items: `center`
 
 **Hamburger Menu Button**:
+
 - Width: `40px`
 - Height: `40px`
 - Border radius: `8px`
@@ -269,6 +305,7 @@ On screens <768px, table converts to stacked cards:
 - Margin right: `12px`
 
 **Brand Display**:
+
 - Logo: `32px × 32px` rounded square
 - Band name: `16px` (Base), `600` (Semibold)
 - Gap: `12px`
@@ -276,6 +313,7 @@ On screens <768px, table converts to stacked cards:
 ### Mobile Drawer Navigation
 
 **Backdrop**:
+
 - Position: `fixed`
 - Full screen overlay
 - Background: `rgba(0, 0, 0, 0.6)` (60% black)
@@ -284,6 +322,7 @@ On screens <768px, table converts to stacked cards:
 - Click to dismiss
 
 **Drawer Container**:
+
 - Position: `fixed`
 - Left: `0`, Top: `0`
 - Width: `280px`
@@ -292,12 +331,14 @@ On screens <768px, table converts to stacked cards:
 - Slide animation from left
 
 **Animation**:
+
 - Duration: `300ms`
 - Easing: `ease-in-out`
 - Transform: `translateX(-100%)` (closed) → `translateX(0)` (open)
 - Backdrop opacity: `0` (closed) → `1` (open)
 
 **Close Button**:
+
 - Position: `absolute`
 - Top right corner: `16px` from edges
 - Size: `40px × 40px`
@@ -308,6 +349,7 @@ On screens <768px, table converts to stacked cards:
 - Hover: `#252525` background, `#ffffff` color
 
 **Content**:
+
 - Uses same Sidebar component as desktop
 - All navigation items work the same
 - Drawer auto-closes on navigation
@@ -315,6 +357,7 @@ On screens <768px, table converts to stacked cards:
 - Escape key closes drawer
 
 **Interaction**:
+
 - Tap backdrop to close
 - Tap X button to close
 - Tap any nav item to navigate and close
@@ -327,6 +370,7 @@ On screens <768px, table converts to stacked cards:
 ### Bottom Navigation (Mobile)
 
 **Container**:
+
 - Position: `fixed`
 - Bottom: `0`
 - Width: `100%`
@@ -337,11 +381,13 @@ On screens <768px, table converts to stacked cards:
 - Backdrop blur (if supported)
 
 **Items**:
+
 - Display: `flex`
 - Justify: `space-around`
 - Each item: Centered column layout
 
 **Navigation Item**:
+
 - Icon: `24px`
 - Label: `10px`, `500`
 - Gap: `4px`
@@ -349,6 +395,7 @@ On screens <768px, table converts to stacked cards:
 - Text align: `center`
 
 **States**:
+
 - Default: `#707070` (icon and text)
 - Active: `#3b82f6` (icon), `#ffffff` (text)
 - Tap target: Min `44px × 44px`
@@ -356,21 +403,25 @@ On screens <768px, table converts to stacked cards:
 ## Component Patterns
 
 ### Avatar (Initials)
+
 **Purpose**: Visual identifier for songs, users, bands
 
 **Sizes**:
+
 - **SM**: `32px`
 - **MD**: `40px` (default)
 - **LG**: `56px`
 - **XL**: `80px`
 
 **Styling**:
+
 - Border radius: `50%`
 - Background: Generate from name hash
 - Text: White, centered
 - Font weight: `600`
 
 **Background Colors** (rotate through):
+
 1. `#3b82f6` (blue)
 2. `#8b5cf6` (purple)
 3. `#ec4899` (pink)
@@ -379,6 +430,7 @@ On screens <768px, table converts to stacked cards:
 6. `#06b6d4` (cyan)
 
 ### Icon Buttons
+
 - Size: `40px × 40px`
 - Icon size: `20px`
 - Border radius: `8px`
@@ -386,6 +438,7 @@ On screens <768px, table converts to stacked cards:
 - Transition: `0.2s ease`
 
 ### Text Buttons
+
 - Padding: `8px 16px`
 - Border radius: `8px`
 - Font size: `14px`
@@ -393,12 +446,14 @@ On screens <768px, table converts to stacked cards:
 - Min height: `40px`
 
 **Variants**:
+
 - **Primary**: `#3b82f6` background, white text
 - **Secondary**: `#252525` background, white text
 - **Outline**: `transparent` background, `#3b82f6` border, `#3b82f6` text
 - **Ghost**: `transparent` background, white text
 
 ### Input Fields
+
 - Height: `40px`
 - Padding: `8px 12px`
 - Border radius: `8px`
@@ -408,31 +463,38 @@ On screens <768px, table converts to stacked cards:
 - Color: `#ffffff`
 
 **Focus State**:
+
 - Border: `1px solid #3b82f6`
 - Outline: `2px solid rgba(59, 130, 246, 0.2)`
 - Outline offset: `2px`
 
 **Placeholder**:
+
 - Color: `#707070`
 
 ### Dropdown/Select
+
 Same styling as input fields, with:
+
 - Chevron icon: `16px`, right-aligned
 - Padding right: `36px` (to accommodate icon)
 
 ### Search Bar
+
 - Input with search icon prefix
 - Icon: `20px`, `#707070`
 - Icon position: Left, `12px` from edge
 - Input padding left: `40px`
 
 ### Filter Button
+
 - Icon + text
 - Border: `1px solid #2a2a2a`
 - Background: `transparent`
 - Hover background: `#1f1f1f`
 
 ### Badge/Count
+
 - Small circular or rounded rectangle
 - Background: `#3b82f6`
 - Color: `#ffffff`
@@ -447,12 +509,15 @@ Example: "Band Members (6)" - the "6" can be a badge
 ## Icons
 
 ### Icon Library
+
 Recommend: **Lucide Icons** or **Heroicons**
+
 - Consistent stroke width: `2px`
 - Size variants: `16px`, `20px`, `24px`
 - Default color: Inherit from parent
 
 ### Common Icons Mapping
+
 - **Home**: `home` or `house`
 - **Practices**: `calendar` or `calendar-check`
 - **Setlists**: `list` or `list-music`
@@ -481,6 +546,7 @@ xl: 1280px  // Laptops
 ```
 
 ### Key Breakpoints for Layout
+
 - **< 768px**: Mobile layout (bottom nav, stacked cards)
 - **≥ 768px**: Desktop layout (sidebar nav, table view)
 - **≥ 1024px**: Enhanced spacing, larger content area
@@ -489,63 +555,75 @@ xl: 1280px  // Laptops
 ## Animation & Transitions
 
 ### Default Transitions
+
 - **Duration**: `200ms`
 - **Easing**: `ease` or `cubic-bezier(0.4, 0, 0.2, 1)`
 
 ### Transition Properties
+
 - Background color
 - Border color
 - Transform (for micro-interactions)
 - Opacity
 
 ### Hover Effects
+
 - Subtle background color change
 - No dramatic movements
 - Instant feedback (<100ms)
 
 ### Page Transitions
+
 - Fade in: `opacity 0 → 1` over `300ms`
 - Slide up: `translateY(10px) → 0` over `300ms`
 
 ## Accessibility
 
 ### Focus States
+
 - Visible focus ring: `2px solid #3b82f6`
 - Focus ring offset: `2px`
 - Never remove focus indicators
 
 ### Color Contrast
+
 - Ensure WCAG AA compliance (4.5:1 for normal text)
 - Primary text on background: >10:1 ratio
 - Secondary text on background: >7:1 ratio
 
 ### Interactive Elements
+
 - Minimum tap target: `44px × 44px`
 - Clear hover states
 - Keyboard navigable
 - ARIA labels for icon-only buttons
 
 ### Text Sizing
+
 - Base font size: `16px` (never smaller for body text)
 - Support user font scaling (use `rem` units)
 
 ## Mobile-First Patterns
 
 ### Thumb Zones
+
 - Critical actions in bottom third of screen
 - Bottom navigation for primary navigation
 - Floating action buttons in bottom right
 
 ### Touch Targets
+
 - Minimum: `44px × 44px`
 - Adequate spacing between targets: `8px`
 
 ### Gestures
+
 - Swipe to delete (optional)
 - Pull to refresh (optional)
 - Tap to expand cards
 
 ### Content Priority
+
 - Most important information first
 - Progressive disclosure
 - Collapsible sections for detailed data
@@ -553,6 +631,7 @@ xl: 1280px  // Laptops
 ## Example Implementations
 
 ### Song Card (Mobile)
+
 ```tsx
 <div className="bg-surface rounded-xl p-4 mb-3 border border-border">
   <div className="flex items-center gap-3 mb-3">
@@ -593,6 +672,7 @@ xl: 1280px  // Laptops
 ```
 
 ### Song Row (Desktop Table)
+
 ```tsx
 <div className="bg-surface rounded-xl p-4 mb-2 hover:bg-surface-hover transition-colors cursor-pointer">
   <div className="flex items-center gap-4">
@@ -631,7 +711,9 @@ xl: 1280px  // Laptops
 ## Implementation Notes
 
 ### Tailwind Configuration
+
 Add custom colors to `tailwind.config.js`:
+
 ```js
 theme: {
   extend: {
@@ -650,7 +732,9 @@ theme: {
 ```
 
 ### CSS Variables
+
 For theme flexibility:
+
 ```css
 :root {
   --color-background: #0a0a0a;
@@ -666,7 +750,9 @@ For theme flexibility:
 ```
 
 ### Dark Mode Toggle
+
 While the primary design is dark, support for light mode:
+
 - Use CSS variables
 - Toggle `data-theme` attribute on `<html>`
 - Provide theme context/hook
@@ -674,10 +760,13 @@ While the primary design is dark, support for light mode:
 ## Toast Notification System
 
 ### Overview
+
 Toast notifications provide non-intrusive feedback for user actions. They appear in the top-right corner of the screen with smooth animations and auto-dismiss after 4 seconds.
 
 ### Visual Design
+
 **Container**:
+
 - Position: `fixed`, top-right (16px from edges)
 - Z-index: `100` (above all other content)
 - Min width: `300px`
@@ -689,12 +778,14 @@ Toast notifications provide non-intrusive feedback for user actions. They appear
 - Animation: Slide in from right
 
 **Layout**:
+
 - Padding: `16px`
 - Display: `flex`
 - Gap: `12px`
 - Align items: `flex-start`
 
 **Icon** (left):
+
 - Size: `20px`
 - Colors:
   - Success: `#10b981` (green)
@@ -702,12 +793,14 @@ Toast notifications provide non-intrusive feedback for user actions. They appear
   - Info: `#3b82f6` (blue)
 
 **Message** (center):
+
 - Font size: `14px`
 - Color: `#ffffff`
 - Line height: `1.5`
 - Flex: `1`
 
 **Close Button** (right):
+
 - Size: `32px × 32px`
 - Icon: `16px` X
 - Color: `#707070`
@@ -716,6 +809,7 @@ Toast notifications provide non-intrusive feedback for user actions. They appear
 - Border radius: `4px`
 
 **Progress Bar** (bottom):
+
 - Height: `4px`
 - Background: `#2a2a2a`
 - Progress fill colors:
@@ -725,18 +819,22 @@ Toast notifications provide non-intrusive feedback for user actions. They appear
 - Animation: Width 100% → 0% over 4 seconds
 
 ### Animations
+
 **Slide In**:
+
 - Duration: `300ms`
 - Easing: `ease-out`
 - Transform: `translateX(100%)` → `translateX(0)`
 - Opacity: `0` → `1`
 
 **Progress Bar**:
+
 - Duration: `4s` (auto-dismiss timer)
 - Easing: `linear`
 - Width: `100%` → `0%`
 
 ### Usage
+
 ```tsx
 import { useToast } from '@/contexts/ToastContext'
 
@@ -755,11 +853,13 @@ const Component = () => {
 ```
 
 ### Stacking Behavior
+
 - Multiple toasts stack vertically
 - Gap between toasts: `8px`
 - Maximum 3 visible at once (oldest auto-dismisses)
 
 ### Accessibility
+
 - ARIA live region for screen readers
 - Keyboard dismissible (Escape key)
 - High contrast colors for visibility
@@ -768,6 +868,7 @@ const Component = () => {
 ## Future Considerations
 
 ### Potential Enhancements
+
 - Skeleton loading states
 - Modal/dialog patterns
 - Contextual menus
@@ -777,12 +878,14 @@ const Component = () => {
 - Loading states within components
 
 ### Performance
+
 - Lazy load images
 - Virtual scrolling for long lists (>100 items)
 - Debounce search inputs
 - Optimize re-renders with React.memo
 
 ### Progressive Enhancement
+
 - Works without JavaScript (where possible)
 - Graceful degradation
 - Offline support (future)
@@ -792,6 +895,7 @@ const Component = () => {
 **Added: 2025-11-10**
 
 ### Purpose
+
 All UI components must be designed with testability in mind. Proper attributes make E2E testing reliable, improve accessibility, enable browser autofill, and support password managers.
 
 ### Required Attributes for Form Inputs
@@ -799,11 +903,13 @@ All UI components must be designed with testability in mind. Proper attributes m
 Every form input (`<input>`, `<textarea>`, `<select>`) must include:
 
 1. **`name` attribute** - For form functionality, accessibility, and testing
+
    ```tsx
    <input name="email" type="email" />
    ```
 
 2. **`id` attribute** - For label association (`<label htmlFor="id">`)
+
    ```tsx
    <input id="email" name="email" type="email" />
    <label htmlFor="email">Email</label>
@@ -811,11 +917,11 @@ Every form input (`<input>`, `<textarea>`, `<select>`) must include:
 
 3. **`data-testid` attribute** - For E2E test selectors (prevents brittle placeholder-based tests)
    ```tsx
-   <input 
-     id="email" 
-     name="email" 
-     data-testid="login-email-input" 
-     type="email" 
+   <input
+     id="email"
+     name="email"
+     data-testid="login-email-input"
+     type="email"
    />
    ```
 
@@ -837,9 +943,9 @@ The `InputField` reusable component supports all testability attributes:
 ```tsx
 <InputField
   label="Email"
-  name="email"           // Form functionality
-  id="login-email"       // Label association
-  data-testid="login-email-input"  // E2E testing
+  name="email" // Form functionality
+  id="login-email" // Label association
+  data-testid="login-email-input" // E2E testing
   type="email"
   value={email}
   onChange={setEmail}
@@ -859,14 +965,17 @@ The `InputField` reusable component supports all testability attributes:
 ### Naming Conventions
 
 #### `id` Attributes
+
 - Use kebab-case: `login-email`, `signup-password`, `band-name`
 - Be specific to avoid collisions: `login-email` vs `signup-email`
 
 #### `name` Attributes
+
 - Use camelCase (matches JavaScript conventions): `email`, `password`, `bandName`
 - Should match the state variable name when possible
 
 #### `data-testid` Attributes
+
 - Format: `{context}-{field}-{type}`
 - Examples:
   - `login-email-input`
@@ -879,6 +988,7 @@ The `InputField` reusable component supports all testability attributes:
 #### Authentication Forms
 
 **Login Form:**
+
 ```tsx
 <InputField
   label="Email"
@@ -900,8 +1010,8 @@ The `InputField` reusable component supports all testability attributes:
   onChange={setPassword}
 />
 
-<Button 
-  type="submit" 
+<Button
+  type="submit"
   data-testid="login-submit-button"
 >
   Log In
@@ -909,6 +1019,7 @@ The `InputField` reusable component supports all testability attributes:
 ```
 
 **Signup Form:**
+
 ```tsx
 <InputField
   label="Display Name"
@@ -950,8 +1061,8 @@ The `InputField` reusable component supports all testability attributes:
   onChange={setConfirmPassword}
 />
 
-<Button 
-  type="submit" 
+<Button
+  type="submit"
   data-testid="signup-submit-button"
 >
   Create Account
@@ -961,6 +1072,7 @@ The `InputField` reusable component supports all testability attributes:
 #### Band Management Forms
 
 **Create Band:**
+
 ```tsx
 <InputField
   label="Band Name"
@@ -972,8 +1084,8 @@ The `InputField` reusable component supports all testability attributes:
   onChange={setBandName}
 />
 
-<Button 
-  onClick={handleCreateBand} 
+<Button
+  onClick={handleCreateBand}
   data-testid="create-band-button"
 >
   Create Band
@@ -981,6 +1093,7 @@ The `InputField` reusable component supports all testability attributes:
 ```
 
 **Join Band:**
+
 ```tsx
 <input
   type="text"
@@ -992,8 +1105,8 @@ The `InputField` reusable component supports all testability attributes:
   placeholder="ROCK2025"
 />
 
-<Button 
-  onClick={handleJoinBand} 
+<Button
+  onClick={handleJoinBand}
   data-testid="join-band-button"
 >
   Join Band
@@ -1022,4 +1135,159 @@ When creating new forms or interactive components:
 ---
 
 **Last Updated:** 2025-11-10
+**Status:** Active Standard - All new components must follow these patterns
+
+---
+
+## 2026-04-22 Update — UI Unification Pass
+
+New patterns introduced during the UI unification assessment
+(`.claude/artifacts/2026-04-22T20:57_ui-unification-and-cleanup-assessment.md`).
+These supersede any older patterns in this guide that conflict.
+
+### Primary accent color
+
+- Brand primary accent is `#f17827ff` (orange). Any references in this guide
+  to `#3b82f6` (blue) as the primary CTA color are stale and should be
+  treated as superseded. Use orange for primary CTAs, focus rings, and
+  highlighted states across all dark-themed surfaces.
+
+### Tuning color registry
+
+Canonical location: `src/utils/tunings.ts`.
+
+API:
+
+```ts
+import { tuningColor, tuningLabel, canonicalTuningId } from '../utils/tunings'
+
+const color = tuningColor('Drop D') // "#f97316"
+const label = tuningLabel('drop-d') // "Drop D"
+```
+
+Palette A (v1 approved):
+
+| Tuning             | Hex                                   |
+| ------------------ | ------------------------------------- |
+| Standard           | `#60a5fa`                             |
+| Drop D             | `#f97316`                             |
+| Drop C             | `#ef4444`                             |
+| Drop B             | `#a855f7`                             |
+| Half-step down     | `#14b8a6`                             |
+| Whole-step down    | `#0ea5e9`                             |
+| Open G             | `#eab308`                             |
+| Open D             | `#ec4899`                             |
+| DADGAD             | `#10b981`                             |
+| _custom / unknown_ | `#6b7280` (fallback until user picks) |
+
+Apply via the `<TuningPill>` metadata chip. Song-list rows additionally get
+a **left-border stripe** in the tuning color so changes are scannable down a
+setlist.
+
+### Unified metadata chip — `<MetaPill>`
+
+Location: `src/components/common/MetaPill.tsx` (with helpers `KeyPill`,
+`BpmPill`, `DurationPill`, `TuningPill`).
+
+- Pill shape is always icon + bold value inside a rounded-full chip.
+- Tiny caption above the pill (9px uppercase) when `size="md"`; hidden on
+  `size="sm"` with a hover tooltip giving the full label.
+- Accent variant (colored bg + border + text) for `TuningPill`; all others
+  neutral (`#1a1a1a` bg, `#2a2a2a` border, white value).
+- `block` prop makes the pill full-width for stacked-rail layouts (TV).
+
+### Notes editing — `<MarkdownField>`
+
+Location: `src/components/notes/MarkdownField.tsx`.
+
+Idle state renders markdown via `<MarkdownRenderer>`; a pencil overlay
+(top-right, always visible on touch, hover-visible on mouse) flips to edit
+mode. Edit mode shows an Edit / Preview segmented toggle + Cancel (X) and
+Save (✓) icon buttons. **Click-outside saves** automatically and flashes a
+green "Notes saved" toast + a green border pulse for ~1.8 seconds. **Cancel
+on dirty** opens a discard confirmation.
+
+Adopt for any field where markdown content is expected — `EditSongModal`
+band notes, `PracticeView` pre-practice notes + wrap-up notes,
+`SetlistView` / `ShowView` notes blocks.
+
+### Unsaved-changes guard
+
+Location: `src/hooks/useUnsavedChanges.ts` + `src/components/common/UnsavedChangesDialog.tsx`.
+
+`useUnsavedChanges(isDirty)` registers a `beforeunload` handler while dirty
+and exposes `confirmClose()` returning a promise that resolves to
+`'keep' | 'discard' | 'save'`. The dialog is a **blocking** three-button
+modal with default focus on "Keep editing". Adopt in every modal or page
+that has manual-save fields (EditSongModal, setlist editing, etc.).
+
+Do NOT use native `window.confirm` / `alert` / `prompt` — the guide's
+existing prohibition applies here.
+
+### Section card — `<SectionCard>`
+
+Location: `src/components/common/SectionCard.tsx`.
+
+```tsx
+<SectionCard title="Details">{/* content */}</SectionCard>
+```
+
+Props: `title?`, `children`, optional `actions` slot (rendered right of the
+heading), `className`. Replaces the ad-hoc
+`bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6` pattern.
+
+### Practice session viewer — responsive layouts
+
+Four canonical layouts with auto-detection + manual override:
+
+| Layout             | Breakpoint                                    | Structure                                                                       |
+| ------------------ | --------------------------------------------- | ------------------------------------------------------------------------------- |
+| TV                 | `min-width: 1280px AND min-aspect-ratio: 3/2` | 240px left rail (title + stacked metadata + next-song block) + wide notes panel |
+| Tablet (landscape) | `600–1279px AND aspect > 1`                   | Compact header, horizontal metadata pill row, full-width notes                  |
+| Tablet (portrait)  | `600–1279px AND aspect < 1`                   | Same as landscape but vertical-space optimized — pills wrap, notes dominate     |
+| Mobile             | `< 600px`                                     | Minimal header with clock, progress dots, centered wrapping pills, notes, nav   |
+
+Active session is **full-screen on all viewports** — sidebar hidden. Header
+contains font-size S/M/L toggle, layout override toggle, and a single
+back-arrow exit (top-left). Both toggles persist to localStorage.
+
+### Notes scroll controls (Kindle-style)
+
+The `<NotesPanel>` component (internal to the session viewer) renders
+full-width transparent-gradient tap zones at top and bottom of the notes
+area when content overflows:
+
+- Gradient: `from-black/70 via-black/30 to-transparent`, orange chevron
+  centered with a `drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]`.
+- Heights: 36 / 48 / 64 px (sm / md / lg — one per viewport class).
+- Auto-hide at respective edges.
+- Keyboard + BT foot-pedal shortcuts (window-scoped while on the session
+  route): `PageDown` / `Space` = scroll down ~70%; `PageUp` / `Shift+Space`
+  = scroll up.
+
+### Footer next-song preview
+
+`<FooterNextPreview>` renders `[NEXT] Song Title [TuningPill] [change dot +
+badge]` centered in the session footer (tablet/mobile). Mobile `compact`
+variant drops the NEXT caption and the "CHANGE" text, keeping just the
+pulsing colored dot (with `aria-label` for a11y). TV keeps setlist-progress
+dots instead — next-song already shown in the left rail.
+
+### Deprecations / removals in this pass
+
+- `src/components/songs/NewSongModal.tsx` — deleted. Orphaned, used legacy
+  blue accent, `console.log` placeholder submit. `EditSongModal` handles
+  add + edit.
+- Band-notes textarea in add-mode of `EditSongModal` — removed. Notes get
+  added from the song detail view after creation.
+- Inline `GUITAR_TUNINGS` arrays in multiple files — superseded by the
+  `src/utils/tunings.ts` registry. Vocabulary canonicalized (`"Standard
+(EADGBE)"` → `"Standard"`, `"Half Step Down"` → `"Half-step down"`, etc.).
+- Legacy color tokens (`steel-gray`, `energy-orange`, `smoke-white`,
+  `amp-red`, `electric-yellow`) in `MarkdownRenderer` and `MarkdownEditor` —
+  migrated to hex-literal palette to match the rest of the app.
+
+---
+
+**Last Updated:** 2026-04-22
 **Status:** Active Standard - All new components must follow these patterns

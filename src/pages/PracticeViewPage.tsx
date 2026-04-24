@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { EntityHeader } from '../components/common/EntityHeader'
 import { InlineEditableField } from '../components/common/InlineEditableField'
+import { SectionCard } from '../components/common/SectionCard'
 import { PRACTICE_STATUS_OPTIONS } from '../components/common/InlineStatusBadge'
 import {
   SortableSongListItem,
@@ -14,6 +15,7 @@ import {
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import { EditSongModal } from '../components/songs/EditSongModal'
 import { SongNotesModal } from '../components/songs/SongNotesModal'
+import { MarkdownField } from '../components/notes/MarkdownField'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
@@ -581,9 +583,7 @@ export const PracticeViewPage: React.FC = () => {
           )}
 
           {/* Details Section */}
-          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Details</h2>
-
+          <SectionCard title="Details">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Duration */}
               <InlineEditableField
@@ -609,36 +609,31 @@ export const PracticeViewPage: React.FC = () => {
 
             {/* Pre-practice Notes - Full Width */}
             <div className="mt-6 pt-6 border-t border-[#2a2a2a]">
-              <InlineEditableField
-                label="Notes"
+              <label className="block text-sm text-[#a0a0a0] mb-2 flex items-center gap-2">
+                <FileText size={16} />
+                Notes
+              </label>
+              <MarkdownField
                 value={practice.notes || ''}
-                onSave={val => saveField('notes', String(val) || undefined)}
-                type="textarea"
+                onSave={val => saveField('notes', val || undefined)}
                 placeholder="What to focus on, parts to work on, objectives for the band..."
-                icon={<FileText size={16} />}
                 data-testid="practice-notes"
               />
             </div>
-          </div>
+          </SectionCard>
 
           {/* Wrap-up Notes Section - Above songs list */}
-          <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">
-              Wrap-up Notes
-            </h2>
-            <p className="text-sm text-[#707070] mb-4">
-              Capture your thoughts after the practice - what went well, what to
-              improve, or any action items.
-            </p>
-            <InlineEditableField
+          <SectionCard
+            title="Wrap-up Notes"
+            description="Capture your thoughts after the practice - what went well, what to improve, or any action items."
+          >
+            <MarkdownField
               value={practice.wrapupNotes || ''}
-              onSave={val => saveField('wrapupNotes', String(val) || undefined)}
-              type="textarea"
+              onSave={val => saveField('wrapupNotes', val || undefined)}
               placeholder="How did it go? What to focus on next time?"
-              icon={<FileText size={16} />}
               data-testid="practice-wrapup-notes"
             />
-          </div>
+          </SectionCard>
 
           {/* Divider and Songs Section - Full width, no container */}
           <div className="border-t border-[#2a2a2a] pt-6">

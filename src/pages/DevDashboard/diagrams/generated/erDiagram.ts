@@ -4,7 +4,7 @@
  * This file is generated from the baseline schema migration.
  * To regenerate: npx ts-node scripts/generate-er-diagram.ts
  *
- * Generated: 2026-01-21T04:46:52.779Z
+ * Generated: 2026-04-22T19:50:48.611Z
  * Source: supabase/migrations/20251106000000_baseline_schema.sql
  */
 
@@ -30,6 +30,11 @@ erDiagram
     bands ||--o{ practice_sessions : "band_id"
     setlists ||--o{ practice_sessions : "setlist_id"
     users ||--o{ practice_sessions : "last_modified_by"
+    users ||--o{ jam_sessions : "host_user_id"
+    setlists ||--o{ jam_sessions : "saved_setlist_id"
+    jam_sessions ||--o{ jam_participants : "jam_session_id"
+    users ||--o{ jam_participants : "user_id"
+    jam_sessions ||--o{ jam_song_matches : "jam_session_id"
     songs ||--o{ song_castings : "song_id"
     users ||--o{ song_castings : "created_by"
     song_castings ||--o{ song_assignments : "song_casting_id"
@@ -55,6 +60,8 @@ erDiagram
         timestamptz created_date "NOT NULL, DEFAULT"
         timestamptz last_login
         text auth_provider "DEFAULT"
+        text account_tier "NOT NULL, DEFAULT"
+        timestamptz tier_updated_at "DEFAULT"
     }
 
     user_profiles {
@@ -127,6 +134,8 @@ erDiagram
         uuid created_by "NOT NULL, FK"
         text visibility "DEFAULT"
         uuid song_group_id
+        text normalized_title
+        text normalized_artist
         int version "NOT NULL, DEFAULT"
         uuid last_modified_by "FK"
     }
@@ -149,13 +158,17 @@ erDiagram
     setlists {
         uuid id "PK, DEFAULT"
         text name "NOT NULL"
-        uuid band_id "NOT NULL, FK"
+        uuid band_id "FK"
         uuid show_id
         text status "DEFAULT"
         timestamptz created_date "NOT NULL, DEFAULT"
         timestamptz last_modified "NOT NULL, DEFAULT"
         uuid created_by "NOT NULL, FK"
         text notes
+        text context_type "NOT NULL, DEFAULT"
+        text context_id
+        uuid jam_session_id
+        text[] tags "DEFAULT"
         jsonb items "DEFAULT"
         uuid forked_from "FK"
         int fork_count "DEFAULT"
@@ -209,6 +222,46 @@ erDiagram
         timestamptz created_date "NOT NULL, DEFAULT"
         int version "NOT NULL, DEFAULT"
         uuid last_modified_by "FK"
+    }
+
+    jam_sessions {
+        uuid id "PK, DEFAULT"
+        text short_code "NOT NULL, UK"
+        text name
+        uuid host_user_id "NOT NULL, FK"
+        text status "NOT NULL, DEFAULT"
+        timestamptz created_date "NOT NULL, DEFAULT"
+        timestamptz expires_at "NOT NULL"
+        uuid saved_setlist_id "FK"
+        uuid seed_setlist_id "FK"
+        text view_token "UK"
+        timestamptz view_token_expires_at
+        jsonb settings "DEFAULT"
+        int version "NOT NULL, DEFAULT"
+        uuid last_modified_by "FK"
+    }
+
+    jam_participants {
+        uuid id "PK, DEFAULT"
+        uuid jam_session_id "NOT NULL, FK"
+        uuid user_id "NOT NULL, FK"
+        timestamptz joined_date "NOT NULL, DEFAULT"
+        text status "NOT NULL, DEFAULT"
+        jsonb shared_contexts "NOT NULL, DEFAULT"
+    }
+
+    jam_song_matches {
+        uuid id "PK, DEFAULT"
+        uuid jam_session_id "NOT NULL, FK"
+        text canonical_title "NOT NULL"
+        text canonical_artist "NOT NULL"
+        text display_title "NOT NULL"
+        text display_artist "NOT NULL"
+        text match_confidence "NOT NULL, DEFAULT"
+        boolean is_confirmed "NOT NULL, DEFAULT"
+        jsonb matched_songs "NOT NULL, DEFAULT"
+        int participant_count "NOT NULL, DEFAULT"
+        timestamptz computed_at "NOT NULL, DEFAULT"
     }
 
     song_castings {
@@ -302,6 +355,6 @@ erDiagram
 
 `
 
-export const generatedAt = '2026-01-21T04:46:52.779Z'
+export const generatedAt = '2026-04-22T19:50:48.611Z'
 export const sourceFile =
   'supabase/migrations/20251106000000_baseline_schema.sql'

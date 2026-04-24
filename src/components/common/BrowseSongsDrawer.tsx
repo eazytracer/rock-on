@@ -240,8 +240,15 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
                       .substring(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-white text-sm font-semibold truncate">
-                      {song.title}
+                    <div className="flex items-center gap-2">
+                      <div className="text-white text-sm font-semibold truncate">
+                        {song.title}
+                      </div>
+                      {song.contextType === 'personal' && (
+                        <span className="flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#f17827ff]/20 text-[#f17827ff] border border-[#f17827ff]/30">
+                          My Song
+                        </span>
+                      )}
                     </div>
                     <div className="text-[#707070] text-xs truncate">
                       {song.artist}

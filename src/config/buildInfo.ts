@@ -2,16 +2,16 @@
 // Do not edit manually - regenerated on every build
 
 /** Semantic version from package.json */
-export const VERSION = '0.2.1'
+export const VERSION = '0.3.0'
 
 /** Unique build identifier (git hash + timestamp) */
-export const BUILD_ID = 'f769802-20260121-203753'
+export const BUILD_ID = '4f9b8f7-20260423-211852'
 
 /** ISO timestamp of when build was created */
-export const BUILD_DATE = '2026-01-21T20:37:53Z'
+export const BUILD_DATE = '2026-04-23T21:18:52Z'
 
 /** Short git commit hash */
-export const GIT_HASH = 'f769802'
+export const GIT_HASH = '4f9b8f7'
 
 /** Display string for UI: "v0.1.0 (a1b2c3d)" */
 export const VERSION_DISPLAY = `v${VERSION} (${GIT_HASH})`

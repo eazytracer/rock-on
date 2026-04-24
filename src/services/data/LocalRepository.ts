@@ -4,6 +4,11 @@ import {
   IncrementalSyncResult,
   createEmptyIncrementalSyncResult,
 } from './syncTypes'
+import {
+  JamSession,
+  JamParticipant,
+  JamSongMatch,
+} from '../../models/JamSession'
 import { Song } from '../../models/Song'
 import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
@@ -226,7 +231,19 @@ export class LocalRepository implements IDataRepository {
   // ========== SETLISTS ==========
 
   async getSetlists(bandId: string): Promise<Setlist[]> {
-    return db.setlists.where('bandId').equals(bandId).reverse().toArray()
+    return db.setlists
+      .filter(
+        s => s.bandId === bandId && (s.contextType === 'band' || !s.contextType)
+      )
+      .reverse()
+      .toArray()
+  }
+
+  async getPersonalSetlists(userId: string): Promise<Setlist[]> {
+    return db.setlists
+      .filter(s => s.contextType === 'personal' && s.contextId === userId)
+      .reverse()
+      .toArray()
   }
 
   async getSetlist(id: string): Promise<Setlist | null> {
@@ -658,5 +675,61 @@ export class LocalRepository implements IDataRepository {
   ): Promise<IncrementalSyncResult> {
     // No-op: LocalRepository doesn't handle sync
     return createEmptyIncrementalSyncResult()
+  }
+
+  // ========== JAM SESSIONS (Supabase-only — not cached locally) ==========
+  // These stubs fulfill the interface contract; actual implementation is in RemoteRepository
+
+  private _jamError(): never {
+    throw new Error(
+      'Jam sessions require remote repository (Supabase). LocalRepository does not cache jam sessions.'
+    )
+  }
+
+  async getActiveJamSessionsForUser(_userId: string): Promise<JamSession[]> {
+    return this._jamError()
+  }
+  async getJamSession(_id: string): Promise<JamSession | null> {
+    return this._jamError()
+  }
+  async getJamSessionByCode(_shortCode: string): Promise<JamSession | null> {
+    return this._jamError()
+  }
+  async createJamSession(
+    _session: Omit<JamSession, 'id'>
+  ): Promise<JamSession> {
+    return this._jamError()
+  }
+  async updateJamSession(
+    _id: string,
+    _updates: Partial<JamSession>
+  ): Promise<JamSession> {
+    return this._jamError()
+  }
+  async deleteJamSession(_id: string): Promise<void> {
+    return this._jamError()
+  }
+  async getJamParticipants(_sessionId: string): Promise<JamParticipant[]> {
+    return this._jamError()
+  }
+  async addJamParticipant(
+    _participant: Omit<JamParticipant, 'id'>
+  ): Promise<JamParticipant> {
+    return this._jamError()
+  }
+  async updateJamParticipant(
+    _id: string,
+    _updates: Partial<JamParticipant>
+  ): Promise<JamParticipant> {
+    return this._jamError()
+  }
+  async getJamSongMatches(_sessionId: string): Promise<JamSongMatch[]> {
+    return this._jamError()
+  }
+  async upsertJamSongMatches(
+    _sessionId: string,
+    _matches: Omit<JamSongMatch, 'id'>[]
+  ): Promise<JamSongMatch[]> {
+    return this._jamError()
   }
 }
