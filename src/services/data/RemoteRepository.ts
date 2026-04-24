@@ -1710,7 +1710,9 @@ export class RemoteRepository implements IDataRepository {
       .select()
       .single()
     if (error) throw error
-    return this.mapJamParticipantFromSupabase(data)
+    return this.mapJamParticipantFromSupabase(
+      await this.attachParticipantDisplayName(data)
+    )
   }
 
   async updateJamParticipant(
@@ -1726,7 +1728,38 @@ export class RemoteRepository implements IDataRepository {
       .select()
       .single()
     if (error) throw error
-    return this.mapJamParticipantFromSupabase(data)
+    return this.mapJamParticipantFromSupabase(
+      await this.attachParticipantDisplayName(data)
+    )
+  }
+
+  /**
+   * Given a raw jam_participants row, look up the owning user's display
+   * name (user_profiles.display_name preferred, users.name fallback) and
+   * return the row augmented with `user_profiles: { display_name }` so
+   * mapJamParticipantFromSupabase can consume it uniformly. Used by
+   * add/update variants that can't rely on getJamParticipants' bulk
+   * lookup.
+   */
+  private async attachParticipantDisplayName(row: any): Promise<any> {
+    if (!supabase || !row?.user_id) return row
+    const [profileResult, userResult] = await Promise.all([
+      supabase
+        .from('user_profiles')
+        .select('display_name')
+        .eq('user_id', row.user_id)
+        .maybeSingle(),
+      supabase.from('users').select('name').eq('id', row.user_id).maybeSingle(),
+    ])
+    return {
+      ...row,
+      user_profiles: {
+        display_name:
+          (profileResult.data as any)?.display_name ??
+          (userResult.data as any)?.name ??
+          undefined,
+      },
+    }
   }
 
   async getJamSongMatches(sessionId: string): Promise<JamSongMatch[]> {
