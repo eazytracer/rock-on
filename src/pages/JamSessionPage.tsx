@@ -12,6 +12,7 @@ import {
   ArrowRight,
   RefreshCw,
   Trash2,
+  XCircle,
 } from 'lucide-react'
 import {
   DndContext,
@@ -412,6 +413,56 @@ export const JamSessionPage: React.FC = () => {
     }
   }
 
+  // End-session flow. The host clicks End → EndJamSessionDialog opens →
+  // host picks "save + end" (calls handleSaveAsSetlist, which already
+  // flips session.status='saved' and navigates to /setlists), or
+  // "end without saving" (JamSessionService.expireSession only). A
+  // canvas-wide bailout flow; we don't attempt to undo participant
+  // rows, matches, etc. — the edge function's session-lookup path
+  // filters by status='active' so expired sessions drop off the
+  // anon view and participants' lists automatically.
+  const [isEndDialogOpen, setIsEndDialogOpen] = useState(false)
+  const [isEnding, setIsEnding] = useState(false)
+
+  const handleEndWithoutSaving = async () => {
+    if (!session) return
+    setIsEnding(true)
+    try {
+      await JamSessionService.expireSession(session.id)
+      showToast('Jam session ended', 'success')
+      navigate('/jam')
+    } catch (err) {
+      showToast(`Failed to end session: ${(err as Error).message}`, 'error')
+    } finally {
+      setIsEnding(false)
+      setIsEndDialogOpen(false)
+    }
+  }
+
+  const handleSaveAndEnd = async () => {
+    if (!session) return
+    setIsEnding(true)
+    try {
+      // saveAsSetlist internally flips session.status to 'saved'
+      // (which removes it from any "active" queries), so we don't
+      // also need to call expireSession. 'saved' is a terminal state
+      // alongside 'expired'.
+      await saveAsSetlist(
+        userId,
+        undefined,
+        queuedSongs,
+        setlistSongs.length > 0 ? setlistSongs : undefined
+      )
+      showToast('Setlist saved, jam ended', 'success')
+      navigate('/setlists')
+    } catch (err) {
+      showToast(`Failed to save & end: ${(err as Error).message}`, 'error')
+    } finally {
+      setIsEnding(false)
+      setIsEndDialogOpen(false)
+    }
+  }
+
   const isHost = session?.hostUserId === userId
   const confirmedMatchCount = matches.filter(m => m.isConfirmed).length
   const canSave =
@@ -681,6 +732,22 @@ export const JamSessionPage: React.FC = () => {
                         {isSaving ? 'Saving...' : 'Save as Setlist'}
                       </button>
                     )}
+                    {/* End session — host only, visible on any active
+                        session (independent of canSave — an empty
+                        session can still be ended cleanly). Opens a
+                        confirmation dialog that offers to save first
+                        if there's anything to save. */}
+                    {isHost && session.status === 'active' && (
+                      <button
+                        data-testid="jam-end-session-button"
+                        onClick={() => setIsEndDialogOpen(true)}
+                        disabled={isEnding}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                      >
+                        <XCircle size={13} />
+                        End Session
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -900,6 +967,77 @@ export const JamSessionPage: React.FC = () => {
           selectedSongIds={setlistSongs.map(s => s.id)}
           onAddSong={handleAddSongToSetlist}
         />
+
+        {/* End-session confirmation dialog. Three-action when there's
+            anything to save (Save & End / End without saving / Cancel);
+            two-action when the session is empty (End / Cancel). Rendered
+            inline here rather than via the shared ConfirmDialog so we
+            can expose a dedicated secondary action without bloating the
+            shared component's API. */}
+        {isEndDialogOpen && session && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={e => {
+              if (e.target === e.currentTarget && !isEnding) {
+                setIsEndDialogOpen(false)
+              }
+            }}
+            data-testid="jam-end-dialog-backdrop"
+          >
+            <div
+              className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md shadow-xl"
+              onClick={e => e.stopPropagation()}
+              data-testid="jam-end-dialog"
+            >
+              <div className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 p-2 rounded-full bg-red-500/10">
+                    <XCircle size={20} className="text-red-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-white font-semibold text-lg mb-2">
+                      End this jam session?
+                    </h3>
+                    <p className="text-[#a0a0a0] text-sm">
+                      {canSave
+                        ? 'Save the current setlist to your personal setlists before ending, or end without saving. Either way, the session will stop accepting new participants.'
+                        : 'The session will stop accepting new participants. This cannot be undone.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 mt-6">
+                  <button
+                    onClick={() => setIsEndDialogOpen(false)}
+                    disabled={isEnding}
+                    className="px-4 py-2 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
+                    data-testid="jam-end-dialog-cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => void handleEndWithoutSaving()}
+                    disabled={isEnding}
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-[#2a2a2a] text-[#e0e0e0] hover:bg-[#333] transition-colors disabled:opacity-50"
+                    data-testid="jam-end-dialog-end-without-saving"
+                  >
+                    {canSave ? 'End without saving' : 'End Session'}
+                  </button>
+                  {canSave && (
+                    <button
+                      onClick={() => void handleSaveAndEnd()}
+                      disabled={isEnding}
+                      className="flex items-center justify-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-primary hover:bg-[#e53d01] transition-colors disabled:opacity-50"
+                      data-testid="jam-end-dialog-save-and-end"
+                    >
+                      {isEnding ? 'Saving…' : 'Save & End'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Suppress warnings */}
         <span className="hidden">{rawToken}</span>

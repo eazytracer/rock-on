@@ -255,3 +255,112 @@ test.describe('Jam Session — Setlist tab and seed-from-setlist', () => {
     await expect(seedSelect).toBeVisible({ timeout: 5000 })
   })
 })
+
+test.describe('Jam Session — End Session flow', () => {
+  test('End Session button is visible for the host on an active session', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `End Session Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
+
+    await expect(
+      page.locator('[data-testid="jam-end-session-button"]')
+    ).toBeVisible({ timeout: 5000 })
+  })
+
+  test('End Session opens a confirmation dialog with Cancel + End actions on an empty session', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `End Empty Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
+
+    await page.locator('[data-testid="jam-end-session-button"]').click()
+
+    // Dialog renders.
+    await expect(page.locator('[data-testid="jam-end-dialog"]')).toBeVisible({
+      timeout: 3000,
+    })
+    // Cancel + End (without saving) buttons are always present. The
+    // "Save & End" button only shows when there's something to save —
+    // an empty session (no queue, no matches, no setlist) should not
+    // offer it.
+    await expect(
+      page.locator('[data-testid="jam-end-dialog-cancel"]')
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid="jam-end-dialog-end-without-saving"]')
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid="jam-end-dialog-save-and-end"]')
+    ).toHaveCount(0)
+  })
+
+  test('Cancel closes the end-session dialog without ending', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `End Cancel Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
+
+    await page.locator('[data-testid="jam-end-session-button"]').click()
+    await expect(page.locator('[data-testid="jam-end-dialog"]')).toBeVisible({
+      timeout: 3000,
+    })
+    await page.locator('[data-testid="jam-end-dialog-cancel"]').click()
+
+    // Dialog closes; we're still on the jam session page.
+    await expect(page.locator('[data-testid="jam-end-dialog"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="jam-session-card"]')).toBeVisible()
+    await expect(
+      page.locator('[data-testid="jam-end-session-button"]')
+    ).toBeVisible()
+  })
+
+  test('End without saving navigates away from the session', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `End Navigate Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/[^/]+$/, { timeout: 10000 })
+
+    await page.locator('[data-testid="jam-end-session-button"]').click()
+    await expect(page.locator('[data-testid="jam-end-dialog"]')).toBeVisible({
+      timeout: 3000,
+    })
+    await page
+      .locator('[data-testid="jam-end-dialog-end-without-saving"]')
+      .click()
+
+    // After ending: back at /jam (the create/join landing). The session-
+    // specific subpath is gone.
+    await page.waitForURL(/\/jam\/?$/, { timeout: 10000 })
+    await expect(page.locator('[data-testid="jam-session-page"]')).toBeVisible()
+  })
+})
