@@ -124,17 +124,88 @@ npm run start:dev
 
 ### Supabase Commands
 
-```bash
-# See /supabase command for full reference
-npx supabase start     # Start local Supabase
-npx supabase db reset  # Reset local database
-npx supabase db push   # Apply migrations locally
+#### Local
 
-# Remote operations (requires .env.supabase.local with SUPABASE_ACCESS_TOKEN)
-source .env.supabase.local && supabase link --project-ref khzeuxxhigqcmrytsfux
-source .env.supabase.local && supabase migration list  # Check remote status
-source .env.supabase.local && supabase db push --linked  # Apply to remote
+```bash
+npx supabase start           # Start local Supabase
+npx supabase db reset        # Rebuild local DB from baseline + all incremental migrations
+npx supabase db push         # Apply not-yet-applied local migrations
+npm run test:db              # pgTAP schema validation
 ```
+
+#### Remote (production) — secure access procedure
+
+**🚨 Secret handling rules (non-negotiable):**
+
+- **Never** `echo`, `cat`, `printf`, `od`, `xxd`, or otherwise dump the
+  contents of `.env.supabase.local` or the value of `$SUPABASE_ACCESS_TOKEN`
+  to a terminal. The output ends up in CI logs, shell history, and
+  conversation transcripts.
+- If you need to check _that_ a token is set but not its value, use a
+  length/prefix check only:
+  ```bash
+  source .env.supabase.local
+  echo "token length: ${#SUPABASE_ACCESS_TOKEN}, prefix: ${SUPABASE_ACCESS_TOKEN:0:4}"
+  # Valid tokens are prefixed `sbp_` and ~50-60 chars long.
+  ```
+- If a token is ever printed in full by accident, **revoke it immediately**
+  in Supabase Studio → Account → Access Tokens, and generate a new one.
+- `.env.supabase.local` must be in `.gitignore`. Verify before committing
+  after any env work.
+
+**Required env file format (`.env.supabase.local`):**
+
+```bash
+export SUPABASE_ACCESS_TOKEN=sbp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# Optional — only needed for `db push --linked` / `migration list --linked`
+# if the CLI's saved DB password isn't already linked to the project.
+# Get from: Supabase Studio → Project Settings → Database → Connection string
+# export SUPABASE_DB_PASSWORD='your-db-password-here'
+```
+
+**Rules for the file:**
+
+- Exactly one `export SUPABASE_ACCESS_TOKEN=...` line (no appends on top of
+  stale values — this silently concatenates strings into an invalid token).
+- `export` prefix is required so `source` propagates the value to child
+  processes (the supabase CLI runs as a child).
+- When rotating, **rewrite the whole file** with `cat > .env.supabase.local
+<<'EOF' ... EOF`. Don't append.
+
+**Full remote workflow:**
+
+```bash
+# 1. Load credentials
+source .env.supabase.local
+
+# 2. Link to project (one-time per workspace — persists in .supabase/)
+supabase link --project-ref khzeuxxhigqcmrytsfux
+
+# 3. Verify what's currently applied on prod (read-only, always run first)
+supabase migration list --linked
+
+# 4. Review the local vs remote delta — the output shows which local
+#    migrations are not yet applied. Read it carefully.
+
+# 5. Apply new migrations (writes to prod)
+supabase db push --linked
+
+# 6. Re-verify after push
+supabase migration list --linked
+
+# 7. Deploy edge functions if any changed
+supabase functions deploy <function-name> --project-ref khzeuxxhigqcmrytsfux
+```
+
+**Before any destructive remote command, confirm:**
+
+- ✅ Access token is set and valid (length/prefix check above)
+- ✅ You've just run `supabase migration list --linked` and understand what
+  the push will apply
+- ✅ You've tested the migration locally via `supabase db reset` and pgTAP
+- ✅ You've reviewed the migration file for `DROP POLICY` / `DROP TABLE` /
+  any non-idempotent statements
+- ✅ (For non-emergency changes) A human has reviewed the migration file
 
 ## Code Style
 
@@ -374,49 +445,93 @@ source .env.supabase.local && supabase db push --linked
 
 **Do nothing!** Old migrations already applied. Continue using incremental migrations for future changes.
 
-### Migration Policy: Pre-1.0 vs Post-1.0
+### Migration Policy: One Migration Per Release/Feature
 
-**🚨 CRITICAL: Pre-1.0 Development (Current State)**
+**🚨 CRITICAL: Production exists. Baseline is frozen for prod parity.**
 
-**DO NOT create new migration files for schema changes during pre-1.0 development!**
+A real production database now exists. The previous pre-1.0 "modify the
+baseline directly" policy has been retired. Going forward, schema changes
+land as **incremental migrations**, with strict rules about when to create
+one vs. when to amend an in-progress one.
 
-Instead, modify the baseline migration directly:
+**The rule:** one consolidated incremental migration per release/feature.
+**Not** one-per-commit. **Not** one-per-fix. While a feature is in
+development, its migration file is the single accumulating file for that
+feature — you amend it as the schema evolves. Only when the release ships
+(or a logically distinct new feature begins) do you start a new migration
+file.
 
-```bash
-# For schema changes during pre-1.0 development:
-# 1. Edit the baseline migration file directly
-vim supabase/migrations/20251106000000_baseline_schema.sql
-
-# 2. Test locally
-supabase db reset  # Applies baseline from scratch
-
-# 3. Run tests
-npm run test:db    # Verify schema is correct
-
-# 4. Commit the updated baseline
-git add supabase/migrations/20251106000000_baseline_schema.sql
-git commit -m "Update baseline schema: [description]"
-```
-
-**Why?** During pre-1.0 development:
-
-- No production database exists yet
-- Every `supabase db reset` applies migrations from scratch
-- Multiple patch migrations slow down development and testing
-- Easier to maintain one canonical schema file
-- New team members get working schema immediately
-
-**After 1.0 Release:**
-
-Once version 1.0 is released and production databases exist, switch to incremental migrations:
+**While actively developing a feature with schema changes:**
 
 ```bash
-# For schema changes after 1.0 release:
-supabase migration new add_feature_name
-# Edit the new migration file
-supabase db reset  # Test locally
-supabase db push   # Deploy to remote
+# Step 1 (first time only, at feature kickoff): create the feature's
+#                                               migration file.
+supabase migration new <feature_name>
+# → creates supabase/migrations/<timestamp>_<feature_name>.sql
+
+# Step 2 (every time thereafter during development): edit THAT file in
+#                                                   place as the schema
+#                                                   evolves.
+vim supabase/migrations/<timestamp>_<feature_name>.sql
+
+# Step 3: test locally
+supabase db reset   # applies baseline + all prior migrations + yours
+npm run test:db     # verify schema integrity
+
+# Step 4: commit the updated migration file
+git add supabase/migrations/<timestamp>_<feature_name>.sql
+git commit -m "<feature>: <what schema change was added>"
 ```
+
+**Only create a NEW migration file when:**
+
+- The current release ships (→ freeze its migration, start a new one for the
+  next release)
+- A logically distinct feature begins (not just a bug fix or tweak to the
+  current feature)
+
+**Why this shape:**
+
+- Production databases apply migrations by version; re-running a migration
+  is skipped once its version is recorded. If you modify a migration after
+  it's been deployed, production will never see the later edits. So once a
+  migration ships, it's frozen forever.
+- Per-commit migrations produce noise that's hard to review. Consolidating
+  into one file per feature keeps the migration history readable.
+- Using `IF NOT EXISTS` / `DROP ... IF EXISTS` guards throughout means
+  amending an in-progress migration is safe to re-run locally via
+  `supabase db reset`.
+
+**Every incremental migration must be idempotent.** Use:
+
+- `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`
+- `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
+- `CREATE OR REPLACE FUNCTION`
+- `DROP POLICY IF EXISTS ...` immediately before `CREATE POLICY ...`
+- `DO $$ BEGIN ALTER TABLE ... ADD CONSTRAINT ...; EXCEPTION WHEN duplicate_object THEN NULL; END $$;`
+  for constraint adds (PostgreSQL doesn't support `IF NOT EXISTS` there)
+- `DO $$ BEGIN ALTER PUBLICATION ... ADD TABLE ...; EXCEPTION WHEN duplicate_object THEN NULL; END $$;`
+  for publication adds
+
+**Deploying to production:**
+
+```bash
+# Verify you know what's on prod:
+source .env.supabase.local && supabase migration list --linked
+
+# Apply whatever isn't applied yet:
+source .env.supabase.local && supabase db push --linked
+```
+
+**The baseline stays as the canonical "fresh install" script.** New dev
+environments bootstrap from baseline + all incremental migrations in order.
+`supabase db reset` for local dev still just works. Do NOT edit the baseline
+any more — schema changes go into a new incremental migration file.
+
+**Reference migration:**
+`supabase/migrations/20260422220000_social_catalog_and_jam_sessions.sql` —
+the first post-baseline incremental migration, shipped 2026-04-22. Use it
+as a template for the structure of future feature migrations.
 
 ### Migration Archive
 
