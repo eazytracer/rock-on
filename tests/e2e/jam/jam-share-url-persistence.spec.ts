@@ -39,6 +39,10 @@ test.describe('Jam Session — share URL persistence', () => {
     }
   })
 
+  // Post-v0.3.2 layout: Copy / QR live inside a Share popover. The
+  // Share button itself is what's `disabled={!shareUrl}`, so it's the
+  // most direct signal of "share URL is in state". Some tests still
+  // open the popover to exercise the QR rendering path end-to-end.
   test('share URL is available immediately after session creation', async ({
     page,
   }) => {
@@ -53,10 +57,10 @@ test.describe('Jam Session — share URL persistence', () => {
     await page.locator('[data-testid="jam-create-button"]').click()
     await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
 
-    const copyButton = page.locator('[data-testid="jam-copy-link-button"]')
-    await expect(copyButton).toBeVisible({ timeout: 5000 })
+    const shareButton = page.locator('[data-testid="jam-share-button"]')
+    await expect(shareButton).toBeVisible({ timeout: 5000 })
     // !shareUrl → disabled. Enabled means the raw token is in state.
-    await expect(copyButton).not.toBeDisabled({ timeout: 5000 })
+    await expect(shareButton).not.toBeDisabled({ timeout: 5000 })
   })
 
   test('share URL survives a full page reload (localStorage rehydration)', async ({
@@ -74,8 +78,8 @@ test.describe('Jam Session — share URL persistence', () => {
     await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
 
     // Confirm URL is initially available.
-    const copyButton = page.locator('[data-testid="jam-copy-link-button"]')
-    await expect(copyButton).not.toBeDisabled({ timeout: 5000 })
+    const shareButton = page.locator('[data-testid="jam-share-button"]')
+    await expect(shareButton).not.toBeDisabled({ timeout: 5000 })
 
     // Verify the raw token landed in localStorage under the expected key
     // shape. This is belt-and-braces on top of the button assertion — if
@@ -96,16 +100,17 @@ test.describe('Jam Session — share URL persistence', () => {
     await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
 
     // Rehydration should have re-populated shareUrl from localStorage so
-    // the copy button is still enabled.
-    await expect(copyButton).toBeVisible({ timeout: 5000 })
-    await expect(copyButton).not.toBeDisabled({ timeout: 5000 })
+    // the share button is still enabled.
+    await expect(shareButton).toBeVisible({ timeout: 5000 })
+    await expect(shareButton).not.toBeDisabled({ timeout: 5000 })
   })
 
   test('QR code can be shown after reload (proves URL is present)', async ({
     page,
   }) => {
     // Redundant check from a different angle: the QR renderer reads the
-    // same shareUrl, so if it renders after reload the URL round-tripped.
+    // same shareUrl, so if it renders after reload the URL round-tripped
+    // through localStorage rehydration.
     const user = createTestUser()
     await signUpViaUI(page, user)
     await createBandViaUI(page, `QR Reload ${Date.now()}`)
@@ -117,13 +122,19 @@ test.describe('Jam Session — share URL persistence', () => {
     await page.locator('[data-testid="jam-create-button"]').click()
     await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
 
-    // Reload first, then show QR — forces the post-reload path.
+    // Reload first, then open Share popover, then click Show QR —
+    // exercises the post-reload path.
     await page.reload()
     await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
+
+    await expect(page.locator('[data-testid="jam-share-button"]')).toBeVisible({
+      timeout: 5000,
+    })
+    await page.locator('[data-testid="jam-share-button"]').click()
+
     await expect(
       page.locator('[data-testid="jam-show-qr-button"]')
     ).toBeVisible({ timeout: 5000 })
-
     await page.locator('[data-testid="jam-show-qr-button"]').click()
     await expect(page.locator('[data-testid="jam-invite-qr"]')).toBeVisible({
       timeout: 5000,
@@ -134,9 +145,9 @@ test.describe('Jam Session — share URL persistence', () => {
     page,
   }) => {
     // Simulates "host opened the session URL on a second device". The
-    // raw token isn't anywhere in local storage → copy/QR should be
-    // disabled rather than falling back to a broken URL (which the edge
-    // function would 400 on).
+    // raw token isn't anywhere in local storage → Share button (and
+    // therefore Copy / QR) should be disabled rather than falling back
+    // to a broken URL (which the edge function would 400 on).
     const user = createTestUser()
     await signUpViaUI(page, user)
     await createBandViaUI(page, `Cross-Device Share ${Date.now()}`)
@@ -163,9 +174,9 @@ test.describe('Jam Session — share URL persistence', () => {
     await page.goto(sessionUrl)
     await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
 
-    const copyButton = page.locator('[data-testid="jam-copy-link-button"]')
-    await expect(copyButton).toBeVisible({ timeout: 5000 })
-    // No token → disabled. This is the documented graceful-disable path.
-    await expect(copyButton).toBeDisabled({ timeout: 5000 })
+    const shareButton = page.locator('[data-testid="jam-share-button"]')
+    await expect(shareButton).toBeVisible({ timeout: 5000 })
+    // No token → disabled. Documented graceful-disable path.
+    await expect(shareButton).toBeDisabled({ timeout: 5000 })
   })
 })
