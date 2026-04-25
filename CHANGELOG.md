@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-04-25
+
+### Fixed
+
+- **Jam share — QR code had no in-place dismiss affordance.** The
+  Share popover closes on outside click (which fires the moment a
+  user moves their attention to the QR), so the popover's own
+  Show / Hide toggle became unreachable without re-opening Share.
+  Added a dedicated "Hide QR" button beneath the QR image so the
+  dismissal affordance is always reachable while the QR is on
+  screen, regardless of the popover's open state.
+  - Testid: `jam-hide-qr-button`
+
 ## [0.3.2] - 2026-04-25
 
 ### Anonymous jam-view rebuild + jam UX overhaul
