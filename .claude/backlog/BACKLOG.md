@@ -2,23 +2,25 @@
 
 Master overview of planned features in the `.claude/backlog/` directory.
 
-**Last Updated:** 2026-03-15
-**Total Features:** 10
+**Last Updated:** 2026-04-24
+**Total Features:** 12
 
 ## Feature Overview
 
-| Feature                                                 | Status            | Priority | Complexity  | Dependencies             |
-| ------------------------------------------------------- | ----------------- | -------- | ----------- | ------------------------ |
-| [ci-cd-pipeline](#ci-cd-pipeline)                       | Research Complete | High     | High        | None                     |
-| [multi-band-support](#multi-band-support)               | Plan Complete     | High     | High        | None                     |
-| [account-tiers-and-access](#account-tiers-and-access)   | Research Complete | High     | High        | multi-band-support       |
-| [social-catalog](#social-catalog)                       | Research Complete | High     | Very High   | account-tiers-and-access |
-| [unified-kebab-menu](#unified-kebab-menu)               | Research Complete | Medium   | Medium      | None                     |
-| [email-invitations](#email-invitations)                 | Research Complete | Medium   | Medium      | None                     |
-| [enhanced-security-testing](#enhanced-security-testing) | Research Complete | Medium   | Medium      | ci-cd-pipeline           |
-| [guitar-tuning-system](#guitar-tuning-system)           | Research Complete | Medium   | Medium-High | None                     |
-| [no-console-eslint-rule](#no-console-eslint-rule)       | Research Complete | Low      | Medium      | None                     |
-| [react-native-app](#react-native-app)                   | Research Complete | Low      | Very High   | All core features        |
+| Feature                                                 | Status                 | Priority | Complexity  | Dependencies             |
+| ------------------------------------------------------- | ---------------------- | -------- | ----------- | ------------------------ |
+| [ci-cd-pipeline](#ci-cd-pipeline)                       | Research Complete      | High     | High        | None                     |
+| [multi-band-support](#multi-band-support)               | Plan Complete          | High     | High        | None                     |
+| [account-tiers-and-access](#account-tiers-and-access)   | Research Complete      | High     | High        | multi-band-support       |
+| [social-catalog](#social-catalog)                       | Research Complete      | High     | Very High   | account-tiers-and-access |
+| [email-infrastructure](#email-infrastructure)           | Research Complete      | Medium   | Low-Medium  | None                     |
+| [unified-kebab-menu](#unified-kebab-menu)               | Research Complete      | Medium   | Medium      | None                     |
+| [email-invitations](#email-invitations)                 | Research Complete      | Medium   | Medium      | email-infrastructure     |
+| [calendar-events](#calendar-events)                     | Specification Complete | Medium   | Medium-High | email-infrastructure     |
+| [enhanced-security-testing](#enhanced-security-testing) | Research Complete      | Medium   | Medium      | ci-cd-pipeline           |
+| [guitar-tuning-system](#guitar-tuning-system)           | Research Complete      | Medium   | Medium-High | None                     |
+| [no-console-eslint-rule](#no-console-eslint-rule)       | Research Complete      | Low      | Medium      | None                     |
+| [react-native-app](#react-native-app)                   | Research Complete      | Low      | Very High   | All core features        |
 
 ## Dependency Graph
 
@@ -32,15 +34,20 @@ Master overview of planned features in the `.claude/backlog/` directory.
 │  multi-band-support ←── account-tiers-and-access ←── social-catalog  │
 │  (95% exists)           (Free/Pro tiers)          (Personal songs,   │
 │                                                    setlists + jams)   │
+│                                                                 │
+│  email-infrastructure ←── email-invitations                     │
+│  (Resend + edge fn       (Band join invites)                    │
+│   patterns + email_logs) ←── calendar-events                    │
+│                              (.ics for shows & practices)       │
 ├─────────────────────────────────────────────────────────────────┤
 │                     INDEPENDENT FEATURES                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  unified-kebab-menu    email-invitations                        │
-│  (UI consistency)      (Resend integration)                     │
+│  unified-kebab-menu    guitar-tuning-system                     │
+│  (UI consistency)      (Per-string storage                      │
+│                         + setlist retuning)                     │
 │                                                                 │
-│  guitar-tuning-system  no-console-eslint-rule                   │
-│  (Per-string storage   (456 violations to fix)                  │
-│   + setlist retuning)                                           │
+│  no-console-eslint-rule                                         │
+│  (456 violations to fix)                                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                       FUTURE MILESTONE                          │
 ├─────────────────────────────────────────────────────────────────┤
@@ -60,21 +67,23 @@ Master overview of planned features in the `.claude/backlog/` directory.
 
 3. **multi-band-support** - 95% infrastructure exists, quick win
 4. **unified-kebab-menu** - UI consistency before adding more features
-5. **email-invitations** - Enables band growth
+5. **email-infrastructure** - Foundation for email-invitations + calendar-events; implement as part of whichever of those ships first
+6. **email-invitations** - Enables band growth (builds on email-infrastructure)
+7. **calendar-events** - Auto-send .ics calendar invites for shows/practices (also on email-infrastructure; can ship alongside or after email-invitations)
 
 ### Phase 3: Security & Business
 
-6. **enhanced-security-testing** - Depends on CI pipeline
-7. **account-tiers-and-access** - Depends on multi-band (revenue feature)
-8. **social-catalog** - Personal songs + personal setlists + jam sessions (depends on account-tiers for tier gating stub)
+8. **enhanced-security-testing** - Depends on CI pipeline
+9. **account-tiers-and-access** - Depends on multi-band (revenue feature)
+10. **social-catalog** - Personal songs + personal setlists + jam sessions (depends on account-tiers for tier gating stub)
 
 ### Phase 4: Musician Features
 
-9. **guitar-tuning-system** - Per-string tuning with setlist retuning indicators
+11. **guitar-tuning-system** - Per-string tuning with setlist retuning indicators
 
 ### Phase 5: Mobile (Post-1.0)
 
-10. **react-native-app** - Major undertaking, requires stable web app; QR-based jam session joining is high-value on native
+12. **react-native-app** - Major undertaking, requires stable web app; QR-based jam session joining is high-value on native
 
 ---
 
@@ -196,24 +205,83 @@ Master overview of planned features in the `.claude/backlog/` directory.
 
 ---
 
+### email-infrastructure
+
+**Directory:** `email-infrastructure/`
+**Status:** Research Complete
+**Priority:** Medium
+**Complexity:** Low-Medium (6-10 hours standalone, or folds into the first email feature shipped)
+
+**Summary:** Shared email scaffolding — Resend account & domain verification, edge function conventions (`_shared/` helpers for CORS, Resend client, logging, rate limiting), unified `email_logs` table, `user_notification_prefs` table, sending identity setup, and deliverability best practices. Not a standalone "feature" a user sees; it's the substrate both `email-invitations` and `calendar-events` build on.
+
+**Key Components:**
+
+- Resend account setup + `rockon.app` domain verification (SPF/DKIM/DMARC)
+- `supabase/functions/_shared/` utilities: `cors.ts`, `email.ts`, `logging.ts`, `rateLimit.ts`
+- `email_logs` table — unified across all sending purposes (invitation, event-invite, event-update, event-cancel, welcome, digest)
+- `user_notification_prefs` table — per-user opt-out toggles
+- Hand-rolled HTML template conventions + plain-text fallback requirement
+- List-Unsubscribe header (Gmail/Yahoo Feb 2024 bulk sender compliance)
+- In-memory rate limiter for v1; Postgres-backed deferred to v2
+- Secrets: `RESEND_API_KEY`, `APP_URL`, `EMAIL_FROM_ADDRESS`
+
+**Blockers:** None
+
+**Note:** This document formalizes the shared infrastructure so whichever of `email-invitations` or `calendar-events` ships first builds it once and the second feature reuses it. If shipping both at once, do this setup as Phase 1 and then the two features' Phase 2+ work runs in parallel.
+
+---
+
 ### email-invitations
 
 **Directory:** `email-invitations/`
 **Status:** Research Complete
 **Priority:** Medium
-**Complexity:** Medium (15-20 hours)
+**Complexity:** Medium (15-20 hours on top of email-infrastructure)
 
-**Summary:** Send email invitations to join bands using Resend service. Replaces current "share join code" workflow with direct email invites.
+**Summary:** Send email invitations to join bands using Resend service. Replaces current "share join code" workflow with direct email invites. Enhanced `/join?code=xxx` flow that skips the create-band / join-band decision for invited users and sends them directly to a confirmation page.
 
 **Key Components:**
 
-- Resend integration (email service)
-- Invitation tokens with expiration
+- Resend integration (via shared `email-infrastructure`)
+- Invitation tokens with expiration (`nanoid`, 10 chars)
 - Email templates for invitations
-- Invitation acceptance flow
-- Supabase Edge Function for sending
+- `/join?code=xxx` invitation acceptance flow with `sessionStorage`-based code persistence across auth redirects
+- Supabase Edge Function `send-invitation` for sending
+- `invite_codes` schema additions: `type`, `invited_email`, `email_sent_at`, `email_status`
+
+**Dependencies:** `email-infrastructure` (shared Resend setup + `email_logs` table)
 
 **Blockers:** None
+
+---
+
+### calendar-events
+
+**Directory:** `calendar-events/`
+**Status:** Specification Complete
+**Priority:** Medium
+**Complexity:** Medium-High (3-4 weeks if email-infrastructure is already in place; +1 week from scratch)
+
+**Summary:** Auto-send iCalendar (`.ics`) invites to all band members when a show or practice is created, updated, or cancelled. v1 uses standards-based `.ics` attachments over Resend — works universally across Gmail, Apple Mail, Outlook, Yahoo without per-user OAuth. Native Google Calendar / Microsoft Graph APIs deferred to v2. Calendly / Cal.com availability sharing deferred to v3 (with a recommendation to build native, not integrate third-party).
+
+**Key Components:**
+
+- `send-event-invite` edge function (auth-verified, service_role for cross-member lookups)
+- `ical-generator` library for VTIMEZONE-aware `.ics` generation
+- Stable UID + incrementing SEQUENCE for update/cancel semantics
+- Schema additions to `shows` + `practice_sessions`: `timezone`, `end_time`, `calendar_uid`, `calendar_sequence`
+- `user_notification_prefs` toggles for event invites / updates / cancellations (shared with `email-infrastructure`)
+- Timezone selector in event create/edit forms (default to creator's browser IANA zone)
+- "Calendar invites" admin panel on event detail page showing delivery status per recipient
+- List-Unsubscribe one-click support
+
+**Dependencies:** `email-infrastructure` (Resend + `email_logs` + `_shared/` edge fn helpers)
+
+**Blockers:** None
+
+**v2 Deferred:** RSVP capture, external `ShowContact` invitees (venue mgr, sound engineer), native Google Calendar / Microsoft Graph API integration, recurring events (RRULE), bounce webhooks.
+
+**v3 Deferred:** Member availability sharing. Research recommends native implementation over Calendly (no availability API) or Cal.com (requires separate account per member).
 
 ---
 
@@ -325,10 +393,18 @@ Standard → Half-step down = 6 strings (full retune or guitar swap)
 ├── BACKLOG.md                      # This file
 ├── account-tiers-and-access/
 │   └── 2026-01-21T19:05_research.md
+├── calendar-events/
+│   ├── spec.md
+│   ├── research.md
+│   └── flow-diagrams.md
 ├── ci-cd-pipeline/
 │   └── 2025-11-21T23:44_research.md
+├── email-infrastructure/
+│   └── shared-services.md
 ├── email-invitations/
-│   └── spec.md
+│   ├── spec.md
+│   ├── research.md
+│   └── flow-diagrams.md
 ├── enhanced-security-testing/
 │   └── 2026-01-06T16:33_research.md
 ├── guitar-tuning-system/
