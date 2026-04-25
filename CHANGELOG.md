@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-04-25
+## [0.3.2] - 2026-04-25
 
 ### Anonymous jam-view rebuild + jam UX overhaul
 
@@ -15,7 +15,7 @@ The v0.3.1 hotfix unblocked the jam feature in production but left the
 anonymous viewer experience in poor shape (per the v0.3.1 post-mortem):
 guests landed on a "Common Songs" list they couldn't contribute to, never
 saw the host's actual setlist, and the host page itself felt like a
-crowded dashboard on mobile. v0.4.0 rebuilds the anon view around its
+crowded dashboard on mobile. v0.3.2 rebuilds the anon view around its
 real product intent and tightens the host page accordingly.
 
 **No database changes.** No migrations, no schema changes, no RLS
