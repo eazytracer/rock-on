@@ -18,6 +18,21 @@ This feature adds email capabilities to Rock On for sending band invitations and
 3. Invitation management UI in band settings
 4. Modified auth flow to skip band creation/join decision for invited users
 
+> **Related backlog items (added 2026-04-24):**
+>
+> - **`../email-infrastructure/shared-services.md`** — Shared Resend
+>   account setup, edge function patterns (`_shared/` helpers), the
+>   unified `email_logs` table schema, rate limiting, and
+>   `user_notification_prefs`. All content here that specifies those
+>   shared pieces (the `email_logs` table definition in particular)
+>   has been superseded by the unified schema in that doc; the final
+>   `email_logs` shape lives there.
+> - **`../calendar-events/spec.md`** — Sibling feature that sends
+>   iCalendar (`.ics`) invites for shows and practices over the same
+>   Resend infrastructure. If you're implementing either feature,
+>   read the shared-services doc first so the infrastructure lands
+>   once and both features plug into it.
+
 ---
 
 ## User Stories
