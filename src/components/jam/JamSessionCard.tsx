@@ -203,10 +203,24 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
 
       {/* QR code — rendered below the row when visible. Stays inside the
           card so the popover can close while the QR remains on screen
-          (some flows want to keep it up while a guest scans). */}
+          (some flows want to keep it up while a guest scans).
+          The Share popover closes on any outside click (so it'll close
+          as soon as the user looks at the QR), which used to leave
+          the QR with no obvious way to dismiss — the Hide button in
+          the popover was inaccessible until the user knew to re-open
+          Share. The dedicated "Hide QR" button below the code makes
+          the dismissal affordance reachable without that detour. */}
       {showQR && (
-        <div className="mt-3 pt-3 border-t border-[#2a2a2a] flex justify-center">
+        <div className="mt-3 pt-3 border-t border-[#2a2a2a] flex flex-col items-center gap-2">
           <JamInviteQR url={shareUrl} size={180} />
+          <button
+            type="button"
+            data-testid="jam-hide-qr-button"
+            onClick={() => setShowQR(false)}
+            className="text-[#a0a0a0] text-xs hover:text-white transition-colors px-3 py-1"
+          >
+            Hide QR
+          </button>
         </div>
       )}
     </div>

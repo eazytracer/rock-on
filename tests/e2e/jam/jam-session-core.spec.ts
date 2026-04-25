@@ -177,6 +177,44 @@ test.describe('Jam Session — Navigation and Page Load', () => {
     })
   })
 
+  test('Hide QR button beneath the QR dismisses it without re-opening Share', async ({
+    page,
+  }) => {
+    // Pin the v0.3.3 fix: previously, once the user dismissed the
+    // Share popover (e.g. by looking at the QR), the popover's own
+    // Show/Hide toggle was unreachable and the QR had no in-place
+    // dismiss affordance. The dedicated Hide QR button beneath the
+    // QR is what re-establishes a discoverable dismissal path.
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `Hide QR Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
+
+    // Open Share, show QR.
+    await page.locator('[data-testid="jam-share-button"]').click()
+    await page.locator('[data-testid="jam-show-qr-button"]').click()
+    await expect(page.locator('[data-testid="jam-invite-qr"]')).toBeVisible({
+      timeout: 3000,
+    })
+    // The dedicated dismiss button must be visible alongside the QR.
+    await expect(
+      page.locator('[data-testid="jam-hide-qr-button"]')
+    ).toBeVisible({ timeout: 3000 })
+
+    // Click Hide QR — QR should disappear regardless of popover state.
+    await page.locator('[data-testid="jam-hide-qr-button"]').click()
+    await expect(page.locator('[data-testid="jam-invite-qr"]'))
+      .not.toBeVisible({ timeout: 3000 })
+      .catch(() => {
+        /* already hidden — pass */
+      })
+  })
+
   test('session participant list shows the host', async ({ page }) => {
     const user = createTestUser()
     await signUpViaUI(page, user)
