@@ -96,23 +96,15 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
       data-testid="jam-session-card"
       className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3"
     >
-      <div className="flex items-center gap-3">
-        {/* Code + name. Code is the visually anchoring piece — host
-            tells participants the 6-char code verbally, so it stays
-            prominent even in the compact layout. Session name is
-            secondary. */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Session name + expiry on the left. Name truncates so the
+            invite-code chip and Share button always have room on the
+            right edge — even with long session names like "Friday
+            Night Jam at the Garage". */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-3">
-            <span
-              data-testid="jam-short-code"
-              className="font-mono text-xl font-bold text-primary tracking-[0.18em]"
-            >
-              {session.shortCode}
-            </span>
-            <span className="text-white text-sm font-medium truncate">
-              {session.name || 'Jam Session'}
-            </span>
-          </div>
+          <p className="text-white text-sm sm:text-base font-semibold truncate">
+            {session.name || 'Jam Session'}
+          </p>
           <div className="flex items-center gap-1.5 text-[#707070] text-xs mt-0.5">
             <Clock size={10} />
             <span>
@@ -121,6 +113,28 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
                 : expiryLabel}
             </span>
           </div>
+        </div>
+
+        {/* Invite-code chip. Previously the code was on the left with
+            no label — visually striking but easy to overlook ("what is
+            this 6-character thing?"). Pairing it with a "Join code"
+            label and parking it next to Share makes the relationship
+            explicit: this is what you give to people, this is how they
+            connect. */}
+        <div
+          data-testid="jam-invite-code-chip"
+          className="flex-shrink-0 flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a]"
+          title="Share this code so others can join your jam"
+        >
+          <span className="hidden sm:inline text-[#a0a0a0] text-[10px] uppercase tracking-wider font-medium">
+            Join code
+          </span>
+          <span
+            data-testid="jam-short-code"
+            className="font-mono text-base sm:text-lg font-bold text-primary tracking-[0.15em]"
+          >
+            {session.shortCode}
+          </span>
         </div>
 
         {/* Share popover. Combines the previous separate Copy + QR
@@ -135,12 +149,12 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
                 ? undefined
                 : 'Share link unavailable on this device — recreate the session from this device to share'
             }
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2a2a2a] text-white text-sm font-medium hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#2a2a2a] text-white text-sm font-medium hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             aria-expanded={isShareOpen}
             aria-haspopup="menu"
           >
             <Share2 size={14} />
-            Share
+            <span className="hidden sm:inline">Share</span>
           </button>
 
           {isShareOpen && (

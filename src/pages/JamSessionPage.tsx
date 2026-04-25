@@ -673,57 +673,67 @@ export const JamSessionPage: React.FC = () => {
                 the focus. On desktop both columns share gap-6. */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
               {/* Left: participants + anon watchers.
-                  On desktop (md+) this is a permanent left sidebar.
-                  On mobile it's a collapsed summary line by default —
-                  the host shouldn't have to scroll past a full
-                  participant list to reach the setlist. Tapping the
-                  header expands the list inline. */}
-              <div className="md:col-span-1 md:space-y-5">
-                {/* Mobile-only summary header (clickable to expand) */}
-                <button
-                  type="button"
-                  onClick={() => setIsParticipantsExpanded(v => !v)}
-                  className="md:hidden flex items-center justify-between w-full text-left text-[#a0a0a0] text-sm py-2 border-b border-[#2a2a2a] mb-2"
-                  aria-expanded={isParticipantsExpanded}
-                  data-testid="jam-participants-toggle"
-                >
-                  <span>
-                    <span className="text-white font-medium">
-                      {participants.filter(p => p.status === 'active').length}
-                    </span>{' '}
-                    participant
-                    {participants.filter(p => p.status === 'active').length ===
-                    1
-                      ? ''
-                      : 's'}
-                    {watchers.length > 0 && (
-                      <>
-                        {' · '}
-                        <span className="text-white font-medium">
-                          {watchers.length}
-                        </span>{' '}
-                        watching
-                      </>
+                  On desktop (md+) this is a permanent left sidebar with
+                  no card chrome — it sits in the grid column directly.
+                  On mobile it becomes a self-contained collapsible card
+                  so the relationship between the toggle and what gets
+                  shown/hidden is visually explicit (one card, header
+                  + body), not a free-floating summary line that lives
+                  ambiguously above whatever follows it. */}
+              <div className="md:col-span-1">
+                {/* Mobile container — card wraps both the toggle
+                    header and the (hidden) body, so when expanded the
+                    list visibly belongs to the toggle that opened it. */}
+                <div className="md:hidden bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setIsParticipantsExpanded(v => !v)}
+                    className="flex items-center justify-between w-full text-left px-4 py-3 hover:bg-[#1f1f1f] transition-colors"
+                    aria-expanded={isParticipantsExpanded}
+                    data-testid="jam-participants-toggle"
+                  >
+                    <span className="text-[#a0a0a0] text-sm">
+                      <span className="text-white font-medium">
+                        {participants.filter(p => p.status === 'active').length}
+                      </span>{' '}
+                      participant
+                      {participants.filter(p => p.status === 'active')
+                        .length === 1
+                        ? ''
+                        : 's'}
+                      {watchers.length > 0 && (
+                        <>
+                          {' · '}
+                          <span className="text-white font-medium">
+                            {watchers.length}
+                          </span>{' '}
+                          watching
+                        </>
+                      )}
+                    </span>
+                    {isParticipantsExpanded ? (
+                      <ChevronDown size={16} className="text-[#707070]" />
+                    ) : (
+                      <ChevronRight size={16} className="text-[#707070]" />
                     )}
-                  </span>
-                  {isParticipantsExpanded ? (
-                    <ChevronDown size={16} />
-                  ) : (
-                    <ChevronRight size={16} />
+                  </button>
+                  {isParticipantsExpanded && (
+                    <div className="border-t border-[#2a2a2a] p-4 space-y-4">
+                      <JamParticipantList
+                        participants={participants}
+                        hostUserId={session.hostUserId}
+                      />
+                      <JamWatcherList watchers={watchers} />
+                    </div>
                   )}
-                </button>
+                </div>
 
-                {/* Participants list — always visible on desktop, hidden
-                    on mobile until the user taps the summary header. */}
-                <div
-                  className={
-                    isParticipantsExpanded
-                      ? 'block space-y-5'
-                      : 'hidden md:block md:space-y-5'
-                  }
-                >
+                {/* Desktop sidebar — same content, no card wrapper.
+                    Sits directly in the left grid column with the
+                    section heading + lists. */}
+                <div className="hidden md:block space-y-5">
                   <div>
-                    <h3 className="hidden md:block text-[#a0a0a0] text-sm font-medium mb-3 uppercase tracking-wide">
+                    <h3 className="text-[#a0a0a0] text-sm font-medium mb-3 uppercase tracking-wide">
                       Participants
                     </h3>
                     <JamParticipantList
@@ -731,11 +741,6 @@ export const JamSessionPage: React.FC = () => {
                       hostUserId={session.hostUserId}
                     />
                   </div>
-
-                  {/* Anonymous viewers via Supabase Realtime Presence.
-                      Separate from the participants list because they
-                      can't contribute songs — they're read-only
-                      audience. Collapses when nobody is watching. */}
                   <JamWatcherList watchers={watchers} />
                 </div>
               </div>
