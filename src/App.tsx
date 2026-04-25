@@ -151,7 +151,10 @@ const AppContent: React.FC = () => {
   }, [realtimeManager, showToast])
 
   return (
-    <div className="min-h-screen bg-surface">
+    // `bg-[#0a0a0a]` matches ModernLayout and the app-wide dark theme.
+    // The previous `bg-surface` (`#F5F5F5`) caused a light-gray flash to
+    // show through during route-level Suspense fallbacks.
+    <div className="min-h-screen bg-[#0a0a0a]">
       {/* Session expiry modal */}
       <SessionExpiredModal />
 
@@ -162,17 +165,22 @@ const AppContent: React.FC = () => {
         onDismiss={dismissConflict}
       />
 
-      {/* Sync indicator overlay */}
+      {/* Sync indicator overlay — themed to match the app (dark surface
+          with brand-orange accent). Previously `bg-blue-600`, which was
+          the visible "blue banner" at the top of every page while sync
+          was in flight. */}
       {syncing && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600 text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-          <span>Syncing your data from cloud...</span>
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[#1a1a1a] border-b border-[#2a2a2a] text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+          <span className="text-[#a0a0a0]">
+            Syncing your data from cloud...
+          </span>
         </div>
       )}
 
       <Suspense
         fallback={
-          <div className="flex items-center justify-center min-h-screen">
+          <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
             <LoadingSpinner size="lg" text="Loading..." />
           </div>
         }

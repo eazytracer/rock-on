@@ -115,7 +115,12 @@ test.describe('Jam Session — Navigation and Page Load', () => {
     await assertNoConsoleErrors(page, errors)
   })
 
-  test('session card has copy link and show QR buttons', async ({ page }) => {
+  test('session card share button reveals copy link and show QR options', async ({
+    page,
+  }) => {
+    // Post-v0.3.2 layout: Copy / QR are inside a Share popover instead
+    // of inline on the session card. The popover is opened by clicking
+    // the consolidated Share button.
     const user = createTestUser()
     await signUpViaUI(page, user)
     await createBandViaUI(page, `Jam Buttons Test ${Date.now()}`)
@@ -127,6 +132,11 @@ test.describe('Jam Session — Navigation and Page Load', () => {
     await page.locator('[data-testid="jam-create-button"]').click()
     await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
 
+    await expect(page.locator('[data-testid="jam-share-button"]')).toBeVisible({
+      timeout: 5000,
+    })
+    await page.locator('[data-testid="jam-share-button"]').click()
+
     await expect(
       page.locator('[data-testid="jam-copy-link-button"]')
     ).toBeVisible({ timeout: 5000 })
@@ -135,7 +145,9 @@ test.describe('Jam Session — Navigation and Page Load', () => {
     ).toBeVisible({ timeout: 5000 })
   })
 
-  test('clicking Show QR reveals the QR code', async ({ page }) => {
+  test('clicking Show QR (from share menu) reveals the QR code', async ({
+    page,
+  }) => {
     const user = createTestUser()
     await signUpViaUI(page, user)
     await createBandViaUI(page, `QR Code Test ${Date.now()}`)
@@ -154,7 +166,8 @@ test.describe('Jam Session — Navigation and Page Load', () => {
         // Already hidden — good
       })
 
-    // Click Show QR
+    // Open Share popover, then click Show QR
+    await page.locator('[data-testid="jam-share-button"]').click()
     await page.locator('[data-testid="jam-show-qr-button"]').click()
     await page.waitForTimeout(500)
 
@@ -253,5 +266,130 @@ test.describe('Jam Session — Setlist tab and seed-from-setlist', () => {
     // present so the test confirms the create-flow surface is wired.
     const seedSelect = page.locator('[data-testid="jam-seed-setlist-select"]')
     await expect(seedSelect).toBeVisible({ timeout: 5000 })
+  })
+})
+
+test.describe('Jam Session — End Session flow', () => {
+  // Post-v0.3.2 layout: End Session lives inside the actions kebab
+  // menu, not as a standalone button. The shared opener helper keeps
+  // each test focused on the intent ("end the session") rather than
+  // the menu mechanics.
+  const openActionsAndClickEnd = async (
+    page: import('@playwright/test').Page
+  ) => {
+    await page.locator('[data-testid="jam-actions-menu"]').click()
+    await page.locator('[data-testid="jam-end-session-button"]').click()
+  }
+
+  test('End Session is reachable for the host on an active session', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `End Session Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
+
+    // Actions kebab menu must be visible. Inside, the End Session
+    // item must be present once the menu is open.
+    await expect(page.locator('[data-testid="jam-actions-menu"]')).toBeVisible({
+      timeout: 5000,
+    })
+    await page.locator('[data-testid="jam-actions-menu"]').click()
+    await expect(
+      page.locator('[data-testid="jam-end-session-button"]')
+    ).toBeVisible({ timeout: 5000 })
+  })
+
+  test('End Session opens a confirmation dialog with Cancel + End actions on an empty session', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `End Empty Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
+
+    await openActionsAndClickEnd(page)
+
+    // Dialog renders.
+    await expect(page.locator('[data-testid="jam-end-dialog"]')).toBeVisible({
+      timeout: 3000,
+    })
+    // Cancel + End (without saving) buttons are always present. The
+    // "Save & End" button only shows when there's something to save —
+    // an empty session (no queue, no matches, no setlist) should not
+    // offer it.
+    await expect(
+      page.locator('[data-testid="jam-end-dialog-cancel"]')
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid="jam-end-dialog-end-without-saving"]')
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-testid="jam-end-dialog-save-and-end"]')
+    ).toHaveCount(0)
+  })
+
+  test('Cancel closes the end-session dialog without ending', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `End Cancel Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
+
+    await openActionsAndClickEnd(page)
+    await expect(page.locator('[data-testid="jam-end-dialog"]')).toBeVisible({
+      timeout: 3000,
+    })
+    await page.locator('[data-testid="jam-end-dialog-cancel"]').click()
+
+    // Dialog closes; we're still on the jam session page and the
+    // actions menu is still available for a second attempt.
+    await expect(page.locator('[data-testid="jam-end-dialog"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="jam-session-card"]')).toBeVisible()
+    await expect(page.locator('[data-testid="jam-actions-menu"]')).toBeVisible()
+  })
+
+  test('End without saving navigates away from the session', async ({
+    page,
+  }) => {
+    const user = createTestUser()
+    await signUpViaUI(page, user)
+    await createBandViaUI(page, `End Navigate Test ${Date.now()}`)
+    await page.waitForURL(/\/songs/, { timeout: 10000 })
+
+    await page.goto('/jam')
+    await page.waitForURL(/\/jam/, { timeout: 5000 })
+    await page.locator('[data-testid="jam-create-button"]').click()
+    await page.waitForURL(/\/jam\/[^/]+$/, { timeout: 10000 })
+
+    await openActionsAndClickEnd(page)
+    await expect(page.locator('[data-testid="jam-end-dialog"]')).toBeVisible({
+      timeout: 3000,
+    })
+    await page
+      .locator('[data-testid="jam-end-dialog-end-without-saving"]')
+      .click()
+
+    // After ending: back at /jam (the create/join landing). The session-
+    // specific subpath is gone.
+    await page.waitForURL(/\/jam\/?$/, { timeout: 10000 })
+    await expect(page.locator('[data-testid="jam-session-page"]')).toBeVisible()
   })
 })

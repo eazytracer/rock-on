@@ -9,6 +9,8 @@ export interface KebabMenuItem {
   disabled?: boolean
   /** Renders a separator line above this item */
   dividerBefore?: boolean
+  /** Stable testid for the menu item button (E2E tests). */
+  'data-testid'?: string
 }
 
 interface KebabMenuProps {
@@ -110,6 +112,7 @@ export function KebabMenu({
                   type="button"
                   role="menuitem"
                   disabled={item.disabled}
+                  data-testid={item['data-testid']}
                   onClick={e => {
                     e.stopPropagation()
                     setIsOpen(false)

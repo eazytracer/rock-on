@@ -109,24 +109,34 @@ export interface JamSongMatch {
   computedAt: Date
 }
 
-/** Public-safe payload returned by the jam-view Edge Function to unauthenticated users */
+/**
+ * Public-safe payload returned by the jam-view Edge Function to
+ * unauthenticated users.
+ *
+ * The anon view's product intent is "see what the host is queuing up" — i.e.
+ * the host-curated broadcast setlist. It deliberately does NOT include the
+ * "common songs" match list that authenticated participants use: an anon
+ * viewer has no personal catalog and therefore can neither contribute to nor
+ * benefit from the match set. Including it would expose internal plumbing
+ * that's irrelevant to the anon experience.
+ *
+ * This is a deliberate trimming from the pre-v0.3.2 shape — older clients
+ * that tried to read `matches` / `matchCount` will simply see them as
+ * undefined. The anon page (`JamViewPage`) treats the setlist as the
+ * primary content and renders a clear empty state when it's absent.
+ */
 export interface JamViewPublicPayload {
   sessionName: string
   hostDisplayName: string
   participantCount: number
-  matchCount: number
-  matches: Array<{
-    displayTitle: string
-    displayArtist: string
-    matchConfidence: 'exact' | 'fuzzy' | 'manual'
-  }>
   /**
    * Broadcast setlist curated by the host — the ordered list of songs the host
    * has picked for this jam. Reflects the current value of
-   * `jam_sessions.settings.setlistSongIds`. When empty, the UI should fall back
-   * to just the match list.
+   * `jam_sessions.settings.setlistItems`. Always present (possibly empty) so
+   * the anon page can render a stable empty state instead of a fallback to
+   * some other surface.
    */
-  setlist?: Array<{
+  setlist: Array<{
     displayTitle: string
     displayArtist: string
   }>

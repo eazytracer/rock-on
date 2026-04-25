@@ -6,12 +6,13 @@ import {
   LogIn,
   Save,
   ChevronDown,
-  Music,
+  ChevronRight,
   Library,
   ListMusic,
   ArrowRight,
   RefreshCw,
   Trash2,
+  XCircle,
 } from 'lucide-react'
 import {
   DndContext,
@@ -35,10 +36,12 @@ import { JamSessionService } from '../services/JamSessionService'
 import type { JamSession } from '../models/JamSession'
 import { useJamSession } from '../hooks/useJamSession'
 import { useJamSessionMatches } from '../hooks/useJamSessionMatches'
+import { useJamPresence } from '../hooks/useJamPresence'
 import { usePersonalSongs } from '../hooks/useSongs'
 import { usePersonalSetlists } from '../hooks/useSetlists'
 import { JamSessionCard } from '../components/jam/JamSessionCard'
 import { JamParticipantList } from '../components/jam/JamParticipantList'
+import { JamWatcherList } from '../components/jam/JamWatcherList'
 import { JamMatchList } from '../components/jam/JamMatchList'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
@@ -48,6 +51,7 @@ import {
   QueueSongRow,
   SortableQueueSongRow,
 } from '../components/common/QueueSongRow'
+import { KebabMenu } from '../components/common/KebabMenu'
 import type { Song } from '../models/Song'
 import type { JamSongMatch } from '../models/JamSession'
 
@@ -89,6 +93,14 @@ export const JamSessionPage: React.FC = () => {
     recompute: recomputeMatches,
   } = useJamSessionMatches(sessionId ?? null)
 
+  // Anonymous viewer presence. Listener mode (no selfName) — the host
+  // is already in jam_participants and shouldn't pollute the watcher
+  // list. Subscribes as soon as we know the session's shortCode.
+  const { watchers } = useJamPresence({
+    shortCode: session?.shortCode,
+    enabled: !!session?.shortCode,
+  })
+
   // Personal songs for the host's manual queue
   const { songs: personalSongs } = usePersonalSongs(userId)
 
@@ -121,16 +133,25 @@ export const JamSessionPage: React.FC = () => {
   const [shareUrl, setShareUrl] = useState('')
   const [rawToken, setRawToken] = useState('')
 
-  // Host's manual song queue (stored locally in state + persisted to session.settings)
+  // Host's manual song queue. Kept as state (not user-facing UI) so
+  // older sessions that wrote `settings.hostSongIds` still feed into
+  // saveAsSetlist's auto-merge fallback. The My Queue tab that used to
+  // populate this is gone; new sessions will leave it empty.
   const [queuedSongs, setQueuedSongs] = useState<Song[]>([])
-  const [isPickerOpen, setIsPickerOpen] = useState(false)
-  // Separate drawer state for the Setlist-tab "Add from my catalog" flow
+  // Drawer state for the Setlist-tab "Add from my catalog" flow.
   const [isSetlistPickerOpen, setIsSetlistPickerOpen] = useState(false)
 
-  // Active panel: 'common' = auto-matched, 'queue' = manual queue, 'setlist' = curated setlist builder
-  const [activePanel, setActivePanel] = useState<
-    'common' | 'queue' | 'setlist'
-  >('common')
+  // Active panel: 'setlist' = curated setlist (default), 'common' = auto-matched
+  // common songs (secondary, blank until ≥2 participants).
+  // 'My Queue' was removed — its only function was pre-staging songs from
+  // the host's catalog, which the Setlist tab's "Add from my catalog" CTA
+  // already covers. Single source of truth.
+  const [activePanel, setActivePanel] = useState<'setlist' | 'common'>(
+    'setlist'
+  )
+  // Mobile-only collapsible participants. Hidden by default on small
+  // screens so the host lands directly on the setlist; tap to expand.
+  const [isParticipantsExpanded, setIsParticipantsExpanded] = useState(false)
 
   // Curated setlist — host explicitly adds confirmed common songs + reorders them
   const [setlistSongs, setSetlistSongs] = useState<Song[]>([])
@@ -293,32 +314,6 @@ export const JamSessionPage: React.FC = () => {
     }
   }
 
-  // Add song to manual queue and re-run matching so Common Songs reflects it
-  const handleAddToQueue = (song: Song) => {
-    if (queuedSongs.find(s => s.id === song.id)) return // no duplicates
-    const updated = [...queuedSongs, song]
-    setQueuedSongs(updated)
-    if (session) {
-      void JamSessionService.updateSessionSettings(session.id, {
-        hostSongIds: updated.map(s => s.id),
-      })
-    }
-    // Recompute so any song now in both participants' personal catalogs appears
-    void recomputeMatches()
-  }
-
-  // Remove song from manual queue and re-run matching
-  const handleRemoveFromQueue = (songId: string) => {
-    const updated = queuedSongs.filter(s => s.id !== songId)
-    setQueuedSongs(updated)
-    if (session) {
-      void JamSessionService.updateSessionSettings(session.id, {
-        hostSongIds: updated.map(s => s.id),
-      })
-    }
-    void recomputeMatches()
-  }
-
   // Build a persistent, stable setlist-item tuple (id + display data) so the
   // ID can never go orphan from a match recompute. Writes the canonical
   // `setlistItems` shape via the dedicated mutator, which strips any legacy
@@ -412,6 +407,56 @@ export const JamSessionPage: React.FC = () => {
     }
   }
 
+  // End-session flow. The host clicks End → EndJamSessionDialog opens →
+  // host picks "save + end" (calls handleSaveAsSetlist, which already
+  // flips session.status='saved' and navigates to /setlists), or
+  // "end without saving" (JamSessionService.expireSession only). A
+  // canvas-wide bailout flow; we don't attempt to undo participant
+  // rows, matches, etc. — the edge function's session-lookup path
+  // filters by status='active' so expired sessions drop off the
+  // anon view and participants' lists automatically.
+  const [isEndDialogOpen, setIsEndDialogOpen] = useState(false)
+  const [isEnding, setIsEnding] = useState(false)
+
+  const handleEndWithoutSaving = async () => {
+    if (!session) return
+    setIsEnding(true)
+    try {
+      await JamSessionService.expireSession(session.id)
+      showToast('Jam session ended', 'success')
+      navigate('/jam')
+    } catch (err) {
+      showToast(`Failed to end session: ${(err as Error).message}`, 'error')
+    } finally {
+      setIsEnding(false)
+      setIsEndDialogOpen(false)
+    }
+  }
+
+  const handleSaveAndEnd = async () => {
+    if (!session) return
+    setIsEnding(true)
+    try {
+      // saveAsSetlist internally flips session.status to 'saved'
+      // (which removes it from any "active" queries), so we don't
+      // also need to call expireSession. 'saved' is a terminal state
+      // alongside 'expired'.
+      await saveAsSetlist(
+        userId,
+        undefined,
+        queuedSongs,
+        setlistSongs.length > 0 ? setlistSongs : undefined
+      )
+      showToast('Setlist saved, jam ended', 'success')
+      navigate('/setlists')
+    } catch (err) {
+      showToast(`Failed to save & end: ${(err as Error).message}`, 'error')
+    } finally {
+      setIsEnding(false)
+      setIsEndDialogOpen(false)
+    }
+  }
+
   const isHost = session?.hostUserId === userId
   const confirmedMatchCount = matches.filter(m => m.isConfirmed).length
   const canSave =
@@ -430,17 +475,32 @@ export const JamSessionPage: React.FC = () => {
   return (
     <ContentLoadingSpinner isLoading={loading && !!sessionId}>
       <div data-testid="jam-session-page" className="max-w-4xl mx-auto">
-        {/* Page header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-6">
-            <Radio size={22} className="text-amber-400" />
+        {/* Page header.
+            On the create/join screen (no sessionId) this gets the full
+            "Jam Session" + description treatment so users learn what
+            the page is for. Once an active session is on screen, the
+            title alone is enough — the description is hidden on mobile
+            (where every pixel of vertical space matters) but kept on
+            desktop. The bottom margin shrinks too so the session card
+            sits closer to the title. */}
+        <div className={sessionId ? 'mb-3 sm:mb-6' : 'mb-8'}>
+          <div
+            className={
+              sessionId
+                ? 'flex items-center gap-2 mb-2'
+                : 'flex items-center gap-2 mb-6'
+            }
+          >
+            <Radio size={22} className="text-primary" />
             <h1 className="text-2xl font-bold text-white">Jam Session</h1>
-            <ChevronDown size={20} className="text-[#a0a0a0]" />
+            {!sessionId && <ChevronDown size={20} className="text-[#a0a0a0]" />}
           </div>
-          <p className="text-[#707070] text-sm">
-            Find songs you have in common with other musicians, or build your
-            own song queue for an impromptu set.
-          </p>
+          {!sessionId && (
+            <p className="text-[#707070] text-sm">
+              Find songs you have in common with other musicians, or build your
+              own song queue for an impromptu set.
+            </p>
+          )}
         </div>
 
         {error && (
@@ -602,39 +662,100 @@ export const JamSessionPage: React.FC = () => {
 
         {/* Active session view */}
         {session && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Session card */}
             <JamSessionCard session={session} shareUrl={shareUrl} />
 
-            {/* Participants + panels */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Left: participants */}
+            {/* Participants + panels.
+                On mobile the participants section is collapsed by
+                default (one-line summary), so the gap between it and
+                the setlist panel is narrow — the setlist gets to be
+                the focus. On desktop both columns share gap-6. */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+              {/* Left: participants + anon watchers.
+                  On desktop (md+) this is a permanent left sidebar with
+                  no card chrome — it sits in the grid column directly.
+                  On mobile it becomes a self-contained collapsible card
+                  so the relationship between the toggle and what gets
+                  shown/hidden is visually explicit (one card, header
+                  + body), not a free-floating summary line that lives
+                  ambiguously above whatever follows it. */}
               <div className="md:col-span-1">
-                <h3 className="text-[#a0a0a0] text-sm font-medium mb-3 uppercase tracking-wide">
-                  Participants
-                </h3>
-                <JamParticipantList
-                  participants={participants}
-                  hostUserId={session.hostUserId}
-                />
+                {/* Mobile container — card wraps both the toggle
+                    header and the (hidden) body, so when expanded the
+                    list visibly belongs to the toggle that opened it. */}
+                <div className="md:hidden bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setIsParticipantsExpanded(v => !v)}
+                    className="flex items-center justify-between w-full text-left px-4 py-3 hover:bg-[#1f1f1f] transition-colors"
+                    aria-expanded={isParticipantsExpanded}
+                    data-testid="jam-participants-toggle"
+                  >
+                    <span className="text-[#a0a0a0] text-sm">
+                      <span className="text-white font-medium">
+                        {participants.filter(p => p.status === 'active').length}
+                      </span>{' '}
+                      participant
+                      {participants.filter(p => p.status === 'active')
+                        .length === 1
+                        ? ''
+                        : 's'}
+                      {watchers.length > 0 && (
+                        <>
+                          {' · '}
+                          <span className="text-white font-medium">
+                            {watchers.length}
+                          </span>{' '}
+                          watching
+                        </>
+                      )}
+                    </span>
+                    {isParticipantsExpanded ? (
+                      <ChevronDown size={16} className="text-[#707070]" />
+                    ) : (
+                      <ChevronRight size={16} className="text-[#707070]" />
+                    )}
+                  </button>
+                  {isParticipantsExpanded && (
+                    <div className="border-t border-[#2a2a2a] p-4 space-y-4">
+                      <JamParticipantList
+                        participants={participants}
+                        hostUserId={session.hostUserId}
+                      />
+                      <JamWatcherList watchers={watchers} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop sidebar — same content, no card wrapper.
+                    Sits directly in the left grid column with the
+                    section heading + lists. */}
+                <div className="hidden md:block space-y-5">
+                  <div>
+                    <h3 className="text-[#a0a0a0] text-sm font-medium mb-3 uppercase tracking-wide">
+                      Participants
+                    </h3>
+                    <JamParticipantList
+                      participants={participants}
+                      hostUserId={session.hostUserId}
+                    />
+                  </div>
+                  <JamWatcherList watchers={watchers} />
+                </div>
               </div>
 
               {/* Right: panel switcher */}
               <div className="md:col-span-2">
-                {/* Panel tabs + action buttons row */}
-                <div className="flex items-center justify-between mb-3">
+                {/* Tabs + kebab. The kebab consolidates Save / Refresh /
+                    End — three labels of varying length that previously
+                    fought the tab bar for horizontal space and wrapped
+                    on mobile. Now it's a single 1.5rem trigger so the
+                    tab bar always has room. */}
+                <div className="flex items-center justify-between gap-2 mb-3">
                   <TabSwitcher
                     data-testid="jam-panel-tabs"
                     tabs={[
-                      {
-                        value: 'common' as const,
-                        label: 'Common Songs',
-                        icon: Radio,
-                        badge: isRecomputing
-                          ? undefined
-                          : confirmedMatchCount || undefined,
-                        badgeAnimate: isRecomputing,
-                      },
                       {
                         value: 'setlist' as const,
                         label: 'Setlist',
@@ -642,46 +763,62 @@ export const JamSessionPage: React.FC = () => {
                         badge: setlistSongs.length || undefined,
                       },
                       {
-                        value: 'queue' as const,
-                        label: 'My Queue',
-                        icon: Music,
-                        badge: queuedSongs.length || undefined,
+                        value: 'common' as const,
+                        label: 'Common',
+                        icon: Radio,
+                        badge: isRecomputing
+                          ? undefined
+                          : confirmedMatchCount || undefined,
+                        badgeAnimate: isRecomputing,
                       },
                     ]}
                     value={activePanel}
                     onChange={setActivePanel}
                   />
 
-                  <div className="flex items-center gap-2">
-                    {/* Manual refresh — visible when ≥2 participants */}
-                    {participants.filter(p => p.status === 'active').length >=
-                      2 && (
-                      <button
-                        data-testid="jam-refresh-matches-button"
-                        onClick={() => void recomputeMatches()}
-                        disabled={isRecomputing}
-                        title="Refresh common songs"
-                        className="p-1.5 rounded-md text-[#707070] hover:text-amber-400 transition-colors disabled:opacity-40"
-                      >
-                        <RefreshCw
-                          size={13}
-                          className={isRecomputing ? 'animate-spin' : ''}
-                        />
-                      </button>
-                    )}
-                    {/* Save — host only, when there's something to save */}
-                    {isHost && session.status === 'active' && canSave && (
-                      <button
-                        data-testid="jam-save-setlist-button"
-                        onClick={() => void handleSaveAsSetlist()}
-                        disabled={isSaving}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600/20 text-green-400 text-xs font-medium hover:bg-green-600/30 transition-colors disabled:opacity-50"
-                      >
-                        <Save size={13} />
-                        {isSaving ? 'Saving...' : 'Save as Setlist'}
-                      </button>
-                    )}
-                  </div>
+                  {isHost && session.status === 'active' && (
+                    <KebabMenu
+                      data-testid="jam-actions-menu"
+                      align="right"
+                      triggerSize="md"
+                      items={[
+                        ...(canSave
+                          ? [
+                              {
+                                label: isSaving ? 'Saving…' : 'Save as Setlist',
+                                icon: Save,
+                                disabled: isSaving,
+                                onClick: () => void handleSaveAsSetlist(),
+                                'data-testid': 'jam-save-setlist-button',
+                              },
+                            ]
+                          : []),
+                        ...(participants.filter(p => p.status === 'active')
+                          .length >= 2
+                          ? [
+                              {
+                                label: isRecomputing
+                                  ? 'Refreshing…'
+                                  : 'Refresh common songs',
+                                icon: RefreshCw,
+                                disabled: isRecomputing,
+                                onClick: () => void recomputeMatches(),
+                                'data-testid': 'jam-refresh-matches-button',
+                              },
+                            ]
+                          : []),
+                        {
+                          label: 'End Session',
+                          icon: XCircle,
+                          variant: 'danger' as const,
+                          dividerBefore: true,
+                          disabled: isEnding,
+                          onClick: () => setIsEndDialogOpen(true),
+                          'data-testid': 'jam-end-session-button',
+                        },
+                      ]}
+                    />
+                  )}
                 </div>
 
                 {/* Common songs panel */}
@@ -805,53 +942,6 @@ export const JamSessionPage: React.FC = () => {
                     )}
                   </div>
                 )}
-
-                {/* My song queue panel */}
-                {activePanel === 'queue' && (
-                  <div>
-                    {queuedSongs.length === 0 ? (
-                      <EmptyState
-                        icon={Library}
-                        title="No songs in your queue yet."
-                        description="Add songs from your personal catalog to play during the jam."
-                        action={{
-                          label: 'Add Songs',
-                          icon: Plus,
-                          onClick: () => setIsPickerOpen(true),
-                          'data-testid': 'jam-add-songs-button',
-                        }}
-                      />
-                    ) : (
-                      <div className="space-y-2">
-                        {queuedSongs.map((song, idx) => (
-                          <QueueSongRow
-                            key={song.id}
-                            song={song}
-                            position={idx + 1}
-                            showDragHandle={false}
-                            data-testid={`jam-queue-song-${song.id}`}
-                            actions={[
-                              {
-                                label: 'Remove',
-                                icon: Trash2,
-                                variant: 'danger',
-                                onClick: () => handleRemoveFromQueue(song.id),
-                              },
-                            ]}
-                          />
-                        ))}
-                        <button
-                          data-testid="jam-add-songs-button"
-                          onClick={() => setIsPickerOpen(true)}
-                          className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[#333] text-[#707070] text-sm hover:border-[#f17827ff] hover:text-[#f17827ff] transition-colors w-full justify-center"
-                        >
-                          <Plus size={14} />
-                          Add more songs
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -883,16 +973,10 @@ export const JamSessionPage: React.FC = () => {
           </div>
         )}
 
-        {/* Song picker drawer for manual queue */}
-        <BrowseSongsDrawer
-          isOpen={isPickerOpen}
-          onClose={() => setIsPickerOpen(false)}
-          songs={personalSongs}
-          selectedSongIds={queuedSongs.map(s => s.id)}
-          onAddSong={handleAddToQueue}
-        />
-
-        {/* Song picker drawer for the curated setlist (host adds from own catalog) */}
+        {/* Song picker drawer for the curated setlist (host adds from own catalog).
+            The previous "queue" drawer was removed alongside the My Queue tab —
+            song staging now happens directly inside the Setlist tab via this
+            single drawer. */}
         <BrowseSongsDrawer
           isOpen={isSetlistPickerOpen}
           onClose={() => setIsSetlistPickerOpen(false)}
@@ -900,6 +984,77 @@ export const JamSessionPage: React.FC = () => {
           selectedSongIds={setlistSongs.map(s => s.id)}
           onAddSong={handleAddSongToSetlist}
         />
+
+        {/* End-session confirmation dialog. Three-action when there's
+            anything to save (Save & End / End without saving / Cancel);
+            two-action when the session is empty (End / Cancel). Rendered
+            inline here rather than via the shared ConfirmDialog so we
+            can expose a dedicated secondary action without bloating the
+            shared component's API. */}
+        {isEndDialogOpen && session && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={e => {
+              if (e.target === e.currentTarget && !isEnding) {
+                setIsEndDialogOpen(false)
+              }
+            }}
+            data-testid="jam-end-dialog-backdrop"
+          >
+            <div
+              className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md shadow-xl"
+              onClick={e => e.stopPropagation()}
+              data-testid="jam-end-dialog"
+            >
+              <div className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 p-2 rounded-full bg-red-500/10">
+                    <XCircle size={20} className="text-red-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-white font-semibold text-lg mb-2">
+                      End this jam session?
+                    </h3>
+                    <p className="text-[#a0a0a0] text-sm">
+                      {canSave
+                        ? 'Save the current setlist to your personal setlists before ending, or end without saving. Either way, the session will stop accepting new participants.'
+                        : 'The session will stop accepting new participants. This cannot be undone.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 mt-6">
+                  <button
+                    onClick={() => setIsEndDialogOpen(false)}
+                    disabled={isEnding}
+                    className="px-4 py-2 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
+                    data-testid="jam-end-dialog-cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => void handleEndWithoutSaving()}
+                    disabled={isEnding}
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-[#2a2a2a] text-[#e0e0e0] hover:bg-[#333] transition-colors disabled:opacity-50"
+                    data-testid="jam-end-dialog-end-without-saving"
+                  >
+                    {canSave ? 'End without saving' : 'End Session'}
+                  </button>
+                  {canSave && (
+                    <button
+                      onClick={() => void handleSaveAndEnd()}
+                      disabled={isEnding}
+                      className="flex items-center justify-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-primary hover:bg-[#e53d01] transition-colors disabled:opacity-50"
+                      data-testid="jam-end-dialog-save-and-end"
+                    >
+                      {isEnding ? 'Saving…' : 'Save & End'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Suppress warnings */}
         <span className="hidden">{rawToken}</span>

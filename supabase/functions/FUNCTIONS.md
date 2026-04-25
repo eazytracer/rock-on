@@ -6,11 +6,11 @@ function without updating this manifest is incomplete. See CLAUDE.md
 
 ## Manifest
 
-| Name             | Auth mode         | Role context                           | Anonymous? | Calls public tables?                                                             | Expected unauthenticated GET status                                      |
-| ---------------- | ----------------- | -------------------------------------- | ---------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `jam-view`       | `--no-verify-jwt` | service_role                           | Yes        | `jam_sessions`, `jam_participants`, `jam_song_matches`, `user_profiles`, `users` | 200 (with valid code+token) / 400 (missing params) / 404 (invalid token) |
-| `jam-recompute`  | verify JWT        | service_role (writes) + caller (reads) | No         | `jam_participants`, `jam_song_matches`, `songs`; calls `replace_jam_matches` RPC | 401                                                                      |
-| `spotify-search` | verify JWT        | external HTTP only (no DB)             | No         | None                                                                             | 401                                                                      |
+| Name             | Auth mode         | Role context                           | Anonymous? | Calls public tables?                                                                                                                                 | Expected unauthenticated GET status                                      |
+| ---------------- | ----------------- | -------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `jam-view`       | `--no-verify-jwt` | service_role                           | Yes        | `jam_sessions`, `jam_participants`, `user_profiles`, `users`, `songs` (+ `jam_song_matches` as a legacy-only fallback for pre-setlistItems sessions) | 200 (with valid code+token) / 400 (missing params) / 404 (invalid token) |
+| `jam-recompute`  | verify JWT        | service_role (writes) + caller (reads) | No         | `jam_participants`, `jam_song_matches`, `songs`; calls `replace_jam_matches` RPC                                                                     | 401                                                                      |
+| `spotify-search` | verify JWT        | external HTTP only (no DB)             | No         | None                                                                                                                                                 | 401                                                                      |
 
 ## Field reference
 

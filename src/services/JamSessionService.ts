@@ -411,6 +411,31 @@ export class JamSessionService {
     const session = await repository.getJamSession(sessionId)
     if (!session) throw new Error('Jam session not found')
 
+    // Idempotency guard: if a setlist already exists for this jam
+    // session (e.g. the user clicked Save twice before the button
+    // disabled, or an earlier save attempt orphaned a row before our
+    // FK-race fix), return the existing one rather than creating a
+    // duplicate. `getPersonalSetlists` is already cached locally per
+    // user so this is cheap.
+    //
+    // We key on `jamSessionId` specifically because it's the only
+    // durable link between a jam session and the setlist it generated
+    // — `jam_sessions.saved_setlist_id` can lag (and was the subject
+    // of the v0.3.2 FK-race fix).
+    const existing = await repository.getPersonalSetlists(hostUserId)
+    const alreadySaved = existing.find(s => s.jamSessionId === sessionId)
+    if (alreadySaved) {
+      // Still make sure the session is marked 'saved' in case the
+      // previous attempt died between addSetlist and updateJamSession.
+      if (session.status !== 'saved' || !session.savedSetlistId) {
+        await repository.updateJamSession(sessionId, {
+          status: 'saved',
+          savedSetlistId: alreadySaved.id,
+        })
+      }
+      return alreadySaved
+    }
+
     let items: SetlistItem[]
 
     if (setlistSongs && setlistSongs.length > 0) {
@@ -479,11 +504,47 @@ export class JamSessionService {
       lastModified: new Date(),
     })
 
-    // Mark session as saved
-    await repository.updateJamSession(sessionId, {
-      status: 'saved',
-      savedSetlistId: setlistId,
-    })
+    // FK-write race: `setlists` writes go through the offline-safe sync
+    // queue (local IndexedDB first, then pushed to Supabase), but
+    // `jam_sessions` writes go DIRECTLY to Supabase (no local cache,
+    // per the "Supabase-only" design for ephemeral sessions). The
+    // `jam_sessions.saved_setlist_id` FK references `setlists(id)`,
+    // so the update below would 409 if the queued INSERT hasn't landed
+    // on the server yet.
+    //
+    // `flushPendingWrites` waits for any in-flight sync to finish, then
+    // pushes the queue. After it returns, the setlists row is
+    // guaranteed present in Supabase and the FK update is safe.
+    //
+    // `getSyncEngine?()` is only wired on SyncRepository; LocalRepository
+    // + RemoteRepository don't need the flush (they don't use a queue),
+    // so the optional chaining is the documented escape hatch.
+    const syncEngine = repository.getSyncEngine?.()
+    if (syncEngine) {
+      await syncEngine.flushPendingWrites()
+    }
+
+    // Mark session as saved. If this fails (network blip, RLS change,
+    // anything), roll back the setlist we just created so a retry
+    // doesn't leave orphans. The idempotency check at the top of this
+    // method means a retry would still work even without this rollback
+    // — this is belt-and-braces to avoid cluttering the user's
+    // personal setlists with `Jam Session X` rows that never got
+    // linked back to their session.
+    try {
+      await repository.updateJamSession(sessionId, {
+        status: 'saved',
+        savedSetlistId: setlistId,
+      })
+    } catch (err) {
+      await repository.deleteSetlist(setlistId).catch(() => {
+        // Best-effort cleanup. If the delete itself fails (offline,
+        // e.g.), the idempotency guard at the top of this method
+        // will return the existing setlist on the next attempt,
+        // so the user still gets a single-setlist outcome.
+      })
+      throw err
+    }
 
     return (await repository.getSetlist(setlistId))!
   }

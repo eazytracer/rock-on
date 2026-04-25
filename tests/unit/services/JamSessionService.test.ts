@@ -23,6 +23,12 @@ vi.mock('../../../src/services/data/RepositoryFactory', () => {
     getSetlist: vi.fn(),
     addSetlist: vi.fn(),
     updateSetlist: vi.fn(),
+    deleteSetlist: vi.fn(),
+    // Used by saveAsSetlist's idempotency guard: check for a setlist
+    // already linked to this jam session before creating a new one.
+    // Tests that exercise saveAsSetlist should default this to [] to
+    // hit the create path.
+    getPersonalSetlists: vi.fn().mockResolvedValue([]),
     getSong: vi.fn(),
   }
   return { repository: repo }
@@ -634,6 +640,95 @@ describe('JamSessionService', () => {
           savedSetlistId: expect.any(String),
         })
       )
+    })
+
+    it('is idempotent — returns the existing setlist if one already exists for this jam', async () => {
+      // User has already saved this jam once. A stray second click
+      // (or a retry after a flaky previous save) should NOT create
+      // a duplicate — the existing setlist comes back and addSetlist
+      // is never called a second time.
+      const alreadySaved = {
+        id: 'existing-setlist-id',
+        name: 'Previously Saved Jam',
+        contextType: 'personal' as const,
+        contextId: 'host-user',
+        jamSessionId: 'session-001',
+        tags: ['jam'],
+        items: [],
+        songs: [],
+        totalDuration: 0,
+        status: 'draft' as const,
+        createdDate: new Date(),
+        lastModified: new Date(),
+      }
+      mockRepository.getPersonalSetlists.mockResolvedValueOnce([alreadySaved])
+
+      const result = await JamSessionService.saveAsSetlist(
+        'session-001',
+        'host-user'
+      )
+
+      expect(result.id).toBe('existing-setlist-id')
+      expect(mockRepository.addSetlist).not.toHaveBeenCalled()
+    })
+
+    it('reconciles session state on a reused save — if the prior attempt left the session un-"saved", update it now', async () => {
+      // Covers the pre-v0.3.2 FK-race-orphan scenario: a previous
+      // save created the setlist but the jam_sessions update blew
+      // up, so the session stayed status='active'. On the next save
+      // attempt the idempotency branch should still flip the session
+      // to 'saved' so the UI's "View saved setlist" banner can show.
+      const alreadySaved = {
+        id: 'orphan-setlist-id',
+        name: 'Orphaned',
+        contextType: 'personal' as const,
+        contextId: 'host-user',
+        jamSessionId: 'session-001',
+        tags: ['jam'],
+        items: [],
+        songs: [],
+        totalDuration: 0,
+        status: 'draft' as const,
+        createdDate: new Date(),
+        lastModified: new Date(),
+      }
+      mockRepository.getPersonalSetlists.mockResolvedValueOnce([alreadySaved])
+      // Session is still 'active' — the previous save couldn't flip it.
+      mockRepository.getJamSession.mockResolvedValueOnce(
+        makeSession({ status: 'active', savedSetlistId: undefined })
+      )
+
+      await JamSessionService.saveAsSetlist('session-001', 'host-user')
+
+      expect(mockRepository.updateJamSession).toHaveBeenCalledWith(
+        'session-001',
+        expect.objectContaining({
+          status: 'saved',
+          savedSetlistId: 'orphan-setlist-id',
+        })
+      )
+    })
+
+    it('rolls back the new setlist if updateJamSession fails after create', async () => {
+      // Compensating rollback: if the post-addSetlist update blows
+      // up for any reason, we delete the row we just created to
+      // avoid orphaning a zombie `Jam Session X` setlist in the
+      // user's personal tab.
+      mockRepository.updateJamSession.mockRejectedValueOnce(
+        new Error('FK violation')
+      )
+      mockRepository.deleteSetlist.mockResolvedValue(undefined)
+
+      await expect(
+        JamSessionService.saveAsSetlist('session-001', 'host-user')
+      ).rejects.toThrow('FK violation')
+
+      expect(mockRepository.deleteSetlist).toHaveBeenCalledOnce()
+      // The id passed to deleteSetlist must match the id passed to
+      // addSetlist (so we're cleaning up exactly the row we just
+      // created, not some other one).
+      const addedId = mockRepository.addSetlist.mock.calls[0][0].id
+      expect(mockRepository.deleteSetlist).toHaveBeenCalledWith(addedId)
     })
   })
 })

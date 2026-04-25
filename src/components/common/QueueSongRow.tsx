@@ -6,6 +6,15 @@ import { SongAvatar } from './SongAvatar'
 
 export type { KebabMenuItem }
 
+/**
+ * dnd-kit's `useSortable` returns a map of pointer/keyboard event
+ * handlers to install on the drag handle. The concrete type is
+ * internal (`SyntheticListenerMap`) and not re-exported from
+ * `@dnd-kit/sortable`'s public entry, so we match its public shape:
+ * a record of DOM event handlers keyed by handler name.
+ */
+type DragHandleListeners = Record<string, (event: unknown) => void>
+
 interface QueueSongRowSong {
   id: string
   title: string
@@ -19,6 +28,13 @@ interface QueueSongRowProps {
   /** Whether a drag is in progress on this row */
   isDragging?: boolean
   showDragHandle?: boolean
+  /**
+   * dnd-kit drag listeners — when provided, attached to the grip
+   * handle ONLY, so clicks on the kebab menu / body of the row
+   * reach their own handlers instead of being swallowed by the
+   * drag sensor. Undefined when the row is not sortable.
+   */
+  dragHandleListeners?: DragHandleListeners
   /** Kebab menu items — if empty/undefined, no menu is shown */
   actions?: KebabMenuItem[]
   /** Optional right-side badge (e.g. participant count) */
@@ -40,6 +56,7 @@ export function QueueSongRow({
   position,
   isDragging = false,
   showDragHandle = true,
+  dragHandleListeners,
   actions,
   badge,
   onClick,
@@ -60,12 +77,23 @@ export function QueueSongRow({
         .filter(Boolean)
         .join(' ')}
     >
-      {/* Drag handle */}
+      {/* Drag handle — receives the dnd-kit listeners so drags only
+          initiate when the user grabs the grip, NOT when they click
+          the kebab menu or anywhere else on the row. */}
       {showDragHandle && (
-        <GripVertical
-          size={14}
-          className="text-[#404040] group-hover:text-[#707070] flex-shrink-0 cursor-grab active:cursor-grabbing"
-        />
+        <span
+          // `touch-none` disables the browser's default touch-scroll
+          // behaviour on the handle so drag gestures register cleanly
+          // on mobile.
+          {...(dragHandleListeners ?? {})}
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical
+            size={14}
+            className="text-[#404040] group-hover:text-[#707070]"
+          />
+        </span>
       )}
 
       {/* Position number */}
@@ -133,9 +161,21 @@ export function SortableQueueSongRow({
     transition,
   }
 
+  // IMPORTANT: do NOT spread `{...listeners}` on the outer div. dnd-kit
+  // treats the pointer-down event as the start of a drag gesture, which
+  // cancels subsequent `click` events — including clicks on the kebab
+  // menu. Instead, pass listeners down so QueueSongRow can attach them
+  // only to the grip handle. `attributes` (ARIA metadata) stays on the
+  // outer element because it's inert WRT click dispatch.
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <QueueSongRow {...props} isDragging={isDragging} />
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <QueueSongRow
+        {...props}
+        isDragging={isDragging}
+        dragHandleListeners={
+          listeners as unknown as DragHandleListeners | undefined
+        }
+      />
     </div>
   )
 }
