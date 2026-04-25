@@ -120,18 +120,22 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
             this 6-character thing?"). Pairing it with a "Join code"
             label and parking it next to Share makes the relationship
             explicit: this is what you give to people, this is how they
-            connect. */}
+            connect.
+            On mobile the label stacks above the code to keep the chip
+            narrow (preserving room for a long session name); on sm+ it
+            sits inline to the left of the code for a more compact
+            single-line read. */}
         <div
           data-testid="jam-invite-code-chip"
-          className="flex-shrink-0 flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a]"
+          className="flex-shrink-0 flex flex-col items-start sm:flex-row sm:items-center sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a]"
           title="Share this code so others can join your jam"
         >
-          <span className="hidden sm:inline text-[#a0a0a0] text-[10px] uppercase tracking-wider font-medium">
+          <span className="text-[#a0a0a0] text-[9px] sm:text-[10px] uppercase tracking-wider font-medium leading-none">
             Join code
           </span>
           <span
             data-testid="jam-short-code"
-            className="font-mono text-base sm:text-lg font-bold text-primary tracking-[0.15em]"
+            className="font-mono text-sm sm:text-lg font-bold text-primary tracking-[0.15em] leading-tight"
           >
             {session.shortCode}
           </span>

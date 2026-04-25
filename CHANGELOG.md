@@ -7,6 +7,170 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-25
+
+### Anonymous jam-view rebuild + jam UX overhaul
+
+The v0.3.1 hotfix unblocked the jam feature in production but left the
+anonymous viewer experience in poor shape (per the v0.3.1 post-mortem):
+guests landed on a "Common Songs" list they couldn't contribute to, never
+saw the host's actual setlist, and the host page itself felt like a
+crowded dashboard on mobile. v0.4.0 rebuilds the anon view around its
+real product intent and tightens the host page accordingly.
+
+**No database changes.** No migrations, no schema changes, no RLS
+changes. Anonymous-viewer presence is implemented entirely on Supabase
+Realtime presence channels, which run in-memory at the realtime server
+and don't persist to Postgres. Edge-function `jam-view` ships a new
+response shape and must be redeployed.
+
+### Added
+
+- **Anonymous viewer presence (Supabase Realtime)** — guests on the
+  `/jam/view/<code>` page can introduce themselves with a name and
+  show up live in the host's "Watching" sidebar. Implementation uses
+  presence channels (in-memory at the Realtime server, no DB writes,
+  auto-cleanup on disconnect) so anonymous clients are first-class
+  participants without needing auth or a watcher table.
+  - `src/hooks/useJamPresence.ts` — shared presence hook with watcher
+    - listener modes
+  - `src/components/jam/JamWatcherList.tsx` — host-side watcher list
+    with eye icon
+  - Channel key `jam:presence:<shortCode>`. Per-tab key in
+    sessionStorage so refreshes rejoin with a fresh entry and
+    multiple tabs on the same device all show up individually.
+- **End Session flow on the host page** — host can deliberately end an
+  active jam from a kebab menu item. If there's a curated setlist /
+  queue / matches, the dialog offers Save & End / End without saving /
+  Cancel; on an empty session the dialog collapses to End / Cancel.
+  `JamSessionService.expireSession` (status='expired') is the
+  underlying transition; status='saved' (terminal alongside
+  'expired') is the alternate path when Save & End is chosen.
+- **Live-update polling on the anonymous view** — the page polls the
+  edge function every 5s and shows a visible "Live · updated Ns ago"
+  indicator next to the session title. Cache-buster query param +
+  `cache: 'no-store'` ensures no intermediate cache returns stale
+  setlist data.
+- **Idempotent save-as-setlist** — clicking Save twice (or retrying
+  after a previous failed attempt) returns the existing setlist
+  rather than creating a duplicate. Reconciliation branch flips the
+  session status to 'saved' if a prior attempt orphaned the link.
+- **Compensating rollback on save failure** — if `updateJamSession`
+  fails after `addSetlist` succeeded, the new setlist is deleted to
+  prevent orphan zombie rows in the user's personal setlists.
+- **`SyncEngine.flushPendingWrites()`** — new public method that
+  awaits any in-flight sync and then pushes the pending queue. Used
+  by `JamSessionService.saveAsSetlist` to guarantee a setlist row
+  has reached Supabase before the FK-bearing `jam_sessions` update
+  runs.
+- **`KebabMenu` items support `data-testid`** — stable E2E selectors
+  for individual menu items across the whole app.
+- New E2E specs (closing P1 from the v0.3.1 handoff):
+  - `tests/e2e/jam/jam-share-url-persistence.spec.ts` — guards the
+    v0.3.1 localStorage rehydration + graceful-disable path
+  - `tests/e2e/auth/post-signup-profile-state.spec.ts` — pins the
+    `users.name` fallback when no `user_profiles` row exists
+  - Expanded `tests/e2e/jam/jam-view-anon.spec.ts` with live-session
+    coverage (real session seeded via admin client, exercises the
+    edge function end-to-end)
+
+### Changed
+
+- **Anonymous jam-view payload — `matches` and `matchCount` removed.**
+  The anon page no longer surfaces "common songs" (a guest has no
+  catalog and can't contribute to or benefit from the match set).
+  Setlist is now the primary content and the only field besides
+  session metadata. **Edge function `jam-view` redeploy required**
+  before clients on v0.4.0 hit production. Old clients (v0.3.x) will
+  see the trimmed payload as `matches=undefined` and degrade
+  gracefully.
+- **Setlist is the default tab on the host page**, replacing the
+  previous default of "Common Songs" (which was empty until a second
+  participant joined).
+- **"My Queue" tab removed.** Its only function — pre-staging songs
+  from the host's personal catalog — is already covered by the
+  Setlist tab's "Add from my catalog" CTA. Single source of truth.
+  `queuedSongs` state is preserved so older sessions with
+  `settings.hostSongIds` still feed `saveAsSetlist`'s auto-merge
+  fallback.
+- **Action buttons (Save / Refresh / End) consolidated into a kebab
+  menu** next to the tab bar. Eliminates the wrapping-to-three-lines
+  bug on mobile. testids `jam-save-setlist-button`,
+  `jam-refresh-matches-button`, `jam-end-session-button` move to the
+  menu items but keep the same names so existing tests need only an
+  `openMenu()` step, not testid renames.
+- **JamSessionCard compacted from ~150px to ~50px on mobile.** Layout
+  is now a single row: session name + expiry on the left, labelled
+  "Join code ABC123" chip in the middle, single Share button on the
+  right. Copy / QR moved into a popover behind the Share button.
+- **Mobile participants section is a self-contained collapsible
+  card**, defaulting to collapsed. One-line summary
+  ("3 participants · 1 watching") doubles as the toggle header;
+  expanded body is the same card's body with an internal divider so
+  the relationship between toggle and content is visually
+  unambiguous. Desktop sidebar layout unchanged.
+- **Brand palette alignment.** Replaced off-palette `bg-blue-600`
+  syncing banner, `bg-surface` (`#F5F5F5`) light wrapper, blue
+  `LoadingSpinner.primary`, and `amber-500` accents in jam UI with
+  the canonical `bg-[#0a0a0a]` dark surface and `text-primary`
+  (`#FE4401`) brand orange. Eliminates the "white screen with blue
+  text" flash during Suspense / auth checks.
+
+### Fixed
+
+- **FK race in save-as-setlist.** `addSetlist` writes go through the
+  offline-safe sync queue (local first, async push to Supabase) but
+  `updateJamSession` writes directly to Supabase (no local cache for
+  ephemeral sessions). The direct UPDATE could beat the queued
+  INSERT to the server, so `jam_sessions.saved_setlist_id`
+  referenced a row that didn't exist yet → FK violation. Fixed via
+  `flushPendingWrites()` between the two writes.
+- **Personal-setlist delete didn't update the UI** until navigation
+  or a realtime DELETE event landed. `SetlistsPage.handleDelete`
+  was filtering only `uiSetlists` (band scope), missing
+  `personalUISetlists`. Now filters both lists optimistically.
+- **Anonymous jam-view spinner stuck forever in dev** under React
+  StrictMode. A cross-mount ref guard meant the second mount's
+  fetch early-returned because the first mount's was still
+  "in-flight," and the first mount's `cancelled` closure prevented
+  it from clearing the loading state. Removed the ref guard;
+  per-effect `cancelled` flag is sufficient.
+- **Kebab menu click was swallowed by dnd-kit's pointer listeners**
+  on `SortableQueueSongRow`. Spreading `{...listeners}` on the row's
+  outer wrapper made the drag sensor capture every pointer event,
+  including clicks on the kebab. Listeners now attach only to the
+  grip handle (the dnd-kit-recommended pattern). Also added
+  `touch-none` so mobile drags don't fight scroll gestures.
+- **`LoadingSpinner.primary` was hardcoded to `text-blue-600`** and
+  `FullPageSpinner` used `bg-white` — the combination produced
+  "blue text on a white screen" during every Suspense fallback.
+  Now uses `text-primary` (`#FE4401`) on a dark backdrop.
+- **`bg-surface` (`#F5F5F5`) at `App.tsx:154`** caused a light-gray
+  flash to show through on every route-level Suspense fallback.
+  Replaced with `bg-[#0a0a0a]` to match `ModernLayout`.
+- **Off-palette syncing banner** — the "Syncing your data from
+  cloud..." header was `bg-blue-600`. Re-themed to dark surface
+  with brand-orange spinner.
+
+### Edge functions
+
+- `jam-view` requires redeploy: response shape changed (`matches`
+  and `matchCount` removed; `setlist` now always present, possibly
+  empty). The legacy `jam_song_matches` table read is now
+  fallback-only for pre-`setlistItems` sessions. Documented in
+  `supabase/functions/FUNCTIONS.md`.
+
+### Migration / deploy notes
+
+| Asset                    | Action                                                                |
+| ------------------------ | --------------------------------------------------------------------- |
+| Postgres schema          | None                                                                  |
+| Migrations               | None                                                                  |
+| RLS policies             | None                                                                  |
+| Realtime publication     | None (presence is in-memory, not postgres_changes)                    |
+| `jam-view` edge function | **Redeploy required** (`./scripts/deploy-edge-functions.sh jam-view`) |
+| Frontend bundle          | Standard deploy                                                       |
+
 ## [0.3.1] - 2026-04-24
 
 ### Fixed
