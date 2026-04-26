@@ -51,7 +51,20 @@ export interface EditSongModalProps {
   song?: Song // Optional - if not provided, it's "add" mode
   mode?: 'add' | 'edit' // Defaults to 'edit' if song provided, 'add' if not
   onClose: () => void
-  onSave: (song: Song) => void | Promise<void>
+  onSave: (
+    song: Song,
+    options?: { alsoSaveToPersonal?: boolean }
+  ) => void | Promise<void>
+  /**
+   * When true and the modal is in add mode, show a checkbox offering to
+   * also save a linked copy to the user's personal catalog. The parent
+   * receives the checkbox value via the `alsoSaveToPersonal` option on
+   * onSave and is responsible for actually creating the linked copy.
+   *
+   * Only meaningful when adding to a band catalog (no need to "also save
+   * to personal" while already adding a personal song).
+   */
+  showAlsoSaveToPersonal?: boolean
 }
 
 // Helper to convert seconds to mm:ss
@@ -96,10 +109,18 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   mode: explicitMode,
   onClose,
   onSave,
+  showAlsoSaveToPersonal = false,
 }) => {
   // Determine mode: explicit mode takes precedence, otherwise infer from song
   const mode = explicitMode ?? (song ? 'edit' : 'add')
   const isAddMode = mode === 'add'
+
+  // Add-mode-only: opt-in to also creating a linked copy in the user's
+  // personal catalog. Default off; enabled in add mode only and only when
+  // the parent has explicitly enabled the option (i.e. we're adding a
+  // band song, not a personal song).
+  const [alsoSaveToPersonal, setAlsoSaveToPersonal] = useState(false)
+  const showPersonalCheckbox = isAddMode && showAlsoSaveToPersonal
 
   const { min, sec } = secondsToMinSec(song?.duration || 0)
 
@@ -543,7 +564,10 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           referenceLinks,
         }
 
-    await onSave(savedSong)
+    await onSave(
+      savedSong,
+      showPersonalCheckbox ? { alsoSaveToPersonal } : undefined
+    )
 
     // Mark the form clean so unsaved-changes checks read as pristine.
     initialSnapshotRef.current = JSON.stringify({
@@ -599,8 +623,11 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             </span>
           </div>
           <button
+            type="button"
             onClick={handleClose}
             className="p-1 text-[#707070] hover:text-white transition-colors"
+            data-testid="edit-song-modal-close"
+            aria-label="Close"
           >
             <X size={20} />
           </button>
@@ -640,33 +667,32 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-4">
-              {/* Title */}
-              <div>
-                <label
-                  htmlFor="song-title"
-                  className="block text-sm text-[#a0a0a0] mb-2"
-                >
-                  Title <span className="text-[#D7263D]">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  id="song-title"
-                  data-testid="song-title-input"
-                  value={formData.title}
-                  onChange={e =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  placeholder="Enter song title"
-                  className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  required
-                />
-              </div>
+          <div className="space-y-4">
+            {/* Title — full width */}
+            <div>
+              <label
+                htmlFor="song-title"
+                className="block text-sm text-[#a0a0a0] mb-2"
+              >
+                Title <span className="text-[#D7263D]">*</span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                id="song-title"
+                data-testid="song-title-input"
+                value={formData.title}
+                onChange={e =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                placeholder="Enter song title"
+                className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                required
+              />
+            </div>
 
-              {/* Artist */}
+            {/* Artist + Album — 2-up on tablet+, stacked on mobile */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="song-artist"
@@ -689,7 +715,6 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                 />
               </div>
 
-              {/* Album */}
               <div>
                 <label
                   htmlFor="song-album"
@@ -710,137 +735,17 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                   className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                 />
               </div>
-
-              {/* Duration, BPM, Key Row */}
-              <div className="grid grid-cols-3 gap-3">
-                {/* Duration */}
-                <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">
-                    Duration
-                  </label>
-                  <div className="flex gap-1">
-                    <input
-                      type="text"
-                      name="durationMinutes"
-                      id="song-duration-minutes"
-                      data-testid="song-duration-minutes-input"
-                      value={formData.durationMin}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          durationMin: e.target.value.replace(/\D/g, ''),
-                        })
-                      }
-                      placeholder="0"
-                      maxLength={2}
-                      className="w-full h-11 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                    />
-                    <span className="flex items-center text-[#505050]">:</span>
-                    <input
-                      type="text"
-                      name="durationSeconds"
-                      id="song-duration-seconds"
-                      data-testid="song-duration-seconds-input"
-                      value={formData.durationSec}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          durationSec: e.target.value.replace(/\D/g, ''),
-                        })
-                      }
-                      placeholder="00"
-                      maxLength={2}
-                      className="w-full h-11 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                    />
-                  </div>
-                </div>
-
-                {/* BPM */}
-                <div>
-                  <label
-                    htmlFor="song-bpm"
-                    className="block text-sm text-[#a0a0a0] mb-2"
-                  >
-                    BPM
-                  </label>
-                  <input
-                    type="text"
-                    name="bpm"
-                    id="song-bpm"
-                    data-testid="song-bpm-input"
-                    value={formData.bpm}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        bpm: e.target.value.replace(/\D/g, ''),
-                      })
-                    }
-                    placeholder="120"
-                    className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                  />
-                </div>
-
-                {/* Key */}
-                <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">
-                    Key <span className="text-[#D7263D]">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    id="song-key"
-                    data-testid="song-key-button"
-                    onClick={() => setShowCircleOfFifths(true)}
-                    className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm flex items-center justify-between hover:border-[#f17827ff] transition-colors group"
-                  >
-                    <span
-                      className={
-                        formData.key
-                          ? 'text-white font-medium'
-                          : 'text-[#505050]'
-                      }
-                    >
-                      {formData.key || 'Select key'}
-                    </span>
-                    <Music
-                      size={18}
-                      className="text-[#707070] group-hover:text-[#f17827ff] transition-colors"
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div>
-                <label
-                  htmlFor="song-tags"
-                  className="block text-sm text-[#a0a0a0] mb-2"
-                >
-                  Tags (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  name="tags"
-                  id="song-tags"
-                  data-testid="song-tags-input"
-                  value={formData.tags}
-                  onChange={e =>
-                    setFormData({ ...formData, tags: e.target.value })
-                  }
-                  placeholder="Rock, Cover, 90s"
-                  className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
-                />
-              </div>
             </div>
 
-            {/* Right Column */}
-            <div className="space-y-4">
+            {/* Tuning + Key + BPM + Duration — 4-up on tablet+, 2x2 on mobile */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {/* Guitar Tuning */}
               <div>
                 <label
                   htmlFor="song-tuning"
                   className="block text-sm text-[#a0a0a0] mb-2"
                 >
-                  Guitar Tuning
+                  Tuning
                 </label>
                 <select
                   name="tuning"
@@ -860,22 +765,168 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                 </select>
               </div>
 
-              {/* Band Notes — edit mode only. On add, users create the song
-                  first then add notes from the song detail view. */}
-              {!isAddMode && (
-                <div>
-                  <label className="block text-sm text-[#a0a0a0] mb-2">
-                    Band Notes
-                  </label>
-                  <MarkdownField
-                    value={formData.notes}
-                    onSave={notes => setFormData({ ...formData, notes })}
-                    placeholder="Add notes about the song..."
-                    data-testid="song-notes-field"
+              {/* Key */}
+              <div>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Key <span className="text-[#D7263D]">*</span>
+                </label>
+                <button
+                  type="button"
+                  id="song-key"
+                  data-testid="song-key-button"
+                  onClick={() => setShowCircleOfFifths(true)}
+                  className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm flex items-center justify-between hover:border-[#f17827ff] transition-colors group"
+                >
+                  <span
+                    className={
+                      formData.key ? 'text-white font-medium' : 'text-[#505050]'
+                    }
+                  >
+                    {formData.key || 'Select'}
+                  </span>
+                  <Music
+                    size={18}
+                    className="text-[#707070] group-hover:text-[#f17827ff] transition-colors flex-shrink-0"
+                  />
+                </button>
+              </div>
+
+              {/* BPM */}
+              <div>
+                <label
+                  htmlFor="song-bpm"
+                  className="block text-sm text-[#a0a0a0] mb-2"
+                >
+                  BPM
+                </label>
+                <input
+                  type="text"
+                  name="bpm"
+                  id="song-bpm"
+                  data-testid="song-bpm-input"
+                  value={formData.bpm}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      bpm: e.target.value.replace(/\D/g, ''),
+                    })
+                  }
+                  placeholder="120"
+                  className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                />
+              </div>
+
+              {/* Duration */}
+              <div>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Duration
+                </label>
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    name="durationMinutes"
+                    id="song-duration-minutes"
+                    data-testid="song-duration-minutes-input"
+                    value={formData.durationMin}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        durationMin: e.target.value.replace(/\D/g, ''),
+                      })
+                    }
+                    placeholder="0"
+                    maxLength={2}
+                    className="w-full h-11 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                  />
+                  <span className="flex items-center text-[#505050]">:</span>
+                  <input
+                    type="text"
+                    name="durationSeconds"
+                    id="song-duration-seconds"
+                    data-testid="song-duration-seconds-input"
+                    value={formData.durationSec}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        durationSec: e.target.value.replace(/\D/g, ''),
+                      })
+                    }
+                    placeholder="00"
+                    maxLength={2}
+                    className="w-full h-11 px-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm text-center placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
                   />
                 </div>
-              )}
+              </div>
             </div>
+
+            {/* Tags — full width */}
+            <div>
+              <label
+                htmlFor="song-tags"
+                className="block text-sm text-[#a0a0a0] mb-2"
+              >
+                Tags (comma-separated)
+              </label>
+              <input
+                type="text"
+                name="tags"
+                id="song-tags"
+                data-testid="song-tags-input"
+                value={formData.tags}
+                onChange={e =>
+                  setFormData({ ...formData, tags: e.target.value })
+                }
+                placeholder="Rock, Cover, 90s"
+                className="w-full h-11 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+              />
+            </div>
+
+            {/* "Also save to my personal catalog" — add mode only, when
+                we're adding a band song. Solves the "right column real
+                estate" problem and surfaces the linked-catalog feature
+                at the moment a user is most likely to want it. */}
+            {showPersonalCheckbox && (
+              <div>
+                <label
+                  htmlFor="song-also-save-personal"
+                  className="flex items-start gap-3 p-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg hover:border-[#3a3a3a] transition-colors cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    name="alsoSaveToPersonal"
+                    id="song-also-save-personal"
+                    data-testid="song-also-save-personal-checkbox"
+                    checked={alsoSaveToPersonal}
+                    onChange={e => setAlsoSaveToPersonal(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-[#f17827ff] cursor-pointer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-white font-medium">
+                      Also save to my personal catalog
+                    </div>
+                    <div className="text-xs text-[#707070] mt-0.5">
+                      Keep a private linked copy you can annotate separately.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            )}
+
+            {/* Band Notes — edit mode only. On add, users create the song
+                first then add notes from the song detail view. */}
+            {!isAddMode && (
+              <div>
+                <label className="block text-sm text-[#a0a0a0] mb-2">
+                  Band Notes
+                </label>
+                <MarkdownField
+                  value={formData.notes}
+                  onSave={notes => setFormData({ ...formData, notes })}
+                  placeholder="Add notes about the song..."
+                  data-testid="song-notes-field"
+                />
+              </div>
+            )}
           </div>
 
           {/* Reference Links - Full Width Section with Inline Editing */}

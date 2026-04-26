@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { X, Loader2, Users, User, HelpCircle } from 'lucide-react'
 import { useBandNotes, usePersonalNote } from '../../hooks/useNotes'
 import { useToast } from '../../contexts/ToastContext'
+import { MarkdownField } from '../notes/MarkdownField'
 
 interface SongNotesModalProps {
   isOpen: boolean
@@ -12,6 +13,14 @@ interface SongNotesModalProps {
   bandId: string
 }
 
+/**
+ * Per-song notes modal opened from the FileText icon on song rows.
+ *
+ * Holds two `MarkdownField` instances (band-shared + personal-private), each
+ * autosaving on click-out via the field's own pencil-to-edit affordance.
+ * The modal-level helper popover stays as a markdown cheat-sheet (the
+ * field's Preview shows rendered output, not how to write it).
+ */
 export const SongNotesModal: React.FC<SongNotesModalProps> = ({
   isOpen,
   onClose,
@@ -22,7 +31,6 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
 }) => {
   const { showToast } = useToast()
 
-  // Hooks for fetching and updating notes
   const {
     notes: bandNotes,
     loading: bandLoading,
@@ -35,62 +43,38 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
     upsertNote: upsertPersonalNote,
   } = usePersonalNote(songId, userId, bandId)
 
-  // Local state for editing
-  const [localBandNotes, setLocalBandNotes] = useState('')
-  const [localPersonalNotes, setLocalPersonalNotes] = useState('')
-  const [saving, setSaving] = useState(false)
   const [showMarkdownHelp, setShowMarkdownHelp] = useState(false)
-
-  // Initialize local state when data loads
-  useEffect(() => {
-    if (!bandLoading) {
-      setLocalBandNotes(bandNotes || '')
-    }
-  }, [bandNotes, bandLoading])
-
-  useEffect(() => {
-    if (!personalLoading) {
-      setLocalPersonalNotes(personalNote?.content || '')
-    }
-  }, [personalNote, personalLoading])
 
   if (!isOpen) return null
 
   const loading = bandLoading || personalLoading
 
-  const handleSave = async () => {
+  // Each field's onSave is called when the user clicks the green check or
+  // clicks outside the field while editing. We surface failures via toast
+  // (success is signalled by the MarkdownField's inline "Notes saved"
+  // affordance — no need to double up).
+  const handleSaveBandNotes = async (next: string) => {
     try {
-      setSaving(true)
+      await updateBandNotes(next)
+    } catch (err) {
+      console.error('Error saving band notes:', err)
+      showToast('Failed to save band notes', 'error')
+      throw err
+    }
+  }
 
-      // Save both notes
-      const promises: Promise<unknown>[] = []
-
-      // Save band notes if changed
-      if (localBandNotes !== bandNotes) {
-        promises.push(updateBandNotes(localBandNotes))
-      }
-
-      // Save personal notes if changed
-      if (localPersonalNotes !== (personalNote?.content || '')) {
-        promises.push(upsertPersonalNote(localPersonalNotes))
-      }
-
-      if (promises.length > 0) {
-        await Promise.all(promises)
-        showToast('Notes saved', 'success')
-      }
-
-      onClose()
-    } catch (error) {
-      console.error('Error saving notes:', error)
-      showToast('Failed to save notes', 'error')
-    } finally {
-      setSaving(false)
+  const handleSavePersonalNotes = async (next: string) => {
+    try {
+      await upsertPersonalNote(next)
+    } catch (err) {
+      console.error('Error saving personal notes:', err)
+      showToast('Failed to save personal notes', 'error')
+      throw err
     }
   }
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && !saving) {
+    if (e.target === e.currentTarget) {
       onClose()
     }
   }
@@ -108,7 +92,7 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a]">
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-white">Song Notes</h2>
             <p className="text-sm text-[#707070] truncate">{songTitle}</p>
           </div>
@@ -119,11 +103,16 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
                 className="p-2 text-[#707070] hover:text-[#f17827ff] rounded-lg transition-colors"
                 title="Markdown formatting help"
                 data-testid="song-notes-modal-help"
+                aria-label="Markdown formatting help"
+                aria-expanded={showMarkdownHelp}
               >
                 <HelpCircle size={20} />
               </button>
               {showMarkdownHelp && (
-                <div className="absolute right-0 top-10 z-10 w-64 p-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg shadow-xl text-xs">
+                <div
+                  className="absolute right-0 top-10 z-10 w-64 p-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg shadow-xl text-xs"
+                  data-testid="song-notes-modal-help-popover"
+                >
                   <p className="text-[#a0a0a0] font-medium mb-2">
                     Markdown Formatting
                   </p>
@@ -160,9 +149,9 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              disabled={saving}
-              className="p-2 text-[#707070] hover:text-white rounded-lg transition-colors disabled:opacity-50"
+              className="p-2 text-[#707070] hover:text-white rounded-lg transition-colors"
               data-testid="song-notes-modal-close"
+              aria-label="Close"
             >
               <X size={20} />
             </button>
@@ -177,61 +166,60 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
             </div>
           ) : (
             <>
-              {/* Song Notes (Band-shared) */}
+              {/* Band Notes (shared) */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-[#a0a0a0] mb-2">
+                <label
+                  className="flex items-center gap-2 text-sm font-medium text-[#a0a0a0] mb-2"
+                  htmlFor="song-notes-band-field"
+                >
                   <Users size={16} className="text-[#f17827ff]" />
-                  Song Notes
+                  Band Notes
                   <span className="text-xs text-[#505050]">
                     (shared with band)
                   </span>
                 </label>
-                <textarea
-                  value={localBandNotes}
-                  onChange={e => setLocalBandNotes(e.target.value)}
-                  placeholder="Add notes about this song that the band can see..."
-                  className="w-full h-64 px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm font-mono placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 resize-y custom-scrollbar"
-                  data-testid="song-notes-band-textarea"
-                />
+                <div id="song-notes-band-field">
+                  <MarkdownField
+                    value={bandNotes || ''}
+                    onSave={handleSaveBandNotes}
+                    placeholder="Add notes about this song that the band can see..."
+                    data-testid="song-notes-band-field"
+                  />
+                </div>
               </div>
 
-              {/* My Notes (Personal) */}
+              {/* Personal Notes (private) */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-[#a0a0a0] mb-2">
+                <label
+                  className="flex items-center gap-2 text-sm font-medium text-[#a0a0a0] mb-2"
+                  htmlFor="song-notes-personal-field"
+                >
                   <User size={16} className="text-[#f17827ff]" />
                   My Notes
                   <span className="text-xs text-[#505050]">(private)</span>
                 </label>
-                <textarea
-                  value={localPersonalNotes}
-                  onChange={e => setLocalPersonalNotes(e.target.value)}
-                  placeholder="Add your personal notes about this song..."
-                  className="w-full h-64 px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm font-mono placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 resize-y custom-scrollbar"
-                  data-testid="song-notes-personal-textarea"
-                />
+                <div id="song-notes-personal-field">
+                  <MarkdownField
+                    value={personalNote?.content || ''}
+                    onSave={handleSavePersonalNotes}
+                    placeholder="Add your personal notes about this song..."
+                    data-testid="song-notes-personal-field"
+                  />
+                </div>
               </div>
             </>
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer — fields autosave on click-out, so the modal-level button
+            is just a "done viewing" gesture. */}
         <div className="flex items-center justify-end gap-3 p-4 border-t border-[#2a2a2a]">
           <button
             onClick={onClose}
-            disabled={saving}
-            className="px-4 py-2 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
-            data-testid="song-notes-modal-cancel"
+            className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white text-sm font-medium rounded-lg transition-colors"
+            data-testid="song-notes-modal-done"
           >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || loading}
-            className="flex items-center gap-2 px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-            data-testid="song-notes-modal-save"
-          >
-            {saving && <Loader2 size={16} className="animate-spin" />}
-            Save
+            Done
           </button>
         </div>
       </div>

@@ -20,6 +20,7 @@ import {
   ExternalLink,
   FileText,
   UserPlus,
+  Link2,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database hooks and utilities
 import {
@@ -494,6 +495,12 @@ interface SongRowProps {
   onCopyToPersonal?: (song: Song) => void
   /** Whether this song has already been copied to the personal catalog */
   alreadyCopied?: boolean
+  /** Show a small chain icon next to the title to signal that this song is
+   *  linked across catalogs (a band song with a personal mirror, or a
+   *  personal song that was forked from a band song). */
+  linked?: boolean
+  /** Hover-tooltip / aria-label for the linked icon. */
+  linkedLabel?: string
   openActionMenuId: string | null
   setOpenActionMenuId: (id: string | null) => void
 }
@@ -507,6 +514,8 @@ const SongRow: React.FC<SongRowProps> = ({
   onOpenNotes,
   onCopyToPersonal,
   alreadyCopied,
+  linked,
+  linkedLabel,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
@@ -530,8 +539,20 @@ const SongRow: React.FC<SongRowProps> = ({
             {song.initials}
           </div>
           <div className="min-w-0">
-            <div className="text-white font-semibold text-sm truncate">
-              {song.title}
+            <div className="flex items-center gap-1.5">
+              <div className="text-white font-semibold text-sm truncate">
+                {song.title}
+              </div>
+              {linked && (
+                <span
+                  className="text-[#f17827ff] flex-shrink-0"
+                  title={linkedLabel || 'Linked across catalogs'}
+                  aria-label={linkedLabel || 'Linked across catalogs'}
+                  data-testid="song-linked-indicator"
+                >
+                  <Link2 size={12} />
+                </span>
+              )}
             </div>
             <div className="text-[#a0a0a0] text-xs truncate">{song.artist}</div>
           </div>
@@ -670,6 +691,8 @@ const SongCard: React.FC<SongRowProps> = ({
   onOpenNotes,
   onCopyToPersonal,
   alreadyCopied,
+  linked,
+  linkedLabel,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
@@ -692,7 +715,21 @@ const SongCard: React.FC<SongRowProps> = ({
           {song.initials}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-white font-semibold text-sm">{song.title}</div>
+          <div className="flex items-center gap-1.5">
+            <div className="text-white font-semibold text-sm truncate">
+              {song.title}
+            </div>
+            {linked && (
+              <span
+                className="text-[#f17827ff] flex-shrink-0"
+                title={linkedLabel || 'Linked across catalogs'}
+                aria-label={linkedLabel || 'Linked across catalogs'}
+                data-testid="song-linked-indicator"
+              >
+                <Link2 size={12} />
+              </span>
+            )}
+          </div>
           <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
         </div>
 
@@ -1275,6 +1312,23 @@ export const SongsPage: React.FC = () => {
     )
   }, [dbPersonalSongs])
 
+  // IDs of personal songs that are linked to a band song (i.e. were
+  // forked from one). Used to show the chain-icon indicator on the
+  // personal tab.
+  const linkedPersonalSongIds = useMemo(() => {
+    return new Set(
+      dbPersonalSongs.filter(s => !!s.linkedFromSongId).map(s => s.id)
+    )
+  }, [dbPersonalSongs])
+
+  // Resolve the linked-status set + tooltip label for the active tab.
+  const linkedSongIds = isPersonalTab
+    ? linkedPersonalSongIds
+    : copiedBandSongIds
+  const linkedTooltip = isPersonalTab
+    ? 'Linked to a band song'
+    : 'Mirrored to your personal catalog'
+
   // Copy a band song to the personal catalog
   const handleCopyToPersonal = async (song: Song) => {
     setOpenActionMenuId(null)
@@ -1320,7 +1374,7 @@ export const SongsPage: React.FC = () => {
               </div>
 
               {/* Band / Personal tab switcher */}
-              <div className="flex gap-1 mb-6 bg-[#1a1a1a] rounded-lg p-1 w-fit">
+              <div className="flex gap-1 mb-2 bg-[#1a1a1a] rounded-lg p-1 w-fit">
                 <button
                   data-testid="songs-band-tab"
                   onClick={() => setActiveTab('band')}
@@ -1344,6 +1398,16 @@ export const SongsPage: React.FC = () => {
                   My Songs
                 </button>
               </div>
+              {/* Tab explainer — clarifies the difference between catalogs
+                  for users who haven't built a mental model yet. */}
+              <p
+                className="text-xs text-[#707070] mb-6"
+                data-testid="songs-tab-explainer"
+              >
+                {isPersonalTab
+                  ? 'Visible only to you. For solo practice notes or songs you carry between bands.'
+                  : 'Shared with your band. Used in setlists, shows, and practices.'}
+              </p>
 
               {/* Action Bar */}
               <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -1644,6 +1708,8 @@ export const SongsPage: React.FC = () => {
                       alreadyCopied={
                         !isPersonalTab && copiedBandSongIds.has(song.id)
                       }
+                      linked={linkedSongIds.has(song.id)}
+                      linkedLabel={linkedTooltip}
                       openActionMenuId={openActionMenuId}
                       setOpenActionMenuId={setOpenActionMenuId}
                     />
@@ -1672,6 +1738,8 @@ export const SongsPage: React.FC = () => {
                     alreadyCopied={
                       !isPersonalTab && copiedBandSongIds.has(song.id)
                     }
+                    linked={linkedSongIds.has(song.id)}
+                    linkedLabel={linkedTooltip}
                     openActionMenuId={openActionMenuId}
                     setOpenActionMenuId={setOpenActionMenuId}
                   />
@@ -1685,11 +1753,15 @@ export const SongsPage: React.FC = () => {
         {isAddModalOpen && (
           <EditSongModal
             mode="add"
+            // Only offer the "also save to personal" path when we're
+            // adding a band song. Adding a personal song already lives in
+            // the personal catalog by definition.
+            showAlsoSaveToPersonal={!isPersonalTab}
             onClose={() => setIsAddModalOpen(false)}
-            onSave={async (newSong: ModelSong) => {
+            onSave={async (newSong: ModelSong, options) => {
               try {
                 // EditSongModal returns model format (duration in seconds, bpm as number)
-                await createSong({
+                const newSongId = await createSong({
                   title: newSong.title,
                   artist: newSong.artist,
                   album: newSong.album,
@@ -1710,10 +1782,41 @@ export const SongsPage: React.FC = () => {
                   confidenceLevel: newSong.confidenceLevel || 1,
                 })
 
+                // Mirror to personal catalog when the user opted in.
+                // copyBandSongToPersonal reads the just-created song from
+                // local IndexedDB (the SyncRepository writes locally
+                // synchronously, then queues for remote sync), so it's
+                // safe to call right after createSong resolves.
+                let mirroredToPersonal = false
+                if (options?.alsoSaveToPersonal && !isPersonalTab) {
+                  try {
+                    await SongLinkingService.copyBandSongToPersonal(
+                      newSongId,
+                      currentUserId
+                    )
+                    await personalRefetch()
+                    mirroredToPersonal = true
+                  } catch (mirrorErr) {
+                    console.error(
+                      'Failed to mirror to personal catalog:',
+                      mirrorErr
+                    )
+                    showToast(
+                      `Added "${newSong.title}" to band, but failed to copy to your personal catalog.`,
+                      'error'
+                    )
+                  }
+                }
+
                 // Refetch songs to update UI
                 await refetch()
 
-                showToast(`Successfully added "${newSong.title}"`, 'success')
+                showToast(
+                  mirroredToPersonal
+                    ? `Added "${newSong.title}" to band and your personal catalog`
+                    : `Successfully added "${newSong.title}"`,
+                  'success'
+                )
                 setIsAddModalOpen(false)
               } catch (err) {
                 console.error('Error creating song:', err)
