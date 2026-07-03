@@ -409,6 +409,22 @@ Key discovery: the casting DB already supported the whole vision (casting_insert
   wiring Friends↔Events). Then D-proper (volunteering "raise hand" queue) + E (lightweight guest accounts +
   the signup auth-flow: band-code/event-code/new-band/personal — the security-sensitive one).
 
+## 2026-07-03 — Pushed to branch + band-less user flow DESIGNED (build held for user confirm)
+
+- **Pushed** the design-consistency pass + social-events A+B to `feature/events-friends-and-ui-oh-my`
+  (`e2931c0`, was `8c59292`) at user request — for a design-app comparison. Pre-commit hooks (eslint/
+  prettier/ER-diagram) passed.
+- **Band-less (personal & guest) user flow — DESIGN doc:** `2026-07-03T17:04_bandless-user-flow-plan.md`.
+  Core finding: the app is band-mandatory because `useAuthCheck` treats _no band_ as an auth failure
+  (redirect → get-started). The fix is to make "has a band" a CAPABILITY, not an auth gate. Signup gains a
+  4-way "how do you want to start?" chooser (band code / event code / new band / personal). Reconciled
+  "event code at signup" with "no unlisted guests" (guests get real minimal accounts, not anon links).
+  Flagged the sharp security edge: an event-code join needs a `resolve_event_code` SECURITY DEFINER RPC
+  (non-participant reads an event by code) — Phase 2, security-review first.
+- Provisional decisions (user away on the 3 AskUserQuestion forks): band-only nav = show-with-prompt;
+  personal songs = yes; scope = core-first (phased). **HOLD Phase-1 build** (auth-gate flip is high-stakes,
+  affects all users' login) until user confirms — design doc ready for review.
+
 ## GOAL (2026-07-02): implement approved DB changes in LOCAL dev + finalize UI for end-to-end testing
 
 - Orchestrate via sub-agents; verify each file lands on disk; validate each step.
