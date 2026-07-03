@@ -3,6 +3,38 @@
 Orchestrator working log. Source of truth for status. No git push until user review.
 Branch: `feature/events-friends-and-ui-oh-my`.
 
+---
+
+## ▶ RESUME HERE — Band-less user flow **Phase 2** (fresh context starts here)
+
+**Where we are (all committed; tree clean):**
+
+- **Phase 1 DONE + validated** (commit `904f191`, **LOCAL — not pushed**): "has a band" is now a
+  capability, not an auth gate. Personal accounts work end-to-end (signup → "Continue with a personal
+  account" → band-less app). Regression-checked (band users unaffected). Tests updated. Details: see the
+  dated "BAND-LESS USER FLOW Phase 1" entry below + `2026-07-03T17:04_bandless-user-flow-plan.md`.
+- Pushed to origin: `e2931c0` (UI consistency + social-events A+B casting) and `8456578` (band-less design doc).
+- **⚠ `904f191` (Phase 1 auth) is committed but NOT pushed** — decide whether to push before/with Phase 2.
+
+**Phase 2 tasks (from `2026-07-03T17:04_bandless-user-flow-plan.md` §Phased plan):**
+
+1. **Event-code join at signup** — the security-sensitive piece. Needs a `resolve_event_code(code)`
+   SECURITY DEFINER RPC (a non-participant must find/join an event by code; events RLS blocks that today).
+   Mirror `resolve_friend_code` (in `20260702142222_friends.sql`) + the jam `short_code`/confusable-free
+   alphabet. Then `EventService.joinByCode` + an `EventJoinForm` card on GetStartedPage. **Security-review
+   the RPC first** (adversarial pass like friends/jam/casting). New incremental migration.
+2. **Band-only empty states** — Setlists/Shows/Practices show a "Join or create a band to use this"
+   prompt when `!currentBandId` (DECISION Q1 = show-with-prompt). Hide band-only Home quick actions
+   (New setlist / Schedule practice / Book show) when band-less.
+3. **Upgrade path** — a band-less user creating/joining a band later switches context cleanly
+   (`AuthContext.switchBand` exists).
+
+**Provisional decisions (user confirmed "go ahead"):** Q1 band-only nav = show-with-prompt · Q2 personal
+songs = yes · Q3 = core-first phased. **Local dev:** `npm run start:dev`; login eric@testband.demo / test123.
+**Everything LOCAL** — no `db push --linked`, no remote migration.
+
+---
+
 ## Operating rules (from user)
 
 - Small serial code changes; validate as you go. **No parallel code edits.**
