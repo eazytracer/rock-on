@@ -29,6 +29,7 @@ interface EventRow {
   status: EventSummary['status']
   visibility: EventSummary['visibility']
   host_user_id: string
+  band_id: string | null
 }
 interface ItemRow {
   id: string
@@ -58,6 +59,7 @@ function mapEvent(r: EventRow): EventSummary {
     status: r.status,
     visibility: r.visibility,
     hostUserId: r.host_user_id,
+    bandId: r.band_id ?? undefined,
   }
 }
 
@@ -69,7 +71,7 @@ export class EventService {
     const { data, error } = await supabase
       .from('events')
       .select(
-        'id, name, venue, scheduled_date, status, visibility, host_user_id'
+        'id, name, venue, scheduled_date, status, visibility, host_user_id, band_id'
       )
       .order('scheduled_date', { ascending: true })
     if (error) {
@@ -124,7 +126,7 @@ export class EventService {
     const { data, error } = await supabase
       .from('events')
       .select(
-        'id, name, venue, scheduled_date, status, visibility, host_user_id'
+        'id, name, venue, scheduled_date, status, visibility, host_user_id, band_id'
       )
       .eq('id', id)
       .maybeSingle()

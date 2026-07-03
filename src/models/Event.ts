@@ -17,6 +17,7 @@ export interface EventSummary {
   status: EventStatus
   visibility: EventVisibility
   hostUserId: string
+  bandId?: string
 }
 
 export interface LineupItem {

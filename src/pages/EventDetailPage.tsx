@@ -8,6 +8,7 @@ import { Badge } from '../components/common/Badge'
 import { Eyebrow } from '../components/common/Eyebrow'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { EmptyState } from '../components/common/EmptyState'
+import { SongCastPanel } from '../components/casting/SongCastPanel'
 import { SHOW_TONE, type BadgeTone } from '../utils/tokens'
 
 /**
@@ -33,6 +34,7 @@ export function EventDetailPage() {
   const [title, setTitle] = useState('')
   const [artist, setArtist] = useState('')
   const [sending, setSending] = useState(false)
+  const [castOpen, setCastOpen] = useState<string | null>(null)
 
   const submitRequest = async () => {
     if (!title.trim() || !artist.trim()) return
@@ -102,23 +104,40 @@ export function EventDetailPage() {
               ) : (
                 <div className="flex flex-col gap-2" data-testid="event-lineup">
                   {lineup.map(item => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-3"
-                      data-testid={`lineup-item-${item.id}`}
-                    >
-                      <span className="font-mono text-xs text-ink-5 w-5 text-right">
-                        {item.position}
-                      </span>
-                      <Music size={16} className="text-ink-4" />
-                      <span className="flex-1 min-w-0">
-                        <span className="block truncate font-medium text-ink-1">
-                          {item.displayTitle}
+                    <div key={item.id} data-testid={`lineup-item-${item.id}`}>
+                      <div className="flex items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-3">
+                        <span className="font-mono text-xs text-ink-5 w-5 text-right">
+                          {item.position}
                         </span>
-                        <span className="block truncate text-xs text-ink-4">
-                          {item.displayArtist}
+                        <Music size={16} className="text-ink-4" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block truncate font-medium text-ink-1">
+                            {item.displayTitle}
+                          </span>
+                          <span className="block truncate text-xs text-ink-4">
+                            {item.displayArtist}
+                          </span>
                         </span>
-                      </span>
+                        <button
+                          onClick={() =>
+                            setCastOpen(o => (o === item.id ? null : item.id))
+                          }
+                          data-testid={`cast-toggle-${item.id}`}
+                          className="flex-shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink-3 hover:text-accent"
+                        >
+                          {castOpen === item.id ? 'Hide' : 'Cast'}
+                        </button>
+                      </div>
+                      {castOpen === item.id && (
+                        <SongCastPanel
+                          contextType="event"
+                          contextId={event.id}
+                          bandId={event.bandId}
+                          slotId={item.id}
+                          songId={item.songId}
+                          canEdit={isManager}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

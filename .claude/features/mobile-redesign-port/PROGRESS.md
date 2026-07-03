@@ -153,6 +153,28 @@ files — so critical-path authoring was done in-loop, with sub-agents gating ea
   NOT building until user confirms — this is the "be deliberate" feature they flagged. Original goal
   (3 DB features + fidelity fixes) is DONE + validated; casting is a new, decision-laden thread.
 
+## CASTING v1 BUILD (2026-07-03) — user approved "go with recommendations" + committed/pushed prior work
+
+- Prior session work COMMITTED + PUSHED: `ad35cd5` on feature/events-friends-and-ui-oh-my (token system,
+  nav, Home/Calendar, Notifications/Friends/Events, fidelity fixes). Clean tree, ER-diagram check passed.
+- **Casting DB**: `20260703045901_casting.sql` — `band_roles` (per-band role vocab, seeded default lineup
+  via trigger + backfill) + `casting_assignments` (flat: context setlist|event, polymorphic slot
+  [setlist_item_id soft / event_lineup_item_id FK], band_id+song_id history snapshot, role_key→band_roles,
+  member+snapshot, is_primary/confidence/arrangement). 4 hardened RLS policies + 2 binding helpers
+  (casting_setlist/event_ctx_ok) that bind band↔context↔song (block cross-band forgery). pgTAP
+  `017-casting.test.sql` (23, incl. functional security: forged inserts rejected).
+  - **2 adversarial security reviews** (design + as-written migration): as-written = CLEAN (no forgery,
+    leak, injection, recursion, SELECT-widening). Applied 1 fix: UPDATE no longer pins created_by (lets
+    co-directors edit each other's rows; still fully bound). db reset ✅ pgTAP full PASS ✅ lint:migrations ✅.
+- **Casting app**: `models/Casting.ts`, `services/CastingAssignmentService.ts` (named to avoid the legacy
+  dead `CastingService` — getBandRoles/getCasting/assign/unassign/update/getSongHistory), `hooks/useCasting.ts`,
+  `components/casting/SongCastPanel.tsx` (role slots, open/assign/remove, N/M progress, "previously cast"
+  history). Wired into EventDetailPage (per-lineup "Cast" toggle). Added Event.bandId.
+- type-check ✅ eslint ✅ quick 275/275. E2E (host assigns members → N/M updates → persists → remove) via
+  sub-agent — running. Then commit + push casting.
+- Deferred to v2 (per plan): Grid view, per-slot required-roles override, capability suggestions, setlist
+  casting surface (SetlistViewPage), Song-detail history display, completion snapshot.
+
 ## GOAL (2026-07-02): implement approved DB changes in LOCAL dev + finalize UI for end-to-end testing
 
 - Orchestrate via sub-agents; verify each file lands on disk; validate each step.
