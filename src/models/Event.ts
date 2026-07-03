@@ -8,6 +8,16 @@ export type EventVisibility = 'private' | 'unlisted' | 'public'
 export type EventStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
 export type LineupSource = 'mine' | 'band' | 'public' | 'external'
 export type LineupRequestStatus = 'pending' | 'approved' | 'rejected'
+export type EventAccessTier = 'host' | 'cohost' | 'guest' | 'viewer'
+export type EventRsvp = 'pending' | 'going' | 'maybe' | 'declined'
+
+/** A person taking part in an event — the pool the host casts from. */
+export interface EventParticipant {
+  userId: string
+  name: string
+  accessTier: EventAccessTier
+  rsvp: EventRsvp
+}
 
 export interface EventSummary {
   id: string

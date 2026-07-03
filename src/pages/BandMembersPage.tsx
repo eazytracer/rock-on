@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { Avatar } from '../components/common/Avatar'
 import {
   ArrowLeft,
   Edit,
@@ -45,7 +46,6 @@ interface BandMember {
   joinedDate: Date
   status: 'active' | 'inactive'
   initials: string
-  avatarColor: string
   membershipId: string // DATABASE INTEGRATION: Added to track membership record
 }
 
@@ -70,23 +70,6 @@ const getInitials = (name: string): string => {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
   }
   return name.substring(0, 2).toUpperCase()
-}
-
-// Helper function to generate avatar color from user ID
-const getAvatarColor = (userId: string): string => {
-  const colors = [
-    '#f17827',
-    '#3b82f6',
-    '#8b5cf6',
-    '#ec4899',
-    '#f59e0b',
-    '#10b981',
-    '#06b6d4',
-  ]
-  const hash = userId
-    .split('')
-    .reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  return colors[hash % colors.length]
 }
 
 export const BandMembersPage: React.FC = () => {
@@ -187,7 +170,6 @@ export const BandMembersPage: React.FC = () => {
               initials: getInitials(
                 profile?.displayName || user?.name || 'Unknown'
               ),
-              avatarColor: getAvatarColor(membership.userId),
             }
           }
         )
@@ -710,12 +692,11 @@ export const BandMembersPage: React.FC = () => {
                   >
                     {/* Member Info */}
                     <div className="flex items-center gap-3 flex-1 min-w-[200px]">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase"
-                        style={{ backgroundColor: member.avatarColor }}
-                      >
-                        {member.initials}
-                      </div>
+                      <Avatar
+                        size="md"
+                        label={member.name}
+                        initials={member.initials}
+                      />
                       <div className="flex-1">
                         <div
                           className="text-white font-semibold text-sm cursor-pointer hover:text-[#f17827] transition-colors"
@@ -865,12 +846,11 @@ export const BandMembersPage: React.FC = () => {
                   className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]"
                 >
                   <div className="flex items-start gap-3 mb-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
-                      style={{ backgroundColor: member.avatarColor }}
-                    >
-                      {member.initials}
-                    </div>
+                    <Avatar
+                      size="md"
+                      label={member.name}
+                      initials={member.initials}
+                    />
                     <div className="flex-1 min-w-0">
                       <div
                         className="text-white font-semibold text-sm cursor-pointer hover:text-[#f17827] transition-colors"
@@ -1051,12 +1031,12 @@ export const BandMembersPage: React.FC = () => {
 
                   <div className="p-6 space-y-6">
                     <div className="flex items-center gap-4">
-                      <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-white font-semibold text-xl uppercase"
-                        style={{ backgroundColor: selectedMember.avatarColor }}
-                      >
-                        {selectedMember.initials}
-                      </div>
+                      <Avatar
+                        size="lg"
+                        label={selectedMember.name}
+                        initials={selectedMember.initials}
+                        className="!w-16 !h-16 !text-xl"
+                      />
                       <div>
                         <div className="text-white text-xl font-semibold">
                           {selectedMember.name}
@@ -1166,6 +1146,21 @@ export const BandMembersPage: React.FC = () => {
                       <span className="text-white font-medium">
                         {selectedMember.name}
                       </span>
+                    </div>
+
+                    {/* Non-restrictive framing: instruments are a preference, not a gate. */}
+                    <div className="flex gap-2.5 rounded-lg bg-[#f17827]/10 border border-[#f17827]/20 p-3">
+                      <Music2
+                        size={16}
+                        className="mt-0.5 flex-shrink-0 text-[#f17827]"
+                      />
+                      <p className="text-[#a0a0a0] text-xs leading-relaxed">
+                        Just a preference — nobody's locked in. Anyone can jump
+                        on any part; this only helps suggest players when
+                        casting a song. The{' '}
+                        <span className="text-[#f17827]">★</span> marks their
+                        go-to instrument.
+                      </p>
                     </div>
 
                     {/* Instrument Selection Buttons */}

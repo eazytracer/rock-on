@@ -153,6 +153,19 @@ files — so critical-path authoring was done in-loop, with sub-agents gating ea
   NOT building until user confirms — this is the "be deliberate" feature they flagged. Original goal
   (3 DB features + fidelity fixes) is DONE + validated; casting is a new, decision-laden thread.
 
+## SOCIAL EVENTS + FRIENDS INTEGRATION (2026-07-03) — planned, HELD for user direction
+
+- User insight: events are USER-hosted (not band-tied); guests (incl. lightweight/non-band accounts)
+  volunteer to play parts. Casting currently only offers band members; Friends is standalone.
+- Verified: **DB already supports it** (events.band_id nullable; casting scopes to is_event_participant,
+  NOT band membership). Gap is UI/service bias (SongCastPanel uses useBandMembers; roles from band_roles;
+  no invite/volunteer flow) + Friends not wired to events.
+- Plan: `2026-07-03T07:00_social-events-plan.md`. Pieces A–E; provisional = "core first" (A+B+C:
+  cast participants + band-less roles + invite friends) then D+E (volunteer + guest accounts, security
+  pass first). Asked user 2 ⭐ questions (order; guest-account model) — user away → HELD (security-
+  sensitive guest RLS deserves confirmation; casting v1 already committed+pushed as a clean checkpoint).
+- Ready to execute A+B on confirmation.
+
 ## CASTING v1 BUILD (2026-07-03) — user approved "go with recommendations" + committed/pushed prior work
 
 - Prior session work COMMITTED + PUSHED: `ad35cd5` on feature/events-friends-and-ui-oh-my (token system,
@@ -174,6 +187,227 @@ files — so critical-path authoring was done in-loop, with sub-agents gating ea
   sub-agent — running. Then commit + push casting.
 - Deferred to v2 (per plan): Grid view, per-slot required-roles override, capability suggestions, setlist
   casting surface (SetlistViewPage), Song-detail history display, completion snapshot.
+
+## 2026-07-03 — Desktop sidebar ↔ mobile-nav IA consistency (user /loop: "ensure sidebar consistent with mobile grouping")
+
+- **Gap found:** desktop `Sidebar` was MISSING **Events** and **Friends** entirely (present in mobile
+  More hub + design's desktop sidebar `Home/Songs/Setlists/Events/Schedule/Friends`). Also a flat list
+  with no grouping — didn't mirror the mobile bottom-nav's Primary + "More" structure.
+- **Fix (`src/components/layout/Sidebar.tsx`):** split nav into a **primary** group (Home · Songs ·
+  Setlists · Calendar · Shows · Practices — the 4 tabs + Calendar's time-axis children as desktop
+  superset) and a labeled **MORE** group (Jam · Band Members · Events · Friends) that expands the
+  mobile More hub inline. Icons match `MorePage` (Radio/Users/PartyPopper/UserPlus) for cross-surface
+  consistency. Factored a `renderNavItem` helper (no markup dup). Kept existing hex styling (surgical).
+- **Friends badge:** added `useIncomingRequestCount()` to `useFriends.ts` (lightweight, refetch-on-route,
+  mirrors `useUnreadCount`) → blue count pill on Friends row.
+- Validated: type-check ✅ eslint ✅ quick 275/275 ✅. Playwright (login eric@testband.demo, 1280px):
+  sidebar renders MORE group + Events(PartyPopper)/Friends(badge **1**)/Notifications(badge **2**);
+  Events link → /events + active highlight. Screenshot `sidebar-desktop.png`.
+- **Deferred/flagged:** design §9 removed the Events row from mobile More (Events lives in Calendar);
+  our app keeps it in More AND Calendar (2 entry points, non-regressive) — left as-is. The signup
+  auth-flow branch (band-code / event-code / new-band / personal-account — user's plan answer) is
+  decision-laden + security-sensitive → NOT auto-built; needs a design pass with the user.
+
+## 2026-07-03 — Mobile More page fidelity port (design `MoreScreen` → our `MorePage`)
+
+- **Gap:** our `MorePage` was a flat card list (Jam/Band/Events/Friends/Settings/SignOut); design's More is
+  much richer — band identity card, Account card, grouped **Account / Features / App** sections (Eyebrow
+  labels), Help & feedback, version footer.
+- **Rebuilt `src/pages/MorePage.tsx`** to mirror the design with REAL data (no mock filler):
+  - Band identity card (accent gradient, band icon, `currentBand.name` + `description` tagline, member
+    avatar stack via `useBandMembers(currentBandId)`, "N members", "Manage band →" → /band-members).
+  - **Account** card: user avatar + `displayName`/name + `roleLabel` · in band → /settings (no /profile
+    route exists, so linked to settings honestly).
+  - **Features** group: Jam Sessions · Events · Friends · Band Members (icons match sidebar More group).
+  - **App** group: Settings · Help & feedback (themed toast, no dead button) · Sign out (danger).
+  - Version footer `Rock On · v0.3.3`. Reused `Avatar` + `Eyebrow` primitives; tokens throughout.
+  - Fixed 2 non-existent tokens mid-build (`accent-deep`, `stage-black`→surface) → solid `bg-accent` +
+    `text-white` band tile, matching the sidebar brand convention.
+- Preserved `more-page` testid (only one referenced by e2e). Validated: type-check ✅ eslint ✅ quick
+  275/275 ✅. Playwright (390px, logged in): renders all sections + avatars (EJ/MT/SC) + tagline + footer,
+  0 console errors; band-card→/band-members and account→/settings confirmed. Screenshot `more-mobile.png`.
+- Note: design moved Events out of More (into Calendar); we keep Events in More AND Calendar (2 entry
+  points, non-regressive per user's "avoid major regression").
+
+## 2026-07-03 — Calendar agenda-card fidelity (design `AgendaCard` → our `CalendarPage` Row)
+
+- **Gap:** our Calendar Row was flat (thin color bar + title + one meta line). Design's `AgendaCard` has a
+  **date-tile badge**, a **kind eyebrow** (icon + SHOW/PRACTICE/EVENT, "· Hosting" for hosted events),
+  and a **countdown** — none of which we had.
+- **`src/pages/CalendarPage.tsx` Row → AgendaCard:** left **date tile** (mono month + bold day, tinted by
+  kind color via `color-mix`), **kind eyebrow** (icon + label colored accent/info/success, "· Hosting"
+  when `event.hostUserId === currentUser.id`), **countdown** top-right, left 3px accent border. KEPT our
+  status Badge in the meta row (time · place · status) — no regression on info our version surfaced well.
+  Added `kindLabel`/`icon`/`isHosting` to `AgendaItem`; pulled `currentUser` for host detection.
+- **DRY:** extracted HomePage's local `countdown()` → shared `formatCountdown()` in `dateHelpers.ts`
+  (Today/Tomorrow/In N days/Nd ago); HomePage now imports it (pure refactor, identical output).
+- Validated: type-check ✅ eslint ✅ quick 275/275 ✅. Playwright (390px): date tiles toned by kind
+  (JUL/4 orange show, JUL/13 green event, JUN/27 blue practice), "EVENT · HOSTING" renders on Backyard
+  Summer Jam (Eric=host), countdowns correct (Tomorrow / In 10 days / 6d ago), status badges intact,
+  0 console errors. Screenshot `calendar-mobile.png`. No e2e testid deps on changed rows.
+
+## 2026-07-03 — Band Members page: safe consistency fixes (NOT a re-skin — page is richer than design)
+
+- **Assessment:** our `BandMembersPage` (1470 lines: role mgmt, transfer-ownership, invite/regenerate codes,
+  instrument editor w/ custom instruments, desktop table + mobile cards, search) is FAR more complete than
+  the design's simple `BandScreen`. This is the user's "well thought out in our version, don't regress" case
+  → did NOT re-skin toward the (simpler) design. Made two safe, additive fixes only:
+  1. **Avatar consistency (real cross-screen bug):** page hand-rolled avatar `<div>`s via a local
+     `getAvatarColor(userId)` using a DIFFERENT palette/algorithm than the shared `Avatar`/`generateAvatarColor`
+     — so the same person showed different colors on More vs Band. Migrated all 3 avatar sites (table/mobile/
+     detail) to the shared `Avatar` primitive (seeded by name, matching MorePage). Removed orphaned
+     `getAvatarColor` + `avatarColor` field. Now EJ=green/MT=pink/SC=purple on BOTH screens.
+  2. **Non-restrictive instrument framing (design detail):** added the design's info callout to the Edit
+     Instruments modal — "Just a preference — nobody's locked in. Anyone can jump on any part; this only helps
+     suggest players when casting a song. ★ = go-to." Ties instruments→casting-suggestions per design intent.
+- No role/permission/modal LOGIC touched. Validated: type-check ✅ eslint ✅ (only pre-existing db-write
+  warning on L299) quick 275/275 ✅. Playwright: avatars match More-page colors, framing note renders as
+  accent callout in editor, 0 console errors. Screenshots `band-mobile.png`, `band-instrument-editor.png`.
+- **Flagged (deferred, too big/risky to auto-do):** this page is still entirely in the OLD hex palette
+  (`#1a1a1a/#2a2a2a/#f17827/#707070`...) not tokens — a full tokenization is a large diff w/ regression
+  surface on a critical page; needs a careful dedicated pass.
+
+## 2026-07-03 — Friends page: surface Sent requests + friend-code QR (design `FriendsHome` gaps)
+
+- Compared our `FriendsPage` (already tokenized/clean) to design `FriendsHome`. Two real, safe, non-mock gaps:
+  1. **Sent (outgoing) requests were never rendered** — `useFriends` already returns `outgoing`, but the page
+     only showed incoming. Added a "Sent (N)" section (avatar + name + "Pending" chip, read-only — no cancel
+     method exists server-side, so didn't fake one). Zero new backend; pure data-surfacing gap fix.
+  2. **Friend-code QR** — added a "Show QR" toggle in the code card rendering a lazy `qrcode.react` QR that
+     encodes a `${origin}/friends?code=<code>` deep link; added a `?code=` prefill effect so scanning →
+     lands on Friends with the add-a-friend input filled. End-to-end (scan → prefilled → Send), not a mock.
+- Validated: type-check ✅ eslint ✅ quick 275/275 ✅. Playwright: QR renders + encodes deep link
+  ("Scan to add GTAR2345"); `/friends?code=zzz9876` prefills input "ZZZ9876"; 0 console errors. Screenshot
+  `friends-qr.png`. No e2e testid deps.
+- **Flagged (deferred):** design's "Who can send you requests" (everyone/friends-of-friends/code-only)
+  segmented control — the `policy` field EXISTS on user_profiles + in `MyFriendProfile`, but there's no
+  `setPolicy` service method AND enforcement is deferred (RLS doesn't gate on it yet). A UI control would be
+  non-enforcing → didn't add a fake toggle. Also deferred: people-finder/search (needs a search-discoverable
+  service method) + inline-collapse of the visibility card (pure UX, no new function).
+
+## 2026-07-03 — Notifications: segmented filter + Recent/Earlier grouping (design `NotificationCenter`)
+
+- Our `NotificationsPage` (already clean/tokenized: What's-new card, typed rows, mark-all, dismiss) lacked the
+  design's two presentation features. Added both (pure client-side over existing data, no backend):
+  1. **Segmented All / Updates / Activity filter** — Updates = `kind==='release'`, Activity = activity/event/
+     friend; What's-new card hidden on Activity. Mirrors CalendarPage's segmented-control style.
+  2. **Recent / Earlier grouping** — splits the filtered feed at 24h, each under an Eyebrow label.
+- Validated: type-check ✅ eslint ✅ quick 275/275 ✅. Playwright (login eric): All=4 rows + What's-new;
+  Activity=3 rows, card hidden; Updates=1 release row; Recent(Sarah/Mike)/Earlier(release/setlist) groups
+  render; 0 console errors. Screenshot `notifications.png`. Preserved all testids (persistent-layout e2e ok);
+  added `notifications-tab-*`.
+- Deferred (design has, needs model/data): per-row inline actions (Accept/Review) + actor avatars on activity
+  rows (notification model has no actor avatar) + WelcomeBackCard digest + WhatsNewSheet one-time spotlight.
+
+## 2026-07-03 — Songs audit (no change) + Events list grouped Hosting/Invited
+
+- **Songs page audited** vs design (mobile link glyphs was an open audit item): `LinkIcons` already renders
+  icon-only glyph buttons (brand-colored) in both `SongRow` (desktop) + `SongCard` (mobile), tuning warmth
+  spine present, colored meta. **No defect** — the earlier tuning-spine pass addressed it; demo songs just
+  have few/no reference links. Left as-is (no change). (Deferred nit: mobile card prefixes "Links:" vs the
+  design's bare glyphs — cosmetic, not worth a touch.)
+- **EventsPage → Hosting / Invited grouping:** the flat list didn't reflect the user-hosted event model
+  ("you host some, you're a guest at others" — the plan's core insight). Split `events` by
+  `hostUserId === currentUser.id` into **Hosting (N)** / **Invited (N)** Eyebrow-labeled sections (each
+  hidden when empty). Consistent with the Calendar card's "· Hosting" treatment. Extracted a reusable
+  `EventCard`. Pure presentation over existing data — no new queries, no logic change.
+- Validated: type-check ✅ eslint ✅ quick 275/275 ✅. Playwright (login eric): "HOSTING (1)" = Backyard
+  Summer Jam (Eric hosts), Invited section correctly hidden (no guest events); 0 console errors. Screenshot
+  `events-grouped.png`. Preserved `events-list` testid; added `events-hosting`/`events-invited`.
+- Deferred (needs data our model lacks): event-type filter (All/Gigs/Open jams/Parties — no `type` column)
+  - per-card cast-progress/coming counts (needs lineup+casting joins on the list query).
+
+## 2026-07-03 — Desktop content-width consistency (mobile-first nav pages were stretching)
+
+- **Found (desktop audit, 1440px):** the mobile-first single-column nav pages (Home/Calendar/More/Events/
+  Friends/Notifications) had NO max-width, so in the wide desktop content area (`ModernLayout` wrapper is
+  just `p-6 md:p-8 lg:p-10`, no cap) their cards stretched to ~1100px — awkward, phone-content-blown-up look.
+- **Fix:** added a uniform `max-w-3xl` (768px) to those six nav-page root divs → they read as a consistent
+  left-anchored content column on desktop. **No-op on mobile** (verified: /more is 342px on a 390px viewport).
+  Left the table/grid pages (Songs/Setlists/Band/Shows/Practices) alone — they have their own responsive
+  full-width layouts designed for the width.
+- Rationale for per-page (not a global layout cap): a single layout max-width can't serve both narrow card
+  lists AND the wide desktop data-tables; opt-in on the narrow pages is surgical + zero table-regression risk.
+- Validated: type-check ✅ eslint ✅ quick 275/275 ✅. Playwright: /more desktop now capped/column (screenshot
+  `more-desktop-capped.png` vs before `more-desktop-wide.png`); mobile width unchanged; 0 console errors.
+  All page testids preserved (only added a className).
+
+## 2026-07-03 — Desktop verification sweep + EventDetail width cap
+
+- **Desktop verification (1440px)** of the cumulative work: sidebar (restructured MORE group + Friends/
+  Notifications badges) + capped-width nav pages read as ONE consistent system. Spot-checked Calendar
+  (agenda date-tiles + "EVENT · HOSTING" + countdowns), More, EventDetail — all cohesive, 0 console errors.
+  Screenshots: `calendar-desktop.png`, `event-detail-desktop.png`.
+- **EventDetailPage:** added `max-w-3xl` (was uncapped → stretched on desktop like the nav pages did).
+  Now consistent with list→detail navigation (both capped). Page was already clean/tokenized/functional
+  (lineup + cast toggle + requests approve-reject + request form) — no logic touched.
+- **SetlistsPage: left as-is** — large complex builder (@dnd-kit drag-drop, predates tokenization); like
+  BandMembersPage it's richer than any design screen → not safe to re-skin autonomously. Flagged for a
+  careful dedicated pass.
+- Validated: type-check ✅ eslint ✅ quick 275/275 ✅. Observed (pre-existing, not new): an event request
+  shows requester as "Someone" — the known non-discoverable-requester RLS fallback (documented under P11/P12).
+
+## 2026-07-03 — Alignment verification + LOOP PAUSED (safe consistency surface complete)
+
+- **Shows/Practices audited:** already `max-w-6xl mx-auto` (own width caps + 2-col grids) — did NOT need my
+  earlier nav-page fix. Uses old hexes (85/31 occurrences) = tokenization tech debt, but layout is fine.
+- **Alignment decision (explored + reverted):** tried adding `mx-auto` to the 7 nav/detail pages to match
+  Shows/Practices' centering — but verified visually it's WORSE: Shows' `max-w-6xl` nearly fills the width
+  so its content sits ~near-left (~24px margin), whereas centering a narrow `max-w-3xl` pushes content to a
+  ~216px indent → a DIFFERENT left-edge origin, so nav↔grid navigation would jump. **Reverted to left-aligned
+  `max-w-3xl`** (consistent left origin with Shows/Practices on ≤1440 screens). Net code change this
+  iteration: none (explore→revert); value = locked in the correct alignment + confirmed Shows/Practices are fine.
+- Validated: type-check ✅ eslint ✅ quick 275/275 ✅.
+
+### ⏸ LOOP PAUSED — safe consistency surface is DONE; remaining work needs user direction
+
+**Shipped this loop (12 files, +826/−243, ALL local/uncommitted, held for review):**
+
+1. Sidebar restructured → mirrors mobile nav (primary + MORE group; added missing Events/Friends; live badges).
+2. More page → design-fidelity port (band card, Account, Features/App groups, version footer).
+3. Calendar → design AgendaCard (date tiles, kind eyebrows, "· Hosting", countdowns); shared `formatCountdown`.
+4. Band Members → avatar cross-screen consistency (shared primitive) + non-restrictive instrument framing.
+5. Friends → surfaced Sent requests + friend-code QR w/ `?code=` deep-link prefill.
+6. Notifications → segmented All/Updates/Activity filter + Recent/Earlier grouping.
+7. Events list → Hosting/Invited grouping (+ EventDetail width cap).
+8. Desktop content-width fix → uniform `max-w-3xl` on the 6 nav pages (was stretching).
+9. Songs audited (healthy, no change); Shows/Practices audited (fine).
+
+**Remaining = NOT safe to auto-do (needs your input):**
+
+- **Social-events feature** (the plan's answered Qs): signup auth-flow (band-code/event-code/new-band/personal
+  account), volunteering ("raise hand" → host casts from volunteers), free-text-name casting for non-app guests.
+  All decision-laden + schema-touching → HELD for a design pass with you.
+- **Large re-skins:** SetlistsPage + BandMembersPage full tokenization (old hex palette) — big diffs, regression
+  risk on critical pages; want a dedicated careful pass, not an autonomous loop tick.
+- **EventDetail tabs / cast-progress rollup, Friends policy control, people-finder** — need model/data work.
+
+## 2026-07-03 — SOCIAL EVENTS A+B (+ free-text casting) — user said "press forward" ✅ LOCAL
+
+**Un-biased casting from band-members → event PARTICIPANTS, + band-less roles + free-text names.**
+Key discovery: the casting DB already supported the whole vision (casting_insert/update authorize
+`is_event_participant` + allow `member_id IS NULL`); the bias was purely UI (SongCastPanel used
+`useBandMembers`). So this was mostly UI + ONE RLS visibility policy.
+
+- **Migration `20260703164738_social_events.sql`** (piece A's stated need): `are_event_coparticipants()`
+  SECURITY DEFINER helper (owner postgres) + `users_select_event_coparticipant` +
+  `user_profiles_select_event_coparticipant` SELECT policies — mirrors the proven jam co-participant
+  pattern so a host can resolve GUEST names in the cast picker. (Security surface identical to the existing
+  jam policy; documented in-file.) db reset ✅ · lint:migrations ✅ · pgTAP: updated `006-rls-policies`
+  (users 5→6, user_profiles 6→7, +2 existence checks, plan 116→118) → **full suite PASS (840 tests)**.
+- **App:** `DEFAULT_LINEUP` const (band-less roles, mirrors seed_band_roles) + `EventParticipant` model;
+  `EventService.getParticipants()`; `useEventParticipants` hook; `useCasting` falls back to DEFAULT_LINEUP
+  when band-less (piece B); **`SongCastPanel`** now sources the pool by context (event→participants,
+  setlist→band members) + a **free-text "Or type a name…"** input (piece D: cast someone not on the app →
+  `member_id NULL`, `member_name` snapshot).
+- Validated: type-check ✅ eslint ✅ quick 275/275 ✅. **E2E (Playwright, host=eric on Backyard Summer Jam):**
+  cast picker lists PARTICIPANTS (Eric/Mike/Sarah, names resolved via new RLS) + free-text; cast Mike →
+  Lead Vocals AND free-text "Bob (sax, walk-in)" → Guitar; **both persist across reload** (2/5 parts cast),
+  0 console errors. Screenshot `event-casting-participants.png`.
+- **LOCAL only** (migration NOT pushed to remote; nothing committed) — held for review per pattern.
+- **Next (plan order):** C = invite friends/guests to an event (multi-select + share code/link + QR → RSVP,
+  wiring Friends↔Events). Then D-proper (volunteering "raise hand" queue) + E (lightweight guest accounts +
+  the signup auth-flow: band-code/event-code/new-band/personal — the security-sensitive one).
 
 ## GOAL (2026-07-02): implement approved DB changes in LOCAL dev + finalize UI for end-to-end testing
 

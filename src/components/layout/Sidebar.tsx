@@ -7,6 +7,8 @@ import {
   Ticket,
   Disc3,
   Users,
+  UserPlus,
+  PartyPopper,
   Settings,
   LogOut,
   Wifi,
@@ -15,9 +17,11 @@ import {
   Bell,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { Eyebrow } from '../common/Eyebrow'
 // PHASE 2: Connection status indicator
 import { useSyncStatus } from '../../hooks/useSyncStatus'
 import { useUnreadCount } from '../../hooks/useNotifications'
+import { useIncomingRequestCount } from '../../hooks/useFriends'
 
 interface SidebarProps {
   currentPath: string
@@ -59,19 +63,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navigate = useNavigate()
   const unreadCount = useUnreadCount()
+  const friendRequestCount = useIncomingRequestCount()
 
   // PHASE 2: Get sync status for connection indicator
   const { isOnline, isSyncing, pendingCount, lastSyncTime } = useSyncStatus()
 
-  const navItems: NavItem[] = [
+  // Mirrors the mobile IA: the first group are the primary tabs (Home · Songs ·
+  // Setlists · Calendar) plus the Calendar time-axis detail views (Shows /
+  // Practices, reached through Calendar on mobile). The "More" group expands the
+  // mobile More hub inline (icons match MorePage for cross-surface consistency).
+  const primaryItems: NavItem[] = [
     { label: 'Home', path: '/', icon: <Home size={20} /> },
     { label: 'Songs', path: '/songs', icon: <Disc3 size={20} /> },
     { label: 'Setlists', path: '/setlists', icon: <ListMusic size={20} /> },
     { label: 'Calendar', path: '/calendar', icon: <CalendarDays size={20} /> },
     { label: 'Shows', path: '/shows', icon: <Ticket size={20} /> },
     { label: 'Practices', path: '/practices', icon: <Calendar size={20} /> },
-    { label: 'Band Members', path: '/band-members', icon: <Users size={20} /> },
+  ]
+
+  const moreItems: NavItem[] = [
     { label: 'Jam', path: '/jam', icon: <Radio size={20} /> },
+    { label: 'Band Members', path: '/band-members', icon: <Users size={20} /> },
+    { label: 'Events', path: '/events', icon: <PartyPopper size={20} /> },
+    {
+      label: 'Friends',
+      path: '/friends',
+      icon: <UserPlus size={20} />,
+      badge: friendRequestCount || undefined,
+    },
   ]
 
   const isActive = (path: string) => {
@@ -83,6 +102,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
     navigate(path)
     onNavigate?.()
   }
+
+  const renderNavItem = (item: NavItem) => (
+    <button
+      key={item.path}
+      onClick={() => handleNavigation(item.path)}
+      data-testid={`${item.label.toLowerCase().replace(/\s+/g, '-')}-link`}
+      className={`
+        w-full flex items-center gap-3 px-3 py-2 rounded-lg
+        text-sm font-medium transition-colors duration-200
+        ${
+          isActive(item.path)
+            ? 'bg-[#252525] text-white'
+            : 'text-[#a0a0a0] hover:bg-[#1f1f1f] hover:text-white'
+        }
+      `}
+    >
+      <span className={isActive(item.path) ? 'text-accent' : ''}>
+        {item.icon}
+      </span>
+      <span className="flex-1 text-left">{item.label}</span>
+      {item.badge && (
+        <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+          {item.badge > 9 ? '9+' : item.badge}
+        </span>
+      )}
+    </button>
+  )
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-60 bg-[#141414] border-r border-[#1f1f1f] flex flex-col p-6 z-50">
@@ -136,33 +182,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 space-y-1">
-        {navItems.map(item => (
-          <button
-            key={item.path}
-            onClick={() => handleNavigation(item.path)}
-            data-testid={`${item.label.toLowerCase().replace(/\s+/g, '-')}-link`}
-            className={`
-              w-full flex items-center gap-3 px-3 py-2 rounded-lg
-              text-sm font-medium transition-colors duration-200
-              ${
-                isActive(item.path)
-                  ? 'bg-[#252525] text-white'
-                  : 'text-[#a0a0a0] hover:bg-[#1f1f1f] hover:text-white'
-              }
-            `}
-          >
-            <span className={isActive(item.path) ? 'text-accent' : ''}>
-              {item.icon}
-            </span>
-            <span className="flex-1 text-left">{item.label}</span>
-            {item.badge && (
-              <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
-                {item.badge}
-              </span>
-            )}
-          </button>
-        ))}
+      <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar-thin">
+        {primaryItems.map(renderNavItem)}
+
+        {/* More — mirrors the mobile bottom-nav "More" hub */}
+        <Eyebrow className="px-3 pt-4 pb-1.5" data-testid="sidebar-more-label">
+          More
+        </Eyebrow>
+        {moreItems.map(renderNavItem)}
       </nav>
 
       {/* Bottom Actions */}

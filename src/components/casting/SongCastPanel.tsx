@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { UserPlus, X, History } from 'lucide-react'
+import { UserPlus, X, History, Check } from 'lucide-react'
 import { useCasting } from '../../hooks/useCasting'
 import { useBandMembers } from '../../hooks/useBands'
+import { useEventParticipants } from '../../hooks/useEvents'
 import { CastingAssignmentService } from '../../services/CastingAssignmentService'
 import { Avatar } from '../common/Avatar'
 import { Eyebrow } from '../common/Eyebrow'
@@ -36,9 +37,25 @@ export function SongCastPanel({
     contextId,
     bandId
   )
-  const { members } = useBandMembers(bandId ?? '')
+  // Cast from the right pool: EVENT → participants (guests, not just band members);
+  // SETLIST → band members. The casting RLS already authorizes event participants.
+  const isEvent = contextType === 'event'
+  const { participants } = useEventParticipants(isEvent ? contextId : undefined)
+  const { members } = useBandMembers(isEvent ? '' : (bandId ?? ''))
   const [pickingRole, setPickingRole] = useState<string | null>(null)
+  const [freeText, setFreeText] = useState('')
   const [history, setHistory] = useState<CastingHistoryEntry[]>([])
+
+  const assignablePeople = useMemo(
+    () =>
+      isEvent
+        ? participants.map(p => ({ id: p.userId, name: p.name }))
+        : members.map(m => ({
+            id: m.membership.userId,
+            name: m.user?.name ?? m.profile?.displayName ?? 'Member',
+          })),
+    [isEvent, participants, members]
+  )
 
   // This slot's assignments only.
   const slotCasting = useMemo(
@@ -54,17 +71,19 @@ export function SongCastPanel({
     }
   }, [bandId, songId])
 
-  const memberName = (userId?: string) => {
-    const m = members.find(x => x.membership.userId === userId)
-    return m?.user?.name ?? m?.profile?.displayName ?? 'Member'
-  }
+  const personName = (userId?: string) =>
+    assignablePeople.find(p => p.id === userId)?.name ?? 'Member'
 
   const partsCast = defaultParts.filter(p =>
     slotCasting.some(c => c.roleKey === p.key && c.isPrimary)
   ).length
 
-  const doAssign = async (roleKey: string, userId: string) => {
+  const doAssign = async (
+    roleKey: string,
+    person: { memberId?: string; memberName: string }
+  ) => {
     setPickingRole(null)
+    setFreeText('')
     await assign({
       contextType,
       contextId,
@@ -72,8 +91,8 @@ export function SongCastPanel({
       bandId,
       songId,
       roleKey,
-      memberId: userId,
-      memberName: memberName(userId),
+      memberId: person.memberId,
+      memberName: person.memberName,
       isPrimary: true,
     })
   }
@@ -117,11 +136,11 @@ export function SongCastPanel({
                     data-testid={`cast-assigned-${c.id}`}
                   >
                     <Avatar
-                      label={c.memberName ?? memberName(c.memberId)}
+                      label={c.memberName ?? personName(c.memberId)}
                       size="xs"
                     />
                     <span className="text-xs text-ink-1">
-                      {c.memberName ?? memberName(c.memberId)}
+                      {c.memberName ?? personName(c.memberId)}
                     </span>
                     {canEdit && (
                       <button
@@ -159,32 +178,61 @@ export function SongCastPanel({
                           onClick={() => setPickingRole(null)}
                         />
                         <div
-                          className="absolute left-0 z-20 mt-1 w-44 overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
+                          className="absolute left-0 z-20 mt-1 w-52 overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
                           data-testid={`cast-picker-${part.key}`}
                         >
-                          {members.map(m => (
+                          <div className="max-h-44 overflow-y-auto custom-scrollbar-thin">
+                            {assignablePeople.map(person => (
+                              <button
+                                key={person.id}
+                                onClick={() =>
+                                  void doAssign(part.key, {
+                                    memberId: person.id,
+                                    memberName: person.name,
+                                  })
+                                }
+                                data-testid={`cast-pick-${part.key}-${person.id}`}
+                                className="flex w-full items-center gap-2 px-2.5 py-2 text-left text-xs text-ink-2 hover:bg-bg-4 hover:text-ink-1"
+                              >
+                                <Avatar label={person.name} size="xs" />
+                                {person.name}
+                              </button>
+                            ))}
+                            {assignablePeople.length === 0 && (
+                              <div className="px-2.5 py-2 text-xs text-ink-5">
+                                {isEvent
+                                  ? 'No participants yet'
+                                  : 'No band members'}
+                              </div>
+                            )}
+                          </div>
+                          {/* Free-text: cast someone who can't/won't join the app. */}
+                          <form
+                            onSubmit={e => {
+                              e.preventDefault()
+                              const name = freeText.trim()
+                              if (name)
+                                void doAssign(part.key, { memberName: name })
+                            }}
+                            className="flex items-center gap-1 border-t border-border-1 p-1.5"
+                          >
+                            <input
+                              value={freeText}
+                              onChange={e => setFreeText(e.target.value)}
+                              placeholder="Or type a name…"
+                              data-testid={`cast-freetext-${part.key}`}
+                              className="min-w-0 flex-1 rounded bg-bg-2 px-2 py-1 text-xs text-ink-1 placeholder:text-ink-5 focus:outline-none"
+                            />
                             <button
-                              key={m.membership.userId}
-                              onClick={() =>
-                                void doAssign(part.key, m.membership.userId)
-                              }
-                              data-testid={`cast-pick-${part.key}-${m.membership.userId}`}
-                              className="flex w-full items-center gap-2 px-2.5 py-2 text-left text-xs text-ink-2 hover:bg-bg-4 hover:text-ink-1"
+                              type="submit"
+                              disabled={!freeText.trim()}
+                              aria-label="Add typed name"
+                              data-testid={`cast-freetext-add-${part.key}`}
+                              className="flex-shrink-0 rounded p-1 text-ink-3 hover:text-accent disabled:opacity-40"
                             >
-                              <Avatar
-                                label={m.user?.name ?? 'Member'}
-                                size="xs"
-                              />
-                              {m.user?.name ??
-                                m.profile?.displayName ??
-                                'Member'}
+                              <Check size={14} />
                             </button>
-                          ))}
-                          {members.length === 0 && (
-                            <div className="px-2.5 py-2 text-xs text-ink-5">
-                              No band members
-                            </div>
-                          )}
+                          </form>
                         </div>
                       </>
                     )}
@@ -204,7 +252,7 @@ export function SongCastPanel({
           <div className="flex flex-col gap-0.5" data-testid="cast-history">
             {history.slice(0, 5).map(h => (
               <span key={h.id} className="text-[11px] text-ink-4">
-                {h.memberName ?? memberName(h.memberId)} ·{' '}
+                {h.memberName ?? personName(h.memberId)} ·{' '}
                 {h.roleKey.replace(/_/g, ' ')}
               </span>
             ))}

@@ -1,13 +1,27 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, UserPlus, Check, X, Copy, UserMinus } from 'lucide-react'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  UserPlus,
+  Check,
+  X,
+  Copy,
+  UserMinus,
+  QrCode,
+  Clock,
+  Users,
+} from 'lucide-react'
 import { useFriends } from '../hooks/useFriends'
 import { useToast } from '../contexts/ToastContext'
 import { Avatar } from '../components/common/Avatar'
 import { Eyebrow } from '../components/common/Eyebrow'
 import { EmptyState } from '../components/common/EmptyState'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
-import { Users } from 'lucide-react'
+
+// Lazy-load the QR renderer so qrcode.react stays out of the main bundle.
+const QRCodeSVG = lazy(() =>
+  import('qrcode.react').then(mod => ({ default: mod.QRCodeSVG }))
+)
 
 /**
  * Friends (mobile-redesign-port P11).
@@ -19,6 +33,7 @@ export function FriendsPage() {
   const {
     friends,
     incoming,
+    outgoing,
     profile,
     loading,
     accept,
@@ -27,8 +42,21 @@ export function FriendsPage() {
     sendToCode,
     setDiscoverable,
   } = useFriends()
+  const [searchParams] = useSearchParams()
   const [code, setCode] = useState('')
   const [sending, setSending] = useState(false)
+  const [showQR, setShowQR] = useState(false)
+
+  // Prefill the add-a-friend code when arriving via a shared QR / link
+  // (`/friends?code=XXXX`).
+  useEffect(() => {
+    const shared = searchParams.get('code')
+    if (shared) setCode(shared.toUpperCase())
+  }, [searchParams])
+
+  const qrValue = profile?.friendCode
+    ? `${window.location.origin}/friends?code=${profile.friendCode}`
+    : ''
 
   const handleAdd = async () => {
     if (!code.trim()) return
@@ -51,7 +79,7 @@ export function FriendsPage() {
   }
 
   return (
-    <div data-testid="friends-page">
+    <div data-testid="friends-page" className="max-w-3xl">
       <button
         onClick={() => navigate(-1)}
         data-testid="friends-back"
@@ -84,7 +112,38 @@ export function FriendsPage() {
               >
                 <Copy size={16} />
               </button>
+              <button
+                onClick={() => setShowQR(v => !v)}
+                data-testid="friends-qr-toggle"
+                aria-pressed={showQR}
+                aria-label="Show QR code"
+                className={`rounded-lg p-2 hover:bg-bg-3 ${
+                  showQR ? 'text-accent' : 'text-ink-3 hover:text-ink-1'
+                }`}
+              >
+                <QrCode size={16} />
+              </button>
             </div>
+
+            {showQR && qrValue && (
+              <div
+                className="mt-3 flex flex-col items-center gap-2"
+                data-testid="friends-qr"
+              >
+                <Suspense
+                  fallback={
+                    <div className="h-[168px] w-[168px] animate-pulse rounded-xl bg-bg-3" />
+                  }
+                >
+                  <div className="rounded-xl bg-white p-3">
+                    <QRCodeSVG value={qrValue} size={168} level="M" />
+                  </div>
+                </Suspense>
+                <span className="text-xs text-ink-5">
+                  Scan to add {profile?.friendCode}
+                </span>
+              </div>
+            )}
             <label className="mt-3 flex items-center justify-between">
               <span className="text-sm text-ink-3">
                 Discoverable by name
@@ -171,6 +230,33 @@ export function FriendsPage() {
                     >
                       <X size={16} />
                     </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sent (outgoing) requests — pending until the other person accepts */}
+          {outgoing.length > 0 && (
+            <div>
+              <Eyebrow className="mb-2">Sent ({outgoing.length})</Eyebrow>
+              <div
+                className="flex flex-col gap-2"
+                data-testid="friends-outgoing"
+              >
+                {outgoing.map(req => (
+                  <div
+                    key={req.id}
+                    className="flex items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-3"
+                    data-testid={`friend-sent-${req.id}`}
+                  >
+                    <Avatar label={req.name} size="sm" />
+                    <span className="flex-1 truncate font-medium text-ink-1">
+                      {req.name}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-bg-3 px-2.5 py-1.5 text-xs font-medium text-ink-4">
+                      <Clock size={13} /> Pending
+                    </span>
                   </div>
                 ))}
               </div>

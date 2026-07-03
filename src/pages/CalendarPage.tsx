@@ -5,12 +5,15 @@ import {
   Calendar as CalendarIcon,
   Plus,
   PartyPopper,
+  Clock,
+  MapPin,
+  type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useShows } from '../hooks/useShows'
 import { usePractices } from '../hooks/usePractices'
 import { useEvents } from '../hooks/useEvents'
-import { formatShowDate, formatTime12Hour } from '../utils/dateHelpers'
+import { formatTime12Hour, formatCountdown } from '../utils/dateHelpers'
 import { Badge } from '../components/common/Badge'
 import { EmptyState } from '../components/common/EmptyState'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
@@ -21,12 +24,15 @@ type Filter = 'all' | 'shows' | 'practices' | 'events'
 interface AgendaItem {
   id: string
   kind: 'show' | 'practice' | 'event'
+  kindLabel: string
+  icon: LucideIcon
   date: Date
   title: string
   subtitle?: string
   status: string
   tone: BadgeTone
   color: string // kind dot color (token var)
+  isHosting?: boolean
   to: string
 }
 
@@ -37,7 +43,7 @@ interface AgendaItem {
  */
 export function CalendarPage() {
   const navigate = useNavigate()
-  const { currentBandId } = useAuth()
+  const { currentBandId, currentUser } = useAuth()
   const bandId = currentBandId ?? ''
   const [filter, setFilter] = useState<Filter>('all')
   const [newMenuOpen, setNewMenuOpen] = useState(false)
@@ -53,7 +59,9 @@ export function CalendarPage() {
         ? []
         : shows.map(s => ({
             id: s.id,
-            kind: 'show',
+            kind: 'show' as const,
+            kindLabel: 'Show',
+            icon: Ticket,
             date: new Date(s.scheduledDate),
             title: s.name,
             subtitle: s.venue ?? s.location,
@@ -68,7 +76,9 @@ export function CalendarPage() {
         ? []
         : practices.map(p => ({
             id: p.id,
-            kind: 'practice',
+            kind: 'practice' as const,
+            kindLabel: 'Practice',
+            icon: CalendarIcon,
             date: new Date(p.scheduledDate),
             title: 'Practice',
             subtitle: p.location,
@@ -83,7 +93,9 @@ export function CalendarPage() {
         ? []
         : events.map(e => ({
             id: e.id,
-            kind: 'event',
+            kind: 'event' as const,
+            kindLabel: 'Event',
+            icon: PartyPopper,
             date: new Date(e.scheduledDate),
             title: e.name,
             subtitle: e.venue,
@@ -91,12 +103,13 @@ export function CalendarPage() {
             tone: (SHOW_TONE[e.status as keyof typeof SHOW_TONE] ??
               'neutral') as BadgeTone,
             color: 'var(--success)',
+            isHosting: !!currentUser && e.hostUserId === currentUser.id,
             to: `/events/${e.id}`,
           }))
     // showItems already excludes when filter==='practices'; also exclude for 'events'.
     const shows2 = filter === 'events' ? [] : showItems
     return [...shows2, ...practiceItems, ...eventItems]
-  }, [shows, practices, events, filter])
+  }, [shows, practices, events, filter, currentUser])
 
   const now = Date.now()
   const upcoming = items
@@ -134,35 +147,78 @@ export function CalendarPage() {
     },
   ]
 
-  const Row = ({ item }: { item: AgendaItem }) => (
-    <button
-      onClick={() => navigate(item.to)}
-      data-testid={`calendar-item-${item.kind}-${item.id}`}
-      className="flex w-full items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-3 text-left transition-colors hover:border-border-2"
-    >
-      <span
-        className="h-8 w-1 flex-shrink-0 rounded-full"
-        style={{ background: item.color }}
-      />
-      <span className="flex-1 min-w-0">
-        <span className="flex items-center gap-2">
-          <span className="truncate font-semibold text-ink-1">
+  const Row = ({ item }: { item: AgendaItem }) => {
+    const Icon = item.icon
+    const month = item.date
+      .toLocaleDateString('en-US', { month: 'short' })
+      .toUpperCase()
+    const day = item.date.getDate()
+    return (
+      <button
+        onClick={() => navigate(item.to)}
+        data-testid={`calendar-item-${item.kind}-${item.id}`}
+        className="flex w-full items-stretch gap-3 rounded-xl border border-l-[3px] border-border-1 bg-bg-1 p-3 text-left transition-colors hover:border-border-2"
+        style={{ borderLeftColor: item.color }}
+      >
+        {/* Date tile */}
+        <span
+          className="flex h-12 w-12 flex-shrink-0 flex-col items-center justify-center rounded-lg"
+          style={{
+            background: `color-mix(in srgb, ${item.color} 14%, transparent)`,
+          }}
+        >
+          <span
+            className="font-mono text-[9px] font-bold leading-none tracking-wider"
+            style={{ color: item.color }}
+          >
+            {month}
+          </span>
+          <span className="mt-0.5 text-lg font-bold leading-none text-ink-1">
+            {day}
+          </span>
+        </span>
+
+        <span className="flex flex-1 min-w-0 flex-col justify-center">
+          {/* Kind eyebrow + countdown */}
+          <span className="flex items-center gap-1.5">
+            <Icon size={12} style={{ color: item.color }} />
+            <span
+              className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em]"
+              style={{ color: item.color }}
+            >
+              {item.kindLabel}
+              {item.isHosting ? ' · Hosting' : ''}
+            </span>
+            <span className="ml-auto flex-shrink-0 font-mono text-[10px] text-ink-5">
+              {formatCountdown(item.date)}
+            </span>
+          </span>
+          {/* Title */}
+          <span className="mt-0.5 truncate font-semibold text-ink-1">
             {item.title}
           </span>
-          <Badge tone={item.tone} size="sm">
-            {item.status}
-          </Badge>
+          {/* Meta: time · place · status */}
+          <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-ink-4">
+            <span className="inline-flex items-center gap-1">
+              <Clock size={11} /> {formatTime12Hour(item.date)}
+            </span>
+            {item.subtitle && (
+              <span className="inline-flex min-w-0 items-center gap-1">
+                <MapPin size={11} className="flex-shrink-0" />
+                <span className="truncate">{item.subtitle}</span>
+              </span>
+            )}
+            <Badge tone={item.tone} size="sm">
+              {item.status}
+            </Badge>
+          </span>
         </span>
-        <span className="mt-0.5 block truncate text-xs text-ink-4">
-          {formatShowDate(item.date)} · {formatTime12Hour(item.date)}
-          {item.subtitle ? ` · ${item.subtitle}` : ''}
-        </span>
-      </span>
-    </button>
-  )
+      </button>
+    )
+  }
 
   return (
-    <div data-testid="calendar-page">
+    <div data-testid="calendar-page" className="max-w-3xl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink-1">Calendar</h1>
         <div className="relative">

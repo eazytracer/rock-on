@@ -8,7 +8,12 @@
 
 import { getSupabaseClient } from './supabase/client'
 import { createLogger } from '../utils/logger'
-import type { EventSummary, LineupItem, LineupRequest } from '../models/Event'
+import type {
+  EventSummary,
+  LineupItem,
+  LineupRequest,
+  EventParticipant,
+} from '../models/Event'
 
 const log = createLogger('EventService')
 
@@ -48,6 +53,12 @@ interface RequestRow {
   display_artist: string
   status: LineupRequest['status']
   created_date: string
+}
+interface ParticipantRow {
+  user_id: string
+  access_tier: EventParticipant['accessTier']
+  rsvp: EventParticipant['rsvp']
+  users: { name: string | null } | null
 }
 
 function mapEvent(r: EventRow): EventSummary {
@@ -156,6 +167,30 @@ export class EventService {
       songId: r.song_id ?? undefined,
       displayTitle: r.display_title,
       displayArtist: r.display_artist,
+    }))
+  }
+
+  /**
+   * The event's participants — the pool a host casts from (guests included, not
+   * just band members). Names resolve via the co-participant RLS policy
+   * (are_event_coparticipants) added in the social_events migration.
+   */
+  static async getParticipants(eventId: string): Promise<EventParticipant[]> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return []
+    const { data, error } = await supabase
+      .from('event_participants')
+      .select('user_id, access_tier, rsvp, users(name)')
+      .eq('event_id', eventId)
+    if (error) {
+      log.error('getParticipants failed', error)
+      return []
+    }
+    return ((data as unknown as ParticipantRow[]) ?? []).map(r => ({
+      userId: r.user_id,
+      name: r.users?.name?.trim() || 'Guest',
+      accessTier: r.access_tier,
+      rsvp: r.rsvp,
     }))
   }
 

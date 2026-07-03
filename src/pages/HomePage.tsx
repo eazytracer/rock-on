@@ -15,24 +15,15 @@ import { useUpcomingShows } from '../hooks/useShows'
 import { useUpcomingPractices } from '../hooks/usePractices'
 import { useSongs } from '../hooks/useSongs'
 import { useSetlists } from '../hooks/useSetlists'
-import { formatShowDate, formatTime12Hour } from '../utils/dateHelpers'
+import {
+  formatShowDate,
+  formatTime12Hour,
+  formatCountdown,
+} from '../utils/dateHelpers'
 import { Badge } from '../components/common/Badge'
 import { Eyebrow } from '../components/common/Eyebrow'
 import { SHOW_TONE, PRACTICE_TONE, type BadgeTone } from '../utils/tokens'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
-
-/** Human countdown to a date ("Today" / "Tomorrow" / "In 5 days"). */
-function countdown(date: Date): string {
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
-  const target = new Date(date)
-  target.setHours(0, 0, 0, 0)
-  const days = Math.round((target.getTime() - start.getTime()) / 86400000)
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Tomorrow'
-  if (days < 0) return `${-days}d ago`
-  return `In ${days} days`
-}
 
 function Card({
   children,
@@ -123,7 +114,7 @@ export function HomePage() {
   ]
 
   return (
-    <div data-testid="home-page">
+    <div data-testid="home-page" className="max-w-3xl">
       <h1 className="text-2xl font-bold text-ink-1">Home</h1>
       <p className="mt-1 text-sm text-ink-4">
         {currentBand?.name ?? 'Your band'} at a glance
@@ -155,7 +146,7 @@ export function HomePage() {
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
                     <span className="font-mono text-accent">
-                      {countdown(nextShow.scheduledDate)}
+                      {formatCountdown(nextShow.scheduledDate)}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Clock size={12} />{' '}
@@ -205,7 +196,7 @@ export function HomePage() {
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
                     <span className="font-mono text-accent">
-                      {countdown(nextPractice.scheduledDate)}
+                      {formatCountdown(nextPractice.scheduledDate)}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Clock size={12} />{' '}

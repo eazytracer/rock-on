@@ -51,7 +51,7 @@ export function EventDetailPage() {
   }
 
   return (
-    <div data-testid="event-detail-page">
+    <div data-testid="event-detail-page" className="max-w-3xl">
       <button
         onClick={() => navigate('/events')}
         data-testid="event-back"

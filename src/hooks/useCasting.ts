@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CastingAssignmentService } from '../services/CastingAssignmentService'
-import type {
-  BandRole,
-  CastingAssignment,
-  CastingContext,
-  AssignInput,
+import {
+  DEFAULT_LINEUP,
+  type BandRole,
+  type CastingAssignment,
+  type CastingContext,
+  type AssignInput,
 } from '../models/Casting'
 
 /**
@@ -24,12 +25,14 @@ export function useCasting(
   const refetch = useCallback(async () => {
     if (!contextId) return
     const [r, c] = await Promise.all([
+      // Band-less (personal/social) events have no band_roles rows → fall back to
+      // the canonical default lineup so parts are still castable.
       bandId
         ? CastingAssignmentService.getBandRoles(bandId)
-        : Promise.resolve([]),
+        : Promise.resolve(DEFAULT_LINEUP),
       CastingAssignmentService.getCasting(contextType, contextId),
     ])
-    setRoles(r)
+    setRoles(r.length > 0 ? r : DEFAULT_LINEUP)
     setCasting(c)
     setLoading(false)
   }, [contextType, contextId, bandId])

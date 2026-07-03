@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Bell,
@@ -13,8 +14,14 @@ import type { LucideIcon } from 'lucide-react'
 import { useNotifications } from '../hooks/useNotifications'
 import type { AppNotification, NotificationKind } from '../models/Notification'
 import { EmptyState } from '../components/common/EmptyState'
+import { Eyebrow } from '../components/common/Eyebrow'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { MarkdownRenderer } from '../components/notes/MarkdownRenderer'
+
+type NotifTab = 'all' | 'updates' | 'activity'
+
+const isActivityKind = (k: NotificationKind): boolean =>
+  k === 'activity' || k === 'event' || k === 'friend'
 
 const KIND_ICON: Record<NotificationKind, LucideIcon> = {
   release: Sparkles,
@@ -52,6 +59,28 @@ export function NotificationsPage() {
   } = useNotifications()
 
   const latestRelease = releaseNotes[0]
+  const [tab, setTab] = useState<NotifTab>('all')
+
+  const tabs: { id: NotifTab; label: string }[] = [
+    { id: 'all', label: 'All' },
+    { id: 'updates', label: 'Updates' },
+    { id: 'activity', label: 'Activity' },
+  ]
+
+  const filtered = notifications.filter(n =>
+    tab === 'all'
+      ? true
+      : tab === 'updates'
+        ? n.kind === 'release'
+        : isActivityKind(n.kind)
+  )
+
+  // Group by recency: last 24h = Recent, older = Earlier (design NotificationCenter).
+  const DAY_MS = 86400000
+  const now = Date.now()
+  const recent = filtered.filter(n => now - n.createdDate.getTime() < DAY_MS)
+  const earlier = filtered.filter(n => now - n.createdDate.getTime() >= DAY_MS)
+  const showWhatsNew = latestRelease && tab !== 'activity'
 
   const openItem = (n: AppNotification) => {
     if (!n.readAt) void markRead(n.id)
@@ -102,7 +131,7 @@ export function NotificationsPage() {
   }
 
   return (
-    <div data-testid="notifications-page">
+    <div data-testid="notifications-page" className="max-w-3xl">
       <button
         onClick={() => navigate(-1)}
         data-testid="notifications-back"
@@ -124,9 +153,28 @@ export function NotificationsPage() {
         )}
       </div>
 
+      {/* Segmented filter */}
+      <div className="mt-4 inline-flex rounded-lg border border-border-1 bg-bg-1 p-0.5">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            data-testid={`notifications-tab-${t.id}`}
+            aria-pressed={tab === t.id}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              tab === t.id
+                ? 'bg-accent-soft text-accent'
+                : 'text-ink-4 hover:text-ink-2'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <ContentLoadingSpinner isLoading={loading}>
         <div className="mt-4 flex flex-col gap-4">
-          {latestRelease && (
+          {showWhatsNew && (
             <div
               className="rounded-2xl border border-accent-line bg-accent-soft p-4"
               data-testid="notifications-whats-new"
@@ -144,7 +192,7 @@ export function NotificationsPage() {
             </div>
           )}
 
-          {notifications.length === 0 ? (
+          {filtered.length === 0 ? (
             <EmptyState
               icon={Bell}
               title="You're all caught up"
@@ -153,12 +201,29 @@ export function NotificationsPage() {
             />
           ) : (
             <div
-              className="flex flex-col gap-2"
+              className="flex flex-col gap-4"
               data-testid="notifications-feed"
             >
-              {notifications.map(n => (
-                <Row key={n.id} n={n} />
-              ))}
+              {recent.length > 0 && (
+                <div>
+                  <Eyebrow className="mb-2">Recent</Eyebrow>
+                  <div className="flex flex-col gap-2">
+                    {recent.map(n => (
+                      <Row key={n.id} n={n} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {earlier.length > 0 && (
+                <div>
+                  <Eyebrow className="mb-2">Earlier</Eyebrow>
+                  <div className="flex flex-col gap-2">
+                    {earlier.map(n => (
+                      <Row key={n.id} n={n} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

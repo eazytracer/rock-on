@@ -15,6 +15,25 @@ export interface BandRole {
   isDefaultPart: boolean
 }
 
+/**
+ * Canonical default lineup for band-less (personal/social) events, mirroring the
+ * `seed_band_roles` DDL. Used by `useCasting` when there's no band to source roles
+ * from — role_key on casting_assignments is a soft ref, so these keys are valid.
+ */
+export const DEFAULT_LINEUP: BandRole[] = [
+  { key: 'lead_vocals', label: 'Lead Vocals', sort: 1, isDefaultPart: true },
+  {
+    key: 'backing_vocals',
+    label: 'Backing Vocals',
+    sort: 2,
+    isDefaultPart: false,
+  },
+  { key: 'guitar', label: 'Guitar', sort: 3, isDefaultPart: true },
+  { key: 'bass', label: 'Bass', sort: 4, isDefaultPart: true },
+  { key: 'drums', label: 'Drums', sort: 5, isDefaultPart: true },
+  { key: 'keys', label: 'Keys', sort: 6, isDefaultPart: true },
+].map(r => ({ ...r, id: `default:${r.key}`, bandId: '' }))
+
 export interface CastingAssignment {
   id: string
   contextType: CastingContext

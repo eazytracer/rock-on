@@ -1,7 +1,39 @@
 import { useCallback, useEffect, useState } from 'react'
 import { EventService } from '../services/EventService'
 import { useAuth } from '../contexts/AuthContext'
-import type { EventSummary, LineupItem, LineupRequest } from '../models/Event'
+import type {
+  EventSummary,
+  LineupItem,
+  LineupRequest,
+  EventParticipant,
+} from '../models/Event'
+
+/** The event's participants — the pool the host casts from. */
+export function useEventParticipants(eventId: string | undefined) {
+  const [participants, setParticipants] = useState<EventParticipant[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!eventId) {
+      setParticipants([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    EventService.getParticipants(eventId).then(p => {
+      if (!cancelled) {
+        setParticipants(p)
+        setLoading(false)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [eventId])
+
+  return { participants, loading }
+}
 
 /** List of events the current user hosts or participates in. */
 export function useEvents() {

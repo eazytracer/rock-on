@@ -1,10 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { FriendService } from '../services/FriendService'
 import type {
   FriendSummary,
   FriendRequestSummary,
   MyFriendProfile,
 } from '../models/Friend'
+
+/**
+ * Lightweight count of incoming (pending) friend requests, for nav badges.
+ * Mirrors `useUnreadCount` — refetches on route change, no heavy state.
+ */
+export function useIncomingRequestCount(): number {
+  const [count, setCount] = useState(0)
+  const location = useLocation()
+
+  useEffect(() => {
+    let cancelled = false
+    FriendService.getRequests().then(r => {
+      if (!cancelled) setCount(r.incoming.length)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [location.pathname])
+
+  return count
+}
 
 export function useFriends() {
   const [friends, setFriends] = useState<FriendSummary[]>([])

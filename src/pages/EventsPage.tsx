@@ -7,22 +7,65 @@ import {
   Plus,
 } from 'lucide-react'
 import { useEvents } from '../hooks/useEvents'
+import { useAuth } from '../contexts/AuthContext'
 import { formatShowDate } from '../utils/dateHelpers'
+import type { EventSummary } from '../models/Event'
 import { Badge } from '../components/common/Badge'
+import { Eyebrow } from '../components/common/Eyebrow'
 import { EmptyState } from '../components/common/EmptyState'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { SHOW_TONE, type BadgeTone } from '../utils/tokens'
 
 /**
  * Events list (mobile-redesign-port P12).
- * Events you host or have been invited to play at.
+ * Events you host or have been invited to play at. Split into Hosting vs Invited
+ * to reflect the user-hosted event model (you host some, you're a guest at others).
  */
 export function EventsPage() {
   const navigate = useNavigate()
   const { events, loading } = useEvents()
+  const { currentUser } = useAuth()
+
+  const hosting = events.filter(e => e.hostUserId === currentUser?.id)
+  const invited = events.filter(e => e.hostUserId !== currentUser?.id)
+
+  const EventCard = ({ ev }: { ev: EventSummary }) => (
+    <button
+      onClick={() => navigate(`/events/${ev.id}`)}
+      data-testid={`event-${ev.id}`}
+      className="flex w-full items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-4 text-left transition-colors hover:border-border-2"
+    >
+      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+        <PartyPopper size={20} />
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="flex items-center gap-2">
+          <span className="truncate font-semibold text-ink-1">{ev.name}</span>
+          <Badge
+            tone={
+              (SHOW_TONE[ev.status as keyof typeof SHOW_TONE] ??
+                'neutral') as BadgeTone
+            }
+            size="sm"
+          >
+            {ev.status}
+          </Badge>
+        </span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-ink-4">
+          <span>{formatShowDate(ev.scheduledDate)}</span>
+          {ev.venue && (
+            <span className="inline-flex items-center gap-1">
+              <MapPin size={11} /> {ev.venue}
+            </span>
+          )}
+        </span>
+      </span>
+      <ChevronRight size={18} className="text-ink-5" />
+    </button>
+  )
 
   return (
-    <div data-testid="events-page">
+    <div data-testid="events-page" className="max-w-3xl">
       <button
         onClick={() => navigate(-1)}
         data-testid="events-back"
@@ -53,44 +96,33 @@ export function EventsPage() {
             size="lg"
           />
         ) : (
-          <div className="mt-5 flex flex-col gap-2" data-testid="events-list">
-            {events.map(ev => (
-              <button
-                key={ev.id}
-                onClick={() => navigate(`/events/${ev.id}`)}
-                data-testid={`event-${ev.id}`}
-                className="flex items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-4 text-left transition-colors hover:border-border-2"
-              >
-                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
-                  <PartyPopper size={20} />
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="flex items-center gap-2">
-                    <span className="truncate font-semibold text-ink-1">
-                      {ev.name}
-                    </span>
-                    <Badge
-                      tone={
-                        (SHOW_TONE[ev.status as keyof typeof SHOW_TONE] ??
-                          'neutral') as BadgeTone
-                      }
-                      size="sm"
-                    >
-                      {ev.status}
-                    </Badge>
-                  </span>
-                  <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-ink-4">
-                    <span>{formatShowDate(ev.scheduledDate)}</span>
-                    {ev.venue && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin size={11} /> {ev.venue}
-                      </span>
-                    )}
-                  </span>
-                </span>
-                <ChevronRight size={18} className="text-ink-5" />
-              </button>
-            ))}
+          <div className="mt-5 flex flex-col gap-5" data-testid="events-list">
+            {hosting.length > 0 && (
+              <div>
+                <Eyebrow className="mb-2">Hosting ({hosting.length})</Eyebrow>
+                <div
+                  className="flex flex-col gap-2"
+                  data-testid="events-hosting"
+                >
+                  {hosting.map(ev => (
+                    <EventCard key={ev.id} ev={ev} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {invited.length > 0 && (
+              <div>
+                <Eyebrow className="mb-2">Invited ({invited.length})</Eyebrow>
+                <div
+                  className="flex flex-col gap-2"
+                  data-testid="events-invited"
+                >
+                  {invited.map(ev => (
+                    <EventCard key={ev.id} ev={ev} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </ContentLoadingSpinner>
