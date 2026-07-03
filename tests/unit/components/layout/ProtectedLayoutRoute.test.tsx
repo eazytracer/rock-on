@@ -90,18 +90,21 @@ describe('ProtectedLayoutRoute', () => {
       expect(screen.queryByTestId('modern-layout')).not.toBeInTheDocument()
     })
 
-    it('redirects to /auth?view=get-started when failureReason is no-band', () => {
+    it('renders the app for an authenticated user with no band (personal/guest account)', () => {
+      // No band is no longer an auth failure — a band-less user is authenticated
+      // and gets the full app (which degrades gracefully around the missing band).
       mockUseAuthCheck.mockReturnValue({
-        isAuthenticated: false,
+        isAuthenticated: true,
         isChecking: false,
-        failureReason: 'no-band',
+        hasBand: false,
+        failureReason: null,
       })
 
       renderWithRouter(['/songs'])
 
-      // Should redirect to get-started view
-      expect(screen.getByTestId('auth-page')).toBeInTheDocument()
-      expect(screen.queryByTestId('modern-layout')).not.toBeInTheDocument()
+      // Should render the layout, NOT redirect to get-started
+      expect(screen.getByTestId('modern-layout')).toBeInTheDocument()
+      expect(screen.queryByTestId('auth-page')).not.toBeInTheDocument()
     })
 
     it('redirects to /auth?reason=session-expired when sessionExpired is true', () => {

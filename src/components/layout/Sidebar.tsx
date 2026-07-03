@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Eyebrow } from '../common/Eyebrow'
+import { useAuth } from '../../contexts/AuthContext'
 // PHASE 2: Connection status indicator
 import { useSyncStatus } from '../../hooks/useSyncStatus'
 import { useUnreadCount } from '../../hooks/useNotifications'
@@ -64,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate()
   const unreadCount = useUnreadCount()
   const friendRequestCount = useIncomingRequestCount()
+  const { currentBandId } = useAuth()
 
   // PHASE 2: Get sync status for connection indicator
   const { isOnline, isSyncing, pendingCount, lastSyncTime } = useSyncStatus()
@@ -143,9 +145,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="text-white font-semibold text-base leading-tight"
               data-testid="sidebar-band-name"
             >
-              {bandName}
+              {currentBandId ? bandName : 'Personal account'}
             </h1>
             <p className="text-[#707070] text-xs truncate">{userEmail}</p>
+            {!currentBandId && (
+              <button
+                onClick={() => handleNavigation('/get-started')}
+                data-testid="sidebar-create-band"
+                className="mt-0.5 text-xs font-semibold text-accent hover:underline"
+              >
+                Create or join a band →
+              </button>
+            )}
 
             {/* PHASE 2: Connection Status - aligned with text above */}
             <div className="flex items-center gap-1.5 mt-1">

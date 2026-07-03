@@ -105,50 +105,73 @@ export function MorePage() {
     <div data-testid="more-page" className="max-w-3xl">
       <h1 className="text-2xl font-bold text-ink-1">More</h1>
 
-      {/* Band identity */}
-      <button
-        onClick={() => navigate('/band-members')}
-        data-testid="more-band-card"
-        className="mt-4 w-full rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/15 to-transparent p-4 text-left transition-colors hover:border-accent/60"
-      >
-        <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent">
-            <Disc3 size={24} className="text-white" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block truncate text-lg font-bold text-ink-1">
-              {bandName}
+      {/* Band identity — or a create/join CTA when the user has no band */}
+      {!currentBandId ? (
+        <button
+          onClick={() => navigate('/get-started')}
+          data-testid="more-band-card"
+          className="mt-4 w-full rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/15 to-transparent p-4 text-left transition-colors hover:border-accent/60"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent">
+              <Users size={24} className="text-white" />
             </span>
-            {tagline && (
-              <span className="block truncate text-xs text-ink-3">
-                {tagline}
+            <span className="flex-1 min-w-0">
+              <span className="block text-lg font-bold text-ink-1">
+                Create or join a band
               </span>
-            )}
-          </span>
-          <ChevronRight size={18} className="text-accent" />
-        </div>
-        <div className="mt-3.5 flex items-center gap-2.5 border-t border-accent/40 pt-3.5">
-          <span className="flex">
-            {members.slice(0, 5).map((m, i) => (
-              <span
-                key={m.membership.id}
-                className={`rounded-full border-2 border-bg-0 ${i ? '-ml-2' : ''}`}
-              >
-                <Avatar
-                  size="xs"
-                  label={m.profile?.displayName || m.user?.name || '?'}
-                />
+              <span className="block text-xs text-ink-3">
+                Unlock setlists, shows &amp; practices with your bandmates
               </span>
-            ))}
-          </span>
-          <span className="text-xs font-medium text-ink-2">
-            {members.length} {members.length === 1 ? 'member' : 'members'}
-          </span>
-          <span className="ml-auto text-xs font-semibold text-accent">
-            Manage band →
-          </span>
-        </div>
-      </button>
+            </span>
+            <ChevronRight size={18} className="text-accent" />
+          </div>
+        </button>
+      ) : (
+        <button
+          onClick={() => navigate('/band-members')}
+          data-testid="more-band-card"
+          className="mt-4 w-full rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/15 to-transparent p-4 text-left transition-colors hover:border-accent/60"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent">
+              <Disc3 size={24} className="text-white" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block truncate text-lg font-bold text-ink-1">
+                {bandName}
+              </span>
+              {tagline && (
+                <span className="block truncate text-xs text-ink-3">
+                  {tagline}
+                </span>
+              )}
+            </span>
+            <ChevronRight size={18} className="text-accent" />
+          </div>
+          <div className="mt-3.5 flex items-center gap-2.5 border-t border-accent/40 pt-3.5">
+            <span className="flex">
+              {members.slice(0, 5).map((m, i) => (
+                <span
+                  key={m.membership.id}
+                  className={`rounded-full border-2 border-bg-0 ${i ? '-ml-2' : ''}`}
+                >
+                  <Avatar
+                    size="xs"
+                    label={m.profile?.displayName || m.user?.name || '?'}
+                  />
+                </span>
+              ))}
+            </span>
+            <span className="text-xs font-medium text-ink-2">
+              {members.length} {members.length === 1 ? 'member' : 'members'}
+            </span>
+            <span className="ml-auto text-xs font-semibold text-accent">
+              Manage band →
+            </span>
+          </div>
+        </button>
+      )}
 
       {/* Account */}
       <Eyebrow className="mb-2 ml-0.5 mt-5">Account</Eyebrow>
@@ -164,7 +187,9 @@ export function MorePage() {
               {youName}
             </span>
             <span className="block text-xs text-ink-4">
-              {roleLabel} · in {bandName}
+              {currentBandId
+                ? `${roleLabel} · in ${bandName}`
+                : 'Personal account'}
             </span>
           </span>
           <ChevronRight size={17} className="text-ink-5" />

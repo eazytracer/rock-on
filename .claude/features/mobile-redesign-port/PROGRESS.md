@@ -425,6 +425,33 @@ Key discovery: the casting DB already supported the whole vision (casting_insert
   personal songs = yes; scope = core-first (phased). **HOLD Phase-1 build** (auth-gate flip is high-stakes,
   affects all users' login) until user confirms — design doc ready for review.
 
+## 2026-07-03 — BAND-LESS USER FLOW Phase 1 ✅ (user "go ahead and proceed") — LOCAL, held for review
+
+Made "has a band" a **capability, not an auth gate** + added the personal-account signup path.
+
+- **Gate flip:** `useAuthCheck` — removed the `!bandId → isAuthenticated:false ('no-band')` branch;
+  now returns `isAuthenticated: true, hasBand: !!bandId`. `ProtectedLayoutRoute` — removed the
+  `no-band → /auth?view=get-started` redirect. **Verified safe:** AuthContext auto-selects a band
+  user's first band on login (AuthContext L518-523), so band users are unaffected; only zero-membership
+  users land band-less.
+- **Signup chooser:** GetStartedPage gains a "Continue with a personal account →"
+  (`personal-account-button`) that lands the user in the app with no band. (Create/Join band unchanged;
+  **event-code join deferred to Phase 2** — needs the `resolve_event_code` RPC.)
+- **Band-less layout:** Sidebar header → "Personal account" + "Create or join a band →"
+  (`sidebar-create-band`) when `!currentBandId`; MorePage band card → "Create or join a band" CTA
+  (→ /get-started); fixed band-aware copy (Home subtitle, More account row).
+- **Validated (Playwright, local):** (1) REGRESSION — eric (band user) logs in → "Demo Band",
+  currentBandId set, Home renders. (2) NEW — signed up fresh personal account (Priya) → chose personal
+  account → lands on `/` band-less (currentBandId null), sidebar "Personal account", 0 console errors;
+  swept Songs/Setlists/Shows/Practices/BandMembers/Events/Friends/Calendar/More — **none crash**.
+- **Tests updated** (behavior intentionally changed): `useAuthCheck.test` no-band scenario → now asserts
+  authenticated+hasBand=false; `ProtectedLayoutRoute.test` → band-less renders app (not redirect); e2e
+  `protected-routes` "user without band" → now asserts personal account reaches /songs. type-check ✅
+  eslint ✅ quick **275/275** ✅.
+- **Phase 2 next:** event-code join (`resolve_event_code` SECURITY DEFINER RPC — security review first) +
+  band-only "join or create a band" empty states (Setlists/Shows/Practices) + hide band-only Home quick
+  actions when band-less. Committed LOCAL; NOT pushed (auth change — held for review).
+
 ## GOAL (2026-07-02): implement approved DB changes in LOCAL dev + finalize UI for end-to-end testing
 
 - Orchestrate via sub-agents; verify each file lands on disk; validate each step.

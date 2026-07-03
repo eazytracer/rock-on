@@ -117,7 +117,9 @@ export function HomePage() {
     <div data-testid="home-page" className="max-w-3xl">
       <h1 className="text-2xl font-bold text-ink-1">Home</h1>
       <p className="mt-1 text-sm text-ink-4">
-        {currentBand?.name ?? 'Your band'} at a glance
+        {currentBand
+          ? `${currentBand.name} at a glance`
+          : 'Your personal dashboard'}
       </p>
 
       <ContentLoadingSpinner isLoading={loading}>

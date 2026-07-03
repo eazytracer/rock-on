@@ -74,12 +74,22 @@ describe('useAuthCheck Hook', () => {
     })
   })
 
-  describe('No Band Scenario', () => {
-    it('should return no-band when user exists but no band selected', async () => {
+  describe('No Band Scenario (personal / guest accounts)', () => {
+    it('should authenticate a user with a valid session but no band (hasBand=false)', async () => {
+      // A band is NO LONGER required to be authenticated — "has a band" is a
+      // capability, not an auth gate. A logged-in user with a valid session but no
+      // currentBandId is authenticated with hasBand=false (personal/guest account).
       mockStorage = {
         currentUserId: 'user-123',
+        // No currentBandId
       }
-      // No band ID
+
+      vi.mocked(SessionManager.loadSession).mockReturnValue({
+        userId: 'user-123',
+        expiresAt: Date.now() + 3600000, // 1 hour from now
+        createdAt: Date.now() - 1000,
+      })
+      vi.mocked(SessionManager.isSessionValid).mockReturnValue(true)
 
       const { result } = renderHook(() => useAuthCheck(), {
         wrapper: createWrapper(),
@@ -89,9 +99,9 @@ describe('useAuthCheck Hook', () => {
         expect(result.current.isChecking).toBe(false)
       })
 
-      expect(result.current.isAuthenticated).toBe(false)
+      expect(result.current.isAuthenticated).toBe(true)
       expect(result.current.hasBand).toBe(false)
-      expect(result.current.failureReason).toBe('no-band')
+      expect(result.current.failureReason).toBeNull()
     })
   })
 

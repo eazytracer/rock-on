@@ -969,7 +969,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
             Get Started with Rock-On
           </h1>
           <p className="text-[#a0a0a0] text-base">
-            Create your first band or join an existing one
+            Create a band, join one, or just explore on your own
           </p>
         </div>
 
@@ -1079,12 +1079,21 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
           </div>
         </div>
 
-        {/* Helper Text */}
+        {/* Personal account — no band required */}
         <div className="mt-8 text-center">
-          <p className="text-[#707070] text-sm">
-            Try using invite code{' '}
-            <span className="font-mono text-[#f17827ff]">ROCK2025</span> to join
-            iPod Shuffle
+          <button
+            onClick={() => navigate('/')}
+            data-testid="personal-account-button"
+            className="text-sm text-[#a0a0a0] hover:text-white transition-colors"
+          >
+            Not in a band?{' '}
+            <span className="font-semibold text-[#f17827ff]">
+              Continue with a personal account →
+            </span>
+          </button>
+          <p className="text-[#707070] text-xs mt-3">
+            You can host events, add friends, and build a personal song list.
+            Join or create a band anytime.
           </p>
         </div>
       </div>

@@ -70,9 +70,9 @@ export const ProtectedLayoutRoute: React.FC = () => {
   // This prevents any flash of authenticated content
   if (!isAuthenticated) {
     switch (failureReason) {
-      case 'no-band':
-        // User is logged in but has no band - send to band creation
-        return <Navigate to="/auth?view=get-started" replace />
+      // NOTE: 'no-band' is no longer an auth failure — a user can be authenticated
+      // without a band (personal/guest accounts). "Has a band" is a capability the
+      // app degrades gracefully around; see useAuthCheck.
 
       case 'session-expired':
         // Session expired beyond grace period
