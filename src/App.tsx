@@ -1,10 +1,5 @@
 import React, { Suspense, lazy, useEffect, useRef } from 'react'
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
 import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
@@ -84,6 +79,41 @@ const JamSessionPage = lazy(() =>
 const JamViewPage = lazy(() =>
   import('./pages/JamViewPage').then(module => ({
     default: module.JamViewPage,
+  }))
+)
+// mobile-redesign-port: net-new IA screens (Home / Calendar / More / Notifications)
+const HomePage = lazy(() =>
+  import('./pages/HomePage').then(module => ({ default: module.HomePage }))
+)
+const CalendarPage = lazy(() =>
+  import('./pages/CalendarPage').then(module => ({
+    default: module.CalendarPage,
+  }))
+)
+const MorePage = lazy(() =>
+  import('./pages/MorePage').then(module => ({ default: module.MorePage }))
+)
+const NotificationsPage = lazy(() =>
+  import('./pages/NotificationsPage').then(module => ({
+    default: module.NotificationsPage,
+  }))
+)
+const FriendsPage = lazy(() =>
+  import('./pages/FriendsPage').then(module => ({
+    default: module.FriendsPage,
+  }))
+)
+const EventsPage = lazy(() =>
+  import('./pages/EventsPage').then(module => ({ default: module.EventsPage }))
+)
+const EventDetailPage = lazy(() =>
+  import('./pages/EventDetailPage').then(module => ({
+    default: module.EventDetailPage,
+  }))
+)
+const EventCreatePage = lazy(() =>
+  import('./pages/EventCreatePage').then(module => ({
+    default: module.EventCreatePage,
   }))
 )
 
@@ -201,7 +231,14 @@ const AppContent: React.FC = () => {
           {/* Protected routes - with persistent layout */}
           {/* ModernLayout stays mounted during navigation between these routes */}
           <Route element={<ProtectedLayoutRoute />}>
-            <Route path="/" element={<Navigate to="/songs" replace />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/more" element={<MorePage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/events" element={<EventsPage />} />
+            <Route path="/events/new" element={<EventCreatePage />} />
+            <Route path="/events/:eventId" element={<EventDetailPage />} />
             <Route path="/songs" element={<SongsPage />} />
             <Route path="/setlists" element={<SetlistsPage />} />
             <Route path="/setlists/new" element={<SetlistViewPage />} />

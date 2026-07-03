@@ -1,6 +1,6 @@
-import { generateAvatarColor, generateInitials } from '../../utils/songAvatar'
+import { Avatar, type AvatarSize } from './Avatar'
 
-export type SongAvatarSize = 'xs' | 'sm' | 'md' | 'lg'
+export type SongAvatarSize = AvatarSize
 
 interface SongAvatarProps {
   title: string
@@ -9,16 +9,10 @@ interface SongAvatarProps {
   className?: string
 }
 
-const SIZE_CLASSES: Record<SongAvatarSize, string> = {
-  xs: 'w-6 h-6 text-xs',
-  sm: 'w-8 h-8 text-xs',
-  md: 'w-10 h-10 text-sm',
-  lg: 'w-12 h-12 text-base',
-}
-
 /**
  * Colored circle avatar showing song initials.
- * Color is deterministically derived from the song title.
+ * Initials come from the artist (falling back to title); color is deterministically
+ * derived from the title. Thin wrapper over the generic {@link Avatar}.
  */
 export function SongAvatar({
   title,
@@ -26,17 +20,12 @@ export function SongAvatar({
   size = 'md',
   className = '',
 }: SongAvatarProps) {
-  // Use artist for the initials display if available, title for the color hash
-  const initials = generateInitials(artist ?? title)
-  const color = generateAvatarColor(title)
-
   return (
-    <div
-      className={`flex-shrink-0 rounded-full flex items-center justify-center font-semibold text-white uppercase ${SIZE_CLASSES[size]} ${className}`}
-      style={{ backgroundColor: color }}
-      aria-hidden="true"
-    >
-      {initials}
-    </div>
+    <Avatar
+      label={artist ?? title}
+      colorSeed={title}
+      size={size}
+      className={className}
+    />
   )
 }

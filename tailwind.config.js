@@ -7,19 +7,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Brand Colors from Style Guide
-        'energy-orange': '#FE4401',
-        'stage-black': '#121212',
+        // ── Design tokens (mobile-redesign-port) — channel vars in index.css.
+        // rgb(var(--x-rgb) / <alpha-value>) so utilities AND /opacity modifiers work. ──
+        // Surfaces
+        'bg-0': 'rgb(var(--bg-0-rgb) / <alpha-value>)',
+        'bg-1': 'rgb(var(--bg-1-rgb) / <alpha-value>)',
+        'bg-2': 'rgb(var(--bg-2-rgb) / <alpha-value>)',
+        'bg-3': 'rgb(var(--bg-3-rgb) / <alpha-value>)',
+        'bg-4': 'rgb(var(--bg-4-rgb) / <alpha-value>)',
+        'border-1': 'rgb(var(--border-1-rgb) / <alpha-value>)',
+        'border-2': 'rgb(var(--border-2-rgb) / <alpha-value>)',
+        // Ink ramp
+        'ink-1': 'rgb(var(--ink-1-rgb) / <alpha-value>)',
+        'ink-2': 'rgb(var(--ink-2-rgb) / <alpha-value>)',
+        'ink-3': 'rgb(var(--ink-3-rgb) / <alpha-value>)',
+        'ink-4': 'rgb(var(--ink-4-rgb) / <alpha-value>)',
+        'ink-5': 'rgb(var(--ink-5-rgb) / <alpha-value>)',
+        'ink-6': 'rgb(var(--ink-6-rgb) / <alpha-value>)',
+        // Accent (unified) + semantic
+        accent: 'rgb(var(--accent-rgb) / <alpha-value>)',
+        'accent-soft': 'var(--accent-soft)',
+        'accent-line': 'var(--accent-line)',
+        info: 'rgb(var(--info-rgb) / <alpha-value>)',
+        success: 'rgb(var(--success-rgb) / <alpha-value>)',
+        warn: 'rgb(var(--warn-rgb) / <alpha-value>)',
+
+        // Legacy brand aliases — point at the unified accent / token surfaces so the
+        // ~65 arbitrary-hex files migrate cleanly and the two oranges collapse to one.
+        'energy-orange': 'rgb(var(--accent-rgb) / <alpha-value>)',
+        'stage-black': 'rgb(var(--bg-1-rgb) / <alpha-value>)',
         'electric-yellow': '#FFD400',
         'smoke-white': '#F5F5F5',
-        'amp-red': '#D7263D',
+        'amp-red': 'rgb(var(--danger-rgb) / <alpha-value>)',
         'steel-gray': '#2E2E2E',
 
         // Semantic Aliases
-        primary: '#FE4401',
+        primary: 'rgb(var(--accent-rgb) / <alpha-value>)',
         secondary: '#FFD400',
-        danger: '#D7263D',
-        background: '#121212',
+        danger: 'rgb(var(--danger-rgb) / <alpha-value>)',
+        background: 'rgb(var(--bg-1-rgb) / <alpha-value>)',
         surface: '#F5F5F5',
         text: '#2E2E2E',
 
@@ -40,7 +66,8 @@ export default {
         'xs': '320px',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Geist', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       keyframes: {
         'slide-down': {

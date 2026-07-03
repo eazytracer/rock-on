@@ -36,6 +36,8 @@ import {
   formatBpm,
   parseBpm,
 } from '../utils/formatters'
+// Tuning color spine — canonical Palette A (same source as SongListItem / setlist detail)
+import { tuningColor } from '../utils/tunings'
 import { db } from '../services/database'
 // DBSong type imported but not currently used directly
 // PHASE 2: Sync status visualization
@@ -521,9 +523,13 @@ const SongRow: React.FC<SongRowProps> = ({
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
+  const stripeColor = tuningColor(song.tuning ?? 'Standard')
 
   return (
-    <div className="bg-[#1a1a1a] rounded-xl hover:bg-[#252525] transition-colors group">
+    <div
+      className="bg-[#1a1a1a] rounded-xl hover:bg-[#252525] transition-colors group border-l-[3px]"
+      style={{ borderLeftColor: stripeColor }}
+    >
       <div className="flex items-center gap-4 p-4">
         {/* PHASE 2: Sync Icon */}
         <div className="flex-shrink-0">
@@ -571,10 +577,15 @@ const SongRow: React.FC<SongRowProps> = ({
         <div className="w-[90px] text-[#a0a0a0] text-sm">{song.duration}</div>
 
         {/* Key */}
-        <div className="w-[60px] text-[#a0a0a0] text-sm">{song.key}</div>
+        <div className="w-[60px] text-[#a0a0a0] text-sm">{song.key || '—'}</div>
 
         {/* Tuning */}
-        <div className="w-[130px] text-[#a0a0a0] text-sm">{song.tuning}</div>
+        <div
+          className="w-[130px] text-sm font-medium"
+          style={{ color: stripeColor }}
+        >
+          {song.tuning}
+        </div>
 
         {/* BPM */}
         <div className="w-[80px] text-[#a0a0a0] text-sm">{song.bpm}</div>
@@ -698,9 +709,13 @@ const SongCard: React.FC<SongRowProps> = ({
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
+  const stripeColor = tuningColor(song.tuning ?? 'Standard')
 
   return (
-    <div className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]">
+    <div
+      className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a] border-l-[3px]"
+      style={{ borderLeftColor: stripeColor }}
+    >
       {/* Song Info */}
       <div className="flex items-start gap-3 mb-3">
         {/* PHASE 2: Sync Icon */}
@@ -820,11 +835,14 @@ const SongCard: React.FC<SongRowProps> = ({
         </div>
         <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
           <Music size={16} className="flex-shrink-0" />
-          <span>{song.key}</span>
+          <span>{song.key || '—'}</span>
         </div>
-        <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+        <div
+          className="flex items-center gap-2 text-xs"
+          style={{ color: stripeColor }}
+        >
           <Guitar size={16} className="flex-shrink-0" />
-          <span className="truncate">{song.tuning}</span>
+          <span className="truncate font-medium">{song.tuning}</span>
         </div>
         <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
           <Activity size={16} className="flex-shrink-0" />

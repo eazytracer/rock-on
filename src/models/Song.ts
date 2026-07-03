@@ -6,7 +6,7 @@ export interface Song {
   artist: string
   album?: string
   duration: number
-  key: string
+  key?: string
   bpm: number
   difficulty: 1 | 2 | 3 | 4 | 5
   guitarTuning?: string

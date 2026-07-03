@@ -52,14 +52,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   className = '',
   autoEdit = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
+  // autoEdit (create/new mode) opens the custom calendar popover directly — NOT a
+  // native <input type="date"> (which broke the dark theme / design fidelity).
+  const [isOpen, setIsOpen] = useState(autoEdit)
   const [viewDate, setViewDate] = useState<Date>(() => {
     if (value) {
       return parseDateInputAsLocal(value)
     }
     return new Date()
   })
-  const [isManualEntry, setIsManualEntry] = useState(autoEdit)
+  const [isManualEntry, setIsManualEntry] = useState(false)
   const [manualValue, setManualValue] = useState('')
 
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -273,24 +275,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       {isManualEntry ? (
         <input
           ref={inputRef}
-          type={autoEdit ? 'date' : 'text'}
-          value={autoEdit ? value : manualValue}
-          onChange={e => {
-            if (autoEdit) {
-              onChange(e.target.value)
-            } else {
-              setManualValue(e.target.value)
-            }
-          }}
-          onBlur={autoEdit ? undefined : handleManualSubmit}
+          type="text"
+          value={manualValue}
+          onChange={e => setManualValue(e.target.value)}
+          onBlur={handleManualSubmit}
           onKeyDown={e => {
-            if (e.key === 'Enter' && !autoEdit) handleManualSubmit()
+            if (e.key === 'Enter') handleManualSubmit()
             if (e.key === 'Escape') {
               setIsManualEntry(false)
               setManualValue('')
             }
           }}
-          placeholder={autoEdit ? '' : 'Enter date (e.g., 1/15/2026)'}
+          placeholder="Enter date (e.g., 1/15/2026)"
           autoFocus
           name={name}
           id={id}

@@ -7,6 +7,14 @@
     <meta name="theme-color" content="#1f2937" />
     <meta name="description" content="Rock On! - Mobile-first band management platform" />
 
+    <!-- Fonts: Geist (UI) + JetBrains Mono (stats/tempo/keys/IDs) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
     <!-- Prevent HTML caching -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
@@ -19,9 +27,11 @@
     <!-- Mobile console for debugging - only in local dev mode -->
     <script>
       // Add mobile console viewer in development only
-      // Only load on localhost with dev server port (5173)
+      // Only load on localhost with dev server port (5173).
+      // Skip under automation (Playwright sets navigator.webdriver) — the eruda
+      // launcher floats bottom-right and intercepts clicks on the bottom-nav "More" tab.
       var isLocalDev = window.location.hostname === 'localhost' && window.location.port === '5173';
-      if (isLocalDev) {
+      if (isLocalDev && !navigator.webdriver) {
         var script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/eruda';
         document.body.appendChild(script);

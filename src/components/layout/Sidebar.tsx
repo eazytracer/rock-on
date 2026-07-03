@@ -1,6 +1,8 @@
 import React from 'react'
 import {
+  Home,
   Calendar,
+  CalendarDays,
   ListMusic,
   Ticket,
   Disc3,
@@ -10,10 +12,12 @@ import {
   Wifi,
   WifiOff,
   Radio,
+  Bell,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 // PHASE 2: Connection status indicator
 import { useSyncStatus } from '../../hooks/useSyncStatus'
+import { useUnreadCount } from '../../hooks/useNotifications'
 
 interface SidebarProps {
   currentPath: string
@@ -54,13 +58,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNavigate,
 }) => {
   const navigate = useNavigate()
+  const unreadCount = useUnreadCount()
 
   // PHASE 2: Get sync status for connection indicator
   const { isOnline, isSyncing, pendingCount, lastSyncTime } = useSyncStatus()
 
   const navItems: NavItem[] = [
+    { label: 'Home', path: '/', icon: <Home size={20} /> },
     { label: 'Songs', path: '/songs', icon: <Disc3 size={20} /> },
     { label: 'Setlists', path: '/setlists', icon: <ListMusic size={20} /> },
+    { label: 'Calendar', path: '/calendar', icon: <CalendarDays size={20} /> },
     { label: 'Shows', path: '/shows', icon: <Ticket size={20} /> },
     { label: 'Practices', path: '/practices', icon: <Calendar size={20} /> },
     { label: 'Band Members', path: '/band-members', icon: <Users size={20} /> },
@@ -82,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand Header & Connection Status */}
       <div className="pb-3 mb-3 border-b border-[#1f1f1f]">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-lg">R</span>
           </div>
           <div className="flex-1 min-w-0">
@@ -145,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }
             `}
           >
-            <span className={isActive(item.path) ? 'text-blue-500' : ''}>
+            <span className={isActive(item.path) ? 'text-accent' : ''}>
               {item.icon}
             </span>
             <span className="flex-1 text-left">{item.label}</span>
@@ -160,6 +167,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Bottom Actions */}
       <div className="space-y-1 pt-4 border-t border-[#1f1f1f]">
+        <button
+          onClick={() => handleNavigation('/notifications')}
+          data-testid="notifications-link"
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+            isActive('/notifications')
+              ? 'bg-[#252525] text-white'
+              : 'text-[#a0a0a0] hover:bg-[#1f1f1f] hover:text-white'
+          }`}
+        >
+          <span className="relative">
+            <Bell
+              size={20}
+              className={isActive('/notifications') ? 'text-accent' : ''}
+            />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 flex items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </span>
+          <span className="flex-1 text-left">Notifications</span>
+        </button>
         <button
           onClick={() => handleNavigation('/settings')}
           data-testid="settings-link"

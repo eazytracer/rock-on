@@ -511,7 +511,9 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   // unsaved-changes dialog's "Save" path. Throws on validation failure so
   // the dialog stays open.
   const doSave = async (): Promise<void> => {
-    if (!formData.title || !formData.artist || !formData.key) {
+    // Key is optional — users adding a song quickly (e.g. from an event) shouldn't
+    // have to look it up first. Only title + artist are required.
+    if (!formData.title || !formData.artist) {
       throw new Error('Required fields missing')
     }
 
@@ -767,9 +769,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
 
               {/* Key */}
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">
-                  Key <span className="text-[#D7263D]">*</span>
-                </label>
+                <label className="block text-sm text-[#a0a0a0] mb-2">Key</label>
                 <button
                   type="button"
                   id="song-key"
@@ -782,7 +782,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                       formData.key ? 'text-white font-medium' : 'text-[#505050]'
                     }
                   >
-                    {formData.key || 'Select'}
+                    {formData.key || 'Optional'}
                   </span>
                   <Music
                     size={18}

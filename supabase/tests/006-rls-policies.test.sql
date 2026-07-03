@@ -13,7 +13,7 @@ begin;
 -- on users/user_profiles/songs for jam coparticipants; new insert policy on jam_song_matches
 -- for participants (recompute writes). Counts updated; renamed users_select_authenticated
 -- → users_select_self.
-select plan(114);
+select plan(116);
 
 -- ============================================================================
 -- RLS Enabled Tests (17 tables)
@@ -503,8 +503,18 @@ select is(
 
 select is(
   tests.policy_count('user_profiles'),
-  4,
-  'user_profiles table should have exactly 4 policies (own select + jam-coparticipant select + insert + update)'
+  6,
+  'user_profiles table should have exactly 6 policies (own select + jam-coparticipant select + insert + update + friends discoverable + friend select)'
+);
+
+-- Friends feature (mobile-redesign-port) added discoverable + friend visibility.
+select ok(
+  tests.policy_exists('user_profiles', 'user_profiles_select_discoverable'),
+  'user_profiles_select_discoverable policy should exist (Friends: opt-in discovery)'
+);
+select ok(
+  tests.policy_exists('user_profiles', 'user_profiles_select_friend'),
+  'user_profiles_select_friend policy should exist (Friends: see your friends'' profiles)'
 );
 
 select is(

@@ -1,0 +1,219 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, UserPlus, Check, X, Copy, UserMinus } from 'lucide-react'
+import { useFriends } from '../hooks/useFriends'
+import { useToast } from '../contexts/ToastContext'
+import { Avatar } from '../components/common/Avatar'
+import { Eyebrow } from '../components/common/Eyebrow'
+import { EmptyState } from '../components/common/EmptyState'
+import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { Users } from 'lucide-react'
+
+/**
+ * Friends (mobile-redesign-port P11).
+ * Friends list · incoming requests · add-by-code · your friend code + discovery toggle.
+ */
+export function FriendsPage() {
+  const navigate = useNavigate()
+  const { showToast } = useToast()
+  const {
+    friends,
+    incoming,
+    profile,
+    loading,
+    accept,
+    decline,
+    unfriend,
+    sendToCode,
+    setDiscoverable,
+  } = useFriends()
+  const [code, setCode] = useState('')
+  const [sending, setSending] = useState(false)
+
+  const handleAdd = async () => {
+    if (!code.trim()) return
+    setSending(true)
+    const res = await sendToCode(code)
+    setSending(false)
+    if (res.ok) {
+      showToast(`Friend request sent to ${res.name}`, 'success')
+      setCode('')
+    } else {
+      showToast(res.error ?? 'Could not send request', 'error')
+    }
+  }
+
+  const copyCode = () => {
+    if (profile?.friendCode) {
+      void navigator.clipboard?.writeText(profile.friendCode)
+      showToast('Friend code copied', 'success')
+    }
+  }
+
+  return (
+    <div data-testid="friends-page">
+      <button
+        onClick={() => navigate(-1)}
+        data-testid="friends-back"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink-1"
+      >
+        <ArrowLeft size={16} /> Back
+      </button>
+      <h1 className="text-2xl font-bold text-ink-1">Friends</h1>
+
+      <ContentLoadingSpinner isLoading={loading}>
+        <div className="mt-5 flex flex-col gap-6">
+          {/* Your friend code + discoverability */}
+          <div
+            className="rounded-2xl bg-bg-1 border border-border-1 p-4"
+            data-testid="friends-my-code"
+          >
+            <Eyebrow className="mb-2">Your friend code</Eyebrow>
+            <div className="flex items-center gap-3">
+              <span
+                className="font-mono text-xl font-bold tracking-widest text-ink-1"
+                data-testid="friends-code-value"
+              >
+                {profile?.friendCode || '––––––––'}
+              </span>
+              <button
+                onClick={copyCode}
+                data-testid="friends-copy-code"
+                className="rounded-lg p-2 text-ink-3 hover:text-ink-1 hover:bg-bg-3"
+                aria-label="Copy friend code"
+              >
+                <Copy size={16} />
+              </button>
+            </div>
+            <label className="mt-3 flex items-center justify-between">
+              <span className="text-sm text-ink-3">
+                Discoverable by name
+                <span className="block text-xs text-ink-5">
+                  {profile?.discoverable
+                    ? 'Others can find you by name'
+                    : 'Hidden — reachable by code only'}
+                </span>
+              </span>
+              <button
+                onClick={() => void setDiscoverable(!profile?.discoverable)}
+                data-testid="friends-discoverable-toggle"
+                aria-pressed={!!profile?.discoverable}
+                className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
+                  profile?.discoverable ? 'bg-accent' : 'bg-bg-4'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                    profile?.discoverable
+                      ? 'translate-x-[22px]'
+                      : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
+
+          {/* Add by code */}
+          <div>
+            <Eyebrow className="mb-2">Add a friend</Eyebrow>
+            <div className="flex gap-2">
+              <input
+                value={code}
+                onChange={e => setCode(e.target.value.toUpperCase())}
+                placeholder="Enter friend code"
+                name="friendCode"
+                id="friend-code-input"
+                data-testid="friends-add-input"
+                className="flex-1 rounded-lg bg-bg-1 border border-border-1 px-3 py-2 font-mono text-sm text-ink-1 placeholder:text-ink-5 focus:border-accent focus:outline-none"
+              />
+              <button
+                onClick={handleAdd}
+                disabled={sending || !code.trim()}
+                data-testid="friends-add-button"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent-soft px-3 py-2 text-sm font-medium text-accent disabled:opacity-50"
+              >
+                <UserPlus size={16} /> Send
+              </button>
+            </div>
+          </div>
+
+          {/* Incoming requests */}
+          {incoming.length > 0 && (
+            <div>
+              <Eyebrow className="mb-2">Requests ({incoming.length})</Eyebrow>
+              <div
+                className="flex flex-col gap-2"
+                data-testid="friends-incoming"
+              >
+                {incoming.map(req => (
+                  <div
+                    key={req.id}
+                    className="flex items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-3"
+                    data-testid={`friend-request-${req.id}`}
+                  >
+                    <Avatar label={req.name} size="sm" />
+                    <span className="flex-1 truncate font-medium text-ink-1">
+                      {req.name}
+                    </span>
+                    <button
+                      onClick={() => void accept(req.id)}
+                      data-testid={`friend-accept-${req.id}`}
+                      aria-label="Accept"
+                      className="rounded-lg bg-accent-soft p-2 text-accent hover:brightness-110"
+                    >
+                      <Check size={16} />
+                    </button>
+                    <button
+                      onClick={() => void decline(req.id)}
+                      data-testid={`friend-decline-${req.id}`}
+                      aria-label="Decline"
+                      className="rounded-lg p-2 text-ink-4 hover:text-ink-1 hover:bg-bg-3"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Friends list */}
+          <div>
+            <Eyebrow className="mb-2">Friends ({friends.length})</Eyebrow>
+            {friends.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No friends yet"
+                description="Share your friend code or add someone by theirs."
+                size="md"
+              />
+            ) : (
+              <div className="flex flex-col gap-2" data-testid="friends-list">
+                {friends.map(f => (
+                  <div
+                    key={f.friendshipId}
+                    className="group flex items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-3"
+                    data-testid={`friend-${f.friendshipId}`}
+                  >
+                    <Avatar label={f.name} size="sm" />
+                    <span className="flex-1 truncate font-medium text-ink-1">
+                      {f.name}
+                    </span>
+                    <button
+                      onClick={() => void unfriend(f.friendshipId)}
+                      data-testid={`friend-remove-${f.friendshipId}`}
+                      aria-label="Remove friend"
+                      className="rounded-lg p-2 text-ink-5 hover:text-danger hover:bg-bg-3"
+                    >
+                      <UserMinus size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </ContentLoadingSpinner>
+    </div>
+  )
+}
