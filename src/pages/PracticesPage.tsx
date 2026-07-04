@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { BandRequiredPrompt } from '../components/common/BandRequiredPrompt'
 import { useToast } from '../contexts/ToastContext'
 import {
   ChevronDown,
@@ -426,6 +427,16 @@ export const PracticesPage: React.FC = () => {
   }
 
   // RENDER
+  // Practices are a band feature — band-less users get a create/join-a-band prompt.
+  if (!currentBandId) {
+    return (
+      <BandRequiredPrompt
+        feature="Practices"
+        testid="practices-band-required"
+      />
+    )
+  }
+
   return (
     <ContentLoadingSpinner isLoading={loading}>
       <div data-testid="practices-page" className="max-w-6xl mx-auto">

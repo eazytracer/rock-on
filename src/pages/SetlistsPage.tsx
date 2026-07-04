@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { BandRequiredPrompt } from '../components/common/BandRequiredPrompt'
 import { useToast } from '../contexts/ToastContext'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import { useConfirm } from '../hooks/useConfirm'
@@ -2023,6 +2024,13 @@ export const SetlistsPage: React.FC = () => {
       console.error('Error saving setlist:', err)
       showToast('Failed to save setlist', 'error')
     }
+  }
+
+  // Setlists are a band feature — band-less users get a create/join-a-band prompt.
+  if (!currentBandId) {
+    return (
+      <BandRequiredPrompt feature="Setlists" testid="setlists-band-required" />
+    )
   }
 
   // If editing, show full-page editor

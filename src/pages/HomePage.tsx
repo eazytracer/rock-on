@@ -8,6 +8,9 @@ import {
   ListMusic,
   ChevronRight,
   Disc3,
+  Users,
+  PartyPopper,
+  UserPlus,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -56,6 +59,7 @@ export function HomePage() {
   const navigate = useNavigate()
   const { currentBandId, currentBand } = useAuth()
   const bandId = currentBandId ?? ''
+  const hasBand = !!currentBandId
 
   const { upcomingShows, loading: showsLoading } = useUpcomingShows(bandId)
   const { upcomingPractices, loading: practicesLoading } =
@@ -67,21 +71,26 @@ export function HomePage() {
   const nextShow = upcomingShows[0]
   const nextPractice = upcomingPractices[0]
 
+  // Songs work for personal accounts too; setlists/shows are band-only.
   const stats: { label: string; value: number; onClick: () => void }[] = [
     { label: 'Songs', value: songs.length, onClick: () => navigate('/songs') },
-    {
-      label: 'Setlists',
-      value: setlists.length,
-      onClick: () => navigate('/setlists'),
-    },
-    {
-      label: 'Upcoming shows',
-      value: upcomingShows.length,
-      onClick: () => navigate('/shows'),
-    },
+    ...(hasBand
+      ? [
+          {
+            label: 'Setlists',
+            value: setlists.length,
+            onClick: () => navigate('/setlists'),
+          },
+          {
+            label: 'Upcoming shows',
+            value: upcomingShows.length,
+            onClick: () => navigate('/shows'),
+          },
+        ]
+      : []),
   ]
 
-  const actions: {
+  const bandActions: {
     label: string
     icon: LucideIcon
     onClick: () => void
@@ -113,6 +122,31 @@ export function HomePage() {
     },
   ]
 
+  // Band-less quick actions steer toward the personal surfaces (songs, events,
+  // friends) — the band-only creation actions are hidden until they have a band.
+  const personalActions: typeof bandActions = [
+    {
+      label: 'Add song',
+      icon: Plus,
+      onClick: () => navigate('/songs'),
+      testid: 'home-action-song',
+    },
+    {
+      label: 'Host an event',
+      icon: PartyPopper,
+      onClick: () => navigate('/events/new'),
+      testid: 'home-action-event',
+    },
+    {
+      label: 'Find friends',
+      icon: UserPlus,
+      onClick: () => navigate('/friends'),
+      testid: 'home-action-friends',
+    },
+  ]
+
+  const actions = hasBand ? bandActions : personalActions
+
   return (
     <div data-testid="home-page" className="max-w-3xl">
       <h1 className="text-2xl font-bold text-ink-1">Home</h1>
@@ -124,108 +158,135 @@ export function HomePage() {
 
       <ContentLoadingSpinner isLoading={loading}>
         <div className="mt-5 flex flex-col gap-4">
-          {/* Next show + next practice */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Eyebrow className="mb-2">Next show</Eyebrow>
-              {nextShow ? (
-                <Card
-                  onClick={() => navigate(`/shows/${nextShow.id}`)}
-                  testid="home-next-show"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-ink-1">
-                      {nextShow.name}
-                    </span>
-                    <Badge
-                      tone={
-                        (SHOW_TONE[nextShow.status as keyof typeof SHOW_TONE] ??
-                          'neutral') as BadgeTone
-                      }
-                    >
-                      {nextShow.status}
-                    </Badge>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
-                    <span className="font-mono text-accent">
-                      {formatCountdown(nextShow.scheduledDate)}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock size={12} />{' '}
-                      {formatShowDate(nextShow.scheduledDate)} ·{' '}
-                      {formatTime12Hour(nextShow.scheduledDate)}
-                    </span>
-                    {(nextShow.venue || nextShow.location) && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin size={12} />{' '}
-                        {nextShow.venue ?? nextShow.location}
-                      </span>
-                    )}
-                  </div>
-                </Card>
-              ) : (
-                <Card
-                  onClick={() => navigate('/shows/new')}
-                  testid="home-next-show-empty"
-                >
-                  <span className="text-sm text-ink-4">
-                    No upcoming shows — book one
-                  </span>
-                </Card>
-              )}
-            </div>
+          {/* Band-less: prompt to unlock band features (shows/setlists/practices) */}
+          {!hasBand && (
+            <button
+              onClick={() => navigate('/get-started')}
+              data-testid="home-create-band"
+              className="flex items-center gap-3 rounded-2xl border border-accent/30 bg-accent-soft p-4 text-left transition-colors hover:border-accent/60"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white">
+                <Users size={20} />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-semibold text-ink-1">
+                  Create or join a band
+                </span>
+                <span className="block text-xs text-ink-4">
+                  Unlock setlists, shows and practices with your bandmates.
+                </span>
+              </span>
+              <ChevronRight size={18} className="text-accent" />
+            </button>
+          )}
 
-            <div>
-              <Eyebrow className="mb-2">Next practice</Eyebrow>
-              {nextPractice ? (
-                <Card
-                  onClick={() => navigate(`/practices/${nextPractice.id}`)}
-                  testid="home-next-practice"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-ink-1">
-                      {formatShowDate(nextPractice.scheduledDate)}
-                    </span>
-                    <Badge
-                      tone={
-                        (PRACTICE_TONE[
-                          nextPractice.status as keyof typeof PRACTICE_TONE
-                        ] ?? 'neutral') as BadgeTone
-                      }
-                    >
-                      {nextPractice.status}
-                    </Badge>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
-                    <span className="font-mono text-accent">
-                      {formatCountdown(nextPractice.scheduledDate)}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock size={12} />{' '}
-                      {formatTime12Hour(nextPractice.scheduledDate)}
-                    </span>
-                    {nextPractice.location && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin size={12} /> {nextPractice.location}
+          {/* Next show + next practice — band-only */}
+          {hasBand && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Eyebrow className="mb-2">Next show</Eyebrow>
+                {nextShow ? (
+                  <Card
+                    onClick={() => navigate(`/shows/${nextShow.id}`)}
+                    testid="home-next-show"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-ink-1">
+                        {nextShow.name}
                       </span>
-                    )}
-                  </div>
-                </Card>
-              ) : (
-                <Card
-                  onClick={() => navigate('/practices/new')}
-                  testid="home-next-practice-empty"
-                >
-                  <span className="text-sm text-ink-4">
-                    No practice scheduled — plan one
-                  </span>
-                </Card>
-              )}
+                      <Badge
+                        tone={
+                          (SHOW_TONE[
+                            nextShow.status as keyof typeof SHOW_TONE
+                          ] ?? 'neutral') as BadgeTone
+                        }
+                      >
+                        {nextShow.status}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
+                      <span className="font-mono text-accent">
+                        {formatCountdown(nextShow.scheduledDate)}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock size={12} />{' '}
+                        {formatShowDate(nextShow.scheduledDate)} ·{' '}
+                        {formatTime12Hour(nextShow.scheduledDate)}
+                      </span>
+                      {(nextShow.venue || nextShow.location) && (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin size={12} />{' '}
+                          {nextShow.venue ?? nextShow.location}
+                        </span>
+                      )}
+                    </div>
+                  </Card>
+                ) : (
+                  <Card
+                    onClick={() => navigate('/shows/new')}
+                    testid="home-next-show-empty"
+                  >
+                    <span className="text-sm text-ink-4">
+                      No upcoming shows — book one
+                    </span>
+                  </Card>
+                )}
+              </div>
+
+              <div>
+                <Eyebrow className="mb-2">Next practice</Eyebrow>
+                {nextPractice ? (
+                  <Card
+                    onClick={() => navigate(`/practices/${nextPractice.id}`)}
+                    testid="home-next-practice"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-ink-1">
+                        {formatShowDate(nextPractice.scheduledDate)}
+                      </span>
+                      <Badge
+                        tone={
+                          (PRACTICE_TONE[
+                            nextPractice.status as keyof typeof PRACTICE_TONE
+                          ] ?? 'neutral') as BadgeTone
+                        }
+                      >
+                        {nextPractice.status}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
+                      <span className="font-mono text-accent">
+                        {formatCountdown(nextPractice.scheduledDate)}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock size={12} />{' '}
+                        {formatTime12Hour(nextPractice.scheduledDate)}
+                      </span>
+                      {nextPractice.location && (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin size={12} /> {nextPractice.location}
+                        </span>
+                      )}
+                    </div>
+                  </Card>
+                ) : (
+                  <Card
+                    onClick={() => navigate('/practices/new')}
+                    testid="home-next-practice-empty"
+                  >
+                    <span className="text-sm text-ink-4">
+                      No practice scheduled — plan one
+                    </span>
+                  </Card>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Quick stats */}
-          <div className="grid grid-cols-3 gap-3">
+          <div
+            className={`grid gap-3 ${stats.length >= 3 ? 'grid-cols-3' : stats.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}
+          >
             {stats.map(s => (
               <button
                 key={s.label}

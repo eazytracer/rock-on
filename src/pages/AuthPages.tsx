@@ -11,6 +11,7 @@ import {
   Users,
   UserPlus,
   Ticket,
+  PartyPopper,
   LogOut,
   Settings,
   Check,
@@ -32,6 +33,7 @@ import {
 // ============================================================================
 import { db } from '../services/database'
 import { BandMembershipService } from '../services/BandMembershipService'
+import { EventService } from '../services/EventService'
 import { useCreateBand } from '../hooks/useBands'
 import { useAuth } from '../contexts/AuthContext'
 import { authService } from '../services/auth/AuthFactory'
@@ -805,6 +807,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
   const navigate = useNavigate()
   const [bandName, setBandName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
+  const [eventCode, setEventCode] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{
@@ -952,6 +955,41 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
     }
   }
 
+  const handleJoinEvent = async () => {
+    if (!eventCode) {
+      setErrors({ eventCode: 'Event code is required' })
+      return
+    }
+
+    setLoading(true)
+    try {
+      if (!user) {
+        throw new Error('No user logged in')
+      }
+
+      const result = await EventService.joinByCode(eventCode)
+      if (!result.ok || !result.eventId) {
+        setLoading(false)
+        setErrors({ eventCode: result.error || 'Failed to join event' })
+        return
+      }
+
+      setLoading(false)
+      setToast({
+        message: `You joined ${result.name || 'the event'}!`,
+        type: 'success',
+      })
+      const eventId = result.eventId
+      setTimeout(() => {
+        navigate(`/events/${eventId}`)
+      }, 1500)
+    } catch (err) {
+      console.error('[handleJoinEvent] Error caught:', err)
+      setErrors({ eventCode: 'Failed to join event. Please try again.' })
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center p-6">
       {toast && (
@@ -969,7 +1007,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
             Get Started with Rock-On
           </h1>
           <p className="text-[#a0a0a0] text-base">
-            Create a band, join one, or just explore on your own
+            Create a band, join one, jump into an event, or explore on your own
           </p>
         </div>
 
@@ -1076,6 +1114,72 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
             >
               Join Band
             </Button>
+          </div>
+        </div>
+
+        {/* Join Event Card — event code (no band required) */}
+        <div className="mt-6 bg-[#1a1a1a] rounded-xl p-8 border border-[#2a2a2a]">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+            <div className="flex items-center gap-4 sm:w-1/2">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-[#f17827ff]/10 rounded-full shrink-0">
+                <PartyPopper size={24} className="text-[#f17827ff]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white mb-1">
+                  Got an event code?
+                </h2>
+                <p className="text-[#a0a0a0] text-sm">
+                  Jump straight into an event you were invited to — no band
+                  required.
+                </p>
+              </div>
+            </div>
+
+            <div className="sm:w-1/2 flex flex-col gap-3">
+              <div>
+                <label htmlFor="event-code" className="sr-only">
+                  Event Code
+                </label>
+                <input
+                  type="text"
+                  id="event-code"
+                  name="eventCode"
+                  data-testid="join-event-code-input"
+                  value={eventCode}
+                  onChange={e => {
+                    setEventCode(e.target.value.toUpperCase())
+                    setErrors({})
+                  }}
+                  placeholder="JAM4567"
+                  className={`
+                    w-full h-11 px-4 bg-[#1a1a1a] border rounded-lg text-white text-sm
+                    font-mono text-center tracking-wider uppercase
+                    placeholder-[#707070] transition-colors
+                    focus:outline-none focus:ring-2
+                    ${
+                      errors.eventCode
+                        ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
+                        : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
+                    }
+                  `}
+                />
+                {errors.eventCode && (
+                  <p className="mt-1 text-sm text-[#D7263D] flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    {errors.eventCode}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={handleJoinEvent}
+                loading={loading}
+                data-testid="join-event-button"
+              >
+                Join Event
+              </Button>
+            </div>
           </div>
         </div>
 

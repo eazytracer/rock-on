@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { BandRequiredPrompt } from '../components/common/BandRequiredPrompt'
 import { useToast } from '../contexts/ToastContext'
 import { DatePicker } from '../components/common/DatePicker'
 import { TimePickerDropdown } from '../components/common/TimePickerDropdown'
@@ -261,6 +262,11 @@ export const ShowsPage: React.FC = () => {
   // ============================================
   // RENDER
   // ============================================
+  // Shows are a band feature — band-less users get a create/join-a-band prompt.
+  if (!currentBandId) {
+    return <BandRequiredPrompt feature="Shows" testid="shows-band-required" />
+  }
+
   return (
     <ContentLoadingSpinner isLoading={loading}>
       <div data-testid="shows-page" className="max-w-6xl mx-auto">

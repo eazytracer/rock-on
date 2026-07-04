@@ -5,33 +5,40 @@ Branch: `feature/events-friends-and-ui-oh-my`.
 
 ---
 
-## ▶ RESUME HERE — Band-less user flow **Phase 2** (fresh context starts here)
+## ▶ Band-less user flow **Phase 2 — ✅ DONE + validated** (LOCAL, uncommitted, held for review)
 
-**Where we are (all committed; tree clean):**
+**All three Phase-2 tasks landed + validated (Playwright live + e2e + pgTAP). Nothing pushed / committed.**
 
-- **Phase 1 DONE + validated** (commit `904f191`, **LOCAL — not pushed**): "has a band" is now a
-  capability, not an auth gate. Personal accounts work end-to-end (signup → "Continue with a personal
-  account" → band-less app). Regression-checked (band users unaffected). Tests updated. Details: see the
-  dated "BAND-LESS USER FLOW Phase 1" entry below + `2026-07-03T17:04_bandless-user-flow-plan.md`.
-- Pushed to origin: `e2931c0` (UI consistency + social-events A+B casting) and `8456578` (band-less design doc).
-- **⚠ `904f191` (Phase 1 auth) is committed but NOT pushed** — decide whether to push before/with Phase 2.
+1. **Event-code join at signup ✅** — new migration `20260703214829_event_code_join.sql`:
+   `join_event_by_code(code)` SECURITY DEFINER RPC (resolves event by short_code, joins caller as
+   **guest**, ON CONFLICT DO NOTHING, returns preview) + `gen_event_code()` (8-char confusable-free) +
+   BEFORE-INSERT trigger auto-coding non-private events. `EventService.joinByCode` + a "Got an event
+   code?" card on GetStartedPage → lands on `/events/:id`. createEvent now defaults `visibility:'unlisted'`.
+   - **Adversarial security review (sub-agent) caught a CRITICAL pre-existing hole** the feature would
+     expose: `event_participants_update` had **no WITH CHECK** → a code-joined guest could `PATCH` their
+     own row to `access_tier='host'` = full event takeover. **Fixed in this migration** (re-issued
+     insert_self + update policies pinning non-manager self-rows to guest/viewer). Also hardened per the
+     review: 8-char codes (2^40) + private events get no code (finding 2). pgTAP `019-...escalation` locks it.
+2. **Band-only empty states ✅** — new `BandRequiredPrompt` component; Setlists/Shows/Practices early-return
+   it when `!currentBandId` (testids `setlists|shows|practices-band-required` + `band-required-cta`). Home:
+   band-only quick actions (New setlist/Schedule practice/Book show) + dead-end next-show/next-practice
+   cards hidden when band-less; shows a `home-create-band` prompt + personal actions (song/event/friends).
+3. **Upgrade path ✅** — band-less → create/join band → `switchBand` sets context; pages flip to full band
+   experience (validated live: /setlists prompt → create band → real page).
 
-**Phase 2 tasks (from `2026-07-03T17:04_bandless-user-flow-plan.md` §Phased plan):**
+**Validation:** type-check ✅ · eslint ✅ (only pre-existing AuthPages db-write warns) · pgTAP **855** ✅ ·
+lint:migrations ✅ · quick **275/275** ✅ · new e2e `tests/e2e/auth/band-less-flow.spec.ts` **5/5** ✅ ·
+existing auth/setlists/layout/shows/bands e2e pass (5 practices/bands failures confirmed **pre-existing** —
+fail on baseline w/ my changes stashed). Live Playwright: event-code join (band-less Priya joins Backyard
+Summer Jam), band prompts on all 3 pages, band-less Home, upgrade path, **band-user regression clean**
+(eric → Demo Band, all actions, no prompts), 0 console errors throughout.
 
-1. **Event-code join at signup** — the security-sensitive piece. Needs a `resolve_event_code(code)`
-   SECURITY DEFINER RPC (a non-participant must find/join an event by code; events RLS blocks that today).
-   Mirror `resolve_friend_code` (in `20260702142222_friends.sql`) + the jam `short_code`/confusable-free
-   alphabet. Then `EventService.joinByCode` + an `EventJoinForm` card on GetStartedPage. **Security-review
-   the RPC first** (adversarial pass like friends/jam/casting). New incremental migration.
-2. **Band-only empty states** — Setlists/Shows/Practices show a "Join or create a band to use this"
-   prompt when `!currentBandId` (DECISION Q1 = show-with-prompt). Hide band-only Home quick actions
-   (New setlist / Schedule practice / Book show) when band-less.
-3. **Upgrade path** — a band-less user creating/joining a band later switches context cleanly
-   (`AuthContext.switchBand` exists).
+**Still open (Phase 3 / follow-ups):** invite→event-code end-to-end (social-events piece C); RPC finding 3
+(low: a joined guest can read the full event row incl. unused `view_token` — narrow via a column view);
+optional throttle on `join_event_by_code`. Phase-1 auth commit `904f191` + this Phase-2 work are **LOCAL,
+not pushed** — decide on push during review.
 
-**Provisional decisions (user confirmed "go ahead"):** Q1 band-only nav = show-with-prompt · Q2 personal
-songs = yes · Q3 = core-first phased. **Local dev:** `npm run start:dev`; login eric@testband.demo / test123.
-**Everything LOCAL** — no `db push --linked`, no remote migration.
+**Local dev:** `npm run start:dev`; login eric@testband.demo / test123; event code **JAM4567**.
 
 ---
 

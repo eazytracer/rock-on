@@ -112,6 +112,9 @@ export class EventService {
         name: input.name.trim(),
         venue: input.venue?.trim() || null,
         scheduled_date: input.scheduledDate.toISOString(),
+        // Unlisted = shareable by code (a short_code is auto-assigned by trigger),
+        // but not publicly listed. This is the social/code-joinable default.
+        visibility: 'unlisted',
       } as never)
       .select('id')
       .maybeSingle()
@@ -129,6 +132,40 @@ export class EventService {
     } as never)
     if (pErr) log.error('createEvent: host participant insert failed', pErr)
     return eventId
+  }
+
+  /**
+   * Join an event by its short_code. Calls the join_event_by_code SECURITY DEFINER
+   * RPC, which resolves the event (bypassing events RLS for the non-participant
+   * lookup) and adds the caller as a 'guest' participant. Returns a minimal preview
+   * so the caller can navigate to the event.
+   */
+  static async joinByCode(
+    code: string
+  ): Promise<{ ok: boolean; eventId?: string; name?: string; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const me = await currentUserId()
+    if (!me) return { ok: false, error: 'Not signed in' }
+    // rpc is untyped here (no generated DB types) — cast the call.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)('join_event_by_code', {
+      p_code: code.trim().toUpperCase(),
+    })
+    if (error) {
+      log.error('join_event_by_code failed', error)
+      return { ok: false, error: 'Could not join. Try again.' }
+    }
+    const match = (
+      data as unknown as {
+        out_event_id: string
+        out_name: string
+        out_host_name: string | null
+        out_scheduled_date: string
+      }[]
+    )?.[0]
+    if (!match) return { ok: false, error: 'No event found for that code' }
+    return { ok: true, eventId: match.out_event_id, name: match.out_name }
   }
 
   static async getEvent(id: string): Promise<EventSummary | null> {
