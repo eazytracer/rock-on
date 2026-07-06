@@ -33,6 +33,7 @@ import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinne
 import { EmptyState } from '../components/common/EmptyState'
 import { SongCastPanel } from '../components/casting/SongCastPanel'
 import { EventCastGrid } from '../components/casting/EventCastGrid'
+import { InviteFriendsSheet } from '../components/events/InviteFriendsSheet'
 import { SHOW_TONE, type BadgeTone } from '../utils/tokens'
 import type { EventVisibility, LineupSource } from '../models/Event'
 
@@ -96,7 +97,8 @@ export function EventDetailContent({
   } = useEventDetail(eventId)
   const { hands, raiseHand, withdrawHand, acceptHand, declineHand } =
     useEventHands(eventId)
-  const { participants } = useEventParticipants(eventId)
+  const { participants, refetch: refetchParticipants } =
+    useEventParticipants(eventId)
 
   const [tab, setTab] = useState<EventTab>('lineup')
   const [title, setTitle] = useState('')
@@ -466,9 +468,16 @@ export function EventDetailContent({
             {/* ── People ─────────────────────────────────────────────── */}
             {tab === 'people' && (
               <div>
-                <Eyebrow className="mb-2">
-                  Participants ({participants.length})
-                </Eyebrow>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <Eyebrow>Participants ({participants.length})</Eyebrow>
+                  {isManager && eventId && (
+                    <InviteFriendsSheet
+                      eventId={eventId}
+                      participantIds={new Set(participants.map(p => p.userId))}
+                      onInvited={refetchParticipants}
+                    />
+                  )}
+                </div>
                 {participants.length === 0 ? (
                   <EmptyState icon={Users} title="No one yet" size="md" />
                 ) : (

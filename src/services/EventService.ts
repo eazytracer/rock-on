@@ -283,6 +283,39 @@ export class EventService {
     }))
   }
 
+  /**
+   * Invite friends to an event as pending-RSVP guests. The host (event manager)
+   * inserting rows for other users is permitted by `event_participants_insert_self`
+   * (the `is_event_manager` branch); co-participant name visibility is already
+   * granted by `users_select_event_coparticipant`. Idempotent — re-inviting an
+   * existing participant is ignored (UNIQUE event_id,user_id).
+   */
+  static async inviteFriends(
+    eventId: string,
+    userIds: string[]
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    if (userIds.length === 0) return { ok: true }
+    const rows = userIds.map(user_id => ({
+      event_id: eventId,
+      user_id,
+      access_tier: 'guest',
+      rsvp: 'pending',
+    }))
+    const { error } = await supabase
+      .from('event_participants')
+      .upsert(rows as never, {
+        onConflict: 'event_id,user_id',
+        ignoreDuplicates: true,
+      })
+    if (error) {
+      log.error('inviteFriends failed', error)
+      return { ok: false, error: error.message }
+    }
+    return { ok: true }
+  }
+
   static async getPendingRequests(eventId: string): Promise<LineupRequest[]> {
     const supabase = getSupabaseClient()
     if (!supabase) return []

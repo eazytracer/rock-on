@@ -15,26 +15,21 @@ export function useEventParticipants(eventId: string | undefined) {
   const [participants, setParticipants] = useState<EventParticipant[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let cancelled = false
+  const refetch = useCallback(async () => {
     if (!eventId) {
       setParticipants([])
       setLoading(false)
       return
     }
-    setLoading(true)
-    EventService.getParticipants(eventId).then(p => {
-      if (!cancelled) {
-        setParticipants(p)
-        setLoading(false)
-      }
-    })
-    return () => {
-      cancelled = true
-    }
+    setParticipants(await EventService.getParticipants(eventId))
+    setLoading(false)
   }, [eventId])
 
-  return { participants, loading }
+  useEffect(() => {
+    void refetch()
+  }, [refetch])
+
+  return { participants, loading, refetch }
 }
 
 /** List of events the current user hosts or participates in. */
