@@ -25,6 +25,10 @@ schema forks — flagged for your review + go-ahead so they get full attention, 
   personal-capable (`3e01fe4`, `cf423fa`)
 - **Tunings DB** — hardened: third-party RLS security review, ownership-lock trigger, full negative
   pgTAP matrix, app↔DB parity (`e4c8240`)
+- **Events + Friends finalize (fork #5)** — event detail tabbed (Lineup·Requests·People·Access),
+  guest raise-a-hand + host resolve, Access controls (visibility/code/QR + suggestion toggles),
+  EventsPage avatar-stack. Schema `b4f40e0` (security-reviewed, 29 pgTAP) + UI `f7b21f5`.
+  Friends already conformed (no change). Playwright round-trip verified.
 
 ---
 
@@ -32,7 +36,7 @@ schema forks — flagged for your review + go-ahead so they get full attention, 
 
 - [ ] **Calendar-parent sidebar nav — RESOLVED: Option A** (DECISIONS D1; spec rows 00 + 07/C2).
       Nest **Shows · Practices · Events** under Calendar; deep-link `/calendar?filter=shows|practices|
-    events`; the Shows/Practices/Events _lists become the Calendar-filtered views_ (segmented
+  events`; the Shows/Practices/Events _lists become the Calendar-filtered views_ (segmented
       All·Shows·Practices·Events agenda), items are pages. **Rewrite `persistent-layout.spec`**
       (`shows-link`/`practices-link` now → `/calendar?filter=…`). Scope ShowsPage/PracticesPage list
       content into the filtered Calendar.
@@ -72,10 +76,13 @@ schema forks — flagged for your review + go-ahead so they get full attention, 
       boolean on songs. New table → grants + RLS (own rows only) + security review + negative tests.
 - [ ] **#4 Song-notes notepad 4-state** — grey/blue/orange/gradient by note contents (batched
       per-song personal-note presence). `[UI]` logic.
-- [ ] **#5 Event casting console** — parts/grid model, **raise-a-hand** `[SCHEMA]`, request→resolve,
-      **Access** tab (visibility/QR + `allow_suggestions`/`auto_approve` `[SCHEMA]`). Biggest fork.
-      RESOLVED (D4): yes — add a hands-raised table + `events.allow_suggestions`/`auto_approve` (amend
-      the events/casting migration; security review + negative tests).
+- [x] **#5 Event casting console** — DONE (2026-07-06). `event_hands` table + `events.allow_suggestions`
+      /`auto_approve` amended into `20260703045901_casting.sql` (local-only); dedicated security review
+      (no Critical/High; folded in its Medium+Low fixes — cross-tenant retarget, resolved_by forgery,
+      slot↔event binding); 29 pgTAP negative/positive tests (`021-event-hands.test.sql`). UI: event
+      detail is tabbed (**Lineup·Requests·People·Access**); guest **raise-a-hand** per part (info-blue) + host accept(→casts)/decline in `SongCastPanel` (event-gated, setlist casting untouched);
+      **Access** tab (visibility tiers, join code+QR+copy, allow-suggestions/auto-approve toggles).
+      Playwright-verified full round-trip (guest raises → host accepts → cast). `[SCHEMA]`✓ `[UI]`✓
 - [ ] **#6 Desktop two-pane layouts** — Home two-column dashboard, Events master/detail, Settings
       left-nav, Friends right-rail. `[UI]`
 - [ ] **#7 C0 anchored `<Dropdown>`** — reusable; **retire the 24 native `<select>`s**. Started as
