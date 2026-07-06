@@ -594,7 +594,8 @@ export const PracticesPage: React.FC = () => {
                   setOpenMenuId={setOpenMenuId}
                   onClick={() => navigate(`/practices/${practice.id}`)}
                   onEdit={() => {
-                    navigate(`/practices/${practice.id}/edit`)
+                    // Canonical surface (D2): view + inline-edit live on PracticeViewPage.
+                    navigate(`/practices/${practice.id}`)
                     setOpenMenuId(null)
                   }}
                   onMarkComplete={() => handleMarkComplete(practice.id)}

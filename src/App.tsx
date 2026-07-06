@@ -1,5 +1,10 @@
 import React, { Suspense, lazy, useEffect, useRef } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
 import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
@@ -39,11 +44,6 @@ const ShowsPage = lazy(() =>
 const PracticesPage = lazy(() =>
   import('./pages/PracticesPage').then(module => ({
     default: module.PracticesPage,
-  }))
-)
-const PracticeBuilderPage = lazy(() =>
-  import('./pages/PracticeBuilderPage').then(module => ({
-    default: module.PracticeBuilderPage,
   }))
 )
 const PracticeViewPage = lazy(() =>
@@ -250,9 +250,11 @@ const AppContent: React.FC = () => {
               path="/practices/:practiceId"
               element={<PracticeViewPage />}
             />
+            {/* Retired PracticeBuilderPage (D2): /edit now redirects to the
+                canonical inline-edit view for any stale links/bookmarks. */}
             <Route
               path="/practices/:practiceId/edit"
-              element={<PracticeBuilderPage />}
+              element={<Navigate to=".." relative="path" replace />}
             />
             <Route
               path="/practices/:practiceId/session"
