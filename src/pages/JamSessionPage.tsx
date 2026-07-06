@@ -44,6 +44,7 @@ import { JamParticipantList } from '../components/jam/JamParticipantList'
 import { JamWatcherList } from '../components/jam/JamWatcherList'
 import { JamMatchList } from '../components/jam/JamMatchList'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { Dropdown } from '../components/common/Dropdown'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import { TabSwitcher } from '../components/common/TabSwitcher'
 import { EmptyState } from '../components/common/EmptyState'
@@ -597,32 +598,36 @@ export const JamSessionPage: React.FC = () => {
                     >
                       Start from a setlist (optional)
                     </label>
-                    <select
+                    <Dropdown
                       data-testid="jam-seed-setlist-select"
-                      id="jam-seed-setlist"
-                      name="jamSeedSetlist"
                       value={seedSetlistId}
-                      onChange={e => setSeedSetlistId(e.target.value)}
+                      onChange={setSeedSetlistId}
                       disabled={personalSetlists.length === 0}
-                      className="w-full px-3 py-2 rounded-lg bg-border-1 border border-border-2 text-white text-sm focus:outline-none focus:border-amber-500 disabled:opacity-50"
-                    >
-                      <option value="">
-                        {personalSetlists.length === 0
-                          ? 'No personal setlists yet'
-                          : 'None — start empty'}
-                      </option>
-                      {personalSetlists.map(sl => {
-                        const songCount = (sl.items ?? []).filter(
-                          i => i.type === 'song' && i.songId
-                        ).length
-                        return (
-                          <option key={sl.id} value={sl.id}>
-                            {sl.name} ({songCount} song
-                            {songCount === 1 ? '' : 's'})
-                          </option>
-                        )
-                      })}
-                    </select>
+                      groups={[
+                        {
+                          options: [
+                            {
+                              value: '',
+                              label:
+                                personalSetlists.length === 0
+                                  ? 'No personal setlists yet'
+                                  : 'None — start empty',
+                            },
+                            ...personalSetlists.map(sl => {
+                              const songCount = (sl.items ?? []).filter(
+                                i => i.type === 'song' && i.songId
+                              ).length
+                              return {
+                                value: sl.id,
+                                label: `${sl.name} (${songCount} song${
+                                  songCount === 1 ? '' : 's'
+                                })`,
+                              }
+                            }),
+                          ],
+                        },
+                      ]}
+                    />
                     {seedSetlistId && (
                       <p className="text-xs text-ink-4 mt-1">
                         The setlist's songs will pre-populate your Setlist tab.

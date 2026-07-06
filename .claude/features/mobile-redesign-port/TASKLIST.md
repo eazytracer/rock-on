@@ -86,9 +86,17 @@ code + this file win.
   now asserts deterministic Title(Z-A) ordering; tuning-filter test sets Drop D via the add-song
   tuning Dropdown then filters; practices `selectOption('all')` → trigger+option clicks. tsc+lint
   clean; migrated controls verified live in Playwright (sort reorders, Drop-D filter → 9 rows).
-  **Remaining selects (~11 files):** ShowsPage, ShowViewPage, SetlistsPage, JamSessionPage,
-  SetlistBuilder, BrowseSongsDrawer, SessionForm, SongContextTabs, EditableField,
-  InlineEditableField, casting/MemberRoleSelector, casting/CastingComparison.
+  **Batch B DONE:** `ShowViewPage` setlist picker (`show-setlist-select`; `__create_new__` option →
+  Dropdown `footerActions` "Create new setlist") and `JamSessionPage` seed-setlist
+  (`jam-seed-setlist-select`; keeps `disabled` when no personal setlists). jam e2e updated to target
+  `-trigger`; 14/14 jam e2e green; both verified live in Playwright (Show picker: 4 setlists + create
+  action; Jam picker: disabled). tsc+lint clean.
+  **Skip (dead code):** ShowsPage's 2 selects live in the `@deprecated ScheduleShowModal` (slated for
+  deletion) — do NOT migrate. SetlistBuilder.tsx is also dead-code (per cleanup list).
+  **Remaining selects (~7 live files):** SetlistsPage (`SetlistEditorPage` status+show selects —
+  ⚠️ duplicate testids `setlist-status-select`/`setlist-show-select` across desktop/mobile, needs
+  unique ids; + one at line ~2193), BrowseSongsDrawer, SessionForm, SongContextTabs, EditableField,
+  InlineEditableField (shared — ripples widely), casting/MemberRoleSelector, casting/CastingComparison.
   NOTE — pre-existing failures (fail on base, NOT caused here, flagged): `songs/crud.spec.ts:260`
   (delete song empty-state) and `practices/crud.spec.ts:113` (practice notes). Also observed:
   "Recently Added" sort can't distinguish same-session adds in E2E (createdDate sync-timestamp

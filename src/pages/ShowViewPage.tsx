@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { Dropdown } from '../components/common/Dropdown'
 import { EntityHeader } from '../components/common/EntityHeader'
 import { InlineEditableField } from '../components/common/InlineEditableField'
 import { SHOW_STATUS_OPTIONS } from '../components/common/InlineStatusBadge'
@@ -786,29 +787,27 @@ export const ShowViewPage: React.FC = () => {
                 <Music size={48} className="text-border-1 mb-3" />
                 <p className="text-ink-4 mb-4">No setlist attached</p>
                 <div className="w-full max-w-md">
-                  <select
-                    value=""
-                    onChange={e => {
-                      if (e.target.value === '__create_new__') {
-                        handleCreateNewSetlist()
-                      } else if (e.target.value) {
-                        handleSetlistChange(e.target.value)
-                      }
-                    }}
-                    className="w-full px-4 py-3 bg-bg-2 border border-border-1 rounded-lg text-white focus:border-accent focus:outline-none"
+                  <Dropdown
                     data-testid="show-setlist-select"
-                  >
-                    <option value="">Select a setlist...</option>
-                    <option value="__create_new__">+ Create new setlist</option>
-                    {availableSetlists.length > 0 && (
-                      <option disabled>───────────</option>
-                    )}
-                    {availableSetlists.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                    value={null}
+                    placeholder="Select a setlist..."
+                    onChange={id => handleSetlistChange(id)}
+                    groups={[
+                      {
+                        options: availableSetlists.map(s => ({
+                          value: s.id,
+                          label: s.name,
+                        })),
+                      },
+                    ]}
+                    footerActions={[
+                      {
+                        label: 'Create new setlist',
+                        icon: <Plus size={15} />,
+                        onClick: handleCreateNewSetlist,
+                      },
+                    ]}
+                  />
                 </div>
               </div>
             ) : (

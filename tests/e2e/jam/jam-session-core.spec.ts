@@ -302,7 +302,9 @@ test.describe('Jam Session — Setlist tab and seed-from-setlist', () => {
     // The seed-setlist picker is rendered on the host-a-jam form. With no
     // personal setlists the dropdown is disabled, but it must still be
     // present so the test confirms the create-flow surface is wired.
-    const seedSelect = page.locator('[data-testid="jam-seed-setlist-select"]')
+    const seedSelect = page.locator(
+      '[data-testid="jam-seed-setlist-select-trigger"]'
+    )
     await expect(seedSelect).toBeVisible({ timeout: 5000 })
   })
 })
