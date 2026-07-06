@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { Dropdown } from '../components/common/Dropdown'
 import { useToast } from '../contexts/ToastContext'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import { useConfirm } from '../hooks/useConfirm'
@@ -1116,23 +1117,25 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
                 <label className="block text-xs text-ink-3 mb-1.5">
                   Status
                 </label>
-                <select
-                  name="status"
-                  id="setlist-status"
-                  data-testid="setlist-status-select"
+                <Dropdown
+                  data-testid="setlist-status-select-mobile"
                   value={editedSetlist.status}
-                  onChange={e =>
+                  onChange={value =>
                     setEditedSetlist({
                       ...editedSetlist,
-                      status: e.target.value as 'draft' | 'active' | 'archived',
+                      status: value as 'draft' | 'active' | 'archived',
                     })
                   }
-                  className="w-full h-9 px-2.5 bg-bg-2 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="archived">Archived</option>
-                </select>
+                  groups={[
+                    {
+                      options: [
+                        { value: 'draft', label: 'Draft' },
+                        { value: 'active', label: 'Active' },
+                        { value: 'archived', label: 'Archived' },
+                      ],
+                    },
+                  ]}
+                />
               </div>
 
               <div>
@@ -1156,24 +1159,25 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
               <label className="block text-xs text-ink-3 mb-1.5">
                 Associated Show
               </label>
-              <select
-                name="associatedShow"
-                id="setlist-show"
-                data-testid="setlist-show-select"
+              <Dropdown
+                data-testid="setlist-show-select-mobile"
                 value={editedSetlist.associatedShow?.id || ''}
-                onChange={e => {
-                  const show = availableShows.find(s => s.id === e.target.value)
+                onChange={value => {
+                  const show = availableShows.find(s => s.id === value)
                   setEditedSetlist({ ...editedSetlist, associatedShow: show })
                 }}
-                className="w-full h-9 px-2.5 bg-bg-2 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none"
-              >
-                <option value="">No show</option>
-                {availableShows.map(show => (
-                  <option key={show.id} value={show.id}>
-                    {show.name} - {show.date}
-                  </option>
-                ))}
-              </select>
+                groups={[
+                  {
+                    options: [
+                      { value: '', label: 'No show' },
+                      ...availableShows.map(show => ({
+                        value: show.id,
+                        label: `${show.name} - ${show.date}`,
+                      })),
+                    ],
+                  },
+                ]}
+              />
             </div>
 
             <div>
@@ -1199,47 +1203,50 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs text-ink-3 mb-2">Status</label>
-              <select
-                name="status"
-                id="setlist-status"
+              <Dropdown
                 data-testid="setlist-status-select"
                 value={editedSetlist.status}
-                onChange={e =>
+                onChange={value =>
                   setEditedSetlist({
                     ...editedSetlist,
-                    status: e.target.value as 'draft' | 'active' | 'archived',
+                    status: value as 'draft' | 'active' | 'archived',
                   })
                 }
-                className="w-full h-10 px-3 bg-bg-2 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-              >
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-              </select>
+                groups={[
+                  {
+                    options: [
+                      { value: 'draft', label: 'Draft' },
+                      { value: 'active', label: 'Active' },
+                      { value: 'archived', label: 'Archived' },
+                    ],
+                  },
+                ]}
+              />
             </div>
 
             <div>
               <label className="block text-xs text-ink-3 mb-2">
                 Associated Show
               </label>
-              <select
-                name="associatedShow"
-                id="setlist-show"
+              <Dropdown
                 data-testid="setlist-show-select"
                 value={editedSetlist.associatedShow?.id || ''}
-                onChange={e => {
-                  const show = availableShows.find(s => s.id === e.target.value)
+                onChange={value => {
+                  const show = availableShows.find(s => s.id === value)
                   setEditedSetlist({ ...editedSetlist, associatedShow: show })
                 }}
-                className="w-full h-10 px-3 bg-bg-2 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-              >
-                <option value="">No show</option>
-                {availableShows.map(show => (
-                  <option key={show.id} value={show.id}>
-                    {show.name} - {show.date}
-                  </option>
-                ))}
-              </select>
+                groups={[
+                  {
+                    options: [
+                      { value: '', label: 'No show' },
+                      ...availableShows.map(show => ({
+                        value: show.id,
+                        label: `${show.name} - ${show.date}`,
+                      })),
+                    ],
+                  },
+                ]}
+              />
             </div>
 
             <div>
@@ -2190,18 +2197,25 @@ export const SetlistsPage: React.FC = () => {
               )}
 
               <div className="flex items-center justify-between gap-4 flex-wrap">
-                <select
-                  value={filterStatus}
-                  onChange={e =>
-                    setFilterStatus(e.target.value as typeof filterStatus)
-                  }
-                  className="h-10 px-4 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                >
-                  <option value="all">All Setlists</option>
-                  <option value="active">Active</option>
-                  <option value="draft">Drafts</option>
-                  <option value="archived">Archived</option>
-                </select>
+                <div className="w-44">
+                  <Dropdown
+                    data-testid="setlists-status-filter"
+                    value={filterStatus}
+                    onChange={value =>
+                      setFilterStatus(value as typeof filterStatus)
+                    }
+                    groups={[
+                      {
+                        options: [
+                          { value: 'all', label: 'All Setlists' },
+                          { value: 'active', label: 'Active' },
+                          { value: 'draft', label: 'Drafts' },
+                          { value: 'archived', label: 'Archived' },
+                        ],
+                      },
+                    ]}
+                  />
+                </div>
 
                 <div className="flex items-center gap-3 flex-1 max-w-md">
                   <div className="relative flex-1">

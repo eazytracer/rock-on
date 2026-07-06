@@ -94,13 +94,18 @@ code + this file win.
   **Batch C DONE:** `BrowseSongsDrawer` (shared across setlist/practice/jam) — tuning filter
   (`browse-songs-tuning-filter`) + setlist filter (`browse-songs-setlist-filter`) → `<Dropdown>`.
   No e2e referenced these; verified live (drawer opens with both, Drop-D filter → 9 rows). tsc+lint clean.
-  **Skip (dead code):** ShowsPage's 2 selects live in the `@deprecated ScheduleShowModal` (slated for
-  deletion) — do NOT migrate. SetlistBuilder.tsx is also dead-code (per cleanup list).
-  **Remaining selects (~5 live files):** SetlistsPage (`SetlistEditorPage` status+show selects —
-  ⚠️ duplicate testids `setlist-status-select`/`setlist-show-select` across desktop/mobile, needs
-  unique ids; + one at line ~2193), SessionForm, SongContextTabs, EditableField,
-  InlineEditableField (shared — ripples widely), casting/MemberRoleSelector, casting/CastingComparison
-  (verify casting comps are live vs the 4 legacy dead ones before migrating).
+  **Batch D DONE:** `SetlistsPage` — all 5 selects → `<Dropdown>`: SetlistEditorPage status+show
+  (desktop `setlist-status-select`/`setlist-show-select`, mobile `-mobile` suffix — **duplicate-testid
+  landmine resolved**) + list-page status filter (`setlists-status-filter`). Verified live in the
+  personal-setlist editor (status/show render + Active selection works); 4/4 personal-setlists e2e green.
+  tsc+lint clean.
+  **Confirmed DEAD CODE — do NOT migrate (unreferenced in src):** `SongContextTabs`, `SessionForm`,
+  `EditableField`, `CastingComparison`; plus ShowsPage's `@deprecated ScheduleShowModal` (2 selects) and
+  `SetlistBuilder.tsx`. These use pre-redesign gray/blue styling and are orphaned.
+  **Remaining LIVE selects (2 files):** `InlineEditableField` (shared — used by ShowViewPage /
+  PracticeViewPage / EntityHeader / SongListItem; ripples widely, migrate carefully) and
+  casting/`MemberRoleSelector` (2 selects: member picker + arrangement; live via SongCastingEditor →
+  SetlistCastingView).
   NOTE — pre-existing failures (fail on base, NOT caused here, flagged): `songs/crud.spec.ts:260`
   (delete song empty-state), `practices/crud.spec.ts:113` (practice notes), and
   `practices/session.spec.ts:29,137,442` (practice session mode). Also observed:
