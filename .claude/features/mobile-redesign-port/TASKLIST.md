@@ -79,38 +79,43 @@ code + this file win.
       without this change) — flagged separately, not caused here.
 - [ ] **#6 Desktop two-pane layouts** — Home two-column dashboard, Events master/detail, Settings
       left-nav, Friends right-rail. Net-new responsive layouts.
-- [~] **#7 Retire the remaining native `<select>`s → C0 `<Dropdown>`** (per-file, in progress).
-  **Batch A DONE:** `SongsPage` (sort `song-sort`, tuning filter `song-tuning-filter`, show filter
-  `song-show-filter`; also added `song-filter-toggle-button` + `song-row-{id}` testids) and
-  `PracticesPage` (filter `practices-filter`). e2e made genuine (were silently skipping): sort test
-  now asserts deterministic Title(Z-A) ordering; tuning-filter test sets Drop D via the add-song
-  tuning Dropdown then filters; practices `selectOption('all')` → trigger+option clicks. tsc+lint
-  clean; migrated controls verified live in Playwright (sort reorders, Drop-D filter → 9 rows).
-  **Batch B DONE:** `ShowViewPage` setlist picker (`show-setlist-select`; `__create_new__` option →
-  Dropdown `footerActions` "Create new setlist") and `JamSessionPage` seed-setlist
-  (`jam-seed-setlist-select`; keeps `disabled` when no personal setlists). jam e2e updated to target
-  `-trigger`; 14/14 jam e2e green; both verified live in Playwright (Show picker: 4 setlists + create
-  action; Jam picker: disabled). tsc+lint clean.
-  **Batch C DONE:** `BrowseSongsDrawer` (shared across setlist/practice/jam) — tuning filter
-  (`browse-songs-tuning-filter`) + setlist filter (`browse-songs-setlist-filter`) → `<Dropdown>`.
-  No e2e referenced these; verified live (drawer opens with both, Drop-D filter → 9 rows). tsc+lint clean.
-  **Batch D DONE:** `SetlistsPage` — all 5 selects → `<Dropdown>`: SetlistEditorPage status+show
-  (desktop `setlist-status-select`/`setlist-show-select`, mobile `-mobile` suffix — **duplicate-testid
-  landmine resolved**) + list-page status filter (`setlists-status-filter`). Verified live in the
-  personal-setlist editor (status/show render + Active selection works); 4/4 personal-setlists e2e green.
-  tsc+lint clean.
-  **Confirmed DEAD CODE — do NOT migrate (unreferenced in src):** `SongContextTabs`, `SessionForm`,
-  `EditableField`, `CastingComparison`; plus ShowsPage's `@deprecated ScheduleShowModal` (2 selects) and
-  `SetlistBuilder.tsx`. These use pre-redesign gray/blue styling and are orphaned.
-  **Remaining LIVE selects (2 files):** `InlineEditableField` (shared — used by ShowViewPage /
-  PracticeViewPage / EntityHeader / SongListItem; ripples widely, migrate carefully) and
-  casting/`MemberRoleSelector` (2 selects: member picker + arrangement; live via SongCastingEditor →
-  SetlistCastingView).
-  NOTE — pre-existing failures (fail on base, NOT caused here, flagged): `songs/crud.spec.ts:260`
-  (delete song empty-state), `practices/crud.spec.ts:113` (practice notes), and
-  `practices/session.spec.ts:29,137,442` (practice session mode). Also observed:
-  "Recently Added" sort can't distinguish same-session adds in E2E (createdDate sync-timestamp
-  propagation) — separate concern, not this migration.
+- [x] **#7 Retire the remaining native `<select>`s → C0 `<Dropdown>`** — DONE (all LIVE selects migrated).
+      Final gate: `type-check` clean · `npm run lint` 0 errors (44 pre-existing warnings) · `npm run build` ✓.
+      **Batch A DONE:** `SongsPage` (sort `song-sort`, tuning filter `song-tuning-filter`, show filter
+      `song-show-filter`; also added `song-filter-toggle-button` + `song-row-{id}` testids) and
+      `PracticesPage` (filter `practices-filter`). e2e made genuine (were silently skipping): sort test
+      now asserts deterministic Title(Z-A) ordering; tuning-filter test sets Drop D via the add-song
+      tuning Dropdown then filters; practices `selectOption('all')` → trigger+option clicks. tsc+lint
+      clean; migrated controls verified live in Playwright (sort reorders, Drop-D filter → 9 rows).
+      **Batch B DONE:** `ShowViewPage` setlist picker (`show-setlist-select`; `__create_new__` option →
+      Dropdown `footerActions` "Create new setlist") and `JamSessionPage` seed-setlist
+      (`jam-seed-setlist-select`; keeps `disabled` when no personal setlists). jam e2e updated to target
+      `-trigger`; 14/14 jam e2e green; both verified live in Playwright (Show picker: 4 setlists + create
+      action; Jam picker: disabled). tsc+lint clean.
+      **Batch C DONE:** `BrowseSongsDrawer` (shared across setlist/practice/jam) — tuning filter
+      (`browse-songs-tuning-filter`) + setlist filter (`browse-songs-setlist-filter`) → `<Dropdown>`.
+      No e2e referenced these; verified live (drawer opens with both, Drop-D filter → 9 rows). tsc+lint clean.
+      **Batch D DONE:** `SetlistsPage` — all 5 selects → `<Dropdown>`: SetlistEditorPage status+show
+      (desktop `setlist-status-select`/`setlist-show-select`, mobile `-mobile` suffix — **duplicate-testid
+      landmine resolved**) + list-page status filter (`setlists-status-filter`). Verified live in the
+      personal-setlist editor (status/show render + Active selection works); 4/4 personal-setlists e2e green.
+      tsc+lint clean.
+      **All user-reachable native `<select>`s are now `<Dropdown>`.** The only native `<select>`s left in
+      the tree are in DEAD/unreachable code (left in place per "don't delete pre-existing dead code"):
+      • `InlineEditableField` has a `select` branch but **no consumer passes `type="select"`** (only
+      text/title/date/time/duration are used) → unreachable.
+      • Legacy casting chain is fully orphaned — `SetlistCastingView` is rendered nowhere, so
+      `SongCastingEditor` → `MemberRoleSelector` + `CastingComparison` are dead (the "4 legacy casting
+      comps"). Live casting is the new event console (#5, `SongCastPanel`/`event_hands`).
+      • Other orphans (unreferenced): `SongContextTabs`, `SessionForm`, `EditableField`, `SetlistBuilder`;
+      ShowsPage's 2 selects live in the `@deprecated ScheduleShowModal`. All use pre-redesign styling.
+      • `utils/tunings.ts` "`<select>`" is a code comment (false positive), not JSX.
+      → If full retirement (incl. deleting these dead comps) is wanted, that's a separate explicit cleanup.
+      NOTE — pre-existing failures (fail on base, NOT caused here, flagged): `songs/crud.spec.ts:260`
+      (delete song empty-state), `practices/crud.spec.ts:113` (practice notes), and
+      `practices/session.spec.ts:29,137,442` (practice session mode). Also observed:
+      "Recently Added" sort can't distinguish same-session adds in E2E (createdDate sync-timestamp
+      propagation) — separate concern, not this migration.
 - [ ] **#10 Notifications cross-context** — items name their band/event; opening switches context
       (depends on the context switcher).
 - [ ] **Setlist builder** — `BrowseSongsDrawer` → desktop-docked panel / mobile bottom-sheet (today a
