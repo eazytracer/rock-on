@@ -174,9 +174,19 @@ code + this file win.
 
 ### Schema (each: amend the feature migration, security review, negative tests, local-only)
 
-- [ ] **#3 Catalog provenance / Source filter** — "from ‹band›" tag, Source filter, Hide/Re-add via a
-      **`song_hidden` JOIN table** (`user_id` + `song_id`) → grants + RLS (own rows only) + security
-      review + negative tests.
+- [~] **#3 Catalog provenance / Source filter** — in progress.
+  **SCHEMA DONE (local-only, held for human prod review):** new migration
+  `20260706192718_song_hidden.sql` — `song_hidden(user_id, song_id, created_date)` PK `(user_id,
+    song_id)`, both FKs `ON DELETE CASCADE`, `idx_song_hidden_user`, grants for authenticated +
+  service_role, RLS **own-rows-only** (SELECT/INSERT-WITH-CHECK/DELETE all `user_id = (select
+    auth.uid())`; no UPDATE policy → immutable). Verified: `supabase db reset` ✓ · `npm run test:db`
+  ✓ (new `022-song-hidden.test.sql`, 19 pgTAP incl. negatives: forge-insert→42501, cross-read→0,
+  cross-delete no-op, owner row survives, runtime UPDATE-denied) · `npm run lint:migrations` ✓.
+  **Security-reviewed by a sub-agent → SHIP** (all 10 checks pass: no cross-tenant read/forge/delete,
+  no RLS recursion, no SECURITY DEFINER surface). Provenance ("from ‹band›") + Source filter derive
+  in-app from `songs.context_id`/`linked_from_song_id` — no schema needed.
+  **FRONTEND REMAINING:** service/hook to read+toggle hides (Supabase-only, not sync-engine), the
+  "from ‹band›" provenance tag, a Source filter, and Hide/Re-add actions on `SongsPage` + e2e.
 
 ### Cleanup / follow-ups
 
