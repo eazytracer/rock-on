@@ -34,13 +34,16 @@ schema forks — flagged for your review + go-ahead so they get full attention, 
 
 ## A. Navigation & IA ← (you asked about this)
 
-- [ ] **Calendar-parent sidebar nav — RESOLVED: Option A** (DECISIONS D1; spec rows 00 + 07/C2).
-      Nest **Shows · Practices · Events** under Calendar; deep-link `/calendar?filter=shows|practices|
-  events`; the Shows/Practices/Events _lists become the Calendar-filtered views_ (segmented
-      All·Shows·Practices·Events agenda), items are pages. **Rewrite `persistent-layout.spec`**
-      (`shows-link`/`practices-link` now → `/calendar?filter=…`). Scope ShowsPage/PracticesPage list
-      content into the filtered Calendar.
-- [ ] **Calendar `?filter=` query-param** reading in `CalendarPage` (paired with the above).
+- [x] **Calendar-parent sidebar nav — DONE (2026-07-06, Option A).** Sidebar nests **Shows · Practices
+      · Events** under Calendar, deep-linking `/calendar?filter=…`; Events moved out of More.
+      `persistent-layout.spec` rewritten (13/13 green). **Also fixed the back-nav bug** (Calendar →
+      new event → Back returns to the Calendar) via a history-aware `useGoBack` + `replace` on create.
+      Standalone `/shows` `/practices` `/events` routes still exist for direct access.
+- [x] **Calendar `?filter=` query-param — DONE.** `CalendarPage` reads + writes `?filter=`.
+- [ ] **D2 modal retirement (remaining):** retire `ScheduleShowModal`/`ShowFormModal`/`PracticeBuilderPage`
+      for the canonical `ShowViewPage`/`PracticeViewPage` (dual-implementation cleanup).
+- [x] **Date/time pickers — DONE.** De-finicked: no double-click-to-type, no duplicate icons,
+      single-click opens, type-ahead field; native inputs dark-themed.
 - [ ] Mobile bottom nav — **unchanged** per spec (Home · Songs · Sets · Calendar · More).
 
 ## B. Add / Edit form layouts ← (you asked about this)
