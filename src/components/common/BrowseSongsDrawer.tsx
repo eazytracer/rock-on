@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { Search, Plus, Clock, Guitar, List } from 'lucide-react'
 import { SlideOutTray } from './SlideOutTray'
+import { Dropdown } from './Dropdown'
 import { Song } from '../../models/Song'
 import { Setlist } from '../../models/Setlist'
 
@@ -160,35 +161,41 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
           </div>
 
           {/* Tuning Filter */}
-          <select
-            value={selectedTuning}
-            onChange={e => setSelectedTuning(e.target.value)}
-            className="w-full h-10 px-3 bg-bg-2 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+          <Dropdown
             data-testid="browse-songs-tuning-filter"
-          >
-            <option value="">All Tunings</option>
-            {availableTunings.map(tuning => (
-              <option key={tuning} value={tuning}>
-                {tuning}
-              </option>
-            ))}
-          </select>
+            value={selectedTuning}
+            onChange={setSelectedTuning}
+            groups={[
+              {
+                options: [
+                  { value: '', label: 'All Tunings' },
+                  ...availableTunings.map(tuning => ({
+                    value: tuning,
+                    label: tuning,
+                  })),
+                ],
+              },
+            ]}
+          />
 
           {/* Setlist Filter */}
           {setlists.length > 0 && (
-            <select
-              value={selectedSetlistId}
-              onChange={e => setSelectedSetlistId(e.target.value)}
-              className="w-full h-10 px-3 bg-bg-2 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+            <Dropdown
               data-testid="browse-songs-setlist-filter"
-            >
-              <option value="">All Songs</option>
-              {setlists.map(setlist => (
-                <option key={setlist.id} value={setlist.id}>
-                  {setlist.name}
-                </option>
-              ))}
-            </select>
+              value={selectedSetlistId}
+              onChange={setSelectedSetlistId}
+              groups={[
+                {
+                  options: [
+                    { value: '', label: 'All Songs' },
+                    ...setlists.map(setlist => ({
+                      value: setlist.id,
+                      label: setlist.name,
+                    })),
+                  ],
+                },
+              ]}
+            />
           )}
 
           {/* Add All from Setlist Button */}

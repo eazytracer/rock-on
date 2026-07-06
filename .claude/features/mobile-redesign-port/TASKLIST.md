@@ -91,14 +91,19 @@ code + this file win.
   (`jam-seed-setlist-select`; keeps `disabled` when no personal setlists). jam e2e updated to target
   `-trigger`; 14/14 jam e2e green; both verified live in Playwright (Show picker: 4 setlists + create
   action; Jam picker: disabled). tsc+lint clean.
+  **Batch C DONE:** `BrowseSongsDrawer` (shared across setlist/practice/jam) — tuning filter
+  (`browse-songs-tuning-filter`) + setlist filter (`browse-songs-setlist-filter`) → `<Dropdown>`.
+  No e2e referenced these; verified live (drawer opens with both, Drop-D filter → 9 rows). tsc+lint clean.
   **Skip (dead code):** ShowsPage's 2 selects live in the `@deprecated ScheduleShowModal` (slated for
   deletion) — do NOT migrate. SetlistBuilder.tsx is also dead-code (per cleanup list).
-  **Remaining selects (~7 live files):** SetlistsPage (`SetlistEditorPage` status+show selects —
+  **Remaining selects (~5 live files):** SetlistsPage (`SetlistEditorPage` status+show selects —
   ⚠️ duplicate testids `setlist-status-select`/`setlist-show-select` across desktop/mobile, needs
-  unique ids; + one at line ~2193), BrowseSongsDrawer, SessionForm, SongContextTabs, EditableField,
-  InlineEditableField (shared — ripples widely), casting/MemberRoleSelector, casting/CastingComparison.
+  unique ids; + one at line ~2193), SessionForm, SongContextTabs, EditableField,
+  InlineEditableField (shared — ripples widely), casting/MemberRoleSelector, casting/CastingComparison
+  (verify casting comps are live vs the 4 legacy dead ones before migrating).
   NOTE — pre-existing failures (fail on base, NOT caused here, flagged): `songs/crud.spec.ts:260`
-  (delete song empty-state) and `practices/crud.spec.ts:113` (practice notes). Also observed:
+  (delete song empty-state), `practices/crud.spec.ts:113` (practice notes), and
+  `practices/session.spec.ts:29,137,442` (practice session mode). Also observed:
   "Recently Added" sort can't distinguish same-session adds in E2E (createdDate sync-timestamp
   propagation) — separate concern, not this migration.
 - [ ] **#10 Notifications cross-context** — items name their band/event; opening switches context
