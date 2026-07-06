@@ -36,7 +36,13 @@ import type { ReferenceLink } from '../../types'
 import type { SpotifyTrack } from '../../services/spotify/SpotifyService'
 import { SpotifyService } from '../../services/spotify/SpotifyService'
 import { detectLinkType } from '../../utils/linkDetection'
-import { builtInTuningLabels } from '../../utils/tunings'
+import {
+  tuningColor,
+  tuningLabel,
+  canonicalTuningId,
+} from '../../utils/tunings'
+import { Dropdown, DropdownGroup } from '../common/Dropdown'
+import { useTunings } from '../../hooks/useTunings'
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges'
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog'
 import { MarkdownField } from '../notes/MarkdownField'
@@ -132,10 +138,53 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     durationSec: sec,
     key: song?.key || '',
     tuning: song?.guitarTuning || 'Standard',
+    tuningId: song?.tuningId ?? (null as string | null),
     bpm: song?.bpm ? String(song.bpm) : '',
     tags: song?.tags?.join(', ') || '',
     notes: song?.notes || '',
   })
+
+  // Custom-tuning picker data (built-ins + the user's customs, from the DB).
+  const { builtins: builtinTunings, customs: customTunings } = useTunings()
+
+  // Legacy songs store only guitarTuning text; once tunings load, resolve the
+  // matching built-in id so saving writes tuning_id (progressive backfill).
+  useEffect(() => {
+    if (formData.tuningId || builtinTunings.length === 0) return
+    const match = builtinTunings.find(
+      t => t.slug === canonicalTuningId(formData.tuning)
+    )
+    if (match) setFormData(f => ({ ...f, tuningId: match.id }))
+  }, [builtinTunings, formData.tuningId, formData.tuning])
+
+  const tuningGroups: DropdownGroup[] = [
+    {
+      label: 'Built-in',
+      options: builtinTunings.map(t => ({
+        value: t.id,
+        label: t.name,
+        color: t.color ?? tuningColor(t.name),
+      })),
+    },
+    ...(customTunings.length
+      ? [
+          {
+            label: 'Your tunings',
+            options: customTunings.map(t => ({
+              value: t.id,
+              label: t.name,
+              color: t.color ?? undefined,
+              tag: 'custom',
+            })),
+          },
+        ]
+      : []),
+  ]
+
+  const handleTuningChange = (id: string) => {
+    const t = [...builtinTunings, ...customTunings].find(x => x.id === id)
+    setFormData(f => ({ ...f, tuningId: id, tuning: t?.name ?? f.tuning }))
+  }
 
   // Circle of Fifths visibility state
   const [showCircleOfFifths, setShowCircleOfFifths] = useState(false)
@@ -538,6 +587,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           duration,
           key: formData.key,
           guitarTuning: formData.tuning,
+          tuningId: formData.tuningId,
           bpm: parseInt(formData.bpm) || 0,
           tags,
           notes: formData.notes || undefined,
@@ -560,6 +610,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           duration,
           key: formData.key,
           guitarTuning: formData.tuning,
+          tuningId: formData.tuningId,
           bpm: parseInt(formData.bpm) || 0,
           tags,
           notes: formData.notes || undefined,
@@ -749,22 +800,46 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                 >
                   Tuning
                 </label>
-                <select
-                  name="tuning"
-                  id="song-tuning"
-                  data-testid="song-tuning-select"
-                  value={formData.tuning}
-                  onChange={e =>
-                    setFormData({ ...formData, tuning: e.target.value })
-                  }
-                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                >
-                  {builtInTuningLabels().map(label => (
-                    <option key={label} value={label}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                <div data-testid="song-tuning-select">
+                  <Dropdown
+                    data-testid="song-tuning"
+                    value={formData.tuningId}
+                    onChange={handleTuningChange}
+                    groups={tuningGroups}
+                    placeholder="Choose a tuning"
+                    renderTriggerLabel={opt => {
+                      // Selected DB tuning → its dot + name. Legacy song with only
+                      // a guitarTuning label (id not yet resolved) → show that label.
+                      const color = opt
+                        ? opt.color
+                        : formData.tuning
+                          ? tuningColor(formData.tuning)
+                          : undefined
+                      const label = opt
+                        ? opt.label
+                        : formData.tuning
+                          ? tuningLabel(formData.tuning)
+                          : null
+                      if (!label)
+                        return (
+                          <span className="text-ink-4 truncate">
+                            Choose a tuning
+                          </span>
+                        )
+                      return (
+                        <>
+                          {color && (
+                            <span
+                              className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                          )}
+                          <span className="truncate">{label}</span>
+                        </>
+                      )
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Key */}

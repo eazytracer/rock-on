@@ -71,6 +71,26 @@ export class TuningService {
   }
 
   /**
+   * Fetch every tuning the caller can use: the world-readable built-ins plus
+   * their own customs (personal + their bands'). RLS returns exactly that set in
+   * one query. Used by the song-form picker so every option carries a real id.
+   */
+  static async getAllTunings(): Promise<Tuning[]> {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase
+      .from('tunings')
+      .select('*')
+      .order('is_builtin', { ascending: false })
+      .order('name')
+
+    if (error) {
+      throw new Error(`Failed to fetch tunings: ${error.message}`)
+    }
+
+    return ((data as unknown as TuningRow[]) ?? []).map(mapRow)
+  }
+
+  /**
    * Create a custom tuning. RLS WITH CHECK enforces created_by = auth.uid()
    * and a valid owner (personal-self or band-member) — any violation surfaces.
    */

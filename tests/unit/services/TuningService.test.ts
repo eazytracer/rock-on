@@ -71,6 +71,39 @@ describe('TuningService.getCustomTunings', () => {
   })
 })
 
+describe('TuningService.getAllTunings', () => {
+  it('selects all visible tunings (no is_builtin filter — RLS scopes it)', async () => {
+    h.state.result = {
+      data: [
+        {
+          id: 'b1',
+          is_builtin: true,
+          instrument: 'guitar',
+          string_count: 6,
+          pitches: [],
+          name: 'Standard',
+        },
+        {
+          id: 'c1',
+          is_builtin: false,
+          instrument: 'guitar',
+          string_count: 6,
+          pitches: [],
+          name: 'Mine',
+        },
+      ],
+      error: null,
+    }
+    const out = await TuningService.getAllTunings()
+    expect(h.from).toHaveBeenCalledWith('tunings')
+    // No .eq('is_builtin', …) filter — the whole visible set comes back via RLS.
+    expect(b.eq).not.toHaveBeenCalled()
+    expect(out.map(t => t.id)).toEqual(['b1', 'c1'])
+    expect(out[0].isBuiltin).toBe(true)
+    expect(out[1].isBuiltin).toBe(false)
+  })
+})
+
 describe('TuningService.createCustomTuning', () => {
   const ctx = {
     contextType: 'personal' as const,

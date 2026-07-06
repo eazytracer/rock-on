@@ -46,8 +46,11 @@ redesign work (nav, forms, features). Detail lives in `2026-07-06T01:54_per-page
   (simplicity; they stay band-scoped in personal — switch to a band to view).
 - [~] **#2 Custom tunings** — DB done + hardened. **C0 `<Dropdown>` DONE** (10 tests). **Tuning
   data/model/service/hook DONE** (`BUILTIN_TUNINGS`, `Tuning`, RLS-scoped `TuningService`,
-  `useTunings`; 8 service + 5 data tests). **Next:** song-form picker (writes `tuning_id`) → Settings
-  › Tunings manager + create flow. `[UI]`
+  `useTunings`; 8 service + 5 data tests). **Song-form picker DONE** — EditSongModal native
+  `<select>`→C0 Dropdown (grouped built-in/custom, color dots), writes `tuning_id` + keeps
+  `guitarTuning` fallback, legacy→built-in auto-resolve on edit; Song model `tuning_id` + repo
+  mapping. Verified in Playwright. **Next:** Settings › Tunings manager + create flow + "＋ New
+  tuning" field action. `[UI]`
 - [ ] **#3 Catalog provenance / Source filter** — "from ‹band›" tag, Source filter, Hide/Re-add.
       `[SCHEMA]` (songs `hidden` flag on the personal mirror).
 - [ ] **#4 Song-notes notepad 4-state** — grey/blue/orange/gradient by note contents (batched

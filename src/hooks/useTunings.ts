@@ -1,37 +1,35 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { TuningService } from '../services/TuningService'
-import { BUILTIN_TUNINGS } from '../utils/tunings'
-import type { BuiltinTuning } from '../utils/tunings'
 import type { Tuning } from '../models/Tuning'
 
 /**
- * Provide the tunings available to the current user for an optional instrument:
- * - `builtins`: the static BUILTIN_TUNINGS list (world-readable), filtered by
- *   instrument when provided. Synchronous — no fetch.
- * - `customs`: the caller's custom tunings (personal + their bands'), fetched
- *   via TuningService (RLS-scoped), filtered by instrument when provided.
+ * Tunings available to the current user for an optional instrument, sourced from
+ * the DB in one RLS-scoped query so every entry carries a real id (needed to set
+ * songs.tuning_id):
+ * - `builtins`: the world-readable built-in tunings.
+ * - `customs`: the caller's custom tunings (personal + their bands').
  *
- * `refetch` re-pulls customs after a create/update/delete.
+ * `refetch` re-pulls after a create/update/delete. Offline/errored → empty lists
+ * (callers fall back to the stored `guitarTuning` label for display).
  */
 export function useTunings(instrument?: 'guitar' | 'bass'): {
-  builtins: BuiltinTuning[]
+  builtins: Tuning[]
   customs: Tuning[]
   loading: boolean
   error: Error | null
   refetch: () => Promise<void>
 } {
-  const [allCustoms, setAllCustoms] = useState<Tuning[]>([])
+  const [all, setAll] = useState<Tuning[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   const refetch = useCallback(async () => {
     try {
       setLoading(true)
-      const customs = await TuningService.getCustomTunings()
-      setAllCustoms(customs)
+      setAll(await TuningService.getAllTunings())
       setError(null)
     } catch (err) {
-      console.error('[useTunings] Error fetching custom tunings:', err)
+      console.error('[useTunings] Error fetching tunings:', err)
       setError(err as Error)
     } finally {
       setLoading(false)
@@ -42,20 +40,19 @@ export function useTunings(instrument?: 'guitar' | 'bass'): {
     refetch()
   }, [refetch])
 
-  const builtins = useMemo(
-    () =>
-      instrument
-        ? BUILTIN_TUNINGS.filter(t => t.instrument === instrument)
-        : [...BUILTIN_TUNINGS],
+  const forInstrument = useCallback(
+    (list: Tuning[]) =>
+      instrument ? list.filter(t => t.instrument === instrument) : list,
     [instrument]
   )
 
+  const builtins = useMemo(
+    () => forInstrument(all.filter(t => t.isBuiltin)),
+    [all, forInstrument]
+  )
   const customs = useMemo(
-    () =>
-      instrument
-        ? allCustoms.filter(t => t.instrument === instrument)
-        : allCustoms,
-    [allCustoms, instrument]
+    () => forInstrument(all.filter(t => !t.isBuiltin)),
+    [all, forInstrument]
   )
 
   return { builtins, customs, loading, error, refetch }

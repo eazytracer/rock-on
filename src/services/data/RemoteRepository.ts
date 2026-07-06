@@ -160,6 +160,7 @@ export class RemoteRepository implements IDataRepository {
     if (song.difficulty !== undefined) result.difficulty = song.difficulty
     if (song.guitarTuning !== undefined)
       result.guitar_tuning = song.guitarTuning
+    if (song.tuningId !== undefined) result.tuning_id = song.tuningId
     if (song.notes !== undefined) result.notes = song.notes
     if (song.createdDate !== undefined) result.created_date = song.createdDate
     if (song.lastPracticed !== undefined)
@@ -192,6 +193,7 @@ export class RemoteRepository implements IDataRepository {
       bpm: row.tempo ?? 0, // tempo (Supabase) -> bpm (IndexedDB)
       difficulty: row.difficulty ?? 1,
       guitarTuning: row.guitar_tuning ?? 'Standard', // guitar_tuning (Supabase) -> guitarTuning (IndexedDB)
+      tuningId: row.tuning_id ?? null,
       structure: [], // IndexedDB only - not in Supabase
       lyrics: '', // IndexedDB only - not in Supabase (Supabase has lyrics_url instead)
       chords: [], // IndexedDB only - not in Supabase (Supabase has chords_url instead)
