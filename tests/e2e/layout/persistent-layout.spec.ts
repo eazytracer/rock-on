@@ -74,17 +74,18 @@ test.describe('Persistent Layout', () => {
       await expect(navbar).toBeVisible()
       await expect(page.locator('[data-testid="setlists-page"]')).toBeVisible()
 
-      // Navigate to shows
+      // Navigate to Shows — nested under Calendar, opens the filtered agenda
+      // (Calendar-parent IA: /calendar?filter=shows).
       await page.click('[data-testid="shows-link"]')
-      await page.waitForURL(/\/shows/)
+      await page.waitForURL(/\/calendar\?filter=shows/)
       await expect(navbar).toBeVisible()
-      await expect(page.locator('[data-testid="shows-page"]')).toBeVisible()
+      await expect(page.locator('[data-testid="calendar-page"]')).toBeVisible()
 
-      // Navigate to practices
+      // Navigate to Practices — likewise a Calendar-filtered view
       await page.click('[data-testid="practices-link"]')
-      await page.waitForURL(/\/practices/)
+      await page.waitForURL(/\/calendar\?filter=practices/)
       await expect(navbar).toBeVisible()
-      await expect(page.locator('[data-testid="practices-page"]')).toBeVisible()
+      await expect(page.locator('[data-testid="calendar-page"]')).toBeVisible()
     })
 
     test('sidebar remains visible during navigation between pages', async ({
@@ -107,7 +108,7 @@ test.describe('Persistent Layout', () => {
         await expect(sidebar.first()).toBeVisible()
 
         await page.click('[data-testid="shows-link"]')
-        await page.waitForURL(/\/shows/)
+        await page.waitForURL(/\/calendar\?filter=shows/)
         await expect(sidebar.first()).toBeVisible()
       }
     })
@@ -219,8 +220,9 @@ test.describe('Persistent Layout', () => {
       // Navigate between pages and check that background stays dark
       const navLinks = [
         { link: 'setlists-link', route: '/setlists' },
-        { link: 'shows-link', route: '/shows' },
-        { link: 'practices-link', route: '/practices' },
+        // Shows/Practices are nested under Calendar now (→ /calendar?filter=…)
+        { link: 'shows-link', route: '/calendar' },
+        { link: 'practices-link', route: '/calendar' },
         { link: 'songs-link', route: '/songs' },
       ]
 

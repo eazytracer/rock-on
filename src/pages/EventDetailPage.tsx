@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   MapPin,
@@ -21,6 +21,7 @@ import {
 } from '../hooks/useEvents'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useGoBack } from '../hooks/useGoBack'
 import { EventService } from '../services/EventService'
 import { formatShowDate } from '../utils/dateHelpers'
 import { Avatar } from '../components/common/Avatar'
@@ -70,10 +71,10 @@ type EventTab = 'lineup' | 'requests' | 'people' | 'access'
  * People (participants) · Access (host visibility/code/permissions).
  */
 export function EventDetailPage() {
-  const navigate = useNavigate()
   const { eventId } = useParams<{ eventId: string }>()
   const { showToast } = useToast()
   const { user } = useAuth()
+  const goBack = useGoBack('/calendar?filter=events')
   const {
     event,
     lineup,
@@ -156,11 +157,11 @@ export function EventDetailPage() {
   return (
     <div data-testid="event-detail-page" className="max-w-3xl">
       <button
-        onClick={() => navigate('/events')}
+        onClick={goBack}
         data-testid="event-back"
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink-1"
       >
-        <ArrowLeft size={16} /> Events
+        <ArrowLeft size={16} /> Back
       </button>
 
       <ContentLoadingSpinner isLoading={loading}>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Ticket,
   Calendar as CalendarIcon,
@@ -45,9 +45,19 @@ export function CalendarPage() {
   const navigate = useNavigate()
   const { currentBandId, currentUser } = useAuth()
   const bandId = currentBandId ?? ''
-  // TODO(ui-pass): deferred IA decision — read initial filter from `?filter=` query param
-  // for deep-linking. Not added in the styling pass.
-  const [filter, setFilter] = useState<Filter>('all')
+  // Filter is driven by the `?filter=` query param so the sidebar's Shows /
+  // Practices / Events children deep-link straight to the filtered agenda.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const FILTERS: Filter[] = ['all', 'shows', 'practices', 'events']
+  const paramFilter = searchParams.get('filter') as Filter | null
+  const filter: Filter =
+    paramFilter && FILTERS.includes(paramFilter) ? paramFilter : 'all'
+  const setFilter = (id: Filter) => {
+    const next = new URLSearchParams(searchParams)
+    if (id === 'all') next.delete('filter')
+    else next.set('filter', id)
+    setSearchParams(next, { replace: true })
+  }
   const [newMenuOpen, setNewMenuOpen] = useState(false)
 
   const { shows, loading: showsLoading } = useShows(bandId)

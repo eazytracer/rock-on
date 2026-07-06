@@ -14,7 +14,7 @@ import {
   Radio,
   Bell,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Eyebrow } from '../common/Eyebrow'
 import { ContextSwitcher } from './ContextSwitcher'
 import { useAuth } from '../../contexts/AuthContext'
@@ -45,6 +45,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNavigate,
 }) => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const currentFilter =
+    new URLSearchParams(location.search).get('filter') || 'all'
   const unreadCount = useUnreadCount()
   const friendRequestCount = useIncomingRequestCount()
   const { currentBandId } = useAuth()
@@ -53,23 +56,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Settings. pendingCount kept as a compact inline count when there's a backlog.
   const { isOnline, isSyncing, pendingCount } = useSyncStatus()
 
-  // Mirrors the mobile IA: the first group are the primary tabs (Home · Songs ·
-  // Setlists · Calendar) plus the Calendar time-axis detail views (Shows /
-  // Practices, reached through Calendar on mobile). The "More" group expands the
-  // mobile More hub inline (icons match MorePage for cross-surface consistency).
+  // Calendar is the single time axis (spec row 00): Shows · Practices · Events are
+  // nested under it and deep-link to the pre-filtered agenda (/calendar?filter=…).
   const primaryItems: NavItem[] = [
     { label: 'Home', path: '/', icon: <Home size={20} /> },
     { label: 'Songs', path: '/songs', icon: <Disc3 size={20} /> },
     { label: 'Setlists', path: '/setlists', icon: <ListMusic size={20} /> },
-    { label: 'Calendar', path: '/calendar', icon: <CalendarDays size={20} /> },
-    { label: 'Shows', path: '/shows', icon: <Ticket size={20} /> },
-    { label: 'Practices', path: '/practices', icon: <Calendar size={20} /> },
+  ]
+
+  // Nested under Calendar. Each opens the Calendar filtered to that kind; a child
+  // is also active on its standalone route (/shows, /practices, /events/:id).
+  const calendarChildren: {
+    label: string
+    filter: string
+    route: string
+    icon: React.ReactNode
+    badge?: number
+  }[] = [
+    {
+      label: 'Shows',
+      filter: 'shows',
+      route: '/shows',
+      icon: <Ticket size={18} />,
+    },
+    {
+      label: 'Practices',
+      filter: 'practices',
+      route: '/practices',
+      icon: <Calendar size={18} />,
+    },
+    {
+      label: 'Events',
+      filter: 'events',
+      route: '/events',
+      icon: <PartyPopper size={18} />,
+    },
   ]
 
   const moreItems: NavItem[] = [
     { label: 'Jam', path: '/jam', icon: <Radio size={20} /> },
     { label: 'Band Members', path: '/band-members', icon: <Users size={20} /> },
-    { label: 'Events', path: '/events', icon: <PartyPopper size={20} /> },
     {
       label: 'Friends',
       path: '/friends',
@@ -80,8 +106,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/'
+    if (path === '/calendar') {
+      // Parent highlights only for the unfiltered agenda; children own the filters.
+      return currentPath.startsWith('/calendar') && currentFilter === 'all'
+    }
     return currentPath.startsWith(path)
   }
+
+  const isChildActive = (child: { filter: string; route: string }) =>
+    (currentPath.startsWith('/calendar') && currentFilter === child.filter) ||
+    currentPath.startsWith(child.route)
 
   const handleNavigation = (path: string) => {
     navigate(path)
@@ -159,6 +193,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Navigation Items */}
       <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar-thin">
         {primaryItems.map(renderNavItem)}
+
+        {/* Calendar (parent) + its nested filtered views */}
+        {renderNavItem({
+          label: 'Calendar',
+          path: '/calendar',
+          icon: <CalendarDays size={20} />,
+        })}
+        <div className="ml-4 space-y-1 border-l border-bg-3 pl-2">
+          {calendarChildren.map(child => (
+            <button
+              key={child.route}
+              onClick={() =>
+                handleNavigation(`/calendar?filter=${child.filter}`)
+              }
+              data-testid={`${child.label.toLowerCase()}-link`}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                isChildActive(child)
+                  ? 'bg-bg-4 text-white'
+                  : 'text-ink-3 hover:bg-bg-3 hover:text-white'
+              }`}
+            >
+              <span className={isChildActive(child) ? 'text-accent' : ''}>
+                {child.icon}
+              </span>
+              <span className="flex-1 text-left">{child.label}</span>
+              {child.badge && (
+                <span className="bg-info text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                  {child.badge > 9 ? '9+' : child.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
 
         {/* More — mirrors the mobile bottom-nav "More" hub */}
         <Eyebrow className="px-3 pt-4 pb-1.5" data-testid="sidebar-more-label">

@@ -1,5 +1,5 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGoBack } from '../../hooks/useGoBack'
 import {
   ArrowLeft,
   Calendar,
@@ -97,8 +97,6 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
   isNew,
   'data-testid': testId = 'entity-header',
 }) => {
-  const navigate = useNavigate()
-
   // Get status options based on entity type
   const getStatusOptions = () => {
     if (status?.options) return status.options
@@ -114,10 +112,9 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
     }
   }
 
-  // Handle back navigation
-  const handleBack = () => {
-    navigate(backPath)
-  }
+  // Handle back navigation — history-aware: return to the real referrer (e.g. the
+  // Calendar) when there is in-app history, else fall back to backPath.
+  const handleBack = useGoBack(backPath)
 
   // Format location display
   const locationDisplay = [venue, location].filter(Boolean).join(', ')

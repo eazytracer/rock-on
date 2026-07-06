@@ -522,7 +522,7 @@ export const PracticeViewPage: React.FC = () => {
       <div data-testid="practice-view-page">
         {/* Header with inline editing */}
         <EntityHeader
-          backPath="/practices"
+          backPath="/calendar?filter=practices"
           title={headerTitle}
           titleEditable={false}
           entityType="practice"

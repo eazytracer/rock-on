@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, PartyPopper } from 'lucide-react'
 import { EventService } from '../services/EventService'
 import { useToast } from '../contexts/ToastContext'
+import { useGoBack } from '../hooks/useGoBack'
 import { DatePicker } from '../components/common/DatePicker'
 import { Eyebrow } from '../components/common/Eyebrow'
 import { formatDateForInput, parseDateInputAsLocal } from '../utils/dateHelpers'
@@ -13,6 +14,7 @@ import { formatDateForInput, parseDateInputAsLocal } from '../utils/dateHelpers'
  */
 export function EventCreatePage() {
   const navigate = useNavigate()
+  const goBack = useGoBack('/calendar?filter=events')
   const { showToast } = useToast()
   const [name, setName] = useState('')
   const [venue, setVenue] = useState('')
@@ -30,7 +32,8 @@ export function EventCreatePage() {
     setSaving(false)
     if (id) {
       showToast('Event created', 'success')
-      navigate(`/events/${id}`)
+      // Replace so Back from the new event skips the create form → real referrer.
+      navigate(`/events/${id}`, { replace: true })
     } else {
       showToast('Could not create event', 'error')
     }
@@ -39,11 +42,11 @@ export function EventCreatePage() {
   return (
     <div data-testid="event-create-page">
       <button
-        onClick={() => navigate('/events')}
+        onClick={goBack}
         data-testid="event-create-back"
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink-1"
       >
-        <ArrowLeft size={16} /> Events
+        <ArrowLeft size={16} /> Back
       </button>
       <h1 className="flex items-center gap-2 text-2xl font-bold text-ink-1">
         <PartyPopper size={22} className="text-accent" /> Host an event

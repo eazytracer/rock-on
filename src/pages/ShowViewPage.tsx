@@ -568,7 +568,7 @@ export const ShowViewPage: React.FC = () => {
       <div data-testid="show-view-page">
         {/* Header with inline editing */}
         <EntityHeader
-          backPath="/shows"
+          backPath="/calendar?filter=shows"
           title={show.name}
           onTitleSave={val => saveField('name', String(val))}
           titlePlaceholder="Show name"
