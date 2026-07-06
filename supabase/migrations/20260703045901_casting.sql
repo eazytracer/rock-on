@@ -200,5 +200,166 @@ DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.casting_assignm
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================================
+-- Fork #5 — Casting console: guest raise-a-hand + host Access controls
+-- (mobile-redesign-port; amended into this feature migration — local-only,
+-- unshipped. All statements idempotent.)
+--
+-- Adds:
+--   * events.allow_suggestions / events.auto_approve — the host Access toggles.
+--   * event_hands — a participant raises a hand to play a part (a lineup item +
+--     a role). The host resolves: accept (the app then also casts them via
+--     casting_assignments) or decline. When auto_approve is on, a freshly-raised
+--     hand lands 'accepted' at insert time via a SECURITY DEFINER trigger — no
+--     host review needed.
+--
+-- Security (mirrors the existing casting/events RLS patterns; adversarial-checked):
+--   * SECURITY DEFINER readers owned by postgres → callable inside event_hands
+--     RLS without recursing through events' own RLS.
+--   * A non-manager may only touch their OWN hand and only 'raised'/'withdrawn'
+--     status — they can never self-accept (unless the event auto-approves, which
+--     the trigger + WITH CHECK agree on) and never move someone else's hand.
+--   * Only an event manager (host/cohost) may accept/decline others' hands.
+--   * allow_suggestions gates whether a non-manager can raise a hand at all.
+-- ============================================================================
+
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS allow_suggestions BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS auto_approve      BOOLEAN NOT NULL DEFAULT false;
+
+-- Access-control readers (definer → no RLS recursion through events).
+CREATE OR REPLACE FUNCTION public.event_allows_suggestions(p_event UUID)
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
+  SELECT COALESCE((SELECT allow_suggestions FROM public.events WHERE id = p_event), false);
+$$;
+CREATE OR REPLACE FUNCTION public.event_auto_approve(p_event UUID)
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
+  SELECT COALESCE((SELECT auto_approve FROM public.events WHERE id = p_event), false);
+$$;
+-- Binds a hand's slot to its event (mirrors casting_event_ctx_ok): a WITH CHECK
+-- can't reference OLD, so this keeps a non-manager from smuggling a foreign
+-- lineup item — or retargeting event_id — onto their own hand.
+CREATE OR REPLACE FUNCTION public.event_lineup_item_in_event(p_item UUID, p_event UUID)
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.event_lineup_items
+                 WHERE id = p_item AND event_id = p_event);
+$$;
+
+-- ── event_hands: one row per (lineup item, role, volunteer) ──────────────────
+CREATE TABLE IF NOT EXISTS public.event_hands (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id             UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  event_lineup_item_id UUID NOT NULL REFERENCES public.event_lineup_items(id) ON DELETE CASCADE,
+  role_key             TEXT NOT NULL,                    -- the part they volunteer for
+  user_id              UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_name            TEXT,                             -- display snapshot (durability)
+  note                 TEXT,
+  status               TEXT NOT NULL DEFAULT 'raised'
+                         CHECK (status IN ('raised','accepted','declined','withdrawn')),
+  created_date         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_by          UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  resolved_date        TIMESTAMPTZ,
+  UNIQUE (event_lineup_item_id, role_key, user_id)       -- one hand per person per part
+);
+CREATE INDEX IF NOT EXISTS idx_event_hands_event ON public.event_hands (event_id);
+CREATE INDEX IF NOT EXISTS idx_event_hands_slot  ON public.event_hands (event_lineup_item_id);
+
+-- auto_approve → a freshly-raised hand lands 'accepted' with no host review.
+CREATE OR REPLACE FUNCTION public.on_event_hand_autoapprove()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.status = 'raised' AND public.event_auto_approve(NEW.event_id) THEN
+    NEW.status := 'accepted';
+    NEW.resolved_date := NOW();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_event_hand_autoapprove ON public.event_hands;
+CREATE TRIGGER trg_event_hand_autoapprove
+  BEFORE INSERT ON public.event_hands
+  FOR EACH ROW EXECUTE FUNCTION public.on_event_hand_autoapprove();
+
+-- ── Grants + ownership ───────────────────────────────────────────────────────
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.event_hands TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.event_allows_suggestions(UUID)      TO authenticated;
+GRANT EXECUTE ON FUNCTION public.event_auto_approve(UUID)            TO authenticated;
+GRANT EXECUTE ON FUNCTION public.event_lineup_item_in_event(UUID,UUID) TO authenticated;
+ALTER FUNCTION public.event_allows_suggestions(UUID)      OWNER TO postgres;
+ALTER FUNCTION public.event_auto_approve(UUID)            OWNER TO postgres;
+ALTER FUNCTION public.event_lineup_item_in_event(UUID,UUID) OWNER TO postgres;
+ALTER FUNCTION public.on_event_hand_autoapprove()        OWNER TO postgres;
+
+-- ── RLS ──────────────────────────────────────────────────────────────────────
+ALTER TABLE public.event_hands ENABLE ROW LEVEL SECURITY;
+
+-- SELECT: any event participant — or the host/cohost (manager) even without a
+-- participant row — can see who's raised a hand (collaborative view).
+DROP POLICY IF EXISTS "event_hands_select" ON public.event_hands;
+CREATE POLICY "event_hands_select" ON public.event_hands FOR SELECT TO authenticated
+  USING (
+    public.is_event_participant(event_id, (select auth.uid()))
+    OR public.is_event_manager(event_id, (select auth.uid()))
+  );
+
+-- INSERT: raise your OWN hand, always freshly (resolved_by NULL) and against a
+-- slot that actually belongs to this event. A non-manager must be a participant,
+-- suggestions must be enabled, and status must be 'raised' — or 'accepted' ONLY
+-- when the event auto-approves (exactly what the BEFORE INSERT trigger sets).
+-- A manager may raise their own hand at any status.
+DROP POLICY IF EXISTS "event_hands_insert" ON public.event_hands;
+CREATE POLICY "event_hands_insert" ON public.event_hands FOR INSERT TO authenticated
+  WITH CHECK (
+    user_id = (select auth.uid())
+    AND resolved_by IS NULL
+    AND public.is_event_participant(event_id, (select auth.uid()))
+    AND public.event_lineup_item_in_event(event_lineup_item_id, event_id)
+    AND (
+      public.is_event_manager(event_id, (select auth.uid()))
+      OR (
+        public.event_allows_suggestions(event_id)
+        AND (
+          status = 'raised'
+          OR (status = 'accepted' AND public.event_auto_approve(event_id))
+        )
+      )
+    )
+  );
+
+-- UPDATE: a manager may accept/decline ANY hand; the owner may only move their
+-- OWN hand between 'raised'/'withdrawn' (never self-accept, never forge the
+-- 'resolved_by' attribution). The owner branch re-asserts participation + the
+-- slot↔event binding on the NEW row so a non-manager can't retarget event_id /
+-- event_lineup_item_id to smuggle a hand into another (e.g. public) event —
+-- WITH CHECK can't see OLD, so column immutability must be re-checked here.
+DROP POLICY IF EXISTS "event_hands_update" ON public.event_hands;
+CREATE POLICY "event_hands_update" ON public.event_hands FOR UPDATE TO authenticated
+  USING (
+    public.is_event_manager(event_id, (select auth.uid()))
+    OR user_id = (select auth.uid())
+  )
+  WITH CHECK (
+    public.is_event_manager(event_id, (select auth.uid()))
+    OR (
+      user_id = (select auth.uid())
+      AND status IN ('raised','withdrawn')
+      AND resolved_by IS NULL
+      AND public.is_event_participant(event_id, (select auth.uid()))
+      AND public.event_lineup_item_in_event(event_lineup_item_id, event_id)
+    )
+  );
+
+-- DELETE: the owner (retract) or a manager.
+DROP POLICY IF EXISTS "event_hands_delete" ON public.event_hands;
+CREATE POLICY "event_hands_delete" ON public.event_hands FOR DELETE TO authenticated
+  USING (
+    user_id = (select auth.uid())
+    OR public.is_event_manager(event_id, (select auth.uid()))
+  );
+
+-- Realtime (the host console sees hands go up live).
+ALTER TABLE public.event_hands REPLICA IDENTITY FULL;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.event_hands;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ============================================================================
 -- Migration Complete
 -- ============================================================================
