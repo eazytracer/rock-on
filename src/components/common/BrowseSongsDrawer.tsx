@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { Search, Plus, Clock, Guitar, List } from 'lucide-react'
 import { SlideOutTray } from './SlideOutTray'
+import { useViewport } from '../../hooks/useResponsive'
 import { Dropdown } from './Dropdown'
 import { Song } from '../../models/Song'
 import { Setlist } from '../../models/Setlist'
@@ -47,6 +48,8 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
   setlists = [],
   onAddAllFromSetlist,
 }) => {
+  // Mobile → bottom-sheet; desktop → docked right panel (was a 480px overlay everywhere).
+  const { isMobile } = useViewport()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTuning, setSelectedTuning] = useState('')
   const [selectedSetlistId, setSelectedSetlistId] = useState('')
@@ -139,7 +142,9 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Browse Songs"
+      position={isMobile ? 'bottom' : 'right'}
       width="480px"
+      maxHeight="85vh"
     >
       <div className="flex flex-col h-full">
         {/* Search and Filters */}

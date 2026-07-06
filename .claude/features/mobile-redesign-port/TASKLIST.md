@@ -124,8 +124,14 @@ code + this file win.
       `switchBand` on open before navigating) is buildable but **cannot be verified end-to-end without
       backend payload data** — needs either a seed-payload + minting decision from the human first, or
       scope it as frontend-only-defensive. Deferred pending that call.
-- [ ] **Setlist builder** — `BrowseSongsDrawer` → desktop-docked panel / mobile bottom-sheet (today a
-      480px overlay everywhere). Shared component (3 pages).
+- [x] **Setlist builder** — `BrowseSongsDrawer` responsive — DONE. Now picks its `SlideOutTray`
+      `position` via `useViewport().isMobile`: **mobile (<768px) → bottom-sheet** (grab handle, rounded
+      top, 85vh) and **desktop → right side panel** (480px, unchanged) — was a 480px right overlay on
+      every viewport (unusable on a 390px screen). One shared component, so all 3 consumers (setlist /
+      practice / jam) get it. tsc+lint clean; verified live at 1280px (panel) + 390px (bottom-sheet),
+      add-song still works in the sheet; practices/crud e2e green (only the pre-existing :113 fails).
+      NOTE: interpreted "docked" as the existing side-panel overlay; true layout-docking (content
+      reflows to make room) would be a larger cross-page change — separate follow-up if wanted.
 - [x] **Event create** — desktop centered modal — DONE. `EventCreatePage` form wrapped in a centered
       card (`max-w-lg` + `sm:` card chrome: `sm:bg-bg-2 sm:border sm:rounded-2xl sm:p-8 sm:shadow-xl`),
       so desktop reads as a floating modal while mobile stays full-bleed. All testids/handlers
