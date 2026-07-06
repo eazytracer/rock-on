@@ -4,7 +4,8 @@ Branch: `feature/events-friends-and-ui-oh-my`. Living checklist covering **all**
 redesign work (nav, forms, features). Detail lives in `2026-07-06T01:54_per-page-sync-tasklist.md`
 
 - `2026-07-06T02:20_part2-progress.md`. **Flags:** `[SCHEMA]` needs a migration (local-only, held
-  for review before prod) · `[DECISION]` needs your call · `[UI]` I'll show in Playwright before commit.
+  for review before prod) · `[DECISION]` needs your call — **the actual questions + options are in
+  [`DECISIONS.md`](./DECISIONS.md)** (answer there) · `[UI]` I'll show in Playwright before commit.
 
 ---
 

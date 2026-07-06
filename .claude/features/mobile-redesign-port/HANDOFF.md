@@ -88,7 +88,10 @@ song-notes 4-state notepad (#4). Then the [SCHEMA] forks (#3 source-filter `song
 #9 practice enrichment, #5 casting) — these are approved but each needs a migration (amend the
 right feature file), a security review, and negative tests, per §2.
 
-## 5. DECISIONS awaiting the human — DO NOT proceed on these without answers
+## 5. DECISIONS awaiting the human — DO NOT proceed without answers
+The questions, options, and the human's answers live in
+`.claude/features/mobile-redesign-port/DECISIONS.md`. Read that file; if an item's `ANSWER:`
+line is blank, skip that work and leave a note. Summary of what's blocked:
 1. Adopt the Calendar-parent sidebar nav (nest Shows/Practices/Events, deep-link
    `/calendar?filter=…`)? It changes nav semantics and rewrites `tests/e2e/layout/
    persistent-layout.spec.ts` (which asserts `shows-link`→`/shows`).
