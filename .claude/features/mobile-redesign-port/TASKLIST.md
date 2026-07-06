@@ -117,10 +117,20 @@ code + this file win.
       "Recently Added" sort can't distinguish same-session adds in E2E (createdDate sync-timestamp
       propagation) — separate concern, not this migration.
 - [ ] **#10 Notifications cross-context** — items name their band/event; opening switches context
-      (depends on the context switcher).
+      (depends on the context switcher). ⚠️ **BLOCKED / under-specified:** notifications are
+      Supabase-only with `payload JSONB DEFAULT '{}'`; seed rows leave `payload` empty and there is NO
+      live minting path that populates band/event ids or names (INSERT is service_role-only, currently
+      only seed data exists). The frontend half (read `payload.bandId`/`eventId`, show a chip, call
+      `switchBand` on open before navigating) is buildable but **cannot be verified end-to-end without
+      backend payload data** — needs either a seed-payload + minting decision from the human first, or
+      scope it as frontend-only-defensive. Deferred pending that call.
 - [ ] **Setlist builder** — `BrowseSongsDrawer` → desktop-docked panel / mobile bottom-sheet (today a
       480px overlay everywhere). Shared component (3 pages).
-- [ ] **Event create** — desktop centered modal (today full page). Minor.
+- [x] **Event create** — desktop centered modal — DONE. `EventCreatePage` form wrapped in a centered
+      card (`max-w-lg` + `sm:` card chrome: `sm:bg-bg-2 sm:border sm:rounded-2xl sm:p-8 sm:shadow-xl`),
+      so desktop reads as a floating modal while mobile stays full-bleed. All testids/handlers
+      unchanged. tsc+lint clean; verified live at 1280px (card) + 390px (full-bleed) and end-to-end
+      create flow (fills → navigates to `/events/:id`).
 - [ ] **Casting depth (optional)** — EC1 **Grid/matrix** view (songs × parts); EC2 **request→resolve**
       catalog-linking (approving a guest song request currently always tags it "Not linked").
 
