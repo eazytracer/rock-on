@@ -77,8 +77,17 @@ code + this file win.
       Playwright (injected+removed test notes); markdown-notes/personal-mirroring e2e green.
       NOTE: `crud.spec.ts:260 "member can delete song"` fails but is **pre-existing** (fails on base
       without this change) — flagged separately, not caused here.
-- [ ] **#6 Desktop two-pane layouts** — Home two-column dashboard, Events master/detail, Settings
-      left-nav, Friends right-rail. Net-new responsive layouts.
+- [~] **#6 Desktop two-pane layouts** — Home two-column dashboard, Events master/detail, Settings
+  left-nav, Friends right-rail. Net-new responsive layouts. (per-sub-layout, in progress)
+  **Settings left-nav DONE:** `SettingsPage` desktop `lg:grid lg:grid-cols-[200px_1fr]` with a
+  sticky left section-nav (`settings-nav`, items `settings-nav-{id}`) using an IntersectionObserver
+  **scroll-spy** (highlights the in-view section) + click-to-scroll. Chose scroll-spy over
+  "only-active-section" so **all sections stay rendered** → the existing settings e2e (which asserts
+  multiple sections at once) is unaffected. Mobile keeps the stacked layout (nav `hidden lg:block`).
+  Section anchors added (`settings-account/tunings/privacy/app-info/developer`, `scroll-mt-4`).
+  tsc+lint clean; verified live at 1280px (nav + spy jump) and 390px (stacked, nav hidden);
+  settings e2e identical to base (16 pass, same pre-existing 3 delete-account-workflow fails).
+  **Remaining sub-layouts:** Home two-column dashboard, Events master/detail, Friends right-rail.
 - [x] **#7 Retire the remaining native `<select>`s → C0 `<Dropdown>`** — DONE (all LIVE selects migrated).
       Final gate: `type-check` clean · `npm run lint` 0 errors (44 pre-existing warnings) · `npm run build` ✓.
       **Batch A DONE:** `SongsPage` (sort `song-sort`, tuning filter `song-tuning-filter`, show filter
