@@ -64,9 +64,11 @@ code + this file win.
 
 ### UI (no schema)
 
-- [ ] **#8 Onboarding — "Just me" first-class** (D3=yes). Make solo the top option on `GetStartedPage`
-      (`src/pages/AuthPages.tsx`), "OR WITH A BAND" divider below; **preserve testids**
-      (`personal-account-button`, `create-band-button`, `join-band-button`). Low-risk reorder.
+- [x] **#8 Onboarding — "Just me" first-class** (D3=yes). DONE. `GetStartedPage` reordered
+      (`src/pages/AuthPages.tsx`): "Just me" primary card at top (accent border, `Continue solo`
+      → `personal-account-button`), event-code card next (both no-band), **"OR WITH A BAND"** divider,
+      then Create/Join band grid. All testids preserved. type-check + lint clean; e2e green
+      (band-less-flow, protected-routes, create-band, join-band, signup); Playwright visual verified.
 - [ ] **#4 Song-notes notepad 4-state** — grey (none) / `info` (personal) / `accent` (band) / gradient
       (both) by note contents; batch per-song personal-note presence to avoid N-queries. `[UI]` logic.
 - [ ] **#6 Desktop two-pane layouts** — Home two-column dashboard, Events master/detail, Settings

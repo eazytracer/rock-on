@@ -1005,11 +1005,115 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
             Get Started with Rock-On
           </h1>
           <p className="text-ink-3 text-base">
-            Create a band, join one, jump into an event, or explore on your own
+            Start on your own, jump into an event, or team up with a band
           </p>
         </div>
 
-        {/* Cards */}
+        {/* Just me — first-class solo path (no band required) */}
+        <div className="bg-bg-2 rounded-xl p-8 border border-accent/40 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+            <div className="flex items-center gap-4 sm:flex-1">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-accent/10 rounded-full shrink-0">
+                <User size={24} className="text-accent" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white mb-1">Just me</h2>
+                <p className="text-ink-3 text-sm">
+                  Start solo — host events, add friends, and build a personal
+                  song list. Create or join a band anytime.
+                </p>
+              </div>
+            </div>
+
+            <div className="sm:w-56 shrink-0">
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={() => navigate('/')}
+                data-testid="personal-account-button"
+              >
+                Continue solo
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Join Event Card — event code (no band required) */}
+        <div className="bg-bg-2 rounded-xl p-8 border border-border-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+            <div className="flex items-center gap-4 sm:w-1/2">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-accent/10 rounded-full shrink-0">
+                <PartyPopper size={24} className="text-accent" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white mb-1">
+                  Got an event code?
+                </h2>
+                <p className="text-ink-3 text-sm">
+                  Jump straight into an event you were invited to — no band
+                  required.
+                </p>
+              </div>
+            </div>
+
+            <div className="sm:w-1/2 flex flex-col gap-3">
+              <div>
+                <label htmlFor="event-code" className="sr-only">
+                  Event Code
+                </label>
+                <input
+                  type="text"
+                  id="event-code"
+                  name="eventCode"
+                  data-testid="join-event-code-input"
+                  value={eventCode}
+                  onChange={e => {
+                    setEventCode(e.target.value.toUpperCase())
+                    setErrors({})
+                  }}
+                  placeholder="JAM4567"
+                  className={`
+                    w-full h-11 px-4 bg-bg-2 border rounded-lg text-white text-sm
+                    font-mono text-center tracking-wider uppercase
+                    placeholder-ink-4 transition-colors
+                    focus:outline-none focus:ring-2
+                    ${
+                      errors.eventCode
+                        ? 'border-danger focus:border-danger focus:ring-danger/20'
+                        : 'border-border-1 focus:border-accent focus:ring-accent/20'
+                    }
+                  `}
+                />
+                {errors.eventCode && (
+                  <p className="mt-1 text-sm text-danger flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    {errors.eventCode}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={handleJoinEvent}
+                loading={loading}
+                data-testid="join-event-button"
+              >
+                Join Event
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* OR WITH A BAND divider */}
+        <div className="flex items-center gap-4 my-8">
+          <div className="flex-1 h-px bg-border-1" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-4">
+            Or with a band
+          </span>
+          <div className="flex-1 h-px bg-border-1" />
+        </div>
+
+        {/* Band cards */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Create Band Card */}
           <div className="bg-bg-2 rounded-xl p-8 border border-border-1">
@@ -1113,90 +1217,6 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
               Join Band
             </Button>
           </div>
-        </div>
-
-        {/* Join Event Card — event code (no band required) */}
-        <div className="mt-6 bg-bg-2 rounded-xl p-8 border border-border-1">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-            <div className="flex items-center gap-4 sm:w-1/2">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-accent/10 rounded-full shrink-0">
-                <PartyPopper size={24} className="text-accent" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white mb-1">
-                  Got an event code?
-                </h2>
-                <p className="text-ink-3 text-sm">
-                  Jump straight into an event you were invited to — no band
-                  required.
-                </p>
-              </div>
-            </div>
-
-            <div className="sm:w-1/2 flex flex-col gap-3">
-              <div>
-                <label htmlFor="event-code" className="sr-only">
-                  Event Code
-                </label>
-                <input
-                  type="text"
-                  id="event-code"
-                  name="eventCode"
-                  data-testid="join-event-code-input"
-                  value={eventCode}
-                  onChange={e => {
-                    setEventCode(e.target.value.toUpperCase())
-                    setErrors({})
-                  }}
-                  placeholder="JAM4567"
-                  className={`
-                    w-full h-11 px-4 bg-bg-2 border rounded-lg text-white text-sm
-                    font-mono text-center tracking-wider uppercase
-                    placeholder-ink-4 transition-colors
-                    focus:outline-none focus:ring-2
-                    ${
-                      errors.eventCode
-                        ? 'border-danger focus:border-danger focus:ring-danger/20'
-                        : 'border-border-1 focus:border-accent focus:ring-accent/20'
-                    }
-                  `}
-                />
-                {errors.eventCode && (
-                  <p className="mt-1 text-sm text-danger flex items-center gap-1">
-                    <AlertCircle size={14} />
-                    {errors.eventCode}
-                  </p>
-                )}
-              </div>
-              <Button
-                variant="primary"
-                fullWidth
-                onClick={handleJoinEvent}
-                loading={loading}
-                data-testid="join-event-button"
-              >
-                Join Event
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Personal account — no band required */}
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => navigate('/')}
-            data-testid="personal-account-button"
-            className="text-sm text-ink-3 hover:text-white transition-colors"
-          >
-            Not in a band?{' '}
-            <span className="font-semibold text-accent">
-              Continue with a personal account →
-            </span>
-          </button>
-          <p className="text-ink-4 text-xs mt-3">
-            You can host events, add friends, and build a personal song list.
-            Join or create a band anytime.
-          </p>
         </div>
       </div>
     </div>
