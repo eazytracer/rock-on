@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
-import { BandRequiredPrompt } from '../components/common/BandRequiredPrompt'
 import { useToast } from '../contexts/ToastContext'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import { useConfirm } from '../hooks/useConfirm'
@@ -1501,8 +1500,12 @@ export const SetlistsPage: React.FC = () => {
   )
   const currentUserId = localStorage.getItem('currentUserId') || ''
 
-  // Tab state: 'band' = band setlists, 'personal' = user's personal setlists
-  const [activeTab, setActiveTab] = useState<'band' | 'personal'>('band')
+  // Tab state: 'band' = band setlists, 'personal' = user's personal setlists.
+  // In a personal context (no band) there is only the personal catalog, so
+  // default to the personal tab.
+  const [activeTab, setActiveTab] = useState<'band' | 'personal'>(
+    currentBandId ? 'band' : 'personal'
+  )
 
   // Personal setlists (loaded separately when personal tab is active)
   const {
@@ -1540,7 +1543,8 @@ export const SetlistsPage: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       if (!currentBandId) {
-        setError('No band selected')
+        // Personal context — no band data to load here; personal setlists
+        // are loaded separately via usePersonalSetlists.
         setLoading(false)
         return
       }
@@ -2074,13 +2078,6 @@ export const SetlistsPage: React.FC = () => {
     }
   }
 
-  // Setlists are a band feature — band-less users get a create/join-a-band prompt.
-  if (!currentBandId) {
-    return (
-      <BandRequiredPrompt feature="Setlists" testid="setlists-band-required" />
-    )
-  }
-
   // If editing, show full-page editor
   if (editingSetlist) {
     const isPersonal = editingSetlist.contextType === 'personal'
@@ -2160,34 +2157,37 @@ export const SetlistsPage: React.FC = () => {
                 <ChevronDown size={20} className="text-ink-3" />
               </div>
 
-              {/* Band / Personal tab switcher */}
-              <div className="flex gap-1 mb-6 bg-bg-2 rounded-lg p-1 w-fit">
-                <button
-                  data-testid="setlists-band-tab"
-                  onClick={() => setActiveTab('band')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === 'band'
-                      ? 'bg-accent text-white'
-                      : 'text-ink-3 hover:text-white'
-                  }`}
-                >
-                  Band Setlists
-                </button>
-                <button
-                  data-testid="setlists-personal-tab"
-                  onClick={() => setActiveTab('personal')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === 'personal'
-                      ? 'bg-accent text-white'
-                      : 'text-ink-3 hover:text-white'
-                  }`}
-                >
-                  My Setlists
-                  {activeTab === 'personal' && personalSetlistsLoading && (
-                    <span className="ml-2 text-xs opacity-60">...</span>
-                  )}
-                </button>
-              </div>
+              {/* Band / Personal tab switcher — only in a band context;
+                  personal context has a single (personal) catalog. */}
+              {currentBandId && (
+                <div className="flex gap-1 mb-6 bg-bg-2 rounded-lg p-1 w-fit">
+                  <button
+                    data-testid="setlists-band-tab"
+                    onClick={() => setActiveTab('band')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === 'band'
+                        ? 'bg-accent text-white'
+                        : 'text-ink-3 hover:text-white'
+                    }`}
+                  >
+                    Band Setlists
+                  </button>
+                  <button
+                    data-testid="setlists-personal-tab"
+                    onClick={() => setActiveTab('personal')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === 'personal'
+                        ? 'bg-accent text-white'
+                        : 'text-ink-3 hover:text-white'
+                    }`}
+                  >
+                    My Setlists
+                    {activeTab === 'personal' && personalSetlistsLoading && (
+                      <span className="ml-2 text-xs opacity-60">...</span>
+                    )}
+                  </button>
+                </div>
+              )}
 
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <select

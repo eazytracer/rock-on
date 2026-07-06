@@ -101,8 +101,18 @@ test.describe('Band-less user flow (Phase 2)', () => {
     await page.click('[data-testid="personal-account-button"]')
     await page.waitForURL(/\/$/, { timeout: 5000 })
 
+    // Setlists is now personal-capable — a band-less user reaches the
+    // personal ("My Setlists") view instead of a band-required prompt.
+    await page.goto('/setlists')
+    await expect(page.locator('[data-testid="setlists-page"]')).toBeVisible({
+      timeout: 5000,
+    })
+    await expect(
+      page.locator('[data-testid="setlists-band-required"]')
+    ).toHaveCount(0)
+
+    // Shows and Practices remain band-only.
     for (const [path, testid] of [
-      ['/setlists', 'setlists-band-required'],
       ['/shows', 'shows-band-required'],
       ['/practices', 'practices-band-required'],
     ] as const) {
@@ -159,24 +169,29 @@ test.describe('Band-less user flow (Phase 2)', () => {
       (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
       undefined
 
-    // Start band-less, confirm the prompt, then create a band.
+    // Start band-less. Setlists is personal-capable (reachable band-less);
+    // Shows is band-only (gated) — that's the page the upgrade unlocks.
     await page.click('[data-testid="personal-account-button"]')
     await page.waitForURL(/\/$/, { timeout: 5000 })
     await page.goto('/setlists')
+    await expect(page.locator('[data-testid="setlists-page"]')).toBeVisible({
+      timeout: 5000,
+    })
+    await page.goto('/shows')
     await expect(
-      page.locator('[data-testid="setlists-band-required"]')
+      page.locator('[data-testid="shows-band-required"]')
     ).toBeVisible({ timeout: 5000 })
 
     await createBandViaUI(page, `Upgrade Band ${Date.now()}`)
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
-    // The band-only page now renders the real feature (no prompt).
-    await page.goto('/setlists')
-    await expect(page.locator('[data-testid="setlists-page"]')).toBeVisible({
+    // The band-only Shows page now renders the real feature (no prompt).
+    await page.goto('/shows')
+    await expect(page.locator('[data-testid="shows-page"]')).toBeVisible({
       timeout: 5000,
     })
     await expect(
-      page.locator('[data-testid="setlists-band-required"]')
+      page.locator('[data-testid="shows-band-required"]')
     ).toHaveCount(0)
   })
 })
