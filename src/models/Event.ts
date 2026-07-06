@@ -28,6 +28,35 @@ export interface EventSummary {
   visibility: EventVisibility
   hostUserId: string
   bandId?: string
+  /** Access controls (fork #5). Default true/false when the columns are absent. */
+  allowSuggestions: boolean
+  autoApprove: boolean
+  shortCode?: string
+  /** Lightweight participant preview for list cards (avatar stack). */
+  participantCount?: number
+  participantNames?: string[]
+}
+
+/** Host-editable access settings (Access tab). */
+export interface EventAccess {
+  visibility: EventVisibility
+  allowSuggestions: boolean
+  autoApprove: boolean
+}
+
+export type RaisedHandStatus = 'raised' | 'accepted' | 'declined' | 'withdrawn'
+
+/**
+ * A participant volunteering to play a part (lineup item + role) — the
+ * "raise a hand" signal the host resolves (accept → casts them, or decline).
+ */
+export interface RaisedHand {
+  id: string
+  lineupItemId: string
+  roleKey: string
+  userId: string
+  userName: string
+  status: RaisedHandStatus
 }
 
 export interface LineupItem {

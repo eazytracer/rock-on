@@ -4,6 +4,7 @@ import {
   X,
   History,
   Check,
+  Hand,
   MicVocal,
   Mic2,
   Guitar,
@@ -20,6 +21,7 @@ import { Avatar } from '../common/Avatar'
 import { Eyebrow } from '../common/Eyebrow'
 import { INSTRUMENT_COLOR, token } from '../../utils/tokens'
 import type { CastingContext, CastingHistoryEntry } from '../../models/Casting'
+import type { RaisedHand } from '../../models/Event'
 
 /** Role key → instrument color + icon for the color spine on each part row. */
 const INSTRUMENT_META: Record<string, { color: string; Icon: LucideIcon }> = {
@@ -41,6 +43,19 @@ interface SongCastPanelProps {
   songId?: string
   /** Whether the current user may cast (band admin / event host+cohost). */
   canEdit: boolean
+  /**
+   * Raise-a-hand (event only, fork #5). When provided, guests get a per-part
+   * "Raise hand" affordance and the host can accept (→ casts them) / decline.
+   * Omitted for setlist casting — that flow is unchanged.
+   */
+  hands?: RaisedHand[]
+  currentUserId?: string
+  /** A participant may raise a hand (event allows suggestions + not the host). */
+  canRaiseHand?: boolean
+  onRaiseHand?: (roleKey: string) => void | Promise<void>
+  onWithdrawHand?: (handId: string) => void | Promise<void>
+  /** Resolve a hand: accept (already cast by this panel) or decline. */
+  onResolveHand?: (handId: string, accept: boolean) => void | Promise<void>
 }
 
 /**
@@ -55,6 +70,12 @@ export function SongCastPanel({
   slotId,
   songId,
   canEdit,
+  hands,
+  currentUserId,
+  canRaiseHand,
+  onRaiseHand,
+  onWithdrawHand,
+  onResolveHand,
 }: SongCastPanelProps) {
   const { defaultParts, casting, loading, assign, unassign } = useCasting(
     contextType,
@@ -85,6 +106,12 @@ export function SongCastPanel({
   const slotCasting = useMemo(
     () => casting.filter(c => c.slotId === slotId),
     [casting, slotId]
+  )
+
+  // This slot's raised hands (event only; empty for setlists).
+  const slotHands = useMemo(
+    () => (hands ?? []).filter(h => h.lineupItemId === slotId),
+    [hands, slotId]
   )
 
   useEffect(() => {
@@ -125,6 +152,12 @@ export function SongCastPanel({
     })
   }
 
+  // Host accepts a raised hand → cast that person on the part, then resolve it.
+  const acceptHand = async (h: RaisedHand) => {
+    await doAssign(h.roleKey, { memberId: h.userId, memberName: h.userName })
+    await onResolveHand?.(h.id, true)
+  }
+
   if (loading) {
     return <div className="py-2 text-xs text-ink-5">Loading casting…</div>
   }
@@ -158,6 +191,11 @@ export function SongCastPanel({
           const assigned = slotCasting.filter(c => c.roleKey === part.key)
           const instrument = INSTRUMENT_META[part.key] ?? FALLBACK_INSTRUMENT
           const InstrumentIcon = instrument.Icon
+          const raisedForPart = slotHands.filter(
+            h => h.roleKey === part.key && h.status === 'raised'
+          )
+          const myRaised = raisedForPart.find(h => h.userId === currentUserId)
+          const iAmCastHere = assigned.some(c => c.memberId === currentUserId)
           return (
             <div
               key={part.key}
@@ -203,8 +241,64 @@ export function SongCastPanel({
                     )}
                   </span>
                 ))}
-                {assigned.length === 0 && (
+                {assigned.length === 0 && raisedForPart.length === 0 && (
                   <span className="text-xs text-ink-5">Open</span>
+                )}
+                {/* Raise-a-hand (event only, fork #5) */}
+                {canEdit &&
+                  raisedForPart.map(h => (
+                    <span
+                      key={h.id}
+                      data-testid={`hand-${h.id}`}
+                      className="inline-flex items-center gap-1 rounded-full border border-info bg-info-soft py-0.5 pl-0.5 pr-1"
+                    >
+                      <Avatar label={h.userName} size="xs" />
+                      <span className="text-xs font-medium text-info">
+                        {h.userName}
+                      </span>
+                      <Hand size={11} className="text-info" />
+                      <button
+                        onClick={() => void acceptHand(h)}
+                        data-testid={`hand-accept-${h.id}`}
+                        aria-label={`Accept ${h.userName}`}
+                        className="rounded p-0.5 text-info hover:text-success"
+                      >
+                        <Check size={12} />
+                      </button>
+                      <button
+                        onClick={() => void onResolveHand?.(h.id, false)}
+                        data-testid={`hand-decline-${h.id}`}
+                        aria-label={`Decline ${h.userName}`}
+                        className="rounded p-0.5 text-ink-5 hover:text-danger"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                {!canEdit && myRaised && (
+                  <span
+                    data-testid={`hand-mine-${part.key}`}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-info-soft px-2 py-0.5 text-xs font-medium text-info"
+                  >
+                    <Hand size={12} /> You — hand up
+                    <button
+                      onClick={() => void onWithdrawHand?.(myRaised.id)}
+                      data-testid={`hand-withdraw-${part.key}`}
+                      aria-label="Withdraw hand"
+                      className="text-ink-5 hover:text-danger"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                {!canEdit && canRaiseHand && !myRaised && !iAmCastHere && (
+                  <button
+                    onClick={() => void onRaiseHand?.(part.key)}
+                    data-testid={`hand-raise-${part.key}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-info bg-info-soft px-2 py-0.5 text-[11px] font-medium text-info hover:brightness-110"
+                  >
+                    <Hand size={12} /> Raise hand
+                  </button>
                 )}
                 {canEdit && (
                   <div className="relative">

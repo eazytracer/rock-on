@@ -10,6 +10,7 @@ import { useEvents } from '../hooks/useEvents'
 import { useAuth } from '../contexts/AuthContext'
 import { formatShowDate } from '../utils/dateHelpers'
 import type { EventSummary } from '../models/Event'
+import { Avatar } from '../components/common/Avatar'
 import { Badge } from '../components/common/Badge'
 import { Eyebrow } from '../components/common/Eyebrow'
 import { EmptyState } from '../components/common/EmptyState'
@@ -65,6 +66,28 @@ export function EventsPage() {
           )}
         </span>
       </span>
+      {ev.participantCount ? (
+        <span
+          className="flex flex-shrink-0 items-center"
+          data-testid={`event-people-${ev.id}`}
+        >
+          <span className="flex -space-x-2">
+            {ev.participantNames?.slice(0, 3).map((n, i) => (
+              <Avatar
+                key={i}
+                label={n}
+                size="xs"
+                className="ring-2 ring-bg-1"
+              />
+            ))}
+          </span>
+          {ev.participantCount > 3 && (
+            <span className="ml-1 text-xs text-ink-5">
+              +{ev.participantCount - 3}
+            </span>
+          )}
+        </span>
+      ) : null}
       <ChevronRight size={18} className="text-ink-5" />
     </button>
   )

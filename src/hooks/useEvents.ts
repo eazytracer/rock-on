@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { EventService } from '../services/EventService'
+import { EventHandsService } from '../services/EventHandsService'
 import { useAuth } from '../contexts/AuthContext'
 import type {
   EventSummary,
   LineupItem,
   LineupRequest,
   EventParticipant,
+  RaisedHand,
 } from '../models/Event'
 
 /** The event's participants — the pool the host casts from. */
@@ -50,6 +52,75 @@ export function useEvents() {
   }, [refetch])
 
   return { events, loading, refetch }
+}
+
+/**
+ * Raised hands for an event — the guest raise-a-hand pool the host resolves.
+ * Actions map 1:1 to the RLS-gated EventHandsService; the "accept → cast"
+ * orchestration lives in the consumer (which owns the casting service).
+ */
+export function useEventHands(eventId: string | undefined) {
+  const [hands, setHands] = useState<RaisedHand[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const refetch = useCallback(async () => {
+    if (!eventId) {
+      setHands([])
+      setLoading(false)
+      return
+    }
+    setHands(await EventHandsService.getHands(eventId))
+    setLoading(false)
+  }, [eventId])
+
+  useEffect(() => {
+    void refetch()
+  }, [refetch])
+
+  const raiseHand = useCallback(
+    async (input: {
+      lineupItemId: string
+      roleKey: string
+      userName: string
+    }) => {
+      if (!eventId) return { ok: false, error: 'No event' }
+      const res = await EventHandsService.raiseHand({ eventId, ...input })
+      if (res.ok) await refetch()
+      return res
+    },
+    [eventId, refetch]
+  )
+  const withdrawHand = useCallback(
+    async (handId: string) => {
+      await EventHandsService.withdrawHand(handId)
+      await refetch()
+    },
+    [refetch]
+  )
+  const acceptHand = useCallback(
+    async (handId: string) => {
+      await EventHandsService.acceptHand(handId)
+      await refetch()
+    },
+    [refetch]
+  )
+  const declineHand = useCallback(
+    async (handId: string) => {
+      await EventHandsService.declineHand(handId)
+      await refetch()
+    },
+    [refetch]
+  )
+
+  return {
+    hands,
+    loading,
+    refetch,
+    raiseHand,
+    withdrawHand,
+    acceptHand,
+    declineHand,
+  }
 }
 
 /** A single event with its lineup + pending requests and host actions. */

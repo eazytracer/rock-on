@@ -35,6 +35,9 @@ interface EventRow {
   visibility: EventSummary['visibility']
   host_user_id: string
   band_id: string | null
+  allow_suggestions: boolean | null
+  auto_approve: boolean | null
+  short_code: string | null
 }
 interface ItemRow {
   id: string
@@ -61,6 +64,9 @@ interface ParticipantRow {
   users: { name: string | null } | null
 }
 
+const EVENT_COLS =
+  'id, name, venue, scheduled_date, status, visibility, host_user_id, band_id, allow_suggestions, auto_approve, short_code'
+
 function mapEvent(r: EventRow): EventSummary {
   return {
     id: r.id,
@@ -71,6 +77,9 @@ function mapEvent(r: EventRow): EventSummary {
     visibility: r.visibility,
     hostUserId: r.host_user_id,
     bandId: r.band_id ?? undefined,
+    allowSuggestions: r.allow_suggestions ?? true,
+    autoApprove: r.auto_approve ?? false,
+    shortCode: r.short_code ?? undefined,
   }
 }
 
@@ -81,15 +90,28 @@ export class EventService {
     if (!supabase) return []
     const { data, error } = await supabase
       .from('events')
-      .select(
-        'id, name, venue, scheduled_date, status, visibility, host_user_id, band_id'
-      )
+      .select(`${EVENT_COLS}, event_participants(user_id, users(name))`)
       .order('scheduled_date', { ascending: true })
     if (error) {
       log.error('getEvents failed', error)
       return []
     }
-    return ((data as unknown as EventRow[]) ?? []).map(mapEvent)
+    type ListRow = EventRow & {
+      event_participants?: {
+        user_id: string
+        users: { name: string | null } | null
+      }[]
+    }
+    return ((data as unknown as ListRow[]) ?? []).map(r => {
+      const people = r.event_participants ?? []
+      return {
+        ...mapEvent(r),
+        participantCount: people.length,
+        participantNames: people
+          .map(p => p.users?.name?.trim() || 'Guest')
+          .slice(0, 5),
+      }
+    })
   }
 
   /**
@@ -173,13 +195,42 @@ export class EventService {
     if (!supabase) return null
     const { data, error } = await supabase
       .from('events')
-      .select(
-        'id, name, venue, scheduled_date, status, visibility, host_user_id, band_id'
-      )
+      .select(EVENT_COLS)
       .eq('id', id)
       .maybeSingle()
     if (error || !data) return null
     return mapEvent(data as unknown as EventRow)
+  }
+
+  /**
+   * Update the host-only Access settings (visibility + guest permissions).
+   * RLS (events_update_manager) enforces host/cohost authority.
+   */
+  static async updateAccess(
+    eventId: string,
+    patch: Partial<{
+      visibility: EventSummary['visibility']
+      allowSuggestions: boolean
+      autoApprove: boolean
+    }>
+  ): Promise<boolean> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return false
+    const row: Record<string, unknown> = {}
+    if (patch.visibility !== undefined) row.visibility = patch.visibility
+    if (patch.allowSuggestions !== undefined)
+      row.allow_suggestions = patch.allowSuggestions
+    if (patch.autoApprove !== undefined) row.auto_approve = patch.autoApprove
+    if (Object.keys(row).length === 0) return true
+    const { error } = await supabase
+      .from('events')
+      .update(row as never)
+      .eq('id', eventId)
+    if (error) {
+      log.error('updateAccess failed', error)
+      return false
+    }
+    return true
   }
 
   static async getLineup(eventId: string): Promise<LineupItem[]> {
