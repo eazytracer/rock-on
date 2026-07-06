@@ -13,6 +13,8 @@ import {
   Lock,
   QrCode,
   Copy,
+  List,
+  LayoutGrid,
 } from 'lucide-react'
 import {
   useEventDetail,
@@ -30,6 +32,7 @@ import { Eyebrow } from '../components/common/Eyebrow'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { EmptyState } from '../components/common/EmptyState'
 import { SongCastPanel } from '../components/casting/SongCastPanel'
+import { EventCastGrid } from '../components/casting/EventCastGrid'
 import { SHOW_TONE, type BadgeTone } from '../utils/tokens'
 import type { EventVisibility, LineupSource } from '../models/Event'
 
@@ -101,6 +104,7 @@ export function EventDetailContent({
   const [sending, setSending] = useState(false)
   const [castOpen, setCastOpen] = useState<string | null>(null)
   const [showQR, setShowQR] = useState(false)
+  const [castView, setCastView] = useState<'list' | 'grid'>('list')
 
   const isParticipant = !!participants.find(p => p.userId === user?.id)
   const canRaiseHand = !!event?.allowSuggestions && isParticipant && !isManager
@@ -236,10 +240,53 @@ export function EventDetailContent({
             {/* ── Lineup ─────────────────────────────────────────────── */}
             {tab === 'lineup' && (
               <div>
+                {isManager && lineup.length > 0 && (
+                  <div className="mb-3 flex justify-end">
+                    <div
+                      className="inline-flex rounded-lg border border-border-1 bg-bg-1 p-0.5"
+                      data-testid="cast-view-toggle"
+                    >
+                      <button
+                        onClick={() => setCastView('list')}
+                        data-testid="cast-view-list"
+                        aria-pressed={castView === 'list'}
+                        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                          castView === 'list'
+                            ? 'bg-accent-soft text-accent'
+                            : 'text-ink-4 hover:text-ink-2'
+                        }`}
+                      >
+                        <List size={14} /> List
+                      </button>
+                      <button
+                        onClick={() => setCastView('grid')}
+                        data-testid="cast-view-grid"
+                        aria-pressed={castView === 'grid'}
+                        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                          castView === 'grid'
+                            ? 'bg-accent-soft text-accent'
+                            : 'text-ink-4 hover:text-ink-2'
+                        }`}
+                      >
+                        <LayoutGrid size={14} /> Grid
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {lineup.length === 0 ? (
                   <p className="text-sm text-ink-5">
                     No songs in the lineup yet.
                   </p>
+                ) : isManager && castView === 'grid' ? (
+                  <EventCastGrid
+                    eventId={event.id}
+                    bandId={event.bandId}
+                    lineup={lineup}
+                    hands={hands}
+                    isManager={isManager}
+                    currentUserId={user?.id}
+                    onResolveHand={resolveHand}
+                  />
                 ) : (
                   <div
                     className="flex flex-col gap-2"

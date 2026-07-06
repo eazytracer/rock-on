@@ -1,42 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  UserPlus,
-  X,
-  History,
-  Check,
-  Hand,
-  MicVocal,
-  Mic2,
-  Guitar,
-  Drum,
-  Piano,
-  Music,
-  type LucideIcon,
-} from 'lucide-react'
+import { UserPlus, X, History, Check, Hand } from 'lucide-react'
 import { useCasting } from '../../hooks/useCasting'
 import { useBandMembers } from '../../hooks/useBands'
 import { useEventParticipants } from '../../hooks/useEvents'
 import { CastingAssignmentService } from '../../services/CastingAssignmentService'
 import { Avatar } from '../common/Avatar'
 import { Eyebrow } from '../common/Eyebrow'
-import { INSTRUMENT_COLOR, token } from '../../utils/tokens'
+import { INSTRUMENT_META, FALLBACK_INSTRUMENT } from './instrumentMeta'
 import type { CastingContext, CastingHistoryEntry } from '../../models/Casting'
 import type { RaisedHand } from '../../models/Event'
-
-/** Role key → instrument color + icon for the color spine on each part row. */
-const INSTRUMENT_META: Record<string, { color: string; Icon: LucideIcon }> = {
-  // v1 event instrument set (band-less events): guitar/bass/drums/vox/keys/other.
-  vox: { color: INSTRUMENT_COLOR.vox, Icon: MicVocal },
-  other: { color: token.ink4, Icon: Music },
-  // Band role vocabulary (setlist casting still uses these).
-  lead_vocals: { color: INSTRUMENT_COLOR.vox, Icon: MicVocal },
-  backing_vocals: { color: INSTRUMENT_COLOR.bvox, Icon: Mic2 },
-  guitar: { color: INSTRUMENT_COLOR.gtr, Icon: Guitar },
-  bass: { color: INSTRUMENT_COLOR.bass, Icon: Guitar },
-  drums: { color: INSTRUMENT_COLOR.drums, Icon: Drum },
-  keys: { color: INSTRUMENT_COLOR.keys, Icon: Piano },
-}
-const FALLBACK_INSTRUMENT = { color: token.ink4, Icon: Music }
 
 /** 5-dot confidence indicator (Detailed casting). Read-only unless `onSet`. */
 function ConfidenceDots({

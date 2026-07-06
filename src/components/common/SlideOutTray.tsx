@@ -15,6 +15,8 @@ interface SlideOutTrayProps {
   position?: 'right' | 'bottom'
   /** Max height for the bottom-sheet variant. */
   maxHeight?: string
+  /** Overrides the panel's data-testid (default `slide-out-tray`). */
+  'data-testid'?: string
 }
 
 export const SlideOutTray: React.FC<SlideOutTrayProps> = ({
@@ -25,6 +27,7 @@ export const SlideOutTray: React.FC<SlideOutTrayProps> = ({
   width = '400px',
   position = 'right',
   maxHeight = '85vh',
+  'data-testid': testId = 'slide-out-tray',
 }) => {
   // Prevent body scroll when tray is open
   useEffect(() => {
@@ -85,11 +88,7 @@ export const SlideOutTray: React.FC<SlideOutTrayProps> = ({
       />
 
       {/* Panel */}
-      <div
-        className={panelClasses}
-        style={panelStyle}
-        data-testid="slide-out-tray"
-      >
+      <div className={panelClasses} style={panelStyle} data-testid={testId}>
         {/* Grab handle (bottom-sheet only) */}
         {isBottom && (
           <div className="flex justify-center pt-2.5 pb-1">
