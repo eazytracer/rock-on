@@ -11,8 +11,6 @@ import {
   PartyPopper,
   Settings,
   LogOut,
-  Wifi,
-  WifiOff,
   Radio,
   Bell,
 } from 'lucide-react'
@@ -39,22 +37,6 @@ interface NavItem {
   badge?: number
 }
 
-// PHASE 2: Helper to format relative time
-function formatRelativeTime(date: Date): string {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffSecs = Math.floor(diffMs / 1000)
-  const diffMins = Math.floor(diffSecs / 60)
-  const diffHours = Math.floor(diffMins / 60)
-  const diffDays = Math.floor(diffHours / 24)
-
-  if (diffSecs < 60) return 'just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
-  return date.toLocaleDateString()
-}
-
 export const Sidebar: React.FC<SidebarProps> = ({
   currentPath,
   bandName = 'iPod Shuffle',
@@ -67,8 +49,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const friendRequestCount = useIncomingRequestCount()
   const { currentBandId } = useAuth()
 
-  // PHASE 2: Get sync status for connection indicator
-  const { isOnline, isSyncing, pendingCount, lastSyncTime } = useSyncStatus()
+  // Slimmed sync status (m-3): a single status dot in the rail; full detail lives in
+  // Settings. pendingCount kept as a compact inline count when there's a backlog.
+  const { isOnline, isSyncing, pendingCount } = useSyncStatus()
 
   // Mirrors the mobile IA: the first group are the primary tabs (Home · Songs ·
   // Setlists · Calendar) plus the Calendar time-axis detail views (Shows /
@@ -115,8 +98,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         text-sm font-medium transition-colors duration-200
         ${
           isActive(item.path)
-            ? 'bg-[#252525] text-white'
-            : 'text-[#a0a0a0] hover:bg-[#1f1f1f] hover:text-white'
+            ? 'bg-bg-4 text-white'
+            : 'text-ink-3 hover:bg-bg-3 hover:text-white'
         }
       `}
     >
@@ -125,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </span>
       <span className="flex-1 text-left">{item.label}</span>
       {item.badge && (
-        <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+        <span className="bg-info text-white text-xs font-semibold px-2 py-0.5 rounded-full">
           {item.badge > 9 ? '9+' : item.badge}
         </span>
       )}
@@ -133,9 +116,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   )
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-60 bg-[#141414] border-r border-[#1f1f1f] flex flex-col p-6 z-50">
+    <aside className="fixed left-0 top-0 h-screen w-60 bg-bg-1 border-r border-bg-3 flex flex-col p-6 z-50">
       {/* Brand Header & Connection Status */}
-      <div className="pb-3 mb-3 border-b border-[#1f1f1f]">
+      <div className="pb-3 mb-3 border-b border-bg-3">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-lg">R</span>
@@ -147,7 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               {currentBandId ? bandName : 'Personal account'}
             </h1>
-            <p className="text-[#707070] text-xs truncate">{userEmail}</p>
+            <p className="text-ink-4 text-xs truncate">{userEmail}</p>
             {!currentBandId && (
               <button
                 onClick={() => handleNavigation('/get-started')}
@@ -158,36 +141,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             )}
 
-            {/* PHASE 2: Connection Status - aligned with text above */}
-            <div className="flex items-center gap-1.5 mt-1">
-              {isOnline ? (
-                <Wifi size={12} className="text-green-500" />
-              ) : (
-                <WifiOff size={12} className="text-red-500" />
-              )}
+            {/* Slim connection status (m-3): one status dot + word; backlog inline. */}
+            <div
+              className="flex items-center gap-1.5 mt-1"
+              data-testid="sidebar-sync-status"
+            >
               <span
-                className={`text-xs font-medium ${isOnline ? 'text-green-500' : 'text-red-500'}`}
+                className={`h-2 w-2 rounded-full ${
+                  isOnline ? 'bg-success' : 'bg-danger'
+                } ${isSyncing ? 'animate-pulse' : ''}`}
+              />
+              <span
+                className={`text-xs font-medium ${isOnline ? 'text-success' : 'text-danger'}`}
               >
-                {isOnline ? 'Connected' : 'Offline'}
+                {isSyncing ? 'Syncing…' : isOnline ? 'Connected' : 'Offline'}
               </span>
-              {isSyncing && (
-                <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+              {pendingCount > 0 && (
+                <span className="text-xs text-ink-4">
+                  · {pendingCount} pending
+                </span>
               )}
             </div>
-
-            {lastSyncTime && (
-              <div className="text-xs text-[#707070] mt-0.5">
-                Last synced: {formatRelativeTime(lastSyncTime)}
-              </div>
-            )}
-
-            {pendingCount > 0 && (
-              <div className="mt-1">
-                <span className="px-2 py-0.5 text-xs bg-yellow-900/30 text-yellow-400 rounded-full font-medium">
-                  {pendingCount} pending
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -204,14 +178,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* Bottom Actions */}
-      <div className="space-y-1 pt-4 border-t border-[#1f1f1f]">
+      <div className="space-y-1 pt-4 border-t border-bg-3">
         <button
           onClick={() => handleNavigation('/notifications')}
           data-testid="notifications-link"
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
             isActive('/notifications')
-              ? 'bg-[#252525] text-white'
-              : 'text-[#a0a0a0] hover:bg-[#1f1f1f] hover:text-white'
+              ? 'bg-bg-4 text-white'
+              : 'text-ink-3 hover:bg-bg-3 hover:text-white'
           }`}
         >
           <span className="relative">
@@ -220,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={isActive('/notifications') ? 'text-accent' : ''}
             />
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 flex items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white">
+              <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 flex items-center justify-center rounded-full bg-info text-[9px] font-bold text-white">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -230,7 +204,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={() => handleNavigation('/settings')}
           data-testid="settings-link"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[#a0a0a0] hover:bg-[#1f1f1f] hover:text-white transition-colors duration-200"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-3 hover:bg-bg-3 hover:text-white transition-colors duration-200"
         >
           <Settings size={20} />
           <span>Settings</span>
@@ -238,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={onSignOut}
           data-testid="logout-button"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[#a0a0a0] hover:bg-[#1f1f1f] hover:text-white transition-colors duration-200"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-3 hover:bg-bg-3 hover:text-white transition-colors duration-200"
         >
           <LogOut size={20} />
           <span>Sign Out</span>

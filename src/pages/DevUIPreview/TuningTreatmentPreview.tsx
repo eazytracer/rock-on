@@ -50,8 +50,8 @@ export const TuningTreatmentPreview: React.FC = () => {
     <div className="space-y-6">
       {/* Controls */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4">
-          <h3 className="text-xs uppercase text-[#707070] mb-2 tracking-wider">
+        <div className="bg-bg-1 border border-border-1 rounded-lg p-4">
+          <h3 className="text-xs uppercase text-ink-4 mb-2 tracking-wider">
             Treatment
           </h3>
           <div className="grid grid-cols-2 gap-2">
@@ -62,19 +62,19 @@ export const TuningTreatmentPreview: React.FC = () => {
                 data-testid={`tuning-treatment-${t.key}`}
                 className={`text-left p-3 rounded-lg border text-sm transition-colors ${
                   treatment === t.key
-                    ? 'bg-[#f17827ff]/10 border-[#f17827ff] text-white'
-                    : 'bg-[#0f0f0f] border-[#2a2a2a] text-[#a0a0a0] hover:border-[#3a3a3a]'
+                    ? 'bg-accent/10 border-accent text-white'
+                    : 'bg-bg-1 border-border-1 text-ink-3 hover:border-border-2'
                 }`}
               >
                 <div className="font-medium">{t.label}</div>
-                <div className="text-xs text-[#707070] mt-0.5">{t.hint}</div>
+                <div className="text-xs text-ink-4 mt-0.5">{t.hint}</div>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4">
-          <h3 className="text-xs uppercase text-[#707070] mb-2 tracking-wider">
+        <div className="bg-bg-1 border border-border-1 rounded-lg p-4">
+          <h3 className="text-xs uppercase text-ink-4 mb-2 tracking-wider">
             Palette
           </h3>
           <div className="space-y-2">
@@ -85,8 +85,8 @@ export const TuningTreatmentPreview: React.FC = () => {
                 data-testid={`tuning-palette-${p}`}
                 className={`w-full flex items-center gap-3 p-2.5 rounded-lg border transition-colors ${
                   palette === p
-                    ? 'bg-[#f17827ff]/10 border-[#f17827ff]'
-                    : 'bg-[#0f0f0f] border-[#2a2a2a] hover:border-[#3a3a3a]'
+                    ? 'bg-accent/10 border-accent'
+                    : 'bg-bg-1 border-border-1 hover:border-border-2'
                 }`}
               >
                 <span className="text-white font-medium text-sm w-6">{p}</span>
@@ -102,7 +102,7 @@ export const TuningTreatmentPreview: React.FC = () => {
                 </div>
               </button>
             ))}
-            <p className="text-xs text-[#707070] mt-2">
+            <p className="text-xs text-ink-4 mt-2">
               A: bright & saturated • B: muted pastels • C: color-wheel
               progression
             </p>
@@ -111,21 +111,21 @@ export const TuningTreatmentPreview: React.FC = () => {
       </div>
 
       {/* Legend */}
-      <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4">
-        <h3 className="text-xs uppercase text-[#707070] mb-2 tracking-wider">
+      <div className="bg-bg-1 border border-border-1 rounded-lg p-4">
+        <h3 className="text-xs uppercase text-ink-4 mb-2 tracking-wider">
           Legend (palette {palette})
         </h3>
         <div className="flex flex-wrap gap-2">
           {PALETTES[palette].map(entry => (
             <div
               key={entry.id}
-              className="flex items-center gap-2 px-2 py-1 bg-[#0f0f0f] border border-[#2a2a2a] rounded text-xs"
+              className="flex items-center gap-2 px-2 py-1 bg-bg-1 border border-border-1 rounded text-xs"
             >
               <span
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-[#d4d4d4]">{entry.label}</span>
+              <span className="text-ink-2">{entry.label}</span>
             </div>
           ))}
         </div>
@@ -135,7 +135,7 @@ export const TuningTreatmentPreview: React.FC = () => {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-white font-semibold">Sample setlist (8 songs)</h3>
-          <span className="text-xs text-[#707070]">
+          <span className="text-xs text-ink-4">
             Treatment: <span className="text-white">{treatment}</span> •
             Palette: <span className="text-white">{palette}</span>
           </span>
@@ -160,30 +160,30 @@ export const TuningTreatmentPreview: React.FC = () => {
       </div>
 
       {/* Practice viewer "next song" preview */}
-      <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+      <div className="bg-bg-1 border border-border-1 rounded-lg p-4 sm:p-6">
         <h3 className="text-white font-semibold mb-2">
           Practice viewer — &quot;next song&quot; preview
         </h3>
-        <p className="text-[#a0a0a0] text-sm mb-4">
+        <p className="text-ink-3 text-sm mb-4">
           A tuning *change* between current and next is the signal we want
           reviewers to spot at a distance. Current: Standard. Next: Drop D.
         </p>
-        <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-4 flex items-center gap-4">
+        <div className="bg-bg-0 border border-border-1 rounded-lg p-4 flex items-center gap-4">
           <div className="flex-1">
-            <div className="text-[10px] uppercase text-[#505050] tracking-wider mb-1">
+            <div className="text-[10px] uppercase text-ink-5 tracking-wider mb-1">
               Current
             </div>
             <div className="text-white font-semibold">Wonderwall</div>
             <TuningChip tuning="Standard" palette={palette} treatment="pill" />
           </div>
-          <div className="flex-1 border-l border-[#2a2a2a] pl-4">
-            <div className="text-[10px] uppercase text-[#505050] tracking-wider mb-1">
+          <div className="flex-1 border-l border-border-1 pl-4">
+            <div className="text-[10px] uppercase text-ink-5 tracking-wider mb-1">
               Next — tuning change!
             </div>
             <div className="text-white font-semibold">Champagne Supernova</div>
             <div className="flex items-center gap-2 mt-1">
               <span
-                className="w-3 h-3 rounded-full animate-pulse ring-2 ring-offset-2 ring-offset-[#0a0a0a]"
+                className="w-3 h-3 rounded-full animate-pulse ring-2 ring-offset-2 ring-offset-bg-0"
                 style={{
                   backgroundColor: tuningColor('Drop D', palette),
                   ['--tw-ring-color' as string]: tuningColor('Drop D', palette),
@@ -229,7 +229,7 @@ const SongRow: React.FC<SongRowProps> = ({
   const stripeClass =
     treatment === 'stripe' || treatment === 'combo'
       ? 'border-l-4'
-      : 'border-l border-[#2a2a2a]'
+      : 'border-l border-border-1'
   const stripeStyle =
     treatment === 'stripe' || treatment === 'combo'
       ? { borderLeftColor: color }
@@ -237,11 +237,11 @@ const SongRow: React.FC<SongRowProps> = ({
 
   return (
     <div
-      className={`flex items-center gap-3 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] ${stripeClass} p-3 sm:p-4`}
+      className={`flex items-center gap-3 bg-bg-2 rounded-xl border border-border-1 ${stripeClass} p-3 sm:p-4`}
       style={stripeStyle}
       data-testid={`preview-song-${position}`}
     >
-      <div className="w-6 text-center text-[#707070] text-sm font-medium">
+      <div className="w-6 text-center text-ink-4 text-sm font-medium">
         {position}
       </div>
 
@@ -254,17 +254,17 @@ const SongRow: React.FC<SongRowProps> = ({
 
       <div className="flex-1 min-w-0">
         <div className="text-white font-semibold text-sm truncate">{title}</div>
-        <div className="text-[#a0a0a0] text-xs truncate">{artist}</div>
+        <div className="text-ink-3 text-xs truncate">{artist}</div>
       </div>
 
-      <div className="hidden sm:flex items-center gap-2 text-[#a0a0a0] text-sm">
-        <Clock size={14} className="text-[#606060]" />
+      <div className="hidden sm:flex items-center gap-2 text-ink-3 text-sm">
+        <Clock size={14} className="text-ink-4" />
         <span>{duration}</span>
       </div>
 
       <TuningChip tuning={tuning} palette={palette} treatment={treatment} />
 
-      <button className="p-1.5 text-[#707070] hover:text-[#f17827ff]">
+      <button className="p-1.5 text-ink-4 hover:text-accent">
         <FileText size={16} />
       </button>
     </div>
@@ -307,7 +307,7 @@ const TuningChip: React.FC<TuningChipProps> = ({
 
   if (treatment === 'icon') {
     return (
-      <div className="flex items-center gap-2 text-[#a0a0a0] text-sm min-w-[110px]">
+      <div className="flex items-center gap-2 text-ink-3 text-sm min-w-[110px]">
         <Guitar size={14} style={{ color }} />
         <span className="truncate">{label}</span>
       </div>
@@ -316,8 +316,8 @@ const TuningChip: React.FC<TuningChipProps> = ({
 
   // 'stripe' treatment — plain neutral label (the row stripe is the signal)
   return (
-    <div className="flex items-center gap-2 text-[#a0a0a0] text-sm min-w-[110px]">
-      <Guitar size={14} className="text-[#606060]" />
+    <div className="flex items-center gap-2 text-ink-3 text-sm min-w-[110px]">
+      <Guitar size={14} className="text-ink-4" />
       <span className="truncate">{label}</span>
     </div>
   )

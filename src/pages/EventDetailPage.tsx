@@ -10,6 +10,15 @@ import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinne
 import { EmptyState } from '../components/common/EmptyState'
 import { SongCastPanel } from '../components/casting/SongCastPanel'
 import { SHOW_TONE, type BadgeTone } from '../utils/tokens'
+import type { LineupSource } from '../models/Event'
+
+/** Where a lineup song came from → its display pill (tone + label). */
+const SOURCE_PILL: Record<LineupSource, { tone: BadgeTone; label: string }> = {
+  mine: { tone: 'accent', label: 'Mine' },
+  band: { tone: 'info', label: 'Band' },
+  public: { tone: 'success', label: 'Public' },
+  external: { tone: 'neutral', label: 'Not linked' },
+}
 
 /**
  * Event detail (mobile-redesign-port P12).
@@ -118,6 +127,15 @@ export function EventDetailPage() {
                             {item.displayArtist}
                           </span>
                         </span>
+                        <Badge
+                          tone={SOURCE_PILL[item.source].tone}
+                          size="sm"
+                          dot={false}
+                          data-testid={`lineup-source-${item.id}`}
+                          className="flex-shrink-0"
+                        >
+                          {SOURCE_PILL[item.source].label}
+                        </Badge>
                         <button
                           onClick={() =>
                             setCastOpen(o => (o === item.id ? null : item.id))

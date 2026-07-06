@@ -82,7 +82,7 @@ export const NetworkInspector: React.FC = () => {
       {user && (
         <>
           {/* Connection Status */}
-          <div className="bg-white rounded-lg border border-divider p-6 mb-6">
+          <div className="bg-bg-1 rounded-lg border border-divider p-6 mb-6">
             <h3 className="text-lg font-medium text-text mb-4">
               Connection Status
             </h3>
@@ -160,7 +160,7 @@ export const NetworkInspector: React.FC = () => {
           </div>
 
           {/* Network Controls */}
-          <div className="bg-white rounded-lg border border-divider p-6 mb-6">
+          <div className="bg-bg-1 rounded-lg border border-divider p-6 mb-6">
             <h3 className="text-lg font-medium text-text mb-4">
               Network Controls
             </h3>
@@ -228,7 +228,7 @@ export const NetworkInspector: React.FC = () => {
           </div>
 
           {/* WebSocket Events Log (TODO) */}
-          <div className="bg-white rounded-lg border border-divider p-6">
+          <div className="bg-bg-1 rounded-lg border border-divider p-6">
             <h3 className="text-lg font-medium text-text mb-4">
               WebSocket Events
             </h3>

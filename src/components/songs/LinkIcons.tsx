@@ -99,13 +99,13 @@ const LinkIconButton: React.FC<{
         ${config.padding}
         inline-flex items-center justify-center
         rounded-md
-        border border-[#404040]
-        bg-[#252525]
-        text-[#909090]
-        hover:bg-[#353535]
-        hover:border-[#505050]
+        border border-border-2
+        bg-bg-4
+        text-ink-3
+        hover:bg-border-2
+        hover:border-ink-5
         hover:text-white
-        active:bg-[#404040]
+        active:bg-border-2
         transition-all duration-150
         cursor-pointer
         shadow-sm
@@ -146,7 +146,7 @@ export const LinkIcons: React.FC<LinkIconsProps> = ({
   // Handle empty state
   if (!links || links.length === 0) {
     if (showEmpty) {
-      return <span className="text-xs text-[#606060] italic">No links</span>
+      return <span className="text-xs text-ink-4 italic">No links</span>
     }
     return null
   }
@@ -178,13 +178,13 @@ export const LinkIcons: React.FC<LinkIconsProps> = ({
               ${config.padding}
               inline-flex items-center justify-center
               rounded-md
-              border border-[#404040]
-              bg-[#252525]
-              text-[#707070]
-              hover:bg-[#353535]
-              hover:border-[#505050]
+              border border-border-2
+              bg-bg-4
+              text-ink-4
+              hover:bg-border-2
+              hover:border-ink-5
               hover:text-white
-              active:bg-[#404040]
+              active:bg-border-2
               transition-all duration-150
               cursor-pointer
               shadow-sm
@@ -199,7 +199,7 @@ export const LinkIcons: React.FC<LinkIconsProps> = ({
               {/* Backdrop to close popover */}
               <div className="fixed inset-0 z-[100]" onClick={closePopover} />
               {/* Popover with all links in a single row */}
-              <div className="absolute top-full left-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-[101] p-2">
+              <div className="absolute top-full left-0 mt-2 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-[101] p-2">
                 <div className={`flex items-center ${config.gap} flex-nowrap`}>
                   {links.map((link, index) => (
                     <LinkIconButton

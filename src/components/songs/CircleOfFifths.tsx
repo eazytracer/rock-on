@@ -100,7 +100,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
     const isSelected = selectedKey === keyWithMode
 
     if (isSelected && isPreview) {
-      return '#f17827ff' // App's primary orange accent - confirmed selection
+      return 'var(--accent)' // App's primary orange accent - confirmed selection
     }
     if (isPreview) {
       return '#ff9447' // Lighter orange for preview/pending selection
@@ -115,7 +115,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-[#0f0f0f] rounded-lg border border-[#2a2a2a]">
+    <div className="flex flex-col items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-bg-1 rounded-lg border border-border-1">
       <div className="relative w-full max-w-[min(350px,90vw)] sm:max-w-[380px]">
         <svg
           width="100%"
@@ -200,9 +200,9 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
             cy="0"
             r={centerRadius}
             fill="#1a1a1a"
-            stroke="#f17827ff"
+            stroke="var(--accent)"
             strokeWidth="3"
-            className="cursor-pointer transition-all duration-200 hover:fill-[#252525]"
+            className="cursor-pointer transition-all duration-200 hover:fill-bg-4"
             onClick={() => setMode(mode === 'major' ? 'minor' : 'major')}
           />
           <text
@@ -211,7 +211,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
             textAnchor="middle"
             dominantBaseline="middle"
             className="pointer-events-none select-none font-bold text-lg"
-            fill="#f17827ff"
+            fill="var(--accent)"
             fontSize="22"
           >
             {mode === 'major' ? 'Maj' : 'Min'}
@@ -223,12 +223,12 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
       <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 sm:gap-4 min-h-[48px] w-full">
         <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
           {previewKey ? (
-            <div className="text-sm text-[#a0a0a0]">
+            <div className="text-sm text-ink-3">
               Selected Key:{' '}
               <span className="font-bold text-white text-lg">{previewKey}</span>
             </div>
           ) : (
-            <div className="text-xs text-[#707070]">Click a key to select</div>
+            <div className="text-xs text-ink-4">Click a key to select</div>
           )}
         </div>
 
@@ -236,7 +236,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
           <button
             data-testid="key-picker-confirm"
             onClick={() => onKeySelect(previewKey)}
-            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#f17827ff] hover:bg-[#d66620] text-white text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-accent hover:bg-accent-deep text-white text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
           >
             <Check size={18} />
             <span>Confirm</span>
@@ -244,7 +244,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
         )}
       </div>
 
-      <div className="text-xs text-[#707070] text-center pt-2 border-t border-[#2a2a2a] w-full">
+      <div className="text-xs text-ink-4 text-center pt-2 border-t border-border-1 w-full">
         Center circle toggles major/minor
       </div>
     </div>

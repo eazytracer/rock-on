@@ -25,7 +25,7 @@ export const JamWatcherList: React.FC<JamWatcherListProps> = ({ watchers }) => {
 
   return (
     <div data-testid="jam-watcher-list" className="space-y-2">
-      <h3 className="text-[#a0a0a0] text-xs font-medium uppercase tracking-wide flex items-center gap-2">
+      <h3 className="text-ink-3 text-xs font-medium uppercase tracking-wide flex items-center gap-2">
         <Eye size={12} />
         Watching ({watchers.length})
       </h3>
@@ -37,15 +37,13 @@ export const JamWatcherList: React.FC<JamWatcherListProps> = ({ watchers }) => {
             <li
               key={w.key}
               data-testid={`jam-watcher-${w.key}`}
-              className="flex items-center gap-2 text-sm text-[#c0c0c0]"
+              className="flex items-center gap-2 text-sm text-ink-2"
             >
               <span
                 aria-hidden
                 className="inline-block h-1.5 w-1.5 rounded-full bg-primary/70"
               />
-              <span
-                className={hasName ? 'text-white' : 'text-[#808080] italic'}
-              >
+              <span className={hasName ? 'text-white' : 'text-ink-4 italic'}>
                 {label}
               </span>
             </li>

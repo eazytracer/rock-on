@@ -42,18 +42,18 @@ export const ProtectedLayoutRoute: React.FC = () => {
 
   // Show loading spinner during auth check (full screen, dark theme).
   // Preserves the auth-loading-spinner testid for E2E test compatibility.
-  // Palette: `bg-[#0a0a0a]` (app background), `border-primary` (brand
-  // orange `#FE4401` via tailwind semantic token), `text-[#a0a0a0]`
+  // Palette: `bg-bg-0` (app background), `border-primary` (brand
+  // orange `#FE4401` via tailwind semantic token), `text-ink-3`
   // (secondary text per style guide).
   if (isChecking) {
     return (
       <div
-        className="flex items-center justify-center min-h-screen bg-[#0a0a0a]"
+        className="flex items-center justify-center min-h-screen bg-bg-0"
         data-testid="auth-loading-spinner"
       >
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-[#a0a0a0] text-sm">Loading...</span>
+          <span className="text-ink-3 text-sm">Loading...</span>
         </div>
       </div>
     )

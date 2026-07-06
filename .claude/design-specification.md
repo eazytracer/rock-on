@@ -1,14 +1,23 @@
 # Rock-On Design Specification
 
+> ⚠️ **SUPERSEDED for color/theme (2026-07-05).** Any light-theme palette here
+> (`#FE4401`, `smoke-white #F5F5F5`, electric-yellow) is **out of date**. The app is a **dark**
+> scheme on unified accent **`#ff7a1a`** (Geist + JetBrains Mono). **Design-token source of
+> truth:** `src/index.css` + `tailwind.config.js` + `src/utils/tokens.ts`; tuning colors via
+> `src/utils/tunings.ts` (`tuningColor()`). Use token utilities, never raw hex. Non-color
+> guidance (IA, component behavior) below may still apply — verify against current `src/`.
+
 ## Brand Identity
 
 ### Logo
+
 - **Primary Mark**: Rock-on hand gesture with bold typography
 - **Style**: Minimalist, modern, music-focused
 - **Usage**: Clean geometric forms with strong visual impact
 - **File**: `.claude/artifacts/ChatGPT Image Sep 27, 2025, 04_59_12 PM.png`
 
 ### Brand Personality
+
 - **Energetic**: High-energy music application
 - **Modern**: Clean, contemporary design language
 - **Bold**: Strong visual presence and confident typography
@@ -17,16 +26,18 @@
 ## Color Palette
 
 ### Primary Colors
+
 ```css
---energy-orange: #FE4401;     /* Primary Accent - CTAs, highlights, active states */
---stage-black: #121212;       /* Background Dark - main backgrounds, headers */
---electric-yellow: #FFD400;   /* Secondary Accent - warnings, notifications */
---smoke-white: #F5F5F5;       /* Neutral Light - content backgrounds, cards */
---amp-red: #D7263D;           /* Highlight - errors, alerts, urgent actions */
---steel-gray: #2E2E2E;        /* Calm Contrast - text, borders, subtle elements */
+--energy-orange: #fe4401; /* Primary Accent - CTAs, highlights, active states */
+--stage-black: #121212; /* Background Dark - main backgrounds, headers */
+--electric-yellow: #ffd400; /* Secondary Accent - warnings, notifications */
+--smoke-white: #f5f5f5; /* Neutral Light - content backgrounds, cards */
+--amp-red: #d7263d; /* Highlight - errors, alerts, urgent actions */
+--steel-gray: #2e2e2e; /* Calm Contrast - text, borders, subtle elements */
 ```
 
 ### Color Usage Guidelines
+
 - **Energy Orange (#FE4401)**: Primary CTAs, active navigation items, progress indicators
 - **Stage Black (#121212)**: Main app background, header backgrounds, dark mode primary
 - **Electric Yellow (#FFD400)**: Secondary buttons, caution states, highlights
@@ -37,11 +48,15 @@
 ## Typography
 
 ### Font Stack
+
 ```css
-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+font-family:
+  -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+  'Cantarell', sans-serif;
 ```
 
 ### Type Scale
+
 - **Display**: 48px/52px - Hero headings, brand moments
 - **H1**: 36px/40px - Page titles, major sections
 - **H2**: 28px/32px - Section headings, card titles
@@ -53,6 +68,7 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 - **Caption**: 12px/16px - Labels, metadata
 
 ### Font Weights
+
 - **Bold (700)**: Headings, emphasis, CTAs
 - **Medium (500)**: Subheadings, important UI text
 - **Regular (400)**: Body text, general content
@@ -60,14 +76,15 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 ## Spacing System
 
 ### Base Unit: 4px
+
 ```css
---space-1: 4px;   /* 0.25rem */
---space-2: 8px;   /* 0.5rem */
---space-3: 12px;  /* 0.75rem */
---space-4: 16px;  /* 1rem */
---space-5: 20px;  /* 1.25rem */
---space-6: 24px;  /* 1.5rem */
---space-8: 32px;  /* 2rem */
+--space-1: 4px; /* 0.25rem */
+--space-2: 8px; /* 0.5rem */
+--space-3: 12px; /* 0.75rem */
+--space-4: 16px; /* 1rem */
+--space-5: 20px; /* 1.25rem */
+--space-6: 24px; /* 1.5rem */
+--space-8: 32px; /* 2rem */
 --space-10: 40px; /* 2.5rem */
 --space-12: 48px; /* 3rem */
 --space-16: 64px; /* 4rem */
@@ -77,11 +94,13 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 ## Layout Guidelines
 
 ### Grid System
+
 - **Mobile**: 4px margins, 16px gutters
 - **Tablet**: 16px margins, 24px gutters
 - **Desktop**: 24px margins, 32px gutters
 
 ### Breakpoints
+
 ```css
 --mobile: 320px;
 --tablet: 768px;
@@ -90,6 +109,7 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 ```
 
 ### Container Widths
+
 - **Mobile**: 100% - 8px margins
 - **Tablet**: 100% - 32px margins
 - **Desktop**: 1200px max-width, centered
@@ -98,6 +118,7 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 ## Component Design Principles
 
 ### Buttons
+
 - **Primary**: Energy Orange background, white text, bold weight
 - **Secondary**: Steel Gray border, Steel Gray text, medium weight
 - **Danger**: Amp Red background, white text, bold weight
@@ -106,6 +127,7 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 - **Border Radius**: 8px
 
 ### Cards
+
 - **Background**: Smoke White
 - **Border**: 1px solid rgba(46, 46, 46, 0.1)
 - **Border Radius**: 12px
@@ -113,6 +135,7 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 - **Padding**: 20px
 
 ### Form Elements
+
 - **Input Height**: 44px
 - **Border**: 2px solid Steel Gray (20% opacity)
 - **Focus Border**: Energy Orange
@@ -120,6 +143,7 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 - **Padding**: 12px 16px
 
 ### Navigation
+
 - **Mobile-First**: Hamburger menu, slide-out drawer
 - **Active State**: Energy Orange accent
 - **Height**: 64px on mobile, 72px on desktop
@@ -128,15 +152,18 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 ## Accessibility Standards
 
 ### Color Contrast
+
 - **AA Standard**: 4.5:1 for normal text, 3:1 for large text
 - **AAA Standard**: 7:1 for normal text, 4.5:1 for large text
 - All primary color combinations meet AA standards
 
 ### Touch Targets
+
 - **Minimum Size**: 44px × 44px
 - **Recommended**: 48px × 48px for primary actions
 
 ### Focus States
+
 - **Outline**: 2px solid Energy Orange
 - **Offset**: 2px from element
 - **Visible**: All interactive elements must have clear focus states
@@ -144,16 +171,19 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
 ## Motion & Animation
 
 ### Timing
+
 - **Fast**: 150ms - Micro-interactions, hover states
 - **Medium**: 250ms - Component transitions, state changes
 - **Slow**: 400ms - Page transitions, complex animations
 
 ### Easing
+
 - **Standard**: cubic-bezier(0.4, 0.0, 0.2, 1)
 - **Decelerate**: cubic-bezier(0.0, 0.0, 0.2, 1)
 - **Accelerate**: cubic-bezier(0.4, 0.0, 1, 1)
 
 ### Principles
+
 - **Purposeful**: Animations should guide user attention
 - **Subtle**: Enhance UX without being distracting
 - **Performant**: Use transform and opacity for smooth animations

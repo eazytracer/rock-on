@@ -68,7 +68,7 @@ export const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
       aria-modal="true"
       aria-labelledby="unsaved-changes-title"
     >
-      <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md overflow-hidden shadow-2xl">
+      <div className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-md overflow-hidden shadow-2xl">
         <div className="p-6">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
@@ -81,17 +81,17 @@ export const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
               >
                 {title}
               </h2>
-              <p className="text-[#a0a0a0] text-sm">{message}</p>
+              <p className="text-ink-3 text-sm">{message}</p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 p-4 bg-[#0f0f0f] border-t border-[#2a2a2a]">
+        <div className="flex flex-col sm:flex-row gap-2 p-4 bg-bg-1 border-t border-border-1">
           <button
             ref={keepRef}
             onClick={onKeepEditing}
             data-testid="unsaved-keep-editing"
-            className="flex-1 px-4 py-2.5 bg-[#1a1a1a] text-white text-sm font-medium rounded-lg hover:bg-[#252525] border border-[#2a2a2a] transition-colors focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/40"
+            className="flex-1 px-4 py-2.5 bg-bg-2 text-white text-sm font-medium rounded-lg hover:bg-bg-4 border border-border-1 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/40"
           >
             {keepLabel}
           </button>
@@ -107,7 +107,7 @@ export const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
             <button
               onClick={onSaveAndClose}
               data-testid="unsaved-save-and-close"
-              className="flex-1 px-4 py-2.5 bg-[#f17827ff] text-white text-sm font-medium rounded-lg hover:bg-[#d66920] transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/60"
+              className="flex-1 px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-deep transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-accent/60"
             >
               <Save size={14} />
               {saveLabel}

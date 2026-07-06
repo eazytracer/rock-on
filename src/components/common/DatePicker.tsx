@@ -266,8 +266,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       {label && (
-        <label className="block text-sm text-[#a0a0a0] mb-2">
-          {label} {required && <span className="text-[#f17827ff]">*</span>}
+        <label className="block text-sm text-ink-3 mb-2">
+          {label} {required && <span className="text-accent">*</span>}
         </label>
       )}
 
@@ -291,7 +291,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           name={name}
           id={id}
           data-testid={dataTestId}
-          className="w-full h-10 px-3 bg-[#121212] border border-[#f17827ff] rounded-lg text-white text-sm placeholder-[#505050] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+          className="w-full h-10 px-3 bg-bg-1 border border-accent rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20"
         />
       ) : (
         <button
@@ -302,20 +302,20 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           name={name}
           id={id}
           data-testid={dataTestId}
-          className={`w-full h-10 px-3 bg-[#121212] border border-[#2a2a2a] rounded-lg text-sm flex items-center justify-between transition-colors ${
+          className={`w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-sm flex items-center justify-between transition-colors ${
             disabled
               ? 'opacity-50 cursor-not-allowed'
-              : 'hover:border-[#3a3a3a] cursor-pointer'
-          } ${isOpen ? 'border-[#f17827ff] ring-2 ring-[#f17827ff]/20' : ''}`}
+              : 'hover:border-border-2 cursor-pointer'
+          } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
         >
-          <span className={selectedDate ? 'text-white' : 'text-[#707070]'}>
+          <span className={selectedDate ? 'text-white' : 'text-ink-4'}>
             {displayValue}
           </span>
           <div className="flex items-center gap-2">
-            <Calendar size={18} className="text-[#707070]" />
+            <Calendar size={18} className="text-ink-4" />
             <ChevronDown
               size={14}
-              className={`text-[#707070] transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              className={`text-ink-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
             />
           </div>
         </button>
@@ -324,7 +324,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       {/* Calendar dropdown */}
       {isOpen && !isManualEntry && (
         <div
-          className="absolute top-full left-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-50 p-4 w-[280px]"
+          className="absolute top-full left-0 mt-2 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 p-4 w-[280px]"
           data-testid={`${dataTestId}-dropdown`}
         >
           {/* Month/Year header */}
@@ -332,7 +332,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={() => navigateMonth(-1)}
-              className="p-1 text-[#a0a0a0] hover:text-white hover:bg-[#252525] rounded transition-colors"
+              className="p-1 text-ink-3 hover:text-white hover:bg-bg-4 rounded transition-colors"
               data-testid={`${dataTestId}-prev-month`}
             >
               <ChevronLeft size={20} />
@@ -345,7 +345,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={() => navigateMonth(1)}
-              className="p-1 text-[#a0a0a0] hover:text-white hover:bg-[#252525] rounded transition-colors"
+              className="p-1 text-ink-3 hover:text-white hover:bg-bg-4 rounded transition-colors"
               data-testid={`${dataTestId}-next-month`}
             >
               <ChevronRight size={20} />
@@ -357,7 +357,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             {DAYS_OF_WEEK.map(day => (
               <div
                 key={day}
-                className="text-center text-xs text-[#707070] font-medium py-1"
+                className="text-center text-xs text-ink-4 font-medium py-1"
               >
                 {day}
               </div>
@@ -384,12 +384,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   data-testid={`${dataTestId}-day-${date.getDate()}`}
                   className={`w-8 h-8 flex items-center justify-center text-sm rounded-full transition-colors ${
                     dateDisabled
-                      ? 'text-[#505050] cursor-not-allowed'
+                      ? 'text-ink-5 cursor-not-allowed'
                       : selected
-                        ? 'bg-[#f17827ff] text-white font-medium'
+                        ? 'bg-accent text-white font-medium'
                         : today
                           ? 'bg-[#2563eb] text-white'
-                          : 'text-[#a0a0a0] hover:bg-[#252525] hover:text-white'
+                          : 'text-ink-3 hover:bg-bg-4 hover:text-white'
                   }`}
                 >
                   {date.getDate()}
@@ -399,14 +399,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           </div>
 
           {/* Today button */}
-          <div className="mt-4 pt-3 border-t border-[#2a2a2a]">
+          <div className="mt-4 pt-3 border-t border-border-1">
             <button
               type="button"
               onClick={() => {
                 const today = new Date()
                 handleSelectDate(today)
               }}
-              className="w-full text-center text-sm text-[#f17827ff] hover:text-[#ff8f4d] transition-colors"
+              className="w-full text-center text-sm text-accent hover:text-accent-hot transition-colors"
               data-testid={`${dataTestId}-today`}
             >
               Today
@@ -414,7 +414,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           </div>
 
           {/* Manual entry hint */}
-          <div className="mt-2 text-center text-xs text-[#505050]">
+          <div className="mt-2 text-center text-xs text-ink-5">
             Double-click field to type date
           </div>
         </div>

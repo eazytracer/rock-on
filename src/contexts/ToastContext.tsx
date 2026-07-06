@@ -61,23 +61,29 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
       {children}
 
       {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed top-20 left-0 right-0 px-4 md:top-4 md:left-auto md:right-4 md:px-0 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className="pointer-events-auto animate-slide-in-right bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden min-w-[300px] max-w-[400px]"
+            className={`pointer-events-auto animate-slide-in-right bg-bg-2 border rounded-lg shadow-xl overflow-hidden w-full md:w-auto md:min-w-[300px] md:max-w-[400px] ${
+              toast.type === 'success'
+                ? 'border-success/40'
+                : toast.type === 'error'
+                  ? 'border-danger/40'
+                  : 'border-info/40'
+            }`}
           >
             <div className="flex items-start gap-3 p-4">
               {/* Icon */}
               <div className="flex-shrink-0 mt-0.5">
                 {toast.type === 'success' && (
-                  <CheckCircle size={20} className="text-green-500" />
+                  <CheckCircle size={20} className="text-success" />
                 )}
                 {toast.type === 'error' && (
-                  <AlertCircle size={20} className="text-red-500" />
+                  <AlertCircle size={20} className="text-danger" />
                 )}
                 {toast.type === 'info' && (
-                  <Info size={20} className="text-blue-500" />
+                  <Info size={20} className="text-info" />
                 )}
               </div>
 
@@ -87,7 +93,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
               {/* Close Button */}
               <button
                 onClick={() => removeToast(toast.id)}
-                className="flex-shrink-0 p-1 text-[#707070] hover:text-white transition-colors rounded hover:bg-[#2a2a2a]"
+                className="flex-shrink-0 p-1 text-ink-4 hover:text-white transition-colors rounded hover:bg-border-1"
                 aria-label="Close notification"
               >
                 <X size={16} />
@@ -95,14 +101,14 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
             </div>
 
             {/* Progress Bar */}
-            <div className="h-1 bg-[#2a2a2a]">
+            <div className="h-1 bg-border-1">
               <div
                 className={`h-full animate-toast-progress ${
                   toast.type === 'success'
-                    ? 'bg-green-500'
+                    ? 'bg-success'
                     : toast.type === 'error'
-                      ? 'bg-red-500'
-                      : 'bg-blue-500'
+                      ? 'bg-danger'
+                      : 'bg-info'
                 }`}
               />
             </div>

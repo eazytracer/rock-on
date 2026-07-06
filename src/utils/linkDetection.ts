@@ -62,7 +62,7 @@ const linkTypeConfig: Record<LinkType, Omit<LinkTypeInfo, 'type'>> = {
   other: {
     name: 'Link',
     iconName: 'ExternalLink',
-    color: 'text-[#a0a0a0]',
+    color: 'text-ink-3',
   },
 }
 

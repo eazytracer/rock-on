@@ -66,7 +66,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
   // Render edit input based on type
   const renderEditInput = () => {
     const baseInputClass =
-      'w-full px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20'
+      'w-full px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20'
 
     switch (type) {
       case 'textarea':
@@ -158,10 +158,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
   return (
     <div className={`${className}`} data-testid={`${fieldTestId}-container`}>
       {label && (
-        <label
-          htmlFor={fieldId}
-          className="block text-sm text-[#707070] mb-1.5"
-        >
+        <label htmlFor={fieldId} className="block text-sm text-ink-4 mb-1.5">
           {label}
           {required && isEditing && (
             <span className="text-red-500 ml-1">*</span>
@@ -173,7 +170,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
         renderEditInput()
       ) : (
         <div className="flex items-start gap-2">
-          {icon && <span className="text-[#f17827ff] mt-0.5">{icon}</span>}
+          {icon && <span className="text-accent mt-0.5">{icon}</span>}
           <span
             className="text-white text-sm"
             data-testid={`${fieldTestId}-value`}

@@ -37,7 +37,7 @@ const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
       className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
       data-testid="unsaved-changes-dialog"
     >
-      <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md overflow-hidden shadow-2xl">
+      <div className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-md overflow-hidden shadow-2xl">
         <div className="p-6">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
@@ -45,16 +45,16 @@ const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
             </div>
             <div className="min-w-0">
               <h2 className="text-white font-semibold text-lg mb-1">{title}</h2>
-              <p className="text-[#a0a0a0] text-sm">{message}</p>
+              <p className="text-ink-3 text-sm">{message}</p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 p-4 bg-[#0f0f0f] border-t border-[#2a2a2a]">
+        <div className="flex flex-col sm:flex-row gap-2 p-4 bg-bg-1 border-t border-border-1">
           <button
             onClick={onKeepEditing}
             data-testid="unsaved-keep-editing"
-            className="flex-1 px-4 py-2.5 bg-[#1a1a1a] text-white text-sm font-medium rounded-lg hover:bg-[#252525] border border-[#2a2a2a] transition-colors"
+            className="flex-1 px-4 py-2.5 bg-bg-2 text-white text-sm font-medium rounded-lg hover:bg-bg-4 border border-border-1 transition-colors"
           >
             Keep editing
           </button>
@@ -70,7 +70,7 @@ const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
             <button
               onClick={onSaveAndClose}
               data-testid="unsaved-save-and-close"
-              className="flex-1 px-4 py-2.5 bg-[#f17827ff] text-white text-sm font-medium rounded-lg hover:bg-[#d66920] transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-deep transition-colors flex items-center justify-center gap-2"
             >
               <Save size={14} />
               Save
@@ -130,11 +130,11 @@ export const UnsavedChangesPreview: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Behavior overview */}
-      <section className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+      <section className="bg-bg-1 border border-border-1 rounded-lg p-4 sm:p-6">
         <h3 className="text-white font-semibold mb-3">
           Pattern: blocking confirm
         </h3>
-        <ul className="text-sm text-[#a0a0a0] space-y-2 list-disc list-inside">
+        <ul className="text-sm text-ink-3 space-y-2 list-disc list-inside">
           <li>
             Triggered by: <code>X</code> button, backdrop click, Escape key,
             route-change, tab close/refresh
@@ -155,7 +155,7 @@ export const UnsavedChangesPreview: React.FC = () => {
       </section>
 
       {/* Demo modal trigger */}
-      <section className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+      <section className="bg-bg-1 border border-border-1 rounded-lg p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-white font-semibold">Try it</h3>
           <span
@@ -168,7 +168,7 @@ export const UnsavedChangesPreview: React.FC = () => {
             {isDirty ? 'Dirty' : 'Clean'}
           </span>
         </div>
-        <p className="text-sm text-[#a0a0a0] mb-4">
+        <p className="text-sm text-ink-3 mb-4">
           Edit a field below, then try to close the &quot;modal&quot; with the X
           button — you&apos;ll be prompted. Also try refreshing the page while
           dirty.
@@ -177,7 +177,7 @@ export const UnsavedChangesPreview: React.FC = () => {
         <button
           onClick={() => setModalOpen(true)}
           data-testid="open-edit-modal"
-          className="px-4 py-2 bg-[#f17827ff] text-white rounded-lg hover:bg-[#d66920] text-sm font-medium"
+          className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-deep text-sm font-medium"
         >
           Open mock Edit Song modal
         </button>
@@ -190,15 +190,15 @@ export const UnsavedChangesPreview: React.FC = () => {
           onClick={handleAttemptClose}
         >
           <div
-            className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-lg"
+            className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-lg"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-5 border-b border-[#2a2a2a]">
+            <div className="flex items-center justify-between p-5 border-b border-border-1">
               <h2 className="text-white font-semibold">Edit Song (mock)</h2>
               <button
                 onClick={handleAttemptClose}
                 data-testid="mock-modal-close"
-                className="p-1 text-[#707070] hover:text-white"
+                className="p-1 text-ink-4 hover:text-white"
               >
                 <X size={20} />
               </button>
@@ -207,16 +207,16 @@ export const UnsavedChangesPreview: React.FC = () => {
               <Field label="Title" value={title} onChange={setTitle} />
               <Field label="Artist" value={artist} onChange={setArtist} />
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-[#2a2a2a]">
+            <div className="flex justify-end gap-2 p-4 border-t border-border-1">
               <button
                 onClick={handleAttemptClose}
-                className="px-4 py-2 text-[#a0a0a0] hover:text-white text-sm"
+                className="px-4 py-2 text-ink-3 hover:text-white text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveAndClose}
-                className="px-4 py-2 bg-[#f17827ff] text-white rounded-lg text-sm hover:bg-[#d66920]"
+                className="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:bg-accent-deep"
               >
                 Save changes
               </button>
@@ -243,12 +243,12 @@ const Field: React.FC<{
   onChange: (v: string) => void
 }> = ({ label, value, onChange }) => (
   <div>
-    <label className="block text-sm text-[#a0a0a0] mb-1">{label}</label>
+    <label className="block text-sm text-ink-3 mb-1">{label}</label>
     <input
       type="text"
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none"
+      className="w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none"
     />
   </div>
 )

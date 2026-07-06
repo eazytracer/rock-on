@@ -109,12 +109,12 @@ export const ConflictResolutionModal: React.FC<
       data-testid="conflict-modal-backdrop"
     >
       <div
-        className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-2xl shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-2xl shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
         data-testid="conflict-modal"
       >
         {/* Header */}
-        <div className="p-6 border-b border-[#2a2a2a]">
+        <div className="p-6 border-b border-border-1">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 p-2 rounded-full bg-amber-500/10">
               <AlertTriangle size={20} className="text-amber-500" />
@@ -126,7 +126,7 @@ export const ConflictResolutionModal: React.FC<
               >
                 Sync Conflict Detected
               </h3>
-              <p className="text-[#a0a0a0] text-sm mt-1">
+              <p className="text-ink-3 text-sm mt-1">
                 This {getTableDisplayName(conflict.table).toLowerCase()} was
                 modified on another device while you had unsaved changes.
               </p>
@@ -137,8 +137,8 @@ export const ConflictResolutionModal: React.FC<
         {/* Content */}
         <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
           {/* Item identifier */}
-          <div className="mb-4 p-3 bg-[#252525] rounded-lg">
-            <span className="text-[#808080] text-sm">
+          <div className="mb-4 p-3 bg-bg-4 rounded-lg">
+            <span className="text-ink-4 text-sm">
               {getTableDisplayName(conflict.table)}:
             </span>
             <span className="text-white ml-2 font-medium">{getItemName()}</span>
@@ -147,18 +147,18 @@ export const ConflictResolutionModal: React.FC<
           {/* Changed fields comparison */}
           {changedFields.length > 0 ? (
             <div className="space-y-3">
-              <h4 className="text-[#a0a0a0] text-sm font-medium">
+              <h4 className="text-ink-3 text-sm font-medium">
                 Changed Fields:
               </h4>
               {changedFields.slice(0, 5).map(({ field, local, remote }) => (
                 <div
                   key={field}
-                  className="border border-[#2a2a2a] rounded-lg overflow-hidden"
+                  className="border border-border-1 rounded-lg overflow-hidden"
                 >
-                  <div className="bg-[#252525] px-3 py-2 text-[#a0a0a0] text-sm font-medium capitalize">
+                  <div className="bg-bg-4 px-3 py-2 text-ink-3 text-sm font-medium capitalize">
                     {field.replace(/([A-Z])/g, ' $1').trim()}
                   </div>
-                  <div className="grid grid-cols-2 divide-x divide-[#2a2a2a]">
+                  <div className="grid grid-cols-2 divide-x divide-border-1">
                     <div className="p-3">
                       <div className="flex items-center gap-2 text-blue-400 text-xs mb-2">
                         <Monitor size={12} />
@@ -181,21 +181,21 @@ export const ConflictResolutionModal: React.FC<
                 </div>
               ))}
               {changedFields.length > 5 && (
-                <p className="text-[#808080] text-sm">
+                <p className="text-ink-4 text-sm">
                   ...and {changedFields.length - 5} more field(s)
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-[#808080] text-sm">
+            <p className="text-ink-4 text-sm">
               Unable to determine specific changes.
             </p>
           )}
         </div>
 
         {/* Actions */}
-        <div className="p-6 border-t border-[#2a2a2a] bg-[#151515]">
-          <p className="text-[#808080] text-sm mb-4">
+        <div className="p-6 border-t border-border-1 bg-bg-2">
+          <p className="text-ink-4 text-sm mb-4">
             Choose which version to keep. The other version will be discarded.
           </p>
           <div className="grid grid-cols-2 gap-3">
@@ -229,7 +229,7 @@ export const ConflictResolutionModal: React.FC<
           <button
             onClick={onDismiss}
             disabled={isLoading}
-            className="w-full mt-3 px-4 py-2 text-[#a0a0a0] text-sm hover:text-white transition-colors disabled:opacity-50"
+            className="w-full mt-3 px-4 py-2 text-ink-3 text-sm hover:text-white transition-colors disabled:opacity-50"
             data-testid="conflict-dismiss"
           >
             Decide Later

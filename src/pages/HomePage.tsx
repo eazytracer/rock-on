@@ -148,6 +148,8 @@ export function HomePage() {
   const actions = hasBand ? bandActions : personalActions
 
   return (
+    // TODO(ui-pass): Design Spec row 06 — desktop two-column Home dashboard.
+    // Deferred: net-new layout needing cross-band aggregation. Not built in the styling pass.
     <div data-testid="home-page" className="max-w-3xl">
       <h1 className="text-2xl font-bold text-ink-1">Home</h1>
       <p className="mt-1 text-sm text-ink-4">

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { useToast } from '../contexts/ToastContext'
+import { useAuth } from '../contexts/AuthContext'
 import {
   ChevronDown,
   Plus,
@@ -527,7 +528,7 @@ const SongRow: React.FC<SongRowProps> = ({
 
   return (
     <div
-      className="bg-[#1a1a1a] rounded-xl hover:bg-[#252525] transition-colors group border-l-[3px]"
+      className="bg-bg-2 rounded-xl hover:bg-bg-4 transition-colors group border-l-[3px]"
       style={{ borderLeftColor: stripeColor }}
     >
       <div className="flex items-center gap-4 p-4">
@@ -551,7 +552,7 @@ const SongRow: React.FC<SongRowProps> = ({
               </div>
               {linked && (
                 <span
-                  className="text-[#f17827ff] flex-shrink-0"
+                  className="text-accent flex-shrink-0"
                   title={linkedLabel || 'Linked across catalogs'}
                   aria-label={linkedLabel || 'Linked across catalogs'}
                   data-testid="song-linked-indicator"
@@ -560,7 +561,7 @@ const SongRow: React.FC<SongRowProps> = ({
                 </span>
               )}
             </div>
-            <div className="text-[#a0a0a0] text-xs truncate">{song.artist}</div>
+            <div className="text-ink-3 text-xs truncate">{song.artist}</div>
           </div>
         </div>
 
@@ -574,10 +575,10 @@ const SongRow: React.FC<SongRowProps> = ({
         </div>
 
         {/* Duration */}
-        <div className="w-[90px] text-[#a0a0a0] text-sm">{song.duration}</div>
+        <div className="w-[90px] text-ink-3 text-sm">{song.duration}</div>
 
         {/* Key */}
-        <div className="w-[60px] text-[#a0a0a0] text-sm">{song.key || '—'}</div>
+        <div className="w-[60px] text-ink-3 text-sm">{song.key || '—'}</div>
 
         {/* Tuning */}
         <div
@@ -588,24 +589,24 @@ const SongRow: React.FC<SongRowProps> = ({
         </div>
 
         {/* BPM */}
-        <div className="w-[80px] text-[#a0a0a0] text-sm">{song.bpm}</div>
+        <div className="w-[80px] text-ink-3 text-sm">{song.bpm}</div>
 
         {/* Next Show */}
         <div className="w-[180px]">
           {song.nextShow ? (
             <>
               <div className="text-white text-sm">{song.nextShow.name}</div>
-              <div className="text-[#a0a0a0] text-xs">{song.nextShow.date}</div>
+              <div className="text-ink-3 text-xs">{song.nextShow.date}</div>
             </>
           ) : (
-            <div className="text-[#707070] text-sm">No shows scheduled</div>
+            <div className="text-ink-4 text-sm">No shows scheduled</div>
           )}
         </div>
 
         {/* Notes Button */}
         <button
           onClick={() => onOpenNotes(song)}
-          className="p-1.5 text-[#707070] hover:text-[#f17827ff] transition-colors"
+          className="p-1.5 text-ink-4 hover:text-accent transition-colors"
           title="Song Notes"
           data-testid="song-notes-button"
         >
@@ -618,7 +619,7 @@ const SongRow: React.FC<SongRowProps> = ({
             onClick={() =>
               setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
             }
-            className="p-1 text-[#707070] hover:text-white transition-colors"
+            className="p-1 text-ink-4 hover:text-white transition-colors"
             data-testid="song-actions-menu-button"
           >
             <MoreVertical size={20} />
@@ -630,10 +631,10 @@ const SongRow: React.FC<SongRowProps> = ({
                 className="fixed inset-0 z-10"
                 onClick={() => setOpenActionMenuId(null)}
               />
-              <div className="absolute right-0 top-8 z-20 w-48 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
+              <div className="absolute right-0 top-8 z-20 w-48 bg-bg-3 border border-border-1 rounded-lg shadow-xl overflow-hidden">
                 <button
                   onClick={() => onEdit(song)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
                   data-testid="edit-song-button"
                 >
                   <Edit size={16} />
@@ -641,7 +642,7 @@ const SongRow: React.FC<SongRowProps> = ({
                 </button>
                 <button
                   onClick={() => onAddToSetlist(song)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
                   data-testid="add-to-setlist-button"
                 >
                   <ListPlus size={16} />
@@ -653,8 +654,8 @@ const SongRow: React.FC<SongRowProps> = ({
                     disabled={alreadyCopied}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                       alreadyCopied
-                        ? 'text-[#707070] cursor-default'
-                        : 'text-white hover:bg-[#2a2a2a]'
+                        ? 'text-ink-4 cursor-default'
+                        : 'text-white hover:bg-border-1'
                     }`}
                     data-testid="copy-to-personal-button"
                   >
@@ -668,16 +669,16 @@ const SongRow: React.FC<SongRowProps> = ({
                 )}
                 <button
                   onClick={() => onDuplicate(song)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
                   data-testid="duplicate-song-button"
                 >
                   <Copy size={16} />
                   <span>Duplicate Song</span>
                 </button>
-                <div className="h-px bg-[#2a2a2a]" />
+                <div className="h-px bg-border-1" />
                 <button
                   onClick={() => onDelete(song)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-danger text-sm hover:bg-border-1 transition-colors"
                   data-testid="delete-song-button"
                 >
                   <Trash2 size={16} />
@@ -713,7 +714,7 @@ const SongCard: React.FC<SongRowProps> = ({
 
   return (
     <div
-      className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a] border-l-[3px]"
+      className="bg-bg-2 rounded-xl p-4 border border-border-1 border-l-[3px]"
       style={{ borderLeftColor: stripeColor }}
     >
       {/* Song Info */}
@@ -736,7 +737,7 @@ const SongCard: React.FC<SongRowProps> = ({
             </div>
             {linked && (
               <span
-                className="text-[#f17827ff] flex-shrink-0"
+                className="text-accent flex-shrink-0"
                 title={linkedLabel || 'Linked across catalogs'}
                 aria-label={linkedLabel || 'Linked across catalogs'}
                 data-testid="song-linked-indicator"
@@ -745,13 +746,13 @@ const SongCard: React.FC<SongRowProps> = ({
               </span>
             )}
           </div>
-          <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
+          <div className="text-ink-3 text-xs">{song.artist}</div>
         </div>
 
         {/* Notes Button */}
         <button
           onClick={() => onOpenNotes(song)}
-          className="p-1.5 text-[#707070] hover:text-[#f17827ff] transition-colors"
+          className="p-1.5 text-ink-4 hover:text-accent transition-colors"
           title="Song Notes"
           data-testid="song-notes-button"
         >
@@ -763,7 +764,7 @@ const SongCard: React.FC<SongRowProps> = ({
           onClick={() =>
             setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
           }
-          className="p-1 text-[#707070] hover:text-white transition-colors"
+          className="p-1 text-ink-4 hover:text-white transition-colors"
         >
           <MoreVertical size={20} />
         </button>
@@ -775,17 +776,17 @@ const SongCard: React.FC<SongRowProps> = ({
               className="fixed inset-0 z-10"
               onClick={() => setOpenActionMenuId(null)}
             />
-            <div className="absolute right-4 z-20 w-48 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
+            <div className="absolute right-4 z-20 w-48 bg-bg-3 border border-border-1 rounded-lg shadow-xl overflow-hidden">
               <button
                 onClick={() => onEdit(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
               >
                 <Edit size={16} />
                 <span>Edit Song</span>
               </button>
               <button
                 onClick={() => onAddToSetlist(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
               >
                 <ListPlus size={16} />
                 <span>Add to Setlist</span>
@@ -796,8 +797,8 @@ const SongCard: React.FC<SongRowProps> = ({
                   disabled={alreadyCopied}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                     alreadyCopied
-                      ? 'text-[#707070] cursor-default'
-                      : 'text-white hover:bg-[#2a2a2a]'
+                      ? 'text-ink-4 cursor-default'
+                      : 'text-white hover:bg-border-1'
                   }`}
                   data-testid="copy-to-personal-button"
                 >
@@ -809,15 +810,15 @@ const SongCard: React.FC<SongRowProps> = ({
               )}
               <button
                 onClick={() => onDuplicate(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
               >
                 <Copy size={16} />
                 <span>Duplicate Song</span>
               </button>
-              <div className="h-px bg-[#2a2a2a]" />
+              <div className="h-px bg-border-1" />
               <button
                 onClick={() => onDelete(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-danger text-sm hover:bg-border-1 transition-colors"
               >
                 <Trash2 size={16} />
                 <span>Delete Song</span>
@@ -829,11 +830,11 @@ const SongCard: React.FC<SongRowProps> = ({
 
       {/* Metadata Grid - 2 columns on wider mobile, 1 column on very small */}
       <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 mb-3">
-        <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+        <div className="flex items-center gap-2 text-ink-3 text-xs">
           <Clock size={16} className="flex-shrink-0" />
           <span>{song.duration}</span>
         </div>
-        <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+        <div className="flex items-center gap-2 text-ink-3 text-xs">
           <Music size={16} className="flex-shrink-0" />
           <span>{song.key || '—'}</span>
         </div>
@@ -844,7 +845,7 @@ const SongCard: React.FC<SongRowProps> = ({
           <Guitar size={16} className="flex-shrink-0" />
           <span className="truncate font-medium">{song.tuning}</span>
         </div>
-        <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+        <div className="flex items-center gap-2 text-ink-3 text-xs">
           <Activity size={16} className="flex-shrink-0" />
           <span className="whitespace-nowrap">{song.bpm}</span>
         </div>
@@ -856,7 +857,7 @@ const SongCard: React.FC<SongRowProps> = ({
           {song.tags.map(tag => (
             <span
               key={tag}
-              className="px-2 py-0.5 bg-[#2a2a2a] text-[#a0a0a0] text-xs rounded"
+              className="px-2 py-0.5 bg-border-1 text-ink-3 text-xs rounded"
             >
               {tag}
             </span>
@@ -867,7 +868,7 @@ const SongCard: React.FC<SongRowProps> = ({
       {/* Link Icons - Quick access to external resources */}
       {song.referenceLinks && song.referenceLinks.length > 0 && (
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-[#606060] text-xs">Links:</span>
+          <span className="text-ink-4 text-xs">Links:</span>
           <LinkIcons
             links={songLinksToReferenceLinks(song.referenceLinks)}
             size="sm"
@@ -878,18 +879,18 @@ const SongCard: React.FC<SongRowProps> = ({
 
       {/* Next Show */}
       {song.nextShow && (
-        <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
-          <Calendar size={16} className="text-[#707070] flex-shrink-0" />
+        <div className="flex items-center gap-2 pt-3 border-t border-border-1 text-xs">
+          <Calendar size={16} className="text-ink-4 flex-shrink-0" />
           <span className="text-white truncate">{song.nextShow.name}</span>
-          <span className="text-[#a0a0a0] whitespace-nowrap">
+          <span className="text-ink-3 whitespace-nowrap">
             {song.nextShow.date}
           </span>
         </div>
       )}
       {!song.nextShow && (
-        <div className="flex items-center gap-2 pt-3 border-t border-[#2a2a2a] text-xs">
-          <Calendar size={16} className="text-[#707070] flex-shrink-0" />
-          <span className="text-[#707070]">No shows scheduled</span>
+        <div className="flex items-center gap-2 pt-3 border-t border-border-1 text-xs">
+          <Calendar size={16} className="text-ink-4 flex-shrink-0" />
+          <span className="text-ink-4">No shows scheduled</span>
         </div>
       )}
     </div>
@@ -898,6 +899,7 @@ const SongCard: React.FC<SongRowProps> = ({
 
 export const SongsPage: React.FC = () => {
   const { showToast } = useToast()
+  const { currentBand } = useAuth()
 
   // DATABASE INTEGRATION: Get currentBandId from localStorage
   const currentBandId = localStorage.getItem('currentBandId') || ''
@@ -1384,22 +1386,38 @@ export const SongsPage: React.FC = () => {
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <h1 className="text-2xl font-bold text-white">Songs</h1>
-                <ChevronDown size={20} className="text-[#a0a0a0]" />
+                <ChevronDown size={20} className="text-ink-3" />
+                {/* Active-catalog context chip */}
+                {currentBand ? (
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-accent/10 text-accent border border-accent/20"
+                    data-testid="songs-context-chip"
+                  >
+                    {currentBand.name}
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-info/10 text-info border border-info/20"
+                    data-testid="songs-context-chip"
+                  >
+                    Personal
+                  </span>
+                )}
                 {/* DATABASE INTEGRATION: Show song count */}
-                <span className="text-sm text-[#a0a0a0] ml-2">
+                <span className="text-sm text-ink-3 ml-2">
                   ({songs.length} songs)
                 </span>
               </div>
 
               {/* Band / Personal tab switcher */}
-              <div className="flex gap-1 mb-2 bg-[#1a1a1a] rounded-lg p-1 w-fit">
+              <div className="flex gap-1 mb-2 bg-bg-2 rounded-lg p-1 w-fit">
                 <button
                   data-testid="songs-band-tab"
                   onClick={() => setActiveTab('band')}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'band'
-                      ? 'bg-[#f17827ff] text-white'
-                      : 'text-[#a0a0a0] hover:text-white'
+                      ? 'bg-accent text-white'
+                      : 'text-ink-3 hover:text-white'
                   }`}
                 >
                   Band Songs
@@ -1409,8 +1427,8 @@ export const SongsPage: React.FC = () => {
                   onClick={() => setActiveTab('personal')}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'personal'
-                      ? 'bg-[#f17827ff] text-white'
-                      : 'text-[#a0a0a0] hover:text-white'
+                      ? 'bg-info text-white'
+                      : 'text-ink-3 hover:text-white'
                   }`}
                 >
                   My Songs
@@ -1419,7 +1437,7 @@ export const SongsPage: React.FC = () => {
               {/* Tab explainer — clarifies the difference between catalogs
                   for users who haven't built a mental model yet. */}
               <p
-                className="text-xs text-[#707070] mb-6"
+                className="text-xs text-ink-4 mb-6"
                 data-testid="songs-tab-explainer"
               >
                 {isPersonalTab
@@ -1433,14 +1451,14 @@ export const SongsPage: React.FC = () => {
                   onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     activeFilterCount > 0
-                      ? 'border-[#f17827ff] bg-[#f17827ff]/10 text-[#f17827ff]'
-                      : 'border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f]'
+                      ? 'border-accent bg-accent/10 text-accent'
+                      : 'border-border-1 bg-transparent text-white hover:bg-bg-3'
                   }`}
                 >
                   <Filter size={20} />
                   <span>Filter</span>
                   {activeFilterCount > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 bg-[#f17827ff] text-white text-xs rounded-full">
+                    <span className="ml-1 px-1.5 py-0.5 bg-accent text-white text-xs rounded-full">
                       {activeFilterCount}
                     </span>
                   )}
@@ -1450,19 +1468,19 @@ export const SongsPage: React.FC = () => {
                   <div className="relative flex-1">
                     <Search
                       size={20}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-4"
                     />
                     <input
                       type="text"
                       placeholder="Search songs, artists, albums..."
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full h-10 pl-11 pr-10 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                      className="w-full h-10 pl-11 pr-10 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                     />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-4 hover:text-white"
                       >
                         <X size={16} />
                       </button>
@@ -1475,7 +1493,7 @@ export const SongsPage: React.FC = () => {
                   <select
                     value={sortBy}
                     onChange={e => setSortBy(e.target.value as SortOption)}
-                    className="h-10 px-4 pr-8 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm hover:bg-[#1f1f1f] transition-colors focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                    className="h-10 px-4 pr-8 bg-bg-2 border border-border-1 rounded-lg text-white text-sm hover:bg-bg-3 transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                   >
                     <option value="title-asc">Title (A-Z)</option>
                     <option value="title-desc">Title (Z-A)</option>
@@ -1488,7 +1506,7 @@ export const SongsPage: React.FC = () => {
 
                   <button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
                     data-testid="add-song-button"
                   >
                     <Plus size={20} />
@@ -1499,7 +1517,7 @@ export const SongsPage: React.FC = () => {
 
               {/* Filter Panel */}
               {isFilterPanelOpen && (
-                <div className="mt-4 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl">
+                <div className="mt-4 p-4 bg-bg-2 border border-border-1 rounded-xl">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-white">
                       Filters
@@ -1507,7 +1525,7 @@ export const SongsPage: React.FC = () => {
                     {activeFilterCount > 0 && (
                       <button
                         onClick={clearAllFilters}
-                        className="text-xs text-[#f17827ff] hover:text-[#d66620] transition-colors"
+                        className="text-xs text-accent hover:text-accent-deep transition-colors"
                       >
                         Clear All
                       </button>
@@ -1517,13 +1535,13 @@ export const SongsPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Tuning Filter */}
                     <div>
-                      <label className="block text-xs text-[#a0a0a0] mb-2">
+                      <label className="block text-xs text-ink-3 mb-2">
                         Guitar Tuning
                       </label>
                       <select
                         value={selectedTuning}
                         onChange={e => setSelectedTuning(e.target.value)}
-                        className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                        className="w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                       >
                         <option value="">All Tunings</option>
                         {availableTunings.map(tuning => (
@@ -1536,13 +1554,13 @@ export const SongsPage: React.FC = () => {
 
                     {/* Show Filter */}
                     <div>
-                      <label className="block text-xs text-[#a0a0a0] mb-2">
+                      <label className="block text-xs text-ink-3 mb-2">
                         Upcoming Show
                       </label>
                       <select
                         value={selectedShow}
                         onChange={e => setSelectedShow(e.target.value)}
-                        className="w-full h-10 px-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                        className="w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                       >
                         <option value="">All Shows</option>
                         {availableShows.map(show => (
@@ -1555,7 +1573,7 @@ export const SongsPage: React.FC = () => {
 
                     {/* Tags Filter */}
                     <div>
-                      <label className="block text-xs text-[#a0a0a0] mb-2">
+                      <label className="block text-xs text-ink-3 mb-2">
                         Tags
                       </label>
                       <div className="flex flex-wrap gap-2">
@@ -1565,8 +1583,8 @@ export const SongsPage: React.FC = () => {
                             onClick={() => toggleTag(tag)}
                             className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
                               selectedTags.includes(tag)
-                                ? 'bg-[#f17827ff] text-white'
-                                : 'bg-[#2a2a2a] text-[#a0a0a0] hover:bg-[#3a3a3a]'
+                                ? 'bg-accent text-white'
+                                : 'bg-border-1 text-ink-3 hover:bg-border-2'
                             }`}
                           >
                             {tag}
@@ -1578,14 +1596,14 @@ export const SongsPage: React.FC = () => {
 
                   {/* Active Filters Display */}
                   {activeFilterCount > 0 && (
-                    <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
+                    <div className="mt-4 pt-4 border-t border-border-1">
                       <div className="flex flex-wrap gap-2">
                         {selectedTuning && (
-                          <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
+                          <div className="flex items-center gap-1 px-3 py-1 bg-border-1 text-white text-xs rounded-lg">
                             <span>{selectedTuning}</span>
                             <button
                               onClick={() => setSelectedTuning('')}
-                              className="text-[#a0a0a0] hover:text-white"
+                              className="text-ink-3 hover:text-white"
                             >
                               <X size={14} />
                             </button>
@@ -1594,23 +1612,23 @@ export const SongsPage: React.FC = () => {
                         {selectedTags.map(tag => (
                           <div
                             key={tag}
-                            className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg"
+                            className="flex items-center gap-1 px-3 py-1 bg-border-1 text-white text-xs rounded-lg"
                           >
                             <span>{tag}</span>
                             <button
                               onClick={() => toggleTag(tag)}
-                              className="text-[#a0a0a0] hover:text-white"
+                              className="text-ink-3 hover:text-white"
                             >
                               <X size={14} />
                             </button>
                           </div>
                         ))}
                         {selectedShow && (
-                          <div className="flex items-center gap-1 px-3 py-1 bg-[#2a2a2a] text-white text-xs rounded-lg">
+                          <div className="flex items-center gap-1 px-3 py-1 bg-border-1 text-white text-xs rounded-lg">
                             <span>{selectedShow}</span>
                             <button
                               onClick={() => setSelectedShow('')}
-                              className="text-[#a0a0a0] hover:text-white"
+                              className="text-ink-3 hover:text-white"
                             >
                               <X size={14} />
                             </button>
@@ -1628,18 +1646,18 @@ export const SongsPage: React.FC = () => {
               !searchQuery &&
               activeFilterCount === 0 && (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-                    <Music size={32} className="text-[#707070]" />
+                  <div className="w-16 h-16 mb-4 rounded-full bg-bg-2 flex items-center justify-center">
+                    <Music size={32} className="text-ink-4" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">
                     No songs yet
                   </h3>
-                  <p className="text-sm text-[#a0a0a0] mb-6">
+                  <p className="text-sm text-ink-3 mb-6">
                     Add your first song to get started
                   </p>
                   <button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66620] transition-colors"
+                    className="flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
                     data-testid="add-song-button"
                   >
                     <Plus size={20} />
@@ -1652,13 +1670,13 @@ export const SongsPage: React.FC = () => {
             {filteredAndSortedSongs.length === 0 &&
               (searchQuery || activeFilterCount > 0) && (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <div className="w-16 h-16 mb-4 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-                    <Search size={32} className="text-[#707070]" />
+                  <div className="w-16 h-16 mb-4 rounded-full bg-bg-2 flex items-center justify-center">
+                    <Search size={32} className="text-ink-4" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">
                     No results found
                   </h3>
-                  <p className="text-sm text-[#a0a0a0] mb-6">
+                  <p className="text-sm text-ink-3 mb-6">
                     Try adjusting your search or filters
                   </p>
                   <button
@@ -1666,7 +1684,7 @@ export const SongsPage: React.FC = () => {
                       setSearchQuery('')
                       clearAllFilters()
                     }}
-                    className="text-sm text-[#f17827ff] hover:text-[#d66620] transition-colors"
+                    className="text-sm text-accent hover:text-accent-deep transition-colors"
                   >
                     Clear all filters
                   </button>
@@ -1677,28 +1695,28 @@ export const SongsPage: React.FC = () => {
             {filteredAndSortedSongs.length > 0 && (
               <div className="hidden xl:block">
                 {/* Table Header */}
-                <div className="flex items-center gap-4 px-4 pb-3 mb-2 border-b border-[#2a2a2a]">
+                <div className="flex items-center gap-4 px-4 pb-3 mb-2 border-b border-border-1">
                   {/* Sync Icon placeholder - matches SongRow sync icon */}
                   <div className="flex-shrink-0 w-[20px]"></div>
-                  <div className="flex-1 min-w-[220px] text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <div className="flex-1 min-w-[220px] text-xs font-semibold text-ink-4 uppercase tracking-wider">
                     Song
                   </div>
-                  <div className="w-[100px] flex-shrink-0 flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <div className="w-[100px] flex-shrink-0 flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
                     <ExternalLink size={16} />
                   </div>
-                  <div className="w-[90px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <div className="w-[90px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
                     <Clock size={16} />
                   </div>
-                  <div className="w-[60px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <div className="w-[60px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
                     <Music size={16} />
                   </div>
-                  <div className="w-[130px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <div className="w-[130px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
                     <Guitar size={16} />
                   </div>
-                  <div className="w-[80px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <div className="w-[80px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
                     <Activity size={16} />
                   </div>
-                  <div className="w-[180px] flex items-center gap-2 text-xs font-semibold text-[#707070] uppercase tracking-wider">
+                  <div className="w-[180px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
                     <Calendar size={16} />
                   </div>
                   {/* Notes button placeholder */}
@@ -1980,25 +1998,25 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
       onClick={onCancel}
     >
       <div
-        className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-md p-6"
+        className="bg-bg-2 rounded-2xl border border-border-1 w-full max-w-md p-6"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-[#D7263D]/10 flex items-center justify-center flex-shrink-0">
-            <Trash2 size={20} className="text-[#D7263D]" />
+          <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
+            <Trash2 size={20} className="text-danger" />
           </div>
           <h3 className="text-lg font-semibold text-white">Delete Song?</h3>
         </div>
 
-        <p className="text-sm text-[#a0a0a0] mb-6">
+        <p className="text-sm text-ink-3 mb-6">
           Are you sure you want to delete{' '}
           <strong className="text-white">"{song.title}"</strong> by{' '}
           {song.artist}? This action cannot be undone.
         </p>
 
         {song.nextShow && (
-          <div className="p-3 bg-[#f17827ff]/10 border border-[#f17827ff]/20 rounded-lg mb-6">
-            <p className="text-xs text-[#f17827ff]">
+          <div className="p-3 bg-accent/10 border border-accent/20 rounded-lg mb-6">
+            <p className="text-xs text-accent">
               This song is scheduled for <strong>{song.nextShow.name}</strong>.
               It will be removed from that show.
             </p>
@@ -2008,13 +2026,13 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2.5 bg-[#2a2a2a] text-white text-sm font-medium rounded-lg hover:bg-[#3a3a3a] transition-colors"
+            className="flex-1 px-4 py-2.5 bg-border-1 text-white text-sm font-medium rounded-lg hover:bg-border-2 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2.5 bg-[#D7263D] text-white text-sm font-medium rounded-lg hover:bg-[#b51f33] transition-colors"
+            className="flex-1 px-4 py-2.5 bg-danger text-white text-sm font-medium rounded-lg hover:bg-danger-deep transition-colors"
             data-testid="confirm-delete-song-button"
           >
             Delete Song
@@ -2055,15 +2073,15 @@ const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-md"
+        className="bg-bg-2 rounded-2xl border border-border-1 w-full max-w-md"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
+        <div className="flex items-center justify-between p-6 border-b border-border-1">
           <h3 className="text-lg font-semibold text-white">Add to Setlist</h3>
           <button
             onClick={onClose}
-            className="p-1 text-[#707070] hover:text-white transition-colors"
+            className="p-1 text-ink-4 hover:text-white transition-colors"
           >
             <X size={20} />
           </button>
@@ -2075,35 +2093,35 @@ const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({
             <button
               key={setlist.id}
               onClick={() => handleAddToSetlist(setlist.name)}
-              className="w-full flex items-center justify-between p-4 rounded-lg hover:bg-[#252525] transition-colors"
+              className="w-full flex items-center justify-between p-4 rounded-lg hover:bg-bg-4 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#2a2a2a] flex items-center justify-center">
-                  <ListPlus size={20} className="text-[#a0a0a0]" />
+                <div className="w-10 h-10 rounded-lg bg-border-1 flex items-center justify-center">
+                  <ListPlus size={20} className="text-ink-3" />
                 </div>
                 <div className="text-left">
                   <div className="text-white text-sm font-medium">
                     {setlist.name}
                   </div>
-                  <div className="text-[#a0a0a0] text-xs">
+                  <div className="text-ink-3 text-xs">
                     {setlist.songCount} songs
                   </div>
                 </div>
               </div>
               {setlist.hasSong && (
-                <div className="text-[#f17827ff] text-xs">Already added</div>
+                <div className="text-accent text-xs">Already added</div>
               )}
             </button>
           ))}
         </div>
 
         {/* Create New Setlist */}
-        <div className="p-4 border-t border-[#2a2a2a]">
+        <div className="p-4 border-t border-border-1">
           <button
             onClick={() =>
               showToast('Create new setlist functionality coming soon', 'info')
             }
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#f17827ff] text-white text-sm font-medium rounded-lg hover:bg-[#d66620] transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-deep transition-colors"
           >
             <Plus size={20} />
             <span>Create New Setlist</span>

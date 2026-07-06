@@ -552,7 +552,7 @@ export const PracticeViewPage: React.FC = () => {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
             <button
               onClick={() => navigate(`/practices/${practiceId}/session`)}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-[#f17827ff] to-[#d66920] hover:from-[#ff8c3d] hover:to-[#e07830] text-white font-semibold rounded-xl transition-all shadow-lg shadow-[#f17827ff]/20 hover:shadow-xl hover:shadow-[#f17827ff]/30"
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-accent to-accent-deep hover:from-accent-hot hover:to-accent-deep text-white font-semibold rounded-xl transition-all shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30"
               data-testid="start-practice-button"
             >
               <Play size={24} fill="currentColor" />
@@ -565,16 +565,16 @@ export const PracticeViewPage: React.FC = () => {
         <div className="max-w-6xl mx-auto py-6 space-y-6">
           {/* New mode save button */}
           {isNewMode && (
-            <div className="bg-[#121212] border border-[#f17827ff] rounded-lg p-4 flex items-center justify-between">
+            <div className="bg-bg-1 border border-accent rounded-lg p-4 flex items-center justify-between">
               <div>
                 <p className="text-white font-medium">Creating new practice</p>
-                <p className="text-sm text-[#707070]">
+                <p className="text-sm text-ink-4">
                   Click any field above to edit, then save when ready
                 </p>
               </div>
               <button
                 onClick={createPracticeHandler}
-                className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-accent hover:bg-accent-deep text-white font-medium rounded-lg transition-colors"
                 data-testid="create-practice-button"
               >
                 Create Practice
@@ -608,8 +608,8 @@ export const PracticeViewPage: React.FC = () => {
             </div>
 
             {/* Pre-practice Notes - Full Width */}
-            <div className="mt-6 pt-6 border-t border-[#2a2a2a]">
-              <label className="block text-sm text-[#a0a0a0] mb-2 flex items-center gap-2">
+            <div className="mt-6 pt-6 border-t border-border-1">
+              <label className="block text-sm text-ink-3 mb-2 flex items-center gap-2">
                 <FileText size={16} />
                 Notes
               </label>
@@ -636,7 +636,7 @@ export const PracticeViewPage: React.FC = () => {
           </SectionCard>
 
           {/* Divider and Songs Section - Full width, no container */}
-          <div className="border-t border-[#2a2a2a] pt-6">
+          <div className="border-t border-border-1 pt-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">
                 Songs ({songs.length})
@@ -644,7 +644,7 @@ export const PracticeViewPage: React.FC = () => {
               <button
                 onClick={() => setIsDrawerOpen(true)}
                 data-testid="add-songs-button"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
               >
                 <Plus size={18} />
                 <span>Add Songs</span>
@@ -652,17 +652,17 @@ export const PracticeViewPage: React.FC = () => {
             </div>
 
             {songs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-[#2a2a2a] rounded-lg">
-                <ListMusic size={48} className="text-[#2a2a2a] mb-3" />
-                <p className="text-[#707070] text-sm mb-1">
+              <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-border-1 rounded-lg">
+                <ListMusic size={48} className="text-border-1 mb-3" />
+                <p className="text-ink-4 text-sm mb-1">
                   No songs in this practice
                 </p>
-                <p className="text-[#505050] text-xs mb-4">
+                <p className="text-ink-5 text-xs mb-4">
                   Add songs to practice during this session
                 </p>
                 <button
                   onClick={() => setIsDrawerOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
                 >
                   <Plus size={18} />
                   <span>Add Songs</span>

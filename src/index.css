@@ -57,6 +57,7 @@
   --success: rgb(var(--success-rgb));
   --warn: rgb(var(--warn-rgb));
   --danger: rgb(var(--danger-rgb));
+  --danger-deep: color-mix(in srgb, var(--danger) 82%, black);
   --info-soft: rgb(var(--info-rgb) / 0.12);
   --success-soft: rgb(var(--success-rgb) / 0.12);
   --warn-soft: rgb(var(--warn-rgb) / 0.14);

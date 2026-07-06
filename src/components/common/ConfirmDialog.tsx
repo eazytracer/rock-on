@@ -43,7 +43,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       icon: null,
       iconColor: '',
       iconBg: '',
-      buttonColor: 'bg-[#f17827ff] hover:bg-[#d66920]',
+      buttonColor: 'bg-accent hover:bg-accent-deep',
     },
   }
 
@@ -67,7 +67,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       data-testid="confirm-dialog-backdrop"
     >
       <div
-        className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-200"
+        className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
         data-testid="confirm-dialog"
       >
@@ -88,7 +88,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 {title}
               </h3>
               <div
-                className="text-[#a0a0a0] text-sm"
+                className="text-ink-3 text-sm"
                 data-testid="confirm-dialog-message"
               >
                 {message}
@@ -100,7 +100,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <button
               onClick={onClose}
               disabled={isLoading}
-              className="px-4 py-2 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-ink-3 text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
               data-testid="confirm-dialog-cancel"
             >
               {cancelLabel}

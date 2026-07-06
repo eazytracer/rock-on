@@ -24,7 +24,7 @@ interface TabSwitcherProps<T extends string = string> {
  *
  * Replaces hand-rolled implementations in SongsPage (Band/Personal) and
  * JamSessionPage (Common Songs/My Song Queue). Standardises on a single
- * active color (#f17827ff orange) — the jam page previously used amber for
+ * active color (unified --accent orange) — the jam page previously used amber for
  * one tab and orange for another, which was inconsistent.
  */
 export function TabSwitcher<T extends string = string>({
@@ -39,12 +39,12 @@ export function TabSwitcher<T extends string = string>({
   const tabBase = `flex items-center gap-1.5 rounded-md font-medium transition-colors ${
     isSm ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-xs'
   }`
-  const tabActive = 'bg-[#f17827ff] text-white'
-  const tabInactive = 'text-[#a0a0a0] hover:text-white'
+  const tabActive = 'bg-accent text-white'
+  const tabInactive = 'text-ink-3 hover:text-white'
 
   return (
     <div
-      className={`flex gap-1 bg-[#1a1a1a] rounded-lg p-1 ${className}`}
+      className={`flex gap-1 bg-bg-2 rounded-lg p-1 ${className}`}
       data-testid={testId}
       role="tablist"
     >

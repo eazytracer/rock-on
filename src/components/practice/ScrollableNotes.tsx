@@ -127,7 +127,7 @@ export const ScrollableNotes: React.FC<ScrollableNotesProps> = ({
   if (!notes) {
     return (
       <div
-        className="h-full flex items-center justify-center bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[#505050] italic text-sm"
+        className="h-full flex items-center justify-center bg-bg-2 border border-border-1 rounded-lg text-ink-5 italic text-sm"
         data-testid={testId}
       >
         {emptyMessage}
@@ -144,7 +144,7 @@ export const ScrollableNotes: React.FC<ScrollableNotesProps> = ({
 
   return (
     <div
-      className="relative h-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-[#f17827ff]/30"
+      className="relative h-full bg-bg-2 border border-border-1 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-accent/30"
       data-testid={testId}
     >
       <div
@@ -163,7 +163,7 @@ export const ScrollableNotes: React.FC<ScrollableNotesProps> = ({
           onClick={() => scrollByPage(-1)}
           data-testid="notes-scroll-up"
           aria-label="Scroll notes up"
-          className={`absolute top-0 left-0 right-0 ${zoneHeight} flex items-center justify-center text-[#f17827ff] hover:text-white bg-gradient-to-b from-black/70 via-black/30 to-transparent hover:from-[#f17827ff]/30 hover:via-[#f17827ff]/15 transition-colors group`}
+          className={`absolute top-0 left-0 right-0 ${zoneHeight} flex items-center justify-center text-accent hover:text-white bg-gradient-to-b from-black/70 via-black/30 to-transparent hover:from-accent/30 hover:via-accent/15 transition-colors group`}
         >
           <ChevronUp
             size={iconSize}
@@ -178,7 +178,7 @@ export const ScrollableNotes: React.FC<ScrollableNotesProps> = ({
           onClick={() => scrollByPage(1)}
           data-testid="notes-scroll-down"
           aria-label="Scroll notes down"
-          className={`absolute bottom-0 left-0 right-0 ${zoneHeight} flex items-center justify-center text-[#f17827ff] hover:text-white bg-gradient-to-t from-black/70 via-black/30 to-transparent hover:from-[#f17827ff]/30 hover:via-[#f17827ff]/15 transition-colors group`}
+          className={`absolute bottom-0 left-0 right-0 ${zoneHeight} flex items-center justify-center text-accent hover:text-white bg-gradient-to-t from-black/70 via-black/30 to-transparent hover:from-accent/30 hover:via-accent/15 transition-colors group`}
         >
           <ChevronDown
             size={iconSize}

@@ -41,7 +41,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = ({
 
   return (
     <div
-      className={`bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6 ${className}`}
+      className={`bg-bg-1 border border-border-1 rounded-lg p-4 sm:p-6 ${className}`}
       data-testid="metadata-card"
     >
       {/* Header with title and edit controls */}
@@ -54,7 +54,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = ({
             <button
               onClick={onCancel}
               disabled={isSaving}
-              className="p-2 text-[#a0a0a0] hover:text-white hover:bg-[#252525] rounded-lg transition-colors disabled:opacity-50"
+              className="p-2 text-ink-3 hover:text-white hover:bg-bg-4 rounded-lg transition-colors disabled:opacity-50"
               data-testid="metadata-cancel-button"
               title="Cancel"
             >
@@ -63,7 +63,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = ({
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#f17827ff] hover:bg-[#d66920] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 bg-accent hover:bg-accent-deep text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
               data-testid="metadata-save-button"
             >
               {isSaving ? (
@@ -77,7 +77,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = ({
         ) : (
           <button
             onClick={onEditStart}
-            className="p-2 text-[#707070] hover:text-[#f17827ff] hover:bg-[#252525] rounded-lg transition-colors"
+            className="p-2 text-ink-4 hover:text-accent hover:bg-bg-4 rounded-lg transition-colors"
             data-testid="metadata-edit-button"
             title="Edit details"
           >

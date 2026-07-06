@@ -57,7 +57,7 @@ export function KebabMenu({
   const dropdownClasses = [
     'absolute top-full mt-1 z-50',
     'w-48 py-1',
-    'bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl',
+    'bg-bg-3 border border-border-1 rounded-lg shadow-xl',
     align === 'right' ? 'right-0' : 'left-0',
   ].join(' ')
 
@@ -83,7 +83,7 @@ export function KebabMenu({
         }}
         className={[
           'p-1.5 rounded-md transition-colors',
-          'text-[#707070] hover:text-white hover:bg-[#2a2a2a]',
+          'text-ink-4 hover:text-white hover:bg-border-1',
           disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer',
         ].join(' ')}
         aria-label="More options"
@@ -104,7 +104,7 @@ export function KebabMenu({
               <div key={index}>
                 {item.dividerBefore && (
                   <div
-                    className="border-t border-[#2a2a2a] my-1"
+                    className="border-t border-border-1 my-1"
                     role="separator"
                   />
                 )}
@@ -121,8 +121,8 @@ export function KebabMenu({
                   className={[
                     'flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left transition-colors',
                     isDanger
-                      ? 'text-red-400 hover:text-red-300 hover:bg-[#2a2a2a]'
-                      : 'text-[#e0e0e0] hover:bg-[#2a2a2a]',
+                      ? 'text-red-400 hover:text-red-300 hover:bg-border-1'
+                      : 'text-ink-2 hover:bg-border-1',
                     item.disabled
                       ? 'opacity-40 cursor-not-allowed pointer-events-none'
                       : 'cursor-pointer',

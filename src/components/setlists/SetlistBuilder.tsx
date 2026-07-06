@@ -854,7 +854,7 @@ export const SetlistBuilder: React.FC<SetlistBuilderProps> = ({
                               )}
                               <button
                                 onClick={() => removeSongFromSetlist(index)}
-                                className="p-2 text-red-600 hover:text-red-800 transition-colors touch-manipulation rounded-lg hover:bg-red-50"
+                                className="p-2 text-danger hover:text-danger transition-colors touch-manipulation rounded-lg hover:bg-danger/10"
                                 aria-label="Remove from setlist"
                               >
                                 <svg

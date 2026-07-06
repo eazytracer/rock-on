@@ -52,21 +52,21 @@ export const ShadowEntry: React.FC<ShadowEntryProps> = ({
       aria-disabled={disabled}
       className={`
         flex items-center gap-2 px-4 py-3
-        border-2 border-dashed border-[#2a2a2a] rounded-lg
-        text-[#505050] text-sm
+        border-2 border-dashed border-border-1 rounded-lg
+        text-ink-5 text-sm
         transition-all duration-200
         ${
           disabled
             ? 'opacity-50 cursor-not-allowed'
-            : 'cursor-pointer hover:border-[#f17827ff]/50 hover:text-[#f17827ff]/70 hover:bg-[#f17827ff]/5'
+            : 'cursor-pointer hover:border-accent/50 hover:text-accent/70 hover:bg-accent/5'
         }
-        focus:outline-none focus:border-[#f17827ff] focus:ring-2 focus:ring-[#f17827ff]/20
+        focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20
         ${className}
       `}
     >
       <Plus
         size={16}
-        className={`transition-colors ${disabled ? '' : 'group-hover:text-[#f17827ff]'}`}
+        className={`transition-colors ${disabled ? '' : 'group-hover:text-accent'}`}
       />
       <span>{placeholder}</span>
     </div>

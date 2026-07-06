@@ -80,10 +80,13 @@ export const BADGE_TONE: Record<
 }
 
 /** Status → tone maps (mirror the prototype's SHOW/SETLIST/PRACTICE_TONE). */
+// Design Spec row 07: scheduled = muted/neutral, confirmed = success,
+// completed = info, cancelled = danger. (Reconciles Shows/Home/Calendar/Events,
+// which all read this single source.)
 export const SHOW_TONE = {
-  scheduled: 'info',
+  scheduled: 'neutral',
   confirmed: 'success',
-  completed: 'neutral',
+  completed: 'info',
   cancelled: 'danger',
 } as const satisfies Record<string, BadgeTone>
 

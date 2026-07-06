@@ -83,7 +83,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
     <div
       data-testid={`practice-item-${practice.id}`}
       onClick={onClick}
-      className="p-5 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all cursor-pointer"
+      className="p-5 bg-bg-2 rounded-xl border border-border-1 hover:border-border-2 transition-all cursor-pointer"
     >
       <div className="flex items-start justify-between gap-4 mb-4">
         {/* Left: Date Badge with Sync Icon */}
@@ -113,7 +113,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
             </div>
             {/* Time Range - Prominent */}
             <div className="flex items-center gap-2 text-white font-medium mb-2">
-              <Clock size={16} className="text-[#f17827ff]" />
+              <Clock size={16} className="text-accent" />
               <span>
                 {formatTimeRange(
                   new Date(practice.scheduledDate),
@@ -122,7 +122,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
               </span>
             </div>
             {/* Other details */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#a0a0a0] mb-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-3 mb-3">
               {practice.location && (
                 <div className="flex items-center gap-1">
                   <MapPin size={14} />
@@ -135,7 +135,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
               </div>
             </div>
             {practice.notes && (
-              <p className="text-sm text-[#a0a0a0] mb-3">{practice.notes}</p>
+              <p className="text-sm text-ink-3 mb-3">{practice.notes}</p>
             )}
 
             {/* Song List */}
@@ -144,9 +144,9 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
                 {songs.map((song, index) => (
                   <div
                     key={`${practice.id}-${song.id}`}
-                    className="flex items-center gap-2 px-2 py-1 bg-[#0f0f0f] border border-[#2a2a2a] rounded-md text-xs"
+                    className="flex items-center gap-2 px-2 py-1 bg-bg-1 border border-border-1 rounded-md text-xs"
                   >
-                    <span className="text-[#707070] font-semibold">
+                    <span className="text-ink-4 font-semibold">
                       {index + 1}.
                     </span>
                     <span className="text-white">{song.title}</span>
@@ -163,18 +163,18 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
             onClick={() =>
               setOpenMenuId(openMenuId === practice.id ? null : practice.id)
             }
-            className="p-2 text-[#707070] hover:text-white hover:bg-[#252525] rounded-lg transition-colors"
+            className="p-2 text-ink-4 hover:text-white hover:bg-bg-4 rounded-lg transition-colors"
           >
             <MoreVertical size={20} />
           </button>
 
           {/* Dropdown Menu */}
           {openMenuId === practice.id && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-10">
+            <div className="absolute right-0 top-full mt-1 w-48 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-10">
               <button
                 onClick={onEdit}
                 data-testid={`edit-practice-${practice.id}`}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-bg-4 transition-colors"
               >
                 <Edit2 size={16} />
                 Edit
@@ -183,7 +183,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
                 <button
                   onClick={onMarkComplete}
                   data-testid={`complete-practice-${practice.id}`}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-bg-4 transition-colors"
                 >
                   <CheckCircle size={16} />
                   Mark as Completed
@@ -193,7 +193,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
                 <button
                   onClick={onCancel}
                   data-testid={`cancel-practice-${practice.id}`}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-[#252525] transition-colors border-t border-[#2a2a2a]"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-bg-4 transition-colors border-t border-border-1"
                 >
                   <XCircle size={16} />
                   Cancel Practice
@@ -202,7 +202,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
               <button
                 onClick={onDelete}
                 data-testid={`delete-practice-${practice.id}`}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-500 text-sm hover:bg-[#252525] transition-colors border-t border-[#2a2a2a]"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-500 text-sm hover:bg-bg-4 transition-colors border-t border-border-1"
               >
                 <Trash2 size={16} />
                 Delete
@@ -239,7 +239,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
     >
       <div
         data-testid="delete-practice-modal"
-        className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-md"
+        className="bg-bg-2 rounded-2xl border border-border-1 w-full max-w-md"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6">
@@ -251,7 +251,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
               Delete Practice
             </h3>
           </div>
-          <p className="text-[#a0a0a0] text-sm mb-6">
+          <p className="text-ink-3 text-sm mb-6">
             Are you sure you want to delete the practice on{' '}
             <span className="text-white font-medium">{practiceName}</span>? This
             action cannot be undone.
@@ -260,7 +260,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             <button
               onClick={onClose}
               data-testid="cancel-delete-practice"
-              className="px-4 py-2 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors"
+              className="px-4 py-2 text-ink-3 text-sm font-medium hover:text-white transition-colors"
             >
               Cancel
             </button>
@@ -401,25 +401,25 @@ export const PracticesPage: React.FC = () => {
     switch (status) {
       case 'scheduled':
         return (
-          <span className="px-2 py-1 bg-[#f17827ff]/10 text-[#f17827ff] text-xs font-medium rounded-md">
+          <span className="px-2 py-1 bg-accent/10 text-accent text-xs font-medium rounded-md">
             Scheduled
           </span>
         )
       case 'completed':
         return (
-          <span className="px-2 py-1 bg-green-500/10 text-green-500 text-xs font-medium rounded-md">
+          <span className="px-2 py-1 bg-success/10 text-success text-xs font-medium rounded-md">
             Completed
           </span>
         )
       case 'cancelled':
         return (
-          <span className="px-2 py-1 bg-red-500/10 text-red-500 text-xs font-medium rounded-md">
+          <span className="px-2 py-1 bg-danger/10 text-danger text-xs font-medium rounded-md">
             Cancelled
           </span>
         )
       default:
         return (
-          <span className="px-2 py-1 bg-[#505050]/10 text-[#505050] text-xs font-medium rounded-md">
+          <span className="px-2 py-1 bg-ink-5/10 text-ink-5 text-xs font-medium rounded-md">
             Unknown
           </span>
         )
@@ -447,14 +447,14 @@ export const PracticesPage: React.FC = () => {
             <h3 className="text-white font-semibold text-lg mb-2">
               Error Loading Practices
             </h3>
-            <p className="text-[#a0a0a0] text-sm">{error.message}</p>
+            <p className="text-ink-3 text-sm">{error.message}</p>
           </div>
         )}
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-6">
             <h1 className="text-2xl font-bold text-white">Practices</h1>
-            <ChevronDown size={20} className="text-[#a0a0a0]" />
+            <ChevronDown size={20} className="text-ink-3" />
           </div>
 
           {/* Action Bar */}
@@ -466,21 +466,21 @@ export const PracticesPage: React.FC = () => {
                 onChange={e =>
                   setFilter(e.target.value as 'upcoming' | 'past' | 'all')
                 }
-                className="h-10 pl-4 pr-10 bg-transparent border border-[#2a2a2a] rounded-lg text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors appearance-none cursor-pointer"
+                className="h-10 pl-4 pr-10 bg-transparent border border-border-1 rounded-lg text-white text-sm font-medium hover:bg-bg-3 transition-colors appearance-none cursor-pointer"
               >
-                <option value="upcoming" className="bg-[#1a1a1a]">
+                <option value="upcoming" className="bg-bg-2">
                   Upcoming
                 </option>
-                <option value="past" className="bg-[#1a1a1a]">
+                <option value="past" className="bg-bg-2">
                   Past
                 </option>
-                <option value="all" className="bg-[#1a1a1a]">
+                <option value="all" className="bg-bg-2">
                   All
                 </option>
               </select>
               <ChevronDown
                 size={16}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] pointer-events-none"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-4 pointer-events-none"
               />
             </div>
 
@@ -488,7 +488,7 @@ export const PracticesPage: React.FC = () => {
             <button
               onClick={() => navigate('/practices/new')}
               data-testid="create-practice-button"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors ml-auto"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors ml-auto"
             >
               <Plus size={20} />
               <span>Schedule Practice</span>
@@ -498,16 +498,16 @@ export const PracticesPage: React.FC = () => {
 
         {/* Next Practice Highlight */}
         {nextPractice && filter === 'upcoming' && (
-          <div className="mb-6 p-6 bg-gradient-to-br from-[#f17827ff]/10 to-transparent border-2 border-[#f17827ff]/30 rounded-xl">
+          <div className="mb-6 p-6 bg-gradient-to-br from-accent/10 to-transparent border-2 border-accent/30 rounded-xl">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <div className="text-xs font-semibold text-[#f17827ff] uppercase tracking-wider mb-1">
+                <div className="text-xs font-semibold text-accent uppercase tracking-wider mb-1">
                   Next Practice
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-1">
                   {formatShowDate(new Date(nextPractice.scheduledDate))}
                 </h2>
-                <div className="text-lg text-[#f17827ff] font-semibold">
+                <div className="text-lg text-accent font-semibold">
                   {formatTimeRange(
                     new Date(nextPractice.scheduledDate),
                     nextPractice.duration
@@ -519,10 +519,10 @@ export const PracticesPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3 text-white">
-                <Clock size={20} className="text-[#f17827ff]" />
+                <Clock size={20} className="text-accent" />
                 <div>
                   <div className="text-sm font-medium">Duration</div>
-                  <div className="text-xs text-[#a0a0a0]">
+                  <div className="text-xs text-ink-3">
                     {nextPractice.duration} minutes
                   </div>
                 </div>
@@ -530,23 +530,23 @@ export const PracticesPage: React.FC = () => {
 
               {nextPractice.location && (
                 <div className="flex items-center gap-3 text-white">
-                  <MapPin size={20} className="text-[#f17827ff]" />
+                  <MapPin size={20} className="text-accent" />
                   <div>
                     <div className="text-sm font-medium">
                       {nextPractice.location}
                     </div>
-                    <div className="text-xs text-[#a0a0a0]">Location</div>
+                    <div className="text-xs text-ink-3">Location</div>
                   </div>
                 </div>
               )}
 
               <div className="flex items-center gap-3 text-white">
-                <Music size={20} className="text-[#f17827ff]" />
+                <Music size={20} className="text-accent" />
                 <div>
                   <div className="text-sm font-medium">
                     {nextPractice.songs.length} songs
                   </div>
-                  <div className="text-xs text-[#a0a0a0]">To practice</div>
+                  <div className="text-xs text-ink-3">To practice</div>
                 </div>
               </div>
             </div>
@@ -560,19 +560,19 @@ export const PracticesPage: React.FC = () => {
             data-testid="practice-empty-state"
             className="flex flex-col items-center justify-center py-20"
           >
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[#1a1a1a] mb-4">
-              <Calendar size={32} className="text-[#707070]" />
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-bg-2 mb-4">
+              <Calendar size={32} className="text-ink-4" />
             </div>
             <h3 className="text-white font-semibold text-lg mb-2">
               No practices scheduled
             </h3>
-            <p className="text-[#a0a0a0] text-sm mb-6">
+            <p className="text-ink-3 text-sm mb-6">
               Schedule your first practice to get started
             </p>
             <button
               onClick={() => navigate('/practices/new')}
               data-testid="create-practice-button"
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
             >
               <Plus size={20} />
               Schedule Practice

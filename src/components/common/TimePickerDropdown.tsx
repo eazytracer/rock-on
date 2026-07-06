@@ -245,8 +245,8 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       {label && (
-        <label className="block text-sm text-[#a0a0a0] mb-2">
-          {label} {required && <span className="text-[#f17827ff]">*</span>}
+        <label className="block text-sm text-ink-3 mb-2">
+          {label} {required && <span className="text-accent">*</span>}
         </label>
       )}
 
@@ -267,7 +267,7 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
           }}
           placeholder="Enter time (e.g., 2:30pm)"
           autoFocus
-          className="w-full h-10 px-3 bg-[#121212] border border-[#f17827ff] rounded-lg text-white text-sm placeholder-[#505050] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+          className="w-full h-10 px-3 bg-bg-1 border border-accent rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20"
         />
       ) : (
         <button
@@ -278,21 +278,21 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
           name={name}
           id={id}
           data-testid={dataTestId}
-          className={`w-full h-10 px-3 bg-[#121212] border border-[#2a2a2a] rounded-lg text-sm flex items-center justify-between transition-colors ${
+          className={`w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-sm flex items-center justify-between transition-colors ${
             disabled
               ? 'opacity-50 cursor-not-allowed'
-              : 'hover:border-[#3a3a3a] cursor-pointer'
-          } ${isOpen ? 'border-[#f17827ff] ring-2 ring-[#f17827ff]/20' : ''}`}
+              : 'hover:border-border-2 cursor-pointer'
+          } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
         >
           <span className="flex items-center gap-2">
-            <Clock size={16} className="text-[#707070]" />
-            <span className={value ? 'text-white' : 'text-[#707070]'}>
+            <Clock size={16} className="text-ink-4" />
+            <span className={value ? 'text-white' : 'text-ink-4'}>
               {value || placeholder}
             </span>
           </span>
           <ChevronDown
             size={14}
-            className={`text-[#707070] transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            className={`text-ink-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           />
         </button>
       )}
@@ -300,7 +300,7 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
       {/* Time dropdown */}
       {isOpen && !isManualEntry && (
         <div
-          className="absolute top-full left-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-50 w-full min-w-[140px]"
+          className="absolute top-full left-0 mt-2 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 w-full min-w-[140px]"
           data-testid={`${dataTestId}-dropdown`}
         >
           <div
@@ -320,10 +320,10 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
                   data-testid={`${dataTestId}-option-${index}`}
                   className={`w-full h-9 px-4 text-left text-sm transition-colors ${
                     isSelected
-                      ? 'bg-[#f17827ff] text-white font-medium'
+                      ? 'bg-accent text-white font-medium'
                       : isHighlighted
-                        ? 'bg-[#252525] text-white'
-                        : 'text-[#a0a0a0] hover:bg-[#252525] hover:text-white'
+                        ? 'bg-bg-4 text-white'
+                        : 'text-ink-3 hover:bg-bg-4 hover:text-white'
                   }`}
                 >
                   {time}
@@ -333,7 +333,7 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
           </div>
 
           {/* Manual entry hint */}
-          <div className="px-4 py-2 border-t border-[#2a2a2a] text-xs text-[#505050]">
+          <div className="px-4 py-2 border-t border-border-1 text-xs text-ink-5">
             Double-click to type custom time
           </div>
         </div>

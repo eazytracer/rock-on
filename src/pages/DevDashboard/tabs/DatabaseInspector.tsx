@@ -167,7 +167,7 @@ export const DatabaseInspector: React.FC = () => {
 
       {/* Stats Table */}
       {user && (
-        <div className="bg-white rounded-lg border border-divider overflow-hidden">
+        <div className="bg-bg-1 rounded-lg border border-divider overflow-hidden">
           <table className="w-full">
             <thead className="bg-surface">
               <tr>

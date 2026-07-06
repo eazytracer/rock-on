@@ -146,20 +146,20 @@ const SortableSongItem: React.FC<SortableSongItemProps> = ({
       ref={setNodeRef}
       style={style}
       data-testid={`practice-song-${item.position - 1}`}
-      className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg group hover:border-[#3a3a3a] transition-colors ${
+      className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-bg-2 border border-border-1 rounded-lg group hover:border-border-2 transition-colors ${
         isDragging ? 'shadow-lg shadow-black/50' : ''
       }`}
     >
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
+        className="cursor-grab active:cursor-grabbing touch-none text-ink-5 hover:text-ink-3 transition-colors flex-shrink-0"
         data-testid={`drag-handle-${item.position - 1}`}
       >
         <GripVertical size={18} />
       </button>
 
-      <div className="w-5 sm:w-6 text-center text-[#707070] text-sm font-medium flex-shrink-0">
+      <div className="w-5 sm:w-6 text-center text-ink-4 text-sm font-medium flex-shrink-0">
         {item.position}
       </div>
 
@@ -175,11 +175,11 @@ const SortableSongItem: React.FC<SortableSongItemProps> = ({
         <div className="text-white text-sm font-semibold truncate">
           {song.title}
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#707070]">
+        <div className="flex items-center gap-2 text-xs text-ink-4">
           <span className="truncate">{song.artist}</span>
-          <span className="text-[#505050]">•</span>
+          <span className="text-ink-5">•</span>
           <span className="flex-shrink-0">{song.duration}</span>
-          <span className="text-[#505050]">•</span>
+          <span className="text-ink-5">•</span>
           <span className="flex-shrink-0">{song.key}</span>
         </div>
       </div>
@@ -189,25 +189,25 @@ const SortableSongItem: React.FC<SortableSongItemProps> = ({
         <div className="text-white text-sm font-semibold truncate">
           {song.title}
         </div>
-        <div className="text-[#707070] text-xs truncate">{song.artist}</div>
+        <div className="text-ink-4 text-xs truncate">{song.artist}</div>
       </div>
 
-      <div className="hidden sm:block w-[90px] text-[#a0a0a0] text-sm flex-shrink-0">
+      <div className="hidden sm:block w-[90px] text-ink-3 text-sm flex-shrink-0">
         {song.duration}
       </div>
 
-      <div className="hidden sm:block w-[60px] text-[#a0a0a0] text-sm flex-shrink-0">
+      <div className="hidden sm:block w-[60px] text-ink-3 text-sm flex-shrink-0">
         {song.key}
       </div>
 
-      <div className="hidden sm:block w-[130px] text-[#a0a0a0] text-sm flex-shrink-0">
+      <div className="hidden sm:block w-[130px] text-ink-3 text-sm flex-shrink-0">
         {song.tuning}
       </div>
 
       <button
         onClick={() => onRemove(item.id)}
         data-testid={`remove-song-${item.position - 1}`}
-        className="sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-[#707070] hover:text-red-500 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
+        className="sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-ink-4 hover:text-red-500 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
         title="Remove from Practice"
       >
         <X size={16} />
@@ -456,7 +456,7 @@ export const PracticeBuilderPage: React.FC = () => {
     <ContentLoadingSpinner isLoading={loading}>
       <div
         data-testid="practice-builder-page"
-        className="fixed inset-0 bg-[#0f0f0f] z-50 flex flex-col"
+        className="fixed inset-0 bg-bg-1 z-50 flex flex-col"
       >
         {error && (
           <div className="flex items-center justify-center py-20">
@@ -464,7 +464,7 @@ export const PracticeBuilderPage: React.FC = () => {
               <p className="text-red-500 text-sm mb-4">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
               >
                 Retry
               </button>
@@ -472,13 +472,13 @@ export const PracticeBuilderPage: React.FC = () => {
           </div>
         )}
         {/* Header */}
-        <div className="border-b border-[#2a2a2a] bg-[#121212] flex-shrink-0">
+        <div className="border-b border-border-1 bg-bg-1 flex-shrink-0">
           <div className="flex items-center justify-between gap-3 px-3 sm:px-6 py-2 sm:py-4">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <button
                 onClick={handleBack}
                 data-testid="back-button"
-                className="p-1.5 sm:p-2 text-[#707070] hover:text-white transition-colors rounded-lg hover:bg-[#1a1a1a] flex-shrink-0"
+                className="p-1.5 sm:p-2 text-ink-4 hover:text-white transition-colors rounded-lg hover:bg-bg-2 flex-shrink-0"
               >
                 <ArrowLeft size={20} />
               </button>
@@ -494,7 +494,7 @@ export const PracticeBuilderPage: React.FC = () => {
               <button
                 onClick={handleBack}
                 data-testid="cancel-button"
-                className="sm:hidden p-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white hover:bg-[#1f1f1f] transition-colors"
+                className="sm:hidden p-2 rounded-lg border border-border-1 bg-transparent text-white hover:bg-bg-3 transition-colors"
                 title="Cancel"
               >
                 <X size={18} />
@@ -503,7 +503,7 @@ export const PracticeBuilderPage: React.FC = () => {
                 onClick={handleSave}
                 data-testid="save-button"
                 disabled={creating || updating}
-                className="sm:hidden p-2 rounded-lg bg-[#f17827ff] text-white hover:bg-[#d66920] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="sm:hidden p-2 rounded-lg bg-accent text-white hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Save"
               >
                 <Check size={18} />
@@ -513,7 +513,7 @@ export const PracticeBuilderPage: React.FC = () => {
               <button
                 onClick={handleBack}
                 data-testid="cancel-button"
-                className="hidden sm:block px-4 py-2 rounded-lg border border-[#2a2a2a] bg-transparent text-white text-sm font-medium hover:bg-[#1f1f1f] transition-colors"
+                className="hidden sm:block px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
               >
                 Cancel
               </button>
@@ -521,7 +521,7 @@ export const PracticeBuilderPage: React.FC = () => {
                 onClick={handleSave}
                 data-testid="save-button"
                 disabled={creating || updating}
-                className="hidden sm:block px-6 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="hidden sm:block px-6 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creating || updating ? 'Saving...' : 'Save Practice'}
               </button>
@@ -532,7 +532,7 @@ export const PracticeBuilderPage: React.FC = () => {
         {/* Main Content */}
         <div className="flex-1 overflow-hidden flex flex-col sm:flex-row">
           {/* Left Panel - Practice Details */}
-          <div className="w-full sm:w-[400px] border-b sm:border-b-0 sm:border-r border-[#2a2a2a] p-4 sm:p-6 overflow-y-auto custom-scrollbar bg-[#0f0f0f]">
+          <div className="w-full sm:w-[400px] border-b sm:border-b-0 sm:border-r border-border-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar bg-bg-1">
             <div className="space-y-4">
               <DatePicker
                 label="Date"
@@ -555,7 +555,7 @@ export const PracticeBuilderPage: React.FC = () => {
               />
 
               <div>
-                <label className="block text-sm text-[#a0a0a0] mb-2">
+                <label className="block text-sm text-ink-3 mb-2">
                   Duration
                 </label>
                 <DurationPicker
@@ -568,7 +568,7 @@ export const PracticeBuilderPage: React.FC = () => {
               <div>
                 <label
                   htmlFor="practice-location"
-                  className="block text-sm text-[#a0a0a0] mb-2"
+                  className="block text-sm text-ink-3 mb-2"
                 >
                   Location
                 </label>
@@ -580,14 +580,14 @@ export const PracticeBuilderPage: React.FC = () => {
                   value={location}
                   onChange={e => setLocation(e.target.value)}
                   placeholder="Practice space, studio, etc."
-                  className="w-full h-10 px-3 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+                  className="w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="practice-notes"
-                  className="block text-sm text-[#a0a0a0] mb-2"
+                  className="block text-sm text-ink-3 mb-2"
                 >
                   Notes
                 </label>
@@ -599,7 +599,7 @@ export const PracticeBuilderPage: React.FC = () => {
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Practice goals, what to focus on, etc."
                   rows={4}
-                  className="w-full px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 resize-none"
+                  className="w-full px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
                 />
               </div>
             </div>
@@ -615,7 +615,7 @@ export const PracticeBuilderPage: React.FC = () => {
                 <button
                   onClick={() => setIsDrawerOpen(true)}
                   data-testid="add-songs-button"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
                 >
                   <Plus size={18} />
                   <span>Add Songs</span>
@@ -623,16 +623,16 @@ export const PracticeBuilderPage: React.FC = () => {
               </div>
 
               {selectedSongs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-[#2a2a2a] rounded-xl">
-                  <ListMusic size={48} className="text-[#2a2a2a] mb-3" />
-                  <p className="text-[#707070] text-sm mb-1">No songs yet</p>
-                  <p className="text-[#505050] text-xs mb-4">
+                <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border-1 rounded-xl">
+                  <ListMusic size={48} className="text-border-1 mb-3" />
+                  <p className="text-ink-4 text-sm mb-1">No songs yet</p>
+                  <p className="text-ink-5 text-xs mb-4">
                     Add songs to practice during this session
                   </p>
                   <button
                     onClick={() => setIsDrawerOpen(true)}
                     data-testid="add-songs-button"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#f17827ff] text-white text-sm font-medium hover:bg-[#d66920] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
                   >
                     <Plus size={18} />
                     <span>Add Songs</span>

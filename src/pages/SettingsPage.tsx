@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../hooks/useConfirm'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import {
   User,
   Mail,
@@ -43,6 +45,7 @@ import { VERSION_DISPLAY, BUILD_ID } from '../config/buildInfo'
 export const SettingsPage: React.FC = () => {
   const { user, signOut } = useAuth()
   const { showToast } = useToast()
+  const { confirm, dialogProps } = useConfirm()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
@@ -83,7 +86,13 @@ export const SettingsPage: React.FC = () => {
   }
 
   const handleClearLocalData = async () => {
-    if (!confirm('Clear all local data? This will log you out.')) {
+    const confirmed = await confirm({
+      title: 'Clear Local Data',
+      message: 'Clear all local data? This will log you out.',
+      variant: 'danger',
+      confirmLabel: 'Clear Data',
+    })
+    if (!confirmed) {
       return
     }
 
@@ -126,11 +135,11 @@ export const SettingsPage: React.FC = () => {
 
         {/* Account Section */}
         <section
-          className="bg-surface-elevated rounded-lg border border-white/5 p-6"
+          className="bg-surface-elevated rounded-lg border border-border-1 p-6"
           data-testid="account-section"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
+            <div className="p-2 bg-info/10 rounded-lg">
               <User className="w-5 h-5 text-blue-400" />
             </div>
             <h2 className="text-xl font-semibold text-white">Account</h2>
@@ -186,7 +195,7 @@ export const SettingsPage: React.FC = () => {
         </section>
 
         {/* Data & Privacy Section */}
-        <section className="bg-surface-elevated rounded-lg border border-white/5 p-6">
+        <section className="bg-surface-elevated rounded-lg border border-border-1 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-red-500/10 rounded-lg">
               <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -224,11 +233,11 @@ export const SettingsPage: React.FC = () => {
 
         {/* App Info Section - Always visible */}
         <section
-          className="bg-surface-elevated rounded-lg border border-white/5 p-6"
+          className="bg-surface-elevated rounded-lg border border-border-1 p-6"
           data-testid="app-info-section"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
+            <div className="p-2 bg-info/10 rounded-lg">
               <Info className="w-5 h-5 text-blue-400" />
             </div>
             <h2 className="text-xl font-semibold text-white">App Info</h2>
@@ -392,6 +401,8 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </ContentLoadingSpinner>
   )
 }

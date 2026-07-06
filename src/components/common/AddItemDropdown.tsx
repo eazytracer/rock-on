@@ -140,10 +140,10 @@ export const AddItemDropdown: React.FC<AddItemDropdownProps> = ({
         aria-expanded={isOpen}
         className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
           disabled
-            ? 'bg-[#1a1a1a] text-[#505050] cursor-not-allowed'
+            ? 'bg-bg-2 text-ink-5 cursor-not-allowed'
             : isOpen
-              ? 'bg-[#f17827ff] text-white'
-              : 'bg-[#1a1a1a] border border-[#2a2a2a] text-white hover:bg-[#252525] hover:border-[#3a3a3a]'
+              ? 'bg-accent text-white'
+              : 'bg-bg-2 border border-border-1 text-white hover:bg-bg-4 hover:border-border-2'
         }`}
       >
         <Plus size={18} />
@@ -157,7 +157,7 @@ export const AddItemDropdown: React.FC<AddItemDropdownProps> = ({
       {/* Dropdown menu */}
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-2 w-56 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-50 overflow-hidden"
+          className="absolute top-full left-0 mt-2 w-56 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 overflow-hidden"
           role="menu"
           aria-orientation="vertical"
           data-testid={`${dataTestId}-menu`}
@@ -171,24 +171,22 @@ export const AddItemDropdown: React.FC<AddItemDropdownProps> = ({
               role="menuitem"
               data-testid={`${dataTestId}-${option.key}`}
               className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors ${
-                highlightedIndex === index
-                  ? 'bg-[#252525]'
-                  : 'hover:bg-[#252525]'
+                highlightedIndex === index ? 'bg-bg-4' : 'hover:bg-bg-4'
               }`}
             >
               <span
-                className={`mt-0.5 ${highlightedIndex === index ? 'text-[#f17827ff]' : 'text-[#707070]'}`}
+                className={`mt-0.5 ${highlightedIndex === index ? 'text-accent' : 'text-ink-4'}`}
               >
                 {option.icon}
               </span>
               <div>
                 <div
-                  className={`text-sm font-medium ${highlightedIndex === index ? 'text-white' : 'text-[#a0a0a0]'}`}
+                  className={`text-sm font-medium ${highlightedIndex === index ? 'text-white' : 'text-ink-3'}`}
                 >
                   {option.label}
                 </div>
                 {option.description && (
-                  <div className="text-xs text-[#505050] mt-0.5">
+                  <div className="text-xs text-ink-5 mt-0.5">
                     {option.description}
                   </div>
                 )}

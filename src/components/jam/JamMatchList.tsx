@@ -36,7 +36,7 @@ export const JamMatchList: React.FC<JamMatchListProps> = ({
     return (
       <div
         data-testid="jam-match-list"
-        className="text-[#707070] text-sm text-center py-8"
+        className="text-ink-4 text-sm text-center py-8"
       >
         <Music size={32} className="mx-auto mb-3 opacity-30" />
         <p>No common songs found yet.</p>
@@ -87,7 +87,7 @@ export const JamMatchList: React.FC<JamMatchListProps> = ({
         </>
       )}
 
-      <p className="text-[#707070] text-xs mt-3">
+      <p className="text-ink-4 text-xs mt-3">
         {confirmedMatches.length} confirmed song
         {confirmedMatches.length !== 1 ? 's' : ''} in common
         {fuzzyMatches.length > 0 && ` · ${fuzzyMatches.length} possible`}
@@ -126,16 +126,14 @@ const MatchItem: React.FC<MatchItemProps> = ({
     <div
       data-testid={`jam-match-item-${match.id}`}
       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-        isFuzzy ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-[#1a1a1a]'
+        isFuzzy ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-bg-2'
       }`}
     >
       {/* Song icon */}
       <Music
         size={16}
         className={
-          isFuzzy
-            ? 'text-amber-400 flex-shrink-0'
-            : 'text-[#707070] flex-shrink-0'
+          isFuzzy ? 'text-amber-400 flex-shrink-0' : 'text-ink-4 flex-shrink-0'
         }
       />
 
@@ -144,11 +142,11 @@ const MatchItem: React.FC<MatchItemProps> = ({
         <p className="text-white text-sm font-medium truncate">
           {match.displayTitle}
         </p>
-        <p className="text-[#707070] text-xs truncate">{match.displayArtist}</p>
+        <p className="text-ink-4 text-xs truncate">{match.displayArtist}</p>
       </div>
 
       {/* Participant count badge */}
-      <span className="flex items-center gap-1 text-[#707070] text-xs flex-shrink-0">
+      <span className="flex items-center gap-1 text-ink-4 text-xs flex-shrink-0">
         <Users size={11} />
         {match.participantCount}
       </span>
@@ -168,8 +166,8 @@ const MatchItem: React.FC<MatchItemProps> = ({
           aria-label={`Add ${match.displayTitle} to setlist`}
           className={`p-1 rounded-md transition-colors flex-shrink-0 ${
             inSetlist
-              ? 'text-[#f17827ff] opacity-60 cursor-default'
-              : 'text-[#707070] hover:text-[#f17827ff] hover:bg-[#f17827ff]/10'
+              ? 'text-accent opacity-60 cursor-default'
+              : 'text-ink-4 hover:text-accent hover:bg-accent/10'
           }`}
         >
           <Plus size={14} />

@@ -1,12 +1,36 @@
 import { useEffect, useMemo, useState } from 'react'
-import { UserPlus, X, History, Check } from 'lucide-react'
+import {
+  UserPlus,
+  X,
+  History,
+  Check,
+  MicVocal,
+  Mic2,
+  Guitar,
+  Drum,
+  Piano,
+  Music,
+  type LucideIcon,
+} from 'lucide-react'
 import { useCasting } from '../../hooks/useCasting'
 import { useBandMembers } from '../../hooks/useBands'
 import { useEventParticipants } from '../../hooks/useEvents'
 import { CastingAssignmentService } from '../../services/CastingAssignmentService'
 import { Avatar } from '../common/Avatar'
 import { Eyebrow } from '../common/Eyebrow'
+import { INSTRUMENT_COLOR, token } from '../../utils/tokens'
 import type { CastingContext, CastingHistoryEntry } from '../../models/Casting'
+
+/** Role key → instrument color + icon for the color spine on each part row. */
+const INSTRUMENT_META: Record<string, { color: string; Icon: LucideIcon }> = {
+  lead_vocals: { color: INSTRUMENT_COLOR.vox, Icon: MicVocal },
+  backing_vocals: { color: INSTRUMENT_COLOR.bvox, Icon: Mic2 },
+  guitar: { color: INSTRUMENT_COLOR.gtr, Icon: Guitar },
+  bass: { color: INSTRUMENT_COLOR.bass, Icon: Guitar },
+  drums: { color: INSTRUMENT_COLOR.drums, Icon: Drum },
+  keys: { color: INSTRUMENT_COLOR.keys, Icon: Piano },
+}
+const FALLBACK_INSTRUMENT = { color: token.ink4, Icon: Music }
 
 interface SongCastPanelProps {
   contextType: CastingContext
@@ -77,6 +101,10 @@ export function SongCastPanel({
   const partsCast = defaultParts.filter(p =>
     slotCasting.some(c => c.roleKey === p.key && c.isPrimary)
   ).length
+  const progressPct =
+    defaultParts.length > 0
+      ? Math.round((partsCast / defaultParts.length) * 100)
+      : 0
 
   const doAssign = async (
     roleKey: string,
@@ -106,25 +134,46 @@ export function SongCastPanel({
       className="mt-2 rounded-lg bg-bg-2 border border-border-1 p-3"
       data-testid={`cast-panel-${slotId}`}
     >
-      <div className="mb-2 flex items-center justify-between">
-        <Eyebrow>Casting</Eyebrow>
-        <span
-          className="font-mono text-[10px] text-ink-4"
-          data-testid="cast-progress"
-        >
-          {partsCast}/{defaultParts.length} parts cast
-        </span>
+      <div className="mb-2">
+        <div className="flex items-center justify-between">
+          <Eyebrow>Casting</Eyebrow>
+          <span
+            className="font-mono text-[10px] text-ink-4"
+            data-testid="cast-progress"
+          >
+            {partsCast} of {defaultParts.length} parts · {progressPct}%
+          </span>
+        </div>
+        <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-bg-3">
+          <div
+            className="h-full rounded-full bg-accent transition-all"
+            style={{ width: `${progressPct}%` }}
+            data-testid="cast-progress-bar"
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
         {defaultParts.map(part => {
           const assigned = slotCasting.filter(c => c.roleKey === part.key)
+          const instrument = INSTRUMENT_META[part.key] ?? FALLBACK_INSTRUMENT
+          const InstrumentIcon = instrument.Icon
           return (
             <div
               key={part.key}
               className="flex items-center gap-2"
               data-testid={`cast-role-${part.key}`}
             >
+              <span
+                className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md"
+                style={{
+                  color: instrument.color,
+                  backgroundColor: `color-mix(in srgb, ${instrument.color} 16%, transparent)`,
+                }}
+                aria-hidden="true"
+              >
+                <InstrumentIcon size={13} />
+              </span>
               <span className="w-24 flex-shrink-0 text-xs text-ink-3">
                 {part.label}
               </span>

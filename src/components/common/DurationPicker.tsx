@@ -125,9 +125,9 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 flex items-center justify-between"
+        className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 flex items-center justify-between"
       >
-        <span className={value === 0 ? 'text-[#707070]' : 'text-white'}>
+        <span className={value === 0 ? 'text-ink-4' : 'text-white'}>
           <Clock size={16} className="inline mr-2" />
           {formatDuration(value)}
         </span>
@@ -138,16 +138,16 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-50 p-4 max-h-96 overflow-auto custom-scrollbar">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 p-4 max-h-96 overflow-auto custom-scrollbar">
           {/* Mode Toggle */}
-          <div className="flex gap-2 mb-4 pb-4 border-b border-[#2a2a2a]">
+          <div className="flex gap-2 mb-4 pb-4 border-b border-border-1">
             <button
               type="button"
               onClick={() => setViewMode('duration')}
               className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
                 viewMode === 'duration'
-                  ? 'bg-[#f17827ff] text-white'
-                  : 'text-[#a0a0a0] hover:bg-[#252525] hover:text-white'
+                  ? 'bg-accent text-white'
+                  : 'text-ink-3 hover:bg-bg-4 hover:text-white'
               }`}
             >
               Duration
@@ -157,8 +157,8 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
               onClick={() => setViewMode('time-range')}
               className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
                 viewMode === 'time-range'
-                  ? 'bg-[#f17827ff] text-white'
-                  : 'text-[#a0a0a0] hover:bg-[#252525] hover:text-white'
+                  ? 'bg-accent text-white'
+                  : 'text-ink-3 hover:bg-bg-4 hover:text-white'
               }`}
             >
               Time Range
@@ -176,8 +176,8 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
                     onClick={() => handlePresetSelect(preset.value)}
                     className={`px-3 py-2 rounded text-sm transition-colors ${
                       value === preset.value
-                        ? 'bg-[#f17827ff] text-white'
-                        : 'text-[#a0a0a0] hover:bg-[#252525] hover:text-white'
+                        ? 'bg-accent text-white'
+                        : 'text-ink-3 hover:bg-bg-4 hover:text-white'
                     }`}
                   >
                     {preset.label}
@@ -186,8 +186,8 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
               </div>
 
               {/* Custom Duration */}
-              <div className="pt-3 border-t border-[#2a2a2a]">
-                <div className="text-xs text-[#707070] mb-2 font-medium">
+              <div className="pt-3 border-t border-border-1">
+                <div className="text-xs text-ink-4 mb-2 font-medium">
                   Custom Duration (minutes)
                 </div>
                 <div className="flex items-center gap-2">
@@ -197,13 +197,13 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
                     onChange={handleCustomDuration}
                     onKeyDown={e => e.key === 'Enter' && applyCustomDuration()}
                     placeholder="e.g., 75"
-                    className="flex-1 px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded text-white text-sm focus:border-[#f17827ff] focus:outline-none"
+                    className="flex-1 px-3 py-2 bg-bg-1 border border-border-1 rounded text-white text-sm focus:border-accent focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={applyCustomDuration}
                     disabled={!customDuration}
-                    className="px-4 py-2 bg-[#f17827ff] text-white text-sm rounded hover:bg-[#d96920] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    className="px-4 py-2 bg-accent text-white text-sm rounded hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                   >
                     Apply
                   </button>
@@ -231,8 +231,8 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
               </div>
 
               {startTime && endTime && (
-                <div className="pt-3 border-t border-[#2a2a2a] text-center">
-                  <div className="text-sm text-[#a0a0a0]">
+                <div className="pt-3 border-t border-border-1 text-center">
+                  <div className="text-sm text-ink-3">
                     Duration:{' '}
                     <span className="text-white font-medium">
                       {formatDuration(value)}
@@ -245,7 +245,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
                 type="button"
                 onClick={() => setIsOpen(false)}
                 disabled={!startTime || !endTime}
-                className="w-full px-4 py-2 bg-[#f17827ff] text-white text-sm rounded-lg hover:bg-[#d96920] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                className="w-full px-4 py-2 bg-accent text-white text-sm rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
               >
                 Done
               </button>

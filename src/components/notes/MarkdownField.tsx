@@ -24,6 +24,8 @@ export interface MarkdownFieldProps {
   maxLength?: number
   /** Idle-state container extra classes. */
   className?: string
+  /** Accent tone for edit/save/focus affordances. Defaults to 'accent'. */
+  tone?: 'accent' | 'info'
   /** data-testid passthrough. */
   'data-testid'?: string
 }
@@ -37,8 +39,15 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
   label,
   maxLength = DEFAULT_MAX,
   className = '',
+  tone = 'accent',
   'data-testid': testId,
 }) => {
+  // Static Tailwind class strings keyed off tone (no dynamic interpolation).
+  const toneHoverText =
+    tone === 'info' ? 'hover:text-info' : 'hover:text-accent'
+  const toneActiveBg = tone === 'info' ? 'bg-info' : 'bg-accent'
+  const toneFocusBorder =
+    tone === 'info' ? 'focus:border-info' : 'focus:border-accent'
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const [mode, setMode] = useState<'edit' | 'preview'>('edit')
@@ -117,8 +126,8 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative bg-[#0f0f0f] border rounded-lg transition-colors ${
-        justSaved ? 'border-green-500/50' : 'border-[#2a2a2a]'
+      className={`relative bg-bg-1 border rounded-lg transition-colors ${
+        justSaved ? 'border-green-500/50' : 'border-border-1'
       } ${className}`}
       data-testid={testId ?? 'markdown-field'}
     >
@@ -135,7 +144,7 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
       </div>
 
       {label && (
-        <div className="px-4 pt-3 text-xs text-[#707070] uppercase tracking-wider">
+        <div className="px-4 pt-3 text-xs text-ink-4 uppercase tracking-wider">
           {label}
         </div>
       )}
@@ -146,12 +155,12 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
             {value ? (
               <MarkdownRenderer content={value} />
             ) : (
-              <p className="text-[#505050] text-sm italic">{placeholder}</p>
+              <p className="text-ink-5 text-sm italic">{placeholder}</p>
             )}
           </div>
           <button
             onClick={handleStartEdit}
-            className="absolute top-2 right-2 p-2 text-[#707070] hover:text-[#f17827ff] bg-[#1a1a1a] border border-[#2a2a2a] rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+            className={`absolute top-2 right-2 p-2 text-ink-4 ${toneHoverText} bg-bg-2 border border-border-1 rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity`}
             title="Edit notes"
             data-testid="markdown-field-edit-button"
             aria-label="Edit notes"
@@ -166,8 +175,8 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
               onClick={() => setMode('edit')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                 mode === 'edit'
-                  ? 'bg-[#f17827ff] text-white'
-                  : 'text-[#a0a0a0] hover:text-white'
+                  ? `${toneActiveBg} text-white`
+                  : 'text-ink-3 hover:text-white'
               }`}
               data-testid="markdown-mode-edit"
             >
@@ -178,8 +187,8 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
               onClick={() => setMode('preview')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                 mode === 'preview'
-                  ? 'bg-[#f17827ff] text-white'
-                  : 'text-[#a0a0a0] hover:text-white'
+                  ? `${toneActiveBg} text-white`
+                  : 'text-ink-3 hover:text-white'
               }`}
               data-testid="markdown-mode-preview"
             >
@@ -191,7 +200,7 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
               onClick={handleCancel}
               title="Cancel"
               data-testid="markdown-cancel"
-              className="w-8 h-8 flex items-center justify-center rounded text-[#a0a0a0] hover:text-red-400 hover:bg-red-400/10 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded text-ink-3 hover:text-red-400 hover:bg-red-400/10 transition-colors"
               aria-label="Cancel"
             >
               <X size={14} />
@@ -218,14 +227,14 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
               rows={10}
               placeholder="Markdown supported — ##, **, lists, > blockquote..."
               data-testid="markdown-textarea"
-              className="w-full p-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded text-white text-sm font-mono resize-y focus:border-[#f17827ff] focus:outline-none"
+              className={`w-full p-3 bg-bg-0 border border-border-1 rounded text-white text-sm font-mono resize-y ${toneFocusBorder} focus:outline-none`}
             />
           ) : (
-            <div className="min-h-[120px] p-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded">
+            <div className="min-h-[120px] p-3 bg-bg-0 border border-border-1 rounded">
               {draft ? (
                 <MarkdownRenderer content={draft} />
               ) : (
-                <p className="text-[#505050] text-sm italic">
+                <p className="text-ink-5 text-sm italic">
                   Nothing to preview yet...
                 </p>
               )}
@@ -246,7 +255,7 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
                   ? 'text-red-400 font-semibold'
                   : charCount >= maxLength * 0.8
                     ? 'text-amber-300'
-                    : 'text-[#707070]'
+                    : 'text-ink-4'
               }
               data-testid="markdown-char-count"
             >
@@ -259,15 +268,13 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
       {/* Discard confirm */}
       {confirmDiscard && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-sm p-5">
+          <div className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-sm p-5">
             <h3 className="text-white font-semibold mb-2">Discard changes?</h3>
-            <p className="text-[#a0a0a0] text-sm mb-4">
-              Your edits will be lost.
-            </p>
+            <p className="text-ink-3 text-sm mb-4">Your edits will be lost.</p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setConfirmDiscard(false)}
-                className="px-3 py-2 text-[#a0a0a0] hover:text-white text-sm"
+                className="px-3 py-2 text-ink-3 hover:text-white text-sm"
                 data-testid="markdown-keep-editing"
               >
                 Keep editing

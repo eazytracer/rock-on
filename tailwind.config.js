@@ -28,6 +28,8 @@ export default {
         accent: 'rgb(var(--accent-rgb) / <alpha-value>)',
         'accent-soft': 'var(--accent-soft)',
         'accent-line': 'var(--accent-line)',
+        'accent-hot': 'var(--accent-hot)',
+        'accent-deep': 'var(--accent-deep)',
         info: 'rgb(var(--info-rgb) / <alpha-value>)',
         success: 'rgb(var(--success-rgb) / <alpha-value>)',
         warn: 'rgb(var(--warn-rgb) / <alpha-value>)',
@@ -36,18 +38,27 @@ export default {
         // ~65 arbitrary-hex files migrate cleanly and the two oranges collapse to one.
         'energy-orange': 'rgb(var(--accent-rgb) / <alpha-value>)',
         'stage-black': 'rgb(var(--bg-1-rgb) / <alpha-value>)',
-        'electric-yellow': '#FFD400',
-        'smoke-white': '#F5F5F5',
+        // M-2 fix: these five previously kept the ORIGINAL light-theme hex and
+        // rendered light-on-dark (bg-surface white flash, DevDashboard text-text).
+        // All repointed at dark tokens. NOTE: smoke-white/steel-gray/electric-yellow
+        // consumers (auth/*Form, notes/SongNotesPanel chain) are dead code — kept, not
+        // deleted, per project convention; repoint is purely defensive.
+        'electric-yellow': 'rgb(var(--warn-rgb) / <alpha-value>)',
+        'smoke-white': 'rgb(var(--ink-2-rgb) / <alpha-value>)',
         'amp-red': 'rgb(var(--danger-rgb) / <alpha-value>)',
-        'steel-gray': '#2E2E2E',
+        'steel-gray': 'rgb(var(--border-1-rgb) / <alpha-value>)',
 
         // Semantic Aliases
         primary: 'rgb(var(--accent-rgb) / <alpha-value>)',
-        secondary: '#FFD400',
+        secondary: 'rgb(var(--warn-rgb) / <alpha-value>)',
         danger: 'rgb(var(--danger-rgb) / <alpha-value>)',
+        'danger-deep': 'var(--danger-deep)',
         background: 'rgb(var(--bg-1-rgb) / <alpha-value>)',
-        surface: '#F5F5F5',
-        text: '#2E2E2E',
+        surface: 'rgb(var(--bg-1-rgb) / <alpha-value>)',
+        // Was referenced (SettingsPage ×6) but never defined → rendered transparent.
+        // Elevated card surface = one step up from the page background.
+        'surface-elevated': 'rgb(var(--bg-2-rgb) / <alpha-value>)',
+        text: 'rgb(var(--ink-1-rgb) / <alpha-value>)',
 
         // Keep existing confidence colors
         confidence: {

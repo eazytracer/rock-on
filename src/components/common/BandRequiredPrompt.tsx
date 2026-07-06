@@ -24,7 +24,7 @@ export function BandRequiredPrompt({
   return (
     <div data-testid={testid} className="max-w-3xl">
       <h1 className="text-2xl font-bold text-white mb-1">{feature}</h1>
-      <div className="mt-8 rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-2">
+      <div className="mt-8 rounded-xl border border-border-1 bg-bg-2 p-2">
         <EmptyState
           icon={Users}
           size="lg"

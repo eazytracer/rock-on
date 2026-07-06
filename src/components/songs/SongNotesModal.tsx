@@ -86,21 +86,21 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
       data-testid="song-notes-modal-backdrop"
     >
       <div
-        className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-3xl shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col"
+        className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-3xl shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
         data-testid="song-notes-modal"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a]">
+        <div className="flex items-center justify-between p-4 border-b border-border-1">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold text-white">Song Notes</h2>
-            <p className="text-sm text-[#707070] truncate">{songTitle}</p>
+            <p className="text-sm text-ink-4 truncate">{songTitle}</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
               <button
                 onClick={() => setShowMarkdownHelp(!showMarkdownHelp)}
-                className="p-2 text-[#707070] hover:text-[#f17827ff] rounded-lg transition-colors"
+                className="p-2 text-ink-4 hover:text-accent rounded-lg transition-colors"
                 title="Markdown formatting help"
                 data-testid="song-notes-modal-help"
                 aria-label="Markdown formatting help"
@@ -110,36 +110,34 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
               </button>
               {showMarkdownHelp && (
                 <div
-                  className="absolute right-0 top-10 z-10 w-64 p-3 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg shadow-xl text-xs"
+                  className="absolute right-0 top-10 z-10 w-64 p-3 bg-bg-1 border border-border-1 rounded-lg shadow-xl text-xs"
                   data-testid="song-notes-modal-help-popover"
                 >
-                  <p className="text-[#a0a0a0] font-medium mb-2">
+                  <p className="text-ink-3 font-medium mb-2">
                     Markdown Formatting
                   </p>
-                  <div className="space-y-1 text-[#707070]">
+                  <div className="space-y-1 text-ink-4">
                     <p>
-                      <code className="text-[#f17827ff]"># Heading</code> -
-                      Header
+                      <code className="text-accent"># Heading</code> - Header
                     </p>
                     <p>
-                      <code className="text-[#f17827ff]">**bold**</code> -{' '}
+                      <code className="text-accent">**bold**</code> -{' '}
                       <strong className="text-white">bold</strong>
                     </p>
                     <p>
-                      <code className="text-[#f17827ff]">*italic*</code> -{' '}
+                      <code className="text-accent">*italic*</code> -{' '}
                       <em className="text-white">italic</em>
                     </p>
                     <p>
-                      <code className="text-[#f17827ff]">- item</code> - Bullet
+                      <code className="text-accent">- item</code> - Bullet list
+                    </p>
+                    <p>
+                      <code className="text-accent">1. item</code> - Numbered
                       list
                     </p>
                     <p>
-                      <code className="text-[#f17827ff]">1. item</code> -
-                      Numbered list
-                    </p>
-                    <p>
-                      <code className="text-[#f17827ff]">`code`</code> -{' '}
-                      <code className="text-white bg-[#1a1a1a] px-1 rounded">
+                      <code className="text-accent">`code`</code> -{' '}
+                      <code className="text-white bg-bg-2 px-1 rounded">
                         code
                       </code>
                     </p>
@@ -149,7 +147,7 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-[#707070] hover:text-white rounded-lg transition-colors"
+              className="p-2 text-ink-4 hover:text-white rounded-lg transition-colors"
               data-testid="song-notes-modal-close"
               aria-label="Close"
             >
@@ -162,21 +160,19 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 size={24} className="text-[#f17827ff] animate-spin" />
+              <Loader2 size={24} className="text-accent animate-spin" />
             </div>
           ) : (
             <>
               {/* Band Notes (shared) */}
               <div>
                 <label
-                  className="flex items-center gap-2 text-sm font-medium text-[#a0a0a0] mb-2"
+                  className="flex items-center gap-2 text-sm font-medium text-ink-3 mb-2"
                   htmlFor="song-notes-band-field"
                 >
-                  <Users size={16} className="text-[#f17827ff]" />
+                  <Users size={16} className="text-accent" />
                   Band Notes
-                  <span className="text-xs text-[#505050]">
-                    (shared with band)
-                  </span>
+                  <span className="text-xs text-ink-5">(shared with band)</span>
                 </label>
                 <div id="song-notes-band-field">
                   <MarkdownField
@@ -191,18 +187,19 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
               {/* Personal Notes (private) */}
               <div>
                 <label
-                  className="flex items-center gap-2 text-sm font-medium text-[#a0a0a0] mb-2"
+                  className="flex items-center gap-2 text-sm font-medium text-ink-3 mb-2"
                   htmlFor="song-notes-personal-field"
                 >
-                  <User size={16} className="text-[#f17827ff]" />
+                  <User size={16} className="text-info" />
                   My Notes
-                  <span className="text-xs text-[#505050]">(private)</span>
+                  <span className="text-xs text-ink-5">(private)</span>
                 </label>
                 <div id="song-notes-personal-field">
                   <MarkdownField
                     value={personalNote?.content || ''}
                     onSave={handleSavePersonalNotes}
                     placeholder="Add your personal notes about this song..."
+                    tone="info"
                     data-testid="song-notes-personal-field"
                   />
                 </div>
@@ -213,10 +210,10 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
 
         {/* Footer — fields autosave on click-out, so the modal-level button
             is just a "done viewing" gesture. */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-[#2a2a2a]">
+        <div className="flex items-center justify-end gap-3 p-4 border-t border-border-1">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-accent hover:bg-accent-deep text-white text-sm font-medium rounded-lg transition-colors"
             data-testid="song-notes-modal-done"
           >
             Done

@@ -46,12 +46,12 @@ export function EmptyState({
     <div
       className={`flex flex-col items-center justify-center text-center ${padding} ${gap} ${className}`}
     >
-      <Icon size={iconSize} className="text-[#404040]" />
+      <Icon size={iconSize} className="text-border-2" />
 
-      <p className="text-[#a0a0a0] text-sm font-medium">{title}</p>
+      <p className="text-ink-3 text-sm font-medium">{title}</p>
 
       {description && (
-        <p className="text-[#606060] text-xs max-w-xs">{description}</p>
+        <p className="text-ink-4 text-xs max-w-xs">{description}</p>
       )}
 
       {action && (
@@ -80,8 +80,8 @@ function ActionButton({
     'mt-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5'
   const styles =
     variant === 'primary'
-      ? `${base} bg-[#f17827ff]/10 text-[#f17827ff] hover:bg-[#f17827ff]/20`
-      : `${base} text-[#a0a0a0] hover:text-white hover:bg-[#2a2a2a]`
+      ? `${base} bg-accent/10 text-accent hover:bg-accent/20`
+      : `${base} text-ink-3 hover:text-white hover:bg-border-1`
 
   return (
     <button

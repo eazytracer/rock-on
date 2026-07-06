@@ -142,19 +142,19 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
     >
       <div className="flex flex-col h-full">
         {/* Search and Filters */}
-        <div className="px-6 py-4 border-b border-[#2a2a2a] space-y-3 flex-shrink-0">
+        <div className="px-6 py-4 border-b border-border-1 space-y-3 flex-shrink-0">
           {/* Search Input */}
           <div className="relative">
             <Search
               size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-4"
             />
             <input
               type="text"
               placeholder="Search songs..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+              className="w-full h-10 pl-10 pr-4 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               data-testid="browse-songs-search-input"
             />
           </div>
@@ -163,7 +163,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
           <select
             value={selectedTuning}
             onChange={e => setSelectedTuning(e.target.value)}
-            className="w-full h-10 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+            className="w-full h-10 px-3 bg-bg-2 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
             data-testid="browse-songs-tuning-filter"
           >
             <option value="">All Tunings</option>
@@ -179,7 +179,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
             <select
               value={selectedSetlistId}
               onChange={e => setSelectedSetlistId(e.target.value)}
-              className="w-full h-10 px-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white text-sm focus:border-[#f17827ff] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20"
+              className="w-full h-10 px-3 bg-bg-2 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               data-testid="browse-songs-setlist-filter"
             >
               <option value="">All Songs</option>
@@ -197,7 +197,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
             onAddAllFromSetlist && (
               <button
                 onClick={handleAddAllFromSetlist}
-                className="w-full h-10 px-4 bg-[#f17827ff] hover:bg-[#d96a1f] text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full h-10 px-4 bg-accent hover:bg-accent-deep text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                 data-testid="browse-songs-add-all-button"
               >
                 <List size={18} />
@@ -212,8 +212,8 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
           <div data-testid="browse-songs-list" className="space-y-2">
             {filteredSongs.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-[#707070] text-sm">No songs available</p>
-                <p className="text-[#505050] text-xs mt-1">
+                <p className="text-ink-4 text-sm">No songs available</p>
+                <p className="text-ink-5 text-xs mt-1">
                   {selectedSongIds.length > 0
                     ? 'All matching songs have been added'
                     : 'Try adjusting your search or filters'}
@@ -225,7 +225,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
                   key={song.id}
                   onClick={() => onAddSong(song)}
                   data-testid={`browse-song-${song.id}`}
-                  className="w-full flex items-center gap-3 p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg hover:border-[#f17827ff] hover:bg-[#1f1f1f] transition-colors text-left group"
+                  className="w-full flex items-center gap-3 p-3 bg-bg-2 border border-border-1 rounded-lg hover:border-accent hover:bg-bg-3 transition-colors text-left group"
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
@@ -245,15 +245,15 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
                         {song.title}
                       </div>
                       {song.contextType === 'personal' && (
-                        <span className="flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#f17827ff]/20 text-[#f17827ff] border border-[#f17827ff]/30">
+                        <span className="flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-accent/20 text-accent border border-accent/30">
                           My Song
                         </span>
                       )}
                     </div>
-                    <div className="text-[#707070] text-xs truncate">
+                    <div className="text-ink-4 text-xs truncate">
                       {song.artist}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-[#505050]">
+                    <div className="flex items-center gap-3 mt-1 text-xs text-ink-5">
                       <span className="flex items-center gap-1">
                         <Guitar size={12} />
                         {song.guitarTuning || 'Standard'}
@@ -267,7 +267,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
                   </div>
                   <Plus
                     size={18}
-                    className="text-[#505050] group-hover:text-[#f17827ff] transition-colors flex-shrink-0"
+                    className="text-ink-5 group-hover:text-accent transition-colors flex-shrink-0"
                   />
                 </button>
               ))

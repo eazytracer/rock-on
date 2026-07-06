@@ -45,6 +45,8 @@ export function CalendarPage() {
   const navigate = useNavigate()
   const { currentBandId, currentUser } = useAuth()
   const bandId = currentBandId ?? ''
+  // TODO(ui-pass): deferred IA decision — read initial filter from `?filter=` query param
+  // for deep-linking. Not added in the styling pass.
   const [filter, setFilter] = useState<Filter>('all')
   const [newMenuOpen, setNewMenuOpen] = useState(false)
 

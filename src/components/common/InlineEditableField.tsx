@@ -223,7 +223,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
     const isEmpty = !display || display === '-'
 
     if (isEmpty) {
-      return <span className="text-[#505050] italic">{placeholder}</span>
+      return <span className="text-ink-5 italic">{placeholder}</span>
     }
 
     return display
@@ -231,7 +231,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
 
   // Base input styles
   const baseInputClass =
-    'w-full px-2 py-1 bg-[#121212] border border-[#f17827ff] rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/30'
+    'w-full px-2 py-1 bg-bg-1 border border-accent rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/30'
 
   // Render edit input based on type
   const renderEditInput = () => {
@@ -246,7 +246,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             placeholder={placeholder}
-            className={`w-full px-2 py-1 bg-[#121212] border border-[#f17827ff] rounded text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/30 ${valueClassName}`}
+            className={`w-full px-2 py-1 bg-bg-1 border border-accent rounded text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-accent/30 ${valueClassName}`}
             name={name}
             id={id}
             data-testid={testId ? `${testId}-input` : undefined}
@@ -355,12 +355,12 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
               placeholder="Minutes"
               min={0}
               max={1440}
-              className="w-24 px-2 py-1 bg-[#121212] border border-[#f17827ff] rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/30"
+              className="w-24 px-2 py-1 bg-bg-1 border border-accent rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
               name={name}
               id={id}
               data-testid={testId ? `${testId}-input` : undefined}
             />
-            <span className="text-xs text-[#707070]">minutes</span>
+            <span className="text-xs text-ink-4">minutes</span>
           </div>
         )
 
@@ -387,7 +387,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
   const getDisplayStyles = () => {
     const base =
       'cursor-pointer transition-colors rounded px-2 py-1 -mx-2 -my-1'
-    const hover = 'hover:bg-[#1a1a1a]'
+    const hover = 'hover:bg-bg-2'
 
     if (type === 'title') {
       return `${base} ${hover} text-xl font-bold text-white ${valueClassName}`
@@ -400,7 +400,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
     <div ref={containerRef} className={`${className}`} data-testid={testId}>
       {/* Label */}
       {label && (
-        <label className="block text-xs text-[#707070] mb-1 uppercase tracking-wide">
+        <label className="block text-xs text-ink-4 mb-1 uppercase tracking-wide">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -410,7 +410,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
       <div className="flex items-start gap-2">
         {/* Icon - always visible */}
         {icon && (
-          <span className="text-[#f17827ff] mt-0.5 flex-shrink-0">{icon}</span>
+          <span className="text-accent mt-0.5 flex-shrink-0">{icon}</span>
         )}
 
         {/* Value / Input */}
@@ -421,7 +421,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
               {isSaving && (
                 <Loader2
                   size={16}
-                  className="text-[#f17827ff] animate-spin flex-shrink-0"
+                  className="text-accent animate-spin flex-shrink-0"
                 />
               )}
             </div>

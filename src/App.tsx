@@ -181,10 +181,10 @@ const AppContent: React.FC = () => {
   }, [realtimeManager, showToast])
 
   return (
-    // `bg-[#0a0a0a]` matches ModernLayout and the app-wide dark theme.
+    // `bg-bg-0` matches ModernLayout and the app-wide dark theme.
     // The previous `bg-surface` (`#F5F5F5`) caused a light-gray flash to
     // show through during route-level Suspense fallbacks.
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-bg-0">
       {/* Session expiry modal */}
       <SessionExpiredModal />
 
@@ -200,17 +200,15 @@ const AppContent: React.FC = () => {
           the visible "blue banner" at the top of every page while sync
           was in flight. */}
       {syncing && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-[#1a1a1a] border-b border-[#2a2a2a] text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-bg-2 border-b border-border-1 text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
           <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-          <span className="text-[#a0a0a0]">
-            Syncing your data from cloud...
-          </span>
+          <span className="text-ink-3">Syncing your data from cloud...</span>
         </div>
       )}
 
       <Suspense
         fallback={
-          <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+          <div className="flex items-center justify-center min-h-screen bg-bg-0">
             <LoadingSpinner size="lg" text="Loading..." />
           </div>
         }

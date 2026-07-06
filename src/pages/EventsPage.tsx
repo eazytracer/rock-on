@@ -35,8 +35,13 @@ export function EventsPage() {
       data-testid={`event-${ev.id}`}
       className="flex w-full items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-4 text-left transition-colors hover:border-border-2"
     >
-      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
-        <PartyPopper size={20} />
+      <span className="flex h-11 w-11 flex-shrink-0 flex-col items-center justify-center rounded-lg bg-accent-soft leading-none text-accent">
+        <span className="text-[9px] font-bold uppercase tracking-wider">
+          {ev.scheduledDate.toLocaleDateString('en-US', { month: 'short' })}
+        </span>
+        <span className="mt-0.5 text-base font-bold">
+          {ev.scheduledDate.getDate()}
+        </span>
       </span>
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-2">
@@ -80,7 +85,7 @@ export function EventsPage() {
           data-testid="events-new-button"
           className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white"
         >
-          <Plus size={16} /> New
+          <Plus size={16} /> Host
         </button>
       </div>
       <p className="mt-1 text-sm text-ink-4">
