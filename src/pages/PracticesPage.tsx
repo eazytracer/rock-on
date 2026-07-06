@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { BandRequiredPrompt } from '../components/common/BandRequiredPrompt'
+import { Dropdown } from '../components/common/Dropdown'
 import { useToast } from '../contexts/ToastContext'
 import {
   ChevronDown,
@@ -460,27 +461,20 @@ export const PracticesPage: React.FC = () => {
           {/* Action Bar */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
             {/* Filter Dropdown */}
-            <div className="relative">
-              <select
+            <div className="w-40">
+              <Dropdown
+                data-testid="practices-filter"
                 value={filter}
-                onChange={e =>
-                  setFilter(e.target.value as 'upcoming' | 'past' | 'all')
-                }
-                className="h-10 pl-4 pr-10 bg-transparent border border-border-1 rounded-lg text-white text-sm font-medium hover:bg-bg-3 transition-colors appearance-none cursor-pointer"
-              >
-                <option value="upcoming" className="bg-bg-2">
-                  Upcoming
-                </option>
-                <option value="past" className="bg-bg-2">
-                  Past
-                </option>
-                <option value="all" className="bg-bg-2">
-                  All
-                </option>
-              </select>
-              <ChevronDown
-                size={16}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-4 pointer-events-none"
+                onChange={v => setFilter(v as 'upcoming' | 'past' | 'all')}
+                groups={[
+                  {
+                    options: [
+                      { value: 'upcoming', label: 'Upcoming' },
+                      { value: 'past', label: 'Past' },
+                      { value: 'all', label: 'All' },
+                    ],
+                  },
+                ]}
               />
             </div>
 

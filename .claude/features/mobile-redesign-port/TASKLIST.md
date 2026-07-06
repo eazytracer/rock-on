@@ -79,8 +79,20 @@ code + this file win.
       without this change) — flagged separately, not caused here.
 - [ ] **#6 Desktop two-pane layouts** — Home two-column dashboard, Events master/detail, Settings
       left-nav, Friends right-rail. Net-new responsive layouts.
-- [ ] **#7 Retire the remaining native `<select>`s → C0 `<Dropdown>`** (24 across ~15 files). Migrate
-      per-file with stable ids; update the e2e that use `selectOption` (element-type change).
+- [~] **#7 Retire the remaining native `<select>`s → C0 `<Dropdown>`** (per-file, in progress).
+  **Batch A DONE:** `SongsPage` (sort `song-sort`, tuning filter `song-tuning-filter`, show filter
+  `song-show-filter`; also added `song-filter-toggle-button` + `song-row-{id}` testids) and
+  `PracticesPage` (filter `practices-filter`). e2e made genuine (were silently skipping): sort test
+  now asserts deterministic Title(Z-A) ordering; tuning-filter test sets Drop D via the add-song
+  tuning Dropdown then filters; practices `selectOption('all')` → trigger+option clicks. tsc+lint
+  clean; migrated controls verified live in Playwright (sort reorders, Drop-D filter → 9 rows).
+  **Remaining selects (~11 files):** ShowsPage, ShowViewPage, SetlistsPage, JamSessionPage,
+  SetlistBuilder, BrowseSongsDrawer, SessionForm, SongContextTabs, EditableField,
+  InlineEditableField, casting/MemberRoleSelector, casting/CastingComparison.
+  NOTE — pre-existing failures (fail on base, NOT caused here, flagged): `songs/crud.spec.ts:260`
+  (delete song empty-state) and `practices/crud.spec.ts:113` (practice notes). Also observed:
+  "Recently Added" sort can't distinguish same-session adds in E2E (createdDate sync-timestamp
+  propagation) — separate concern, not this migration.
 - [ ] **#10 Notifications cross-context** — items name their band/event; opening switches context
       (depends on the context switcher).
 - [ ] **Setlist builder** — `BrowseSongsDrawer` → desktop-docked panel / mobile bottom-sheet (today a

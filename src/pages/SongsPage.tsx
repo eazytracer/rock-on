@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { Dropdown } from '../components/common/Dropdown'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
 import {
@@ -555,6 +556,7 @@ const SongRow: React.FC<SongRowProps> = ({
 
   return (
     <div
+      data-testid={`song-row-${song.id}`}
       className="bg-bg-2 rounded-xl hover:bg-bg-4 transition-colors group border-l-[3px]"
       style={{ borderLeftColor: stripeColor }}
     >
@@ -1533,6 +1535,7 @@ export const SongsPage: React.FC = () => {
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <button
                   onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                  data-testid="song-filter-toggle-button"
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     activeFilterCount > 0
                       ? 'border-accent bg-accent/10 text-accent'
@@ -1574,19 +1577,29 @@ export const SongsPage: React.FC = () => {
 
                 <div className="flex items-center gap-3">
                   {/* Sort Dropdown */}
-                  <select
-                    value={sortBy}
-                    onChange={e => setSortBy(e.target.value as SortOption)}
-                    className="h-10 px-4 pr-8 bg-bg-2 border border-border-1 rounded-lg text-white text-sm hover:bg-bg-3 transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                  >
-                    <option value="title-asc">Title (A-Z)</option>
-                    <option value="title-desc">Title (Z-A)</option>
-                    <option value="artist-asc">Artist (A-Z)</option>
-                    <option value="artist-desc">Artist (Z-A)</option>
-                    <option value="date-added-desc">Recently Added</option>
-                    <option value="date-added-asc">Oldest First</option>
-                    <option value="show-asc">By Show</option>
-                  </select>
+                  <div className="w-44">
+                    <Dropdown
+                      data-testid="song-sort"
+                      value={sortBy}
+                      onChange={v => setSortBy(v as SortOption)}
+                      groups={[
+                        {
+                          options: [
+                            { value: 'title-asc', label: 'Title (A-Z)' },
+                            { value: 'title-desc', label: 'Title (Z-A)' },
+                            { value: 'artist-asc', label: 'Artist (A-Z)' },
+                            { value: 'artist-desc', label: 'Artist (Z-A)' },
+                            {
+                              value: 'date-added-desc',
+                              label: 'Recently Added',
+                            },
+                            { value: 'date-added-asc', label: 'Oldest First' },
+                            { value: 'show-asc', label: 'By Show' },
+                          ],
+                        },
+                      ]}
+                    />
+                  </div>
 
                   <button
                     onClick={() => setIsAddModalOpen(true)}
@@ -1622,18 +1635,22 @@ export const SongsPage: React.FC = () => {
                       <label className="block text-xs text-ink-3 mb-2">
                         Guitar Tuning
                       </label>
-                      <select
+                      <Dropdown
+                        data-testid="song-tuning-filter"
                         value={selectedTuning}
-                        onChange={e => setSelectedTuning(e.target.value)}
-                        className="w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                      >
-                        <option value="">All Tunings</option>
-                        {availableTunings.map(tuning => (
-                          <option key={tuning} value={tuning}>
-                            {tuning}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setSelectedTuning}
+                        groups={[
+                          {
+                            options: [
+                              { value: '', label: 'All Tunings' },
+                              ...availableTunings.map(tuning => ({
+                                value: tuning,
+                                label: tuning,
+                              })),
+                            ],
+                          },
+                        ]}
+                      />
                     </div>
 
                     {/* Show Filter */}
@@ -1641,18 +1658,22 @@ export const SongsPage: React.FC = () => {
                       <label className="block text-xs text-ink-3 mb-2">
                         Upcoming Show
                       </label>
-                      <select
+                      <Dropdown
+                        data-testid="song-show-filter"
                         value={selectedShow}
-                        onChange={e => setSelectedShow(e.target.value)}
-                        className="w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                      >
-                        <option value="">All Shows</option>
-                        {availableShows.map(show => (
-                          <option key={show} value={show}>
-                            {show}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setSelectedShow}
+                        groups={[
+                          {
+                            options: [
+                              { value: '', label: 'All Shows' },
+                              ...availableShows.map(show => ({
+                                value: show,
+                                label: show,
+                              })),
+                            ],
+                          },
+                        ]}
+                      />
                     </div>
 
                     {/* Tags Filter */}
