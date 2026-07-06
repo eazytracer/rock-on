@@ -2,7 +2,7 @@
 feature: mobile-redesign-port / Friends + Event Lineup ("event setlist")
 doc: Updated task list + OPEN QUESTIONS — grounded in the FINALIZED static design specs
 created: 2026-07-06
-status: NEEDS ANSWERS — provisional until the Open Questions are resolved
+status: v1 DECIDED (answers 2026-07-06) — building V1→V4; Friends surface + Resolve + public-songs HELD/deferred
 ---
 
 # Friends + Event Lineup ("event setlist") — plan & open questions
@@ -46,47 +46,47 @@ individually (see Q on seeding).
    label? }`, with **"Add part"** (add another of the same instrument, **auto-numbered Gtr 1 / Gtr 2**)?
 Today casting derives parts from band roles, not a per-song editable part list. _Answer:_ 3. **Simple vs Detailed** part-naming is a per-event (or per-song?) toggle: **Simple** = by instrument
 (auto-number dupes); **Detailed** = named sub-roles (Lead Gtr · Rhythm Gtr · Lead Vox · Backing).
-Confirm event-level toggle, default **Simple**? _Answer:_ 4. Default instrument spine for parts = **vox · gtr · bass · drums · keys · bvox**? _Answer:_
+Confirm event-level toggle, default **Simple**? _Answer:_ 4. Default instrument spine for parts = **vox · gtr · bass · drums · keys · bvox**? _Answer:_ How about we don't make any assumptions about what a song needs or what a person plays, when someone wants to raise their hand, they can simply check a box next to the instrument(s) they are open to playing. We can just start with a basic list of guitar, bass, drums, vox, keys, other (let them fill in the blank on other)
 
 **C. Lineup building** 5. Host adds lineup songs from **your catalog / band / new** (each keeps a source tag). Confirm — and
 is there a **"Browse songs"** sheet reused from setlists, plus a **new-song** path (→ external)?
-_Answer:_ 6. **Seed from a saved setlist** (`events.setlist_id`): still wanted as a shortcut ("attach a setlist →
-fill the lineup"), or drop it since the finalized flow adds songs individually? _Answer:_
+_Answer:_ How about we allow users to create a setlist for jams and allow guests to see the setlist they share when creating an event, otherwise guests can manually type in a song and artist, if the host accepts it it is on the host to officially add the song to their catalog and fill in other metadata. 6. **Seed from a saved setlist** (`events.setlist_id`): still wanted as a shortcut ("attach a setlist →
+fill the lineup"), or drop it since the finalized flow adds songs individually? _Answer:_ I don't think we need to seed it for now.
 
 **D. Request → resolve (EC2 / FLOW 08)** 7. Build the explicit **ResolveSheet**? Finalized: the Requests queue tags each request **match**
 (green) or **new** (grey); resolving shows the auto-match with a **confidence** ("**Exact match** in
 Jess's public catalog") and offers **Link & add** (pulls links + tuning, credits owner) vs **Add as
 external reference** vs **Reject**. (My shipped auto-link-on-approve is a partial — this replaces it
-with the host choosing.) _Answer:_ 8. Support **`public`** matches — linking a request to _another user's_ public-catalog song, credited
+with the host choosing.) _Answer:_ Come back to this after we get the first parts done and tested. 8. Support **`public`** matches — linking a request to _another user's_ public-catalog song, credited
 (the FLOW literally shows "in Jess's public catalog")? Needs a public-song read path. Or v1 =
-`mine`/`band`/`external` only? _Answer:_ 9. Confidence tiers: **exact** (normalized title+artist) and **fuzzy** — do we compute fuzzy now, or
-just exact-or-none for v1? _Answer:_
+`mine`/`band`/`external` only? _Answer:_ This is honestly tought to think about--they should likely be public to some degree, but let me think about it more. Perhaps they are just tied to the event itself (new fk) and members of it can see, but no actual user owns it--not sure how difficult that is in our construct. 9. Confidence tiers: **exact** (normalized title+artist) and **fuzzy** — do we compute fuzzy now, or
+just exact-or-none for v1? _Answer:_ Don't worry about confidence right now.
 
 **E. Casting views (EC1)** 10. Ship the **List / Grid** host toggle? Grid = songs × parts matrix, **sticky-left song column**,
 horizontal scroll + edge fade, rarely-used instruments fold into a **+N** column; cells show cast
-avatar or hands-raised number; tap → same Cast sheet. _Answer:_ 11. **Free-text cast** — host casts a name for someone who won't/can't join the app (a cast row with a
-`display_name`, no `user_id`). Include? _Answer:_
+avatar or hands-raised number; tap → same Cast sheet. _Answer:_ Yes, this is the main piece we need to see and test. 11. **Free-text cast** — host casts a name for someone who won't/can't join the app (a cast row with a
+`display_name`, no `user_id`). Include? _Answer:_ Yes
 
 **F. Invite friends → event (ties Friends↔Events)** 12. Build **Invite friends** (in the Access card): multi-select from your friends → adds
 `event_participants` (guest, RSVP pending) + the existing code/link/QR. Needs the co-participant
-name-visibility RLS (mirror `users_select_jam_coparticipant`). _Answer:_
+name-visibility RLS (mirror `users_select_jam_coparticipant`). _Answer:_ Yes
 
 **G. Friends surface itself** 13. The **finalized** Friends spec is minimal — "friend-code card (copy + QR) · discoverable toggle ·
 Requests · Friends list… **already token-clean**." That's ≈ what's shipped. The elaborate
 **name-finder / mutual-friends / "who can send requests" / code-reset / per-user instruments** were
 in the **old prototype only** and are **not** in the finalized spec. Confirm we treat Friends as
 **done** (just the invite-to-event wiring in F12), or do you still want any of those old-prototype
-extras pulled forward? _Answer:_
+extras pulled forward? _Answer:_ We actually probably need more of the old prototype in the spec--standby on this and I will review with the design agent.
 
 **H. Notifications (deviation to confirm)** 14. Finalized #9 wants a notification to **name** its band/event AND **opening switches context**. You
 earlier scoped #10 to _name-only, manual switch_ (shipped). Keep manual, or add the **auto-switch
 on open** to match the finalized spec? And confirm we mint `notifications.payload`
 (`{bandId,bandName}`/`{eventId,eventName}`) on friend-request / event-invite / cast events so the
-chip + deep-links work. _Answer:_
+chip + deep-links work. _Answer:_ Keep name only for now.
 
 **I. Build strategy** 15. Given casting → jam → bands: build the **shared, context-generic** casting layer **up front**
 (more now, cheap reuse later), or keep iterating **event-first** and extract the shared abstraction
-when jam adoption starts? _Answer:_
+when jam adoption starts? _Answer:_ Use your judgement.
 
 ---
 
@@ -104,44 +104,51 @@ when jam adoption starts? _Answer:_
   request auto-links it to the host's current-band catalog (→ "Band" pill) when title/artist matches —
   a partial of the ResolveSheet. Events master/detail on desktop.
 
-## 2. Gap → task list (finalized spec vs shipped). Each = local-only, security-reviewed where RLS
+## 2. DECIDED v1 build (answers recorded 2026-07-06). Each = local-only, security-reviewed where RLS
 
 changes, e2e + Playwright.
 
-**Event lineup / casting (the bulk):**
+**Simplified casting model (per Q4):** NO host-defined per-song parts, NO Simple/Detailed. A **fixed
+instrument set** — `guitar · bass · drums · vox · keys · other` (**other = free-text**). A guest
+raises a hand by **checking the instrument(s)** they're open to playing on a song; the host casts a
+raised hand (or a free-text name) onto an instrument. Maps onto the existing schema: `role_key` =
+instrument; band-less events use this fixed default set instead of `band_roles`.
 
-- **L1 — Parts model.** Per-song editable **parts** list `{instrument,label?}` + **Add part**
-  (auto-number dupes) + **Simple/Detailed** naming. Schema: how parts attach to `event_lineup_items`
-  (a `parts` child table or JSON). Feeds both List + Grid + Cast sheet. _Gated by Q2–Q4._ **Shared
-  layer** (Q15).
-- **L2 — Lineup builder.** Host adds songs to the lineup (Browse-songs sheet reused from setlists /
-  new-song → external), each source-tagged. Optional **seed-from-setlist** (Q6). _Gated by Q5–Q6._
-- **L3 — Resolve flow.** Requests queue **match/new** tags → **ResolveSheet** (confidence + Link & add
-  vs external vs reject); replaces the silent auto-link. Since events are user-tied (Q1), match against
-  the **host's personal catalog first**, then their band(s), then `public`. `public` support per Q8,
-  fuzzy per Q9. _Gated by Q7–Q9._
-- **L4 — Grid view.** List/Grid host toggle; matrix with sticky song column + `+N` overflow; cell tap
-  → Cast sheet. _Gated by Q10._
-- **L5 — Free-text cast.** Cast a `display_name` with no `user_id`. _Gated by Q11._
-- **L6 — People + progress.** Roster w/ RSVP + parts-cast count; cast-progress bar + "Fully cast"
-  flags. (Partly present — audit + fill.)
+**Build order:**
 
-**Friends ↔ Events:**
+- **V1 — Instrument set + raise-a-hand-by-checkbox.** A fixed event role set
+  (`guitar/bass/drums/vox/keys/other`, `other` free-text) used for personal (band-less) events instead
+  of `band_roles`. Guest raise-a-hand UI = check instrument(s) per song → `event_hands` rows. Build the
+  role source **context-generically** (Q15 = my judgement → event-first, thin generic seam so
+  jam/bands reuse later). Audit the current `useCasting`/`SongCastPanel` role sourcing for band-less
+  events and point it at this set.
+- **V2 — Grid casting view (THE priority, Q10).** Songs × instruments matrix on the host event detail,
+  List/Grid toggle; sticky-left song column, horizontal scroll + edge fade, rarely-used instruments
+  fold into `+N`; cell = cast avatar or hands-raised number; tap → the existing Cast sheet. New
+  frontend view over `event_lineup_items` × instruments + `event_hands` + `casting_assignments`.
+- **V3 — Free-text cast (Q11).** Cast a name with no app account. `casting_assignments` already has
+  `member_name` (+ nullable `member_id`) — wire a "type a name" path in the Cast sheet; render it in
+  List + Grid. Little/no schema change.
+- **V4 — Invite friends to an event (Q12).** Multi-select from friends → `event_participants` (guest,
+  RSVP pending) alongside the existing code/link/QR. Needs a **co-participant name-visibility RLS**
+  (mirror `users_select_jam_coparticipant`). **RLS → security review + negative tests.**
 
-- **X1 — Invite friends.** Multi-select friends → `event_participants` + co-participant name RLS +
-  code/link/QR. **RLS → security review.** _Gated by Q12._
+**Deferred (user):**
 
-**Friends surface:**
+- **Resolve flow / ResolveSheet (Q7)** — revisit after V1–V2 are tested. Keep the current
+  auto-link-on-approve for now, but widen its match to the host's **personal** catalog first (events
+  are user-tied), then bands.
+- **Public / event-owned songs (Q8)** — user thinking; idea floated = songs tied to the event itself
+  (new FK, event members see, no user owns). Don't build yet.
+- **Confidence / fuzzy match (Q9)** — skip.
+- **Seed-lineup-from-setlist (Q6)** — not now. (Q5: a host may _share a setlist_ guests can view; guests
+  otherwise type song+artist as a request; on accept the host adds it to their catalog manually.)
 
-- **F0 — Confirm "done."** Per Q13, likely no work beyond X1 unless you want old-prototype extras.
+**HELD (pending user's designer review):**
 
-**Notifications:**
-
-- **N1 — Payload minting + (optional) switch-on-open.** Mint `payload` on friend/event/cast; optionally
-  auto-switch context on open to match finalized #9. _Gated by Q14._
-
-**Suggested order:** L1 → L2 → L3 → L4 → X1 → L6 → L5 → N1. (F0/friends first only if extras are
-wanted.) Finalize after answers.
+- **Friends surface (Q13)** — user wants _more_ of the old prototype than the finalized minimal spec;
+  DO NOT touch friends screens until the designer changes land.
+- **Notifications (Q14)** — stay name-only (shipped). No switch-on-open, no payload minting yet.
 
 ## 3. Docs to clean up (superseded — recommend archive after you confirm nothing unique is lost)
 
