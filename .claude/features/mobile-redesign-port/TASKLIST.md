@@ -87,7 +87,14 @@ code + this file win.
   Section anchors added (`settings-account/tunings/privacy/app-info/developer`, `scroll-mt-4`).
   tsc+lint clean; verified live at 1280px (nav + spy jump) and 390px (stacked, nav hidden);
   settings e2e identical to base (16 pass, same pre-existing 3 delete-account-workflow fails).
-  **Remaining sub-layouts:** Home two-column dashboard, Events master/detail, Friends right-rail.
+  **Home two-column dashboard DONE:** `HomePage` widened to `max-w-5xl`; desktop `lg:grid-cols-3` splits
+  into a main column (`lg:col-span-2` — upcoming Next-show/Next-practice, or the band-less create-band
+  prompt) beside a side rail (stats + quick actions), with "Browse the full repertoire" spanning full
+  width below. Removed the stale `TODO(ui-pass) row 06` deferral. Mobile stacks everything in source
+  order (grid collapses to 1 col). All testids preserved. tsc+lint clean; verified live at 1280px
+  (two-column) + 390px (stacked); 18/18 persistent-layout + band-less-flow e2e green (incl. "home
+  dashboard renders stats + quick actions").
+  **Remaining sub-layouts:** Events master/detail, Friends right-rail.
 - [x] **#7 Retire the remaining native `<select>`s → C0 `<Dropdown>`** — DONE (all LIVE selects migrated).
       Final gate: `type-check` clean · `npm run lint` 0 errors (44 pre-existing warnings) · `npm run build` ✓.
       **Batch A DONE:** `SongsPage` (sort `song-sort`, tuning filter `song-tuning-filter`, show filter
