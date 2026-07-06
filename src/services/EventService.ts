@@ -8,6 +8,7 @@
 
 import { getSupabaseClient } from './supabase/client'
 import { createLogger } from '../utils/logger'
+import { normalizeText } from '../utils/songMatcher'
 import type {
   EventSummary,
   LineupItem,
@@ -333,8 +334,57 @@ export class EventService {
     return { ok: true }
   }
 
-  static async approveRequest(id: string): Promise<void> {
-    await EventService.setRequestStatus(id, 'approved')
+  /**
+   * Approve a pending song request. If a `bandId` is supplied (the approving
+   * host's current band context) and the request isn't already catalog-linked,
+   * try to match its title/artist against that band's catalog; on a hit, set
+   * `source='band'` + `song_id` in the SAME status→approved update so the
+   * promote trigger carries the link into the lineup item (→ "Band" pill
+   * instead of "Not linked"). No match / no band → plain approve, unchanged.
+   */
+  static async approveRequest(
+    id: string,
+    bandId?: string | null
+  ): Promise<void> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+
+    const patch: Record<string, unknown> = { status: 'approved' }
+
+    if (bandId) {
+      const { data: req } = await supabase
+        .from('event_lineup_requests')
+        .select('display_title, display_artist, song_id')
+        .eq('id', id)
+        .maybeSingle()
+      const r = req as {
+        display_title?: string
+        display_artist?: string
+        song_id?: string | null
+      } | null
+      if (r && !r.song_id) {
+        const { data: match } = await supabase
+          .from('songs')
+          .select('id')
+          .eq('context_type', 'band')
+          .eq('context_id', bandId)
+          .eq('normalized_title', normalizeText(r.display_title ?? ''))
+          .eq('normalized_artist', normalizeText(r.display_artist ?? ''))
+          .limit(1)
+          .maybeSingle()
+        const matchId = (match as { id?: string } | null)?.id
+        if (matchId) {
+          patch.source = 'band'
+          patch.song_id = matchId
+        }
+      }
+    }
+
+    const { error } = await supabase
+      .from('event_lineup_requests')
+      .update(patch as never)
+      .eq('id', id)
+    if (error) log.error('approveRequest failed', error)
   }
   static async rejectRequest(id: string): Promise<void> {
     await EventService.setRequestStatus(id, 'rejected')

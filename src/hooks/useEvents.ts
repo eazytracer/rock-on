@@ -125,7 +125,7 @@ export function useEventHands(eventId: string | undefined) {
 
 /** A single event with its lineup + pending requests and host actions. */
 export function useEventDetail(eventId: string | undefined) {
-  const { user } = useAuth()
+  const { user, currentBandId } = useAuth()
   const [event, setEvent] = useState<EventSummary | null>(null)
   const [lineup, setLineup] = useState<LineupItem[]>([])
   const [requests, setRequests] = useState<LineupRequest[]>([])
@@ -161,10 +161,12 @@ export function useEventDetail(eventId: string | undefined) {
   )
   const approve = useCallback(
     async (id: string) => {
-      await EventService.approveRequest(id)
+      // Pass the host's current band so a matching request links to that
+      // catalog (→ "Band" pill) instead of staying "Not linked".
+      await EventService.approveRequest(id, currentBandId)
       await refetch()
     },
-    [refetch]
+    [refetch, currentBandId]
   )
   const reject = useCallback(
     async (id: string) => {

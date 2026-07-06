@@ -173,22 +173,22 @@ code + this file win.
       so desktop reads as a floating modal while mobile stays full-bleed. All testids/handlers
       unchanged. tsc+lint clean; verified live at 1280px (card) + 390px (full-bleed) and end-to-end
       create flow (fills → navigates to `/events/:id`).
-- [ ] **Casting depth (optional)** — EC1 **Grid/matrix** view (songs × parts); EC2 **request→resolve**
-      catalog-linking (approving a guest song request currently always tags it "Not linked").
-      **EC2 research (2026-07-06):** the mechanism is easy — `event_lineup_requests` already has a
-      `song_id` FK + `source` supports `'band'`, and the BEFORE-UPDATE promote trigger
-      (`on_event_request_approved`) copies `NEW.source`/`NEW.song_id` into the lineup item. So the fix is
-      one `EventService.approveRequest` update: match `display_title`/`display_artist` (via
-      `normalizeText` from `utils/songMatcher`, which mirrors SQL `normalize_text`) against the band's
-      `songs.normalized_title/_artist`, and set `source='band', song_id=match` in the same status→approved
-      update. ⚠️ **BLOCKED on a decision:** `EventService.createEvent` does NOT set `events.band_id`
-      (events are host-owned + band-less today), so there is no band catalog to match against. Needs a
-      call: (a) associate events with the host's current band (`createEvent` sets `band_id`) — a
-      semantic change to events, or (b) match against the host's current band / all the host's bands
-      without storing it on the event. Deferred pending that decision — not making events band-scoped
-      autonomously.
-      **Also relevant to "event setlist":** `events.setlist_id` FK already exists in the schema
-      (`20260702143450_events.sql`) — surfacing/attaching an event setlist would build on that.
+- [~] **Casting depth (optional)** — **EC2 DONE**; EC1 remaining.
+  **EC2 — request→resolve catalog-linking DONE (option b, no schema/event-semantics change):**
+  `EventService.approveRequest(id, bandId?)` now takes the approving host's **current band context**
+  (`useEventDetail` passes `useAuth().currentBandId`) and, if the request isn't already linked,
+  matches `display_title`/`display_artist` (via `normalizeText` from `utils/songMatcher`, mirroring
+  SQL `normalize_text`) against that band's `songs.normalized_title/_artist`; on a hit it sets
+  `source='band', song_id=match` in the SAME status→approved update, so the BEFORE-UPDATE promote
+  trigger carries the link into the lineup item. Fully additive/defensive — no band, or no match →
+  plain approve, unchanged "Not linked" (zero regression). tsc+lint clean; verified live (a request
+  matching a Demo Band song → **"Band"** pill; a non-matching request → **"Not linked"**). Chose
+  option (b) over associating events with a band (`createEvent` still does NOT set `events.band_id`)
+  to avoid a semantic change to events; that (option a) remains open if you'd rather events be
+  band-scoped.
+  **EC1 remaining:** Grid/matrix cast view (songs × parts) on the event lineup — net-new view.
+  **Also relevant to "event setlist":** `events.setlist_id` FK already exists in the schema
+  (`20260702143450_events.sql`) — surfacing/attaching an event setlist would build on that.
 
 ### Schema (each: amend the feature migration, security review, negative tests, local-only)
 
