@@ -94,7 +94,14 @@ code + this file win.
   order (grid collapses to 1 col). All testids preserved. tsc+lint clean; verified live at 1280px
   (two-column) + 390px (stacked); 18/18 persistent-layout + band-less-flow e2e green (incl. "home
   dashboard renders stats + quick actions").
-  **Remaining sub-layouts:** Events master/detail, Friends right-rail.
+  **Friends right-rail DONE:** `FriendsPage` widened to `max-w-5xl`; desktop `lg:grid-cols-3` with a
+  **main column** (`lg:col-span-2` — Requests, Sent, Friends list) beside a **right rail**
+  (`lg:col-start-3` — your friend code + add-a-friend). The rail is FIRST in DOM (so mobile keeps
+  code/add at the top) but placed in col 3 on desktop via explicit `col-start`/`row-start` grid
+  placement — mobile source order fully preserved (code→add→requests→list). All testids preserved.
+  tsc+lint clean; verified live at 1280px (right-rail) + 390px (stacked, utilities top);
+  13/13 persistent-layout e2e green (no friends-specific e2e exists).
+  **Remaining sub-layout:** Events master/detail (list ↔ embedded `EventDetailPage` on desktop).
 - [x] **#7 Retire the remaining native `<select>`s → C0 `<Dropdown>`** — DONE (all LIVE selects migrated).
       Final gate: `type-check` clean · `npm run lint` 0 errors (44 pre-existing warnings) · `npm run build` ✓.
       **Batch A DONE:** `SongsPage` (sort `song-sort`, tuning filter `song-tuning-filter`, show filter
