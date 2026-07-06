@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Eyebrow } from '../common/Eyebrow'
+import { ContextSwitcher } from './ContextSwitcher'
 import { useAuth } from '../../contexts/AuthContext'
 // PHASE 2: Connection status indicator
 import { useSyncStatus } from '../../hooks/useSyncStatus'
@@ -39,7 +40,6 @@ interface NavItem {
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentPath,
-  bandName = 'iPod Shuffle',
   userEmail = 'eric@example.com',
   onSignOut,
   onNavigate,
@@ -119,49 +119,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="fixed left-0 top-0 h-screen w-60 bg-bg-1 border-r border-bg-3 flex flex-col p-6 z-50">
       {/* Brand Header & Connection Status */}
       <div className="pb-3 mb-3 border-b border-bg-3">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-lg">R</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1
-              className="text-white font-semibold text-base leading-tight"
-              data-testid="sidebar-band-name"
+        <ContextSwitcher variant="sidebar" />
+        <div className="mt-2 min-w-0">
+          <p className="text-ink-4 text-xs truncate">{userEmail}</p>
+          {!currentBandId && (
+            <button
+              onClick={() => handleNavigation('/get-started')}
+              data-testid="sidebar-create-band"
+              className="mt-0.5 text-xs font-semibold text-accent hover:underline"
             >
-              {currentBandId ? bandName : 'Personal account'}
-            </h1>
-            <p className="text-ink-4 text-xs truncate">{userEmail}</p>
-            {!currentBandId && (
-              <button
-                onClick={() => handleNavigation('/get-started')}
-                data-testid="sidebar-create-band"
-                className="mt-0.5 text-xs font-semibold text-accent hover:underline"
-              >
-                Create or join a band →
-              </button>
-            )}
+              Create or join a band →
+            </button>
+          )}
 
-            {/* Slim connection status (m-3): one status dot + word; backlog inline. */}
-            <div
-              className="flex items-center gap-1.5 mt-1"
-              data-testid="sidebar-sync-status"
+          {/* Slim connection status (m-3): one status dot + word; backlog inline. */}
+          <div
+            className="flex items-center gap-1.5 mt-1"
+            data-testid="sidebar-sync-status"
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isOnline ? 'bg-success' : 'bg-danger'
+              } ${isSyncing ? 'animate-pulse' : ''}`}
+            />
+            <span
+              className={`text-xs font-medium ${isOnline ? 'text-success' : 'text-danger'}`}
             >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  isOnline ? 'bg-success' : 'bg-danger'
-                } ${isSyncing ? 'animate-pulse' : ''}`}
-              />
-              <span
-                className={`text-xs font-medium ${isOnline ? 'text-success' : 'text-danger'}`}
-              >
-                {isSyncing ? 'Syncing…' : isOnline ? 'Connected' : 'Offline'}
+              {isSyncing ? 'Syncing…' : isOnline ? 'Connected' : 'Offline'}
+            </span>
+            {pendingCount > 0 && (
+              <span className="text-xs text-ink-4">
+                · {pendingCount} pending
               </span>
-              {pendingCount > 0 && (
-                <span className="text-xs text-ink-4">
-                  · {pendingCount} pending
-                </span>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>

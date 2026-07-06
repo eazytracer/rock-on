@@ -51,6 +51,13 @@ interface AuthContextType {
   logout: () => void
   switchBand: (bandId: string) => Promise<void>
 
+  // Multi-band context switching (personal vs a specific band).
+  // `currentBandId === null` == personal context. `contextType` is the
+  // convenience discriminator; `setContext` is the single switch entry point
+  // (accepts 'personal' or a bandId) and persists the intent.
+  contextType: 'personal' | 'band'
+  setContext: (target: 'personal' | string) => Promise<void>
+
   // Sync state
   syncing: boolean
 
@@ -505,25 +512,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           return band
         })
       )
-      setUserBands(bands.filter((b): b is Band => b !== undefined))
+      // Dedupe by band id — duplicate active memberships can exist in IndexedDB
+      // and would otherwise render as repeated bands (switcher, "Your bands").
+      const uniqueBands = Array.from(
+        new Map(
+          bands.filter((b): b is Band => b !== undefined).map(b => [b.id, b])
+        ).values()
+      )
+      setUserBands(uniqueBands)
 
-      // Load current band and role
-      if (bandId) {
-        const band = await db.bands.get(bandId)
-        setCurrentBand(band || null)
-        setCurrentBandId(bandId)
+      // ── Resolve context intent (personal vs a specific band) ──
+      // Explicit intent persisted in `rockon.context`: 'personal' | '<bandId>'.
+      // Precedence: explicit Personal → explicit/valid band intent → legacy
+      // `currentBandId` → auto-select first band (preserves prior default when
+      // no intent has ever been chosen). A stale band (removed membership)
+      // downgrades to Personal rather than throwing.
+      const validBandIds = new Set(
+        bands.filter((b): b is Band => !!b).map(b => b.id)
+      )
+      const intent = localStorage.getItem('rockon.context')
 
-        const membership = memberships.find(m => m.bandId === bandId)
-        setCurrentUserRole(membership?.role || null)
-      } else if (bands.length > 0 && bands[0]) {
-        // Auto-select first band if no bandId in localStorage
-        const firstBand = bands[0]
-        setCurrentBand(firstBand)
-        setCurrentBandId(firstBand.id)
-        localStorage.setItem('currentBandId', firstBand.id)
+      const applyPersonal = () => {
+        setCurrentBand(null)
+        setCurrentBandId(null)
+        setCurrentUserRole(null)
+        localStorage.removeItem('currentBandId')
+      }
 
-        const membership = memberships.find(m => m.bandId === firstBand.id)
-        setCurrentUserRole(membership?.role || null)
+      if (intent === 'personal') {
+        // Intentional Personal context — do NOT auto-select a band.
+        applyPersonal()
+      } else {
+        const targetBandId =
+          intent && validBandIds.has(intent)
+            ? intent
+            : bandId && validBandIds.has(bandId)
+              ? bandId
+              : bands[0]?.id || null
+
+        if (targetBandId) {
+          const band = await db.bands.get(targetBandId)
+          setCurrentBand(band || null)
+          setCurrentBandId(targetBandId)
+          localStorage.setItem('currentBandId', targetBandId)
+          const membership = memberships.find(m => m.bandId === targetBandId)
+          setCurrentUserRole(membership?.role || null)
+        } else {
+          // No bands at all → Personal by circumstance.
+          applyPersonal()
+        }
       }
     } catch (error) {
       console.error('Failed to load user data:', error)
@@ -700,6 +737,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     }
   }
 
+  // Single entry point for context switching. 'personal' clears the band
+  // context; a bandId delegates to switchBand (which validates membership).
+  // Both persist the intent to `rockon.context` so it survives reload.
+  const setContext = async (target: 'personal' | string) => {
+    if (target === 'personal') {
+      setCurrentBand(null)
+      setCurrentBandId(null)
+      setCurrentUserRole(null)
+      localStorage.setItem('rockon.context', 'personal')
+      localStorage.removeItem('currentBandId')
+      return
+    }
+    await switchBand(target)
+    localStorage.setItem('rockon.context', target)
+  }
+
   // Create a stable context value using useMemo to prevent unnecessary re-renders
   // BUT ensure it updates when realtimeManagerReady changes
   const value: AuthContextType = useMemo(
@@ -726,6 +779,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       login,
       logout,
       switchBand,
+      contextType: currentBandId ? 'band' : 'personal',
+      setContext,
 
       // Sync state
       syncing,
@@ -752,6 +807,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       login,
       logout,
       switchBand,
+      setContext,
       syncing,
       realtimeManagerReady, // This ensures re-render when manager is created
     ]

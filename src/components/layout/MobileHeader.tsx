@@ -1,6 +1,7 @@
 import React from 'react'
 import { Bell } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { ContextSwitcher } from './ContextSwitcher'
 // PHASE 2: Connection status indicator
 import { useSyncStatus } from '../../hooks/useSyncStatus'
 import { useUnreadCount } from '../../hooks/useNotifications'
@@ -10,9 +11,7 @@ interface MobileHeaderProps {
   userEmail?: string
 }
 
-export const MobileHeader: React.FC<MobileHeaderProps> = ({
-  bandName = 'iPod Shuffle',
-}) => {
+export const MobileHeader: React.FC<MobileHeaderProps> = () => {
   const navigate = useNavigate()
   const unreadCount = useUnreadCount()
   // PHASE 2: Get sync status — surfaced as a subtle dot on the bell (design row 00 / m-1),
@@ -22,15 +21,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   return (
     <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-bg-1 border-b border-bg-3 z-30 flex items-center px-4">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-sm">R</span>
-        </div>
-        <h1
-          className="text-white font-semibold text-base"
-          data-testid="sidebar-band-name"
-        >
-          {bandName}
-        </h1>
+        <ContextSwitcher variant="mobile" />
       </div>
 
       {/* Quiet header (design row 00): brand + bell only. Unread count = info badge;

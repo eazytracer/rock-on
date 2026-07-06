@@ -905,8 +905,12 @@ export const SongsPage: React.FC = () => {
   const currentBandId = localStorage.getItem('currentBandId') || ''
   const currentUserId = localStorage.getItem('currentUserId') || ''
 
-  // Tab state: 'band' = band songs, 'personal' = user's personal catalog
-  const [activeTab, setActiveTab] = useState<'band' | 'personal'>('band')
+  // Tab state: 'band' = band songs, 'personal' = user's personal catalog.
+  // In a personal context (no band) there is only the personal catalog, so
+  // default to it (the band tab is hidden below).
+  const [activeTab, setActiveTab] = useState<'band' | 'personal'>(
+    currentBandId ? 'band' : 'personal'
+  )
   const isPersonalTab = activeTab === 'personal'
 
   // DATABASE INTEGRATION: Use database hooks instead of mock state
@@ -1409,31 +1413,34 @@ export const SongsPage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Band / Personal tab switcher */}
-              <div className="flex gap-1 mb-2 bg-bg-2 rounded-lg p-1 w-fit">
-                <button
-                  data-testid="songs-band-tab"
-                  onClick={() => setActiveTab('band')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === 'band'
-                      ? 'bg-accent text-white'
-                      : 'text-ink-3 hover:text-white'
-                  }`}
-                >
-                  Band Songs
-                </button>
-                <button
-                  data-testid="songs-personal-tab"
-                  onClick={() => setActiveTab('personal')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === 'personal'
-                      ? 'bg-info text-white'
-                      : 'text-ink-3 hover:text-white'
-                  }`}
-                >
-                  My Songs
-                </button>
-              </div>
+              {/* Band / Personal tab switcher — only in a band context;
+                  personal context has a single (personal) catalog. */}
+              {currentBandId && (
+                <div className="flex gap-1 mb-2 bg-bg-2 rounded-lg p-1 w-fit">
+                  <button
+                    data-testid="songs-band-tab"
+                    onClick={() => setActiveTab('band')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === 'band'
+                        ? 'bg-accent text-white'
+                        : 'text-ink-3 hover:text-white'
+                    }`}
+                  >
+                    Band Songs
+                  </button>
+                  <button
+                    data-testid="songs-personal-tab"
+                    onClick={() => setActiveTab('personal')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === 'personal'
+                        ? 'bg-info text-white'
+                        : 'text-ink-3 hover:text-white'
+                    }`}
+                  >
+                    My Songs
+                  </button>
+                </div>
+              )}
               {/* Tab explainer — clarifies the difference between catalogs
                   for users who haven't built a mental model yet. */}
               <p
