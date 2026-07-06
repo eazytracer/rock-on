@@ -309,7 +309,10 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
                 setIsSaving(false)
               }
             }}
-            autoEdit={autoEdit}
+            // Open the calendar on the first click into edit mode, and let the
+            // surrounding field own the leading calendar icon (no duplicate).
+            autoEdit
+            hideIcon
             name={name}
             id={id}
             data-testid={testId ? `${testId}-input` : undefined}
@@ -335,6 +338,8 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
                 setIsSaving(false)
               }
             }}
+            autoOpen
+            hideIcon
             name={name}
             id={id}
             data-testid={testId ? `${testId}-input` : undefined}

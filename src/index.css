@@ -175,3 +175,13 @@
     background: #3a3a3a;
   }
 }
+
+/* Native date/time inputs on legacy surfaces (e.g. the practice SessionForm).
+   The app standard is the custom C0 DatePicker/TimePickerDropdown; where a native
+   input still exists, render its OS picker in dark mode so it doesn't clash with
+   the theme. (Custom pickers own their own icon; these rules only affect natives.) */
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'] {
+  color-scheme: dark;
+}

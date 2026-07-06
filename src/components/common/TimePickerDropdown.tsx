@@ -13,17 +13,18 @@ interface TimePickerDropdownProps {
   id?: string
   'data-testid'?: string
   className?: string
+  /** Open the dropdown immediately on mount (used for inline-edit). */
+  autoOpen?: boolean
+  /** Suppress the built-in clock icon (when the field already shows one). */
+  hideIcon?: boolean
 }
 
 /**
- * TimePickerDropdown - A Google Calendar-style time picker with scrollable dropdown
+ * TimePickerDropdown — a Google Calendar-style scrollable time picker.
  *
- * Features:
- * - 15-minute increment time slots (configurable)
- * - Scrollable dropdown with 96 time slots
- * - Auto-scrolls to selected/current time
- * - Manual text entry override
- * - Keyboard navigation (up/down arrows)
+ * Single click opens the list; typing is done via the field at the top of the
+ * popover (no finicky double-click). 15-minute slots (configurable), auto-scrolls
+ * to the selected/current time, keyboard nav.
  */
 export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
   value,
@@ -37,15 +38,15 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
   id,
   'data-testid': dataTestId,
   className = '',
+  autoOpen = false,
+  hideIcon = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isManualEntry, setIsManualEntry] = useState(false)
-  const [manualValue, setManualValue] = useState('')
+  const [isOpen, setIsOpen] = useState(autoOpen)
+  const [typedValue, setTypedValue] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   // Generate time slots
   const timeSlots = useMemo(() => {
@@ -53,18 +54,18 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
     for (let hour = 0; hour < 24; hour++) {
       for (let minute = 0; minute < 60; minute += interval) {
         const date = new Date(2000, 0, 1, hour, minute)
-        const timeStr = date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-        })
-        slots.push(timeStr)
+        slots.push(
+          date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          })
+        )
       }
     }
     return slots
   }, [interval])
 
-  // Find index of current value
   const selectedIndex = useMemo(() => {
     if (!value) return -1
     return timeSlots.findIndex(
@@ -72,7 +73,7 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
     )
   }, [value, timeSlots])
 
-  // Close dropdown on click outside
+  // Close on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -80,21 +81,15 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false)
-        setIsManualEntry(false)
         setHighlightedIndex(-1)
       }
     }
-
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
 
-  // Get index of current time (nearest slot)
   const getCurrentTimeIndex = useCallback(() => {
     const now = new Date()
     const currentMinutes = now.getHours() * 60 + now.getMinutes()
@@ -102,47 +97,42 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
     return Math.min(slotIndex, timeSlots.length - 1)
   }, [interval, timeSlots.length])
 
-  // Scroll to specific index
   const scrollToIndex = useCallback(
     (index: number) => {
       if (listRef.current && index >= 0 && index < timeSlots.length) {
         const itemHeight = 36
-        const scrollPosition = index * itemHeight - 100
-        listRef.current.scrollTop = Math.max(0, scrollPosition)
+        listRef.current.scrollTop = Math.max(0, index * itemHeight - 100)
       }
     },
     [timeSlots.length]
   )
 
-  // Handle time selection
   const handleSelectTime = useCallback(
     (time: string) => {
       onChange(time)
+      setTypedValue('')
       setIsOpen(false)
       setHighlightedIndex(-1)
     },
     [onChange]
   )
 
-  // Auto-scroll to selected time when dropdown opens
+  // Auto-scroll to the selected time when the dropdown opens
   useEffect(() => {
     if (isOpen && listRef.current) {
       const targetIndex =
         selectedIndex >= 0 ? selectedIndex : getCurrentTimeIndex()
       if (targetIndex >= 0) {
-        const itemHeight = 36 // h-9 = 36px
-        const scrollPosition = targetIndex * itemHeight - 100 // Center it a bit
-        listRef.current.scrollTop = Math.max(0, scrollPosition)
+        listRef.current.scrollTop = Math.max(0, targetIndex * 36 - 100)
         setHighlightedIndex(targetIndex)
       }
     }
   }, [isOpen, selectedIndex, getCurrentTimeIndex])
 
-  // Handle keyboard navigation
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!isOpen || isManualEntry) return
-
+      if (!isOpen) return
       switch (event.key) {
         case 'Escape':
           setIsOpen(false)
@@ -160,85 +150,52 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
           setHighlightedIndex(prev => (prev > 0 ? prev - 1 : prev))
           scrollToIndex(highlightedIndex - 1)
           break
-        case 'Enter':
-          if (highlightedIndex >= 0) {
-            handleSelectTime(timeSlots[highlightedIndex])
-          }
-          break
       }
     }
-
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [
-    isOpen,
-    isManualEntry,
-    highlightedIndex,
-    timeSlots,
-    scrollToIndex,
-    handleSelectTime,
-  ])
+  }, [isOpen, highlightedIndex, timeSlots, scrollToIndex])
 
-  // Parse manual entry
-  const handleManualSubmit = () => {
-    if (!manualValue.trim()) {
-      setIsManualEntry(false)
-      return
-    }
-
-    const parsed = tryParseTime(manualValue)
+  // Type-ahead: parse a typed time (Enter inside the popover).
+  const handleTypedSubmit = () => {
+    if (!typedValue.trim()) return
+    const parsed = tryParseTime(typedValue)
     if (parsed) {
       onChange(parsed)
+      setTypedValue('')
+      setIsOpen(false)
     }
-    setIsManualEntry(false)
-    setManualValue('')
   }
 
-  // Try to parse various time formats
   const tryParseTime = (input: string): string | null => {
     const trimmed = input.trim().toLowerCase()
-
-    // Match patterns like "2pm", "2:30pm", "14:00", "2:30 PM"
     const patterns = [
-      // "2pm" or "2 pm"
       /^(\d{1,2})\s*(a|p)m?$/i,
-      // "2:30pm" or "2:30 pm"
       /^(\d{1,2}):(\d{2})\s*(a|p)m?$/i,
-      // "14:00" (24-hour)
       /^(\d{1,2}):(\d{2})$/,
     ]
-
     for (const pattern of patterns) {
       const match = trimmed.match(pattern)
       if (match) {
         let hours = parseInt(match[1])
         const minutes = match[2] ? parseInt(match[2]) : 0
         const period = match[3]?.toLowerCase()
-
-        // Handle 24-hour format
         if (!period && hours >= 0 && hours <= 23) {
-          const date = new Date(2000, 0, 1, hours, minutes)
-          return date.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-          })
+          return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(
+            'en-US',
+            { hour: 'numeric', minute: '2-digit', hour12: true }
+          )
         }
-
-        // Handle 12-hour format with AM/PM
         if (period) {
           if (period === 'p' && hours !== 12) hours += 12
           if (period === 'a' && hours === 12) hours = 0
-          const date = new Date(2000, 0, 1, hours, minutes)
-          return date.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-          })
+          return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(
+            'en-US',
+            { hour: 'numeric', minute: '2-digit', hour12: true }
+          )
         }
       }
     }
-
     return null
   }
 
@@ -250,59 +207,58 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
         </label>
       )}
 
-      {/* Main button/input */}
-      {isManualEntry ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={manualValue}
-          onChange={e => setManualValue(e.target.value)}
-          onBlur={handleManualSubmit}
-          onKeyDown={e => {
-            if (e.key === 'Enter') handleManualSubmit()
-            if (e.key === 'Escape') {
-              setIsManualEntry(false)
-              setManualValue('')
-            }
-          }}
-          placeholder="Enter time (e.g., 2:30pm)"
-          autoFocus
-          className="w-full h-10 px-3 bg-bg-1 border border-accent rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          onDoubleClick={() => !disabled && setIsManualEntry(true)}
-          disabled={disabled}
-          name={name}
-          id={id}
-          data-testid={dataTestId}
-          className={`w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-sm flex items-center justify-between transition-colors ${
-            disabled
-              ? 'opacity-50 cursor-not-allowed'
-              : 'hover:border-border-2 cursor-pointer'
-          } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
-        >
-          <span className="flex items-center gap-2">
-            <Clock size={16} className="text-ink-4" />
-            <span className={value ? 'text-white' : 'text-ink-4'}>
-              {value || placeholder}
-            </span>
+      {/* Trigger — a single click opens the list */}
+      <button
+        type="button"
+        onClick={() => !disabled && setIsOpen(o => !o)}
+        disabled={disabled}
+        name={name}
+        id={id}
+        data-testid={dataTestId}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-sm flex items-center justify-between transition-colors ${
+          disabled
+            ? 'opacity-50 cursor-not-allowed'
+            : 'hover:border-border-2 cursor-pointer'
+        } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
+      >
+        <span className="flex items-center gap-2">
+          {!hideIcon && <Clock size={16} className="text-ink-4" />}
+          <span className={value ? 'text-white' : 'text-ink-4'}>
+            {value || placeholder}
           </span>
-          <ChevronDown
-            size={14}
-            className={`text-ink-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-      )}
+        </span>
+        <ChevronDown
+          size={14}
+          className={`text-ink-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
 
-      {/* Time dropdown */}
-      {isOpen && !isManualEntry && (
+      {/* Time popover */}
+      {isOpen && (
         <div
-          className="absolute top-full left-0 mt-2 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 w-full min-w-[140px]"
+          className="absolute top-full left-0 mt-2 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 w-full min-w-[160px]"
           data-testid={`${dataTestId}-dropdown`}
         >
+          {/* Type-ahead */}
+          <div className="p-2 border-b border-border-1">
+            <input
+              type="text"
+              value={typedValue}
+              onChange={e => setTypedValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleTypedSubmit()
+                }
+              }}
+              placeholder="Type a time (e.g. 2:30pm)"
+              data-testid={dataTestId ? `${dataTestId}-type-input` : undefined}
+              className="w-full h-8 px-2 bg-bg-1 border border-border-1 rounded text-white text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            />
+          </div>
+
           <div
             ref={listRef}
             className="max-h-64 overflow-y-auto py-1 custom-scrollbar"
@@ -310,7 +266,6 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
             {timeSlots.map((time, index) => {
               const isSelected = selectedIndex === index
               const isHighlighted = highlightedIndex === index
-
               return (
                 <button
                   key={time}
@@ -330,11 +285,6 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
                 </button>
               )
             })}
-          </div>
-
-          {/* Manual entry hint */}
-          <div className="px-4 py-2 border-t border-border-1 text-xs text-ink-5">
-            Double-click to type custom time
           </div>
         </div>
       )}

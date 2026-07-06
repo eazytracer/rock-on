@@ -18,7 +18,10 @@ interface DatePickerProps {
   id?: string
   'data-testid'?: string
   className?: string
-  autoEdit?: boolean // Start in manual entry mode with text input
+  /** Open the calendar immediately on mount (used for inline-edit / new records). */
+  autoEdit?: boolean
+  /** Suppress the built-in calendar icon (when the field already shows one). */
+  hideIcon?: boolean
 }
 
 const DAYS_OF_WEEK = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
@@ -51,23 +54,17 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   'data-testid': dataTestId,
   className = '',
   autoEdit = false,
+  hideIcon = false,
 }) => {
-  // autoEdit (create/new mode) opens the custom calendar popover directly — NOT a
-  // native <input type="date"> (which broke the dark theme / design fidelity).
   const [isOpen, setIsOpen] = useState(autoEdit)
-  const [viewDate, setViewDate] = useState<Date>(() => {
-    if (value) {
-      return parseDateInputAsLocal(value)
-    }
-    return new Date()
-  })
-  const [isManualEntry, setIsManualEntry] = useState(false)
-  const [manualValue, setManualValue] = useState('')
+  const [viewDate, setViewDate] = useState<Date>(() =>
+    value ? parseDateInputAsLocal(value) : new Date()
+  )
+  // Optional type-ahead text (lives inside the calendar popover — no double-click).
+  const [typedValue, setTypedValue] = useState('')
 
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
-  // Parse selected date
   const selectedDate = value ? parseDateInputAsLocal(value) : null
 
   // Update view when value changes externally
@@ -85,69 +82,48 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false)
-        setIsManualEntry(false)
       }
     }
-
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
 
-  // Handle keyboard navigation
+  // Close on Escape
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!isOpen) return
-
-      if (event.key === 'Escape') {
-        setIsOpen(false)
-        setIsManualEntry(false)
-      }
+      if (isOpen && event.key === 'Escape') setIsOpen(false)
     }
-
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
 
   // Format display value (e.g., "Friday, January 2")
-  const formatDisplayDate = useCallback((date: Date): string => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    })
-  }, [])
+  const formatDisplayDate = useCallback(
+    (date: Date): string =>
+      date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      }),
+    []
+  )
 
   // Get calendar days for current view month
   const getCalendarDays = useCallback((): (Date | null)[] => {
     const year = viewDate.getFullYear()
     const month = viewDate.getMonth()
-
-    // First day of the month
     const firstDay = new Date(year, month, 1)
-    // Last day of the month
     const lastDay = new Date(year, month + 1, 0)
-
     const days: (Date | null)[] = []
-
-    // Add empty cells for days before the first day
-    for (let i = 0; i < firstDay.getDay(); i++) {
-      days.push(null)
-    }
-
-    // Add all days of the month
+    for (let i = 0; i < firstDay.getDay(); i++) days.push(null)
     for (let day = 1; day <= lastDay.getDate(); day++) {
       days.push(new Date(year, month, day))
     }
-
     return days
   }, [viewDate])
 
-  // Check if date is today
   const isToday = (date: Date): boolean => {
     const today = new Date()
     return (
@@ -157,7 +133,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     )
   }
 
-  // Check if date is selected
   const isSelected = (date: Date): boolean => {
     if (!selectedDate) return false
     return (
@@ -167,22 +142,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     )
   }
 
-  // Check if date is disabled
   const isDateDisabled = (date: Date): boolean => {
     if (minDate && date < minDate) return true
     if (maxDate && date > maxDate) return true
     return false
   }
 
-  // Handle date selection
   const handleSelectDate = (date: Date) => {
     if (isDateDisabled(date)) return
     onChange(formatDateForInput(date))
+    setTypedValue('')
     setIsOpen(false)
-    setIsManualEntry(false)
   }
 
-  // Navigate months
   const navigateMonth = (direction: 1 | -1) => {
     setViewDate(prev => {
       const newDate = new Date(prev)
@@ -191,40 +163,29 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     })
   }
 
-  // Handle manual entry
-  const handleManualSubmit = () => {
-    if (!manualValue.trim()) {
-      setIsManualEntry(false)
-      return
-    }
-
-    // Try to parse various date formats
-    const parsed = tryParseDate(manualValue)
+  // Type-ahead: parse a typed date and select it (Enter inside the popover).
+  const handleTypedSubmit = () => {
+    if (!typedValue.trim()) return
+    const parsed = tryParseDate(typedValue)
     if (parsed && !isNaN(parsed.getTime())) {
       onChange(formatDateForInput(parsed))
       setViewDate(parsed)
+      setTypedValue('')
+      setIsOpen(false)
     }
-    setIsManualEntry(false)
-    setManualValue('')
   }
 
   // Parse common date formats
   const tryParseDate = (input: string): Date | null => {
     const trimmed = input.trim()
-
-    // Try YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
       return parseDateInputAsLocal(trimmed)
     }
-
-    // Try MM/DD/YYYY or M/D/YYYY
     const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
     if (slashMatch) {
       const [, m, d, y] = slashMatch
       return new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
     }
-
-    // Try "Jan 2" or "January 2" (assume current year)
     const monthDayMatch = trimmed.match(
       /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2})$/i
     )
@@ -249,13 +210,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         return new Date(new Date().getFullYear(), monthIndex, day)
       }
     }
-
-    // Try native Date parsing as fallback
     const native = new Date(trimmed)
-    if (!isNaN(native.getTime())) {
-      return native
-    }
-
+    if (!isNaN(native.getTime())) return native
     return null
   }
 
@@ -271,62 +227,56 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         </label>
       )}
 
-      {/* Main button/input */}
-      {isManualEntry ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={manualValue}
-          onChange={e => setManualValue(e.target.value)}
-          onBlur={handleManualSubmit}
-          onKeyDown={e => {
-            if (e.key === 'Enter') handleManualSubmit()
-            if (e.key === 'Escape') {
-              setIsManualEntry(false)
-              setManualValue('')
-            }
-          }}
-          placeholder="Enter date (e.g., 1/15/2026)"
-          autoFocus
-          name={name}
-          id={id}
-          data-testid={dataTestId}
-          className="w-full h-10 px-3 bg-bg-1 border border-accent rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          onDoubleClick={() => !disabled && setIsManualEntry(true)}
-          disabled={disabled}
-          name={name}
-          id={id}
-          data-testid={dataTestId}
-          className={`w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-sm flex items-center justify-between transition-colors ${
-            disabled
-              ? 'opacity-50 cursor-not-allowed'
-              : 'hover:border-border-2 cursor-pointer'
-          } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
-        >
-          <span className={selectedDate ? 'text-white' : 'text-ink-4'}>
-            {displayValue}
-          </span>
-          <div className="flex items-center gap-2">
-            <Calendar size={18} className="text-ink-4" />
-            <ChevronDown
-              size={14}
-              className={`text-ink-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            />
-          </div>
-        </button>
-      )}
+      {/* Trigger — a single click opens the calendar */}
+      <button
+        type="button"
+        onClick={() => !disabled && setIsOpen(o => !o)}
+        disabled={disabled}
+        name={name}
+        id={id}
+        data-testid={dataTestId}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        className={`w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-sm flex items-center justify-between transition-colors ${
+          disabled
+            ? 'opacity-50 cursor-not-allowed'
+            : 'hover:border-border-2 cursor-pointer'
+        } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
+      >
+        <span className={selectedDate ? 'text-white' : 'text-ink-4'}>
+          {displayValue}
+        </span>
+        <div className="flex items-center gap-2">
+          {!hideIcon && <Calendar size={18} className="text-ink-4" />}
+          <ChevronDown
+            size={14}
+            className={`text-ink-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          />
+        </div>
+      </button>
 
-      {/* Calendar dropdown */}
-      {isOpen && !isManualEntry && (
+      {/* Calendar popover */}
+      {isOpen && (
         <div
           className="absolute top-full left-0 mt-2 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 p-4 w-[280px]"
           data-testid={`${dataTestId}-dropdown`}
         >
+          {/* Type-ahead */}
+          <input
+            type="text"
+            value={typedValue}
+            onChange={e => setTypedValue(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleTypedSubmit()
+              }
+            }}
+            placeholder="Type a date (e.g. 1/15/2026)"
+            data-testid={dataTestId ? `${dataTestId}-type-input` : undefined}
+            className="w-full h-9 px-3 mb-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          />
+
           {/* Month/Year header */}
           <div className="flex items-center justify-between mb-4">
             <button
@@ -334,19 +284,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               onClick={() => navigateMonth(-1)}
               className="p-1 text-ink-3 hover:text-white hover:bg-bg-4 rounded transition-colors"
               data-testid={`${dataTestId}-prev-month`}
+              aria-label="Previous month"
             >
               <ChevronLeft size={20} />
             </button>
-
             <span className="text-white font-medium">
               {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
             </span>
-
             <button
               type="button"
               onClick={() => navigateMonth(1)}
               className="p-1 text-ink-3 hover:text-white hover:bg-bg-4 rounded transition-colors"
               data-testid={`${dataTestId}-next-month`}
+              aria-label="Next month"
             >
               <ChevronRight size={20} />
             </button>
@@ -370,11 +320,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               if (!date) {
                 return <div key={`empty-${index}`} className="w-8 h-8" />
               }
-
               const today = isToday(date)
               const selected = isSelected(date)
               const dateDisabled = isDateDisabled(date)
-
               return (
                 <button
                   key={date.toISOString()}
@@ -402,20 +350,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <div className="mt-4 pt-3 border-t border-border-1">
             <button
               type="button"
-              onClick={() => {
-                const today = new Date()
-                handleSelectDate(today)
-              }}
+              onClick={() => handleSelectDate(new Date())}
               className="w-full text-center text-sm text-accent hover:text-accent-hot transition-colors"
               data-testid={`${dataTestId}-today`}
             >
               Today
             </button>
-          </div>
-
-          {/* Manual entry hint */}
-          <div className="mt-2 text-center text-xs text-ink-5">
-            Double-click field to type date
           </div>
         </div>
       )}
