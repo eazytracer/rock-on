@@ -10,9 +10,13 @@ code + this file win.
 > `https://claude.ai/design/p/019df065-4ee1-707b-bfd9-d821331f5cad`. The dated local planning docs
 > below are largely superseded by it — see `2026-07-06_friends-and-event-setlists-plan.md`.
 >
-> **NEXT UP — awaiting answers:** `2026-07-06_friends-and-event-setlists-plan.md` holds the updated
-> **Friends + Event-lineup ("event setlist")** task list and a numbered **OPEN QUESTIONS** set that
-> gates it. Casting is a **shared model** (events → jam → bands; events are the testbed).
+> **STATUS (2026-07-06):** Casting **v1 is SHIPPED** — the whole decided event scope is done + verified:
+> V1 fixed instrument set (`50d73c0`), V2 **Grid cast view** (`9d90c00`), V3 free-text cast (both List +
+> Grid), V4 **invite friends to an event** (`7801c33`). See `2026-07-06_friends-and-event-setlists-plan.md`.
+> **NEXT UP is BLOCKED on the user:** the **Friends surface** redesign (Q13) is HELD pending the user's
+> designer changes ("more of the old prototype" — standby). Deferred by the user: ResolveSheet, public/
+> event-owned songs, confidence, seed-from-setlist. Casting is a **shared model** (events → jam → bands;
+> events are the testbed) — jam/band reuse comes after the UX settles.
 
 ---
 
