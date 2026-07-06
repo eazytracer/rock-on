@@ -56,33 +56,51 @@ export function canonicalTuningId(input: string | undefined | null): string {
   // Normalize separators to dashes
   const dashed = lowered.replace(/[_\s]+/g, '-')
 
-  // "Standard (EADGBE)" and similar → "standard"
-  if (dashed.startsWith('standard')) return 'standard'
+  // Mirror the SQL `builtin_tuning_slug()` normalizer (tunings migration) EXACTLY
+  // so a legacy free-text label resolves to the SAME built-in on both the app and
+  // DB sides (the DB backfills songs.tuning_id from this). Keep the two in
+  // lock-step — parity is asserted in tests/unit/utils/tunings.test.ts.
+  if (
+    dashed.startsWith('standard') ||
+    ['e-standard', 'e', 'eadgbe'].includes(dashed)
+  )
+    return 'standard'
   if (dashed === 'drop-d') return 'drop-d'
   if (dashed === 'drop-c') return 'drop-c'
   if (dashed === 'drop-b') return 'drop-b'
 
+  // ½-step down is commonly labelled "Eb Standard" / "Eb".
   if (
-    dashed === 'half-step-down' ||
-    dashed === 'half-down' ||
-    dashed === 'half-step'
-  ) {
+    [
+      'half-step-down',
+      'half-down',
+      'half-step',
+      'eb-standard',
+      'e-flat-standard',
+      'eb',
+      'e-flat',
+    ].includes(dashed)
+  )
     return 'half-step-down'
-  }
 
+  // Whole-step down is commonly labelled "D Standard".
   if (
-    dashed === 'whole-step-down' ||
-    dashed === 'whole-down' ||
-    dashed === 'whole-step'
-  ) {
+    [
+      'whole-step-down',
+      'whole-down',
+      'whole-step',
+      'd-standard',
+      'd-flat-standard',
+    ].includes(dashed)
+  )
     return 'whole-step-down'
-  }
 
   if (dashed === 'open-g') return 'open-g'
   if (dashed === 'open-d') return 'open-d'
   if (dashed === 'dadgad') return 'dadgad'
 
-  return dashed // custom tuning id
+  // SQL returns NULL for unmatched; the app keeps a dashed custom id.
+  return dashed
 }
 
 /**

@@ -826,6 +826,15 @@ BEGIN
 
 END $$;
 
+-- Resolve seeded songs' guitar_tuning label → built-in tuning_id (the tunings
+-- migration's backfill no-ops on a fresh reset because seed runs after migrations).
+UPDATE public.songs s
+   SET tuning_id = t.id
+  FROM public.tunings t
+ WHERE t.is_builtin
+   AND t.slug = public.builtin_tuning_slug(s.guitar_tuning)
+   AND s.tuning_id IS NULL;
+
 COMMIT;
 
 -- Display counts
