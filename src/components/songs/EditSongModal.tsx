@@ -43,6 +43,9 @@ import {
 } from '../../utils/tunings'
 import { Dropdown, DropdownGroup } from '../common/Dropdown'
 import { useTunings } from '../../hooks/useTunings'
+import { CreateTuningModal } from '../tunings/CreateTuningModal'
+import { useNavigate } from 'react-router-dom'
+import { Settings2 } from 'lucide-react'
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges'
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog'
 import { MarkdownField } from '../notes/MarkdownField'
@@ -145,7 +148,13 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   })
 
   // Custom-tuning picker data (built-ins + the user's customs, from the DB).
-  const { builtins: builtinTunings, customs: customTunings } = useTunings()
+  const {
+    builtins: builtinTunings,
+    customs: customTunings,
+    refetch: refetchTunings,
+  } = useTunings()
+  const navigate = useNavigate()
+  const [creatingTuning, setCreatingTuning] = useState(false)
 
   // Legacy songs store only guitarTuning text; once tunings load, resolve the
   // matching built-in id so saving writes tuning_id (progressive backfill).
@@ -807,6 +816,18 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     onChange={handleTuningChange}
                     groups={tuningGroups}
                     placeholder="Choose a tuning"
+                    footerActions={[
+                      {
+                        label: 'New tuning',
+                        icon: <Plus size={15} />,
+                        onClick: () => setCreatingTuning(true),
+                      },
+                      {
+                        label: 'Manage tunings',
+                        icon: <Settings2 size={15} />,
+                        onClick: () => navigate('/settings'),
+                      },
+                    ]}
                     renderTriggerLabel={opt => {
                       // Selected DB tuning → its dot + name. Legacy song with only
                       // a guitarTuning label (id not yet resolved) → show that label.
@@ -1313,6 +1334,23 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             />
           </div>
         </div>
+      )}
+
+      {/* Create custom tuning (from the tuning picker's "New tuning" action) */}
+      {creatingTuning && (
+        <CreateTuningModal
+          onClose={() => setCreatingTuning(false)}
+          onCreated={async created => {
+            setCreatingTuning(false)
+            await refetchTunings()
+            // Select the freshly-created tuning on this song.
+            setFormData(f => ({
+              ...f,
+              tuningId: created.id,
+              tuning: created.name,
+            }))
+          }}
+        />
       )}
 
       {/* Unsaved changes guard */}

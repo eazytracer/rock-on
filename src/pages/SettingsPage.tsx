@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../hooks/useConfirm'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { TuningsSection } from '../components/tunings/TuningsSection'
 import {
   User,
   Mail,
@@ -193,6 +194,9 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* Tunings Section (fork #2) */}
+        <TuningsSection />
 
         {/* Data & Privacy Section */}
         <section className="bg-surface-elevated rounded-lg border border-border-1 p-6">
