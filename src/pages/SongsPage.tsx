@@ -46,6 +46,7 @@ import { SyncIcon } from '../components/sync/SyncIcon'
 import { useItemStatus } from '../hooks/useItemSyncStatus'
 // Song notes modal
 import { SongNotesModal } from '../components/songs/SongNotesModal'
+import { useBulkPersonalNotePresence } from '../hooks/useNotes'
 // Link icons for quick access to external resources
 import { LinkIcons } from '../components/songs/LinkIcons'
 import type { ReferenceLink } from '../types'
@@ -504,8 +505,32 @@ interface SongRowProps {
   linked?: boolean
   /** Hover-tooltip / aria-label for the linked icon. */
   linkedLabel?: string
+  /** Whether a personal note exists for this song (current user + context). */
+  hasPersonalNote?: boolean
   openActionMenuId: string | null
   setOpenActionMenuId: (id: string | null) => void
+}
+
+/** Which note(s) exist for a song, for the notes-button 4-state indicator. */
+type SongNoteState = 'none' | 'personal' | 'band' | 'both'
+
+function getSongNoteState(
+  song: Song,
+  hasPersonalNote: boolean | undefined
+): SongNoteState {
+  const hasBandNote = !!song.notes?.trim()
+  if (hasBandNote && hasPersonalNote) return 'both'
+  if (hasBandNote) return 'band'
+  if (hasPersonalNote) return 'personal'
+  return 'none'
+}
+
+/** Tailwind text-color class for the notes button, by note state. */
+const NOTE_STATE_COLOR_CLASS: Record<SongNoteState, string> = {
+  none: 'text-ink-4',
+  personal: 'text-info',
+  band: 'text-accent',
+  both: '', // rendered with a gradient icon fill instead, see FileText color prop
 }
 
 const SongRow: React.FC<SongRowProps> = ({
@@ -519,12 +544,14 @@ const SongRow: React.FC<SongRowProps> = ({
   alreadyCopied,
   linked,
   linkedLabel,
+  hasPersonalNote,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
   const stripeColor = tuningColor(song.tuning ?? 'Standard')
+  const noteState = getSongNoteState(song, hasPersonalNote)
 
   return (
     <div
@@ -606,11 +633,17 @@ const SongRow: React.FC<SongRowProps> = ({
         {/* Notes Button */}
         <button
           onClick={() => onOpenNotes(song)}
-          className="p-1.5 text-ink-4 hover:text-accent transition-colors"
+          className={`p-1.5 ${NOTE_STATE_COLOR_CLASS[noteState]} hover:text-accent transition-colors`}
           title="Song Notes"
           data-testid="song-notes-button"
+          data-note-state={noteState}
         >
-          <FileText size={18} />
+          <FileText
+            size={18}
+            color={
+              noteState === 'both' ? 'url(#song-notes-gradient)' : undefined
+            }
+          />
         </button>
 
         {/* Actions Menu */}
@@ -705,12 +738,14 @@ const SongCard: React.FC<SongRowProps> = ({
   alreadyCopied,
   linked,
   linkedLabel,
+  hasPersonalNote,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
   // PHASE 2: Get sync status for this specific song
   const syncStatus = useItemStatus(song.id)
   const stripeColor = tuningColor(song.tuning ?? 'Standard')
+  const noteState = getSongNoteState(song, hasPersonalNote)
 
   return (
     <div
@@ -752,11 +787,17 @@ const SongCard: React.FC<SongRowProps> = ({
         {/* Notes Button */}
         <button
           onClick={() => onOpenNotes(song)}
-          className="p-1.5 text-ink-4 hover:text-accent transition-colors"
+          className={`p-1.5 ${NOTE_STATE_COLOR_CLASS[noteState]} hover:text-accent transition-colors`}
           title="Song Notes"
           data-testid="song-notes-button"
+          data-note-state={noteState}
         >
-          <FileText size={18} />
+          <FileText
+            size={18}
+            color={
+              noteState === 'both' ? 'url(#song-notes-gradient)' : undefined
+            }
+          />
         </button>
 
         {/* Kebab Menu */}
@@ -1183,6 +1224,17 @@ export const SongsPage: React.FC = () => {
     return filtered
   }, [songs, searchQuery, selectedTuning, selectedTags, selectedShow, sortBy])
 
+  // Personal-note presence for the notes-button 4-state indicator (grey/info/accent/gradient)
+  const visibleSongIds = useMemo(
+    () => filteredAndSortedSongs.map(song => song.id),
+    [filteredAndSortedSongs]
+  )
+  const personalNotePresence = useBulkPersonalNotePresence(
+    visibleSongIds,
+    currentUserId,
+    currentBandId
+  )
+
   // Count active filters
   const activeFilterCount = [
     selectedTuning,
@@ -1375,6 +1427,31 @@ export const SongsPage: React.FC = () => {
   return (
     <ContentLoadingSpinner isLoading={loading}>
       <div data-testid="songs-page" className="max-w-6xl mx-auto">
+        {/* Gradient def for the notes-button icon when both a band and a
+            personal note exist (see NOTE_STATE_COLOR_CLASS / getSongNoteState) */}
+        <svg
+          width="0"
+          height="0"
+          style={{ position: 'absolute' }}
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient
+              id="song-notes-gradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop offset="0%" style={{ stopColor: 'rgb(var(--info-rgb))' }} />
+              <stop
+                offset="100%"
+                style={{ stopColor: 'rgb(var(--accent-rgb))' }}
+              />
+            </linearGradient>
+          </defs>
+        </svg>
+
         {/* DATABASE INTEGRATION: Show error state */}
         {error && (
           <div className="flex items-center justify-center py-16">
@@ -1753,6 +1830,7 @@ export const SongsPage: React.FC = () => {
                       }
                       linked={linkedSongIds.has(song.id)}
                       linkedLabel={linkedTooltip}
+                      hasPersonalNote={personalNotePresence.has(song.id)}
                       openActionMenuId={openActionMenuId}
                       setOpenActionMenuId={setOpenActionMenuId}
                     />
@@ -1783,6 +1861,7 @@ export const SongsPage: React.FC = () => {
                     }
                     linked={linkedSongIds.has(song.id)}
                     linkedLabel={linkedTooltip}
+                    hasPersonalNote={personalNotePresence.has(song.id)}
                     openActionMenuId={openActionMenuId}
                     setOpenActionMenuId={setOpenActionMenuId}
                   />

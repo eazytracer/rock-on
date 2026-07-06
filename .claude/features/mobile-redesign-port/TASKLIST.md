@@ -69,8 +69,14 @@ code + this file win.
       → `personal-account-button`), event-code card next (both no-band), **"OR WITH A BAND"** divider,
       then Create/Join band grid. All testids preserved. type-check + lint clean; e2e green
       (band-less-flow, protected-routes, create-band, join-band, signup); Playwright visual verified.
-- [ ] **#4 Song-notes notepad 4-state** — grey (none) / `info` (personal) / `accent` (band) / gradient
-      (both) by note contents; batch per-song personal-note presence to avoid N-queries. `[UI]` logic.
+- [x] **#4 Song-notes notepad 4-state** — DONE. `SongsPage` notes button (`FileText`, both grid + list
+      render spots) now colors by note contents: grey `text-ink-4` (none) / `text-info` (personal) /
+      `text-accent` (band) / info→accent SVG gradient stroke (both), with `data-note-state` for
+      observability. New `useBulkPersonalNotePresence(songIds,userId,bandId)` in `useNotes.ts` batches
+      personal-note presence in ONE Dexie query. type-check + lint clean; all 4 states verified live in
+      Playwright (injected+removed test notes); markdown-notes/personal-mirroring e2e green.
+      NOTE: `crud.spec.ts:260 "member can delete song"` fails but is **pre-existing** (fails on base
+      without this change) — flagged separately, not caused here.
 - [ ] **#6 Desktop two-pane layouts** — Home two-column dashboard, Events master/detail, Settings
       left-nav, Friends right-rail. Net-new responsive layouts.
 - [ ] **#7 Retire the remaining native `<select>`s → C0 `<Dropdown>`** (24 across ~15 files). Migrate
