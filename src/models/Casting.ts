@@ -16,22 +16,22 @@ export interface BandRole {
 }
 
 /**
- * Canonical default lineup for band-less (personal/social) events, mirroring the
- * `seed_band_roles` DDL. Used by `useCasting` when there's no band to source roles
- * from — role_key on casting_assignments is a soft ref, so these keys are valid.
+ * Fixed instrument set for personal (band-less) events. Per the v1 casting model
+ * (2026-07-06) we make NO per-song assumptions about what a song needs or what a
+ * person plays — a guest simply checks the instrument(s) they're open to playing,
+ * from this basic set. `other` is the free-text catch-all (the raised hand / cast
+ * carries the typed instrument name). role_key on casting_assignments/event_hands
+ * is a soft text ref, so these keys are valid without any DB rows.
  */
+export const OTHER_ROLE_KEY = 'other'
+
 export const DEFAULT_LINEUP: BandRole[] = [
-  { key: 'lead_vocals', label: 'Lead Vocals', sort: 1, isDefaultPart: true },
-  {
-    key: 'backing_vocals',
-    label: 'Backing Vocals',
-    sort: 2,
-    isDefaultPart: false,
-  },
-  { key: 'guitar', label: 'Guitar', sort: 3, isDefaultPart: true },
-  { key: 'bass', label: 'Bass', sort: 4, isDefaultPart: true },
-  { key: 'drums', label: 'Drums', sort: 5, isDefaultPart: true },
-  { key: 'keys', label: 'Keys', sort: 6, isDefaultPart: true },
+  { key: 'guitar', label: 'Guitar', sort: 1, isDefaultPart: true },
+  { key: 'bass', label: 'Bass', sort: 2, isDefaultPart: true },
+  { key: 'drums', label: 'Drums', sort: 3, isDefaultPart: true },
+  { key: 'vox', label: 'Vox', sort: 4, isDefaultPart: true },
+  { key: 'keys', label: 'Keys', sort: 5, isDefaultPart: true },
+  { key: OTHER_ROLE_KEY, label: 'Other', sort: 6, isDefaultPart: false },
 ].map(r => ({ ...r, id: `default:${r.key}`, bandId: '' }))
 
 export interface CastingAssignment {

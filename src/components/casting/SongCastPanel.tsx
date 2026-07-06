@@ -25,6 +25,10 @@ import type { RaisedHand } from '../../models/Event'
 
 /** Role key → instrument color + icon for the color spine on each part row. */
 const INSTRUMENT_META: Record<string, { color: string; Icon: LucideIcon }> = {
+  // v1 event instrument set (band-less events): guitar/bass/drums/vox/keys/other.
+  vox: { color: INSTRUMENT_COLOR.vox, Icon: MicVocal },
+  other: { color: token.ink4, Icon: Music },
+  // Band role vocabulary (setlist casting still uses these).
   lead_vocals: { color: INSTRUMENT_COLOR.vox, Icon: MicVocal },
   backing_vocals: { color: INSTRUMENT_COLOR.bvox, Icon: Mic2 },
   guitar: { color: INSTRUMENT_COLOR.gtr, Icon: Guitar },
