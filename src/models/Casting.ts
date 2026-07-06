@@ -77,6 +77,8 @@ export interface AssignInput {
   memberId?: string
   memberName?: string
   isPrimary?: boolean
+  /** Ordering among backups for a part (starters have none). */
+  priority?: number
   confidence?: number
   arrangement?: string
   notes?: string

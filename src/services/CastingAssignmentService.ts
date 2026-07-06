@@ -143,6 +143,7 @@ export class CastingAssignmentService {
       member_id: input.memberId ?? null,
       member_name: input.memberName ?? null,
       is_primary: input.isPrimary ?? true,
+      priority: input.priority ?? null,
       confidence: input.confidence ?? null,
       arrangement: input.arrangement ?? null,
       notes: input.notes ?? null,

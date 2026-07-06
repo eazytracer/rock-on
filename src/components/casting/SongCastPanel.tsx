@@ -34,6 +34,41 @@ const INSTRUMENT_META: Record<string, { color: string; Icon: LucideIcon }> = {
 }
 const FALLBACK_INSTRUMENT = { color: token.ink4, Icon: Music }
 
+/** 5-dot confidence indicator (Detailed casting). Read-only unless `onSet`. */
+function ConfidenceDots({
+  value,
+  onSet,
+}: {
+  value?: number
+  onSet?: (n: number) => void
+}) {
+  return (
+    <span className="inline-flex items-center gap-0.5" title="Confidence">
+      {[1, 2, 3, 4, 5].map(n => {
+        const filled = (value ?? 0) >= n
+        const dot = (
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${filled ? 'bg-accent' : 'bg-bg-4'}`}
+          />
+        )
+        return onSet ? (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onSet(n)}
+            aria-label={`Confidence ${n} of 5`}
+            className="p-0.5"
+          >
+            {dot}
+          </button>
+        ) : (
+          <span key={n}>{dot}</span>
+        )
+      })}
+    </span>
+  )
+}
+
 interface SongCastPanelProps {
   contextType: CastingContext
   contextId: string
@@ -77,18 +112,17 @@ export function SongCastPanel({
   onWithdrawHand,
   onResolveHand,
 }: SongCastPanelProps) {
-  const { defaultParts, casting, loading, assign, unassign } = useCasting(
-    contextType,
-    contextId,
-    bandId
-  )
+  const { defaultParts, casting, loading, assign, unassign, update } =
+    useCasting(contextType, contextId, bandId)
   // Cast from the right pool: EVENT → participants (guests, not just band members);
   // SETLIST → band members. The casting RLS already authorizes event participants.
   const isEvent = contextType === 'event'
   const { participants } = useEventParticipants(isEvent ? contextId : undefined)
   const { members } = useBandMembers(isEvent ? '' : (bandId ?? ''))
   const [pickingRole, setPickingRole] = useState<string | null>(null)
+  const [pickingBackup, setPickingBackup] = useState(false)
   const [freeText, setFreeText] = useState('')
+  const [detailed, setDetailed] = useState(false)
   const [history, setHistory] = useState<CastingHistoryEntry[]>([])
 
   const assignablePeople = useMemo(
@@ -135,10 +169,16 @@ export function SongCastPanel({
 
   const doAssign = async (
     roleKey: string,
-    person: { memberId?: string; memberName: string }
+    person: { memberId?: string; memberName: string },
+    isPrimary = true
   ) => {
     setPickingRole(null)
+    setPickingBackup(false)
     setFreeText('')
+    // Backups get an ordered priority among themselves (starter stays priority-less).
+    const backupCount = slotCasting.filter(
+      c => c.roleKey === roleKey && !c.isPrimary
+    ).length
     await assign({
       contextType,
       contextId,
@@ -148,7 +188,8 @@ export function SongCastPanel({
       roleKey,
       memberId: person.memberId,
       memberName: person.memberName,
-      isPrimary: true,
+      isPrimary,
+      priority: isPrimary ? undefined : backupCount + 1,
     })
   }
 
@@ -169,7 +210,22 @@ export function SongCastPanel({
     >
       <div className="mb-2">
         <div className="flex items-center justify-between">
-          <Eyebrow>Casting</Eyebrow>
+          <div className="flex items-center gap-2">
+            <Eyebrow>Casting</Eyebrow>
+            <button
+              type="button"
+              onClick={() => setDetailed(d => !d)}
+              data-testid={`cast-detailed-toggle-${slotId}`}
+              aria-pressed={detailed}
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide transition-colors ${
+                detailed
+                  ? 'bg-accent-soft text-accent'
+                  : 'bg-bg-3 text-ink-4 hover:text-ink-2'
+              }`}
+            >
+              {detailed ? 'Detailed' : 'Simple'}
+            </button>
+          </div>
           <span
             className="font-mono text-[10px] text-ink-4"
             data-testid="cast-progress"
@@ -189,6 +245,10 @@ export function SongCastPanel({
       <div className="flex flex-col gap-1.5">
         {defaultParts.map(part => {
           const assigned = slotCasting.filter(c => c.roleKey === part.key)
+          const primaries = assigned.filter(c => c.isPrimary)
+          const backups = assigned
+            .filter(c => !c.isPrimary)
+            .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
           const instrument = INSTRUMENT_META[part.key] ?? FALLBACK_INSTRUMENT
           const InstrumentIcon = instrument.Icon
           const raisedForPart = slotHands.filter(
@@ -216,7 +276,7 @@ export function SongCastPanel({
                 {part.label}
               </span>
               <div className="flex flex-1 flex-wrap items-center gap-1.5">
-                {assigned.map(c => (
+                {primaries.map(c => (
                   <span
                     key={c.id}
                     className="inline-flex items-center gap-1.5 rounded-full bg-bg-3 py-0.5 pl-0.5 pr-2"
@@ -229,6 +289,16 @@ export function SongCastPanel({
                     <span className="text-xs text-ink-1">
                       {c.memberName ?? personName(c.memberId)}
                     </span>
+                    {detailed && (
+                      <ConfidenceDots
+                        value={c.confidence}
+                        onSet={
+                          canEdit
+                            ? n => void update(c.id, { confidence: n })
+                            : undefined
+                        }
+                      />
+                    )}
                     {canEdit && (
                       <button
                         onClick={() => void unassign(c.id)}
@@ -241,9 +311,39 @@ export function SongCastPanel({
                     )}
                   </span>
                 ))}
-                {assigned.length === 0 && raisedForPart.length === 0 && (
+                {primaries.length === 0 && raisedForPart.length === 0 && (
                   <span className="text-xs text-ink-5">Open</span>
                 )}
+                {/* Backups (Detailed casting) */}
+                {detailed &&
+                  backups.map(c => (
+                    <span
+                      key={c.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-border-1 bg-bg-2 py-0.5 pl-0.5 pr-2"
+                      data-testid={`cast-backup-${c.id}`}
+                    >
+                      <Avatar
+                        label={c.memberName ?? personName(c.memberId)}
+                        size="xs"
+                      />
+                      <span className="text-[11px] text-ink-3">
+                        {c.memberName ?? personName(c.memberId)}
+                      </span>
+                      <span className="text-[8px] font-semibold uppercase tracking-wide text-ink-5">
+                        backup
+                      </span>
+                      {canEdit && (
+                        <button
+                          onClick={() => void unassign(c.id)}
+                          aria-label="Remove backup"
+                          data-testid={`cast-backup-remove-${c.id}`}
+                          className="text-ink-5 hover:text-danger"
+                        >
+                          <X size={11} />
+                        </button>
+                      )}
+                    </span>
+                  ))}
                 {/* Raise-a-hand (event only, fork #5) */}
                 {canEdit &&
                   raisedForPart.map(h => (
@@ -303,11 +403,12 @@ export function SongCastPanel({
                 {canEdit && (
                   <div className="relative">
                     <button
-                      onClick={() =>
+                      onClick={() => {
+                        setPickingBackup(false)
                         setPickingRole(
                           pickingRole === part.key ? null : part.key
                         )
-                      }
+                      }}
                       data-testid={`cast-assign-${part.key}`}
                       aria-label={`Assign ${part.label}`}
                       className="inline-flex items-center gap-1 rounded-full border border-border-2 px-2 py-0.5 text-[11px] text-ink-3 hover:text-accent hover:border-accent"
@@ -318,7 +419,10 @@ export function SongCastPanel({
                       <>
                         <div
                           className="fixed inset-0 z-10"
-                          onClick={() => setPickingRole(null)}
+                          onClick={() => {
+                            setPickingRole(null)
+                            setPickingBackup(false)
+                          }}
                         />
                         <div
                           className="absolute left-0 z-20 mt-1 w-52 overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
@@ -329,10 +433,14 @@ export function SongCastPanel({
                               <button
                                 key={person.id}
                                 onClick={() =>
-                                  void doAssign(part.key, {
-                                    memberId: person.id,
-                                    memberName: person.name,
-                                  })
+                                  void doAssign(
+                                    part.key,
+                                    {
+                                      memberId: person.id,
+                                      memberName: person.name,
+                                    },
+                                    !pickingBackup
+                                  )
                                 }
                                 data-testid={`cast-pick-${part.key}-${person.id}`}
                                 className="flex w-full items-center gap-2 px-2.5 py-2 text-left text-xs text-ink-2 hover:bg-bg-4 hover:text-ink-1"
@@ -355,7 +463,11 @@ export function SongCastPanel({
                               e.preventDefault()
                               const name = freeText.trim()
                               if (name)
-                                void doAssign(part.key, { memberName: name })
+                                void doAssign(
+                                  part.key,
+                                  { memberName: name },
+                                  !pickingBackup
+                                )
                             }}
                             className="flex items-center gap-1 border-t border-border-1 p-1.5"
                           >
@@ -380,6 +492,20 @@ export function SongCastPanel({
                       </>
                     )}
                   </div>
+                )}
+                {/* Add a backup (Detailed casting) */}
+                {detailed && canEdit && (
+                  <button
+                    onClick={() => {
+                      setPickingBackup(true)
+                      setPickingRole(part.key)
+                    }}
+                    data-testid={`cast-backup-add-${part.key}`}
+                    aria-label={`Add backup for ${part.label}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-dashed border-border-2 px-2 py-0.5 text-[11px] text-ink-4 hover:text-accent hover:border-accent"
+                  >
+                    <UserPlus size={11} /> Backup
+                  </button>
                 )}
               </div>
             </div>

@@ -58,8 +58,28 @@ export function useCasting(
     [refetch]
   )
 
+  const update = useCallback(
+    async (
+      id: string,
+      patch: Parameters<typeof CastingAssignmentService.update>[1]
+    ) => {
+      await CastingAssignmentService.update(id, patch)
+      await refetch()
+    },
+    [refetch]
+  )
+
   /** Roles that make up the default required lineup (drives "N/M parts cast"). */
   const defaultParts = roles.filter(r => r.isDefaultPart)
 
-  return { roles, defaultParts, casting, loading, refetch, assign, unassign }
+  return {
+    roles,
+    defaultParts,
+    casting,
+    loading,
+    refetch,
+    assign,
+    unassign,
+    update,
+  }
 }
