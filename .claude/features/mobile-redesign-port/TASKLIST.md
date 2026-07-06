@@ -6,6 +6,14 @@ folder is a **dated historical design/research artifact** from the feature's pla
 rationale only, **not current instructions**. If they disagree with this file or the code, the
 code + this file win.
 
+> **Design source of truth = the Claude Design "Rock On" project** (`app/DESIGN_NOTES.md` et al.):
+> `https://claude.ai/design/p/019df065-4ee1-707b-bfd9-d821331f5cad`. The dated local planning docs
+> below are largely superseded by it — see `2026-07-06_friends-and-event-setlists-plan.md`.
+>
+> **NEXT UP — awaiting answers:** `2026-07-06_friends-and-event-setlists-plan.md` holds the updated
+> **Friends + Event-lineup ("event setlist")** task list and a numbered **OPEN QUESTIONS** set that
+> gates it. Casting is a **shared model** (events → jam → bands; events are the testbed).
+
 ---
 
 ## Operating rules (non-negotiable)
