@@ -141,3 +141,170 @@ export function tuningLabel(
 export function builtInTuningLabels(): string[] {
   return CANONICAL_TUNINGS.map(t => t.label)
 }
+
+// ── Full built-in tuning data (mirrors the seed in the tunings migration) ─────
+// Local copy so the picker + custom-tuning create flow work offline and can
+// pre-fill from a matching standard. Pitches are MIDI, low→high string.
+// `slug` matches public.tunings.slug (and CANONICAL_TUNINGS ids for color).
+export interface BuiltinTuning {
+  slug: string
+  name: string
+  instrument: 'guitar' | 'bass'
+  stringCount: number
+  pitches: number[]
+  color: string | null
+}
+
+export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
+  // Guitar (6-string)
+  {
+    slug: 'standard',
+    name: 'Standard',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [40, 45, 50, 55, 59, 64],
+    color: '#60a5fa',
+  },
+  {
+    slug: 'drop-d',
+    name: 'Drop D',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [38, 45, 50, 55, 59, 64],
+    color: '#f97316',
+  },
+  {
+    slug: 'half-step-down',
+    name: 'Eb / Half-step down',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [39, 44, 49, 54, 58, 63],
+    color: '#14b8a6',
+  },
+  {
+    slug: 'whole-step-down',
+    name: 'D / Whole-step down',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [38, 43, 48, 53, 57, 62],
+    color: '#0ea5e9',
+  },
+  {
+    slug: 'drop-c',
+    name: 'Drop C',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [36, 43, 48, 53, 57, 62],
+    color: '#ef4444',
+  },
+  {
+    slug: 'drop-b',
+    name: 'Drop B',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [35, 42, 47, 52, 56, 61],
+    color: '#a855f7',
+  },
+  {
+    slug: 'open-g',
+    name: 'Open G',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [38, 43, 50, 55, 59, 62],
+    color: '#eab308',
+  },
+  {
+    slug: 'open-d',
+    name: 'Open D',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [38, 45, 50, 54, 57, 62],
+    color: '#ec4899',
+  },
+  {
+    slug: 'dadgad',
+    name: 'DADGAD',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [38, 45, 50, 55, 57, 62],
+    color: '#10b981',
+  },
+  // Guitar (extended range)
+  {
+    slug: 'standard-7',
+    name: '7-string standard',
+    instrument: 'guitar',
+    stringCount: 7,
+    pitches: [35, 40, 45, 50, 55, 59, 64],
+    color: null,
+  },
+  {
+    slug: 'standard-8',
+    name: '8-string standard',
+    instrument: 'guitar',
+    stringCount: 8,
+    pitches: [30, 35, 40, 45, 50, 55, 59, 64],
+    color: null,
+  },
+  // Bass
+  {
+    slug: 'bass-standard',
+    name: 'Bass standard',
+    instrument: 'bass',
+    stringCount: 4,
+    pitches: [28, 33, 38, 43],
+    color: null,
+  },
+  {
+    slug: 'bass-drop-d',
+    name: 'Bass Drop D',
+    instrument: 'bass',
+    stringCount: 4,
+    pitches: [26, 33, 38, 43],
+    color: null,
+  },
+  {
+    slug: 'bass-eb',
+    name: 'Bass Eb / Half-step down',
+    instrument: 'bass',
+    stringCount: 4,
+    pitches: [27, 32, 37, 42],
+    color: null,
+  },
+  {
+    slug: 'bass-5',
+    name: '5-string bass',
+    instrument: 'bass',
+    stringCount: 5,
+    pitches: [23, 28, 33, 38, 43],
+    color: null,
+  },
+  {
+    slug: 'bass-6',
+    name: '6-string bass',
+    instrument: 'bass',
+    stringCount: 6,
+    pitches: [23, 28, 33, 38, 43, 48],
+    color: null,
+  },
+] as const
+
+/** MIDI note number → note name with octave (flats for accidentals, e.g. Eb3). */
+export function midiToNoteName(midi: number): string {
+  const names = [
+    'C',
+    'Db',
+    'D',
+    'Eb',
+    'E',
+    'F',
+    'Gb',
+    'G',
+    'Ab',
+    'A',
+    'Bb',
+    'B',
+  ]
+  const octave = Math.floor(midi / 12) - 1
+  return `${names[((midi % 12) + 12) % 12]}${octave}`
+}

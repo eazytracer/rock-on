@@ -5,6 +5,8 @@ import {
   tuningLabel,
   CANONICAL_TUNINGS,
   FALLBACK_TUNING_COLOR,
+  BUILTIN_TUNINGS,
+  midiToNoteName,
 } from '../../../src/utils/tunings'
 
 describe('canonicalTuningId', () => {
@@ -92,5 +94,43 @@ describe('CANONICAL_TUNINGS registry', () => {
   it('has unique ids', () => {
     const ids = CANONICAL_TUNINGS.map(t => t.id)
     expect(new Set(ids).size).toBe(ids.length)
+  })
+})
+
+describe('BUILTIN_TUNINGS (mirrors the DB seed)', () => {
+  it('has the 16 seeded built-ins with unique slugs', () => {
+    expect(BUILTIN_TUNINGS).toHaveLength(16)
+    const slugs = BUILTIN_TUNINGS.map(t => t.slug)
+    expect(new Set(slugs).size).toBe(16)
+  })
+
+  it('every pitch array length equals its string count (DB CHECK parity)', () => {
+    for (const t of BUILTIN_TUNINGS)
+      expect(t.pitches).toHaveLength(t.stringCount)
+  })
+
+  it('string counts are within the 3–12 DB bound', () => {
+    for (const t of BUILTIN_TUNINGS)
+      expect(t.stringCount).toBeGreaterThanOrEqual(3)
+  })
+})
+
+describe('midiToNoteName', () => {
+  it('renders standard guitar strings low→high (flats for accidentals)', () => {
+    // Standard = E2 A2 D3 G3 B3 E4
+    expect([40, 45, 50, 55, 59, 64].map(midiToNoteName)).toEqual([
+      'E2',
+      'A2',
+      'D3',
+      'G3',
+      'B3',
+      'E4',
+    ])
+  })
+
+  it('uses flats (Eb, not D#)', () => {
+    // midi 39 = a half-step below the standard low E2 (40) → Eb2.
+    expect(midiToNoteName(39)).toBe('Eb2')
+    expect(midiToNoteName(51)).toBe('Eb3')
   })
 })
