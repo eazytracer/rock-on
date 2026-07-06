@@ -23,6 +23,8 @@ import {
   FileText,
   UserPlus,
   Link2,
+  EyeOff,
+  Eye,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database hooks and utilities
 import {
@@ -48,6 +50,8 @@ import { useItemStatus } from '../hooks/useItemSyncStatus'
 // Song notes modal
 import { SongNotesModal } from '../components/songs/SongNotesModal'
 import { useBulkPersonalNotePresence } from '../hooks/useNotes'
+// Per-user hide/re-add for the song catalog
+import { useHiddenSongs } from '../hooks/useHiddenSongs'
 // Link icons for quick access to external resources
 import { LinkIcons } from '../components/songs/LinkIcons'
 import type { ReferenceLink } from '../types'
@@ -508,6 +512,10 @@ interface SongRowProps {
   linkedLabel?: string
   /** Whether a personal note exists for this song (current user + context). */
   hasPersonalNote?: boolean
+  /** Hide the song (removes it from the default view) or re-add it, depending on `hideMode`. */
+  onHide: (song: Song) => void
+  /** 'hide' when viewing the default (visible) list, 'readd' when viewing the hidden list. */
+  hideMode: 'hide' | 'readd'
   openActionMenuId: string | null
   setOpenActionMenuId: (id: string | null) => void
 }
@@ -546,6 +554,8 @@ const SongRow: React.FC<SongRowProps> = ({
   linked,
   linkedLabel,
   hasPersonalNote,
+  onHide,
+  hideMode,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
@@ -710,6 +720,22 @@ const SongRow: React.FC<SongRowProps> = ({
                   <Copy size={16} />
                   <span>Duplicate Song</span>
                 </button>
+                <button
+                  onClick={() => onHide(song)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
+                  data-testid={
+                    hideMode === 'hide'
+                      ? 'song-hide-button'
+                      : 'song-readd-button'
+                  }
+                >
+                  {hideMode === 'hide' ? (
+                    <EyeOff size={16} />
+                  ) : (
+                    <Eye size={16} />
+                  )}
+                  <span>{hideMode === 'hide' ? 'Hide' : 'Re-add'}</span>
+                </button>
                 <div className="h-px bg-border-1" />
                 <button
                   onClick={() => onDelete(song)}
@@ -741,6 +767,8 @@ const SongCard: React.FC<SongRowProps> = ({
   linked,
   linkedLabel,
   hasPersonalNote,
+  onHide,
+  hideMode,
   openActionMenuId,
   setOpenActionMenuId,
 }) => {
@@ -857,6 +885,16 @@ const SongCard: React.FC<SongRowProps> = ({
               >
                 <Copy size={16} />
                 <span>Duplicate Song</span>
+              </button>
+              <button
+                onClick={() => onHide(song)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
+                data-testid={
+                  hideMode === 'hide' ? 'song-hide-button' : 'song-readd-button'
+                }
+              >
+                {hideMode === 'hide' ? <EyeOff size={16} /> : <Eye size={16} />}
+                <span>{hideMode === 'hide' ? 'Hide' : 'Re-add'}</span>
               </button>
               <div className="h-px bg-border-1" />
               <button
@@ -980,6 +1018,7 @@ export const SongsPage: React.FC = () => {
   const { updateSong } = useUpdateSong()
   const { deleteSong, checkSongInSetlists } = useDeleteSong()
   const { confirm, dialogProps } = useConfirm()
+  const { hiddenIds, hide, unhide } = useHiddenSongs()
 
   // Context values for song creation/edit based on active tab
   const songContextType = isPersonalTab ? 'personal' : 'band'
@@ -993,6 +1032,9 @@ export const SongsPage: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedShow, setSelectedShow] = useState<string>('')
   const [sortBy, setSortBy] = useState<SortOption>('title-asc')
+  // When true, the list shows ONLY hidden songs (with a "Re-add" action)
+  // instead of excluding them (with a "Hide" action).
+  const [showHidden, setShowHidden] = useState(false)
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -1164,6 +1206,12 @@ export const SongsPage: React.FC = () => {
   const filteredAndSortedSongs = useMemo(() => {
     let filtered = songs
 
+    // Hidden filter — exclude hidden songs by default; when the "show
+    // hidden" toggle is active, show ONLY hidden songs instead.
+    filtered = showHidden
+      ? filtered.filter(song => hiddenIds.has(song.id))
+      : filtered.filter(song => !hiddenIds.has(song.id))
+
     // Apply search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
@@ -1224,7 +1272,24 @@ export const SongsPage: React.FC = () => {
     })
 
     return filtered
-  }, [songs, searchQuery, selectedTuning, selectedTags, selectedShow, sortBy])
+  }, [
+    songs,
+    hiddenIds,
+    showHidden,
+    searchQuery,
+    selectedTuning,
+    selectedTags,
+    selectedShow,
+    sortBy,
+  ])
+
+  // Hidden songs present in the current catalog (band or personal tab),
+  // for the "Hidden (N)" toggle label. Counted from the unfiltered `songs`
+  // list so it reflects the whole catalog, not the current search/filter.
+  const hiddenCountInCatalog = useMemo(
+    () => songs.filter(song => hiddenIds.has(song.id)).length,
+    [songs, hiddenIds]
+  )
 
   // Personal-note presence for the notes-button 4-state indicator (grey/info/accent/gradient)
   const visibleSongIds = useMemo(
@@ -1419,6 +1484,19 @@ export const SongsPage: React.FC = () => {
     }
   }
 
+  // Hide a song from the default view, or re-add a previously hidden one —
+  // which action fires depends on which list is currently showing.
+  const handleToggleHidden = async (song: Song) => {
+    setOpenActionMenuId(null)
+    if (showHidden) {
+      await unhide(song.id)
+      showToast(`"${song.title}" added back to your catalog`, 'success')
+    } else {
+      await hide(song.id)
+      showToast('Hidden from your catalog', 'success')
+    }
+  }
+
   // Toggle tag selection
   const toggleTag = (tag: string) => {
     setSelectedTags(prev =>
@@ -1550,6 +1628,24 @@ export const SongsPage: React.FC = () => {
                     </span>
                   )}
                 </button>
+
+                {/* Hidden songs toggle — only shown when there's something
+                    to show (or while actively viewing the hidden list, so
+                    the control doesn't vanish out from under the user). */}
+                {(hiddenCountInCatalog > 0 || showHidden) && (
+                  <button
+                    onClick={() => setShowHidden(prev => !prev)}
+                    data-testid="songs-show-hidden-toggle"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                      showHidden
+                        ? 'border-accent bg-accent/10 text-accent'
+                        : 'border-border-1 bg-transparent text-white hover:bg-bg-3'
+                    }`}
+                  >
+                    <EyeOff size={20} />
+                    <span>Hidden ({hiddenCountInCatalog})</span>
+                  </button>
+                )}
 
                 <div className="flex items-center gap-3 flex-1 max-w-md">
                   <div className="relative flex-1">
@@ -1852,6 +1948,8 @@ export const SongsPage: React.FC = () => {
                       linked={linkedSongIds.has(song.id)}
                       linkedLabel={linkedTooltip}
                       hasPersonalNote={personalNotePresence.has(song.id)}
+                      onHide={handleToggleHidden}
+                      hideMode={showHidden ? 'readd' : 'hide'}
                       openActionMenuId={openActionMenuId}
                       setOpenActionMenuId={setOpenActionMenuId}
                     />
@@ -1883,6 +1981,8 @@ export const SongsPage: React.FC = () => {
                     linked={linkedSongIds.has(song.id)}
                     linkedLabel={linkedTooltip}
                     hasPersonalNote={personalNotePresence.has(song.id)}
+                    onHide={handleToggleHidden}
+                    hideMode={showHidden ? 'readd' : 'hide'}
                     openActionMenuId={openActionMenuId}
                     setOpenActionMenuId={setOpenActionMenuId}
                   />

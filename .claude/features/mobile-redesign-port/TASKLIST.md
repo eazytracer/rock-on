@@ -177,16 +177,25 @@ code + this file win.
 - [~] **#3 Catalog provenance / Source filter** — in progress.
   **SCHEMA DONE (local-only, held for human prod review):** new migration
   `20260706192718_song_hidden.sql` — `song_hidden(user_id, song_id, created_date)` PK `(user_id,
-    song_id)`, both FKs `ON DELETE CASCADE`, `idx_song_hidden_user`, grants for authenticated +
+  song_id)`, both FKs `ON DELETE CASCADE`, `idx_song_hidden_user`, grants for authenticated +
   service_role, RLS **own-rows-only** (SELECT/INSERT-WITH-CHECK/DELETE all `user_id = (select
-    auth.uid())`; no UPDATE policy → immutable). Verified: `supabase db reset` ✓ · `npm run test:db`
+  auth.uid())`; no UPDATE policy → immutable). Verified: `supabase db reset` ✓ · `npm run test:db`
   ✓ (new `022-song-hidden.test.sql`, 19 pgTAP incl. negatives: forge-insert→42501, cross-read→0,
   cross-delete no-op, owner row survives, runtime UPDATE-denied) · `npm run lint:migrations` ✓.
   **Security-reviewed by a sub-agent → SHIP** (all 10 checks pass: no cross-tenant read/forge/delete,
   no RLS recursion, no SECURITY DEFINER surface). Provenance ("from ‹band›") + Source filter derive
   in-app from `songs.context_id`/`linked_from_song_id` — no schema needed.
-  **FRONTEND REMAINING:** service/hook to read+toggle hides (Supabase-only, not sync-engine), the
-  "from ‹band›" provenance tag, a Source filter, and Hide/Re-add actions on `SongsPage` + e2e.
+  **FRONTEND — Hide/Re-add DONE:** `SongHiddenService` (Supabase-only, `getSupabaseClient` +
+  `song_hidden` upsert/delete; no `db.*` writes → guardrail-safe) + `useHiddenSongs()` hook
+  (`{ hiddenIds:Set, hide, unhide, refetch }`, optimistic). `SongsPage`: hidden songs excluded from the
+  list by default; a **"Hide"** menu action (`song-hide-button`, EyeOff); a **`Hidden (N)`** toggle
+  (`songs-show-hidden-toggle`, shown only when N>0 or active) that swaps the list to hidden-only where
+  the menu offers **"Re-add"** (`song-readd-button`, Eye). tsc+lint clean; verified live (hide→leaves
+  list + Hidden(1); show-hidden→only hidden w/ Re-add; re-add→returns; **persists across reload** = real
+  Supabase round-trip). New `tests/e2e/songs/hide-readd.spec.ts` passes; existing songs e2e unaffected
+  (personal-mirroring:127 failure is pre-existing on base).
+  **FRONTEND REMAINING:** the "from ‹band›" provenance tag + a **Source filter** (derive in-app from
+  `songs.context_id` / `linked_from_song_id`).
 
 ### Cleanup / follow-ups
 
