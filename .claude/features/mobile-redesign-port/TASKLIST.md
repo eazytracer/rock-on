@@ -174,28 +174,37 @@ code + this file win.
 
 ### Schema (each: amend the feature migration, security review, negative tests, local-only)
 
-- [~] **#3 Catalog provenance / Source filter** — in progress.
-  **SCHEMA DONE (local-only, held for human prod review):** new migration
-  `20260706192718_song_hidden.sql` — `song_hidden(user_id, song_id, created_date)` PK `(user_id,
-  song_id)`, both FKs `ON DELETE CASCADE`, `idx_song_hidden_user`, grants for authenticated +
-  service_role, RLS **own-rows-only** (SELECT/INSERT-WITH-CHECK/DELETE all `user_id = (select
-  auth.uid())`; no UPDATE policy → immutable). Verified: `supabase db reset` ✓ · `npm run test:db`
-  ✓ (new `022-song-hidden.test.sql`, 19 pgTAP incl. negatives: forge-insert→42501, cross-read→0,
-  cross-delete no-op, owner row survives, runtime UPDATE-denied) · `npm run lint:migrations` ✓.
-  **Security-reviewed by a sub-agent → SHIP** (all 10 checks pass: no cross-tenant read/forge/delete,
-  no RLS recursion, no SECURITY DEFINER surface). Provenance ("from ‹band›") + Source filter derive
-  in-app from `songs.context_id`/`linked_from_song_id` — no schema needed.
-  **FRONTEND — Hide/Re-add DONE:** `SongHiddenService` (Supabase-only, `getSupabaseClient` +
-  `song_hidden` upsert/delete; no `db.*` writes → guardrail-safe) + `useHiddenSongs()` hook
-  (`{ hiddenIds:Set, hide, unhide, refetch }`, optimistic). `SongsPage`: hidden songs excluded from the
-  list by default; a **"Hide"** menu action (`song-hide-button`, EyeOff); a **`Hidden (N)`** toggle
-  (`songs-show-hidden-toggle`, shown only when N>0 or active) that swaps the list to hidden-only where
-  the menu offers **"Re-add"** (`song-readd-button`, Eye). tsc+lint clean; verified live (hide→leaves
-  list + Hidden(1); show-hidden→only hidden w/ Re-add; re-add→returns; **persists across reload** = real
-  Supabase round-trip). New `tests/e2e/songs/hide-readd.spec.ts` passes; existing songs e2e unaffected
-  (personal-mirroring:127 failure is pre-existing on base).
-  **FRONTEND REMAINING:** the "from ‹band›" provenance tag + a **Source filter** (derive in-app from
-  `songs.context_id` / `linked_from_song_id`).
+- [x] **#3 Catalog provenance / Source filter** — DONE. Final gate: type-check clean · lint 0 errors ·
+      build ✓. (Migration is local-only, held for human prod review.)
+      **SCHEMA DONE (local-only, held for human prod review):** new migration
+      `20260706192718_song_hidden.sql` — `song_hidden(user_id, song_id, created_date)` PK `(user_id,
+song_id)`, both FKs `ON DELETE CASCADE`, `idx_song_hidden_user`, grants for authenticated +
+      service_role, RLS **own-rows-only** (SELECT/INSERT-WITH-CHECK/DELETE all `user_id = (select
+auth.uid())`; no UPDATE policy → immutable). Verified: `supabase db reset` ✓ · `npm run test:db`
+      ✓ (new `022-song-hidden.test.sql`, 19 pgTAP incl. negatives: forge-insert→42501, cross-read→0,
+      cross-delete no-op, owner row survives, runtime UPDATE-denied) · `npm run lint:migrations` ✓.
+      **Security-reviewed by a sub-agent → SHIP** (all 10 checks pass: no cross-tenant read/forge/delete,
+      no RLS recursion, no SECURITY DEFINER surface). Provenance ("from ‹band›") + Source filter derive
+      in-app from `songs.context_id`/`linked_from_song_id` — no schema needed.
+      **FRONTEND — Hide/Re-add DONE:** `SongHiddenService` (Supabase-only, `getSupabaseClient` +
+      `song_hidden` upsert/delete; no `db.*` writes → guardrail-safe) + `useHiddenSongs()` hook
+      (`{ hiddenIds:Set, hide, unhide, refetch }`, optimistic). `SongsPage`: hidden songs excluded from the
+      list by default; a **"Hide"** menu action (`song-hide-button`, EyeOff); a **`Hidden (N)`** toggle
+      (`songs-show-hidden-toggle`, shown only when N>0 or active) that swaps the list to hidden-only where
+      the menu offers **"Re-add"** (`song-readd-button`, Eye). tsc+lint clean; verified live (hide→leaves
+      list + Hidden(1); show-hidden→only hidden w/ Re-add; re-add→returns; **persists across reload** = real
+      Supabase round-trip). New `tests/e2e/songs/hide-readd.spec.ts` passes; existing songs e2e unaffected
+      (personal-mirroring:127 failure is pre-existing on base).
+      **FRONTEND — Provenance tag + Source filter DONE:** new `useSongSources(personalSongs)` hook resolves
+      each personal song's source band name from local Dexie (`linkedFromSongId` → origin song →
+      `contextId` → `db.bands` name; reads only). Personal-tab rows show a **`from ‹Band›`** chip
+      (`song-source-tag`, both SongRow + SongCard); the Filters panel gains a **Source** `<Dropdown>`
+      (`song-source-filter`, personal tab only) — All sources / Original (not from a band) / one per source
+      band — composed into `filteredAndSortedSongs` alongside hidden/search/tuning/show/tags/sort and folded
+      into `activeFilterCount`/`clearAllFilters`. tsc+lint clean; verified live (injected a band-linked
+      personal song → "from Demo Band" chip; Source filter → "from Demo Band"=1, "Original"=3; filter absent
+      on band tab); 11/11 songs e2e green (search-filter, hide-readd, personal-songs). Provenance verified
+      via Playwright (a copy-to-personal e2e is a possible follow-up).
 
 ### Cleanup / follow-ups
 

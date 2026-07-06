@@ -25,6 +25,7 @@ import {
   Link2,
   EyeOff,
   Eye,
+  GitFork,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database hooks and utilities
 import {
@@ -50,6 +51,8 @@ import { useItemStatus } from '../hooks/useItemSyncStatus'
 // Song notes modal
 import { SongNotesModal } from '../components/songs/SongNotesModal'
 import { useBulkPersonalNotePresence } from '../hooks/useNotes'
+// Catalog provenance — resolves "from ‹band›" for forked personal songs
+import { useSongSources } from '../hooks/useSongSources'
 // Per-user hide/re-add for the song catalog
 import { useHiddenSongs } from '../hooks/useHiddenSongs'
 // Link icons for quick access to external resources
@@ -512,6 +515,8 @@ interface SongRowProps {
   linkedLabel?: string
   /** Whether a personal note exists for this song (current user + context). */
   hasPersonalNote?: boolean
+  /** Name of the band this personal song was forked from (personal tab only). */
+  sourceBandName?: string
   /** Hide the song (removes it from the default view) or re-add it, depending on `hideMode`. */
   onHide: (song: Song) => void
   /** 'hide' when viewing the default (visible) list, 'readd' when viewing the hidden list. */
@@ -554,6 +559,7 @@ const SongRow: React.FC<SongRowProps> = ({
   linked,
   linkedLabel,
   hasPersonalNote,
+  sourceBandName,
   onHide,
   hideMode,
   openActionMenuId,
@@ -601,6 +607,15 @@ const SongRow: React.FC<SongRowProps> = ({
               )}
             </div>
             <div className="text-ink-3 text-xs truncate">{song.artist}</div>
+            {sourceBandName && (
+              <div
+                className="flex items-center gap-1 text-ink-4 text-xs truncate mt-0.5"
+                data-testid="song-source-tag"
+              >
+                <GitFork size={11} className="flex-shrink-0" />
+                <span className="truncate">from {sourceBandName}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -767,6 +782,7 @@ const SongCard: React.FC<SongRowProps> = ({
   linked,
   linkedLabel,
   hasPersonalNote,
+  sourceBandName,
   onHide,
   hideMode,
   openActionMenuId,
@@ -812,6 +828,15 @@ const SongCard: React.FC<SongRowProps> = ({
             )}
           </div>
           <div className="text-ink-3 text-xs">{song.artist}</div>
+          {sourceBandName && (
+            <div
+              className="flex items-center gap-1 text-ink-4 text-xs truncate mt-0.5"
+              data-testid="song-source-tag"
+            >
+              <GitFork size={11} className="flex-shrink-0" />
+              <span className="truncate">from {sourceBandName}</span>
+            </div>
+          )}
         </div>
 
         {/* Notes Button */}
@@ -1020,6 +1045,10 @@ export const SongsPage: React.FC = () => {
   const { confirm, dialogProps } = useConfirm()
   const { hiddenIds, hide, unhide } = useHiddenSongs()
 
+  // Catalog provenance — personalSongId -> source band name, for songs
+  // forked from a band song (personal tab only; empty map elsewhere).
+  const sourceBandNameById = useSongSources(dbPersonalSongs)
+
   // Context values for song creation/edit based on active tab
   const songContextType = isPersonalTab ? 'personal' : 'band'
   const songContextId = isPersonalTab ? currentUserId : currentBandId
@@ -1031,6 +1060,9 @@ export const SongsPage: React.FC = () => {
   const [selectedTuning, setSelectedTuning] = useState<string>('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedShow, setSelectedShow] = useState<string>('')
+  // Source filter (personal tab only) — '' = all, '__original__' = no
+  // resolved band source, or a band name to match.
+  const [selectedSource, setSelectedSource] = useState<string>('')
   const [sortBy, setSortBy] = useState<SortOption>('title-asc')
   // When true, the list shows ONLY hidden songs (with a "Re-add" action)
   // instead of excluding them (with a "Hide" action).
@@ -1202,6 +1234,13 @@ export const SongsPage: React.FC = () => {
     ).sort()
   }, [songs])
 
+  // Distinct source band names present in the personal catalog (for the
+  // Source filter options). Empty on the band tab.
+  const availableSources = useMemo(
+    () => Array.from(new Set(sourceBandNameById.values())).sort(),
+    [sourceBandNameById]
+  )
+
   // Filter and sort songs
   const filteredAndSortedSongs = useMemo(() => {
     let filtered = songs
@@ -1238,6 +1277,16 @@ export const SongsPage: React.FC = () => {
     // Apply show filter
     if (selectedShow) {
       filtered = filtered.filter(song => song.nextShow?.name === selectedShow)
+    }
+
+    // Apply source (provenance) filter — personal tab only.
+    if (isPersonalTab && selectedSource) {
+      filtered =
+        selectedSource === '__original__'
+          ? filtered.filter(song => !sourceBandNameById.has(song.id))
+          : filtered.filter(
+              song => sourceBandNameById.get(song.id) === selectedSource
+            )
     }
 
     // Apply sorting
@@ -1280,6 +1329,9 @@ export const SongsPage: React.FC = () => {
     selectedTuning,
     selectedTags,
     selectedShow,
+    isPersonalTab,
+    selectedSource,
+    sourceBandNameById,
     sortBy,
   ])
 
@@ -1307,6 +1359,7 @@ export const SongsPage: React.FC = () => {
     selectedTuning,
     ...selectedTags,
     selectedShow,
+    isPersonalTab ? selectedSource : '',
   ].filter(Boolean).length
 
   // Clear all filters
@@ -1314,6 +1367,7 @@ export const SongsPage: React.FC = () => {
     setSelectedTuning('')
     setSelectedTags([])
     setSelectedShow('')
+    setSelectedSource('')
   }
 
   // DATABASE INTEGRATION: Handle duplicate song
@@ -1772,6 +1826,35 @@ export const SongsPage: React.FC = () => {
                       />
                     </div>
 
+                    {/* Source Filter (personal tab only — catalog provenance) */}
+                    {isPersonalTab && (
+                      <div>
+                        <label className="block text-xs text-ink-3 mb-2">
+                          Source
+                        </label>
+                        <Dropdown
+                          data-testid="song-source-filter"
+                          value={selectedSource}
+                          onChange={setSelectedSource}
+                          groups={[
+                            {
+                              options: [
+                                { value: '', label: 'All sources' },
+                                {
+                                  value: '__original__',
+                                  label: 'Original (not from a band)',
+                                },
+                                ...availableSources.map(name => ({
+                                  value: name,
+                                  label: `from ${name}`,
+                                })),
+                              ],
+                            },
+                          ]}
+                        />
+                      </div>
+                    )}
+
                     {/* Tags Filter */}
                     <div>
                       <label className="block text-xs text-ink-3 mb-2">
@@ -1948,6 +2031,11 @@ export const SongsPage: React.FC = () => {
                       linked={linkedSongIds.has(song.id)}
                       linkedLabel={linkedTooltip}
                       hasPersonalNote={personalNotePresence.has(song.id)}
+                      sourceBandName={
+                        isPersonalTab
+                          ? sourceBandNameById.get(song.id)
+                          : undefined
+                      }
                       onHide={handleToggleHidden}
                       hideMode={showHidden ? 'readd' : 'hide'}
                       openActionMenuId={openActionMenuId}
@@ -1981,6 +2069,11 @@ export const SongsPage: React.FC = () => {
                     linked={linkedSongIds.has(song.id)}
                     linkedLabel={linkedTooltip}
                     hasPersonalNote={personalNotePresence.has(song.id)}
+                    sourceBandName={
+                      isPersonalTab
+                        ? sourceBandNameById.get(song.id)
+                        : undefined
+                    }
                     onHide={handleToggleHidden}
                     hideMode={showHidden ? 'readd' : 'hide'}
                     openActionMenuId={openActionMenuId}
