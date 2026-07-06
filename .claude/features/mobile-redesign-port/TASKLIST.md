@@ -40,8 +40,9 @@ schema forks — flagged for your review + go-ahead so they get full attention, 
       new event → Back returns to the Calendar) via a history-aware `useGoBack` + `replace` on create.
       Standalone `/shows` `/practices` `/events` routes still exist for direct access.
 - [x] **Calendar `?filter=` query-param — DONE.** `CalendarPage` reads + writes `?filter=`.
-- [ ] **D2 modal retirement (remaining):** retire `ScheduleShowModal`/`ShowFormModal`/`PracticeBuilderPage`
-      for the canonical `ShowViewPage`/`PracticeViewPage` (dual-implementation cleanup).
+- [x] **D2 modal retirement — DONE (2026-07-06).** `ScheduleShowModal` (edit) → `ShowViewPage`;
+      `PracticeBuilderPage` (`/edit`) → `PracticeViewPage` (+ redirect for stale links). Modal/builder
+      code left as `@deprecated` dead code (mentioned, not deleted per repo policy).
 - [x] **Date/time pickers — DONE.** De-finicked: no double-click-to-type, no duplicate icons,
       single-click opens, type-ahead field; native inputs dark-themed.
 - [ ] Mobile bottom nav — **unchanged** per spec (Home · Songs · Sets · Calendar · More).
@@ -72,8 +73,10 @@ schema forks — flagged for your review + go-ahead so they get full attention, 
   `useTunings`; 8 service + 5 data tests). **Song-form picker DONE** — EditSongModal native
   `<select>`→C0 Dropdown (grouped built-in/custom, color dots), writes `tuning_id` + keeps
   `guitarTuning` fallback, legacy→built-in auto-resolve on edit; Song model `tuning_id` + repo
-  mapping. Verified in Playwright. **Next:** Settings › Tunings manager + create flow + "＋ New
-  tuning" field action. `[UI]`
+  mapping. Verified in Playwright. **DONE (2026-07-06):** Settings › Tunings manager (built-ins
+  grouped/locked + note strings; customs create/delete), `CreateTuningModal` (instrument + string
+  stepper → prefilled note pickers, name/colour), and the "＋ New tuning" / "Manage tunings" field
+  actions on the song-form picker. `[UI]` ✓ (edit-existing-custom is a small follow-up.)
 - [ ] **#3 Catalog provenance / Source filter** — "from ‹band›" tag, Source filter, Hide/Re-add.
       `[SCHEMA]` — RESOLVED (D4): a **`song_hidden` JOIN table** (`user_id` + `song_id`), NOT a
       boolean on songs. New table → grants + RLS (own rows only) + security review + negative tests.
