@@ -77,31 +77,40 @@ code + this file win.
       Playwright (injected+removed test notes); markdown-notes/personal-mirroring e2e green.
       NOTE: `crud.spec.ts:260 "member can delete song"` fails but is **pre-existing** (fails on base
       without this change) — flagged separately, not caused here.
-- [~] **#6 Desktop two-pane layouts** — Home two-column dashboard, Events master/detail, Settings
-  left-nav, Friends right-rail. Net-new responsive layouts. (per-sub-layout, in progress)
-  **Settings left-nav DONE:** `SettingsPage` desktop `lg:grid lg:grid-cols-[200px_1fr]` with a
-  sticky left section-nav (`settings-nav`, items `settings-nav-{id}`) using an IntersectionObserver
-  **scroll-spy** (highlights the in-view section) + click-to-scroll. Chose scroll-spy over
-  "only-active-section" so **all sections stay rendered** → the existing settings e2e (which asserts
-  multiple sections at once) is unaffected. Mobile keeps the stacked layout (nav `hidden lg:block`).
-  Section anchors added (`settings-account/tunings/privacy/app-info/developer`, `scroll-mt-4`).
-  tsc+lint clean; verified live at 1280px (nav + spy jump) and 390px (stacked, nav hidden);
-  settings e2e identical to base (16 pass, same pre-existing 3 delete-account-workflow fails).
-  **Home two-column dashboard DONE:** `HomePage` widened to `max-w-5xl`; desktop `lg:grid-cols-3` splits
-  into a main column (`lg:col-span-2` — upcoming Next-show/Next-practice, or the band-less create-band
-  prompt) beside a side rail (stats + quick actions), with "Browse the full repertoire" spanning full
-  width below. Removed the stale `TODO(ui-pass) row 06` deferral. Mobile stacks everything in source
-  order (grid collapses to 1 col). All testids preserved. tsc+lint clean; verified live at 1280px
-  (two-column) + 390px (stacked); 18/18 persistent-layout + band-less-flow e2e green (incl. "home
-  dashboard renders stats + quick actions").
-  **Friends right-rail DONE:** `FriendsPage` widened to `max-w-5xl`; desktop `lg:grid-cols-3` with a
-  **main column** (`lg:col-span-2` — Requests, Sent, Friends list) beside a **right rail**
-  (`lg:col-start-3` — your friend code + add-a-friend). The rail is FIRST in DOM (so mobile keeps
-  code/add at the top) but placed in col 3 on desktop via explicit `col-start`/`row-start` grid
-  placement — mobile source order fully preserved (code→add→requests→list). All testids preserved.
-  tsc+lint clean; verified live at 1280px (right-rail) + 390px (stacked, utilities top);
-  13/13 persistent-layout e2e green (no friends-specific e2e exists).
-  **Remaining sub-layout:** Events master/detail (list ↔ embedded `EventDetailPage` on desktop).
+- [x] **#6 Desktop two-pane layouts** — DONE (all 4 sub-layouts). Final gate: type-check clean ·
+      `npm run lint` 0 errors · `npm run build` ✓.
+      **Settings left-nav DONE:** `SettingsPage` desktop `lg:grid lg:grid-cols-[200px_1fr]` with a
+      sticky left section-nav (`settings-nav`, items `settings-nav-{id}`) using an IntersectionObserver
+      **scroll-spy** (highlights the in-view section) + click-to-scroll. Chose scroll-spy over
+      "only-active-section" so **all sections stay rendered** → the existing settings e2e (which asserts
+      multiple sections at once) is unaffected. Mobile keeps the stacked layout (nav `hidden lg:block`).
+      Section anchors added (`settings-account/tunings/privacy/app-info/developer`, `scroll-mt-4`).
+      tsc+lint clean; verified live at 1280px (nav + spy jump) and 390px (stacked, nav hidden);
+      settings e2e identical to base (16 pass, same pre-existing 3 delete-account-workflow fails).
+      **Home two-column dashboard DONE:** `HomePage` widened to `max-w-5xl`; desktop `lg:grid-cols-3` splits
+      into a main column (`lg:col-span-2` — upcoming Next-show/Next-practice, or the band-less create-band
+      prompt) beside a side rail (stats + quick actions), with "Browse the full repertoire" spanning full
+      width below. Removed the stale `TODO(ui-pass) row 06` deferral. Mobile stacks everything in source
+      order (grid collapses to 1 col). All testids preserved. tsc+lint clean; verified live at 1280px
+      (two-column) + 390px (stacked); 18/18 persistent-layout + band-less-flow e2e green (incl. "home
+      dashboard renders stats + quick actions").
+      **Friends right-rail DONE:** `FriendsPage` widened to `max-w-5xl`; desktop `lg:grid-cols-3` with a
+      **main column** (`lg:col-span-2` — Requests, Sent, Friends list) beside a **right rail**
+      (`lg:col-start-3` — your friend code + add-a-friend). The rail is FIRST in DOM (so mobile keeps
+      code/add at the top) but placed in col 3 on desktop via explicit `col-start`/`row-start` grid
+      placement — mobile source order fully preserved (code→add→requests→list). All testids preserved.
+      tsc+lint clean; verified live at 1280px (right-rail) + 390px (stacked, utilities top);
+      13/13 persistent-layout e2e green (no friends-specific e2e exists).
+      **Events master/detail DONE:** extracted `EventDetailPage`'s body into an exported prop-driven
+      `EventDetailContent({ eventId, embedded })` (pure move — casting console #5 JSX/logic untouched);
+      `EventDetailPage` is now a thin `useParams` wrapper. `EventsPage` (`max-w-6xl`) on desktop renders a
+      two-pane `lg:grid-cols-[minmax(280px,340px)_1fr]`: master list (left, first event auto-selected +
+      active card `border-accent`) beside a right detail pane (`events-detail-pane`) embedding
+      `EventDetailContent`. Card click is viewport-aware: desktop → set selection (no nav, URL stays
+      `/events`); mobile → `navigate('/events/:id')` (list only, pane not mounted). Standalone `/events/:id`
+      unchanged (back button shows when not embedded). All testids preserved. Verified live: desktop
+      list+detail with working casting tabs (Lineup/Requests/People/Access, switch events without nav);
+      mobile list→navigate; 13/13 persistent-layout e2e green.
 - [x] **#7 Retire the remaining native `<select>`s → C0 `<Dropdown>`** — DONE (all LIVE selects migrated).
       Final gate: `type-check` clean · `npm run lint` 0 errors (44 pre-existing warnings) · `npm run build` ✓.
       **Batch A DONE:** `SongsPage` (sort `song-sort`, tuning filter `song-tuning-filter`, show filter

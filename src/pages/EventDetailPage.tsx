@@ -70,8 +70,13 @@ type EventTab = 'lineup' | 'requests' | 'people' | 'access'
  * Tabbed: Lineup (cast + guest raise-a-hand) · Requests (song request → resolve) ·
  * People (participants) · Access (host visibility/code/permissions).
  */
-export function EventDetailPage() {
-  const { eventId } = useParams<{ eventId: string }>()
+export function EventDetailContent({
+  eventId,
+  embedded = false,
+}: {
+  eventId?: string
+  embedded?: boolean
+}) {
   const { showToast } = useToast()
   const { user } = useAuth()
   const goBack = useGoBack('/calendar?filter=events')
@@ -155,14 +160,19 @@ export function EventDetailPage() {
   ]
 
   return (
-    <div data-testid="event-detail-page" className="max-w-3xl">
-      <button
-        onClick={goBack}
-        data-testid="event-back"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink-1"
-      >
-        <ArrowLeft size={16} /> Back
-      </button>
+    <div
+      data-testid="event-detail-page"
+      className={embedded ? '' : 'max-w-3xl'}
+    >
+      {!embedded && (
+        <button
+          onClick={goBack}
+          data-testid="event-back"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink-1"
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
+      )}
 
       <ContentLoadingSpinner isLoading={loading}>
         {!event ? (
@@ -593,6 +603,11 @@ export function EventDetailPage() {
       </ContentLoadingSpinner>
     </div>
   )
+}
+
+export function EventDetailPage() {
+  const { eventId } = useParams<{ eventId: string }>()
+  return <EventDetailContent eventId={eventId} />
 }
 
 /** A themed on/off switch row for the Access tab. */
