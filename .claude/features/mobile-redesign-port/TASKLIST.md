@@ -181,22 +181,32 @@ code + this file win.
       so desktop reads as a floating modal while mobile stays full-bleed. All testids/handlers
       unchanged. tsc+lint clean; verified live at 1280px (card) + 390px (full-bleed) and end-to-end
       create flow (fills → navigates to `/events/:id`).
-- [~] **Casting depth (optional)** — **EC2 DONE**; EC1 remaining.
-  **EC2 — request→resolve catalog-linking DONE (option b, no schema/event-semantics change):**
-  `EventService.approveRequest(id, bandId?)` now takes the approving host's **current band context**
-  (`useEventDetail` passes `useAuth().currentBandId`) and, if the request isn't already linked,
-  matches `display_title`/`display_artist` (via `normalizeText` from `utils/songMatcher`, mirroring
-  SQL `normalize_text`) against that band's `songs.normalized_title/_artist`; on a hit it sets
-  `source='band', song_id=match` in the SAME status→approved update, so the BEFORE-UPDATE promote
-  trigger carries the link into the lineup item. Fully additive/defensive — no band, or no match →
-  plain approve, unchanged "Not linked" (zero regression). tsc+lint clean; verified live (a request
-  matching a Demo Band song → **"Band"** pill; a non-matching request → **"Not linked"**). Chose
-  option (b) over associating events with a band (`createEvent` still does NOT set `events.band_id`)
-  to avoid a semantic change to events; that (option a) remains open if you'd rather events be
-  band-scoped.
-  **EC1 remaining:** Grid/matrix cast view (songs × parts) on the event lineup — net-new view.
-  **Also relevant to "event setlist":** `events.setlist_id` FK already exists in the schema
-  (`20260702143450_events.sql`) — surfacing/attaching an event setlist would build on that.
+- [x] **Casting depth (optional)** — **EC1 + EC2 DONE.**
+      **EC2 — request→resolve catalog-linking DONE (option b, no schema/event-semantics change):**
+      `EventService.approveRequest(id, bandId?)` now takes the approving host's **current band context**
+      (`useEventDetail` passes `useAuth().currentBandId`) and, if the request isn't already linked,
+      matches `display_title`/`display_artist` (via `normalizeText` from `utils/songMatcher`, mirroring
+      SQL `normalize_text`) against that band's `songs.normalized_title/_artist`; on a hit it sets
+      `source='band', song_id=match` in the SAME status→approved update, so the BEFORE-UPDATE promote
+      trigger carries the link into the lineup item. Fully additive/defensive — no band, or no match →
+      plain approve, unchanged "Not linked" (zero regression). tsc+lint clean; verified live (a request
+      matching a Demo Band song → **"Band"** pill; a non-matching request → **"Not linked"**). Chose
+      option (b) over associating events with a band (`createEvent` still does NOT set `events.band_id`)
+      to avoid a semantic change to events; that (option a) remains open if you'd rather events be
+      band-scoped.
+      **EC1 — Grid/matrix cast view DONE** (`9d90c00`): host-only **List/Grid toggle** on the event
+      Lineup tab (`cast-view-toggle`/`-list`/`-grid`). `EventCastGrid` renders lineup songs × the v1
+      instrument set (Guitar/Bass/Drums/Vox/Keys) as a matrix — sticky-left song column +
+      horizontally-scrolling instrument columns, a `N of M parts · %` progress header, and cells showing
+      the current cast avatar / raised-hand count / open dot. Tapping a cell (host) opens a themed
+      bottom-sheet (`cast-cell-sheet`) to cast a raised hand, assign a participant, **free-text-cast a
+      name**, or unassign. Reads the SAME `casting_assignments` rows as the per-song List
+      (`SongCastPanel`) — free-text persists via `member_name` + null `member_id` (no schema change);
+      `INSTRUMENT_META`/`FALLBACK_INSTRUMENT` extracted to `instrumentMeta.ts` so both surfaces share the
+      vocabulary. Verified live in Playwright (assign/free-text/unassign + progress all update; free-text
+      row confirmed in DB); tsc+lint clean (0 errors); 285 unit tests green.
+      **Also relevant to "event setlist":** `events.setlist_id` FK already exists in the schema
+      (`20260702143450_events.sql`) — surfacing/attaching an event setlist would build on that.
 
 ### Schema (each: amend the feature migration, security review, negative tests, local-only)
 
