@@ -148,14 +148,18 @@ code + this file win.
       `practices/session.spec.ts:29,137,442` (practice session mode). Also observed:
       "Recently Added" sort can't distinguish same-session adds in E2E (createdDate sync-timestamp
       propagation) — separate concern, not this migration.
-- [ ] **#10 Notifications cross-context** — items name their band/event; opening switches context
-      (depends on the context switcher). ⚠️ **BLOCKED / under-specified:** notifications are
-      Supabase-only with `payload JSONB DEFAULT '{}'`; seed rows leave `payload` empty and there is NO
-      live minting path that populates band/event ids or names (INSERT is service_role-only, currently
-      only seed data exists). The frontend half (read `payload.bandId`/`eventId`, show a chip, call
-      `switchBand` on open before navigating) is buildable but **cannot be verified end-to-end without
-      backend payload data** — needs either a seed-payload + minting decision from the human first, or
-      scope it as frontend-only-defensive. Deferred pending that call.
+- [x] **#10 Notifications cross-context (SIMPLE version)** — DONE per human scope: just surface WHICH
+      band a notification came from, and only when it differs from the current context; the user then
+      switches manually (deliberately NO auto-switch — not a common early use-case). `NotificationsPage`
+      `Row` shows a subtle **"from ‹Band›"** chip (`notification-band-{id}`, Users icon) via
+      `otherBandLabel(n, currentBandId)` — renders only when `payload.bandId` exists AND
+      `payload.bandId !== currentBandId`, labelled from `payload.bandName`. Fully DEFENSIVE: notifications
+      with empty `payload` (all current ones) show nothing, so it's inert until a minting path populates
+      payload. tsc+lint clean; verified live (inserted cross-band notif → "from Weekend Warriors";
+      same-context Demo Band notif → no chip; empty-payload seed rows → no chip).
+      **Payload contract for future minting:** `payload: { bandId: string, bandName: string }` (and later
+      `eventId`/`eventName` if events want the same). Populating it (seed + server-side minting) is the
+      remaining backend step; the frontend is ready.
 - [x] **Setlist builder** — `BrowseSongsDrawer` responsive — DONE. Now picks its `SlideOutTray`
       `position` via `useViewport().isMobile`: **mobile (<768px) → bottom-sheet** (grab handle, rounded
       top, 85vh) and **desktop → right side panel** (480px, unchanged) — was a 480px right overlay on

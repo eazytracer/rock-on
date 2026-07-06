@@ -7,11 +7,13 @@ import {
   Activity,
   PartyPopper,
   UserPlus,
+  Users,
   X,
   CheckCheck,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNotifications } from '../hooks/useNotifications'
+import { useAuth } from '../contexts/AuthContext'
 import type { AppNotification, NotificationKind } from '../models/Notification'
 import { EmptyState } from '../components/common/EmptyState'
 import { Eyebrow } from '../components/common/Eyebrow'
@@ -46,8 +48,27 @@ function relativeTime(date: Date): string {
  * Notifications center (mobile-redesign-port P10).
  * Real feed backed by NotificationService — typed items + latest release note.
  */
+/**
+ * Cross-context provenance (#10, simple version): if a notification carries a
+ * band it belongs to (payload.bandId) AND that band is NOT the one currently in
+ * context, surface a "from ‹Band›" label so the user knows where it came from
+ * (they can switch context manually — we deliberately do NOT auto-switch).
+ * Defensive: notifications with no band payload show nothing.
+ */
+function otherBandLabel(
+  n: AppNotification,
+  currentBandId: string | null
+): string {
+  const payload = n.payload as { bandId?: unknown; bandName?: unknown }
+  const bandId = typeof payload?.bandId === 'string' ? payload.bandId : ''
+  const bandName = typeof payload?.bandName === 'string' ? payload.bandName : ''
+  if (!bandId || bandId === currentBandId) return ''
+  return bandName.trim()
+}
+
 export function NotificationsPage() {
   const navigate = useNavigate()
+  const { currentBandId } = useAuth()
   const {
     notifications,
     releaseNotes,
@@ -90,6 +111,7 @@ export function NotificationsPage() {
   const Row = ({ n }: { n: AppNotification }) => {
     const Icon = KIND_ICON[n.kind]
     const unread = !n.readAt
+    const fromBand = otherBandLabel(n, currentBandId)
     return (
       <div
         className={`flex items-start gap-3 rounded-xl border p-3 transition-colors ${
@@ -113,6 +135,14 @@ export function NotificationsPage() {
           </span>
           {n.body && (
             <span className="mt-0.5 block text-xs text-ink-3">{n.body}</span>
+          )}
+          {fromBand && (
+            <span
+              data-testid={`notification-band-${n.id}`}
+              className="mt-1 inline-flex items-center gap-1 rounded-md bg-bg-3 px-1.5 py-0.5 text-[10px] font-medium text-ink-3"
+            >
+              <Users size={10} /> from {fromBand}
+            </span>
           )}
           <span className="mt-1 block font-mono text-[10px] text-ink-5">
             {relativeTime(n.createdDate)}
