@@ -33,13 +33,7 @@ import {
 // DATABASE & UTILITIES - REAL IMPORTS
 // ============================================
 import { db } from '../services/database'
-import {
-  useUpcomingShows,
-  useCreateShow,
-  useUpdateShow,
-  useDeleteShow,
-} from '../hooks/useShows'
-import { SetlistService } from '../services/SetlistService'
+import { useUpcomingShows, useDeleteShow } from '../hooks/useShows'
 import { centsToDollars, dollarsToCents } from '../utils/formatters'
 import {
   formatShowDate,
@@ -113,21 +107,16 @@ export const ShowsPage: React.FC = () => {
   const currentBandId = localStorage.getItem('currentBandId') || ''
   const { upcomingShows, pastShows, loading, error } =
     useUpcomingShows(currentBandId)
-  const { createShow } = useCreateShow()
-  const { updateShow } = useUpdateShow()
   const { deleteShow } = useDeleteShow()
 
   // UI State
   const [filter, setFilter] = useState<FilterType>('upcoming')
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
-  const [selectedShow, setSelectedShow] = useState<Show | null>(null)
   const [showToDelete, setShowToDelete] = useState<Show | null>(null)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [searchQuery] = useState('')
 
   // Setlist data for display (loaded dynamically)
   const [setlistsData, setSetlistsData] = useState<Record<string, Setlist>>({})
-  const [availableSetlists, setAvailableSetlists] = useState<Setlist[]>([])
 
   // ============================================
   // LOAD SETLISTS FOR SHOWS - REAL DATABASE
@@ -140,8 +129,6 @@ export const ShowsPage: React.FC = () => {
           .where('bandId')
           .equals(currentBandId)
           .toArray()
-
-        setAvailableSetlists(allSetlists)
 
         // Build a map of setlistId -> setlist for quick lookup
         const setlistMap: Record<string, Setlist> = {}
@@ -251,8 +238,8 @@ export const ShowsPage: React.FC = () => {
   }
 
   const handleEditShow = (show: Show) => {
-    setSelectedShow(show)
-    setIsScheduleModalOpen(true)
+    // Canonical surface (D2): view + inline-edit + autosave live on ShowViewPage.
+    navigate(`/shows/${show.id}`)
   }
 
   const nextShow = getNextShow()
@@ -445,75 +432,6 @@ export const ShowsPage: React.FC = () => {
                 />
               ))}
           </div>
-        )}
-
-        {/* Schedule/Edit Show Modal - UPDATED FOR DATABASE */}
-        {isScheduleModalOpen && (
-          <ScheduleShowModal
-            show={selectedShow}
-            availableSetlists={availableSetlists}
-            onClose={() => {
-              setIsScheduleModalOpen(false)
-              setSelectedShow(null)
-            }}
-            onSave={async showData => {
-              try {
-                if (selectedShow) {
-                  // Edit existing show
-                  await updateShow(selectedShow.id, showData)
-                  console.log('Show updated successfully')
-                } else {
-                  // Create new show with optional setlist forking
-                  let forkedSetlistId: string | undefined = undefined
-
-                  // If a setlist was selected, fork it for this show
-                  if (showData.setlistId) {
-                    try {
-                      const forkedSetlist = await SetlistService.forkSetlist(
-                        showData.setlistId,
-                        showData.name || 'Show'
-                      )
-                      forkedSetlistId = forkedSetlist.id
-                      console.log(
-                        'Setlist forked successfully:',
-                        forkedSetlist.name
-                      )
-                    } catch (forkError) {
-                      console.error('Failed to fork setlist:', forkError)
-                      // Continue creating show without setlist if fork fails
-                    }
-                  }
-
-                  // Create the show with the forked setlist (if available)
-                  const newShow = await createShow({
-                    ...showData,
-                    setlistId: forkedSetlistId, // Use forked setlist instead of original
-                    bandId: currentBandId,
-                  })
-
-                  // Update the forked setlist to reference the show (bidirectional link)
-                  if (forkedSetlistId && newShow?.id) {
-                    try {
-                      await SetlistService.updateSetlist(forkedSetlistId, {
-                        showId: newShow.id,
-                      })
-                      console.log('Setlist linked to show successfully')
-                    } catch (linkError) {
-                      console.warn('Failed to link setlist to show:', linkError)
-                      // Non-critical - show is created, just missing bidirectional link
-                    }
-                  }
-
-                  console.log('Show created successfully')
-                }
-                setIsScheduleModalOpen(false)
-                setSelectedShow(null)
-              } catch (err) {
-                console.error('Failed to save show:', err)
-                showToast('Failed to save show', 'error')
-              }
-            }}
-          />
         )}
 
         {/* Delete Confirmation Modal */}
@@ -849,7 +767,10 @@ const ShowStatusBadge: React.FC<{ status: Show['status'] }> = ({ status }) => {
 }
 
 // ============================================
-// SCHEDULE SHOW MODAL - UPDATED FOR DATABASE
+// SCHEDULE SHOW MODAL — @deprecated / DEAD CODE
+// Retired (D2): the canonical create+view+edit surface is now `ShowViewPage`
+// (inline-edit + autosave). This modal is no longer routed or rendered anywhere;
+// kept only to avoid a large import-graph churn. Safe to delete in a cleanup pass.
 // ============================================
 export const ScheduleShowModal: React.FC<{
   show: Show | null
