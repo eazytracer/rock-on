@@ -6,6 +6,43 @@ My recommendation is first, but it's your call.
 
 ---
 
+## ✅ RESOLVED — build directives (answered 2026-07-06; these OVERRIDE the per-item recs below)
+
+Read the two updated design rows via the claude_design MCP (project `019df065-4ee1-707b-bfd9-d821331f5cad`):
+`app/spec-rows/23 C2 - Create and edit model.html` (NEW convention) and
+`app/spec-rows/14 07 - Schedule a show.html` (updated render).
+
+- **D1 → Option A (adopt Calendar-parent nav).** Sidebar nests **Shows · Practices · Events**
+  under **Calendar**, each deep-linking to `/calendar?filter=shows|practices|events`; `CalendarPage`
+  reads the `?filter=` query param and renders the segmented All·Shows·Practices·Events agenda.
+  The Shows/Practices/Events _lists become the Calendar-filtered views_ (no separate primary list
+  pages); individual items are pages. Rewrite `tests/e2e/layout/persistent-layout.spec.ts`
+  (`shows-link`/`practices-link` now go to `/calendar?filter=…`). Scope the ShowsPage/PracticesPage
+  list content into the filtered Calendar (keep the component, reach it via the filter, OR merge).
+- **D2 → PAGES, not modals (C2 convention — flips my earlier rec).** "One control surface per
+  entity": Show/Practice/Event/Setlist = a single page that is create (`/new`) + view + edit
+  (`/:id`) via one component with an `isNewMode` flag. Fields **inline-editable in place** (tap →
+  C0 picker opens anchored); existing records **autosave on change/blur** (brief "Saved" cue),
+  **Save button only in new-mode**, **Delete only once the record exists**.
+  - Shows canonical = **`ShowViewPage`**; **RETIRE `ScheduleShowModal`/`ShowFormModal`**.
+  - Practices canonical = **`PracticeViewPage`**; **RETIRE `PracticeBuilderPage`**. Confirm which
+    owns `/practices/new` and route both `/new` + `/:id` to it.
+  - Modals/sheets remain ONLY for routeless sub-objects (a song, a contact, a tuning) +
+    confirmations. (The tuning picker + tuning create modal already follow this — no change.)
+- **D3 → Yes.** Make "Just me" (solo) the first-class top option on `GetStartedPage`
+  (`src/pages/AuthPages.tsx`), "OR WITH A BAND" divider below. Preserve testids.
+- **D4 schema:**
+  - **#3 Source filter → a `song_hidden` JOIN table** (user_id + song_id), NOT a boolean on songs.
+  - **#5 Casting → Yes:** add a hands-raised table + `events.allow_suggestions` / `events.auto_approve`.
+  - **#9 Practice enrichment → NO.** Do **not** add type / objectives / rating / completed. Keep only
+    the two existing notes (pre-notes + wrap-up). So #9's schema work is CANCELLED; the practice
+    page consolidation (D2b) still happens, just with the current fields.
+
+Order unblocked by this: D1 nav, D2 show/practice page consolidation, D3 onboarding are all buildable
+now. Schema forks #3 (join table) and #5 (hands + event cols) are buildable with the §2 rigor.
+
+---
+
 ## D1 — Calendar-parent navigation (spec row 00)
 
 **Question:** In the **desktop sidebar**, should **Shows · Practices · Events** become _children
@@ -30,7 +67,7 @@ primary. The spec wants Calendar to be the single time axis.
 **Recommendation:** **B** — gets the IA intent with near-zero risk; A is the literal spec but
 churns nav + e2e for modest gain.
 
-**ANSWER:** **\_** (notes: )
+**ANSWER:** **A** (notes: I don't see a ton of value in having unique pages just for displaying calendar items that effectively work the same way. If a user was on the calendar and clicked into an event and then wanted to go back, it would be confusing to keep track of which page to go back to and doesn't add any real value.)
 
 ---
 
@@ -53,7 +90,7 @@ spec's "focused modal"); keep `ShowViewPage` only if it's needed as a read-only 
 else fold it in. The next agent should first confirm the modal has feature parity (contacts,
 load-in, payment, setlist fork-on-attach) before retiring the page path.
 
-**ANSWER:** **\_** (notes: )
+**ANSWER:** **This was a valid callout--I pushed back on the designer to make this a consistent behavior, there are new renders for schedule/edit practice and shows. Please use the MCP to pull the updates to the files, we should only use modals for things that can be edited from multiple views. ** (notes: )
 
 ---
 
@@ -73,7 +110,7 @@ rating — decision D-related, `[SCHEMA]`) get added to whichever wins.
 twin, to avoid drift. If they're equivalent, prefer `PracticeBuilderPage` (matches the "form"
 modal shape in the spec).
 
-**ANSWER:** **\_** (notes: )
+**ANSWER:** **See answer to previous issue--design was updated.** (notes: )
 
 ---
 
@@ -91,7 +128,7 @@ onboarding path — and testids (`personal-account-button`, `create-band-button`
 **Recommendation:** **Yes** — matches the spec and the already-shipped band-less capability;
 purely a layout/hierarchy change.
 
-**ANSWER:** **\_** (notes: )
+**ANSWER:** **Yes, follow the spec here** (notes: )
 
 ---
 
@@ -103,11 +140,11 @@ security-review, negative tests, local-only):
 
 - **#3 Source filter** — add `songs.hidden` (per-user "hide a band-sourced song from My Songs")?
   Or a separate `song_hidden` join table? **Recommendation:** a boolean/flag on the personal
-  mirror row is simplest. **ANSWER:** **\_**
+  mirror row is simplest. **ANSWER:** **I think the number will be small, the hidden join table should work well**
 - **#5 Casting** — add a **hands-raised** table + `events.allow_suggestions` / `auto_approve`
-  columns (for guest raise-a-hand + Access controls)? **ANSWER:** **\_**
+  columns (for guest raise-a-hand + Access controls)? **ANSWER:** **Yes**
 - **#9 Practice enrichment** — add `practice_sessions.type` (text+CHECK), `objectives` (jsonb),
-  `session_rating` (smallint 1–5), `completed_objectives` (jsonb)? **ANSWER:** **\_**
+  `session_rating` (smallint 1–5), `completed_objectives` (jsonb)? **ANSWER:** **No, I don't see a need to add those features for now. We just need to store the two notes we have now. Leave out objectives and rating**
 
 ---
 

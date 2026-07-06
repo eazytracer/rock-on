@@ -88,18 +88,22 @@ song-notes 4-state notepad (#4). Then the [SCHEMA] forks (#3 source-filter `song
 #9 practice enrichment, #5 casting) — these are approved but each needs a migration (amend the
 right feature file), a security review, and negative tests, per §2.
 
-## 5. DECISIONS awaiting the human — DO NOT proceed without answers
-The questions, options, and the human's answers live in
-`.claude/features/mobile-redesign-port/DECISIONS.md`. Read that file; if an item's `ANSWER:`
-line is blank, skip that work and leave a note. Summary of what's blocked:
-1. Adopt the Calendar-parent sidebar nav (nest Shows/Practices/Events, deep-link
-   `/calendar?filter=…`)? It changes nav semantics and rewrites `tests/e2e/layout/
-   persistent-layout.spec.ts` (which asserts `shows-link`→`/shows`).
-2. Canonical create surface: Shows (`ScheduleShowModal` in `src/pages/ShowsPage.tsx` vs the
-   `/shows/new` `src/pages/ShowViewPage.tsx`) and Practices (`PracticeBuilderPage` vs
-   `PracticeViewPage(isNew)`) — pick one each before consolidating.
-3. Onboarding: make "Just me" (solo) the first-class top option in `GetStartedPage`
-   (`src/pages/AuthPages.tsx`)?
+## 5. DECISIONS — ANSWERED (see `DECISIONS.md` top "RESOLVED — build directives" block)
+All answered 2026-07-06. Read `.claude/features/mobile-redesign-port/DECISIONS.md` for the full
+directives; also pull the two updated design rows via the design MCP (project
+`019df065-4ee1-707b-bfd9-d821331f5cad`): `app/spec-rows/23 C2 - Create and edit model.html` (the
+page-vs-modal convention) and `app/spec-rows/14 07 - Schedule a show.html`. Summary:
+1. **Calendar-parent nav = YES (Option A).** Nest Shows/Practices/Events under Calendar,
+   deep-link `/calendar?filter=…`; those lists become Calendar-filtered views; items are pages.
+   Rewrite `tests/e2e/layout/persistent-layout.spec.ts`.
+2. **Create/edit = ONE PAGE per entity (C2), NOT modals.** `ShowViewPage`/`PracticeViewPage` are
+   canonical (`/new` + `/:id`, one component, inline-edit + autosave, Save only in new-mode,
+   Delete only when it exists). **RETIRE `ScheduleShowModal` and `PracticeBuilderPage`.** Modals
+   stay only for routeless sub-objects (song/contact/tuning) + confirmations.
+3. **Onboarding = YES** — "Just me" first-class top option in `GetStartedPage` (`AuthPages.tsx`).
+4. **Schema:** #3 source filter → a **`song_hidden` join table** (not a boolean); #5 casting →
+   **yes** (hands-raised table + `events.allow_suggestions`/`auto_approve`); **#9 practice
+   enrichment → NO** (keep only the two existing notes; no type/objectives/rating).
 
 ## 6. Dev environment + verification
 - Start (if not running): `npm run start:dev` (local Supabase + edge functions + Vite on :5173).

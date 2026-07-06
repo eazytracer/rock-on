@@ -30,9 +30,12 @@ schema forks — flagged for your review + go-ahead so they get full attention, 
 
 ## A. Navigation & IA ← (you asked about this)
 
-- [ ] **Calendar-parent sidebar nav** — nest **Shows · Practices · Events** under Calendar; each
-      deep-links to `/calendar?filter=…` (spec row 00). `[DECISION]` changes nav semantics + **breaks
-      `persistent-layout.spec`** (asserts `shows-link`→`/shows`) → needs a coordinated e2e update.
+- [ ] **Calendar-parent sidebar nav — RESOLVED: Option A** (DECISIONS D1; spec rows 00 + 07/C2).
+      Nest **Shows · Practices · Events** under Calendar; deep-link `/calendar?filter=shows|practices|
+    events`; the Shows/Practices/Events _lists become the Calendar-filtered views_ (segmented
+      All·Shows·Practices·Events agenda), items are pages. **Rewrite `persistent-layout.spec`**
+      (`shows-link`/`practices-link` now → `/calendar?filter=…`). Scope ShowsPage/PracticesPage list
+      content into the filtered Calendar.
 - [ ] **Calendar `?filter=` query-param** reading in `CalendarPage` (paired with the above).
 - [ ] Mobile bottom nav — **unchanged** per spec (Home · Songs · Sets · Calendar · More).
 
@@ -40,12 +43,15 @@ schema forks — flagged for your review + go-ahead so they get full attention, 
 
 - [ ] **Song add/edit** — tuning **picker** (C0 dropdown, grouped Built-in/Your, writes `tuning_id`,
       keeps `guitarTuning` fallback). `[UI]` — fork #2, DB ready.
-- [ ] **Show create/edit** — **consolidate** the two surfaces (`ScheduleShowModal` vs the
-      `/shows/new` `ShowViewPage`) into one canonical create surface (spec row 07 = focused modal
-      desktop / full-screen mobile). `[DECISION]` which surface wins. Fields/pickers already token-clean.
-- [ ] **Practice create/edit** — **consolidate** `PracticeBuilderPage` vs `PracticeViewPage(isNew)`;
-      add **Type** dropdown, **goals/objectives[]** checklist, **session rating (1–5)**. `[SCHEMA]`
-      (practice_sessions cols) `[DECISION]` canonical surface.
+- [ ] **Show create/edit — RESOLVED: `ShowViewPage` is canonical** (DECISIONS D2; spec C2 + row 07).
+      One page = create (`/shows/new`) + view + edit (`/:id`), one component (`isNewMode`), fields
+      **inline-editable in place** (C0 pickers anchored), **autosave on existing** (brief "Saved"),
+      **Save only in new-mode**, **Delete only once it exists**. **RETIRE `ScheduleShowModal`/
+      `ShowFormModal`.** Keep setlist fork-on-attach. Status tones already correct (SHOW_TONE).
+- [ ] **Practice create/edit — RESOLVED: `PracticeViewPage` is canonical** (D2 + C2). Same page
+      pattern; **RETIRE `PracticeBuilderPage`**; route `/practices/new` + `/:id` to it. **NO new
+      fields** (D4 #9 = No) — keep only the two existing notes (pre-notes + wrap-up); no Type /
+      objectives / rating.
 - [ ] **Setlist builder** — `BrowseSongsDrawer` → desktop-**docked** panel / mobile **bottom-sheet**
       (today a 480px overlay everywhere). `[UI]` shared component (3 pages).
 - [ ] **Event create** — desktop **centered modal** (today full page). `[UI]` minor.
@@ -62,18 +68,23 @@ schema forks — flagged for your review + go-ahead so they get full attention, 
   mapping. Verified in Playwright. **Next:** Settings › Tunings manager + create flow + "＋ New
   tuning" field action. `[UI]`
 - [ ] **#3 Catalog provenance / Source filter** — "from ‹band›" tag, Source filter, Hide/Re-add.
-      `[SCHEMA]` (songs `hidden` flag on the personal mirror).
+      `[SCHEMA]` — RESOLVED (D4): a **`song_hidden` JOIN table** (`user_id` + `song_id`), NOT a
+      boolean on songs. New table → grants + RLS (own rows only) + security review + negative tests.
 - [ ] **#4 Song-notes notepad 4-state** — grey/blue/orange/gradient by note contents (batched
       per-song personal-note presence). `[UI]` logic.
 - [ ] **#5 Event casting console** — parts/grid model, **raise-a-hand** `[SCHEMA]`, request→resolve,
       **Access** tab (visibility/QR + `allow_suggestions`/`auto_approve` `[SCHEMA]`). Biggest fork.
+      RESOLVED (D4): yes — add a hands-raised table + `events.allow_suggestions`/`auto_approve` (amend
+      the events/casting migration; security review + negative tests).
 - [ ] **#6 Desktop two-pane layouts** — Home two-column dashboard, Events master/detail, Settings
       left-nav, Friends right-rail. `[UI]`
 - [ ] **#7 C0 anchored `<Dropdown>`** — reusable; **retire the 24 native `<select>`s**. Started as
       part of #2. `[UI]` per-file e2e updates (breaks `selectOption`).
-- [ ] **#8 Onboarding** — make **"Just me" (solo)** the first-class top option; one-time **auto-add
-      band songs?** prompt on join/create. `[SCHEMA]`-lite (settings field) `[UI]`.
-- [ ] **#9 Practice enrichment** — same as the Practice add/edit item (B). `[SCHEMA]`.
+- [ ] **#8 Onboarding — RESOLVED (D3): yes.** Make **"Just me" (solo)** the first-class top option
+      on `GetStartedPage` (`AuthPages.tsx`), "OR WITH A BAND" divider below; preserve testids. (The
+      one-time "auto-add band songs?" prompt stays a smaller follow-up.)
+- [x] **#9 Practice enrichment — CANCELLED (D4).** No type/objectives/rating/completed; keep the two
+      existing notes. Practice page consolidation lives in §B.
 - [ ] **#10 Notifications cross-context** — items name their band/event; opening switches context.
 
 ## D. Cross-cutting / cleanup
