@@ -8,6 +8,15 @@ redesign work (nav, forms, features). Detail lives in `2026-07-06T01:54_per-page
 
 ---
 
+## 🌙 Overnight session log (2026-07-06)
+
+6 commits, all local + tests-green + rigor-applied. Nothing pushed to prod.
+`feaa9e4` Part 1 · `3e01fe4` context switch + Songs · `cf423fa` Setlists personal ·
+`e4c8240` tunings DB hardened (security review + 12 negative pgTAP) · `96ec7bd` tuning
+foundation (C0 Dropdown + service, 18 tests) · `1699b2a` song tuning picker (Playwright-verified).
+**Paused before** the Settings › Tunings _create_ flow (per-string note pickers) and the
+schema forks — flagged for your review + go-ahead so they get full attention, not tail-end effort.
+
 ## ✅ Done (committed, verified)
 
 - **Part 1** — design-token migration + styling fidelity across every page (`feaa9e4`)
