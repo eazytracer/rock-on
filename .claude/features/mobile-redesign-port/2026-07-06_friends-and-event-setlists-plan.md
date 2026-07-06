@@ -2,7 +2,7 @@
 feature: mobile-redesign-port / Friends + Event Lineup ("event setlist")
 doc: Updated task list + OPEN QUESTIONS — grounded in the FINALIZED static design specs
 created: 2026-07-06
-status: v1 DECIDED (answers 2026-07-06) — building V1→V4; Friends surface + Resolve + public-songs HELD/deferred
+status: v1 SHIPPED (V1–V4 all done + verified) — Friends surface + Resolve + public-songs HELD/deferred
 ---
 
 # Friends + Event Lineup ("event setlist") — plan & open questions
@@ -114,8 +114,14 @@ raises a hand by **checking the instrument(s)** they're open to playing on a son
 raised hand (or a free-text name) onto an instrument. Maps onto the existing schema: `role_key` =
 instrument; band-less events use this fixed default set instead of `band_roles`.
 
-**Build order:**
+**Build order — ✅ V1–V4 ALL SHIPPED + verified (see commits below):**
 
+- ✅ **V1 (`50d73c0`)** — fixed instrument set. ✅ **V2 (`9d90c00`)** — Grid cast view.
+  ✅ **V3** — free-text cast (in Grid `9d90c00` sheet + the List `SongCastPanel` `cast-freetext-*` path).
+  ✅ **V4 (`7801c33`)** — invite friends. **Note the RLS turned out to be a no-op:** the
+  co-participant name visibility (`users_select_event_coparticipant`) AND the manager-insert branch of
+  `event_participants_insert_self` were both already shipped + security-reviewed in the
+  social_events / event_code_join migrations — so V4 needed NO schema/RLS change, purely frontend.
 - **V1 — Instrument set + raise-a-hand-by-checkbox.** A fixed event role set
   (`guitar/bass/drums/vox/keys/other`, `other` free-text) used for personal (band-less) events instead
   of `band_roles`. Guest raise-a-hand UI = check instrument(s) per song → `event_hands` rows. Build the
