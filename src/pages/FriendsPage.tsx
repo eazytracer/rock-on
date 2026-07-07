@@ -10,6 +10,8 @@ import {
   QrCode,
   Clock,
   Users,
+  Search,
+  Shield,
 } from 'lucide-react'
 import { useFriends } from '../hooks/useFriends'
 import { useToast } from '../contexts/ToastContext'
@@ -18,7 +20,7 @@ import { Eyebrow } from '../components/common/Eyebrow'
 import { EmptyState } from '../components/common/EmptyState'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { Dropdown } from '../components/common/Dropdown'
-import type { FriendRequestPolicy } from '../models/Friend'
+import type { FriendRequestPolicy, FriendSearchResult } from '../models/Friend'
 
 const POLICY_OPTIONS: { value: FriendRequestPolicy; label: string }[] = [
   { value: 'everyone', label: 'Everyone' },
@@ -48,6 +50,8 @@ export function FriendsPage() {
     decline,
     unfriend,
     sendToCode,
+    sendToUser,
+    searchByName,
     setDiscoverable,
     setPolicy,
   } = useFriends()
@@ -55,6 +59,10 @@ export function FriendsPage() {
   const [code, setCode] = useState('')
   const [sending, setSending] = useState(false)
   const [showQR, setShowQR] = useState(false)
+  const [nameQuery, setNameQuery] = useState('')
+  const [results, setResults] = useState<FriendSearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [addingId, setAddingId] = useState<string | null>(null)
 
   // Prefill the add-a-friend code when arriving via a shared QR / link
   // (`/friends?code=XXXX`).
@@ -62,6 +70,50 @@ export function FriendsPage() {
     const shared = searchParams.get('code')
     if (shared) setCode(shared.toUpperCase())
   }, [searchParams])
+
+  // Debounced find-by-name search of discoverable people.
+  useEffect(() => {
+    const q = nameQuery.trim()
+    if (q.length < 2) {
+      setResults([])
+      setSearching(false)
+      return
+    }
+    setSearching(true)
+    const t = setTimeout(() => {
+      void searchByName(q).then(r => {
+        setResults(r)
+        setSearching(false)
+      })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [nameQuery, searchByName])
+
+  // Annotate a search result with the caller's existing relationship, so we
+  // show "Friends"/"Sent"/"Respond" instead of a redundant Add button.
+  const friendIds = new Set(friends.map(f => f.userId))
+  const sentIds = new Set(outgoing.map(r => r.userId))
+  const incomingIds = new Set(incoming.map(r => r.userId))
+  const statusFor = (userId: string): 'friend' | 'sent' | 'incoming' | 'add' =>
+    friendIds.has(userId)
+      ? 'friend'
+      : sentIds.has(userId)
+        ? 'sent'
+        : incomingIds.has(userId)
+          ? 'incoming'
+          : 'add'
+
+  const handleAddUser = async (r: FriendSearchResult) => {
+    setAddingId(r.userId)
+    const res = await sendToUser(r.userId)
+    setAddingId(null)
+    showToast(
+      res.ok
+        ? `Friend request sent to ${res.name}`
+        : (res.error ?? 'Could not send request'),
+      res.ok ? 'success' : 'error'
+    )
+  }
 
   const qrValue = profile?.friendCode
     ? `${window.location.origin}/friends?code=${profile.friendCode}`
@@ -194,8 +246,8 @@ export function FriendsPage() {
               </div>
             </div>
 
-            {/* Add by code */}
-            <div>
+            {/* Add a friend — by code or by name */}
+            <div data-testid="friends-add">
               <Eyebrow className="mb-2">Add a friend</Eyebrow>
               <div className="flex gap-2">
                 <input
@@ -215,6 +267,87 @@ export function FriendsPage() {
                 >
                   <UserPlus size={16} /> Send
                 </button>
+              </div>
+
+              {/* Find people by name (discoverable profiles only) */}
+              <div className="mt-3">
+                <div className="relative">
+                  <Search
+                    size={15}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-4"
+                  />
+                  <input
+                    value={nameQuery}
+                    onChange={e => setNameQuery(e.target.value)}
+                    placeholder="Find people by name"
+                    name="friendSearch"
+                    id="friend-search-input"
+                    data-testid="friends-search-input"
+                    className="w-full rounded-lg bg-bg-1 border border-border-1 pl-9 pr-3 py-2 text-sm text-ink-1 placeholder:text-ink-5 focus:border-accent focus:outline-none"
+                  />
+                </div>
+
+                {nameQuery.trim().length >= 2 && (
+                  <>
+                    <div
+                      className="mt-2 flex flex-col gap-2"
+                      data-testid="friends-search-results"
+                    >
+                      {searching ? (
+                        <div className="px-1 py-2 text-xs text-ink-5">
+                          Searching…
+                        </div>
+                      ) : results.length === 0 ? (
+                        <div className="px-1 py-2 text-xs text-ink-5">
+                          No discoverable people found.
+                        </div>
+                      ) : (
+                        results.map(r => {
+                          const status = statusFor(r.userId)
+                          return (
+                            <div
+                              key={r.userId}
+                              className="flex items-center gap-2.5 rounded-xl bg-bg-1 border border-border-1 p-2.5"
+                              data-testid={`friend-search-${r.userId}`}
+                            >
+                              <Avatar label={r.name} size="sm" />
+                              <span className="flex-1 truncate text-sm font-medium text-ink-1">
+                                {r.name}
+                              </span>
+                              {status === 'add' ? (
+                                <button
+                                  onClick={() => void handleAddUser(r)}
+                                  disabled={addingId === r.userId}
+                                  data-testid={`friend-search-add-${r.userId}`}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-accent-soft px-2.5 py-1.5 text-xs font-medium text-accent disabled:opacity-50"
+                                >
+                                  <UserPlus size={14} /> Add
+                                </button>
+                              ) : (
+                                <span className="px-2 text-xs text-ink-5">
+                                  {status === 'friend'
+                                    ? 'Friends'
+                                    : status === 'sent'
+                                      ? 'Sent'
+                                      : 'In requests'}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-start gap-2 rounded-lg bg-bg-2 border border-border-1 px-2.5 py-2">
+                      <Shield
+                        size={13}
+                        className="mt-0.5 flex-shrink-0 text-ink-4"
+                      />
+                      <span className="text-xs text-ink-5 leading-snug">
+                        Private profiles won't show — ask for a code or QR.
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </aside>

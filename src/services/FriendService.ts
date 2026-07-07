@@ -13,6 +13,7 @@ import type {
   FriendRequestSummary,
   MyFriendProfile,
   FriendRequestPolicy,
+  FriendSearchResult,
 } from '../models/Friend'
 
 const log = createLogger('FriendService')
@@ -238,10 +239,72 @@ export class FriendService {
     if (match.user_id === me)
       return { ok: false, error: "That's your own code" }
     const insName = match.display_name ?? match.name
+    const res = await FriendService.insertRequest(me, match.user_id)
+    return res.ok ? { ok: true, name: insName } : res
+  }
+
+  /**
+   * Find discoverable people by display name (RLS permits reading opted-in
+   * profiles). Excludes the current user; the caller annotates already-friend /
+   * already-requested rows from state it already holds. Hidden profiles never
+   * appear — they're reachable only by friend code.
+   */
+  static async searchByName(query: string): Promise<FriendSearchResult[]> {
+    const q = query.trim()
+    if (q.length < 2) return []
+    const supabase = getSupabaseClient()
+    if (!supabase) return []
+    const me = await currentUserId()
+    if (!me) return []
+    // Escape LIKE wildcards so user input matches literally.
+    const pattern = `%${q.replace(/[\\%_]/g, '\\$&')}%`
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('user_id, display_name')
+      .eq('discoverable', true)
+      .ilike('display_name', pattern)
+      .neq('user_id', me)
+      .limit(10)
+    if (error) {
+      log.error('searchByName failed', error)
+      return []
+    }
+    return (
+      (data as unknown as { user_id: string; display_name: string | null }[]) ??
+      []
+    )
+      .filter(r => r.display_name)
+      .map(r => ({ userId: r.user_id, name: r.display_name as string }))
+  }
+
+  /** Send a friend request straight to a user id (e.g. from name search). */
+  static async sendRequestToUser(
+    userId: string
+  ): Promise<{ ok: boolean; name?: string; error?: string }> {
+    const me = await currentUserId()
+    if (!me) return { ok: false, error: 'Not signed in' }
+    if (userId === me) return { ok: false, error: "That's you" }
+    const res = await FriendService.insertRequest(me, userId)
+    if (!res.ok) return res
+    const names = await namesFor([userId])
+    return { ok: true, name: names.get(userId) ?? 'them' }
+  }
+
+  /**
+   * Insert a pending request from `me` to `targetId`, reactivating a stale
+   * declined/cancelled row if the UNIQUE (requester, addressee) slot is taken.
+   * Shared by the code and name-search send paths.
+   */
+  private static async insertRequest(
+    me: string,
+    targetId: string
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
     const { error: insErr } = await supabase
       .from('friend_requests')
-      .insert({ requester_id: me, addressee_id: match.user_id } as never)
-    if (!insErr) return { ok: true, name: insName }
+      .insert({ requester_id: me, addressee_id: targetId } as never)
+    if (!insErr) return { ok: true }
     if ((insErr as { code?: string }).code !== '23505') {
       log.error('sendRequest insert failed', insErr)
       return { ok: false, error: 'Could not send request' }
@@ -253,7 +316,7 @@ export class FriendService {
       .from('friend_requests')
       .select('id, status')
       .eq('requester_id', me)
-      .eq('addressee_id', match.user_id)
+      .eq('addressee_id', targetId)
       .maybeSingle()
     const row = existing as { id: string; status: string } | null
     if (row && (row.status === 'declined' || row.status === 'cancelled')) {
@@ -261,7 +324,7 @@ export class FriendService {
         .from('friend_requests')
         .update({ status: 'pending', responded_date: null } as never)
         .eq('id', row.id)
-      if (!upErr) return { ok: true, name: insName }
+      if (!upErr) return { ok: true }
       log.error('sendRequest reactivate failed', upErr)
       return { ok: false, error: 'Could not send request' }
     }

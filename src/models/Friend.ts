@@ -36,3 +36,9 @@ export interface MyFriendProfile {
   discoverable: boolean
   policy: FriendRequestPolicy
 }
+
+/** A discoverable person surfaced by a find-by-name search. */
+export interface FriendSearchResult {
+  userId: string
+  name: string
+}

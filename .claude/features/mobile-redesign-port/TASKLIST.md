@@ -13,10 +13,10 @@ code + this file win.
 > **STATUS (2026-07-07):** Casting **v1 SHIPPED** (`50d73c0` V1 · `9d90c00` V2 Grid · V3 free-text ·
 > `7801c33` V4 invite). Then a **realtime + UX bug-fix pass** and a **design-sync pass** against the
 > designer's cleaned-up specs (the earlier "blocked on designer" hold is CLEARED). See the two sections
-> below. **NEXT UP (agreed with user):** two bigger design-sync items still open — **Events: rebuild the
-> List view as the 2-col card grid** (D2), and **Friends: find-by-name search of discoverable people**
-> (`09`). Plus two smaller left-outs: `getEvents` RSVP/cast counts (for "N going · X% cast" on list
-> cards) and a dedicated Add-a-friend surface. Still deferred by the user: ResolveSheet, public/
+> below. **NEXT UP (agreed with user):** **Friends: find-by-name search** (`09`) is now **DONE** (see the
+> design-sync section). The remaining bigger design-sync item is **Events: rebuild the List view as the
+> 2-col card grid** (D2). Plus two smaller left-outs: `getEvents` RSVP/cast counts (for "N going · X% cast"
+> on list cards) and a dedicated Add-a-friend surface. Still deferred by the user: ResolveSheet, public/
 > event-owned songs, confidence, seed-from-setlist. Casting stays a shared model (events→jam→bands).
 
 ---
@@ -122,8 +122,18 @@ Friends + Events UIs. **Quick-win batch shipped** (`22d8c45` events, `c5bf4fd` f
 - [ ] **Events: List view = 2-col card grid** (D2) — per-song cards with parts shown inline (avatar /
       "Bass · 1 hand up" / Cast), fully-cast songs collapse to "Cast N open parts". Currently a flat row
       that expands `SongCastPanel`. _(larger — the biggest remaining structural gap)_
-- [ ] **Friends: find-by-name search** of discoverable people (`09`) — code-first today; the one real
-      feature gap. Pairs with a dedicated **Add-a-friend surface** (D4's prominent button).
+- [x] **Friends: find-by-name search** of discoverable people (`09`) — DONE. `FriendsPage` "Add a friend"
+      card now carries a debounced **Find people by name** search below the code input:
+      `FriendService.searchByName(q)` queries discoverable `user_profiles` by `display_name ILIKE` (RLS's
+      `user_profiles_select_discoverable` already permits reading opted-in profiles — **no migration**),
+      escapes LIKE wildcards, excludes self, limit 10. Result rows (`friend-search-{id}`) show an **Add**
+      button that calls `FriendService.sendRequestToUser(userId)` (shares the extracted `insertRequest`
+      stale-row-reactivation helper with the code path); rows already connected show Friends/Sent/In-requests
+      instead. Includes the spec's "Private profiles won't show — ask for a code or QR." note. Per the D4
+      cleanup, **mutual-friend counts intentionally omitted**; Add button reuses the page's existing accent
+      (not the spec's social-blue) to match surrounding Friends actions. type-check + lint clean; 8 new unit
+      tests (`FriendService.test.ts`) + 3 e2e (`friends/find-by-name.spec.ts`: find→send→Sent, short-query
+      no-panel, hidden-profile-not-found) all green.
 - [ ] **Events list `N going · X% cast`** — needs `getEvents` to include RSVP + per-event cast counts
       (not in the list query today). _(small service change)_
 - Guest lineup view (D3) styling pass (`Raise hand ✋` rows, "You're on X" lock) — verify/align.

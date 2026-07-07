@@ -82,6 +82,18 @@ export function useFriends() {
     },
     [refetch]
   )
+  const sendToUser = useCallback(
+    async (userId: string) => {
+      const res = await FriendService.sendRequestToUser(userId)
+      if (res.ok) await refetch()
+      return res
+    },
+    [refetch]
+  )
+  const searchByName = useCallback(
+    (query: string) => FriendService.searchByName(query),
+    []
+  )
   const setDiscoverable = useCallback(async (v: boolean) => {
     setProfile(p => (p ? { ...p, discoverable: v } : p))
     await FriendService.setDiscoverable(v)
@@ -102,6 +114,8 @@ export function useFriends() {
     decline,
     unfriend,
     sendToCode,
+    sendToUser,
+    searchByName,
     setDiscoverable,
     setPolicy,
   }
