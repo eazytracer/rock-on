@@ -196,12 +196,15 @@ DROP POLICY IF EXISTS "event_lineup_requests_update_manager" ON public.event_lin
 CREATE POLICY "event_lineup_requests_update_manager" ON public.event_lineup_requests FOR UPDATE TO authenticated
   USING (is_event_manager(event_id, (select auth.uid())) OR requester_id = (select auth.uid()));
 
--- ── Realtime (host console live updates) ────────────────────────────────────
+-- ── Realtime (host console + guest live updates) ────────────────────────────
 ALTER TABLE public.event_participants     REPLICA IDENTITY FULL;
 ALTER TABLE public.event_lineup_requests  REPLICA IDENTITY FULL;
+ALTER TABLE public.event_lineup_items     REPLICA IDENTITY FULL;
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.event_participants;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.event_lineup_requests;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.event_lineup_items;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================================

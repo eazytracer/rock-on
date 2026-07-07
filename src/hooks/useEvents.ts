@@ -151,6 +151,13 @@ export function useEventDetail(eventId: string | undefined) {
     void refetch()
   }, [refetch])
 
+  // Live-update the lineup + requests: hosts see new song requests as they come
+  // in, and requesters see their song appear once it's approved — without
+  // leaving and re-entering the event. refetch re-pulls event + lineup +
+  // requests together, so a request change also refreshes the promoted lineup.
+  useRealtimeTable('event_lineup_requests', 'event_id', eventId, refetch)
+  useRealtimeTable('event_lineup_items', 'event_id', eventId, refetch)
+
   const isManager = !!(event && user && event.hostUserId === user.id)
 
   const addRequest = useCallback(
