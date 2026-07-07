@@ -72,6 +72,24 @@ code + this file win.
 
 ---
 
+## 🐛 Realtime bug-fix pass (2026-07-07)
+
+Four reported bugs, all fixed + verified live (`f957ce9`, `a887bd5`):
+
+- **Re-raisable hands** — withdrawing a hand set `status='withdrawn'` but kept the row, so
+  raising again hit `UNIQUE(item,role,user)` → "already up". Withdraw now DELETEs (RLS allows
+  owner delete); raise reactivates any leftover row on 23505.
+- **Live event realtime** — hands/casts/participants only loaded on mount. New `useRealtimeTable`
+  hook (postgres_changes → refetch) wired into `useEventHands`/`useCasting`/`useEventParticipants`
+  so hosts see raised hands, and cast members see they're cast, live.
+- **Band change toasts restored** — the audit-first migration had narrowed remote-change toasts to
+  practices only; now songs/setlists/shows add/update/delete toast again through the 2s batch buffer
+  ("N changes by X" for bursts, "X added song \"Y\"" for singles). Practices keep their messages.
+- **⚠️ Infra gotcha:** none of the above (nor any cross-user sync) delivers when the local Realtime
+  `cainophile_*` replication slot gets stuck (it was 74 MB behind). Symptom: postgres_changes
+  subscribes fine but no payloads arrive. Fix: `supabase stop && supabase start` (or fresh
+  `npm run start:dev`) to recreate the slot. Recurs in long-running local dev.
+
 ## 🔜 Remaining work
 
 ### UI (no schema)
