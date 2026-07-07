@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CastingAssignmentService } from '../services/CastingAssignmentService'
+import { useRealtimeTable } from './useRealtimeTable'
 import {
   DEFAULT_LINEUP,
   type BandRole,
@@ -40,6 +41,10 @@ export function useCasting(
   useEffect(() => {
     void refetch()
   }, [refetch])
+
+  // Live-update when anyone (e.g. the host) casts/uncasts on this context, so a
+  // cast member sees it without closing and re-opening the song card.
+  useRealtimeTable('casting_assignments', 'context_id', contextId, refetch)
 
   const assign = useCallback(
     async (input: AssignInput) => {

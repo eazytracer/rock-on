@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { EventService } from '../services/EventService'
 import { EventHandsService } from '../services/EventHandsService'
 import { useAuth } from '../contexts/AuthContext'
+import { useRealtimeTable } from './useRealtimeTable'
 import type {
   EventSummary,
   LineupItem,
@@ -28,6 +29,9 @@ export function useEventParticipants(eventId: string | undefined) {
   useEffect(() => {
     void refetch()
   }, [refetch])
+
+  // Live-update as people are invited / join / RSVP.
+  useRealtimeTable('event_participants', 'event_id', eventId, refetch)
 
   return { participants, loading, refetch }
 }
@@ -71,6 +75,10 @@ export function useEventHands(eventId: string | undefined) {
   useEffect(() => {
     void refetch()
   }, [refetch])
+
+  // Live-update so the host sees a new raised hand (and guests see resolutions)
+  // without leaving and re-entering the event.
+  useRealtimeTable('event_hands', 'event_id', eventId, refetch)
 
   const raiseHand = useCallback(
     async (input: {

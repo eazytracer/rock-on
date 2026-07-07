@@ -78,20 +78,42 @@ export class EventHandsService {
       user_id: me,
       user_name: input.userName,
     } as never)
-    if (error) {
-      const dup = (error as { code?: string }).code === '23505'
-      log.error('raiseHand failed', error)
-      return {
-        ok: false,
-        error: dup ? 'Hand already up for that part' : 'Could not raise hand',
-      }
+    if (!error) return { ok: true }
+    // A prior hand for this (item, role, user) already exists — e.g. one the host
+    // declined, or a legacy 'withdrawn' row from before withdraw started deleting.
+    // "Raise again" should just work, so reactivate it instead of failing.
+    if ((error as { code?: string }).code === '23505') {
+      const { error: upErr } = await supabase
+        .from('event_hands')
+        .update({
+          status: 'raised',
+          user_name: input.userName,
+          resolved_by: null,
+          resolved_date: null,
+        } as never)
+        .eq('event_lineup_item_id', input.lineupItemId)
+        .eq('role_key', input.roleKey)
+        .eq('user_id', me)
+      if (!upErr) return { ok: true }
+      log.error('raiseHand reactivate failed', upErr)
     }
-    return { ok: true }
+    log.error('raiseHand failed', error)
+    return { ok: false, error: 'Could not raise hand' }
   }
 
-  /** Withdraw the current user's own hand. */
+  /**
+   * Withdraw (retract) the current user's own hand. Deletes the row rather than
+   * marking it 'withdrawn' so the unique (item, role, user) slot is freed — a
+   * left-behind 'withdrawn' row would block the user from ever raising again.
+   */
   static async withdrawHand(handId: string): Promise<void> {
-    await EventHandsService.setStatus(handId, 'withdrawn')
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+    const { error } = await supabase
+      .from('event_hands')
+      .delete()
+      .eq('id', handId)
+    if (error) log.error('withdrawHand failed', error)
   }
 
   /** Host: mark a hand accepted (casting is orchestrated by the caller). */
