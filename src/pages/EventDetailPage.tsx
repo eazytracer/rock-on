@@ -35,6 +35,7 @@ import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinne
 import { EmptyState } from '../components/common/EmptyState'
 import { SongCastPanel } from '../components/casting/SongCastPanel'
 import { EventCastGrid } from '../components/casting/EventCastGrid'
+import { LineupCard } from '../components/casting/LineupCard'
 import { InviteFriendsSheet } from '../components/events/InviteFriendsSheet'
 import { SHOW_TONE, type BadgeTone } from '../utils/tokens'
 import type { EventVisibility, LineupSource } from '../models/Event'
@@ -144,6 +145,7 @@ export function EventDetailContent({
   const isParticipant = !!participants.find(p => p.userId === user?.id)
   const canRaiseHand = !!event?.allowSuggestions && isParticipant && !isManager
   const myName = user?.name?.trim() || 'Guest'
+  const selectedLineupItem = lineup.find(i => i.id === castOpen) ?? null
 
   const submitRequest = async () => {
     if (!title.trim() || !artist.trim()) return
@@ -356,68 +358,69 @@ export function EventDetailContent({
                     onResolveHand={resolveHand}
                   />
                 ) : (
-                  <div
-                    className="flex flex-col gap-2"
-                    data-testid="event-lineup"
-                  >
-                    {lineup.map(item => (
-                      <div key={item.id} data-testid={`lineup-item-${item.id}`}>
-                        <div className="flex items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-3">
-                          <span className="font-mono text-xs text-ink-5 w-5 text-right">
-                            {item.position}
+                  <div>
+                    {/* 2-column card grid (D2). Selecting a card opens the
+                        shared cast panel below; SongCastPanel still owns edits. */}
+                    <div
+                      className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                      data-testid="event-lineup"
+                    >
+                      {lineup.map(item => (
+                        <LineupCard
+                          key={item.id}
+                          item={item}
+                          defaultParts={defaultParts}
+                          casting={casting}
+                          hands={hands}
+                          isManager={isManager}
+                          selected={castOpen === item.id}
+                          sourcePill={SOURCE_PILL[item.source]}
+                          onSelect={() =>
+                            setCastOpen(o => (o === item.id ? null : item.id))
+                          }
+                        />
+                      ))}
+                    </div>
+                    {selectedLineupItem && (
+                      <div
+                        className="mt-3"
+                        data-testid={`lineup-item-${selectedLineupItem.id}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Music size={15} className="text-ink-4" />
+                          <span className="truncate text-sm font-semibold text-ink-1">
+                            {selectedLineupItem.displayTitle}
                           </span>
-                          <Music size={16} className="text-ink-4" />
-                          <span className="flex-1 min-w-0">
-                            <span className="block truncate font-medium text-ink-1">
-                              {item.displayTitle}
-                            </span>
-                            <span className="block truncate text-xs text-ink-4">
-                              {item.displayArtist}
-                            </span>
+                          <span className="truncate text-xs text-ink-4">
+                            {selectedLineupItem.displayArtist}
                           </span>
-                          <Badge
-                            tone={SOURCE_PILL[item.source].tone}
-                            size="sm"
-                            dot={false}
-                            data-testid={`lineup-source-${item.id}`}
-                            className="flex-shrink-0"
-                          >
-                            {SOURCE_PILL[item.source].label}
-                          </Badge>
                           <button
-                            onClick={() =>
-                              setCastOpen(o => (o === item.id ? null : item.id))
-                            }
-                            data-testid={`cast-toggle-${item.id}`}
-                            className="flex-shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink-3 hover:text-accent"
+                            onClick={() => setCastOpen(null)}
+                            data-testid="lineup-cast-close"
+                            aria-label="Close casting"
+                            className="ml-auto flex-shrink-0 rounded-lg p-1 text-ink-4 hover:text-ink-1 hover:bg-bg-3"
                           >
-                            {castOpen === item.id
-                              ? 'Hide'
-                              : isManager
-                                ? 'Cast'
-                                : 'Parts'}
+                            <X size={16} />
                           </button>
                         </div>
-                        {castOpen === item.id && (
-                          <SongCastPanel
-                            contextType="event"
-                            contextId={event.id}
-                            bandId={event.bandId}
-                            slotId={item.id}
-                            songId={item.songId}
-                            canEdit={isManager}
-                            hands={hands}
-                            currentUserId={user?.id}
-                            canRaiseHand={canRaiseHand}
-                            onRaiseHand={roleKey =>
-                              void onRaiseHand(item.id, roleKey)
-                            }
-                            onWithdrawHand={h => void withdrawHand(h)}
-                            onResolveHand={resolveHand}
-                          />
-                        )}
+                        <SongCastPanel
+                          contextType="event"
+                          contextId={event.id}
+                          bandId={event.bandId}
+                          slotId={selectedLineupItem.id}
+                          songId={selectedLineupItem.songId}
+                          canEdit={isManager}
+                          hands={hands}
+                          currentUserId={user?.id}
+                          canRaiseHand={canRaiseHand}
+                          onRaiseHand={roleKey =>
+                            void onRaiseHand(selectedLineupItem.id, roleKey)
+                          }
+                          onWithdrawHand={h => void withdrawHand(h)}
+                          onResolveHand={resolveHand}
+                        />
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>

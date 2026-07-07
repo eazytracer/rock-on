@@ -13,10 +13,10 @@ code + this file win.
 > **STATUS (2026-07-07):** Casting **v1 SHIPPED** (`50d73c0` V1 · `9d90c00` V2 Grid · V3 free-text ·
 > `7801c33` V4 invite). Then a **realtime + UX bug-fix pass** and a **design-sync pass** against the
 > designer's cleaned-up specs (the earlier "blocked on designer" hold is CLEARED). See the two sections
-> below. **NEXT UP (agreed with user):** **Friends: find-by-name search** (`09`) is now **DONE** (see the
-> design-sync section). The remaining bigger design-sync item is **Events: rebuild the List view as the
-> 2-col card grid** (D2). Plus two smaller left-outs: `getEvents` RSVP/cast counts (for "N going · X% cast"
-> on list cards) and a dedicated Add-a-friend surface. Still deferred by the user: ResolveSheet, public/
+> below. **NEXT UP (agreed with user):** both bigger design-sync items are now **DONE** — **Friends:
+> find-by-name search** (`09`) and **Events: List view = 2-col card grid** (D2) (see the design-sync
+> section). Remaining smaller left-out: `getEvents` RSVP/cast counts (for "N going · X% cast" on list
+> cards). Still deferred by the user: ResolveSheet, public/
 > event-owned songs, confidence, seed-from-setlist. Casting stays a shared model (events→jam→bands).
 
 ---
@@ -119,9 +119,20 @@ Friends + Events UIs. **Quick-win batch shipped** (`22d8c45` events, `c5bf4fd` f
 
 **Still open from the comparison (agreed next):**
 
-- [ ] **Events: List view = 2-col card grid** (D2) — per-song cards with parts shown inline (avatar /
-      "Bass · 1 hand up" / Cast), fully-cast songs collapse to "Cast N open parts". Currently a flat row
-      that expands `SongCastPanel`. _(larger — the biggest remaining structural gap)_
+- [x] **Events: List view = 2-col card grid** (D2) — DONE. New `LineupCard` (`components/casting/`)
+      renders each lineup song as a card in a `grid-cols-1 sm:grid-cols-2` grid (`event-lineup`): title +
+      artist + provenance pill, a scannable **per-part chip strip** (`card-part-{item}-{role}`,
+      `data-state=cast|hand|open` — instrument-colored chip with the cast member's avatar / an info-blue
+      `✋ N` hand count / a muted open dot), and a footer summary ("Cast N open parts" for a host / "N open
+      parts" for a guest / "Fully cast" when every part has a primary, plus a "N up" hands tally). Selecting
+      a card (accent border, `aria-pressed`) opens the **shared `SongCastPanel` full-width below the grid**
+      (song header + `lineup-cast-close`), so all existing cast/hand/free-text/backup logic is reused
+      untouched — only the summary is new. Card summaries update live via the parent `useCasting` realtime
+      subscription (same feed as the header progress bar). Host Grid toggle → `EventCastGrid` unchanged.
+      type-check + lint clean; 6 new unit tests (`LineupCard.test.tsx`); 860 unit total green; **live-verified
+      in Playwright** at 1280px (2-col, select→panel, accent border) + 390px (1-col stack), 0 console errors.
+      _(Interpreted D2's "right-docked panel" as full-width-below — the panel lives inside the already
+      master/detail-embeddable EventDetailContent; a literal right-dock is a minor layout follow-up.)_
 - [x] **Friends: find-by-name search** of discoverable people (`09`) — DONE. `FriendsPage` "Add a friend"
       card now carries a debounced **Find people by name** search below the code input:
       `FriendService.searchByName(q)` queries discoverable `user_profiles` by `display_name ILIKE` (RLS's
