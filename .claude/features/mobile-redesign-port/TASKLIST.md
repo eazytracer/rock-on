@@ -10,13 +10,14 @@ code + this file win.
 > `https://claude.ai/design/p/019df065-4ee1-707b-bfd9-d821331f5cad`. The dated local planning docs
 > below are largely superseded by it — see `2026-07-06_friends-and-event-setlists-plan.md`.
 >
-> **STATUS (2026-07-06):** Casting **v1 is SHIPPED** — the whole decided event scope is done + verified:
-> V1 fixed instrument set (`50d73c0`), V2 **Grid cast view** (`9d90c00`), V3 free-text cast (both List +
-> Grid), V4 **invite friends to an event** (`7801c33`). See `2026-07-06_friends-and-event-setlists-plan.md`.
-> **NEXT UP is BLOCKED on the user:** the **Friends surface** redesign (Q13) is HELD pending the user's
-> designer changes ("more of the old prototype" — standby). Deferred by the user: ResolveSheet, public/
-> event-owned songs, confidence, seed-from-setlist. Casting is a **shared model** (events → jam → bands;
-> events are the testbed) — jam/band reuse comes after the UX settles.
+> **STATUS (2026-07-07):** Casting **v1 SHIPPED** (`50d73c0` V1 · `9d90c00` V2 Grid · V3 free-text ·
+> `7801c33` V4 invite). Then a **realtime + UX bug-fix pass** and a **design-sync pass** against the
+> designer's cleaned-up specs (the earlier "blocked on designer" hold is CLEARED). See the two sections
+> below. **NEXT UP (agreed with user):** two bigger design-sync items still open — **Events: rebuild the
+> List view as the 2-col card grid** (D2), and **Friends: find-by-name search of discoverable people**
+> (`09`). Plus two smaller left-outs: `getEvents` RSVP/cast counts (for "N going · X% cast" on list
+> cards) and a dedicated Add-a-friend surface. Still deferred by the user: ResolveSheet, public/
+> event-owned songs, confidence, seed-from-setlist. Casting stays a shared model (events→jam→bands).
 
 ---
 
@@ -72,23 +73,61 @@ code + this file win.
 
 ---
 
-## 🐛 Realtime bug-fix pass (2026-07-07)
+## 🐛 Realtime + UX bug-fix pass (2026-07-07)
 
-Four reported bugs, all fixed + verified live (`f957ce9`, `a887bd5`):
+Reported bugs, all fixed + verified live:
 
-- **Re-raisable hands** — withdrawing a hand set `status='withdrawn'` but kept the row, so
+- **Re-raisable hands** (`f957ce9`) — withdrawing a hand set `status='withdrawn'` but kept the row, so
   raising again hit `UNIQUE(item,role,user)` → "already up". Withdraw now DELETEs (RLS allows
   owner delete); raise reactivates any leftover row on 23505.
-- **Live event realtime** — hands/casts/participants only loaded on mount. New `useRealtimeTable`
-  hook (postgres_changes → refetch) wired into `useEventHands`/`useCasting`/`useEventParticipants`
-  so hosts see raised hands, and cast members see they're cast, live.
-- **Band change toasts restored** — the audit-first migration had narrowed remote-change toasts to
-  practices only; now songs/setlists/shows add/update/delete toast again through the 2s batch buffer
-  ("N changes by X" for bursts, "X added song \"Y\"" for singles). Practices keep their messages.
-- **⚠️ Infra gotcha:** none of the above (nor any cross-user sync) delivers when the local Realtime
-  `cainophile_*` replication slot gets stuck (it was 74 MB behind). Symptom: postgres_changes
+- **Live event realtime** (`f957ce9`) — hands/casts/participants only loaded on mount. New
+  `useRealtimeTable` hook (postgres_changes → refetch) wired into
+  `useEventHands`/`useCasting`/`useEventParticipants` so hosts see raised hands, and cast members see
+  they're cast, live. **Extended (`93926f9`):** `useEventDetail` also subscribes to
+  `event_lineup_requests` + `event_lineup_items` (the latter added to the realtime publication) so a
+  host sees a new song request and a requester sees their approved song **without leaving/returning**.
+- **Band change toasts restored** (`a887bd5`) — the audit-first migration had narrowed remote-change
+  toasts to practices only; now songs/setlists/shows add/update/delete toast again through the 2s batch
+  buffer ("N changes by X" for bursts, "X added song \"Y\"" for singles). Practices keep their messages.
+- **Re-sendable friend requests** (`e14cbbd`) — same stale-row bug as hands: decline/cancel set
+  `status` but kept the row, blocking a re-send via `UNIQUE(requester,addressee)`. Decline/cancel now
+  DELETE; accept stays an UPDATE (fires the friendship trigger); `sendRequestToCode` reactivates a
+  stale declined/cancelled row on 23505.
+- **Toggle knob overflowed the pill** (`126facf`) — the switch knob had no explicit `left`, so the
+  browser resolved its static position to ~22px and `translate-x-[22px]` added another 22px (off looked
+  on; on slid outside). Anchored with `left-0.5` + translate-only motion. Affected the event Access
+  toggles + Friends discoverable toggle.
+- **⚠️ Infra gotcha:** none of the realtime work (nor any cross-user sync) delivers when the local
+  Realtime `cainophile_*` replication slot gets stuck (it was 74 MB behind). Symptom: postgres_changes
   subscribes fine but no payloads arrive. Fix: `supabase stop && supabase start` (or fresh
   `npm run start:dev`) to recreate the slot. Recurs in long-running local dev.
+
+## 🎨 Design-sync pass (2026-07-07)
+
+Pulled the designer's cleaned-up specs (`app/spec-rows/`, esp. `D1`–`D4`, `19 · 09`) and compared the
+Friends + Events UIs. **Quick-win batch shipped** (`22d8c45` events, `c5bf4fd` friends):
+
+- **Events** — cast-progress bar (`N of M parts cast · %`) + List/Grid toggle lifted into the detail
+  header (both views; Grid's duplicate bar removed); Invite button moved to the header; cast sheet
+  **docks right on desktop** / bottom-sheet on mobile; People rows show a cast-status line
+  ("Cast for N parts" / "Hand up · Role"); Hosting list cards get the success-green identity +
+  status badge moved off the title line (fixes truncation). Also fixed `useRealtimeTable` to give each
+  subscriber a **unique channel topic** (List mounts one subscription per song — they were colliding).
+- **Friends** — "N shared bands" on rows (`FriendService.sharedBandCounts`, RLS-scoped to the caller's
+  own bands); "Who can add you" policy picker (Everyone / Friends-of-friends / Code only →
+  `user_profiles.friend_request_policy` via `setPolicy`).
+
+**Still open from the comparison (agreed next):**
+
+- [ ] **Events: List view = 2-col card grid** (D2) — per-song cards with parts shown inline (avatar /
+      "Bass · 1 hand up" / Cast), fully-cast songs collapse to "Cast N open parts". Currently a flat row
+      that expands `SongCastPanel`. _(larger — the biggest remaining structural gap)_
+- [ ] **Friends: find-by-name search** of discoverable people (`09`) — code-first today; the one real
+      feature gap. Pairs with a dedicated **Add-a-friend surface** (D4's prominent button).
+- [ ] **Events list `N going · X% cast`** — needs `getEvents` to include RSVP + per-event cast counts
+      (not in the list query today). _(small service change)_
+- Guest lineup view (D3) styling pass (`Raise hand ✋` rows, "You're on X" lock) — verify/align.
+- Intentionally NOT built (D4 cleanup dropped them): friend-row location/instrument, mutual-friends count.
 
 ## 🔜 Remaining work
 
