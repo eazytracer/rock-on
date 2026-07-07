@@ -13,10 +13,10 @@ code + this file win.
 > **STATUS (2026-07-07):** Casting **v1 SHIPPED** (`50d73c0` V1 · `9d90c00` V2 Grid · V3 free-text ·
 > `7801c33` V4 invite). Then a **realtime + UX bug-fix pass** and a **design-sync pass** against the
 > designer's cleaned-up specs (the earlier "blocked on designer" hold is CLEARED). See the two sections
-> below. **NEXT UP (agreed with user):** both bigger design-sync items are now **DONE** — **Friends:
-> find-by-name search** (`09`) and **Events: List view = 2-col card grid** (D2) (see the design-sync
-> section). Remaining smaller left-out: `getEvents` RSVP/cast counts (for "N going · X% cast" on list
-> cards). Still deferred by the user: ResolveSheet, public/
+> below. **NEXT UP (agreed with user):** all three agreed design-sync items are now **DONE** — **Friends:
+> find-by-name search** (`09`), **Events: List view = 2-col card grid** (D2), and **Events list "N going ·
+> X% cast"** counts (see the design-sync section). The feature is at a **final-pass / review-ready** state;
+> remaining open items are the deferred/cleanup ones below. Still deferred by the user: ResolveSheet, public/
 > event-owned songs, confidence, seed-from-setlist. Casting stays a shared model (events→jam→bands).
 
 ---
@@ -145,8 +145,15 @@ Friends + Events UIs. **Quick-win batch shipped** (`22d8c45` events, `c5bf4fd` f
       (not the spec's social-blue) to match surrounding Friends actions. type-check + lint clean; 8 new unit
       tests (`FriendService.test.ts`) + 3 e2e (`friends/find-by-name.spec.ts`: find→send→Sent, short-query
       no-panel, hidden-profile-not-found) all green.
-- [ ] **Events list `N going · X% cast`** — needs `getEvents` to include RSVP + per-event cast counts
-      (not in the list query today). _(small service change)_
+- [x] **Events list `N going · X% cast`** — DONE. `EventService.getEvents` now selects participant `rsvp` + `event_lineup_items(count)` and fires one extra RLS-scoped `casting_assignments` query
+      (`primaryCastCounts`) that counts **distinct (lineup-slot, role) primaries** — matching the detail
+      page's `castFilled` semantics so the list % equals the detail % (verified live: card "27% cast" ==
+      header 27%, not the naive-row-count 33%). `EventSummary` gains `goingCount` / `castPct` (0–100, capped;
+      undefined when the lineup is empty; denominator = lineup×5 default parts) / `myRsvp`. `EventsPage`
+      hosting cards show a subtle **"N going · X% cast"** line (`event-stats-{id}`); invited cards show the
+      caller's **RSVP badge** (Going/Maybe/Declined, `event-rsvp-{id}`) per D1. type-check + lint clean; 6 new
+      unit tests (`EventService.test.ts`, incl. dedup + cap + empty-lineup); 866 unit total green;
+      live-verified at 1280px.
 - Guest lineup view (D3) styling pass (`Raise hand ✋` rows, "You're on X" lock) — verify/align.
 - Intentionally NOT built (D4 cleanup dropped them): friend-row location/instrument, mutual-friends count.
 

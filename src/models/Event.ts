@@ -35,6 +35,13 @@ export interface EventSummary {
   /** Lightweight participant preview for list cards (avatar stack). */
   participantCount?: number
   participantNames?: string[]
+  /** Participants who RSVP'd "going" — the "N going" list-card stat. */
+  goingCount?: number
+  /** Cast progress 0–100 (primary parts filled ÷ lineup×parts), or undefined
+   *  when the lineup is empty. Drives "X% cast" on hosting list cards. */
+  castPct?: number
+  /** The current user's own RSVP for this event (invited-card badge). */
+  myRsvp?: EventRsvp
 }
 
 /** Host-editable access settings (Access tab). */

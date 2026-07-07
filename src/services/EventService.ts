@@ -14,7 +14,9 @@ import type {
   LineupItem,
   LineupRequest,
   EventParticipant,
+  EventRsvp,
 } from '../models/Event'
+import { DEFAULT_LINEUP } from '../models/Casting'
 
 const log = createLogger('EventService')
 
@@ -89,9 +91,12 @@ export class EventService {
   static async getEvents(): Promise<EventSummary[]> {
     const supabase = getSupabaseClient()
     if (!supabase) return []
+    const me = await currentUserId()
     const { data, error } = await supabase
       .from('events')
-      .select(`${EVENT_COLS}, event_participants(user_id, users(name))`)
+      .select(
+        `${EVENT_COLS}, event_participants(user_id, rsvp, users(name)), event_lineup_items(count)`
+      )
       .order('scheduled_date', { ascending: true })
     if (error) {
       log.error('getEvents failed', error)
@@ -100,19 +105,77 @@ export class EventService {
     type ListRow = EventRow & {
       event_participants?: {
         user_id: string
+        rsvp: EventRsvp
         users: { name: string | null } | null
       }[]
+      event_lineup_items?: { count: number }[]
     }
-    return ((data as unknown as ListRow[]) ?? []).map(r => {
+    const rows = (data as unknown as ListRow[]) ?? []
+    // One round-trip for cast progress across every listed event.
+    const castByEvent = await EventService.primaryCastCounts(
+      rows.map(r => r.id)
+    )
+    // App-created events are band-less → the 5-part default lineup. (A rare
+    // band-linked event may have a different part count; castPct caps at 100.)
+    const PARTS = DEFAULT_LINEUP.filter(r => r.isDefaultPart).length
+    return rows.map(r => {
       const people = r.event_participants ?? []
+      const lineupCount = r.event_lineup_items?.[0]?.count ?? 0
+      const totalParts = lineupCount * PARTS
       return {
         ...mapEvent(r),
         participantCount: people.length,
         participantNames: people
           .map(p => p.users?.name?.trim() || 'Guest')
           .slice(0, 5),
+        goingCount: people.filter(p => p.rsvp === 'going').length,
+        castPct:
+          totalParts > 0
+            ? Math.min(
+                100,
+                Math.round(((castByEvent.get(r.id) ?? 0) / totalParts) * 100)
+              )
+            : undefined,
+        myRsvp: me ? people.find(p => p.user_id === me)?.rsvp : undefined,
       }
     })
+  }
+
+  /**
+   * Filled parts per event id (one query, RLS-scoped): the count of DISTINCT
+   * (lineup slot, role) pairs that have a primary assignment — matching the
+   * detail page's `castFilled` semantics (a slot+role is "cast" once, even if
+   * the seed holds duplicate primaries). Slot-less rows are ignored.
+   */
+  private static async primaryCastCounts(
+    eventIds: string[]
+  ): Promise<Map<string, number>> {
+    const counts = new Map<string, number>()
+    const supabase = getSupabaseClient()
+    if (!supabase || eventIds.length === 0) return counts
+    const { data, error } = await supabase
+      .from('casting_assignments')
+      .select('context_id, event_lineup_item_id, role_key')
+      .eq('context_type', 'event')
+      .eq('is_primary', true)
+      .in('context_id', eventIds)
+    if (error) {
+      log.error('primaryCastCounts failed', error)
+      return counts
+    }
+    const seen = new Set<string>()
+    for (const row of (data as unknown as {
+      context_id: string
+      event_lineup_item_id: string | null
+      role_key: string
+    }[]) ?? []) {
+      if (!row.event_lineup_item_id) continue
+      const key = `${row.context_id}|${row.event_lineup_item_id}|${row.role_key}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      counts.set(row.context_id, (counts.get(row.context_id) ?? 0) + 1)
+    }
+    return counts
   }
 
   /**
