@@ -120,19 +120,21 @@ Friends + Events UIs. **Quick-win batch shipped** (`22d8c45` events, `c5bf4fd` f
 **Still open from the comparison (agreed next):**
 
 - [x] **Events: List view = 2-col card grid** (D2) — DONE. New `LineupCard` (`components/casting/`)
-      renders each lineup song as a card in a `grid-cols-1 sm:grid-cols-2` grid (`event-lineup`): title +
-      artist + provenance pill, a scannable **per-part chip strip** (`card-part-{item}-{role}`,
-      `data-state=cast|hand|open` — instrument-colored chip with the cast member's avatar / an info-blue
-      `✋ N` hand count / a muted open dot), and a footer summary ("Cast N open parts" for a host / "N open
-      parts" for a guest / "Fully cast" when every part has a primary, plus a "N up" hands tally). Selecting
-      a card (accent border, `aria-pressed`) opens the **shared `SongCastPanel` full-width below the grid**
-      (song header + `lineup-cast-close`), so all existing cast/hand/free-text/backup logic is reused
-      untouched — only the summary is new. Card summaries update live via the parent `useCasting` realtime
-      subscription (same feed as the header progress bar). Host Grid toggle → `EventCastGrid` unchanged.
-      type-check + lint clean; 6 new unit tests (`LineupCard.test.tsx`); 860 unit total green; **live-verified
-      in Playwright** at 1280px (2-col, select→panel, accent border) + 390px (1-col stack), 0 console errors.
-      _(Interpreted D2's "right-docked panel" as full-width-below — the panel lives inside the already
-      master/detail-embeddable EventDetailContent; a literal right-dock is a minor layout follow-up.)_
+      renders each lineup song as a card in a `grid-cols-1 sm:grid-cols-2` grid (`event-lineup`), **matched
+      to the mobile prototype's `LineupCard`** (`screens-events.jsx`): title + artist, a **`N/M` cast-count
+      pill** (`lineup-cast-count-{id}`, accent → success `✓` when fully cast), the provenance pill, an
+      info-blue **raised-hands chip** (`lineup-hands-{id}`) when any, and a full-width **CTA button**
+      ("Cast N open parts" host / "N open parts" guest / "Fully cast") with a chevron that rotates when
+      selected. Selecting a card (accent border, `aria-pressed`) opens the **shared `SongCastPanel` inline,
+      full-width right after that song's row** (`sm:col-span-2`, inserted after the row's last card so there's
+      no empty cell — desktop 2-col or mobile 1-col), song header + `lineup-cast-close`. All existing
+      cast/hand/free-text/backup logic reused untouched. Card counts update live via the parent `useCasting`
+      realtime subscription. Host Grid toggle → `EventCastGrid` unchanged. type-check + lint clean; 6 unit
+      tests (`LineupCard.test.tsx`); 866 unit total green; **live-verified in Playwright** at 1280px (2-col,
+      right-column select → panel inline under the row) + 390px (1-col), 0 console errors.
+      **UI feedback pass (user, post-first-cut):** replaced the original per-part chip strip (avatars read
+      too big) with the pill+CTA above, and moved the panel from below the whole grid to inline under the
+      selected row.
 - [x] **Friends: find-by-name search** of discoverable people (`09`) — DONE. `FriendsPage` "Add a friend"
       card now carries a debounced **Find people by name** search below the code input:
       `FriendService.searchByName(q)` queries discoverable `user_profiles` by `display_name ILIKE` (RLS's

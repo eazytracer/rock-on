@@ -67,18 +67,11 @@ describe('LineupCard', () => {
     expect(screen.getByTestId('lineup-source-li1')).toHaveTextContent('Mine')
   })
 
-  it('summarises all-open parts for a host as "Cast N open parts"', () => {
+  it('summarises all-open parts for a host as "Cast N open parts" with a 0/N pill', () => {
     renderCard()
-    expect(screen.getByTestId('lineup-card-li1')).toHaveTextContent(
-      'Cast 3 open parts'
-    )
-    // Each part chip is in the open state.
-    for (const k of ['guitar', 'bass', 'drums']) {
-      expect(screen.getByTestId(`card-part-li1-${k}`)).toHaveAttribute(
-        'data-state',
-        'open'
-      )
-    }
+    const card = screen.getByTestId('lineup-card-li1')
+    expect(card).toHaveTextContent('Cast 3 open parts')
+    expect(screen.getByTestId('lineup-cast-count-li1')).toHaveTextContent('0/3')
   })
 
   it('drops "Cast " prefix for a guest and pluralises correctly', () => {
@@ -89,28 +82,24 @@ describe('LineupCard', () => {
     const card = screen.getByTestId('lineup-card-li1')
     expect(card).toHaveTextContent('1 open part')
     expect(card).not.toHaveTextContent('Cast 1 open part')
+    expect(screen.getByTestId('lineup-cast-count-li1')).toHaveTextContent('2/3')
   })
 
-  it('marks a cast part and a hand-up part distinctly', () => {
+  it('surfaces the raised-hand tally as a chip', () => {
     renderCard({ casting: [cast('guitar', 'Dave R.')], hands: [hand('bass')] })
-    expect(screen.getByTestId('card-part-li1-guitar')).toHaveAttribute(
-      'data-state',
-      'cast'
-    )
-    const bass = screen.getByTestId('card-part-li1-bass')
-    expect(bass).toHaveAttribute('data-state', 'hand')
-    expect(bass).toHaveTextContent('1')
-    // Footer surfaces the raised-hand tally.
-    expect(screen.getByTestId('lineup-card-li1')).toHaveTextContent('1 up')
+    expect(screen.getByTestId('lineup-cast-count-li1')).toHaveTextContent('1/3')
+    expect(screen.getByTestId('lineup-hands-li1')).toHaveTextContent('1')
   })
 
-  it('shows "Fully cast" when every part has a primary', () => {
+  it('shows "Fully cast" (and no hands chip) when every part has a primary', () => {
     renderCard({
       casting: [cast('guitar', 'A'), cast('bass', 'B'), cast('drums', 'C')],
     })
     const card = screen.getByTestId('lineup-card-li1')
     expect(card).toHaveTextContent('Fully cast')
     expect(card).not.toHaveTextContent('open part')
+    expect(screen.getByTestId('lineup-cast-count-li1')).toHaveTextContent('3/3')
+    expect(screen.queryByTestId('lineup-hands-li1')).toBeNull()
   })
 
   it('fires onSelect when clicked and reflects the selected state', () => {
