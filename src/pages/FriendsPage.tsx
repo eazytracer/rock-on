@@ -17,6 +17,14 @@ import { Avatar } from '../components/common/Avatar'
 import { Eyebrow } from '../components/common/Eyebrow'
 import { EmptyState } from '../components/common/EmptyState'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { Dropdown } from '../components/common/Dropdown'
+import type { FriendRequestPolicy } from '../models/Friend'
+
+const POLICY_OPTIONS: { value: FriendRequestPolicy; label: string }[] = [
+  { value: 'everyone', label: 'Everyone' },
+  { value: 'friends_of_friends', label: 'Friends of friends' },
+  { value: 'code_only', label: 'Code only' },
+]
 
 // Lazy-load the QR renderer so qrcode.react stays out of the main bundle.
 const QRCodeSVG = lazy(() =>
@@ -41,6 +49,7 @@ export function FriendsPage() {
     unfriend,
     sendToCode,
     setDiscoverable,
+    setPolicy,
   } = useFriends()
   const [searchParams] = useSearchParams()
   const [code, setCode] = useState('')
@@ -171,6 +180,18 @@ export function FriendsPage() {
                   />
                 </button>
               </label>
+
+              <div className="mt-3 border-t border-border-1 pt-3">
+                <Eyebrow className="mb-1.5">Who can add you</Eyebrow>
+                <Dropdown
+                  value={profile?.policy ?? 'everyone'}
+                  onChange={v => void setPolicy(v as FriendRequestPolicy)}
+                  data-testid="friends-policy-dropdown"
+                  groups={[
+                    { label: 'Who can add you', options: POLICY_OPTIONS },
+                  ]}
+                />
+              </div>
             </div>
 
             {/* Add by code */}
@@ -286,8 +307,16 @@ export function FriendsPage() {
                       data-testid={`friend-${f.friendshipId}`}
                     >
                       <Avatar label={f.name} size="sm" />
-                      <span className="flex-1 truncate font-medium text-ink-1">
-                        {f.name}
+                      <span className="flex-1 min-w-0">
+                        <span className="block truncate font-medium text-ink-1">
+                          {f.name}
+                        </span>
+                        {f.sharedBands > 0 && (
+                          <span className="block truncate text-xs text-ink-5">
+                            {f.sharedBands} shared band
+                            {f.sharedBands === 1 ? '' : 's'}
+                          </span>
+                        )}
                       </span>
                       <button
                         onClick={() => void unfriend(f.friendshipId)}

@@ -62,15 +62,50 @@ export class FriendService {
       (data as unknown as { id: string; user_a: string; user_b: string }[]) ??
       []
     const others = rows.map(r => (r.user_a === me ? r.user_b : r.user_a))
-    const names = await namesFor(others)
+    const [names, shared] = await Promise.all([
+      namesFor(others),
+      FriendService.sharedBandCounts(me, others),
+    ])
     return rows.map(r => {
       const otherId = r.user_a === me ? r.user_b : r.user_a
       return {
         friendshipId: r.id,
         userId: otherId,
         name: names.get(otherId) ?? 'Someone',
+        sharedBands: shared.get(otherId) ?? 0,
       }
     })
+  }
+
+  /**
+   * How many bands each of `userIds` shares with the current user. RLS lets a
+   * member read co-members' memberships for bands they belong to, so we scope
+   * the lookup to the current user's own bands.
+   */
+  private static async sharedBandCounts(
+    me: string,
+    userIds: string[]
+  ): Promise<Map<string, number>> {
+    const counts = new Map<string, number>()
+    const supabase = getSupabaseClient()
+    if (!supabase || userIds.length === 0) return counts
+    const { data: mine } = await supabase
+      .from('band_memberships')
+      .select('band_id')
+      .eq('user_id', me)
+    const myBandIds = ((mine as unknown as { band_id: string }[]) ?? []).map(
+      r => r.band_id
+    )
+    if (myBandIds.length === 0) return counts
+    const { data } = await supabase
+      .from('band_memberships')
+      .select('user_id')
+      .in('band_id', myBandIds)
+      .in('user_id', userIds)
+    for (const row of (data as unknown as { user_id: string }[]) ?? []) {
+      counts.set(row.user_id, (counts.get(row.user_id) ?? 0) + 1)
+    }
+    return counts
   }
 
   /** Incoming + outgoing pending requests. */
@@ -157,6 +192,19 @@ export class FriendService {
       .update({ discoverable } as never)
       .eq('user_id', me)
     if (error) log.error('setDiscoverable failed', error)
+  }
+
+  /** Who may send you a friend request (everyone / friends_of_friends / code_only). */
+  static async setPolicy(policy: FriendRequestPolicy): Promise<void> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+    const me = await currentUserId()
+    if (!me) return
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ friend_request_policy: policy } as never)
+      .eq('user_id', me)
+    if (error) log.error('setPolicy failed', error)
   }
 
   /**

@@ -17,6 +17,8 @@ export interface FriendSummary {
   friendshipId: string
   userId: string
   name: string
+  /** Count of bands this friend and the current user both belong to. */
+  sharedBands: number
 }
 
 export interface FriendRequestSummary {

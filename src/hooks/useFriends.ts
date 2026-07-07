@@ -5,6 +5,7 @@ import type {
   FriendSummary,
   FriendRequestSummary,
   MyFriendProfile,
+  FriendRequestPolicy,
 } from '../models/Friend'
 
 /**
@@ -85,6 +86,10 @@ export function useFriends() {
     setProfile(p => (p ? { ...p, discoverable: v } : p))
     await FriendService.setDiscoverable(v)
   }, [])
+  const setPolicy = useCallback(async (v: FriendRequestPolicy) => {
+    setProfile(p => (p ? { ...p, policy: v } : p))
+    await FriendService.setPolicy(v)
+  }, [])
 
   return {
     friends,
@@ -98,5 +103,6 @@ export function useFriends() {
     unfriend,
     sendToCode,
     setDiscoverable,
+    setPolicy,
   }
 }
