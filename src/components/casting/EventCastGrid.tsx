@@ -184,7 +184,7 @@ export function EventCastGrid({
                   </span>
                 </div>
                 {defaultParts.map(role => {
-                  const assignment = casting.find(
+                  const assignments = casting.filter(
                     c =>
                       c.slotId === item.id &&
                       c.roleKey === role.key &&
@@ -197,22 +197,38 @@ export function EventCastGrid({
                       h.status === 'raised'
                   ).length
                   const testId = `cast-cell-${item.id}-${role.key}`
-                  const content = assignment ? (
-                    <Avatar
-                      label={assignment.memberName ?? 'Member'}
-                      title={assignment.memberName ?? 'Member'}
-                      size="xs"
-                    />
-                  ) : handCount > 0 ? (
-                    <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-accent-soft px-1 text-[11px] font-semibold text-accent">
-                      {handCount}
-                    </span>
-                  ) : (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full bg-bg-4"
-                      aria-hidden="true"
-                    />
-                  )
+                  const content =
+                    assignments.length > 0 ? (
+                      // Stack avatars when several people are cast on one part.
+                      <span
+                        className="flex items-center"
+                        data-testid={`cast-cell-stack-${item.id}-${role.key}`}
+                      >
+                        {assignments.slice(0, 3).map((a, i) => (
+                          <Avatar
+                            key={a.id}
+                            label={a.memberName ?? 'Member'}
+                            title={a.memberName ?? 'Member'}
+                            size="xs"
+                            className={`!h-5 !w-5 !text-[9px] ring-2 ring-bg-2 ${i ? '-ml-2' : ''}`}
+                          />
+                        ))}
+                        {assignments.length > 3 && (
+                          <span className="ml-0.5 text-[9px] font-semibold text-ink-4">
+                            +{assignments.length - 3}
+                          </span>
+                        )}
+                      </span>
+                    ) : handCount > 0 ? (
+                      <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-accent-soft px-1 text-[11px] font-semibold text-accent">
+                        {handCount}
+                      </span>
+                    ) : (
+                      <span
+                        className="h-1.5 w-1.5 rounded-full bg-bg-4"
+                        aria-hidden="true"
+                      />
+                    )
                   return isManager ? (
                     <button
                       key={role.key}

@@ -67,6 +67,8 @@ interface SongCastPanelProps {
   onWithdrawHand?: (handId: string) => void | Promise<void>
   /** Resolve a hand: accept (already cast by this panel) or decline. */
   onResolveHand?: (handId: string, accept: boolean) => void | Promise<void>
+  /** Drop the panel's own box chrome so it flows inside a host container. */
+  embedded?: boolean
 }
 
 /**
@@ -87,6 +89,7 @@ export function SongCastPanel({
   onRaiseHand,
   onWithdrawHand,
   onResolveHand,
+  embedded = false,
 }: SongCastPanelProps) {
   const { defaultParts, casting, loading, assign, unassign, update } =
     useCasting(contextType, contextId, bandId)
@@ -181,7 +184,9 @@ export function SongCastPanel({
 
   return (
     <div
-      className="mt-2 rounded-lg bg-bg-2 border border-border-1 p-3"
+      className={
+        embedded ? '' : 'mt-2 rounded-lg bg-bg-2 border border-border-1 p-3'
+      }
       data-testid={`cast-panel-${slotId}`}
     >
       <div className="mb-2">

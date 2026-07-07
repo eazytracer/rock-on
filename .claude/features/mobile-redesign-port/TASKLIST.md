@@ -134,7 +134,12 @@ Friends + Events UIs. **Quick-win batch shipped** (`22d8c45` events, `c5bf4fd` f
       right-column select → panel inline under the row) + 390px (1-col), 0 console errors.
       **UI feedback pass (user, post-first-cut):** replaced the original per-part chip strip (avatars read
       too big) with the pill+CTA above, and moved the panel from below the whole grid to inline under the
-      selected row.
+      selected row. **Feedback pass 2:** the cast panel now expands **inside the selected card's own
+      accent-bordered container** (LineupCard is a `<div>` wrapper with a clickable summary `<button>` +
+      a `children` body; `SongCastPanel` gained an `embedded` prop that drops its own box chrome) — one
+      unified box, not an orange card above a grey box. And the **Grid view (`EventCastGrid`) now stacks
+      avatars** when several people are cast on one instrument (`.filter` not `.find`; overlapping ring-2
+      avatars, `cast-cell-stack-{item}-{role}`, +N past 3). Verified live 1280px + 390px, 0 console errors.
 - [x] **Friends: find-by-name search** of discoverable people (`09`) — DONE. `FriendsPage` "Add a friend"
       card now carries a debounced **Find people by name** search below the code input:
       `FriendService.searchByName(q)` queries discoverable `user_profiles` by `display_name ILIKE` (RLS's

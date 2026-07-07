@@ -1,4 +1,4 @@
-import { Fragment, Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -145,18 +145,6 @@ export function EventDetailContent({
   const isParticipant = !!participants.find(p => p.userId === user?.id)
   const canRaiseHand = !!event?.allowSuggestions && isParticipant && !isManager
   const myName = user?.name?.trim() || 'Guest'
-  const selectedLineupItem = lineup.find(i => i.id === castOpen) ?? null
-  // Insert the cast panel right after the selected card's row so it opens
-  // inline under the chosen song (not at the bottom of the whole grid).
-  const selectedIdx = lineup.findIndex(i => i.id === castOpen)
-  const panelAfterIdx =
-    selectedIdx < 0
-      ? -1
-      : isMobile
-        ? selectedIdx
-        : selectedIdx % 2 === 0
-          ? Math.min(selectedIdx + 1, lineup.length - 1)
-          : selectedIdx
 
   const submitRequest = async () => {
     if (!title.trim() || !artist.trim()) return
@@ -369,67 +357,44 @@ export function EventDetailContent({
                     onResolveHand={resolveHand}
                   />
                 ) : (
-                  // 2-column card grid (D2). Selecting a card opens the shared
-                  // cast panel inline, right after that song's row.
+                  // 2-column card grid (D2). Selecting a card expands the shared
+                  // cast panel inline, inside that card's own container.
                   <div
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-start"
                     data-testid="event-lineup"
                   >
-                    {lineup.map((item, idx) => (
-                      <Fragment key={item.id}>
-                        <LineupCard
-                          item={item}
-                          defaultParts={defaultParts}
-                          casting={casting}
+                    {lineup.map(item => (
+                      <LineupCard
+                        key={item.id}
+                        item={item}
+                        defaultParts={defaultParts}
+                        casting={casting}
+                        hands={hands}
+                        isManager={isManager}
+                        selected={castOpen === item.id}
+                        sourcePill={SOURCE_PILL[item.source]}
+                        onSelect={() =>
+                          setCastOpen(o => (o === item.id ? null : item.id))
+                        }
+                      >
+                        <SongCastPanel
+                          embedded
+                          contextType="event"
+                          contextId={event.id}
+                          bandId={event.bandId}
+                          slotId={item.id}
+                          songId={item.songId}
+                          canEdit={isManager}
                           hands={hands}
-                          isManager={isManager}
-                          selected={castOpen === item.id}
-                          sourcePill={SOURCE_PILL[item.source]}
-                          onSelect={() =>
-                            setCastOpen(o => (o === item.id ? null : item.id))
+                          currentUserId={user?.id}
+                          canRaiseHand={canRaiseHand}
+                          onRaiseHand={roleKey =>
+                            void onRaiseHand(item.id, roleKey)
                           }
+                          onWithdrawHand={h => void withdrawHand(h)}
+                          onResolveHand={resolveHand}
                         />
-                        {idx === panelAfterIdx && selectedLineupItem && (
-                          <div
-                            className="sm:col-span-2"
-                            data-testid={`lineup-item-${selectedLineupItem.id}`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Music size={15} className="text-ink-4" />
-                              <span className="truncate text-sm font-semibold text-ink-1">
-                                {selectedLineupItem.displayTitle}
-                              </span>
-                              <span className="truncate text-xs text-ink-4">
-                                {selectedLineupItem.displayArtist}
-                              </span>
-                              <button
-                                onClick={() => setCastOpen(null)}
-                                data-testid="lineup-cast-close"
-                                aria-label="Close casting"
-                                className="ml-auto flex-shrink-0 rounded-lg p-1 text-ink-4 hover:text-ink-1 hover:bg-bg-3"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                            <SongCastPanel
-                              contextType="event"
-                              contextId={event.id}
-                              bandId={event.bandId}
-                              slotId={selectedLineupItem.id}
-                              songId={selectedLineupItem.songId}
-                              canEdit={isManager}
-                              hands={hands}
-                              currentUserId={user?.id}
-                              canRaiseHand={canRaiseHand}
-                              onRaiseHand={roleKey =>
-                                void onRaiseHand(selectedLineupItem.id, roleKey)
-                              }
-                              onWithdrawHand={h => void withdrawHand(h)}
-                              onResolveHand={resolveHand}
-                            />
-                          </div>
-                        )}
-                      </Fragment>
+                      </LineupCard>
                     ))}
                   </div>
                 )}
