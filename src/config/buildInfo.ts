@@ -5,13 +5,13 @@
 export const VERSION = '0.3.3'
 
 /** Unique build identifier (git hash + timestamp) */
-export const BUILD_ID = '26db2e4-20260706-032217'
+export const BUILD_ID = 'c5bf4fd-20260707-034455'
 
 /** ISO timestamp of when build was created */
-export const BUILD_DATE = '2026-07-06T03:22:17Z'
+export const BUILD_DATE = '2026-07-07T03:44:55Z'
 
 /** Short git commit hash */
-export const GIT_HASH = '26db2e4'
+export const GIT_HASH = 'c5bf4fd'
 
 /** Display string for UI: "v0.1.0 (a1b2c3d)" */
 export const VERSION_DISPLAY = `v${VERSION} (${GIT_HASH})`
