@@ -54,10 +54,12 @@ export function EventsPage() {
   const EventCard = ({
     ev,
     active,
+    hosting,
     onOpen,
   }: {
     ev: EventSummary
     active: boolean
+    hosting?: boolean
     onOpen: (ev: EventSummary) => void
   }) => (
     <button
@@ -66,10 +68,16 @@ export function EventsPage() {
       className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-colors ${
         active
           ? 'border-accent bg-accent-soft'
-          : 'bg-bg-1 border-border-1 hover:border-border-2'
+          : hosting
+            ? 'border-success/50 bg-success/5 hover:border-success'
+            : 'bg-bg-1 border-border-1 hover:border-border-2'
       }`}
     >
-      <span className="flex h-11 w-11 flex-shrink-0 flex-col items-center justify-center rounded-lg bg-accent-soft leading-none text-accent">
+      <span
+        className={`flex h-11 w-11 flex-shrink-0 flex-col items-center justify-center rounded-lg leading-none ${
+          hosting ? 'bg-success/15 text-success' : 'bg-accent-soft text-accent'
+        }`}
+      >
         <span className="text-[9px] font-bold uppercase tracking-wider">
           {ev.scheduledDate.toLocaleDateString('en-US', { month: 'short' })}
         </span>
@@ -78,8 +86,16 @@ export function EventsPage() {
         </span>
       </span>
       <span className="flex-1 min-w-0">
-        <span className="flex items-center gap-2">
-          <span className="truncate font-semibold text-ink-1">{ev.name}</span>
+        <span className="block truncate font-semibold text-ink-1">
+          {ev.name}
+        </span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-xs text-ink-4">
+          <span>{formatShowDate(ev.scheduledDate)}</span>
+          {ev.venue && (
+            <span className="inline-flex items-center gap-1">
+              <MapPin size={11} /> {ev.venue}
+            </span>
+          )}
           <Badge
             tone={
               (SHOW_TONE[ev.status as keyof typeof SHOW_TONE] ??
@@ -89,14 +105,6 @@ export function EventsPage() {
           >
             {ev.status}
           </Badge>
-        </span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-ink-4">
-          <span>{formatShowDate(ev.scheduledDate)}</span>
-          {ev.venue && (
-            <span className="inline-flex items-center gap-1">
-              <MapPin size={11} /> {ev.venue}
-            </span>
-          )}
         </span>
       </span>
       {ev.participantCount ? (
@@ -170,6 +178,7 @@ export function EventsPage() {
                       <EventCard
                         key={ev.id}
                         ev={ev}
+                        hosting
                         active={isDesktop && selectedId === ev.id}
                         onOpen={handleOpen}
                       />

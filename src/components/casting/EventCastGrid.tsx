@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Check, Hand, X } from 'lucide-react'
 import { useCasting } from '../../hooks/useCasting'
 import { useEventParticipants } from '../../hooks/useEvents'
+import { useViewport } from '../../hooks/useResponsive'
 import { useToast } from '../../contexts/ToastContext'
 import { Avatar } from '../common/Avatar'
 import { Eyebrow } from '../common/Eyebrow'
@@ -42,6 +43,7 @@ export function EventCastGrid({
   onResolveHand,
 }: EventCastGridProps) {
   const { showToast } = useToast()
+  const { isMobile } = useViewport()
   const { defaultParts, casting, loading, assign, unassign } = useCasting(
     'event',
     eventId,
@@ -60,20 +62,6 @@ export function EventCastGrid({
   const sheetCell = activeCell ?? lastCellRef.current
 
   const [freeText, setFreeText] = useState('')
-
-  const totalSlots = defaultParts.length * lineup.length
-  const filledSlots = lineup.reduce(
-    (sum, item) =>
-      sum +
-      defaultParts.filter(part =>
-        casting.some(
-          c => c.slotId === item.id && c.roleKey === part.key && c.isPrimary
-        )
-      ).length,
-    0
-  )
-  const progressPct =
-    totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0
 
   const doAssign = async (
     item: LineupItem,
@@ -146,25 +134,6 @@ export function EventCastGrid({
       className="rounded-lg bg-bg-2 border border-border-1 p-3"
       data-testid="event-cast-grid"
     >
-      <div className="mb-3">
-        <div className="flex items-center justify-between">
-          <Eyebrow>Casting</Eyebrow>
-          <span
-            className="font-mono text-[10px] text-ink-4"
-            data-testid="grid-cast-progress"
-          >
-            {filledSlots} of {totalSlots} parts · {progressPct}%
-          </span>
-        </div>
-        <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-bg-3">
-          <div
-            className="h-full rounded-full bg-accent transition-all"
-            style={{ width: `${progressPct}%` }}
-            data-testid="grid-cast-progress-bar"
-          />
-        </div>
-      </div>
-
       <div className="relative">
         <div className="overflow-x-auto custom-scrollbar-thin">
           <div className="flex w-max flex-col">
@@ -285,7 +254,7 @@ export function EventCastGrid({
               ? `${sheetCell.role.label} · ${sheetCell.item.displayTitle}`
               : ''
           }
-          position="bottom"
+          position={isMobile ? 'bottom' : 'right'}
           data-testid="cast-cell-sheet"
         >
           {sheetCell && (

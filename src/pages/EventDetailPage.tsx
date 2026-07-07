@@ -24,6 +24,8 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useGoBack } from '../hooks/useGoBack'
+import { useCasting } from '../hooks/useCasting'
+import { useViewport } from '../hooks/useResponsive'
 import { EventService } from '../services/EventService'
 import { formatShowDate } from '../utils/dateHelpers'
 import { Avatar } from '../components/common/Avatar'
@@ -99,6 +101,37 @@ export function EventDetailContent({
     useEventHands(eventId)
   const { participants, refetch: refetchParticipants } =
     useEventParticipants(eventId)
+  const { isMobile } = useViewport()
+  // Casting at the detail level drives the header progress bar + the per-guest
+  // cast-status line on the People tab (the Grid/panels still own their own edits).
+  const { casting, defaultParts } = useCasting('event', eventId, event?.bandId)
+
+  const castTotal = defaultParts.length * lineup.length
+  const castFilled = lineup.reduce(
+    (sum, item) =>
+      sum +
+      defaultParts.filter(part =>
+        casting.some(
+          c => c.slotId === item.id && c.roleKey === part.key && c.isPrimary
+        )
+      ).length,
+    0
+  )
+  const castPct = castTotal > 0 ? Math.round((castFilled / castTotal) * 100) : 0
+
+  /** "Cast for N parts" / "Hand up · Role" sublabel for a participant. */
+  const castStatusFor = (userId: string): string | null => {
+    const parts = casting.filter(
+      c => c.memberId === userId && c.isPrimary
+    ).length
+    if (parts > 0) return `Cast for ${parts} part${parts === 1 ? '' : 's'}`
+    const hand = hands.find(h => h.userId === userId && h.status === 'raised')
+    if (hand) {
+      const role = defaultParts.find(p => p.key === hand.roleKey)
+      return `Hand up · ${role?.label ?? hand.roleKey}`
+    }
+    return null
+  }
 
   const [tab, setTab] = useState<EventTab>('lineup')
   const [title, setTitle] = useState('')
@@ -186,31 +219,97 @@ export function EventDetailContent({
         ) : (
           <div className="flex flex-col gap-5">
             {/* Header */}
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-ink-1">{event.name}</h1>
-                <Badge
-                  tone={
-                    (SHOW_TONE[event.status as keyof typeof SHOW_TONE] ??
-                      'neutral') as BadgeTone
-                  }
-                  size="sm"
-                >
-                  {event.status}
-                </Badge>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-ink-1">
+                    {event.name}
+                  </h1>
+                  <Badge
+                    tone={
+                      (SHOW_TONE[event.status as keyof typeof SHOW_TONE] ??
+                        'neutral') as BadgeTone
+                    }
+                    size="sm"
+                  >
+                    {event.status}
+                  </Badge>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-ink-4">
+                  <span>{formatShowDate(event.scheduledDate)}</span>
+                  {event.venue && (
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin size={13} /> {event.venue}
+                    </span>
+                  )}
+                  <Badge tone={isManager ? 'accent' : 'info'} size="sm">
+                    {isManager ? 'Hosting' : 'Guest'}
+                  </Badge>
+                </div>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-ink-4">
-                <span>{formatShowDate(event.scheduledDate)}</span>
-                {event.venue && (
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin size={13} /> {event.venue}
-                  </span>
-                )}
-                <Badge tone={isManager ? 'accent' : 'info'} size="sm">
-                  {isManager ? 'Hosting' : 'Guest'}
-                </Badge>
-              </div>
+              {isManager && eventId && (
+                <InviteFriendsSheet
+                  eventId={eventId}
+                  participantIds={new Set(participants.map(p => p.userId))}
+                  onInvited={refetchParticipants}
+                  position={isMobile ? 'bottom' : 'right'}
+                />
+              )}
             </div>
+
+            {/* Cast progress + List/Grid toggle (host, above the tabs) */}
+            {isManager && lineup.length > 0 && (
+              <div
+                className="flex items-center gap-4"
+                data-testid="event-cast-progress"
+              >
+                <div className="flex-1">
+                  <div className="mb-1.5 flex justify-between text-xs text-ink-3">
+                    <span>
+                      <b className="text-ink-1">{castFilled}</b> of {castTotal}{' '}
+                      parts cast
+                    </span>
+                    <span className="font-mono">{castPct}%</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-3">
+                    <div
+                      className="h-full rounded-full bg-accent transition-all"
+                      style={{ width: `${castPct}%` }}
+                      data-testid="event-cast-progress-bar"
+                    />
+                  </div>
+                </div>
+                <div
+                  className="inline-flex flex-shrink-0 rounded-lg border border-border-1 bg-bg-1 p-0.5"
+                  data-testid="cast-view-toggle"
+                >
+                  <button
+                    onClick={() => setCastView('list')}
+                    data-testid="cast-view-list"
+                    aria-pressed={castView === 'list'}
+                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      castView === 'list'
+                        ? 'bg-accent-soft text-accent'
+                        : 'text-ink-4 hover:text-ink-2'
+                    }`}
+                  >
+                    <List size={14} /> List
+                  </button>
+                  <button
+                    onClick={() => setCastView('grid')}
+                    data-testid="cast-view-grid"
+                    aria-pressed={castView === 'grid'}
+                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      castView === 'grid'
+                        ? 'bg-accent-soft text-accent'
+                        : 'text-ink-4 hover:text-ink-2'
+                    }`}
+                  >
+                    <LayoutGrid size={14} /> Grid
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Tabs */}
             <div
@@ -242,39 +341,6 @@ export function EventDetailContent({
             {/* ── Lineup ─────────────────────────────────────────────── */}
             {tab === 'lineup' && (
               <div>
-                {isManager && lineup.length > 0 && (
-                  <div className="mb-3 flex justify-end">
-                    <div
-                      className="inline-flex rounded-lg border border-border-1 bg-bg-1 p-0.5"
-                      data-testid="cast-view-toggle"
-                    >
-                      <button
-                        onClick={() => setCastView('list')}
-                        data-testid="cast-view-list"
-                        aria-pressed={castView === 'list'}
-                        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                          castView === 'list'
-                            ? 'bg-accent-soft text-accent'
-                            : 'text-ink-4 hover:text-ink-2'
-                        }`}
-                      >
-                        <List size={14} /> List
-                      </button>
-                      <button
-                        onClick={() => setCastView('grid')}
-                        data-testid="cast-view-grid"
-                        aria-pressed={castView === 'grid'}
-                        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                          castView === 'grid'
-                            ? 'bg-accent-soft text-accent'
-                            : 'text-ink-4 hover:text-ink-2'
-                        }`}
-                      >
-                        <LayoutGrid size={14} /> Grid
-                      </button>
-                    </div>
-                  </div>
-                )}
                 {lineup.length === 0 ? (
                   <p className="text-sm text-ink-5">
                     No songs in the lineup yet.
@@ -468,16 +534,9 @@ export function EventDetailContent({
             {/* ── People ─────────────────────────────────────────────── */}
             {tab === 'people' && (
               <div>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <Eyebrow>Participants ({participants.length})</Eyebrow>
-                  {isManager && eventId && (
-                    <InviteFriendsSheet
-                      eventId={eventId}
-                      participantIds={new Set(participants.map(p => p.userId))}
-                      onInvited={refetchParticipants}
-                    />
-                  )}
-                </div>
+                <Eyebrow className="mb-2">
+                  Participants ({participants.length})
+                </Eyebrow>
                 {participants.length === 0 ? (
                   <EmptyState icon={Users} title="No one yet" size="md" />
                 ) : (
@@ -485,31 +544,42 @@ export function EventDetailContent({
                     className="flex flex-col gap-2"
                     data-testid="event-people"
                   >
-                    {participants.map(p => (
-                      <div
-                        key={p.userId}
-                        className="flex items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-3"
-                        data-testid={`event-person-${p.userId}`}
-                      >
-                        <Avatar label={p.name} size="sm" />
-                        <span className="flex-1 truncate font-medium text-ink-1">
-                          {p.name}
-                        </span>
-                        <Badge
-                          tone={
-                            p.accessTier === 'host' || p.accessTier === 'cohost'
-                              ? 'accent'
-                              : 'neutral'
-                          }
-                          size="sm"
+                    {participants.map(p => {
+                      const status = castStatusFor(p.userId)
+                      return (
+                        <div
+                          key={p.userId}
+                          className="flex items-center gap-3 rounded-xl bg-bg-1 border border-border-1 p-3"
+                          data-testid={`event-person-${p.userId}`}
                         >
-                          {p.accessTier}
-                        </Badge>
-                        <span className="text-xs capitalize text-ink-4">
-                          {p.rsvp}
-                        </span>
-                      </div>
-                    ))}
+                          <Avatar label={p.name} size="sm" />
+                          <span className="flex-1 min-w-0">
+                            <span className="block truncate font-medium text-ink-1">
+                              {p.name}
+                            </span>
+                            {status && (
+                              <span className="block truncate text-xs text-ink-4">
+                                {status}
+                              </span>
+                            )}
+                          </span>
+                          <Badge
+                            tone={
+                              p.accessTier === 'host' ||
+                              p.accessTier === 'cohost'
+                                ? 'accent'
+                                : 'neutral'
+                            }
+                            size="sm"
+                          >
+                            {p.accessTier}
+                          </Badge>
+                          <span className="text-xs capitalize text-ink-4">
+                            {p.rsvp}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

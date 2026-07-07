@@ -12,6 +12,8 @@ interface InviteFriendsSheetProps {
   participantIds: Set<string>
   /** Refetch participants after a successful invite. */
   onInvited: () => void | Promise<void>
+  /** Tray placement — bottom-sheet on mobile, right-docked on desktop. */
+  position?: 'right' | 'bottom'
 }
 
 /**
@@ -24,6 +26,7 @@ export function InviteFriendsSheet({
   eventId,
   participantIds,
   onInvited,
+  position = 'bottom',
 }: InviteFriendsSheetProps) {
   const { friends, loading } = useFriends()
   const { showToast } = useToast()
@@ -82,7 +85,7 @@ export function InviteFriendsSheet({
         isOpen={open}
         onClose={close}
         title="Invite friends"
-        position="bottom"
+        position={position}
         data-testid="invite-friends-sheet"
       >
         <div className="flex flex-col gap-4 px-6 py-4">
