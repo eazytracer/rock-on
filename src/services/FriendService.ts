@@ -189,40 +189,73 @@ export class FriendService {
     if (!match) return { ok: false, error: 'No one found for that code' }
     if (match.user_id === me)
       return { ok: false, error: "That's your own code" }
+    const insName = match.display_name ?? match.name
     const { error: insErr } = await supabase
       .from('friend_requests')
       .insert({ requester_id: me, addressee_id: match.user_id } as never)
-    if (insErr) {
-      const dup = (insErr as { code?: string }).code === '23505'
-      return {
-        ok: false,
-        error: dup ? 'Request already exists' : 'Could not send request',
-      }
+    if (!insErr) return { ok: true, name: insName }
+    if ((insErr as { code?: string }).code !== '23505') {
+      log.error('sendRequest insert failed', insErr)
+      return { ok: false, error: 'Could not send request' }
     }
-    return { ok: true, name: match.display_name ?? match.name }
+    // A request row already exists for this exact direction (the UNIQUE
+    // requester/addressee pair). If it's a stale declined/cancelled one,
+    // reactivate it so the user can re-request; otherwise report its state.
+    const { data: existing } = await supabase
+      .from('friend_requests')
+      .select('id, status')
+      .eq('requester_id', me)
+      .eq('addressee_id', match.user_id)
+      .maybeSingle()
+    const row = existing as { id: string; status: string } | null
+    if (row && (row.status === 'declined' || row.status === 'cancelled')) {
+      const { error: upErr } = await supabase
+        .from('friend_requests')
+        .update({ status: 'pending', responded_date: null } as never)
+        .eq('id', row.id)
+      if (!upErr) return { ok: true, name: insName }
+      log.error('sendRequest reactivate failed', upErr)
+      return { ok: false, error: 'Could not send request' }
+    }
+    return {
+      ok: false,
+      error:
+        row?.status === 'accepted'
+          ? "You're already friends"
+          : 'Request already pending',
+    }
   }
 
   static async acceptRequest(id: string): Promise<void> {
-    await FriendService.setRequestStatus(id, 'accepted')
-  }
-  static async declineRequest(id: string): Promise<void> {
-    await FriendService.setRequestStatus(id, 'declined')
-  }
-  static async cancelRequest(id: string): Promise<void> {
-    await FriendService.setRequestStatus(id, 'cancelled')
-  }
-
-  private static async setRequestStatus(
-    id: string,
-    status: string
-  ): Promise<void> {
+    // Must be an UPDATE: the BEFORE-UPDATE trigger writes the friendship row
+    // when status flips to 'accepted'.
     const supabase = getSupabaseClient()
     if (!supabase) return
     const { error } = await supabase
       .from('friend_requests')
-      .update({ status } as never)
+      .update({ status: 'accepted' } as never)
       .eq('id', id)
-    if (error) log.error(`setRequestStatus(${status}) failed`, error)
+    if (error) log.error('acceptRequest failed', error)
+  }
+
+  // Decline/cancel DELETE the row (not a status flip) so the UNIQUE
+  // (requester, addressee) slot is freed — a left-behind 'declined'/'cancelled'
+  // row would block either party from ever sending a fresh request again.
+  static async declineRequest(id: string): Promise<void> {
+    await FriendService.deleteRequest(id)
+  }
+  static async cancelRequest(id: string): Promise<void> {
+    await FriendService.deleteRequest(id)
+  }
+
+  private static async deleteRequest(id: string): Promise<void> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+    const { error } = await supabase
+      .from('friend_requests')
+      .delete()
+      .eq('id', id)
+    if (error) log.error('deleteRequest failed', error)
   }
 
   static async unfriend(friendshipId: string): Promise<void> {
