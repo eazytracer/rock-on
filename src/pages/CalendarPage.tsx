@@ -16,6 +16,7 @@ import { useEvents } from '../hooks/useEvents'
 import { formatTime12Hour, formatCountdown } from '../utils/dateHelpers'
 import { Badge } from '../components/common/Badge'
 import { EmptyState } from '../components/common/EmptyState'
+import { JoinEventForm } from '../components/events/JoinEventForm'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { SHOW_TONE, PRACTICE_TONE, type BadgeTone } from '../utils/tokens'
 
@@ -293,6 +294,13 @@ export function CalendarPage() {
           </button>
         ))}
       </div>
+
+      {/* Join an event by code — this is where the Events tab lands. */}
+      {filter === 'events' && (
+        <div className="mt-4">
+          <JoinEventForm />
+        </div>
+      )}
 
       <ContentLoadingSpinner isLoading={loading}>
         {upcoming.length === 0 && past.length === 0 ? (
