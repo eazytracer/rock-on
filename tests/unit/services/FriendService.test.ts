@@ -53,37 +53,31 @@ beforeEach(() => {
 })
 
 describe('FriendService.searchByName', () => {
-  it('returns nothing for a query shorter than 2 chars (no query fired)', async () => {
+  it('returns nothing for a query shorter than 2 chars (no RPC fired)', async () => {
     const out = await FriendService.searchByName('a')
     expect(out).toEqual([])
-    expect(h.from).not.toHaveBeenCalled()
+    expect(h.rpc).not.toHaveBeenCalled()
   })
 
-  it('queries discoverable profiles, excludes self, maps rows', async () => {
+  it('maps discoverable users returned by the search RPC', async () => {
     h.state.queue = [
       {
         data: [
-          { user_id: 'u2', display_name: 'Zoe Martin' },
-          { user_id: 'u3', display_name: null }, // dropped (no name)
+          { user_id: 'u2', name: 'Zoe Martin' },
+          { user_id: 'u3', name: null }, // dropped (no name)
         ],
         error: null,
       },
     ]
     const out = await FriendService.searchByName('zoe')
 
-    expect(h.from).toHaveBeenCalledWith('user_profiles')
-    expect(b.eq).toHaveBeenCalledWith('discoverable', true)
-    expect(b.neq).toHaveBeenCalledWith('user_id', 'me')
+    expect(h.rpc).toHaveBeenCalledWith('search_discoverable_users', {
+      p_query: 'zoe',
+    })
     expect(out).toEqual([{ userId: 'u2', name: 'Zoe Martin' }])
   })
 
-  it('escapes LIKE wildcards in the query', async () => {
-    h.state.queue = [{ data: [], error: null }]
-    await FriendService.searchByName('50%_off')
-    expect(b.ilike).toHaveBeenCalledWith('display_name', '%50\\%\\_off%')
-  })
-
-  it('returns [] on a query error', async () => {
+  it('returns [] on an RPC error', async () => {
     h.state.queue = [{ data: null, error: { message: 'boom' } }]
     expect(await FriendService.searchByName('zoe')).toEqual([])
   })
@@ -107,7 +101,7 @@ describe('FriendService.sendRequestToUser', () => {
   it('inserts a pending request and resolves the target name', async () => {
     h.state.queue = [
       { data: null, error: null }, // insert ok
-      { data: [{ user_id: 'u2', display_name: 'Zoe Martin' }], error: null }, // namesFor
+      { data: [{ user_id: 'u2', name: 'Zoe Martin' }], error: null }, // namesFor (related_names RPC)
     ]
     const res = await FriendService.sendRequestToUser('u2')
 
@@ -129,7 +123,7 @@ describe('FriendService.sendRequestToUser', () => {
       { data: null, error: { code: '23505' } }, // insert conflict
       { data: { id: 'r1', status: 'declined' }, error: null }, // existing row
       { data: null, error: null }, // update → pending
-      { data: [{ user_id: 'u2', display_name: 'Zoe' }], error: null }, // namesFor
+      { data: [{ user_id: 'u2', name: 'Zoe' }], error: null }, // namesFor (related_names RPC)
     ]
     const res = await FriendService.sendRequestToUser('u2')
     expect(b.update).toHaveBeenCalledWith({
