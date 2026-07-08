@@ -71,11 +71,13 @@ implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`
   (`LoginForm`/`SignupForm`/`JoinBandForm`/`BandCreationForm`), and
   `SongContextTabs`/`SessionForm`/`EditableField`/`PracticeBuilderPage`.
 
-### Database (local-only — held for prod review)
+### Database
 
-New incremental migrations, applied locally only and **not yet pushed to prod**:
-`notifications`, `friends`, `events`, `casting`, `social_events`, `event_code_join`,
-`tunings`, `song_hidden`. pgTAP coverage: 958 tests across 23 files, all passing.
+Eight incremental migrations — `notifications`, `friends`, `events`, `casting`,
+`social_events`, `event_code_join`, `tunings`, `song_hidden` — all **additive**
+(new tables + nullable/defaulted columns; no `DROP`/`DELETE`/`TRUNCATE`/type-change
+statements, so no data loss). **Applied to production 2026-07-08** (backed up first;
+`Local == Remote` verified). pgTAP coverage: 958 tests across 23 files, all passing.
 
 ### Known issues
 
