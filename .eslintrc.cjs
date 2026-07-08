@@ -83,7 +83,6 @@ module.exports = {
         'src/hooks/useSongs.ts',
         'src/pages/AuthPages.tsx',
         'src/pages/BandMembersPage.tsx',
-        'src/components/auth/BandCreationForm.tsx',
       ],
       rules: {
         // Warn instead of error so builds aren't blocked, but the IDE highlights it

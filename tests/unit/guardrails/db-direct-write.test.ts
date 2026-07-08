@@ -90,9 +90,6 @@ const KNOWN_VIOLATIONS = new Set([
   // Pages — should never write to db directly; use hooks/services instead
   'src/pages/AuthPages.tsx',
   'src/pages/BandMembersPage.tsx',
-
-  // Components — same as pages
-  'src/components/auth/BandCreationForm.tsx',
 ])
 
 // ─── Detection ────────────────────────────────────────────────────────────────
