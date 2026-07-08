@@ -40,6 +40,7 @@ import {
   tuningColor,
   tuningLabel,
   canonicalTuningId,
+  tuningOrderIndex,
 } from '../../utils/tunings'
 import { Dropdown, DropdownGroup } from '../common/Dropdown'
 import { useTunings } from '../../hooks/useTunings'
@@ -148,11 +149,12 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   })
 
   // Custom-tuning picker data (built-ins + the user's customs, from the DB).
+  // Guitar-only for now — bass tunings just clutter the song picker.
   const {
     builtins: builtinTunings,
     customs: customTunings,
     refetch: refetchTunings,
-  } = useTunings()
+  } = useTunings('guitar')
   const navigate = useNavigate()
   const [creatingTuning, setCreatingTuning] = useState(false)
 
@@ -169,11 +171,17 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   const tuningGroups: DropdownGroup[] = [
     {
       label: 'Built-in',
-      options: builtinTunings.map(t => ({
-        value: t.id,
-        label: t.name,
-        color: t.color ?? tuningColor(t.name),
-      })),
+      options: [...builtinTunings]
+        .sort(
+          (a, b) =>
+            tuningOrderIndex(a.slug) - tuningOrderIndex(b.slug) ||
+            a.name.localeCompare(b.name)
+        )
+        .map(t => ({
+          value: t.id,
+          label: t.name,
+          color: t.color ?? tuningColor(t.name),
+        })),
     },
     ...(customTunings.length
       ? [

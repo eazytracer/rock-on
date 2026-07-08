@@ -13,6 +13,8 @@ describe('canonicalTuningId', () => {
   it('maps each built-in label to its id', () => {
     expect(canonicalTuningId('Standard')).toBe('standard')
     expect(canonicalTuningId('Drop D')).toBe('drop-d')
+    expect(canonicalTuningId('Drop Db')).toBe('drop-db')
+    expect(canonicalTuningId('Drop C#')).toBe('drop-db')
     expect(canonicalTuningId('Drop C')).toBe('drop-c')
     expect(canonicalTuningId('Drop B')).toBe('drop-b')
     expect(canonicalTuningId('Half-step down')).toBe('half-step-down')
@@ -98,10 +100,10 @@ describe('CANONICAL_TUNINGS registry', () => {
 })
 
 describe('BUILTIN_TUNINGS (mirrors the DB seed)', () => {
-  it('has the 16 seeded built-ins with unique slugs', () => {
-    expect(BUILTIN_TUNINGS).toHaveLength(16)
+  it('has the 17 seeded built-ins with unique slugs', () => {
+    expect(BUILTIN_TUNINGS).toHaveLength(17)
     const slugs = BUILTIN_TUNINGS.map(t => t.slug)
-    expect(new Set(slugs).size).toBe(16)
+    expect(new Set(slugs).size).toBe(17)
   })
 
   it('every pitch array length equals its string count (DB CHECK parity)', () => {
