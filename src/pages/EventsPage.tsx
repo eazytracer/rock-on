@@ -6,7 +6,6 @@ import {
   MapPin,
   ChevronRight,
   Plus,
-  Ticket,
 } from 'lucide-react'
 import { useEvents } from '../hooks/useEvents'
 import { useAuth } from '../contexts/AuthContext'
@@ -22,6 +21,7 @@ import { EmptyState } from '../components/common/EmptyState'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { SHOW_TONE, type BadgeTone } from '../utils/tokens'
 import { EventDetailContent } from './EventDetailPage'
+import { JoinEventForm } from '../components/events/JoinEventForm'
 
 /** Invited-card RSVP badge (pending → no badge). */
 const RSVP_META: Partial<
@@ -45,8 +45,6 @@ export function EventsPage() {
   const { showToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [joinCode, setJoinCode] = useState('')
-  const [joining, setJoining] = useState(false)
   const autoJoined = useRef(false)
 
   const hosting = events.filter(e => e.hostUserId === currentUser?.id)
@@ -67,32 +65,23 @@ export function EventsPage() {
 
   const handleOpen = (ev: EventSummary) => openEvent(ev.id)
 
-  const joinByCode = async (code: string) => {
-    const trimmed = code.trim()
-    if (!trimmed || joining) return
-    setJoining(true)
-    const res = await EventService.joinByCode(trimmed)
-    setJoining(false)
-    if (res.ok && res.eventId) {
-      setJoinCode('')
-      showToast(`Joined ${res.name ?? 'the event'}`, 'success')
-      await refetch()
-      openEvent(res.eventId)
-    } else {
-      showToast(res.error ?? 'Could not join that event', 'error')
-    }
-  }
-
-  // Arriving via a shared join link (`/events?join=CODE`): prefill + auto-join
-  // once, then drop the param so a refresh doesn't re-trigger it.
+  // Arriving via a shared join link (`/events?join=CODE`): auto-join once, then
+  // drop the param so a refresh doesn't re-trigger it.
   useEffect(() => {
     const shared = searchParams.get('join')
     if (!shared || autoJoined.current) return
     autoJoined.current = true
-    setJoinCode(shared.toUpperCase())
-    void joinByCode(shared)
     searchParams.delete('join')
     setSearchParams(searchParams, { replace: true })
+    void EventService.joinByCode(shared).then(res => {
+      if (res.ok && res.eventId) {
+        showToast(`Joined ${res.name ?? 'the event'}`, 'success')
+        void refetch()
+        openEvent(res.eventId)
+      } else {
+        showToast(res.error ?? 'Could not join that event', 'error')
+      }
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
@@ -229,33 +218,9 @@ export function EventsPage() {
       </p>
 
       {/* Join by code — reciprocal of the Access-tab share code / QR link. */}
-      <form
-        onSubmit={e => {
-          e.preventDefault()
-          void joinByCode(joinCode)
-        }}
-        data-testid="events-join-form"
-        className="mt-4 flex items-center gap-2 rounded-xl bg-bg-1 border border-border-1 p-2"
-      >
-        <Ticket size={16} className="ml-1 flex-shrink-0 text-ink-4" />
-        <input
-          value={joinCode}
-          onChange={e => setJoinCode(e.target.value.toUpperCase())}
-          placeholder="Have a code? Join an event"
-          name="eventJoinCode"
-          id="event-join-code"
-          data-testid="events-join-input"
-          className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-sm text-ink-1 placeholder:text-ink-5 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={joining || !joinCode.trim()}
-          data-testid="events-join-button"
-          className="flex-shrink-0 rounded-lg bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent disabled:opacity-50"
-        >
-          {joining ? 'Joining…' : 'Join'}
-        </button>
-      </form>
+      <div className="mt-4">
+        <JoinEventForm onJoined={refetch} />
+      </div>
 
       <ContentLoadingSpinner isLoading={loading}>
         {events.length === 0 ? (

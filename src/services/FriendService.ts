@@ -27,20 +27,30 @@ async function currentUserId(): Promise<string | null> {
   return user?.id ?? null
 }
 
-/** Resolve display names for a set of user ids via user_profiles (RLS-permitting). */
+/**
+ * Resolve real names (public.users.name) for a set of connected user ids via the
+ * related_names RPC. Reading users.name directly is blocked by RLS for friends /
+ * request counterparties, and user_profiles.display_name is never populated — so
+ * the SECURITY DEFINER RPC (scoped to the caller's relationships) is the source.
+ */
 async function namesFor(userIds: string[]): Promise<Map<string, string>> {
   const map = new Map<string, string>()
   const supabase = getSupabaseClient()
   if (!supabase || userIds.length === 0) return map
-  const { data } = await supabase
-    .from('user_profiles')
-    .select('user_id, display_name')
-    .in('user_id', userIds)
+  // rpc is untyped here (no generated DB types) — cast the call.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('related_names', {
+    p_ids: userIds,
+  })
+  if (error) {
+    log.error('related_names failed', error)
+    return map
+  }
   for (const row of (data as unknown as {
     user_id: string
-    display_name: string | null
+    name: string | null
   }[]) ?? []) {
-    if (row.display_name) map.set(row.user_id, row.display_name)
+    if (row.name) map.set(row.user_id, row.name)
   }
   return map
 }
@@ -273,27 +283,22 @@ export class FriendService {
     if (q.length < 2) return []
     const supabase = getSupabaseClient()
     if (!supabase) return []
-    const me = await currentUserId()
-    if (!me) return []
-    // Escape LIKE wildcards so user input matches literally.
-    const pattern = `%${q.replace(/[\\%_]/g, '\\$&')}%`
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('user_id, display_name')
-      .eq('discoverable', true)
-      .ilike('display_name', pattern)
-      .neq('user_id', me)
-      .limit(10)
+    // The RPC matches discoverable users by their real users.name, excludes
+    // self, and escapes LIKE wildcards server-side.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)(
+      'search_discoverable_users',
+      { p_query: q }
+    )
     if (error) {
       log.error('searchByName failed', error)
       return []
     }
     return (
-      (data as unknown as { user_id: string; display_name: string | null }[]) ??
-      []
+      (data as unknown as { user_id: string; name: string | null }[]) ?? []
     )
-      .filter(r => r.display_name)
-      .map(r => ({ userId: r.user_id, name: r.display_name as string }))
+      .filter(r => r.name)
+      .map(r => ({ userId: r.user_id, name: r.name as string }))
   }
 
   /** Send a friend request straight to a user id (e.g. from name search). */
