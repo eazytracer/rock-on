@@ -4,6 +4,7 @@ import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinne
 import { Dropdown } from '../components/common/Dropdown'
 import { useToast } from '../contexts/ToastContext'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
+import { TuningTag } from '../components/common/MetaPill'
 import { useConfirm } from '../hooks/useConfirm'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import {
@@ -455,8 +456,8 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
             {song.key}
           </div>
 
-          <div className="hidden sm:block w-[130px] text-ink-3 text-sm flex-shrink-0">
-            {song.tuning}
+          <div className="hidden sm:block w-[130px] flex-shrink-0">
+            <TuningTag tuning={song.tuning} className="text-sm" />
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">

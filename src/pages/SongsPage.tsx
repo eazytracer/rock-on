@@ -63,6 +63,7 @@ import { EditSongModal } from '../components/songs/EditSongModal'
 import type { Song as ModelSong } from '../models/Song'
 // Confirmation dialog (replaces window.confirm)
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { TuningTag } from '../components/common/MetaPill'
 import { useConfirm } from '../hooks/useConfirm'
 import { SongLinkingService } from '../services/SongLinkingService'
 
@@ -635,11 +636,8 @@ const SongRow: React.FC<SongRowProps> = ({
         <div className="w-[60px] text-ink-3 text-sm">{song.key || '—'}</div>
 
         {/* Tuning */}
-        <div
-          className="w-[130px] text-sm font-medium"
-          style={{ color: stripeColor }}
-        >
-          {song.tuning}
+        <div className="w-[130px]">
+          <TuningTag tuning={song.tuning} className="text-sm" />
         </div>
 
         {/* BPM */}
@@ -944,13 +942,7 @@ const SongCard: React.FC<SongRowProps> = ({
           <Music size={16} className="flex-shrink-0" />
           <span>{song.key || '—'}</span>
         </div>
-        <div
-          className="flex items-center gap-2 text-xs"
-          style={{ color: stripeColor }}
-        >
-          <Guitar size={16} className="flex-shrink-0" />
-          <span className="truncate font-medium">{song.tuning}</span>
-        </div>
+        <TuningTag tuning={song.tuning} />
         <div className="flex items-center gap-2 text-ink-3 text-xs">
           <Activity size={16} className="flex-shrink-0" />
           <span className="whitespace-nowrap">{song.bpm}</span>
