@@ -35,7 +35,10 @@ implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`
   people, add-by-code, incoming/sent requests (re-sendable after decline), a
   "who can add you" policy, and a shared-bands count.
 - **Custom tunings** — a Settings tunings manager + create flow and a song-form tuning
-  picker (writes `tuning_id`).
+  picker (writes `tuning_id`). Ships **Drop Db** as a built-in; the picker is ordered
+  Standard · Eb · Drop D · Drop Db · then the rest, and hides bass tunings. Song tuning
+  chips are unified via a reusable `TuningTag` (identical across catalog / setlist /
+  practice).
 - **Songs** — **Hide / Re-add** from the catalog (`song_hidden`), a catalog
   **provenance tag** + **Source filter**, and a 4-state song-notes indicator.
 - **Notifications** — cross-context feed with a "from ‹Band›" chip when an item is from
