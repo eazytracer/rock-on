@@ -168,3 +168,29 @@ export const TuningPill: React.FC<{
     />
   )
 }
+
+/**
+ * TuningTag — the lightweight tuning indicator for song rows / cards: a
+ * tuning-colored guitar icon + canonical label (no pill chrome). The single
+ * reusable treatment across the catalog, setlist, and practice-detail song
+ * lists, so tuning looks identical everywhere (pairs with the card's left-edge
+ * color stripe). Use TuningPill for the fuller chip in prominent contexts.
+ */
+export const TuningTag: React.FC<{
+  tuning: string | null | undefined
+  className?: string
+  'data-testid'?: string
+}> = ({ tuning, className, 'data-testid': testId }) => {
+  const color = tuningColor(tuning)
+  return (
+    <span
+      className={`inline-flex min-w-0 items-center gap-1.5 text-xs font-medium ${className ?? ''}`}
+      style={{ color }}
+      title={`Tuning: ${tuningLabel(tuning)}`}
+      data-testid={testId}
+    >
+      <Guitar size={14} className="flex-shrink-0" />
+      <span className="truncate">{tuningLabel(tuning)}</span>
+    </span>
+  )
+}

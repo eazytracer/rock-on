@@ -24,18 +24,34 @@ export interface TuningEntry {
   color: string
 }
 
-/** Built-in canonical tunings — Palette A. */
+/**
+ * Built-in canonical tunings — Palette A.
+ * Array order IS the canonical display order (Standard, Eb, Drop D, Drop Db,
+ * then the rest) — see `tuningOrderIndex` used by the song-form picker.
+ */
 export const CANONICAL_TUNINGS: readonly TuningEntry[] = [
   { id: 'standard', label: 'Standard', color: '#60a5fa' },
+  { id: 'half-step-down', label: 'Half-step down', color: '#14b8a6' },
   { id: 'drop-d', label: 'Drop D', color: '#f97316' },
+  { id: 'drop-db', label: 'Drop Db', color: '#f59e0b' },
   { id: 'drop-c', label: 'Drop C', color: '#ef4444' },
   { id: 'drop-b', label: 'Drop B', color: '#a855f7' },
-  { id: 'half-step-down', label: 'Half-step down', color: '#14b8a6' },
   { id: 'whole-step-down', label: 'Whole-step down', color: '#0ea5e9' },
   { id: 'open-g', label: 'Open G', color: '#eab308' },
   { id: 'open-d', label: 'Open D', color: '#ec4899' },
   { id: 'dadgad', label: 'DADGAD', color: '#10b981' },
 ] as const
+
+/**
+ * Sort key for the tuning picker: position in CANONICAL_TUNINGS (the desired
+ * display order). Slugs not in the list (e.g. extended-range 7/8-string) sort
+ * to the end, then fall back to name order at the call site.
+ */
+export function tuningOrderIndex(slug: string | null | undefined): number {
+  if (!slug) return CANONICAL_TUNINGS.length
+  const i = CANONICAL_TUNINGS.findIndex(t => t.id === slug)
+  return i === -1 ? CANONICAL_TUNINGS.length : i
+}
 
 /** Fallback color for custom / unrecognized tunings. */
 export const FALLBACK_TUNING_COLOR = '#6b7280'
@@ -66,6 +82,9 @@ export function canonicalTuningId(input: string | undefined | null): string {
   )
     return 'standard'
   if (dashed === 'drop-d') return 'drop-d'
+  // Drop Db is also commonly written "Drop C#".
+  if (['drop-db', 'drop-c#', 'drop-csharp', 'drop-c-sharp'].includes(dashed))
+    return 'drop-db'
   if (dashed === 'drop-c') return 'drop-c'
   if (dashed === 'drop-b') return 'drop-b'
 
@@ -172,6 +191,14 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     stringCount: 6,
     pitches: [38, 45, 50, 55, 59, 64],
     color: '#f97316',
+  },
+  {
+    slug: 'drop-db',
+    name: 'Drop Db',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [37, 44, 49, 54, 58, 63],
+    color: '#f59e0b',
   },
   {
     slug: 'half-step-down',

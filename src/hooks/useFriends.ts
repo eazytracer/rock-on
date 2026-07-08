@@ -37,11 +37,18 @@ export function useFriends() {
   const [loading, setLoading] = useState(true)
 
   const refetch = useCallback(async () => {
-    const [f, r, p] = await Promise.all([
+    const [f, r, p0] = await Promise.all([
       FriendService.getFriends(),
       FriendService.getRequests(),
       FriendService.getMyProfile(),
     ])
+    // Self-heal a missing profile row / blank friend code: guarantee a code
+    // exists, then re-read the full profile.
+    let p = p0
+    if (!p || !p.friendCode) {
+      await FriendService.ensureFriendCode()
+      p = await FriendService.getMyProfile()
+    }
     setFriends(f)
     setIncoming(r.incoming)
     setOutgoing(r.outgoing)

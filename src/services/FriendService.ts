@@ -183,6 +183,25 @@ export class FriendService {
     }
   }
 
+  /**
+   * Guarantee the current user has a profile row WITH a friend code, and return
+   * it. The app never inserts user_profiles rows, so a user can have no row or a
+   * NULL code → a blank share code; the ensure_friend_code RPC creates-or-fills
+   * it server-side. Idempotent; safe to call on every Friends load.
+   */
+  static async ensureFriendCode(): Promise<string | null> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return null
+    // rpc is untyped here (no generated DB types) — cast the call.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)('ensure_friend_code')
+    if (error) {
+      log.error('ensure_friend_code failed', error)
+      return null
+    }
+    return (data as string | null) ?? null
+  }
+
   static async setDiscoverable(discoverable: boolean): Promise<void> {
     const supabase = getSupabaseClient()
     if (!supabase) return

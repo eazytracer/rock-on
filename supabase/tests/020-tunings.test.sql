@@ -32,8 +32,8 @@ select ok(has_table_privilege('authenticated', 'public.tunings', 'INSERT'),
   'authenticated can INSERT tunings');
 
 -- ── Seeded built-ins (2) ─────────────────────────────────────────────────────
-select is((SELECT count(*)::int FROM public.tunings WHERE is_builtin), 16,
-  '16 built-in tunings seeded');
+select is((SELECT count(*)::int FROM public.tunings WHERE is_builtin), 17,
+  '17 built-in tunings seeded');
 select is((SELECT pitches FROM public.tunings WHERE slug = 'standard'),
   ARRAY[40,45,50,55,59,64]::smallint[], 'standard = E2 A2 D3 G3 B3 E4 (MIDI)');
 
@@ -66,9 +66,9 @@ DO $$ BEGIN
   PERFORM set_config('test.b', tests.get_supabase_uid('tun-b@test.com')::text, true);
 END $$;
 
--- Built-ins are world-readable: user A sees all 16.
+-- Built-ins are world-readable: user A sees all 17.
 select tests.authenticate_as('tun-a@test.com');
-select is((SELECT count(*)::int FROM public.tunings WHERE is_builtin), 16,
+select is((SELECT count(*)::int FROM public.tunings WHERE is_builtin), 17,
   'built-ins are world-readable to any authenticated user');
 
 -- A user cannot create a built-in (RLS write policy requires NOT is_builtin).
@@ -99,8 +99,8 @@ UPDATE public.tunings SET name = 'HACKED' WHERE slug = 'standard';
 select is((SELECT name FROM public.tunings WHERE slug = 'standard'), 'Standard',
   'a user cannot UPDATE a built-in tuning (unchanged)');
 DELETE FROM public.tunings WHERE slug = 'standard';
-select is((SELECT count(*)::int FROM public.tunings WHERE is_builtin), 16,
-  'a user cannot DELETE a built-in tuning (all 16 remain)');
+select is((SELECT count(*)::int FROM public.tunings WHERE is_builtin), 17,
+  'a user cannot DELETE a built-in tuning (all 17 remain)');
 
 -- Ownership forgery on INSERT (WITH CHECK binds created_by + owner to auth.uid()).
 select throws_ok(

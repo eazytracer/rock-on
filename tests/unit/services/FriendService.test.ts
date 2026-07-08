@@ -33,11 +33,12 @@ const h = vi.hoisted(() => {
   const auth = {
     getUser: vi.fn(() => Promise.resolve({ data: { user: state.user } })),
   }
-  return { state, builder, from, auth }
+  const rpc = vi.fn(() => Promise.resolve(pull()))
+  return { state, builder, from, auth, rpc }
 })
 
 vi.mock('../../../src/services/supabase/client', () => ({
-  getSupabaseClient: () => ({ from: h.from, auth: h.auth }),
+  getSupabaseClient: () => ({ from: h.from, auth: h.auth, rpc: h.rpc }),
 }))
 
 import { FriendService } from '../../../src/services/FriendService'
@@ -85,6 +86,20 @@ describe('FriendService.searchByName', () => {
   it('returns [] on a query error', async () => {
     h.state.queue = [{ data: null, error: { message: 'boom' } }]
     expect(await FriendService.searchByName('zoe')).toEqual([])
+  })
+})
+
+describe('FriendService.ensureFriendCode', () => {
+  it('returns the code from the ensure_friend_code RPC', async () => {
+    h.state.queue = [{ data: 'ABCD1234', error: null }]
+    const code = await FriendService.ensureFriendCode()
+    expect(h.rpc).toHaveBeenCalledWith('ensure_friend_code')
+    expect(code).toBe('ABCD1234')
+  })
+
+  it('returns null when the RPC errors', async () => {
+    h.state.queue = [{ data: null, error: { message: 'boom' } }]
+    expect(await FriendService.ensureFriendCode()).toBeNull()
   })
 })
 

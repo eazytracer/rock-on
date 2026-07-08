@@ -10,12 +10,12 @@ import {
   Trash2,
   FileText,
   Clock,
-  Guitar,
 } from 'lucide-react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { LinkIcons } from '../songs/LinkIcons'
 import { InlineEditableField } from './InlineEditableField'
+import { TuningTag } from './MetaPill'
 import type { ReferenceLink } from '../../types'
 import { tuningColor } from '../../utils/tunings'
 
@@ -358,14 +358,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                   <Clock size={14} className="flex-shrink-0 text-ink-4" />
                   <span>{song.duration}</span>
                 </div>
-                <div className="flex items-center gap-2 text-ink-3 text-xs">
-                  <Guitar
-                    size={14}
-                    className="flex-shrink-0"
-                    style={{ color: stripeColor }}
-                  />
-                  <span className="truncate">{song.tuning || 'Standard'}</span>
-                </div>
+                <TuningTag tuning={song.tuning || 'Standard'} />
               </div>
 
               {showLinks &&
@@ -444,11 +437,11 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
               <span>{song.duration}</span>
             </div>
 
-            {/* Tuning with icon */}
-            <div className="w-[120px] flex items-center gap-2 text-ink-3 text-sm flex-shrink-0">
-              <Guitar size={14} style={{ color: stripeColor }} />
-              <span className="truncate">{song.tuning || 'Standard'}</span>
-            </div>
+            {/* Tuning */}
+            <TuningTag
+              tuning={song.tuning || 'Standard'}
+              className="w-[120px] flex-shrink-0 text-sm"
+            />
 
             {/* Song Notes button */}
             {onOpenSongNotes && (

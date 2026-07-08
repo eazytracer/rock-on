@@ -35,7 +35,10 @@ implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`
   people, add-by-code, incoming/sent requests (re-sendable after decline), a
   "who can add you" policy, and a shared-bands count.
 - **Custom tunings** — a Settings tunings manager + create flow and a song-form tuning
-  picker (writes `tuning_id`).
+  picker (writes `tuning_id`). Ships **Drop Db** as a built-in; the picker is ordered
+  Standard · Eb · Drop D · Drop Db · then the rest, and hides bass tunings. Song tuning
+  chips are unified via a reusable `TuningTag` (identical across catalog / setlist /
+  practice).
 - **Songs** — **Hide / Re-add** from the catalog (`song_hidden`), a catalog
   **provenance tag** + **Source filter**, and a 4-state song-notes indicator.
 - **Notifications** — cross-context feed with a "from ‹Band›" chip when an item is from
@@ -62,6 +65,11 @@ implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`
   leave-and-return); re-raisable hands after withdraw; band-change toasts restored
   (songs/setlists/shows, batched); re-sendable friend requests after decline/cancel.
 - **UI** — toggle knob overflow (off looked on; on slid outside the pill).
+- **Events — join by code** now works for a logged-in user: the Events page has a
+  "join by code" input and auto-joins from a shared `?join=CODE` link (previously
+  only signup could use a code).
+- **Friends — share code is self-provisioning** (`ensure_friend_code` RPC + column
+  default + backfill), fixing a blank friend code with no way to generate one.
 
 ### Removed
 

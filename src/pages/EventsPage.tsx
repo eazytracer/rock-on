@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   PartyPopper,
   MapPin,
   ChevronRight,
   Plus,
+  Ticket,
 } from 'lucide-react'
 import { useEvents } from '../hooks/useEvents'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { useViewport } from '../hooks/useResponsive'
+import { EventService } from '../services/EventService'
 import { formatShowDate } from '../utils/dateHelpers'
 import type { EventSummary, EventRsvp } from '../models/Event'
 import { Avatar } from '../components/common/Avatar'
@@ -36,10 +39,15 @@ const RSVP_META: Partial<
  */
 export function EventsPage() {
   const navigate = useNavigate()
-  const { events, loading } = useEvents()
+  const { events, loading, refetch } = useEvents()
   const { currentUser } = useAuth()
   const { isDesktop } = useViewport()
+  const { showToast } = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [joinCode, setJoinCode] = useState('')
+  const [joining, setJoining] = useState(false)
+  const autoJoined = useRef(false)
 
   const hosting = events.filter(e => e.hostUserId === currentUser?.id)
   const invited = events.filter(e => e.hostUserId !== currentUser?.id)
@@ -52,13 +60,41 @@ export function EventsPage() {
     if (first) setSelectedId(first.id)
   }, [isDesktop, selectedId, hosting, invited, events])
 
-  const handleOpen = (ev: EventSummary) => {
-    if (isDesktop) {
-      setSelectedId(ev.id)
+  const openEvent = (id: string) => {
+    if (isDesktop) setSelectedId(id)
+    else navigate(`/events/${id}`)
+  }
+
+  const handleOpen = (ev: EventSummary) => openEvent(ev.id)
+
+  const joinByCode = async (code: string) => {
+    const trimmed = code.trim()
+    if (!trimmed || joining) return
+    setJoining(true)
+    const res = await EventService.joinByCode(trimmed)
+    setJoining(false)
+    if (res.ok && res.eventId) {
+      setJoinCode('')
+      showToast(`Joined ${res.name ?? 'the event'}`, 'success')
+      await refetch()
+      openEvent(res.eventId)
     } else {
-      navigate(`/events/${ev.id}`)
+      showToast(res.error ?? 'Could not join that event', 'error')
     }
   }
+
+  // Arriving via a shared join link (`/events?join=CODE`): prefill + auto-join
+  // once, then drop the param so a refresh doesn't re-trigger it.
+  useEffect(() => {
+    const shared = searchParams.get('join')
+    if (!shared || autoJoined.current) return
+    autoJoined.current = true
+    setJoinCode(shared.toUpperCase())
+    void joinByCode(shared)
+    searchParams.delete('join')
+    setSearchParams(searchParams, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const EventCard = ({
     ev,
@@ -191,6 +227,35 @@ export function EventsPage() {
       <p className="mt-1 text-sm text-ink-4">
         Host a gig or jam and let people sign up to play
       </p>
+
+      {/* Join by code — reciprocal of the Access-tab share code / QR link. */}
+      <form
+        onSubmit={e => {
+          e.preventDefault()
+          void joinByCode(joinCode)
+        }}
+        data-testid="events-join-form"
+        className="mt-4 flex items-center gap-2 rounded-xl bg-bg-1 border border-border-1 p-2"
+      >
+        <Ticket size={16} className="ml-1 flex-shrink-0 text-ink-4" />
+        <input
+          value={joinCode}
+          onChange={e => setJoinCode(e.target.value.toUpperCase())}
+          placeholder="Have a code? Join an event"
+          name="eventJoinCode"
+          id="event-join-code"
+          data-testid="events-join-input"
+          className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-sm text-ink-1 placeholder:text-ink-5 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={joining || !joinCode.trim()}
+          data-testid="events-join-button"
+          className="flex-shrink-0 rounded-lg bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent disabled:opacity-50"
+        >
+          {joining ? 'Joining…' : 'Join'}
+        </button>
+      </form>
 
       <ContentLoadingSpinner isLoading={loading}>
         {events.length === 0 ? (
