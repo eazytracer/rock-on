@@ -1,8 +1,21 @@
 # Rock-On Style Guide
 
+> ⚠️ **SUPERSEDED (2026-07-05).** This document describes the **original light theme**
+> (`energy-orange #FE4401`, `smoke-white #F5F5F5` cards, electric-yellow, `-apple-system`
+> fonts). The shipped app is a **dark** scheme on unified accent **`#ff7a1a`** with
+> **Geist + JetBrains Mono** and a full ink/surface ramp.
+>
+> **Source of truth for design tokens:** `src/index.css` (CSS custom properties) +
+> `tailwind.config.js` (Tailwind utility mappings) + `src/utils/tokens.ts` (JS mirror,
+> `BADGE_TONE`/`SHOW_TONE`/`SETLIST_TONE`/`PRACTICE_TONE`). Tuning-warmth colors come from
+> `tuningColor()` in `src/utils/tunings.ts`. **Never hard-code hex — use the token utilities**
+> (`bg-bg-1`, `text-ink-3`, `text-accent`, `text-danger`, …). The color/palette sections below
+> are retained for history only; do not build against them.
+
 ## TailwindCSS Configuration
 
 ### Custom Color Palette
+
 Add to your `tailwind.config.js`:
 
 ```javascript
@@ -27,30 +40,39 @@ module.exports = {
         text: '#2E2E2E',
       },
       spacing: {
-        '18': '4.5rem',
-        '22': '5.5rem',
+        18: '4.5rem',
+        22: '5.5rem',
       },
       fontFamily: {
-        'sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'Oxygen',
+          'Ubuntu',
+          'Cantarell',
+          'sans-serif',
+        ],
       },
       fontSize: {
-        'display': ['3rem', { lineHeight: '3.25rem', fontWeight: '700' }],
-        'h1': ['2.25rem', { lineHeight: '2.5rem', fontWeight: '700' }],
-        'h2': ['1.75rem', { lineHeight: '2rem', fontWeight: '700' }],
-        'h3': ['1.5rem', { lineHeight: '1.75rem', fontWeight: '700' }],
-        'h4': ['1.25rem', { lineHeight: '1.5rem', fontWeight: '700' }],
+        display: ['3rem', { lineHeight: '3.25rem', fontWeight: '700' }],
+        h1: ['2.25rem', { lineHeight: '2.5rem', fontWeight: '700' }],
+        h2: ['1.75rem', { lineHeight: '2rem', fontWeight: '700' }],
+        h3: ['1.5rem', { lineHeight: '1.75rem', fontWeight: '700' }],
+        h4: ['1.25rem', { lineHeight: '1.5rem', fontWeight: '700' }],
         'body-lg': ['1.125rem', { lineHeight: '1.5rem', fontWeight: '400' }],
-        'body': ['1rem', { lineHeight: '1.375rem', fontWeight: '400' }],
+        body: ['1rem', { lineHeight: '1.375rem', fontWeight: '400' }],
         'body-sm': ['0.875rem', { lineHeight: '1.25rem', fontWeight: '400' }],
-        'caption': ['0.75rem', { lineHeight: '1rem', fontWeight: '400' }],
+        caption: ['0.75rem', { lineHeight: '1rem', fontWeight: '400' }],
       },
       borderRadius: {
-        'component': '0.5rem',
-        'card': '0.75rem',
+        component: '0.5rem',
+        card: '0.75rem',
       },
       boxShadow: {
-        'card': '0 2px 8px rgba(18, 18, 18, 0.1)',
-        'elevated': '0 4px 16px rgba(18, 18, 18, 0.15)',
+        card: '0 2px 8px rgba(18, 18, 18, 0.1)',
+        elevated: '0 4px 16px rgba(18, 18, 18, 0.15)',
       },
     },
   },
@@ -60,6 +82,7 @@ module.exports = {
 ## Component Classes
 
 ### Button Styles
+
 ```css
 /* Primary Button */
 .btn-primary {
@@ -88,6 +111,7 @@ module.exports = {
 ```
 
 ### Card Styles
+
 ```css
 .card {
   @apply bg-smoke-white border border-steel-gray/10 rounded-card p-5 shadow-card;
@@ -99,6 +123,7 @@ module.exports = {
 ```
 
 ### Form Styles
+
 ```css
 .form-input {
   @apply w-full px-4 py-3 border-2 border-steel-gray/20 rounded-component
@@ -117,6 +142,7 @@ module.exports = {
 ```
 
 ### Navigation Styles
+
 ```css
 .navbar {
   @apply bg-stage-black/95 backdrop-blur-sm border-b border-steel-gray/20;
@@ -141,6 +167,7 @@ module.exports = {
 ## Typography Classes
 
 ### Heading Classes
+
 ```css
 .text-display {
   @apply text-display text-steel-gray;
@@ -164,6 +191,7 @@ module.exports = {
 ```
 
 ### Body Text Classes
+
 ```css
 .text-body-lg {
   @apply text-body-lg text-steel-gray;
@@ -185,6 +213,7 @@ module.exports = {
 ## Layout Classes
 
 ### Container Classes
+
 ```css
 .container-mobile {
   @apply mx-auto px-2;
@@ -213,6 +242,7 @@ module.exports = {
 ```
 
 ### Grid Classes
+
 ```css
 .grid-mobile {
   @apply grid gap-4;
@@ -235,6 +265,7 @@ module.exports = {
 ## State Classes
 
 ### Interactive States
+
 ```css
 .interactive {
   @apply transition-all duration-150 ease-out;
@@ -250,6 +281,7 @@ module.exports = {
 ```
 
 ### Loading States
+
 ```css
 .loading {
   @apply opacity-50 pointer-events-none;
@@ -263,12 +295,14 @@ module.exports = {
 ## Icon Guidelines
 
 ### Icon Sizes
+
 - **Small**: 16px - Inline with text, form icons
 - **Medium**: 24px - Navigation, buttons
 - **Large**: 32px - Featured content, headers
 - **XL**: 48px+ - Hero sections, empty states
 
 ### Icon Colors
+
 - **Primary**: Energy Orange for active/interactive icons
 - **Secondary**: Steel Gray for neutral icons
 - **Muted**: Steel Gray at 50% opacity for disabled icons
@@ -276,6 +310,7 @@ module.exports = {
 ## Animation Classes
 
 ### Transition Classes
+
 ```css
 .transition-fast {
   @apply transition-all duration-150 ease-out;
@@ -291,6 +326,7 @@ module.exports = {
 ```
 
 ### Motion Classes
+
 ```css
 .slide-in {
   @apply transform translate-x-full opacity-0 transition-transform duration-250 ease-out;
@@ -312,6 +348,7 @@ module.exports = {
 ## Utility Classes
 
 ### Spacing Utilities
+
 ```css
 .space-y-component > * + * {
   @apply mt-4;
@@ -327,6 +364,7 @@ module.exports = {
 ```
 
 ### Background Utilities
+
 ```css
 .bg-app {
   @apply bg-stage-black;

@@ -41,25 +41,25 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           ),
           // Paragraphs
           p: ({ children }) => (
-            <p className="text-[#d4d4d4] mb-4 leading-relaxed">{children}</p>
+            <p className="text-ink-2 mb-4 leading-relaxed">{children}</p>
           ),
           // Lists
           ul: ({ children }) => (
-            <ul className="list-disc list-inside text-[#d4d4d4] mb-4 space-y-1">
+            <ul className="list-disc list-inside text-ink-2 mb-4 space-y-1">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal list-inside text-[#d4d4d4] mb-4 space-y-1">
+            <ol className="list-decimal list-inside text-ink-2 mb-4 space-y-1">
               {children}
             </ol>
           ),
-          li: ({ children }) => <li className="text-[#d4d4d4]">{children}</li>,
+          li: ({ children }) => <li className="text-ink-2">{children}</li>,
           // Links
           a: ({ href, children }) => (
             <a
               href={href}
-              className="text-[#f17827ff] hover:text-[#ff8c3d] underline"
+              className="text-accent hover:text-accent-hot underline"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -71,20 +71,20 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             const isInline = !className
             if (isInline) {
               return (
-                <code className="bg-[#1f1f1f] px-1.5 py-0.5 rounded text-[#fbbf24] text-sm">
+                <code className="bg-bg-3 px-1.5 py-0.5 rounded text-[#fbbf24] text-sm">
                   {children}
                 </code>
               )
             }
             return (
-              <code className="block bg-[#1f1f1f] p-4 rounded-lg text-[#d4d4d4] text-sm overflow-x-auto mb-4">
+              <code className="block bg-bg-3 p-4 rounded-lg text-ink-2 text-sm overflow-x-auto mb-4">
                 {children}
               </code>
             )
           },
           // Blockquotes
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-[#f17827ff] pl-4 italic text-[#a0a0a0] my-4">
+            <blockquote className="border-l-4 border-accent pl-4 italic text-ink-3 my-4">
               {children}
             </blockquote>
           ),
@@ -94,10 +94,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           ),
           // Emphasis/Italic
           em: ({ children }) => (
-            <em className="italic text-[#d4d4d4]">{children}</em>
+            <em className="italic text-ink-2">{children}</em>
           ),
           // Horizontal Rule
-          hr: () => <hr className="border-t border-[#2a2a2a] my-6" />,
+          hr: () => <hr className="border-t border-border-1 my-6" />,
         }}
       >
         {content}

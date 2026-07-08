@@ -1,7 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../hooks/useConfirm'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { TuningsSection } from '../components/tunings/TuningsSection'
 import {
   User,
   Mail,
@@ -43,6 +46,7 @@ import { VERSION_DISPLAY, BUILD_ID } from '../config/buildInfo'
 export const SettingsPage: React.FC = () => {
   const { user, signOut } = useAuth()
   const { showToast } = useToast()
+  const { confirm, dialogProps } = useConfirm()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
@@ -83,7 +87,13 @@ export const SettingsPage: React.FC = () => {
   }
 
   const handleClearLocalData = async () => {
-    if (!confirm('Clear all local data? This will log you out.')) {
+    const confirmed = await confirm({
+      title: 'Clear Local Data',
+      message: 'Clear all local data? This will log you out.',
+      variant: 'danger',
+      confirmLabel: 'Clear Data',
+    })
+    if (!confirmed) {
       return
     }
 
@@ -101,6 +111,46 @@ export const SettingsPage: React.FC = () => {
     }
   }
 
+  // Desktop left-nav sections (scroll-spy jump list). Mobile stacks them all.
+  const navSections = [
+    { id: 'settings-account', label: 'Account' },
+    { id: 'settings-tunings', label: 'Tunings' },
+    { id: 'settings-privacy', label: 'Data & Privacy' },
+    { id: 'settings-app-info', label: 'App Info' },
+    ...(isDev ? [{ id: 'settings-developer', label: 'Developer' }] : []),
+  ]
+  const [activeSection, setActiveSection] = useState(navSections[0].id)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const root = contentRef.current
+    if (!root) return
+    const els = navSections
+      .map(s => document.getElementById(s.id))
+      .filter((el): el is HTMLElement => el !== null)
+    if (els.length === 0) return
+    const observer = new IntersectionObserver(
+      entries => {
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort(
+            (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
+          )[0]
+        if (visible) setActiveSection(visible.target.id)
+      },
+      { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
+    )
+    els.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+    // navSections is derived from isDev only; re-run when dev-mode set changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDev])
+
+  const scrollToSection = (id: string) => {
+    setActiveSection(id)
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   if (!user) {
     return (
       <ContentLoadingSpinner isLoading={false}>
@@ -115,7 +165,7 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <ContentLoadingSpinner isLoading={false}>
-      <div data-testid="settings-page" className="max-w-4xl mx-auto space-y-6">
+      <div data-testid="settings-page" className="max-w-5xl mx-auto">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
@@ -124,181 +174,229 @@ export const SettingsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Account Section */}
-        <section
-          className="bg-surface-elevated rounded-lg border border-white/5 p-6"
-          data-testid="account-section"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <User className="w-5 h-5 text-blue-400" />
-            </div>
-            <h2 className="text-xl font-semibold text-white">Account</h2>
-          </div>
-
-          <div className="space-y-4">
-            {/* Email */}
-            <div className="flex items-start gap-3">
-              <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <label className="text-sm text-gray-400 block mb-1">
-                  Email
-                </label>
-                <p
-                  className="text-white font-medium"
-                  data-testid="account-email"
-                >
-                  {user.email}
-                </p>
-              </div>
-            </div>
-
-            {/* Name */}
-            <div className="flex items-start gap-3">
-              <User className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <label className="text-sm text-gray-400 block mb-1">Name</label>
-                <p
-                  className="text-white font-medium"
-                  data-testid="account-name"
-                >
-                  {user.name}
-                </p>
-              </div>
-            </div>
-
-            {/* User ID */}
-            <div className="flex items-start gap-3">
-              <Key className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <label className="text-sm text-gray-400 block mb-1">
-                  User ID
-                </label>
-                <p
-                  className="text-gray-400 text-sm font-mono"
-                  data-testid="account-user-id"
-                >
-                  {user.id}
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Data & Privacy Section */}
-        <section className="bg-surface-elevated rounded-lg border border-white/5 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-red-500/10 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-red-400" />
-            </div>
-            <h2 className="text-xl font-semibold text-white">
-              Data &amp; Privacy
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
-              <div className="flex items-start gap-3 mb-4">
-                <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h3 className="text-white font-semibold mb-1">
-                    Delete Account
-                  </h3>
-                  <p className="text-sm text-gray-400 mb-4">
-                    Permanently delete your account and all associated data.
-                    This action cannot be undone.
-                  </p>
-                  <button
-                    onClick={() => setShowDeleteModal(true)}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                    data-testid="delete-account-button"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete Account
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* App Info Section - Always visible */}
-        <section
-          className="bg-surface-elevated rounded-lg border border-white/5 p-6"
-          data-testid="app-info-section"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Info className="w-5 h-5 text-blue-400" />
-            </div>
-            <h2 className="text-xl font-semibold text-white">App Info</h2>
-          </div>
-
-          <div className="space-y-4">
-            {/* Version Info */}
-            <div className="flex items-start gap-3">
-              <Code className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <label className="text-sm text-gray-400 block mb-1">
-                  Version
-                </label>
-                <p
-                  className="text-white font-mono text-sm"
-                  data-testid="version-info"
-                >
-                  {VERSION_DISPLAY}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Build: {BUILD_ID}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  If your app is outdated, try refreshing or clearing browser
-                  cache.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Developer Section (Dev Mode Only) */}
-        {isDev && (
-          <section
-            className="bg-surface-elevated rounded-lg border border-green-500/20 p-6"
-            data-testid="dev-section"
+        <div className="lg:grid lg:grid-cols-[200px_1fr] lg:gap-8">
+          {/* Desktop left-nav (scroll-spy); mobile stacks all sections */}
+          <nav
+            className="hidden lg:block"
+            aria-label="Settings sections"
+            data-testid="settings-nav"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <Code className="w-5 h-5 text-green-400" />
-              </div>
-              <h2 className="text-xl font-semibold text-white">Developer</h2>
-              <span className="ml-auto px-2 py-1 bg-green-500/10 text-green-400 text-xs font-medium rounded">
-                DEV MODE
-              </span>
+            <div className="sticky top-4 flex flex-col gap-1">
+              {navSections.map(s => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => scrollToSection(s.id)}
+                  data-testid={`settings-nav-${s.id}`}
+                  aria-current={activeSection === s.id ? 'true' : undefined}
+                  className={`rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                    activeSection === s.id
+                      ? 'bg-accent-soft text-accent'
+                      : 'text-ink-3 hover:bg-bg-2 hover:text-ink-1'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
             </div>
+          </nav>
 
-            <div className="space-y-4">
-              {/* Clear Local Data */}
-              <div className="flex items-start gap-3">
-                <Database className="w-5 h-5 text-gray-400 mt-0.5" />
-                <div className="flex-1">
-                  <label className="text-sm text-gray-400 block mb-1">
-                    Local Database
-                  </label>
-                  <p className="text-sm text-gray-400 mb-3">
-                    Clear all local IndexedDB data. This will log you out and
-                    force a fresh sync on next login.
-                  </p>
-                  <button
-                    onClick={handleClearLocalData}
-                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                    data-testid="clear-local-data-button"
-                  >
-                    <Database className="w-4 h-4" />
-                    Clear Local Data
-                  </button>
+          {/* Content column */}
+          <div ref={contentRef} className="min-w-0 space-y-6">
+            {/* Account Section */}
+            <section
+              id="settings-account"
+              className="scroll-mt-4 bg-surface-elevated rounded-lg border border-border-1 p-6"
+              data-testid="account-section"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-info/10 rounded-lg">
+                  <User className="w-5 h-5 text-blue-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-white">Account</h2>
+              </div>
+
+              <div className="space-y-4">
+                {/* Email */}
+                <div className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <div className="flex-1">
+                    <label className="text-sm text-gray-400 block mb-1">
+                      Email
+                    </label>
+                    <p
+                      className="text-white font-medium"
+                      data-testid="account-email"
+                    >
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div className="flex items-start gap-3">
+                  <User className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <div className="flex-1">
+                    <label className="text-sm text-gray-400 block mb-1">
+                      Name
+                    </label>
+                    <p
+                      className="text-white font-medium"
+                      data-testid="account-name"
+                    >
+                      {user.name}
+                    </p>
+                  </div>
+                </div>
+
+                {/* User ID */}
+                <div className="flex items-start gap-3">
+                  <Key className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <div className="flex-1">
+                    <label className="text-sm text-gray-400 block mb-1">
+                      User ID
+                    </label>
+                    <p
+                      className="text-gray-400 text-sm font-mono"
+                      data-testid="account-user-id"
+                    >
+                      {user.id}
+                    </p>
+                  </div>
                 </div>
               </div>
+            </section>
+
+            {/* Tunings Section (fork #2) */}
+            <div id="settings-tunings" className="scroll-mt-4">
+              <TuningsSection />
             </div>
-          </section>
-        )}
+
+            {/* Data & Privacy Section */}
+            <section
+              id="settings-privacy"
+              className="scroll-mt-4 bg-surface-elevated rounded-lg border border-border-1 p-6"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-red-500/10 rounded-lg">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-white">
+                  Data &amp; Privacy
+                </h2>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+                  <div className="flex items-start gap-3 mb-4">
+                    <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold mb-1">
+                        Delete Account
+                      </h3>
+                      <p className="text-sm text-gray-400 mb-4">
+                        Permanently delete your account and all associated data.
+                        This action cannot be undone.
+                      </p>
+                      <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                        data-testid="delete-account-button"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete Account
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* App Info Section - Always visible */}
+            <section
+              id="settings-app-info"
+              className="scroll-mt-4 bg-surface-elevated rounded-lg border border-border-1 p-6"
+              data-testid="app-info-section"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-info/10 rounded-lg">
+                  <Info className="w-5 h-5 text-blue-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-white">App Info</h2>
+              </div>
+
+              <div className="space-y-4">
+                {/* Version Info */}
+                <div className="flex items-start gap-3">
+                  <Code className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <div className="flex-1">
+                    <label className="text-sm text-gray-400 block mb-1">
+                      Version
+                    </label>
+                    <p
+                      className="text-white font-mono text-sm"
+                      data-testid="version-info"
+                    >
+                      {VERSION_DISPLAY}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Build: {BUILD_ID}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      If your app is outdated, try refreshing or clearing
+                      browser cache.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Developer Section (Dev Mode Only) */}
+            {isDev && (
+              <section
+                id="settings-developer"
+                className="scroll-mt-4 bg-surface-elevated rounded-lg border border-green-500/20 p-6"
+                data-testid="dev-section"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-green-500/10 rounded-lg">
+                    <Code className="w-5 h-5 text-green-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-white">
+                    Developer
+                  </h2>
+                  <span className="ml-auto px-2 py-1 bg-green-500/10 text-green-400 text-xs font-medium rounded">
+                    DEV MODE
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Clear Local Data */}
+                  <div className="flex items-start gap-3">
+                    <Database className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <div className="flex-1">
+                      <label className="text-sm text-gray-400 block mb-1">
+                        Local Database
+                      </label>
+                      <p className="text-sm text-gray-400 mb-3">
+                        Clear all local IndexedDB data. This will log you out
+                        and force a fresh sync on next login.
+                      </p>
+                      <button
+                        onClick={handleClearLocalData}
+                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                        data-testid="clear-local-data-button"
+                      >
+                        <Database className="w-4 h-4" />
+                        Clear Local Data
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Delete Account Confirmation Modal */}
@@ -392,6 +490,8 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </ContentLoadingSpinner>
   )
 }

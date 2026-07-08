@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { Dropdown } from '../components/common/Dropdown'
 import { EntityHeader } from '../components/common/EntityHeader'
 import { InlineEditableField } from '../components/common/InlineEditableField'
 import { SHOW_STATUS_OPTIONS } from '../components/common/InlineStatusBadge'
@@ -67,19 +68,19 @@ const ContactCard: React.FC<{
 }> = ({ contact, index, onRemove }) => {
   return (
     <div
-      className="flex items-start gap-3 p-4 bg-[#0f0f0f] rounded-lg border border-[#2a2a2a] group"
+      className="flex items-start gap-3 p-4 bg-bg-1 rounded-lg border border-border-1 group"
       data-testid={`contact-${index}`}
     >
-      <div className="w-10 h-10 rounded-full bg-[#f17827ff]/10 border border-[#f17827ff]/30 flex items-center justify-center flex-shrink-0">
-        <User size={20} className="text-[#f17827ff]" />
+      <div className="w-10 h-10 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
+        <User size={20} className="text-accent" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <div className="text-white font-medium">{contact.name}</div>
           {contact.role && (
             <>
-              <span className="text-[#505050]">•</span>
-              <div className="text-sm text-[#a0a0a0]">{contact.role}</div>
+              <span className="text-ink-5">•</span>
+              <div className="text-sm text-ink-3">{contact.role}</div>
             </>
           )}
         </div>
@@ -87,7 +88,7 @@ const ContactCard: React.FC<{
           {contact.phone && (
             <a
               href={`tel:${contact.phone}`}
-              className="flex items-center gap-1.5 text-[#f17827ff] hover:underline"
+              className="flex items-center gap-1.5 text-accent hover:underline"
             >
               <Phone size={14} />
               {contact.phone}
@@ -96,7 +97,7 @@ const ContactCard: React.FC<{
           {contact.email && (
             <a
               href={`mailto:${contact.email}`}
-              className="flex items-center gap-1.5 text-[#f17827ff] hover:underline"
+              className="flex items-center gap-1.5 text-accent hover:underline"
             >
               <Mail size={14} />
               {contact.email}
@@ -108,7 +109,7 @@ const ContactCard: React.FC<{
       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
         <button
           onClick={onRemove}
-          className="p-1.5 text-red-500/70 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+          className="p-1.5 text-danger/70 hover:text-danger hover:bg-danger/10 rounded transition-colors"
           title="Remove contact"
         >
           <Trash2 size={14} />
@@ -128,7 +129,7 @@ const EditableContactCard: React.FC<{
 }> = ({ contact, index, onChange, onRemove, onBlur }) => {
   return (
     <div
-      className="p-4 bg-[#0f0f0f] rounded-lg border border-[#f17827ff]"
+      className="p-4 bg-bg-1 rounded-lg border border-accent"
       data-testid={`edit-contact-${index}`}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -138,7 +139,7 @@ const EditableContactCard: React.FC<{
           onChange={e => onChange({ ...contact, name: e.target.value })}
           onBlur={onBlur}
           placeholder="Name *"
-          className="px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none"
+          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
           autoFocus
         />
         <input
@@ -147,7 +148,7 @@ const EditableContactCard: React.FC<{
           onChange={e => onChange({ ...contact, role: e.target.value })}
           onBlur={onBlur}
           placeholder="Role (e.g., Venue Manager)"
-          className="px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none"
+          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
         />
         <input
           type="tel"
@@ -155,7 +156,7 @@ const EditableContactCard: React.FC<{
           onChange={e => onChange({ ...contact, phone: e.target.value })}
           onBlur={onBlur}
           placeholder="Phone"
-          className="px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none"
+          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
         />
         <input
           type="email"
@@ -163,13 +164,13 @@ const EditableContactCard: React.FC<{
           onChange={e => onChange({ ...contact, email: e.target.value })}
           onBlur={onBlur}
           placeholder="Email"
-          className="px-3 py-2 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none"
+          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
         />
       </div>
       <div className="flex justify-end mt-2">
         <button
           onClick={onRemove}
-          className="flex items-center gap-1 px-2 py-1 text-red-500 hover:text-red-400 text-xs"
+          className="flex items-center gap-1 px-2 py-1 text-danger hover:text-danger/80 text-xs"
         >
           <Trash2 size={14} />
           Remove
@@ -568,7 +569,7 @@ export const ShowViewPage: React.FC = () => {
       <div data-testid="show-view-page">
         {/* Header with inline editing */}
         <EntityHeader
-          backPath="/shows"
+          backPath="/calendar?filter=shows"
           title={show.name}
           onTitleSave={val => saveField('name', String(val))}
           titlePlaceholder="Show name"
@@ -595,16 +596,16 @@ export const ShowViewPage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
           {/* New mode save button */}
           {isNewMode && (
-            <div className="bg-[#121212] border border-[#f17827ff] rounded-lg p-4 flex items-center justify-between">
+            <div className="bg-bg-1 border border-accent rounded-lg p-4 flex items-center justify-between">
               <div>
                 <p className="text-white font-medium">Creating new show</p>
-                <p className="text-sm text-[#707070]">
+                <p className="text-sm text-ink-4">
                   Click any field above to edit, then save when ready
                 </p>
               </div>
               <button
                 onClick={createShow}
-                className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-accent hover:bg-accent-deep text-white font-medium rounded-lg transition-colors"
                 data-testid="create-show-button"
               >
                 Create Show
@@ -693,8 +694,8 @@ export const ShowViewPage: React.FC = () => {
             </div>
 
             {/* Notes - Full Width */}
-            <div className="mt-6 pt-6 border-t border-[#2a2a2a]">
-              <label className="block text-sm text-[#a0a0a0] mb-2 flex items-center gap-2">
+            <div className="mt-6 pt-6 border-t border-border-1">
+              <label className="block text-sm text-ink-3 mb-2 flex items-center gap-2">
                 <FileText size={16} />
                 Notes
               </label>
@@ -713,7 +714,7 @@ export const ShowViewPage: React.FC = () => {
             actions={
               <button
                 onClick={addContact}
-                className="flex items-center gap-1 px-3 py-1.5 text-[#f17827ff] hover:bg-[#f17827ff]/10 rounded-lg transition-colors text-sm"
+                className="flex items-center gap-1 px-3 py-1.5 text-accent hover:bg-accent/10 rounded-lg transition-colors text-sm"
                 data-testid="add-contact-button"
               >
                 <Plus size={16} />
@@ -722,12 +723,12 @@ export const ShowViewPage: React.FC = () => {
             }
           >
             {contacts.length === 0 ? (
-              <div className="text-center py-8 text-[#707070]">
-                <User size={32} className="mx-auto mb-2 text-[#505050]" />
+              <div className="text-center py-8 text-ink-4">
+                <User size={32} className="mx-auto mb-2 text-ink-5" />
                 <p className="text-sm">No contacts added</p>
                 <button
                   onClick={addContact}
-                  className="mt-2 text-[#f17827ff] hover:underline text-sm"
+                  className="mt-2 text-accent hover:underline text-sm"
                 >
                   Add a contact
                 </button>
@@ -763,16 +764,16 @@ export const ShowViewPage: React.FC = () => {
             actions={
               setlist ? (
                 <>
-                  <span className="text-sm text-[#a0a0a0]">
+                  <span className="text-sm text-ink-3">
                     {setlistItems.filter(i => i.type === 'song').length} songs
                   </span>
-                  <span className="text-sm text-[#a0a0a0]">
+                  <span className="text-sm text-ink-3">
                     {secondsToDuration(totalDuration)}
                   </span>
                   <button
                     onClick={() => navigate(`/setlists/${setlist.id}`)}
                     data-testid="edit-setlist-button"
-                    className="px-3 py-1.5 text-sm bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg hover:bg-[#252525] hover:border-[#3a3a3a] transition-colors"
+                    className="px-3 py-1.5 text-sm bg-bg-2 border border-border-1 text-white rounded-lg hover:bg-bg-4 hover:border-border-2 transition-colors"
                   >
                     Edit Setlist
                   </button>
@@ -783,56 +784,54 @@ export const ShowViewPage: React.FC = () => {
             {/* Setlist Selector - shown when no setlist attached */}
             {!setlist ? (
               <div className="flex flex-col items-center py-8">
-                <Music size={48} className="text-[#2a2a2a] mb-3" />
-                <p className="text-[#707070] mb-4">No setlist attached</p>
+                <Music size={48} className="text-border-1 mb-3" />
+                <p className="text-ink-4 mb-4">No setlist attached</p>
                 <div className="w-full max-w-md">
-                  <select
-                    value=""
-                    onChange={e => {
-                      if (e.target.value === '__create_new__') {
-                        handleCreateNewSetlist()
-                      } else if (e.target.value) {
-                        handleSetlistChange(e.target.value)
-                      }
-                    }}
-                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#f17827ff] focus:outline-none"
+                  <Dropdown
                     data-testid="show-setlist-select"
-                  >
-                    <option value="">Select a setlist...</option>
-                    <option value="__create_new__">+ Create new setlist</option>
-                    {availableSetlists.length > 0 && (
-                      <option disabled>───────────</option>
-                    )}
-                    {availableSetlists.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                    value={null}
+                    placeholder="Select a setlist..."
+                    onChange={id => handleSetlistChange(id)}
+                    groups={[
+                      {
+                        options: availableSetlists.map(s => ({
+                          value: s.id,
+                          label: s.name,
+                        })),
+                      },
+                    ]}
+                    footerActions={[
+                      {
+                        label: 'Create new setlist',
+                        icon: <Plus size={15} />,
+                        onClick: handleCreateNewSetlist,
+                      },
+                    ]}
+                  />
                 </div>
               </div>
             ) : (
               <>
                 {/* Setlist Info */}
-                <div className="flex items-center gap-3 mb-4 p-4 bg-[#0f0f0f] rounded-lg border border-[#2a2a2a]">
-                  <Music size={20} className="text-[#f17827ff]" />
+                <div className="flex items-center gap-3 mb-4 p-4 bg-bg-1 rounded-lg border border-border-1">
+                  <Music size={20} className="text-accent" />
                   <div className="flex-1">
                     <div className="text-white font-medium">{setlist.name}</div>
                     {setlist.notes && (
-                      <div className="text-xs text-[#a0a0a0] mt-1">
+                      <div className="text-xs text-ink-3 mt-1">
                         {setlist.notes}
                       </div>
                     )}
                   </div>
                   <button
                     onClick={() => handleSetlistChange('')}
-                    className="text-xs text-[#707070] hover:text-white transition-colors"
+                    className="text-xs text-ink-4 hover:text-white transition-colors"
                     data-testid="remove-setlist-button"
                   >
                     Remove
                   </button>
                 </div>
-                <p className="text-xs text-[#505050] mb-4">
+                <p className="text-xs text-ink-5 mb-4">
                   This is a copy for this show. Changes won't affect the
                   original setlist.
                 </p>
@@ -859,7 +858,7 @@ export const ShowViewPage: React.FC = () => {
                       )
                     })
                   ) : (
-                    <div className="text-center py-8 text-[#707070]">
+                    <div className="text-center py-8 text-ink-4">
                       No songs in this setlist
                     </div>
                   )}

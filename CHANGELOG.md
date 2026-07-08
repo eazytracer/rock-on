@@ -7,6 +7,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-08
+
+Mobile-redesign port + the social/event layer. A large release: 72 commits,
+~195 files. The design source of truth is the Claude Design "Rock On" project;
+implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`.
+
+### Added
+
+- **Design-system overhaul** — unified design tokens across every page, a 5-tab
+  bottom nav, and new Notifications / Friends / Events surfaces.
+- **Context switching** — GitHub-style Personal ↔ band switcher (persisted); Songs
+  and Setlists are personal-capable in Personal context.
+- **Band-less user flow** — personal accounts with no band required, event-code join
+  at signup, band-only empty states, and an upgrade path. Onboarding leads with a
+  first-class "Just me" solo path.
+- **Events** — host/guest event model: create (centered modal on desktop), a
+  2-column Lineup **card grid**, a casting console with **List** (per-song panel) and
+  **Grid** (songs × instruments matrix) views, guest **raise-a-hand** → host
+  accept/decline, song **requests → approve** (auto-links to the band catalog when it
+  matches), People roster, an **Access** tab (visibility / join code / QR / toggles),
+  **Invite friends**, and **"N going · X% cast"** stats + RSVP badges on list cards.
+- **Casting (v1)** — fixed instrument set for personal events
+  (guitar/bass/drums/vox/keys/other), a shared casting model (events → jam → bands),
+  free-text casts, and a **Detailed** view (backups + confidence).
+- **Friends** — code/QR-based connections with **find-by-name search** of discoverable
+  people, add-by-code, incoming/sent requests (re-sendable after decline), a
+  "who can add you" policy, and a shared-bands count.
+- **Custom tunings** — a Settings tunings manager + create flow and a song-form tuning
+  picker (writes `tuning_id`).
+- **Songs** — **Hide / Re-add** from the catalog (`song_hidden`), a catalog
+  **provenance tag** + **Source filter**, and a 4-state song-notes indicator.
+- **Notifications** — cross-context feed with a "from ‹Band›" chip when an item is from
+  another context.
+- **Desktop layouts** — two-pane / master-detail for Songs, Setlists, Home, Friends,
+  Events, plus a Settings left-nav with scroll-spy.
+- **Calendar-parent IA** — Shows / Practices / Events nest under Calendar with
+  `?filter=` deep-links, plus history-aware back navigation.
+
+### Changed
+
+- **One control surface per entity** — `Show` / `Practice` / `Event` / `Setlist` each
+  have a single page that is create + view + edit (retired `ScheduleShowModal` and
+  `PracticeBuilderPage` as edit surfaces).
+- **All native `<select>`s migrated** to the themed C0 `<Dropdown>`.
+- **Date/time pickers** de-finicked (single-click open, type-ahead, dark-themed native
+  inputs, no duplicate icons).
+- Setlist builder's BrowseSongsDrawer is responsive (bottom-sheet on mobile, side panel
+  on desktop).
+
+### Fixed
+
+- **Realtime** — live hands / casts / participants / lineup requests (no
+  leave-and-return); re-raisable hands after withdraw; band-change toasts restored
+  (songs/setlists/shows, batched); re-sendable friend requests after decline/cancel.
+- **UI** — toggle knob overflow (off looked on; on slid outside the pill).
+
+### Removed
+
+- **Dead-code sweep** — 14 orphaned components (~5.4k LOC): legacy casting chain
+  (`SetlistCastingView`/`SongCastingEditor`/`MemberRoleSelector`/`CastingComparison`),
+  legacy setlist builder (`SetlistBuilder`/`ShadowEntry`), orphaned auth forms
+  (`LoginForm`/`SignupForm`/`JoinBandForm`/`BandCreationForm`), and
+  `SongContextTabs`/`SessionForm`/`EditableField`/`PracticeBuilderPage`.
+
+### Database
+
+Eight incremental migrations — `notifications`, `friends`, `events`, `casting`,
+`social_events`, `event_code_join`, `tunings`, `song_hidden` — all **additive**
+(new tables + nullable/defaulted columns; no `DROP`/`DELETE`/`TRUNCATE`/type-change
+statements, so no data loss). **Applied to production 2026-07-08** (backed up first;
+`Local == Remote` verified). pgTAP coverage: 958 tests across 23 files, all passing.
+
+### Known issues
+
+- Duplicate free-text casts on one part are not de-duplicated (roster only; counts
+  unaffected) — see `.claude/artifacts/2026-07-08T01:50_v0.4.0-finalize-review.md`.
+- Event casting and Friends ship with thin e2e coverage; several multi-user/realtime
+  e2e specs are flaky. Prioritized spec list in the same review doc.
+
 ## [0.3.3] - 2026-04-25
 
 ### Fixed

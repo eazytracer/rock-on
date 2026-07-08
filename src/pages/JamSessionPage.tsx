@@ -44,6 +44,7 @@ import { JamParticipantList } from '../components/jam/JamParticipantList'
 import { JamWatcherList } from '../components/jam/JamWatcherList'
 import { JamMatchList } from '../components/jam/JamMatchList'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { Dropdown } from '../components/common/Dropdown'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
 import { TabSwitcher } from '../components/common/TabSwitcher'
 import { EmptyState } from '../components/common/EmptyState'
@@ -493,10 +494,19 @@ export const JamSessionPage: React.FC = () => {
           >
             <Radio size={22} className="text-primary" />
             <h1 className="text-2xl font-bold text-white">Jam Session</h1>
-            {!sessionId && <ChevronDown size={20} className="text-[#a0a0a0]" />}
+            {session?.status === 'active' && (
+              <span
+                data-testid="jam-live-badge"
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-danger/15 text-danger text-xs font-semibold uppercase tracking-wide"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
+                Live
+              </span>
+            )}
+            {!sessionId && <ChevronDown size={20} className="text-ink-3" />}
           </div>
           {!sessionId && (
-            <p className="text-[#707070] text-sm">
+            <p className="text-ink-4 text-sm">
               Find songs you have in common with other musicians, or build your
               own song queue for an impromptu set.
             </p>
@@ -515,7 +525,7 @@ export const JamSessionPage: React.FC = () => {
             {/* Resume cards — shown when the user has active sessions */}
             {activeSessions.length > 0 && (
               <div data-testid="jam-active-sessions">
-                <h2 className="text-[#a0a0a0] text-xs font-medium uppercase tracking-wide mb-3">
+                <h2 className="text-ink-3 text-xs font-medium uppercase tracking-wide mb-3">
                   Your Active Sessions
                 </h2>
                 <div className="space-y-2">
@@ -544,10 +554,12 @@ export const JamSessionPage: React.FC = () => {
                             <p className="text-white text-sm font-medium">
                               {s.name ?? `Jam ${s.shortCode}`}
                             </p>
-                            <p className="text-[#a0a0a0] text-xs mt-0.5">
+                            <p className="text-ink-3 text-xs mt-0.5">
                               {isHost ? 'You are hosting' : 'You joined'} ·{' '}
                               {expiresIn}h remaining · Code:{' '}
-                              <span className="font-mono">{s.shortCode}</span>
+                              <span className="font-mono tracking-wide">
+                                {s.shortCode}
+                              </span>
                             </p>
                           </div>
                         </div>
@@ -563,7 +575,7 @@ export const JamSessionPage: React.FC = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-6">
+              <div className="bg-bg-2 border border-border-1 rounded-xl p-6">
                 <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
                   <Plus size={18} className="text-amber-400" />
                   Host a Jam
@@ -577,43 +589,47 @@ export const JamSessionPage: React.FC = () => {
                     placeholder="Session name (optional)"
                     value={sessionName}
                     onChange={e => setSessionName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[#2a2a2a] border border-[#333] text-white text-sm placeholder-[#707070] focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 rounded-lg bg-border-1 border border-border-2 text-white text-sm placeholder-ink-4 focus:outline-none focus:border-amber-500"
                   />
                   <div>
                     <label
                       htmlFor="jam-seed-setlist"
-                      className="block text-xs text-[#a0a0a0] mb-1"
+                      className="block text-xs text-ink-3 mb-1"
                     >
                       Start from a setlist (optional)
                     </label>
-                    <select
+                    <Dropdown
                       data-testid="jam-seed-setlist-select"
-                      id="jam-seed-setlist"
-                      name="jamSeedSetlist"
                       value={seedSetlistId}
-                      onChange={e => setSeedSetlistId(e.target.value)}
+                      onChange={setSeedSetlistId}
                       disabled={personalSetlists.length === 0}
-                      className="w-full px-3 py-2 rounded-lg bg-[#2a2a2a] border border-[#333] text-white text-sm focus:outline-none focus:border-amber-500 disabled:opacity-50"
-                    >
-                      <option value="">
-                        {personalSetlists.length === 0
-                          ? 'No personal setlists yet'
-                          : 'None — start empty'}
-                      </option>
-                      {personalSetlists.map(sl => {
-                        const songCount = (sl.items ?? []).filter(
-                          i => i.type === 'song' && i.songId
-                        ).length
-                        return (
-                          <option key={sl.id} value={sl.id}>
-                            {sl.name} ({songCount} song
-                            {songCount === 1 ? '' : 's'})
-                          </option>
-                        )
-                      })}
-                    </select>
+                      groups={[
+                        {
+                          options: [
+                            {
+                              value: '',
+                              label:
+                                personalSetlists.length === 0
+                                  ? 'No personal setlists yet'
+                                  : 'None — start empty',
+                            },
+                            ...personalSetlists.map(sl => {
+                              const songCount = (sl.items ?? []).filter(
+                                i => i.type === 'song' && i.songId
+                              ).length
+                              return {
+                                value: sl.id,
+                                label: `${sl.name} (${songCount} song${
+                                  songCount === 1 ? '' : 's'
+                                })`,
+                              }
+                            }),
+                          ],
+                        },
+                      ]}
+                    />
                     {seedSetlistId && (
-                      <p className="text-xs text-[#707070] mt-1">
+                      <p className="text-xs text-ink-4 mt-1">
                         The setlist's songs will pre-populate your Setlist tab.
                       </p>
                     )}
@@ -629,7 +645,7 @@ export const JamSessionPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-6">
+              <div className="bg-bg-2 border border-border-1 rounded-xl p-6">
                 <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
                   <LogIn size={18} className="text-blue-400" />
                   Join a Jam
@@ -644,7 +660,7 @@ export const JamSessionPage: React.FC = () => {
                     value={joinCode}
                     onChange={e => setJoinCode(e.target.value.toUpperCase())}
                     maxLength={6}
-                    className="w-full px-3 py-2 rounded-lg bg-[#2a2a2a] border border-[#333] text-white text-sm placeholder-[#707070] focus:outline-none focus:border-blue-500 font-mono tracking-widest text-center uppercase"
+                    className="w-full px-3 py-2 rounded-lg bg-border-1 border border-border-2 text-white text-sm placeholder-ink-4 focus:outline-none focus:border-blue-500 font-mono tracking-widest text-center uppercase"
                   />
                   <button
                     data-testid="jam-join-button"
@@ -684,15 +700,15 @@ export const JamSessionPage: React.FC = () => {
                 {/* Mobile container — card wraps both the toggle
                     header and the (hidden) body, so when expanded the
                     list visibly belongs to the toggle that opened it. */}
-                <div className="md:hidden bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl overflow-hidden">
+                <div className="md:hidden bg-bg-2 border border-border-1 rounded-xl overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setIsParticipantsExpanded(v => !v)}
-                    className="flex items-center justify-between w-full text-left px-4 py-3 hover:bg-[#1f1f1f] transition-colors"
+                    className="flex items-center justify-between w-full text-left px-4 py-3 hover:bg-bg-3 transition-colors"
                     aria-expanded={isParticipantsExpanded}
                     data-testid="jam-participants-toggle"
                   >
-                    <span className="text-[#a0a0a0] text-sm">
+                    <span className="text-ink-3 text-sm">
                       <span className="text-white font-medium">
                         {participants.filter(p => p.status === 'active').length}
                       </span>{' '}
@@ -712,13 +728,13 @@ export const JamSessionPage: React.FC = () => {
                       )}
                     </span>
                     {isParticipantsExpanded ? (
-                      <ChevronDown size={16} className="text-[#707070]" />
+                      <ChevronDown size={16} className="text-ink-4" />
                     ) : (
-                      <ChevronRight size={16} className="text-[#707070]" />
+                      <ChevronRight size={16} className="text-ink-4" />
                     )}
                   </button>
                   {isParticipantsExpanded && (
-                    <div className="border-t border-[#2a2a2a] p-4 space-y-4">
+                    <div className="border-t border-border-1 p-4 space-y-4">
                       <JamParticipantList
                         participants={participants}
                         hostUserId={session.hostUserId}
@@ -733,7 +749,7 @@ export const JamSessionPage: React.FC = () => {
                     section heading + lists. */}
                 <div className="hidden md:block space-y-5">
                   <div>
-                    <h3 className="text-[#a0a0a0] text-sm font-medium mb-3 uppercase tracking-wide">
+                    <h3 className="text-ink-3 text-sm font-medium mb-3 uppercase tracking-wide">
                       Participants
                     </h3>
                     <JamParticipantList
@@ -923,7 +939,7 @@ export const JamSessionPage: React.FC = () => {
                             <button
                               data-testid="jam-setlist-add-from-catalog-button"
                               onClick={() => setIsSetlistPickerOpen(true)}
-                              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[#333] text-[#707070] text-sm hover:border-[#f17827ff] hover:text-[#f17827ff] transition-colors w-full justify-center"
+                              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border-2 text-ink-4 text-sm hover:border-accent hover:text-accent transition-colors w-full justify-center"
                             >
                               <Library size={14} />
                               Add from my catalog
@@ -931,7 +947,7 @@ export const JamSessionPage: React.FC = () => {
                             <button
                               data-testid="jam-setlist-add-more-button"
                               onClick={() => setActivePanel('common')}
-                              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-[#333] text-[#707070] text-sm hover:border-[#f17827ff] hover:text-[#f17827ff] transition-colors w-full justify-center"
+                              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border-2 text-ink-4 text-sm hover:border-accent hover:text-accent transition-colors w-full justify-center"
                             >
                               <Radio size={14} />
                               Add from Common Songs
@@ -963,10 +979,10 @@ export const JamSessionPage: React.FC = () => {
         {/* Session not found */}
         {!loading && sessionId && !session && !error && (
           <div className="text-center py-16">
-            <p className="text-[#707070]">Session not found or has expired.</p>
+            <p className="text-ink-4">Session not found or has expired.</p>
             <button
               onClick={() => navigate('/jam')}
-              className="mt-4 px-4 py-2 rounded-lg bg-[#2a2a2a] text-white text-sm hover:bg-[#333] transition-colors"
+              className="mt-4 px-4 py-2 rounded-lg bg-border-1 text-white text-sm hover:bg-border-2 transition-colors"
             >
               Start a new jam
             </button>
@@ -1002,7 +1018,7 @@ export const JamSessionPage: React.FC = () => {
             data-testid="jam-end-dialog-backdrop"
           >
             <div
-              className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-md shadow-xl"
+              className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-md shadow-xl"
               onClick={e => e.stopPropagation()}
               data-testid="jam-end-dialog"
             >
@@ -1015,7 +1031,7 @@ export const JamSessionPage: React.FC = () => {
                     <h3 className="text-white font-semibold text-lg mb-2">
                       End this jam session?
                     </h3>
-                    <p className="text-[#a0a0a0] text-sm">
+                    <p className="text-ink-3 text-sm">
                       {canSave
                         ? 'Save the current setlist to your personal setlists before ending, or end without saving. Either way, the session will stop accepting new participants.'
                         : 'The session will stop accepting new participants. This cannot be undone.'}
@@ -1027,7 +1043,7 @@ export const JamSessionPage: React.FC = () => {
                   <button
                     onClick={() => setIsEndDialogOpen(false)}
                     disabled={isEnding}
-                    className="px-4 py-2 text-[#a0a0a0] text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-ink-3 text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
                     data-testid="jam-end-dialog-cancel"
                   >
                     Cancel
@@ -1035,7 +1051,7 @@ export const JamSessionPage: React.FC = () => {
                   <button
                     onClick={() => void handleEndWithoutSaving()}
                     disabled={isEnding}
-                    className="px-4 py-2 text-sm font-medium rounded-lg bg-[#2a2a2a] text-[#e0e0e0] hover:bg-[#333] transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-border-1 text-ink-2 hover:bg-border-2 transition-colors disabled:opacity-50"
                     data-testid="jam-end-dialog-end-without-saving"
                   >
                     {canSave ? 'End without saving' : 'End Session'}
@@ -1044,7 +1060,7 @@ export const JamSessionPage: React.FC = () => {
                     <button
                       onClick={() => void handleSaveAndEnd()}
                       disabled={isEnding}
-                      className="flex items-center justify-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-primary hover:bg-[#e53d01] transition-colors disabled:opacity-50"
+                      className="flex items-center justify-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-primary hover:bg-accent-deep transition-colors disabled:opacity-50"
                       data-testid="jam-end-dialog-save-and-end"
                     >
                       {isEnding ? 'Saving…' : 'Save & End'}

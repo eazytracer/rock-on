@@ -189,7 +189,7 @@ export const DevTools: React.FC = () => {
       )}
 
       {/* Database Tools */}
-      <div className="bg-white rounded-lg border border-divider p-6 mb-6">
+      <div className="bg-bg-1 rounded-lg border border-divider p-6 mb-6">
         <h3 className="text-lg font-medium text-text mb-4">Database Tools</h3>
 
         <div className="space-y-4">
@@ -253,7 +253,7 @@ export const DevTools: React.FC = () => {
       </div>
 
       {/* Sync Tools */}
-      <div className="bg-white rounded-lg border border-divider p-6 mb-6">
+      <div className="bg-bg-1 rounded-lg border border-divider p-6 mb-6">
         <h3 className="text-lg font-medium text-text mb-4">Sync Tools</h3>
 
         <div className="space-y-4">

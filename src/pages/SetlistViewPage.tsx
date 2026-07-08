@@ -598,10 +598,10 @@ export const SetlistViewPage: React.FC = () => {
         <div className="max-w-6xl mx-auto py-6 space-y-6">
           {/* New mode - Create button */}
           {isNewMode && (
-            <div className="bg-[#121212] border border-[#f17827ff] rounded-lg p-4 flex items-center justify-between">
+            <div className="bg-bg-1 border border-accent rounded-lg p-4 flex items-center justify-between">
               <div>
                 <p className="text-white font-medium">Creating new setlist</p>
-                <p className="text-sm text-[#707070]">
+                <p className="text-sm text-ink-4">
                   Click any field above to edit, then save when ready
                 </p>
               </div>
@@ -609,7 +609,7 @@ export const SetlistViewPage: React.FC = () => {
                 type="submit"
                 onClick={createSetlist}
                 disabled={saving}
-                className="px-4 py-2 bg-[#f17827ff] hover:bg-[#d66920] text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-accent hover:bg-accent-deep text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                 data-testid="create-setlist-button"
               >
                 {saving ? 'Creating...' : 'Create Setlist'}
@@ -628,14 +628,14 @@ export const SetlistViewPage: React.FC = () => {
                   className="flex items-center gap-2"
                   data-testid="setlist-show"
                 >
-                  <Calendar size={16} className="text-[#f17827ff]" />
+                  <Calendar size={16} className="text-accent" />
                   <div>
-                    <label className="block text-sm text-[#707070] mb-0.5">
+                    <label className="block text-sm text-ink-4 mb-0.5">
                       Show
                     </label>
                     <button
                       onClick={() => navigate(`/shows/${associatedShow.id}`)}
-                      className="text-[#f17827ff] text-sm hover:underline text-left"
+                      className="text-accent text-sm hover:underline text-left"
                       data-testid="setlist-show-link"
                     >
                       {associatedShow.name} - {associatedShow.date}
@@ -649,9 +649,9 @@ export const SetlistViewPage: React.FC = () => {
                 className="flex items-center gap-2"
                 data-testid="setlist-song-count"
               >
-                <Music2 size={16} className="text-[#f17827ff]" />
+                <Music2 size={16} className="text-accent" />
                 <div>
-                  <label className="block text-sm text-[#707070] mb-0.5">
+                  <label className="block text-sm text-ink-4 mb-0.5">
                     Songs
                   </label>
                   <span className="text-white text-sm">{songCount} songs</span>
@@ -662,9 +662,9 @@ export const SetlistViewPage: React.FC = () => {
                 className="flex items-center gap-2"
                 data-testid="setlist-duration"
               >
-                <Clock size={16} className="text-[#f17827ff]" />
+                <Clock size={16} className="text-accent" />
                 <div>
-                  <label className="block text-sm text-[#707070] mb-0.5">
+                  <label className="block text-sm text-ink-4 mb-0.5">
                     Duration
                   </label>
                   <span className="text-white text-sm">
@@ -686,7 +686,7 @@ export const SetlistViewPage: React.FC = () => {
           </SectionCard>
 
           {/* Divider and Items Header */}
-          <div className="border-t border-[#2a2a2a] pt-6">
+          <div className="border-t border-border-1 pt-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">
                 Setlist Items ({items.length})
@@ -701,12 +701,12 @@ export const SetlistViewPage: React.FC = () => {
 
             {/* Items - Full width, no container */}
             {items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-[#2a2a2a] rounded-lg">
-                <ListMusic size={48} className="text-[#2a2a2a] mb-3" />
-                <p className="text-[#707070] text-sm mb-1">
+              <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-border-1 rounded-lg">
+                <ListMusic size={48} className="text-border-1 mb-3" />
+                <p className="text-ink-4 text-sm mb-1">
                   No items in this setlist
                 </p>
-                <p className="text-[#505050] text-xs mb-4">
+                <p className="text-ink-5 text-xs mb-4">
                   Add songs, breaks, or sections
                 </p>
                 <AddItemDropdown
@@ -801,7 +801,7 @@ export const SetlistViewPage: React.FC = () => {
         {/* Section Title Input Modal */}
         {showSectionInput && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] p-6 w-full max-w-md">
+            <div className="bg-bg-2 rounded-lg border border-border-1 p-6 w-full max-w-md">
               <h3 className="text-lg font-semibold text-white mb-4">
                 Add Section
               </h3>
@@ -810,7 +810,7 @@ export const SetlistViewPage: React.FC = () => {
                 value={sectionTitle}
                 onChange={e => setSectionTitle(e.target.value)}
                 placeholder="Enter section title..."
-                className="w-full px-4 py-3 bg-[#121212] border border-[#2a2a2a] rounded-lg text-white placeholder-[#505050] focus:border-[#f17827ff] focus:outline-none mb-4"
+                className="w-full px-4 py-3 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-5 focus:border-accent focus:outline-none mb-4"
                 autoFocus
                 onKeyDown={e => {
                   if (e.key === 'Enter' && sectionTitle.trim()) {
@@ -827,14 +827,14 @@ export const SetlistViewPage: React.FC = () => {
                     setShowSectionInput(false)
                     setSectionTitle('')
                   }}
-                  className="px-4 py-2 text-[#a0a0a0] hover:text-white transition-colors"
+                  className="px-4 py-2 text-ink-3 hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => addSection(sectionTitle)}
                   disabled={!sectionTitle.trim()}
-                  className="px-4 py-2 bg-[#f17827ff] text-white rounded-lg hover:bg-[#d66920] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add Section
                 </button>

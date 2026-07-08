@@ -11,7 +11,7 @@ interface ContentLoadingSpinnerProps {
  * Shows a themed loading spinner in the content area only (not full screen).
  * Used inside page components to show loading state while data fetches.
  *
- * The spinner uses the same dark theme as ModernLayout (bg-[#0a0a0a])
+ * The spinner uses the same dark theme as ModernLayout (bg-bg-0)
  * and amber-500 spinner color for consistency.
  *
  * @example
@@ -34,7 +34,7 @@ export const ContentLoadingSpinner: React.FC<ContentLoadingSpinnerProps> = ({
   if (isLoading) {
     return (
       <div
-        className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-[#0a0a0a]"
+        className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-bg-0"
         data-testid="content-loading-spinner"
       >
         <div className="flex flex-col items-center gap-4">

@@ -159,11 +159,14 @@ BEGIN
   -- ========================================
   RAISE NOTICE '🎸 Seeding user_profiles...';
 
-  INSERT INTO public.user_profiles (id, user_id, display_name, instruments, primary_instrument, created_date, updated_date) VALUES
-    (gen_random_uuid(), v_eric_id, 'Eric', ARRAY['Guitar', 'Vocals'], 'Guitar', NOW(), NOW()),
-    (gen_random_uuid(), v_mike_id, 'Mike', ARRAY['Bass', 'Harmonica', 'Vocals', 'Guitar'], 'Bass', NOW(), NOW()),
-    (gen_random_uuid(), v_sarah_id, 'Sarah', ARRAY['Drums', 'Percussion'], 'Drums', NOW(), NOW())
-  ON CONFLICT (user_id) DO UPDATE SET display_name = EXCLUDED.display_name;
+  INSERT INTO public.user_profiles (id, user_id, display_name, instruments, primary_instrument, created_date, updated_date, discoverable, friend_code) VALUES
+    (gen_random_uuid(), v_eric_id, 'Eric', ARRAY['Guitar', 'Vocals'], 'Guitar', NOW(), NOW(), true, 'GTAR2345'),
+    (gen_random_uuid(), v_mike_id, 'Mike', ARRAY['Bass', 'Harmonica', 'Vocals', 'Guitar'], 'Bass', NOW(), NOW(), true, 'BASS6789'),
+    (gen_random_uuid(), v_sarah_id, 'Sarah', ARRAY['Drums', 'Percussion'], 'Drums', NOW(), NOW(), true, 'DRMS4567')
+  ON CONFLICT (user_id) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    discoverable = EXCLUDED.discoverable,
+    friend_code = EXCLUDED.friend_code;
 
   -- ========================================
   -- 4. BAND
@@ -767,12 +770,70 @@ BEGIN
      'personal', v_sarah_id::text, v_sarah_id, 'personal', NOW(), 'Epic drums', 1)
   ON CONFLICT DO NOTHING;
 
+  -- ── Notifications demo data (mobile-redesign-port) ──────────────────────
+  -- Release notes (global) so the "What's new / Updates" surface is testable.
+  INSERT INTO public.release_notes (version, title, body, published_at) VALUES
+    ('0.3.0', 'Markdown notes + personal catalog',
+     E'## New\n- Rich markdown song notes\n- Your own personal song catalog', NOW() - INTERVAL '30 days'),
+    ('0.4.0', 'Events, Friends & a fresh look',
+     E'## New in 0.4.0\n- **Events** — host a gig or jam and let people sign up to play\n- **Friends** — connect by code or QR\n- A refreshed dark look with a 5-tab layout', NOW() - INTERVAL '1 day')
+  ON CONFLICT (version) DO NOTHING;
+
+  -- A few notifications for the "you" user (Eric) — mix of kinds + read state.
+  INSERT INTO public.notifications (user_id, kind, title, body, link, read_at, created_date) VALUES
+    (v_eric_id, 'release', 'What''s new in 0.4.0', 'Events, Friends & a fresh look', '/notifications', NULL, NOW() - INTERVAL '1 day'),
+    (v_eric_id, 'activity', 'Mike added a song', 'Mike added "Lump" to the band catalog', '/songs', NULL, NOW() - INTERVAL '5 hours'),
+    (v_eric_id, 'activity', 'Sarah rehearsed Enter Sandman', 'Marked in a practice session', '/practices', NOW() - INTERVAL '2 hours', NOW() - INTERVAL '3 hours'),
+    (v_eric_id, 'activity', 'Setlist updated', 'The Summer Festival Set was updated', '/setlists', NOW() - INTERVAL '20 hours', NOW() - INTERVAL '2 days');
+
+  -- ── Friends demo data (mobile-redesign-port) ────────────────────────────
+  -- Eric (you) already friends with Sarah; Mike has a pending request to Eric.
+  INSERT INTO public.friendships (user_a, user_b) VALUES
+    (LEAST(v_eric_id, v_sarah_id), GREATEST(v_eric_id, v_sarah_id))
+  ON CONFLICT (user_a, user_b) DO NOTHING;
+
+  INSERT INTO public.friend_requests (requester_id, addressee_id, status) VALUES
+    (v_mike_id, v_eric_id, 'pending')
+  ON CONFLICT (requester_id, addressee_id) DO NOTHING;
+
+  -- ── Events demo data (mobile-redesign-port) ─────────────────────────────
+  -- Eric hosts an event; Mike + Sarah are guests; one confirmed lineup song and
+  -- one PENDING song request from Mike (the request → host-approve flow to test).
+  INSERT INTO public.events (id, host_user_id, band_id, name, description, venue, scheduled_date, visibility, status, short_code)
+  VALUES ('e1111111-1111-4111-8111-111111111111', v_eric_id, v_band_id,
+    'Backyard Summer Jam', 'Bring a song to play!', E'Eric\'s Backyard',
+    NOW() + INTERVAL '10 days', 'unlisted', 'scheduled', 'JAM4567')
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.event_participants (event_id, user_id, access_tier, rsvp) VALUES
+    ('e1111111-1111-4111-8111-111111111111', v_eric_id, 'host', 'going'),
+    ('e1111111-1111-4111-8111-111111111111', v_mike_id, 'guest', 'going'),
+    ('e1111111-1111-4111-8111-111111111111', v_sarah_id, 'guest', 'maybe')
+  ON CONFLICT (event_id, user_id) DO NOTHING;
+
+  INSERT INTO public.event_lineup_items (event_id, position, source, owner_id, display_title, display_artist) VALUES
+    ('e1111111-1111-4111-8111-111111111111', 1, 'band', v_eric_id, 'Mr. Brightside', 'The Killers')
+  ON CONFLICT DO NOTHING;
+
+  INSERT INTO public.event_lineup_requests (event_id, requester_id, source, owner_id, display_title, display_artist, status) VALUES
+    ('e1111111-1111-4111-8111-111111111111', v_mike_id, 'external', v_mike_id, 'Seven Nation Army', 'The White Stripes', 'pending')
+  ON CONFLICT DO NOTHING;
+
   RAISE NOTICE '✅ MVP seed data complete!';
   RAISE NOTICE 'Test users: eric@testband.demo, mike@testband.demo, sarah@testband.demo';
   RAISE NOTICE 'Password for all: test123';
   RAISE NOTICE 'Band: Demo Band';
 
 END $$;
+
+-- Resolve seeded songs' guitar_tuning label → built-in tuning_id (the tunings
+-- migration's backfill no-ops on a fresh reset because seed runs after migrations).
+UPDATE public.songs s
+   SET tuning_id = t.id
+  FROM public.tunings t
+ WHERE t.is_builtin
+   AND t.slug = public.builtin_tuning_slug(s.guitar_tuning)
+   AND s.tuning_id IS NULL;
 
 COMMIT;
 

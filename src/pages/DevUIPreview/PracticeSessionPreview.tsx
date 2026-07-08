@@ -56,13 +56,13 @@ export const PracticeSessionPreview: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Global controls */}
-      <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 flex flex-wrap items-center gap-4">
+      <div className="bg-bg-1 border border-border-1 rounded-lg p-4 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <Type size={16} className="text-[#707070]" />
-          <span className="text-xs text-[#707070] uppercase tracking-wider">
+          <Type size={16} className="text-ink-4" />
+          <span className="text-xs text-ink-4 uppercase tracking-wider">
             Font
           </span>
-          <div className="flex bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg overflow-hidden">
+          <div className="flex bg-bg-1 border border-border-1 rounded-lg overflow-hidden">
             {(['sm', 'md', 'lg'] as FontSize[]).map(s => (
               <button
                 key={s}
@@ -70,8 +70,8 @@ export const PracticeSessionPreview: React.FC = () => {
                 data-testid={`font-size-${s}`}
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   fontSize === s
-                    ? 'bg-[#f17827ff] text-white'
-                    : 'text-[#a0a0a0] hover:text-white'
+                    ? 'bg-accent text-white'
+                    : 'text-ink-3 hover:text-white'
                 }`}
               >
                 {FONT_LABELS[s]}
@@ -80,16 +80,16 @@ export const PracticeSessionPreview: React.FC = () => {
           </div>
         </div>
 
-        <div className="h-5 w-px bg-[#2a2a2a]" />
+        <div className="h-5 w-px bg-border-1" />
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[#707070] uppercase tracking-wider">
+          <span className="text-xs text-ink-4 uppercase tracking-wider">
             Song
           </span>
           <button
             onClick={() => go(-1)}
             disabled={currentIndex === 0}
-            className="p-1.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded text-white disabled:opacity-30"
+            className="p-1.5 bg-bg-2 border border-border-1 rounded text-white disabled:opacity-30"
           >
             <ChevronLeft size={14} />
           </button>
@@ -99,44 +99,44 @@ export const PracticeSessionPreview: React.FC = () => {
           <button
             onClick={() => go(1)}
             disabled={currentIndex === MOCK_SONGS.length - 1}
-            className="p-1.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded text-white disabled:opacity-30"
+            className="p-1.5 bg-bg-2 border border-border-1 rounded text-white disabled:opacity-30"
           >
             <ChevronRight size={14} />
           </button>
         </div>
 
-        <div className="h-5 w-px bg-[#2a2a2a]" />
+        <div className="h-5 w-px bg-border-1" />
 
-        <span className="text-xs text-[#707070]">
+        <span className="text-xs text-ink-4">
           Same state across all four layouts below
         </span>
       </div>
 
       {/* Notes scroll / BT pedal info */}
-      <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 flex items-start gap-3">
-        <Keyboard size={18} className="text-[#f17827ff] flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-[#a0a0a0] leading-relaxed">
+      <div className="bg-bg-1 border border-border-1 rounded-lg p-4 flex items-start gap-3">
+        <Keyboard size={18} className="text-accent flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-ink-3 leading-relaxed">
           <span className="text-white font-semibold">Notes scrolling</span> —
           when band notes overflow, large chevron buttons appear on the right
           edge of the panel (sized per viewport). They scroll by ~70% of the
           panel height so context carries over.
-          <div className="mt-2 text-xs text-[#707070]">
-            <span className="text-[#d4d4d4] font-medium">
+          <div className="mt-2 text-xs text-ink-4">
+            <span className="text-ink-2 font-medium">
               Keyboard &amp; BT foot-pedal shortcuts:
             </span>{' '}
-            <kbd className="px-1.5 py-0.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded text-[10px] mx-0.5">
+            <kbd className="px-1.5 py-0.5 bg-bg-2 border border-border-1 rounded text-[10px] mx-0.5">
               PageDown
             </kbd>{' '}
             or{' '}
-            <kbd className="px-1.5 py-0.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded text-[10px] mx-0.5">
+            <kbd className="px-1.5 py-0.5 bg-bg-2 border border-border-1 rounded text-[10px] mx-0.5">
               Space
             </kbd>{' '}
             → scroll down.{' '}
-            <kbd className="px-1.5 py-0.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded text-[10px] mx-0.5">
+            <kbd className="px-1.5 py-0.5 bg-bg-2 border border-border-1 rounded text-[10px] mx-0.5">
               PageUp
             </kbd>{' '}
             or{' '}
-            <kbd className="px-1.5 py-0.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded text-[10px] mx-0.5">
+            <kbd className="px-1.5 py-0.5 bg-bg-2 border border-border-1 rounded text-[10px] mx-0.5">
               Shift+Space
             </kbd>{' '}
             → scroll up. Most BT foot pedals emit these keys by default. In the
@@ -225,12 +225,12 @@ const LayoutFrame: React.FC<LayoutFrameProps> = ({
   return (
     <section>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[#f17827ff]">{icon}</span>
+        <span className="text-accent">{icon}</span>
         <h3 className="text-white font-semibold">{label}</h3>
-        <span className="text-[#707070] text-xs">— {sub}</span>
+        <span className="text-ink-4 text-xs">— {sub}</span>
       </div>
       <div
-        className="mx-auto bg-[#0a0a0a] border-2 border-[#2a2a2a] rounded-lg overflow-hidden"
+        className="mx-auto bg-bg-0 border-2 border-border-1 rounded-lg overflow-hidden"
         style={{
           aspectRatio: aspect,
           maxWidth: maxWidth ? `${maxWidth}px` : '100%',
@@ -384,7 +384,7 @@ const FooterNextPreview: React.FC<{
 }> = ({ nextSong, currentTuning, compact = false }) => {
   if (!nextSong) {
     return (
-      <div className="flex-1 text-center text-xs text-[#505050]">Last song</div>
+      <div className="flex-1 text-center text-xs text-ink-5">Last song</div>
     )
   }
   const nextTuning = nextSong.tuning ?? 'Standard'
@@ -394,7 +394,7 @@ const FooterNextPreview: React.FC<{
   return (
     <div className="flex-1 min-w-0 px-2 flex items-center justify-center gap-2">
       {!compact && (
-        <span className="text-[9px] uppercase tracking-wider text-[#505050] flex-shrink-0">
+        <span className="text-[9px] uppercase tracking-wider text-ink-5 flex-shrink-0">
           Next
         </span>
       )}
@@ -503,7 +503,7 @@ const NotesPanel: React.FC<{
 
   if (!notes) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[#505050] italic text-sm">
+      <div className="h-full flex items-center justify-center bg-bg-2 border border-border-1 rounded-lg text-ink-5 italic text-sm">
         No notes for this song
       </div>
     )
@@ -520,7 +520,7 @@ const NotesPanel: React.FC<{
   const iconSize = buttonSize === 'lg' ? 32 : buttonSize === 'md' ? 24 : 18
 
   return (
-    <div className="relative h-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-[#f17827ff]/30">
+    <div className="relative h-full bg-bg-2 border border-border-1 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-accent/30">
       <div
         ref={scrollRef}
         tabIndex={0}
@@ -547,10 +547,10 @@ const NotesPanel: React.FC<{
               </h3>
             ),
             p: ({ children }) => (
-              <p className="text-[#d4d4d4] mb-3 leading-relaxed">{children}</p>
+              <p className="text-ink-2 mb-3 leading-relaxed">{children}</p>
             ),
             ul: ({ children }) => (
-              <ul className="list-disc list-inside text-[#d4d4d4] mb-3 space-y-1">
+              <ul className="list-disc list-inside text-ink-2 mb-3 space-y-1">
                 {children}
               </ul>
             ),
@@ -558,7 +558,7 @@ const NotesPanel: React.FC<{
               <strong className="font-bold text-white">{children}</strong>
             ),
             em: ({ children }) => (
-              <em className="italic text-[#d4d4d4]">{children}</em>
+              <em className="italic text-ink-2">{children}</em>
             ),
           }}
         >
@@ -575,7 +575,7 @@ const NotesPanel: React.FC<{
           onClick={() => scrollByPage(-1)}
           data-testid="notes-scroll-up"
           aria-label="Scroll notes up"
-          className={`absolute top-0 left-0 right-0 ${zoneHeight} flex items-center justify-center text-[#f17827ff] hover:text-white bg-gradient-to-b from-black/70 via-black/30 to-transparent hover:from-[#f17827ff]/30 hover:via-[#f17827ff]/15 transition-colors group`}
+          className={`absolute top-0 left-0 right-0 ${zoneHeight} flex items-center justify-center text-accent hover:text-white bg-gradient-to-b from-black/70 via-black/30 to-transparent hover:from-accent/30 hover:via-accent/15 transition-colors group`}
         >
           <ChevronUp
             size={iconSize}
@@ -590,7 +590,7 @@ const NotesPanel: React.FC<{
           onClick={() => scrollByPage(1)}
           data-testid="notes-scroll-down"
           aria-label="Scroll notes down"
-          className={`absolute bottom-0 left-0 right-0 ${zoneHeight} flex items-center justify-center text-[#f17827ff] hover:text-white bg-gradient-to-t from-black/70 via-black/30 to-transparent hover:from-[#f17827ff]/30 hover:via-[#f17827ff]/15 transition-colors group`}
+          className={`absolute bottom-0 left-0 right-0 ${zoneHeight} flex items-center justify-center text-accent hover:text-white bg-gradient-to-t from-black/70 via-black/30 to-transparent hover:from-accent/30 hover:via-accent/15 transition-colors group`}
         >
           <ChevronDown
             size={iconSize}
@@ -625,33 +625,30 @@ const TVLayout: React.FC<SongProps> = ({ song, nextSong, fontSize }) => {
   const idx = MOCK_SONGS.indexOf(song)
 
   return (
-    <div className="h-full flex flex-col bg-[#0f0f0f]">
+    <div className="h-full flex flex-col bg-bg-1">
       {/* Header — matches other layouts' proportions */}
-      <header className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] border-b border-[#2a2a2a]">
-        <button className="text-[#a0a0a0] hover:text-white">
+      <header className="flex items-center justify-between px-4 py-3 bg-bg-0 border-b border-border-1">
+        <button className="text-ink-3 hover:text-white">
           <ArrowLeft size={18} />
         </button>
-        <div className="flex items-center gap-3 text-[#a0a0a0] text-sm">
+        <div className="flex items-center gap-3 text-ink-3 text-sm">
           <span className="font-semibold text-white">PRACTICE</span>
-          <span className="text-[#505050]">•</span>
+          <span className="text-ink-5">•</span>
           <span>
             Song {idx + 1} of {MOCK_SONGS.length}
           </span>
-          <span className="text-[#505050]">•</span>
+          <span className="text-ink-5">•</span>
           <span className="flex items-center gap-1.5">
             <Clock size={14} />
             22:14
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            className="p-1.5 bg-[#1a1a1a] rounded text-[#f17827ff]"
-            title="Layout"
-          >
+          <button className="p-1.5 bg-bg-2 rounded text-accent" title="Layout">
             <Monitor size={14} />
           </button>
           <button
-            className="p-1.5 bg-[#1a1a1a] rounded text-[#a0a0a0]"
+            className="p-1.5 bg-bg-2 rounded text-ink-3"
             title="Font size"
           >
             <Type size={14} />
@@ -661,12 +658,12 @@ const TVLayout: React.FC<SongProps> = ({ song, nextSong, fontSize }) => {
 
       {/* Body: narrow left rail + wide notes */}
       <div className="flex-1 flex min-h-0">
-        <aside className="w-[240px] flex-shrink-0 border-r border-[#2a2a2a] p-4 flex flex-col gap-3 overflow-y-auto bg-[#0a0a0a]">
+        <aside className="w-[240px] flex-shrink-0 border-r border-border-1 p-4 flex flex-col gap-3 overflow-y-auto bg-bg-0">
           <div>
             <div className="text-white font-bold text-lg leading-tight">
               {song.title}
             </div>
-            <div className="text-[#a0a0a0] text-sm">{song.artist}</div>
+            <div className="text-ink-3 text-sm">{song.artist}</div>
           </div>
 
           {/* Metadata — stacked vertically, full-width pills */}
@@ -681,16 +678,14 @@ const TVLayout: React.FC<SongProps> = ({ song, nextSong, fontSize }) => {
 
           {/* Next song */}
           {nextSong && (
-            <div className="pt-3 border-t border-[#2a2a2a]">
-              <div className="text-[10px] uppercase tracking-wider text-[#707070] mb-1">
+            <div className="pt-3 border-t border-border-1">
+              <div className="text-[10px] uppercase tracking-wider text-ink-4 mb-1">
                 Up next
               </div>
               <div className="text-white text-sm font-medium leading-tight">
                 {nextSong.title}
               </div>
-              <div className="text-[#a0a0a0] text-xs mb-2">
-                {nextSong.artist}
-              </div>
+              <div className="text-ink-3 text-xs mb-2">{nextSong.artist}</div>
               <div className="flex flex-col gap-2">
                 <TuningPill tuning={nextTuning} size="sm" block />
                 {tuningChanges && (
@@ -714,7 +709,7 @@ const TVLayout: React.FC<SongProps> = ({ song, nextSong, fontSize }) => {
 
         {/* Notes panel */}
         <div className="flex-1 min-w-0 p-6 flex flex-col min-h-0">
-          <div className="text-[10px] uppercase tracking-wider text-[#707070] mb-2">
+          <div className="text-[10px] uppercase tracking-wider text-ink-4 mb-2">
             Band notes
           </div>
           <div className="flex-1 min-h-0">
@@ -728,8 +723,8 @@ const TVLayout: React.FC<SongProps> = ({ song, nextSong, fontSize }) => {
       </div>
 
       {/* Nav */}
-      <nav className="flex items-center justify-between px-4 py-2 bg-[#0a0a0a] border-t border-[#2a2a2a]">
-        <button className="flex items-center gap-1 px-3 py-1.5 bg-[#1a1a1a] rounded text-white text-xs">
+      <nav className="flex items-center justify-between px-4 py-2 bg-bg-0 border-t border-border-1">
+        <button className="flex items-center gap-1 px-3 py-1.5 bg-bg-2 rounded text-white text-xs">
           <ChevronLeft size={12} />
           Previous
         </button>
@@ -738,16 +733,12 @@ const TVLayout: React.FC<SongProps> = ({ song, nextSong, fontSize }) => {
             <span
               key={i}
               className={`w-1.5 h-1.5 rounded-full ${
-                i === idx
-                  ? 'bg-[#f17827ff]'
-                  : i < idx
-                    ? 'bg-[#505050]'
-                    : 'bg-[#2a2a2a]'
+                i === idx ? 'bg-accent' : i < idx ? 'bg-ink-5' : 'bg-border-1'
               }`}
             />
           ))}
         </div>
-        <button className="flex items-center gap-1 px-3 py-1.5 bg-[#f17827ff] rounded text-white text-xs">
+        <button className="flex items-center gap-1 px-3 py-1.5 bg-accent rounded text-white text-xs">
           Next
           <ChevronRight size={12} />
         </button>
@@ -766,21 +757,21 @@ const TabletLandscapeLayout: React.FC<SongProps> = ({
   const currentTuning = song.tuning ?? 'Standard'
 
   return (
-    <div className="h-full flex flex-col bg-[#0f0f0f]">
-      <header className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] border-b border-[#2a2a2a]">
-        <ArrowLeft size={18} className="text-[#a0a0a0]" />
+    <div className="h-full flex flex-col bg-bg-1">
+      <header className="flex items-center justify-between px-4 py-3 bg-bg-0 border-b border-border-1">
+        <ArrowLeft size={18} className="text-ink-3" />
         <div className="text-center flex-1 px-2 min-w-0">
           <div className="text-white font-bold truncate">{song.title}</div>
-          <div className="text-[#a0a0a0] text-xs truncate">{song.artist}</div>
+          <div className="text-ink-3 text-xs truncate">{song.artist}</div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#a0a0a0]">
+        <div className="flex items-center gap-2 text-xs text-ink-3">
           <Clock size={14} />
           22:14
         </div>
       </header>
 
       {/* Metadata row — all four chips */}
-      <div className="flex items-center justify-center flex-wrap gap-2 px-4 py-2 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <div className="flex items-center justify-center flex-wrap gap-2 px-4 py-2 bg-bg-0 border-b border-border-1">
         {song.key && <KeyPill value={song.key} />}
         {song.bpm && <BpmPill value={String(song.bpm)} />}
         <DurationPill value={formatDuration(song.durationSeconds)} />
@@ -792,13 +783,13 @@ const TabletLandscapeLayout: React.FC<SongProps> = ({
         <NotesPanel notes={song.notes} fontSize={fontSize} buttonSize="md" />
       </div>
 
-      <nav className="flex items-center justify-between px-4 py-2 bg-[#0a0a0a] border-t border-[#2a2a2a]">
-        <button className="flex items-center gap-1 px-3 py-1.5 bg-[#1a1a1a] rounded text-white text-xs">
+      <nav className="flex items-center justify-between px-4 py-2 bg-bg-0 border-t border-border-1">
+        <button className="flex items-center gap-1 px-3 py-1.5 bg-bg-2 rounded text-white text-xs">
           <ChevronLeft size={12} />
           Prev
         </button>
         <FooterNextPreview nextSong={nextSong} currentTuning={currentTuning} />
-        <button className="flex items-center gap-1 px-3 py-1.5 bg-[#f17827ff] rounded text-white text-xs">
+        <button className="flex items-center gap-1 px-3 py-1.5 bg-accent rounded text-white text-xs">
           Next
           <ChevronRight size={12} />
         </button>
@@ -817,25 +808,23 @@ const TabletPortraitLayout: React.FC<SongProps> = ({
   const currentTuning = song.tuning ?? 'Standard'
 
   return (
-    <div className="h-full flex flex-col bg-[#0f0f0f]">
-      <header className="flex items-center justify-between px-3 py-2.5 bg-[#0a0a0a] border-b border-[#2a2a2a]">
-        <ArrowLeft size={16} className="text-[#a0a0a0]" />
+    <div className="h-full flex flex-col bg-bg-1">
+      <header className="flex items-center justify-between px-3 py-2.5 bg-bg-0 border-b border-border-1">
+        <ArrowLeft size={16} className="text-ink-3" />
         <div className="text-center flex-1 px-2 min-w-0">
           <div className="text-white text-sm font-bold truncate">
             {song.title}
           </div>
-          <div className="text-[#a0a0a0] text-[11px] truncate">
-            {song.artist}
-          </div>
+          <div className="text-ink-3 text-[11px] truncate">{song.artist}</div>
         </div>
-        <div className="text-[11px] text-[#a0a0a0] flex items-center gap-1">
+        <div className="text-[11px] text-ink-3 flex items-center gap-1">
           <Clock size={12} />
           22:14
         </div>
       </header>
 
       {/* Metadata row — compact chips, two columns if needed */}
-      <div className="flex flex-wrap items-center justify-center gap-1.5 px-3 py-2 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <div className="flex flex-wrap items-center justify-center gap-1.5 px-3 py-2 bg-bg-0 border-b border-border-1">
         {song.key && <KeyPill value={song.key} size="sm" />}
         {song.bpm && <BpmPill value={String(song.bpm)} size="sm" />}
         <DurationPill value={formatDuration(song.durationSeconds)} size="sm" />
@@ -848,12 +837,12 @@ const TabletPortraitLayout: React.FC<SongProps> = ({
       </div>
 
       {/* Nav with next-song hint */}
-      <nav className="flex items-center gap-2 px-2 py-2 bg-[#0a0a0a] border-t border-[#2a2a2a]">
-        <button className="p-2 bg-[#1a1a1a] rounded text-white">
+      <nav className="flex items-center gap-2 px-2 py-2 bg-bg-0 border-t border-border-1">
+        <button className="p-2 bg-bg-2 rounded text-white">
           <ChevronLeft size={14} />
         </button>
         <FooterNextPreview nextSong={nextSong} currentTuning={currentTuning} />
-        <button className="p-2 bg-[#f17827ff] rounded text-white">
+        <button className="p-2 bg-accent rounded text-white">
           <ChevronRight size={14} />
         </button>
       </nav>
@@ -868,34 +857,28 @@ const MobileLayout: React.FC<SongProps> = ({ song, nextSong, fontSize }) => {
   const idx = MOCK_SONGS.indexOf(song)
 
   return (
-    <div className="h-full flex flex-col bg-[#0f0f0f]">
-      <header className="flex items-center justify-between px-3 py-2 bg-[#0a0a0a] border-b border-[#2a2a2a]">
-        <ArrowLeft size={14} className="text-[#a0a0a0]" />
+    <div className="h-full flex flex-col bg-bg-1">
+      <header className="flex items-center justify-between px-3 py-2 bg-bg-0 border-b border-border-1">
+        <ArrowLeft size={14} className="text-ink-3" />
         <div className="text-center flex-1 px-2 min-w-0">
           <div className="text-white text-sm font-bold truncate">
             {song.title}
           </div>
-          <div className="text-[#a0a0a0] text-[10px] truncate">
-            {song.artist}
-          </div>
+          <div className="text-ink-3 text-[10px] truncate">{song.artist}</div>
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-[#a0a0a0]">
+        <div className="flex items-center gap-1 text-[10px] text-ink-3">
           <Clock size={11} />
           <span>22:14</span>
         </div>
       </header>
 
       {/* Progress dots */}
-      <div className="flex justify-center items-center gap-1 py-1.5 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <div className="flex justify-center items-center gap-1 py-1.5 bg-bg-0 border-b border-border-1">
         {MOCK_SONGS.slice(0, 8).map((_, i) => (
           <span
             key={i}
             className={`w-1.5 h-1.5 rounded-full ${
-              i === idx
-                ? 'bg-[#f17827ff]'
-                : i < idx
-                  ? 'bg-[#505050]'
-                  : 'bg-[#2a2a2a]'
+              i === idx ? 'bg-accent' : i < idx ? 'bg-ink-5' : 'bg-border-1'
             }`}
           />
         ))}
@@ -915,8 +898,8 @@ const MobileLayout: React.FC<SongProps> = ({ song, nextSong, fontSize }) => {
       </div>
 
       {/* Nav */}
-      <nav className="flex items-center justify-between px-2 py-2 bg-[#0a0a0a] border-t border-[#2a2a2a]">
-        <button className="p-2 bg-[#1a1a1a] rounded text-white">
+      <nav className="flex items-center justify-between px-2 py-2 bg-bg-0 border-t border-border-1">
+        <button className="p-2 bg-bg-2 rounded text-white">
           <ChevronLeft size={14} />
         </button>
         <FooterNextPreview
@@ -924,7 +907,7 @@ const MobileLayout: React.FC<SongProps> = ({ song, nextSong, fontSize }) => {
           currentTuning={currentTuning}
           compact
         />
-        <button className="p-2 bg-[#f17827ff] rounded text-white">
+        <button className="p-2 bg-accent rounded text-white">
           <ChevronRight size={14} />
         </button>
       </nav>

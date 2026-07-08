@@ -29,9 +29,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   // up in every Suspense fallback and FullPageSpinner.
   const colorClasses = {
     primary: 'text-primary',
-    secondary: 'text-[#a0a0a0]',
+    secondary: 'text-ink-3',
     white: 'text-white',
-    gray: 'text-[#707070]',
+    gray: 'text-ink-4',
   }
 
   const textSizeClasses = {
@@ -105,10 +105,10 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 export const FullPageSpinner: React.FC<{ text?: string }> = ({
   text = 'Loading...',
 }) => (
-  <div className="fixed inset-0 flex items-center justify-center bg-[#0a0a0a]/90 z-50">
+  <div className="fixed inset-0 flex items-center justify-center bg-bg-0/90 z-50">
     <div className="flex flex-col items-center space-y-4">
       <LoadingSpinner size="xl" color="primary" />
-      <p className="text-lg text-[#a0a0a0] font-medium">{text}</p>
+      <p className="text-lg text-ink-3 font-medium">{text}</p>
     </div>
   </div>
 )

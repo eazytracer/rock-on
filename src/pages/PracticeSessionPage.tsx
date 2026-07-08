@@ -284,10 +284,10 @@ export const PracticeSessionPage: React.FC = () => {
   // ---- Loading / error states ----
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#0f0f0f] flex items-center justify-center">
+      <div className="fixed inset-0 z-50 bg-bg-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f17827ff] mx-auto mb-4" />
-          <p className="text-[#a0a0a0] text-sm">Loading practice session...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4" />
+          <p className="text-ink-3 text-sm">Loading practice session...</p>
         </div>
       </div>
     )
@@ -295,12 +295,12 @@ export const PracticeSessionPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#0f0f0f] flex items-center justify-center">
+      <div className="fixed inset-0 z-50 bg-bg-1 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 text-lg mb-4">{error}</p>
           <button
             onClick={() => navigate('/practices')}
-            className="px-4 py-2 bg-[#1a1a1a] text-white rounded-lg hover:bg-[#252525] transition-colors"
+            className="px-4 py-2 bg-bg-2 text-white rounded-lg hover:bg-bg-4 transition-colors"
           >
             Back to Practices
           </button>
@@ -327,7 +327,7 @@ export const PracticeSessionPage: React.FC = () => {
     <div className="flex items-center gap-2">
       <button
         onClick={handleFontCycle}
-        className="flex items-center gap-1 px-2 py-1.5 bg-[#1a1a1a] rounded text-[#a0a0a0] hover:text-white transition-colors text-xs"
+        className="flex items-center gap-1 px-2 py-1.5 bg-bg-2 rounded text-ink-3 hover:text-white transition-colors text-xs"
         title={`Font size: ${fontSize.toUpperCase()} (click to cycle)`}
         data-testid="session-font-toggle"
       >
@@ -336,7 +336,7 @@ export const PracticeSessionPage: React.FC = () => {
       </button>
       <button
         onClick={handleLayoutCycle}
-        className="flex items-center gap-1 px-2 py-1.5 bg-[#1a1a1a] rounded text-[#f17827ff] hover:text-white transition-colors text-xs"
+        className="flex items-center gap-1 px-2 py-1.5 bg-bg-2 rounded text-accent hover:text-white transition-colors text-xs"
         title={`Layout: ${layout} (click to cycle)`}
         data-testid="session-layout-toggle"
       >
@@ -364,7 +364,7 @@ export const PracticeSessionPage: React.FC = () => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0f0f0f] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-bg-1 flex flex-col">
       {layout === 'tv' ? (
         <TVLayout {...layoutProps} />
       ) : layout === 'tablet-landscape' ? (
@@ -422,22 +422,22 @@ const TVLayout: React.FC<LayoutProps> = ({
   return (
     <>
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <header className="flex items-center justify-between px-4 py-3 bg-bg-0 border-b border-border-1">
         <button
           onClick={onExit}
-          className="text-[#a0a0a0] hover:text-white transition-colors p-2 -ml-2"
+          className="text-ink-3 hover:text-white transition-colors p-2 -ml-2"
           aria-label="Exit session"
           data-testid="session-exit-button"
         >
           <ArrowLeft size={18} />
         </button>
-        <div className="flex items-center gap-3 text-[#a0a0a0] text-sm">
+        <div className="flex items-center gap-3 text-ink-3 text-sm">
           <span className="font-semibold text-white">PRACTICE</span>
-          <span className="text-[#505050]">•</span>
+          <span className="text-ink-5">•</span>
           <span>
             Song {currentIndex + 1} of {songs.length}
           </span>
-          <span className="text-[#505050]">•</span>
+          <span className="text-ink-5">•</span>
           <span className="flex items-center gap-1.5">
             <Clock size={14} />
             <span className="font-mono" data-testid="session-timer">
@@ -450,7 +450,7 @@ const TVLayout: React.FC<LayoutProps> = ({
 
       {/* Body */}
       <div className="flex-1 flex min-h-0">
-        <aside className="w-[240px] flex-shrink-0 border-r border-[#2a2a2a] p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar bg-[#0a0a0a]">
+        <aside className="w-[240px] flex-shrink-0 border-r border-border-1 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar bg-bg-0">
           <div>
             <div
               className="text-white font-bold text-lg leading-tight"
@@ -460,7 +460,7 @@ const TVLayout: React.FC<LayoutProps> = ({
             </div>
             {song.artist && (
               <div
-                className="text-[#a0a0a0] text-sm"
+                className="text-ink-3 text-sm"
                 data-testid="session-song-artist"
               >
                 {song.artist}
@@ -478,16 +478,14 @@ const TVLayout: React.FC<LayoutProps> = ({
           <div className="flex-1" />
 
           {nextSong && (
-            <div className="pt-3 border-t border-[#2a2a2a]">
-              <div className="text-[10px] uppercase tracking-wider text-[#707070] mb-1">
+            <div className="pt-3 border-t border-border-1">
+              <div className="text-[10px] uppercase tracking-wider text-ink-4 mb-1">
                 Up next
               </div>
               <div className="text-white text-sm font-medium leading-tight">
                 {nextSong.title}
               </div>
-              <div className="text-[#a0a0a0] text-xs mb-2">
-                {nextSong.artist}
-              </div>
+              <div className="text-ink-3 text-xs mb-2">{nextSong.artist}</div>
               <div className="flex flex-col gap-2">
                 <TuningPill tuning={nextTuning} size="sm" block />
                 {tuningChanges && (
@@ -499,7 +497,7 @@ const TVLayout: React.FC<LayoutProps> = ({
                         boxShadow: `0 0 0 3px ${tuningColor(nextTuning)}55`,
                       }}
                     />
-                    <span className="text-amber-400 text-[10px] font-semibold uppercase tracking-wider">
+                    <span className="text-warn text-[10px] font-semibold uppercase tracking-wider">
                       Tuning change!
                     </span>
                   </div>
@@ -510,7 +508,7 @@ const TVLayout: React.FC<LayoutProps> = ({
         </aside>
 
         <div className="flex-1 min-w-0 p-6 flex flex-col min-h-0">
-          <div className="text-[10px] uppercase tracking-wider text-[#707070] mb-2">
+          <div className="text-[10px] uppercase tracking-wider text-ink-4 mb-2">
             Band notes
           </div>
           <div className="flex-1 min-h-0">
@@ -562,10 +560,10 @@ const TabletLandscapeLayout: React.FC<LayoutProps> = ({
   const currentTuning = song.guitarTuning ?? 'Standard'
   return (
     <>
-      <header className="flex items-center justify-between px-4 py-3 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <header className="flex items-center justify-between px-4 py-3 bg-bg-0 border-b border-border-1">
         <button
           onClick={onExit}
-          className="text-[#a0a0a0] hover:text-white p-2 -ml-2"
+          className="text-ink-3 hover:text-white p-2 -ml-2"
           aria-label="Exit session"
           data-testid="session-exit-button"
         >
@@ -580,7 +578,7 @@ const TabletLandscapeLayout: React.FC<LayoutProps> = ({
           </div>
           {song.artist && (
             <div
-              className="text-[#a0a0a0] text-xs truncate"
+              className="text-ink-3 text-xs truncate"
               data-testid="session-song-artist"
             >
               {song.artist}
@@ -588,7 +586,7 @@ const TabletLandscapeLayout: React.FC<LayoutProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs text-[#a0a0a0]">
+          <div className="flex items-center gap-1 text-xs text-ink-3">
             <Clock size={14} />
             <span className="font-mono" data-testid="session-timer">
               {formatTimer(elapsedSeconds)}
@@ -598,7 +596,7 @@ const TabletLandscapeLayout: React.FC<LayoutProps> = ({
         </div>
       </header>
 
-      <div className="flex items-center justify-center flex-wrap gap-2 px-4 py-2 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <div className="flex items-center justify-center flex-wrap gap-2 px-4 py-2 bg-bg-0 border-b border-border-1">
         {song.key && <KeyPill value={song.key} />}
         {song.bpm && <BpmPill value={String(song.bpm)} />}
         <DurationPill value={formatDuration(song.duration)} />
@@ -653,10 +651,10 @@ const TabletPortraitLayout: React.FC<LayoutProps> = ({
   const currentTuning = song.guitarTuning ?? 'Standard'
   return (
     <>
-      <header className="flex items-center justify-between px-3 py-2.5 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <header className="flex items-center justify-between px-3 py-2.5 bg-bg-0 border-b border-border-1">
         <button
           onClick={onExit}
-          className="text-[#a0a0a0] hover:text-white p-1.5"
+          className="text-ink-3 hover:text-white p-1.5"
           aria-label="Exit session"
           data-testid="session-exit-button"
         >
@@ -671,7 +669,7 @@ const TabletPortraitLayout: React.FC<LayoutProps> = ({
           </div>
           {song.artist && (
             <div
-              className="text-[#a0a0a0] text-[11px] truncate"
+              className="text-ink-3 text-[11px] truncate"
               data-testid="session-song-artist"
             >
               {song.artist}
@@ -679,7 +677,7 @@ const TabletPortraitLayout: React.FC<LayoutProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="text-[11px] text-[#a0a0a0] flex items-center gap-1">
+          <div className="text-[11px] text-ink-3 flex items-center gap-1">
             <Clock size={12} />
             <span className="font-mono" data-testid="session-timer">
               {formatTimer(elapsedSeconds)}
@@ -689,7 +687,7 @@ const TabletPortraitLayout: React.FC<LayoutProps> = ({
         </div>
       </header>
 
-      <div className="flex flex-wrap items-center justify-center gap-1.5 px-3 py-2 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <div className="flex flex-wrap items-center justify-center gap-1.5 px-3 py-2 bg-bg-0 border-b border-border-1">
         {song.key && <KeyPill value={song.key} size="sm" />}
         {song.bpm && <BpmPill value={String(song.bpm)} size="sm" />}
         <DurationPill value={formatDuration(song.duration)} size="sm" />
@@ -744,10 +742,10 @@ const MobileLayout: React.FC<LayoutProps> = ({
   const currentTuning = song.guitarTuning ?? 'Standard'
   return (
     <>
-      <header className="flex items-center justify-between px-3 py-2 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <header className="flex items-center justify-between px-3 py-2 bg-bg-0 border-b border-border-1">
         <button
           onClick={onExit}
-          className="text-[#a0a0a0] hover:text-white p-1"
+          className="text-ink-3 hover:text-white p-1"
           aria-label="Exit session"
           data-testid="session-exit-button"
         >
@@ -762,7 +760,7 @@ const MobileLayout: React.FC<LayoutProps> = ({
           </div>
           {song.artist && (
             <div
-              className="text-[#a0a0a0] text-[10px] truncate"
+              className="text-ink-3 text-[10px] truncate"
               data-testid="session-song-artist"
             >
               {song.artist}
@@ -770,7 +768,7 @@ const MobileLayout: React.FC<LayoutProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 text-[10px] text-[#a0a0a0]">
+          <div className="flex items-center gap-1 text-[10px] text-ink-3">
             <Clock size={11} />
             <span className="font-mono" data-testid="session-timer">
               {formatTimer(elapsedSeconds)}
@@ -780,16 +778,16 @@ const MobileLayout: React.FC<LayoutProps> = ({
         </div>
       </header>
 
-      <div className="flex justify-center items-center gap-1 py-1.5 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <div className="flex justify-center items-center gap-1 py-1.5 bg-bg-0 border-b border-border-1">
         {songs.slice(0, 8).map((_, i) => (
           <span
             key={i}
             className={`w-1.5 h-1.5 rounded-full ${
               i === currentIndex
-                ? 'bg-[#f17827ff]'
+                ? 'bg-accent'
                 : i < currentIndex
-                  ? 'bg-[#505050]'
-                  : 'bg-[#2a2a2a]'
+                  ? 'bg-ink-5'
+                  : 'bg-border-1'
             }`}
           />
         ))}
@@ -867,8 +865,8 @@ const SessionFooter: React.FC<SessionFooterProps> = ({
       disabled={!canGoPrev}
       className={`flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
         canGoPrev
-          ? 'bg-[#1a1a1a] text-white hover:bg-[#252525]'
-          : 'bg-[#1a1a1a]/50 text-[#505050] cursor-not-allowed'
+          ? 'bg-bg-2 text-white hover:bg-bg-4'
+          : 'bg-bg-2/50 text-ink-5 cursor-not-allowed'
       }`}
       data-testid="session-prev-button"
       aria-label="Previous song"
@@ -893,8 +891,8 @@ const SessionFooter: React.FC<SessionFooterProps> = ({
       disabled={!canGoNext}
       className={`flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
         canGoNext
-          ? 'bg-[#f17827ff] text-white hover:bg-[#d66920]'
-          : 'bg-[#f17827ff]/50 text-white/50 cursor-not-allowed'
+          ? 'bg-accent text-white hover:bg-accent-deep'
+          : 'bg-accent/50 text-white/50 cursor-not-allowed'
       }`}
       data-testid="session-next-button"
       aria-label="Next song"
@@ -905,7 +903,7 @@ const SessionFooter: React.FC<SessionFooterProps> = ({
   )
 
   return (
-    <nav className="flex items-center justify-between gap-2 px-3 py-2 bg-[#0a0a0a] border-t border-[#2a2a2a]">
+    <nav className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-0 border-t border-border-1">
       {PrevBtn}
       {variant === 'dots' ? (
         <div
@@ -918,10 +916,10 @@ const SessionFooter: React.FC<SessionFooterProps> = ({
               key={i}
               className={`w-1.5 h-1.5 rounded-full ${
                 i === currentIndex
-                  ? 'bg-[#f17827ff]'
+                  ? 'bg-accent'
                   : i < currentIndex
-                    ? 'bg-[#505050]'
-                    : 'bg-[#2a2a2a]'
+                    ? 'bg-ink-5'
+                    : 'bg-border-1'
               }`}
             />
           ))}

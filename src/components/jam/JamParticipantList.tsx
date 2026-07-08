@@ -21,7 +21,7 @@ export const JamParticipantList: React.FC<JamParticipantListProps> = ({
     return (
       <div
         data-testid="jam-participant-list"
-        className="text-[#707070] text-sm text-center py-4"
+        className="text-ink-4 text-sm text-center py-4"
       >
         No participants yet
       </div>
@@ -39,7 +39,7 @@ export const JamParticipantList: React.FC<JamParticipantListProps> = ({
           <div
             key={participant.id}
             data-testid={`jam-participant-${participant.id}`}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#1a1a1a]"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg bg-bg-2"
           >
             {/* Status indicator */}
             <Circle
@@ -64,7 +64,7 @@ export const JamParticipantList: React.FC<JamParticipantListProps> = ({
         )
       })}
 
-      <p className="text-[#707070] text-xs mt-2">
+      <p className="text-ink-4 text-xs mt-2">
         {activeParticipants.length} participant
         {activeParticipants.length !== 1 ? 's' : ''}
       </p>

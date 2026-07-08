@@ -124,7 +124,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
   if (item.type === 'break') {
     return (
       <div
-        className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-[#0f0f0f] border border-dashed border-[#3a3a3a] rounded-lg ${
+        className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-bg-1 border border-dashed border-border-2 rounded-lg ${
           isDragging ? 'shadow-lg shadow-black/50' : ''
         }`}
         data-testid={testId || `list-item-break-${item.position}`}
@@ -133,32 +133,30 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
           {isEditing && showDragHandle && (
             <button
               {...dragHandleProps}
-              className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
+              className="cursor-grab active:cursor-grabbing touch-none text-ink-5 hover:text-ink-3 transition-colors flex-shrink-0"
             >
               <GripVertical size={18} />
             </button>
           )}
           <div className="w-6 text-center flex-shrink-0">
-            <Coffee size={18} className="text-[#707070]" />
+            <Coffee size={18} className="text-ink-4" />
           </div>
-          <span className="text-sm font-medium text-[#a0a0a0] flex-shrink-0">
+          <span className="text-sm font-medium text-ink-3 flex-shrink-0">
             Break
           </span>
           {item.breakDuration && (
-            <span className="text-sm text-[#707070]">
-              {item.breakDuration} min
-            </span>
+            <span className="text-sm text-ink-4">{item.breakDuration} min</span>
           )}
         </div>
         {item.breakNotes && (
-          <span className="text-sm text-[#707070] pl-8 sm:pl-0">
+          <span className="text-sm text-ink-4 pl-8 sm:pl-0">
             {item.breakNotes}
           </span>
         )}
         {isEditing && onRemove && (
           <button
             onClick={onRemove}
-            className="ml-auto p-1.5 text-[#707070] hover:text-red-500 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
+            className="ml-auto p-1.5 text-ink-4 hover:text-red-500 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
             title="Remove"
           >
             <X size={16} />
@@ -172,7 +170,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
   if (item.type === 'section') {
     return (
       <div
-        className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-gradient-to-r from-[#f17827ff]/10 to-transparent border border-[#f17827ff]/30 rounded-lg ${
+        className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-gradient-to-r from-accent/10 to-transparent border border-accent/30 rounded-lg ${
           isDragging ? 'shadow-lg shadow-black/50' : ''
         }`}
         data-testid={testId || `list-item-section-${item.position}`}
@@ -180,23 +178,23 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
         {isEditing && showDragHandle && (
           <button
             {...dragHandleProps}
-            className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
+            className="cursor-grab active:cursor-grabbing touch-none text-ink-5 hover:text-ink-3 transition-colors flex-shrink-0"
           >
             <GripVertical size={18} />
           </button>
         )}
         <div className="w-6 text-center flex-shrink-0">
-          <Layers size={18} className="text-[#f17827ff]" />
+          <Layers size={18} className="text-accent" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[#f17827ff] text-sm font-semibold truncate">
+          <div className="text-accent text-sm font-semibold truncate">
             {item.sectionTitle}
           </div>
         </div>
         {isEditing && onRemove && (
           <button
             onClick={onRemove}
-            className="p-1.5 text-[#707070] hover:text-red-500 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
+            className="p-1.5 text-ink-4 hover:text-red-500 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
             title="Remove"
           >
             <X size={16} />
@@ -217,7 +215,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
         <div className="relative">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-1.5 text-[#707070] hover:text-white rounded transition-colors"
+            className="p-1.5 text-ink-4 hover:text-white rounded transition-colors"
             data-testid={`song-actions-menu-${item.position}`}
           >
             <MoreVertical size={18} />
@@ -229,14 +227,14 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                 className="fixed inset-0 z-10"
                 onClick={() => setIsMenuOpen(false)}
               />
-              <div className="absolute right-0 top-8 z-20 w-40 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden">
+              <div className="absolute right-0 top-8 z-20 w-40 bg-bg-3 border border-border-1 rounded-lg shadow-xl overflow-hidden">
                 {onEdit && (
                   <button
                     onClick={() => {
                       setIsMenuOpen(false)
                       onEdit()
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-[#2a2a2a] transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
                     data-testid={`edit-song-${item.position}`}
                   >
                     <Pencil size={16} />
@@ -245,13 +243,13 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                 )}
                 {onRemove && (
                   <>
-                    {onEdit && <div className="h-px bg-[#2a2a2a]" />}
+                    {onEdit && <div className="h-px bg-border-1" />}
                     <button
                       onClick={() => {
                         setIsMenuOpen(false)
                         onRemove()
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-[#D7263D] text-sm hover:bg-[#2a2a2a] transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-danger text-sm hover:bg-border-1 transition-colors"
                       data-testid={`remove-song-${item.position}`}
                     >
                       <Trash2 size={16} />
@@ -286,7 +284,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
           />
         )}
         {!onSaveSessionNotes && item.notes && (
-          <div className="text-[#a0a0a0] text-sm">{item.notes}</div>
+          <div className="text-ink-3 text-sm">{item.notes}</div>
         )}
       </>
     )
@@ -295,8 +293,8 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
     return (
       <div
         data-testid={testId || `list-item-song-${displayPosition}`}
-        className={`group bg-[#1a1a1a] rounded-xl border border-l-4 border-[#2a2a2a] ${
-          isEditing ? 'hover:border-[#3a3a3a]' : ''
+        className={`group bg-bg-2 rounded-xl border border-l-4 border-border-1 ${
+          isEditing ? 'hover:border-border-2' : ''
         } ${isDragging ? 'shadow-lg shadow-black/50' : ''} transition-colors`}
         style={{ borderLeftColor: stripeColor }}
       >
@@ -304,7 +302,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
         <div className="xl:hidden p-4">
           {/* Row 1: Position, Avatar, Title/Artist, Actions */}
           <div className="flex items-start gap-3">
-            <div className="w-6 text-center text-[#707070] text-sm font-medium flex-shrink-0 pt-1">
+            <div className="w-6 text-center text-ink-4 text-sm font-medium flex-shrink-0 pt-1">
               {displayPosition}
             </div>
 
@@ -319,7 +317,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
               <div className="text-white font-semibold text-sm">
                 {song.title}
               </div>
-              <div className="text-[#a0a0a0] text-xs">{song.artist}</div>
+              <div className="text-ink-3 text-xs">{song.artist}</div>
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -329,7 +327,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                     e.stopPropagation()
                     onOpenSongNotes()
                   }}
-                  className="p-1.5 text-[#707070] hover:text-[#f17827ff] rounded transition-colors"
+                  className="p-1.5 text-ink-4 hover:text-accent rounded transition-colors"
                   title="Song Notes"
                   data-testid={`song-notes-icon-${item.position}`}
                 >
@@ -345,7 +343,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
             {isEditing && showDragHandle ? (
               <button
                 {...dragHandleProps}
-                className="w-6 flex justify-center cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
+                className="w-6 flex justify-center cursor-grab active:cursor-grabbing touch-none text-ink-5 hover:text-ink-3 transition-colors flex-shrink-0"
                 data-testid={`drag-handle-${item.position}`}
               >
                 <GripVertical size={18} />
@@ -356,11 +354,11 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
 
             <div className="flex-1 min-w-0">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2">
-                <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
-                  <Clock size={14} className="flex-shrink-0 text-[#606060]" />
+                <div className="flex items-center gap-2 text-ink-3 text-xs">
+                  <Clock size={14} className="flex-shrink-0 text-ink-4" />
                   <span>{song.duration}</span>
                 </div>
-                <div className="flex items-center gap-2 text-[#a0a0a0] text-xs">
+                <div className="flex items-center gap-2 text-ink-3 text-xs">
                   <Guitar
                     size={14}
                     className="flex-shrink-0"
@@ -374,7 +372,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                 song.referenceLinks &&
                 song.referenceLinks.length > 0 && (
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[#606060] text-xs">Links:</span>
+                    <span className="text-ink-4 text-xs">Links:</span>
                     <LinkIcons
                       links={song.referenceLinks}
                       size="sm"
@@ -384,7 +382,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                 )}
 
               {(onSaveSessionNotes || item.notes) && (
-                <div className="pt-2 border-t border-[#2a2a2a]">
+                <div className="pt-2 border-t border-border-1">
                   {renderSessionNotes()}
                 </div>
               )}
@@ -399,14 +397,14 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
             {isEditing && showDragHandle && (
               <button
                 {...dragHandleProps}
-                className="cursor-grab active:cursor-grabbing touch-none text-[#505050] hover:text-[#a0a0a0] transition-colors flex-shrink-0"
+                className="cursor-grab active:cursor-grabbing touch-none text-ink-5 hover:text-ink-3 transition-colors flex-shrink-0"
                 data-testid={`drag-handle-${item.position}`}
               >
                 <GripVertical size={18} />
               </button>
             )}
 
-            <div className="w-6 text-center text-[#707070] text-sm font-medium flex-shrink-0">
+            <div className="w-6 text-center text-ink-4 text-sm font-medium flex-shrink-0">
               {displayPosition}
             </div>
 
@@ -422,9 +420,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
               <div className="text-white font-semibold text-sm truncate">
                 {song.title}
               </div>
-              <div className="text-[#a0a0a0] text-xs truncate">
-                {song.artist}
-              </div>
+              <div className="text-ink-3 text-xs truncate">{song.artist}</div>
             </div>
 
             {/* Links */}
@@ -437,19 +433,19 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                     maxVisible={3}
                   />
                 ) : (
-                  <span className="text-[#404040] text-sm">—</span>
+                  <span className="text-border-2 text-sm">—</span>
                 )}
               </div>
             )}
 
             {/* Duration with icon */}
-            <div className="w-[80px] flex items-center gap-2 text-[#a0a0a0] text-sm flex-shrink-0">
-              <Clock size={14} className="text-[#606060]" />
+            <div className="w-[80px] flex items-center gap-2 text-ink-3 text-sm flex-shrink-0">
+              <Clock size={14} className="text-ink-4" />
               <span>{song.duration}</span>
             </div>
 
             {/* Tuning with icon */}
-            <div className="w-[120px] flex items-center gap-2 text-[#a0a0a0] text-sm flex-shrink-0">
+            <div className="w-[120px] flex items-center gap-2 text-ink-3 text-sm flex-shrink-0">
               <Guitar size={14} style={{ color: stripeColor }} />
               <span className="truncate">{song.tuning || 'Standard'}</span>
             </div>
@@ -461,7 +457,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                   e.stopPropagation()
                   onOpenSongNotes()
                 }}
-                className="p-1.5 text-[#707070] hover:text-[#f17827ff] rounded transition-colors flex-shrink-0"
+                className="p-1.5 text-ink-4 hover:text-accent rounded transition-colors flex-shrink-0"
                 title="Song Notes"
                 data-testid={`song-notes-icon-${item.position}`}
               >
@@ -474,7 +470,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
 
           {/* Row 2: Session Notes */}
           {(onSaveSessionNotes || item.notes) && (
-            <div className="mt-3 pl-[76px] border-t border-[#2a2a2a] pt-3">
+            <div className="mt-3 pl-[76px] border-t border-border-1 pt-3">
               {renderSessionNotes()}
             </div>
           )}

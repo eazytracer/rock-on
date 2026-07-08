@@ -11,6 +11,7 @@ import {
   Users,
   UserPlus,
   Ticket,
+  PartyPopper,
   LogOut,
   Settings,
   Check,
@@ -32,6 +33,7 @@ import {
 // ============================================================================
 import { db } from '../services/database'
 import { BandMembershipService } from '../services/BandMembershipService'
+import { EventService } from '../services/EventService'
 import { useCreateBand } from '../hooks/useBands'
 import { useAuth } from '../contexts/AuthContext'
 import { authService } from '../services/auth/AuthFactory'
@@ -160,9 +162,9 @@ interface DividerProps {
 const Divider: React.FC<DividerProps> = ({ text = 'or' }) => {
   return (
     <div className="flex items-center gap-3 my-6">
-      <div className="flex-1 h-px bg-[#2a2a2a]" />
-      <span className="text-[#707070] text-sm">{text}</span>
-      <div className="flex-1 h-px bg-[#2a2a2a]" />
+      <div className="flex-1 h-px bg-border-1" />
+      <span className="text-ink-4 text-sm">{text}</span>
+      <div className="flex-1 h-px bg-border-1" />
     </div>
   )
 }
@@ -211,7 +213,7 @@ const InputField: React.FC<InputFieldProps> = ({
       </label>
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-4">
             {icon}
           </div>
         )}
@@ -225,13 +227,13 @@ const InputField: React.FC<InputFieldProps> = ({
           placeholder={placeholder}
           className={`
             w-full h-11 ${icon ? 'pl-11' : 'pl-4'} ${showPasswordToggle ? 'pr-11' : 'pr-4'}
-            bg-[#1a1a1a] border rounded-lg text-white text-sm
-            placeholder-[#707070] transition-colors
+            bg-bg-2 border rounded-lg text-white text-sm
+            placeholder-ink-4 transition-colors
             focus:outline-none focus:ring-2
             ${
               error
-                ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
-                : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
+                ? 'border-danger focus:border-danger focus:ring-danger/20'
+                : 'border-border-1 focus:border-accent focus:ring-accent/20'
             }
           `}
         />
@@ -239,14 +241,14 @@ const InputField: React.FC<InputFieldProps> = ({
           <button
             type="button"
             onClick={onTogglePassword}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-white transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-4 hover:text-white transition-colors"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         )}
       </div>
       {error && (
-        <p className="mt-1 text-sm text-[#D7263D] flex items-center gap-1">
+        <p className="mt-1 text-sm text-danger flex items-center gap-1">
           <AlertCircle size={14} />
           {error}
         </p>
@@ -281,11 +283,11 @@ const Button: React.FC<ButtonProps> = ({
 
   const variants = {
     primary:
-      'bg-[#f17827ff] text-white hover:bg-[#d96a1f] disabled:bg-[#f17827ff]/50 disabled:cursor-not-allowed',
+      'bg-accent text-white hover:bg-accent-deep disabled:bg-accent/50 disabled:cursor-not-allowed',
     secondary:
-      'bg-transparent border border-[#2a2a2a] text-white hover:bg-[#1f1f1f] disabled:opacity-50 disabled:cursor-not-allowed',
+      'bg-transparent border border-border-1 text-white hover:bg-bg-3 disabled:opacity-50 disabled:cursor-not-allowed',
     danger:
-      'bg-[#D7263D] text-white hover:bg-[#b51f31] disabled:bg-[#D7263D]/50 disabled:cursor-not-allowed',
+      'bg-danger text-white hover:bg-danger-deep disabled:bg-danger/50 disabled:cursor-not-allowed',
   }
 
   return (
@@ -321,9 +323,9 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
   }, [onClose])
 
   const colors = {
-    success: 'bg-[#4ade80] border-[#4ade80]/20',
-    error: 'bg-[#D7263D] border-[#D7263D]/20',
-    info: 'bg-[#3b82f6] border-[#3b82f6]/20',
+    success: 'bg-success border-success/20',
+    error: 'bg-danger border-danger/20',
+    info: 'bg-info border-info/20',
   }
 
   return (
@@ -446,21 +448,21 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-bg-1 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#f17827ff] to-[#d96a1f] rounded-xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-accent to-accent-deep rounded-xl mb-4">
             <span className="text-white font-bold text-2xl">R</span>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-[#a0a0a0] text-sm">
+          <p className="text-ink-3 text-sm">
             Join Rock-On and start managing your band
           </p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-[#1a1a1a] rounded-xl p-8 border border-[#2a2a2a]">
+        <div className="bg-bg-2 rounded-xl p-8 border border-border-1">
           {/* Google Sign Up Button */}
           <GoogleButton onClick={handleGoogleSignUp} variant="signup" />
 
@@ -535,7 +537,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
           <div className="mt-6 text-center">
             <button
               onClick={onSwitchToLogin}
-              className="text-sm text-[#f17827ff] hover:text-[#d96a1f] transition-colors"
+              className="text-sm text-accent hover:text-accent-deep transition-colors"
             >
               Already have an account?{' '}
               <span className="font-semibold">Log in</span>
@@ -665,21 +667,19 @@ const LoginPage: React.FC<LoginPageProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-bg-1 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#f17827ff] to-[#d96a1f] rounded-xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-accent to-accent-deep rounded-xl mb-4">
             <span className="text-white font-bold text-2xl">R</span>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-[#a0a0a0] text-sm">
-            Log in to continue to Rock-On
-          </p>
+          <p className="text-ink-3 text-sm">Log in to continue to Rock-On</p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-[#1a1a1a] rounded-xl p-8 border border-[#2a2a2a]">
+        <div className="bg-bg-2 rounded-xl p-8 border border-border-1">
           {/* Google Sign In Button */}
           <GoogleButton onClick={handleGoogleSignIn} variant="signin" />
 
@@ -718,7 +718,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
             <div className="mb-6">
               <button
                 type="button"
-                className="text-sm text-[#707070] hover:text-[#a0a0a0] transition-colors"
+                className="text-sm text-ink-4 hover:text-ink-3 transition-colors"
               >
                 Forgot Password?
               </button>
@@ -735,7 +735,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
               <button
                 type="button"
                 onClick={() => setShowMockUsers(!showMockUsers)}
-                className="text-sm text-[#f17827ff] hover:text-[#d96a1f] transition-colors"
+                className="text-sm text-accent hover:text-accent-deep transition-colors"
               >
                 {showMockUsers ? 'Hide' : 'Show'} Mock Users for Testing
               </button>
@@ -743,8 +743,8 @@ const LoginPage: React.FC<LoginPageProps> = ({
           )}
 
           {showMockUsers && import.meta.env.MODE === 'development' && (
-            <div className="mt-4 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-              <p className="text-xs text-[#707070] mb-3">
+            <div className="mt-4 p-4 bg-bg-2 rounded-lg border border-border-1">
+              <p className="text-xs text-ink-4 mb-3">
                 Quick login with test users:
               </p>
               <div className="space-y-2">
@@ -779,7 +779,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
           <div className="mt-6 text-center">
             <button
               onClick={onSwitchToSignup}
-              className="text-sm text-[#f17827ff] hover:text-[#d96a1f] transition-colors"
+              className="text-sm text-accent hover:text-accent-deep transition-colors"
             >
               Don't have an account?{' '}
               <span className="font-semibold">Sign up</span>
@@ -805,6 +805,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
   const navigate = useNavigate()
   const [bandName, setBandName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
+  const [eventCode, setEventCode] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{
@@ -819,10 +820,10 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
   // Wait for user to be loaded before showing the form
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+      <div className="min-h-screen bg-bg-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block w-8 h-8 border-4 border-[#f17827ff]/30 border-t-[#f17827ff] rounded-full animate-spin mb-4" />
-          <p className="text-[#a0a0a0]">Loading...</p>
+          <div className="inline-block w-8 h-8 border-4 border-accent/30 border-t-accent rounded-full animate-spin mb-4" />
+          <p className="text-ink-3">Loading...</p>
         </div>
       </div>
     )
@@ -952,8 +953,43 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
     }
   }
 
+  const handleJoinEvent = async () => {
+    if (!eventCode) {
+      setErrors({ eventCode: 'Event code is required' })
+      return
+    }
+
+    setLoading(true)
+    try {
+      if (!user) {
+        throw new Error('No user logged in')
+      }
+
+      const result = await EventService.joinByCode(eventCode)
+      if (!result.ok || !result.eventId) {
+        setLoading(false)
+        setErrors({ eventCode: result.error || 'Failed to join event' })
+        return
+      }
+
+      setLoading(false)
+      setToast({
+        message: `You joined ${result.name || 'the event'}!`,
+        type: 'success',
+      })
+      const eventId = result.eventId
+      setTimeout(() => {
+        navigate(`/events/${eventId}`)
+      }, 1500)
+    } catch (err) {
+      console.error('[handleJoinEvent] Error caught:', err)
+      setErrors({ eventCode: 'Failed to join event. Please try again.' })
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#121212] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-bg-1 flex items-center justify-center p-6">
       {toast && (
         <Toast
           message={toast.message}
@@ -968,23 +1004,127 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
           <h1 className="text-3xl font-bold text-white mb-3">
             Get Started with Rock-On
           </h1>
-          <p className="text-[#a0a0a0] text-base">
-            Create your first band or join an existing one
+          <p className="text-ink-3 text-base">
+            Start on your own, jump into an event, or team up with a band
           </p>
         </div>
 
-        {/* Cards */}
+        {/* Just me — first-class solo path (no band required) */}
+        <div className="bg-bg-2 rounded-xl p-8 border border-accent/40 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+            <div className="flex items-center gap-4 sm:flex-1">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-accent/10 rounded-full shrink-0">
+                <User size={24} className="text-accent" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white mb-1">Just me</h2>
+                <p className="text-ink-3 text-sm">
+                  Start solo — host events, add friends, and build a personal
+                  song list. Create or join a band anytime.
+                </p>
+              </div>
+            </div>
+
+            <div className="sm:w-56 shrink-0">
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={() => navigate('/')}
+                data-testid="personal-account-button"
+              >
+                Continue solo
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Join Event Card — event code (no band required) */}
+        <div className="bg-bg-2 rounded-xl p-8 border border-border-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+            <div className="flex items-center gap-4 sm:w-1/2">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-accent/10 rounded-full shrink-0">
+                <PartyPopper size={24} className="text-accent" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white mb-1">
+                  Got an event code?
+                </h2>
+                <p className="text-ink-3 text-sm">
+                  Jump straight into an event you were invited to — no band
+                  required.
+                </p>
+              </div>
+            </div>
+
+            <div className="sm:w-1/2 flex flex-col gap-3">
+              <div>
+                <label htmlFor="event-code" className="sr-only">
+                  Event Code
+                </label>
+                <input
+                  type="text"
+                  id="event-code"
+                  name="eventCode"
+                  data-testid="join-event-code-input"
+                  value={eventCode}
+                  onChange={e => {
+                    setEventCode(e.target.value.toUpperCase())
+                    setErrors({})
+                  }}
+                  placeholder="JAM4567"
+                  className={`
+                    w-full h-11 px-4 bg-bg-2 border rounded-lg text-white text-sm
+                    font-mono text-center tracking-wider uppercase
+                    placeholder-ink-4 transition-colors
+                    focus:outline-none focus:ring-2
+                    ${
+                      errors.eventCode
+                        ? 'border-danger focus:border-danger focus:ring-danger/20'
+                        : 'border-border-1 focus:border-accent focus:ring-accent/20'
+                    }
+                  `}
+                />
+                {errors.eventCode && (
+                  <p className="mt-1 text-sm text-danger flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    {errors.eventCode}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={handleJoinEvent}
+                loading={loading}
+                data-testid="join-event-button"
+              >
+                Join Event
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* OR WITH A BAND divider */}
+        <div className="flex items-center gap-4 my-8">
+          <div className="flex-1 h-px bg-border-1" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-4">
+            Or with a band
+          </span>
+          <div className="flex-1 h-px bg-border-1" />
+        </div>
+
+        {/* Band cards */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Create Band Card */}
-          <div className="bg-[#1a1a1a] rounded-xl p-8 border border-[#2a2a2a]">
+          <div className="bg-bg-2 rounded-xl p-8 border border-border-1">
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-[#f17827ff]/10 rounded-full mb-4">
-                <Users size={24} className="text-[#f17827ff]" />
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-accent/10 rounded-full mb-4">
+                <Users size={24} className="text-accent" />
               </div>
               <h2 className="text-xl font-bold text-white mb-2">
                 Create Your First Band
               </h2>
-              <p className="text-[#a0a0a0] text-sm">
+              <p className="text-ink-3 text-sm">
                 Start your own band and invite members
               </p>
             </div>
@@ -1016,15 +1156,15 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
           </div>
 
           {/* Join Band Card */}
-          <div className="bg-[#1a1a1a] rounded-xl p-8 border border-[#2a2a2a]">
+          <div className="bg-bg-2 rounded-xl p-8 border border-border-1">
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-[#f17827ff]/10 rounded-full mb-4">
-                <Ticket size={24} className="text-[#f17827ff]" />
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-accent/10 rounded-full mb-4">
+                <Ticket size={24} className="text-accent" />
               </div>
               <h2 className="text-xl font-bold text-white mb-2">
                 Join an Existing Band
               </h2>
-              <p className="text-[#a0a0a0] text-sm">
+              <p className="text-ink-3 text-sm">
                 Enter an invite code from your bandmates
               </p>
             </div>
@@ -1048,19 +1188,19 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
                 }}
                 placeholder="ROCK2025"
                 className={`
-                  w-full h-11 px-4 bg-[#1a1a1a] border rounded-lg text-white text-sm
+                  w-full h-11 px-4 bg-bg-2 border rounded-lg text-white text-sm
                   font-mono text-center tracking-wider uppercase
-                  placeholder-[#707070] transition-colors
+                  placeholder-ink-4 transition-colors
                   focus:outline-none focus:ring-2
                   ${
                     errors.inviteCode
-                      ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
-                      : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
+                      ? 'border-danger focus:border-danger focus:ring-danger/20'
+                      : 'border-border-1 focus:border-accent focus:ring-accent/20'
                   }
                 `}
               />
               {errors.inviteCode && (
-                <p className="mt-1 text-sm text-[#D7263D] flex items-center gap-1">
+                <p className="mt-1 text-sm text-danger flex items-center gap-1">
                   <AlertCircle size={14} />
                   {errors.inviteCode}
                 </p>
@@ -1077,15 +1217,6 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
               Join Band
             </Button>
           </div>
-        </div>
-
-        {/* Helper Text */}
-        <div className="mt-8 text-center">
-          <p className="text-[#707070] text-sm">
-            Try using invite code{' '}
-            <span className="font-mono text-[#f17827ff]">ROCK2025</span> to join
-            iPod Shuffle
-          </p>
         </div>
       </div>
     </div>
@@ -1145,7 +1276,7 @@ const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
       >
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#f17827ff] to-[#d96a1f] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-accent-deep flex items-center justify-center">
           <span className="text-white font-semibold text-sm">
             {user.displayName.charAt(0).toUpperCase()}
           </span>
@@ -1153,13 +1284,13 @@ const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl z-50">
+        <div className="absolute top-full right-0 mt-2 w-64 bg-bg-3 border border-border-1 rounded-lg shadow-xl z-50">
           {/* User Info */}
-          <div className="px-4 py-3 border-b border-[#2a2a2a]">
+          <div className="px-4 py-3 border-b border-border-1">
             <p className="text-white font-semibold text-sm">
               {user.displayName}
             </p>
-            <p className="text-[#707070] text-xs mt-1">{user.email}</p>
+            <p className="text-ink-4 text-xs mt-1">{user.email}</p>
           </div>
 
           {/* Menu Items */}
@@ -1169,7 +1300,7 @@ const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({
                 onAccountSettings()
                 setIsOpen(false)
               }}
-              className="w-full flex items-center gap-3 px-4 py-2 text-white hover:bg-[#252525] transition-colors text-sm"
+              className="w-full flex items-center gap-3 px-4 py-2 text-white hover:bg-bg-4 transition-colors text-sm"
             >
               <Settings size={18} />
               <span>Account Settings</span>
@@ -1179,7 +1310,7 @@ const _UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({
                 onLogout()
                 setIsOpen(false)
               }}
-              className="w-full flex items-center gap-3 px-4 py-2 text-[#a0a0a0] hover:bg-[#252525] hover:text-white transition-colors text-sm"
+              className="w-full flex items-center gap-3 px-4 py-2 text-ink-3 hover:bg-bg-4 hover:text-white transition-colors text-sm"
             >
               <LogOut size={18} />
               <span>Log Out</span>
@@ -1236,7 +1367,7 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 hover:bg-[#1f1f1f] px-3 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-2 hover:bg-bg-3 px-3 py-2 rounded-lg transition-colors"
       >
         <span
           className="text-white font-semibold text-base"
@@ -1244,16 +1375,16 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
         >
           {currentBand.name}
         </span>
-        <ChevronDown size={18} className="text-[#a0a0a0]" />
+        <ChevronDown size={18} className="text-ink-3" />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-80 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-2 w-80 bg-bg-3 border border-border-1 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
           {/* Band List */}
           {bands.length > 1 && (
             <>
-              <div className="px-4 py-2 border-b border-[#2a2a2a]">
-                <p className="text-[#707070] text-xs font-semibold uppercase tracking-wider">
+              <div className="px-4 py-2 border-b border-border-1">
+                <p className="text-ink-4 text-xs font-semibold uppercase tracking-wider">
                   Your Bands
                 </p>
               </div>
@@ -1266,8 +1397,8 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
                       setIsOpen(false)
                     }}
                     className={`
-                      w-full flex items-center justify-between px-4 py-3 hover:bg-[#252525] transition-colors
-                      ${band.id === currentBand.id ? 'bg-[#252525]' : ''}
+                      w-full flex items-center justify-between px-4 py-3 hover:bg-bg-4 transition-colors
+                      ${band.id === currentBand.id ? 'bg-bg-4' : ''}
                     `}
                   >
                     <div className="flex-1 text-left">
@@ -1276,17 +1407,17 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
                           {band.name}
                         </span>
                         {band.id === currentBand.id && (
-                          <Check size={16} className="text-[#f17827ff]" />
+                          <Check size={16} className="text-accent" />
                         )}
                       </div>
-                      <p className="text-[#707070] text-xs mt-1">
+                      <p className="text-ink-4 text-xs mt-1">
                         {band.memberCount} members • {band.role}
                       </p>
                     </div>
                   </button>
                 ))}
               </div>
-              <div className="border-t border-[#2a2a2a]" />
+              <div className="border-t border-border-1" />
             </>
           )}
 
@@ -1297,7 +1428,7 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
                 onManageBand()
                 setIsOpen(false)
               }}
-              className="w-full flex items-center gap-3 px-4 py-2 text-white hover:bg-[#252525] transition-colors text-sm"
+              className="w-full flex items-center gap-3 px-4 py-2 text-white hover:bg-bg-4 transition-colors text-sm"
             >
               <Settings size={18} />
               <span>Manage Current Band</span>
@@ -1307,7 +1438,7 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
                 onCreateBand()
                 setIsOpen(false)
               }}
-              className="w-full flex items-center gap-3 px-4 py-2 text-white hover:bg-[#252525] transition-colors text-sm"
+              className="w-full flex items-center gap-3 px-4 py-2 text-white hover:bg-bg-4 transition-colors text-sm"
             >
               <UserPlus size={18} />
               <span>Create New Band</span>
@@ -1317,7 +1448,7 @@ const _BandSelectorDropdown: React.FC<BandSelectorDropdownProps> = ({
                 onJoinBand()
                 setIsOpen(false)
               }}
-              className="w-full flex items-center gap-3 px-4 py-2 text-white hover:bg-[#252525] transition-colors text-sm"
+              className="w-full flex items-center gap-3 px-4 py-2 text-white hover:bg-bg-4 transition-colors text-sm"
             >
               <Ticket size={18} />
               <span>Join Band</span>
@@ -1405,7 +1536,7 @@ const _CreateBandModal: React.FC<CreateBandModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
-      <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a] max-w-md w-full">
+      <div className="bg-bg-2 rounded-xl p-6 border border-border-1 max-w-md w-full">
         <h3 className="text-xl font-bold text-white mb-6">Create New Band</h3>
 
         <InputField
@@ -1429,7 +1560,7 @@ const _CreateBandModal: React.FC<CreateBandModalProps> = ({
             onChange={e => setDescription(e.target.value)}
             placeholder="Tell us about your band..."
             rows={3}
-            className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#707070] focus:outline-none focus:ring-2 focus:ring-[#f17827ff]/20 focus:border-[#f17827ff] resize-none"
+            className="w-full px-4 py-3 bg-bg-0 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
           />
         </div>
 
@@ -1557,7 +1688,7 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
-      <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a] max-w-md w-full">
+      <div className="bg-bg-2 rounded-xl p-6 border border-border-1 max-w-md w-full">
         <h3 className="text-xl font-bold text-white mb-6">Join Band</h3>
 
         <div className="mb-6">
@@ -1573,19 +1704,19 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({
             }}
             placeholder="ROCK2025"
             className={`
-              w-full h-11 px-4 bg-[#0a0a0a] border rounded-lg text-white text-sm
+              w-full h-11 px-4 bg-bg-0 border rounded-lg text-white text-sm
               font-mono text-center tracking-wider uppercase
-              placeholder-[#707070] transition-colors
+              placeholder-ink-4 transition-colors
               focus:outline-none focus:ring-2
               ${
                 errors.inviteCode
-                  ? 'border-[#D7263D] focus:border-[#D7263D] focus:ring-[#D7263D]/20'
-                  : 'border-[#2a2a2a] focus:border-[#f17827ff] focus:ring-[#f17827ff]/20'
+                  ? 'border-danger focus:border-danger focus:ring-danger/20'
+                  : 'border-border-1 focus:border-accent focus:ring-accent/20'
               }
             `}
           />
           {errors.inviteCode && (
-            <p className="mt-1 text-sm text-[#D7263D] flex items-center gap-1">
+            <p className="mt-1 text-sm text-danger flex items-center gap-1">
               <AlertCircle size={14} />
               {errors.inviteCode}
             </p>

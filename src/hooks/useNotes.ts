@@ -149,6 +149,65 @@ export function usePersonalNote(
 }
 
 /**
+ * Hook to determine which of the given songs have a non-empty personal note
+ * for the current user + band context. Runs a single batched Dexie query
+ * instead of one query per song, for use in list views (e.g. SongsPage).
+ */
+export function useBulkPersonalNotePresence(
+  songIds: string[],
+  userId: string,
+  bandId: string
+): Set<string> {
+  const [presentSongIds, setPresentSongIds] = useState<Set<string>>(
+    () => new Set()
+  )
+
+  useEffect(() => {
+    if (songIds.length === 0) {
+      setPresentSongIds(new Set())
+      return
+    }
+
+    let cancelled = false
+
+    const fetchPresence = async () => {
+      try {
+        const notes = await db.songPersonalNotes
+          .where('songId')
+          .anyOf(songIds)
+          .filter(
+            note =>
+              note.userId === userId &&
+              note.bandId === bandId &&
+              !!note.content?.trim()
+          )
+          .toArray()
+
+        if (!cancelled) {
+          setPresentSongIds(new Set(notes.map(note => note.songId)))
+        }
+      } catch (err) {
+        console.error(
+          '[useBulkPersonalNotePresence] Error fetching notes:',
+          err
+        )
+      }
+    }
+
+    fetchPresence()
+
+    return () => {
+      cancelled = true
+    }
+    // songIds is re-created each render; join to a stable key so the query
+    // only re-runs when the actual set of song ids changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [songIds.join(','), userId, bandId])
+
+  return presentSongIds
+}
+
+/**
  * Hook to fetch note entries for a song
  */
 export function useNoteEntries(songId: string, bandId: string, userId: string) {

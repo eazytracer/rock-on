@@ -3,6 +3,22 @@
  */
 
 /**
+ * Human countdown to a date, day-granular and timezone-local.
+ * "Today" / "Tomorrow" / "In 5 days" / "3d ago".
+ */
+export function formatCountdown(date: Date | string): string {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const target = new Date(date)
+  target.setHours(0, 0, 0, 0)
+  const days = Math.round((target.getTime() - start.getTime()) / 86400000)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Tomorrow'
+  if (days < 0) return `${-days}d ago`
+  return `In ${days} days`
+}
+
+/**
  * Format a date for display in show cards
  * Example: "Dec 8, 2025"
  */

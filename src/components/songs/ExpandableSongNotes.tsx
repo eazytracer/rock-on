@@ -71,36 +71,52 @@ export const ExpandableSongNotes: React.FC<ExpandableSongNotesProps> = ({
       {/* Expand/Collapse Toggle */}
       <button
         onClick={onToggle}
-        className="flex items-center gap-1 text-xs text-[#707070] hover:text-[#a0a0a0] transition-colors"
+        className={`flex items-center gap-1 text-xs transition-colors ${
+          !hasAnyNotes
+            ? 'text-ink-4 hover:text-ink-3'
+            : hasBandNotes && hasPersonalNotes
+              ? 'text-info'
+              : hasBandNotes
+                ? 'text-accent'
+                : 'text-info'
+        }`}
         data-testid={`song-notes-toggle-${songId}`}
       >
         <ChevronDown
           size={14}
           className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
         />
-        <span>{hasAnyNotes ? 'Notes' : 'Add notes'}</span>
+        <span
+          className={
+            hasBandNotes && hasPersonalNotes
+              ? 'bg-gradient-to-r from-info to-accent bg-clip-text text-transparent'
+              : ''
+          }
+        >
+          {hasAnyNotes ? 'Notes' : 'Add notes'}
+        </span>
       </button>
 
       {/* Expanded Notes Section */}
       {isExpanded && (
         <div
-          className="mt-3 pt-3 border-t border-[#2a2a2a] space-y-4"
+          className="mt-3 pt-3 border-t border-border-1 space-y-4"
           data-testid={`song-notes-expanded-${songId}`}
         >
           {/* Band Notes */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Music size={14} className="text-[#f17827ff]" />
-              <span className="text-xs font-medium text-[#a0a0a0] uppercase tracking-wider">
+              <Music size={14} className="text-accent" />
+              <span className="text-xs font-medium text-ink-3 uppercase tracking-wider">
                 Band Notes
               </span>
             </div>
             {hasBandNotes ? (
-              <div className="pl-5 text-sm text-[#c0c0c0]">
+              <div className="pl-5 text-sm text-ink-2">
                 <MarkdownRenderer content={bandNotes} className="prose-sm" />
               </div>
             ) : (
-              <p className="pl-5 text-sm text-[#505050] italic">
+              <p className="pl-5 text-sm text-ink-5 italic">
                 No band notes yet
               </p>
             )}
@@ -109,35 +125,35 @@ export const ExpandableSongNotes: React.FC<ExpandableSongNotesProps> = ({
           {/* Personal Notes */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <User size={14} className="text-[#3b82f6]" />
-              <span className="text-xs font-medium text-[#a0a0a0] uppercase tracking-wider">
+              <User size={14} className="text-info" />
+              <span className="text-xs font-medium text-ink-3 uppercase tracking-wider">
                 My Notes
               </span>
-              <span className="text-xs text-[#505050]">(private)</span>
+              <span className="text-xs text-ink-5">(private)</span>
             </div>
 
             {personalLoading ? (
-              <div className="pl-5 text-sm text-[#505050]">Loading...</div>
+              <div className="pl-5 text-sm text-ink-5">Loading...</div>
             ) : isEditingPersonal ? (
               <div className="pl-5 space-y-2">
                 <textarea
                   value={personalContent}
                   onChange={e => setPersonalContent(e.target.value)}
                   placeholder="Add your personal notes about this song..."
-                  className="w-full h-24 px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6]/20 resize-none"
+                  className="w-full h-24 px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-info focus:outline-none focus:ring-1 focus:ring-info/20 resize-none"
                   data-testid={`song-personal-notes-input-${songId}`}
                 />
                 <div className="flex items-center gap-2 justify-end">
                   <button
                     onClick={handleCancelEdit}
-                    className="px-3 py-1.5 text-xs text-[#a0a0a0] hover:text-white transition-colors"
+                    className="px-3 py-1.5 text-xs text-ink-3 hover:text-white transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSavePersonal}
                     disabled={isSaving}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3b82f6] text-white text-xs font-medium rounded-lg hover:bg-[#2563eb] transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-info text-white text-xs font-medium rounded-lg hover:bg-info/85 transition-colors disabled:opacity-50"
                     data-testid={`song-personal-notes-save-${songId}`}
                   >
                     {isSaving ? (
@@ -151,7 +167,7 @@ export const ExpandableSongNotes: React.FC<ExpandableSongNotesProps> = ({
               </div>
             ) : hasPersonalNotes && personalNote?.content ? (
               <div className="pl-5">
-                <div className="text-sm text-[#c0c0c0] mb-2">
+                <div className="text-sm text-ink-2 mb-2">
                   <MarkdownRenderer
                     content={personalNote.content}
                     className="prose-sm"
@@ -159,7 +175,7 @@ export const ExpandableSongNotes: React.FC<ExpandableSongNotesProps> = ({
                 </div>
                 <button
                   onClick={handleStartEditing}
-                  className="text-xs text-[#3b82f6] hover:underline"
+                  className="text-xs text-info hover:underline"
                 >
                   Edit
                 </button>
@@ -167,7 +183,7 @@ export const ExpandableSongNotes: React.FC<ExpandableSongNotesProps> = ({
             ) : (
               <button
                 onClick={handleStartEditing}
-                className="pl-5 text-sm text-[#3b82f6] hover:underline"
+                className="pl-5 text-sm text-info hover:underline"
                 data-testid={`song-personal-notes-add-${songId}`}
               >
                 + Add personal notes

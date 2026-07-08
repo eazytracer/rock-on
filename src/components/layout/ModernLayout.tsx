@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Sidebar } from './Sidebar'
 import { MobileHeader } from './MobileHeader'
-import { MobileDrawer } from './MobileDrawer'
+import { BottomNavigation } from '../common/BottomNavigation'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -19,7 +19,6 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
   onSignOut: propOnSignOut,
 }) => {
   const location = useLocation()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { user, currentBand, signOut } = useAuth()
 
   // Use props if provided, otherwise fall back to auth context
@@ -28,7 +27,7 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
   const onSignOut = propOnSignOut ?? signOut
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-bg-0">
       {/* Sidebar - Desktop Only */}
       <div className="hidden md:block">
         <Sidebar
@@ -39,27 +38,18 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
         />
       </div>
 
-      {/* Mobile Header */}
-      <MobileHeader
-        onMenuClick={() => setIsMobileMenuOpen(true)}
-        bandName={bandName}
-        userEmail={userEmail}
-      />
-
-      {/* Mobile Drawer */}
-      <MobileDrawer
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-        currentPath={location.pathname}
-        bandName={bandName}
-        userEmail={userEmail}
-        onSignOut={onSignOut}
-      />
+      {/* Mobile Header — brand + notifications bell (nav lives in the bottom bar) */}
+      <MobileHeader bandName={bandName} userEmail={userEmail} />
 
       {/* Main Content */}
-      <main className="md:ml-60 min-h-screen pt-16 md:pt-0">
+      <main className="md:ml-60 min-h-screen pt-16 md:pt-0 pb-20 md:pb-0">
         <div className="p-6 md:p-8 lg:p-10">{children}</div>
       </main>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <div className="md:hidden">
+        <BottomNavigation />
+      </div>
     </div>
   )
 }

@@ -30,7 +30,7 @@ export const FooterNextPreview: React.FC<FooterNextPreviewProps> = ({
   if (!nextSong) {
     return (
       <div
-        className="flex-1 text-center text-xs text-[#505050]"
+        className="flex-1 text-center text-xs text-ink-5"
         data-testid={testId}
       >
         Last song
@@ -49,7 +49,7 @@ export const FooterNextPreview: React.FC<FooterNextPreviewProps> = ({
       data-testid={testId}
     >
       {!compact && (
-        <span className="text-[9px] uppercase tracking-wider text-[#505050] flex-shrink-0">
+        <span className="text-[9px] uppercase tracking-wider text-ink-5 flex-shrink-0">
           Next
         </span>
       )}
@@ -70,7 +70,7 @@ export const FooterNextPreview: React.FC<FooterNextPreviewProps> = ({
             style={{ backgroundColor: changeColor }}
           />
           {!compact && (
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-amber-400">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-warn">
               Change
             </span>
           )}

@@ -21,7 +21,7 @@ export const MetadataSection: React.FC<MetadataSectionProps> = ({
 
   return (
     <div
-      className={`bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6 ${className}`}
+      className={`bg-bg-1 border border-border-1 rounded-lg p-4 sm:p-6 ${className}`}
     >
       {title && (
         <h2 className="text-lg font-semibold text-white mb-4">{title}</h2>
@@ -35,7 +35,7 @@ export const MetadataSection: React.FC<MetadataSectionProps> = ({
 
 // Divider for separating sections within MetadataSection
 export const MetadataDivider: React.FC = () => (
-  <div className="col-span-full border-t border-[#2a2a2a] my-2" />
+  <div className="col-span-full border-t border-border-1 my-2" />
 )
 
 // Full-width field wrapper for fields that span all columns

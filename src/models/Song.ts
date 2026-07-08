@@ -6,10 +6,11 @@ export interface Song {
   artist: string
   album?: string
   duration: number
-  key: string
+  key?: string
   bpm: number
   difficulty: 1 | 2 | 3 | 4 | 5
-  guitarTuning?: string
+  guitarTuning?: string // human label — kept as the offline/display fallback
+  tuningId?: string | null // FK to public.tunings.id (built-in or custom)
   structure: SongSection[]
   lyrics?: string
   chords: string[]

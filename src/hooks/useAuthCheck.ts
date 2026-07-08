@@ -118,16 +118,11 @@ export function useAuthCheck(): AuthCheckResult {
         return
       }
 
-      // User exists but no band selected
-      if (!bandId) {
-        setResult({
-          isAuthenticated: false,
-          isChecking: false,
-          hasBand: false,
-          failureReason: 'no-band',
-        })
-        return
-      }
+      // NOTE: a band is NO LONGER required to be authenticated. "Has a band" is a
+      // capability (see `hasBand` below), not an auth gate — this is what lets
+      // personal/guest users use the app without a band. A logged-in user with a
+      // valid session is authenticated whether or not `currentBandId` is set.
+      const hasBand = !!bandId
 
       // 2. Load and validate session from SessionManager
       const session = SessionManager.loadSession()
@@ -179,7 +174,7 @@ export function useAuthCheck(): AuthCheckResult {
       setResult({
         isAuthenticated: true,
         isChecking: false,
-        hasBand: true,
+        hasBand,
         failureReason: null,
       })
     }

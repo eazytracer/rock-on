@@ -56,7 +56,7 @@ export const DevDashboard: React.FC = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white border-b border-divider">
+      <div className="bg-bg-1 border-b border-divider">
         <div className="flex px-6">
           {tabs.map(tab => (
             <button
@@ -88,7 +88,7 @@ export const DevDashboard: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-divider px-6 py-3 text-xs text-muted">
+      <div className="fixed bottom-0 left-0 right-0 bg-bg-1 border-t border-divider px-6 py-3 text-xs text-muted">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <span>Dev Dashboard v1.0 • {import.meta.env.MODE} mode</span>

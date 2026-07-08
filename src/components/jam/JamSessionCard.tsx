@@ -94,7 +94,7 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
   return (
     <div
       data-testid="jam-session-card"
-      className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3"
+      className="bg-bg-2 border border-border-1 rounded-xl px-4 py-3"
     >
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Session name + expiry on the left. Name truncates so the
@@ -105,7 +105,7 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
           <p className="text-white text-sm sm:text-base font-semibold truncate">
             {session.name || 'Jam Session'}
           </p>
-          <div className="flex items-center gap-1.5 text-[#707070] text-xs mt-0.5">
+          <div className="flex items-center gap-1.5 text-ink-4 text-xs mt-0.5">
             <Clock size={10} />
             <span>
               {session.status === 'active'
@@ -127,10 +127,10 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
             single-line read. */}
         <div
           data-testid="jam-invite-code-chip"
-          className="flex-shrink-0 flex flex-col items-start sm:flex-row sm:items-center sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a]"
+          className="flex-shrink-0 flex flex-col items-start sm:flex-row sm:items-center sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-bg-1 border border-border-1"
           title="Share this code so others can join your jam"
         >
-          <span className="text-[#a0a0a0] text-[9px] sm:text-[10px] uppercase tracking-wider font-medium leading-none">
+          <span className="text-ink-3 text-[9px] sm:text-[10px] uppercase tracking-wider font-medium leading-none">
             Join code
           </span>
           <span
@@ -153,7 +153,7 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
                 ? undefined
                 : 'Share link unavailable on this device — recreate the session from this device to share'
             }
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#2a2a2a] text-white text-sm font-medium hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-border-1 text-white text-sm font-medium hover:bg-border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             aria-expanded={isShareOpen}
             aria-haspopup="menu"
           >
@@ -164,7 +164,7 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
           {isShareOpen && (
             <div
               data-testid="jam-share-popover"
-              className="absolute right-0 top-full mt-1 z-40 w-56 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-xl p-2"
+              className="absolute right-0 top-full mt-1 z-40 w-56 bg-bg-3 border border-border-1 rounded-lg shadow-xl p-2"
               role="menu"
             >
               <button
@@ -173,7 +173,7 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
                   void handleCopy()
                 }}
                 disabled={!shareUrl}
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left rounded-md text-[#e0e0e0] hover:bg-[#2a2a2a] disabled:opacity-40"
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left rounded-md text-ink-2 hover:bg-border-1 disabled:opacity-40"
               >
                 {copied ? (
                   <>
@@ -191,7 +191,7 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
                 data-testid="jam-show-qr-button"
                 onClick={() => setShowQR(v => !v)}
                 disabled={!shareUrl}
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left rounded-md text-[#e0e0e0] hover:bg-[#2a2a2a] disabled:opacity-40"
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left rounded-md text-ink-2 hover:bg-border-1 disabled:opacity-40"
               >
                 <QrCode size={14} />
                 {showQR ? 'Hide QR code' : 'Show QR code'}
@@ -211,13 +211,13 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
           Share. The dedicated "Hide QR" button below the code makes
           the dismissal affordance reachable without that detour. */}
       {showQR && (
-        <div className="mt-3 pt-3 border-t border-[#2a2a2a] flex flex-col items-center gap-2">
+        <div className="mt-3 pt-3 border-t border-border-1 flex flex-col items-center gap-2">
           <JamInviteQR url={shareUrl} size={180} />
           <button
             type="button"
             data-testid="jam-hide-qr-button"
             onClick={() => setShowQR(false)}
-            className="text-[#a0a0a0] text-xs hover:text-white transition-colors px-3 py-1"
+            className="text-ink-3 text-xs hover:text-white transition-colors px-3 py-1"
           >
             Hide QR
           </button>

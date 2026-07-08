@@ -162,7 +162,7 @@ export const SyncQueueViewer: React.FC = () => {
 
       {/* Queue List */}
       {user && (
-        <div className="bg-white rounded-lg border border-divider overflow-hidden">
+        <div className="bg-bg-1 rounded-lg border border-divider overflow-hidden">
           {loading ? (
             <div className="px-4 py-8 text-center text-muted">
               Loading queue...
@@ -219,7 +219,7 @@ export const SyncQueueViewer: React.FC = () => {
                       <div className="text-xs font-medium text-text mb-2">
                         Change Data:
                       </div>
-                      <pre className="text-xs text-muted bg-white p-2 rounded border border-divider overflow-x-auto">
+                      <pre className="text-xs text-muted bg-bg-1 p-2 rounded border border-divider overflow-x-auto">
                         {JSON.stringify(op.changeData, null, 2)}
                       </pre>
                     </div>

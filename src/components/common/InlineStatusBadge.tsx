@@ -112,7 +112,7 @@ export const InlineStatusBadge: React.FC<InlineStatusBadgeProps> = ({
           flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border
           transition-all cursor-pointer
           ${currentOption?.color || 'text-gray-400 bg-gray-400/10 border-gray-400/20'}
-          ${!disabled && !isSaving ? 'hover:ring-2 hover:ring-offset-1 hover:ring-offset-[#0a0a0a]' : ''}
+          ${!disabled && !isSaving ? 'hover:ring-2 hover:ring-offset-1 hover:ring-offset-bg-0' : ''}
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
         data-testid={`${testId}-button`}
@@ -135,7 +135,7 @@ export const InlineStatusBadge: React.FC<InlineStatusBadgeProps> = ({
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 mt-1 left-0 min-w-[160px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl overflow-hidden"
+          className="absolute z-50 mt-1 left-0 min-w-[160px] bg-bg-2 border border-border-1 rounded-lg shadow-xl overflow-hidden"
           data-testid={`${testId}-dropdown`}
         >
           {options.map(option => {
@@ -148,7 +148,7 @@ export const InlineStatusBadge: React.FC<InlineStatusBadgeProps> = ({
                 onClick={() => handleSelect(option.value)}
                 className={`
                   w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors
-                  ${isSelected ? 'bg-[#252525]' : 'hover:bg-[#252525]'}
+                  ${isSelected ? 'bg-bg-4' : 'hover:bg-bg-4'}
                 `}
                 data-testid={`${testId}-option-${option.value}`}
               >
@@ -159,9 +159,7 @@ export const InlineStatusBadge: React.FC<InlineStatusBadgeProps> = ({
                 )}
                 <span className="text-white">{option.label}</span>
                 {isSelected && (
-                  <span className="ml-auto text-[#f17827ff] text-xs">
-                    Current
-                  </span>
+                  <span className="ml-auto text-accent text-xs">Current</span>
                 )}
               </button>
             )
@@ -184,8 +182,7 @@ export const SHOW_STATUS_OPTIONS: StatusOption[] = [
   {
     value: 'confirmed',
     label: 'Confirmed',
-    color:
-      'text-[#f17827ff] bg-[#f17827ff]/10 border-[#f17827ff]/20 hover:ring-[#f17827ff]/50',
+    color: 'text-accent bg-accent/10 border-accent/20 hover:ring-accent/50',
   },
   {
     value: 'completed',

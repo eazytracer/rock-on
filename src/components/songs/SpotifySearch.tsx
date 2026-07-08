@@ -103,7 +103,7 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
       {/* Search Input */}
       <div className="relative">
         <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-[#707070]"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-4"
           size={18}
         />
         <input
@@ -115,7 +115,7 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          className="w-full pl-10 pr-4 py-2.5 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder-[#606060] focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-colors"
+          className="w-full pl-10 pr-4 py-2.5 bg-bg-2 border border-border-2 rounded-lg text-white placeholder-ink-4 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-colors"
           data-testid="spotify-search-input"
         />
         {isLoading && (
@@ -127,9 +127,7 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
       </div>
 
       {/* Loading State */}
-      {isLoading && (
-        <div className="mt-2 text-sm text-[#707070]">Searching...</div>
-      )}
+      {isLoading && <div className="mt-2 text-sm text-ink-4">Searching...</div>}
 
       {/* Error State */}
       {error && <div className="mt-2 text-sm text-red-400">{error}</div>}
@@ -139,7 +137,7 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
         <ul
           ref={listRef}
           role="listbox"
-          className="absolute z-50 w-full mt-2 max-h-[300px] overflow-y-auto custom-scrollbar bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg shadow-lg shadow-black/50"
+          className="absolute z-50 w-full mt-2 max-h-[300px] overflow-y-auto custom-scrollbar bg-bg-2 border border-border-2 rounded-lg shadow-lg shadow-black/50"
           data-testid="spotify-search-results"
         >
           {results.map((track, index) => (
@@ -150,7 +148,7 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
               onClick={() => handleSelect(track)}
               onMouseEnter={() => setFocusedIndex(index)}
               className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
-                index === focusedIndex ? 'bg-[#2a2a2a]' : 'hover:bg-[#252525]'
+                index === focusedIndex ? 'bg-border-1' : 'hover:bg-bg-4'
               }`}
               data-testid={`spotify-result-${track.id}`}
             >
@@ -163,10 +161,10 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
                 />
               ) : (
                 <div
-                  className="w-12 h-12 rounded bg-[#2a2a2a] flex items-center justify-center flex-shrink-0"
+                  className="w-12 h-12 rounded bg-border-1 flex items-center justify-center flex-shrink-0"
                   data-testid="album-art-placeholder"
                 >
-                  <Music2 size={20} className="text-[#505050]" />
+                  <Music2 size={20} className="text-ink-5" />
                 </div>
               )}
 
@@ -175,16 +173,14 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
                 <div className="text-white text-sm font-medium truncate">
                   {track.name}
                 </div>
-                <div className="text-[#a0a0a0] text-xs truncate">
+                <div className="text-ink-3 text-xs truncate">
                   {track.artist}
                 </div>
-                <div className="text-[#707070] text-xs truncate">
-                  {track.album}
-                </div>
+                <div className="text-ink-4 text-xs truncate">{track.album}</div>
               </div>
 
               {/* Duration */}
-              <div className="text-[#707070] text-sm flex-shrink-0">
+              <div className="text-ink-4 text-sm flex-shrink-0">
                 {SpotifyService.formatDuration(track.durationMs)}
               </div>
             </li>
@@ -194,7 +190,7 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
 
       {/* No Results State */}
       {showNoResults && (
-        <div className="absolute z-50 w-full mt-2 p-4 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-center text-[#707070] text-sm">
+        <div className="absolute z-50 w-full mt-2 p-4 bg-bg-2 border border-border-2 rounded-lg text-center text-ink-4 text-sm">
           No results found
         </div>
       )}

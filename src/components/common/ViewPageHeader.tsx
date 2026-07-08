@@ -28,14 +28,14 @@ export const ViewPageHeader: React.FC<ViewPageHeaderProps> = ({
   const navigate = useNavigate()
 
   return (
-    <div className="sticky top-0 z-10 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+    <div className="sticky top-0 z-10 bg-bg-0 border-b border-border-1">
       <div className="px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             {/* Back button - hidden on mobile, shown on desktop */}
             <button
               onClick={() => navigate(backPath)}
-              className="hidden md:flex p-2 text-[#a0a0a0] hover:text-white hover:bg-[#252525] rounded-lg transition-colors"
+              className="hidden md:flex p-2 text-ink-3 hover:text-white hover:bg-bg-4 rounded-lg transition-colors"
               data-testid="view-back-button"
             >
               <ArrowLeft size={20} />
@@ -49,13 +49,13 @@ export const ViewPageHeader: React.FC<ViewPageHeaderProps> = ({
                   {title}
                 </h1>
                 {isNew && (
-                  <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-[#f17827ff]/20 text-[#f17827ff] rounded">
+                  <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-accent/20 text-accent rounded">
                     New
                   </span>
                 )}
               </div>
               {subtitle && (
-                <p className="text-sm text-[#707070] truncate">{subtitle}</p>
+                <p className="text-sm text-ink-4 truncate">{subtitle}</p>
               )}
             </div>
           </div>

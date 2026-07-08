@@ -71,31 +71,31 @@ export const DevUIPreviewPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('practice')
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white">
+    <div className="min-h-screen bg-bg-1 text-white">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <header className="sticky top-0 z-20 bg-bg-0 border-b border-border-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <Link
               to="/dev/dashboard"
-              className="flex items-center gap-2 text-[#a0a0a0] hover:text-white transition-colors text-sm"
+              className="flex items-center gap-2 text-ink-3 hover:text-white transition-colors text-sm"
               data-testid="ui-preview-back-link"
             >
               <ArrowLeft size={16} />
               <span className="hidden sm:inline">Dev Dashboard</span>
             </Link>
-            <div className="h-5 w-px bg-[#2a2a2a]" />
+            <div className="h-5 w-px bg-border-1" />
             <div className="min-w-0">
               <h1 className="text-white font-semibold text-base sm:text-lg truncate">
                 UI Unification Preview
               </h1>
-              <p className="text-[#707070] text-xs truncate">
+              <p className="text-ink-4 text-xs truncate">
                 Design sandbox — not wired to real data
               </p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-xs text-[#707070]">
-            <span className="px-2 py-1 bg-[#f17827ff]/10 text-[#f17827ff] rounded border border-[#f17827ff]/30">
+          <div className="hidden md:flex items-center gap-2 text-xs text-ink-4">
+            <span className="px-2 py-1 bg-accent/10 text-accent rounded border border-accent/30">
               DRAFT
             </span>
           </div>
@@ -113,8 +113,8 @@ export const DevUIPreviewPage: React.FC = () => {
                   data-testid={`ui-preview-tab-${tab.key}`}
                   className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     isActive
-                      ? 'text-[#f17827ff] border-[#f17827ff]'
-                      : 'text-[#a0a0a0] border-transparent hover:text-white hover:border-[#3a3a3a]'
+                      ? 'text-accent border-accent'
+                      : 'text-ink-3 border-transparent hover:text-white hover:border-border-2'
                   }`}
                 >
                   {tab.icon}
@@ -128,7 +128,7 @@ export const DevUIPreviewPage: React.FC = () => {
 
       {/* Active tab description */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-        <p className="text-[#a0a0a0] text-sm">
+        <p className="text-ink-3 text-sm">
           {TABS.find(t => t.key === activeTab)?.description}
         </p>
       </div>

@@ -937,8 +937,11 @@ export class RealtimeManager extends EventEmitter {
   /**
    * Queue a toast notification from audit log (no user lookup needed!)
    *
-   * PRACTICE-SPECIFIC TOASTS ONLY: Only show toasts for practice_sessions changes.
-   * Other tables (songs, setlists, shows) use silent sync with "last synced" indicator.
+   * Restores the original toast coverage (songs, setlists, shows, practices —
+   * all add/update/delete), which the audit-first migration had narrowed to
+   * practices only. Practices keep their tailored immediate messages; the other
+   * entities route through the 2s batch buffer so rapid edits collapse into one
+   * "N changes by X" toast instead of spamming (matching the old behaviour).
    */
   private async queueToastFromAudit(
     userName: string,
@@ -946,29 +949,59 @@ export class RealtimeManager extends EventEmitter {
     table: string,
     itemName: string
   ): Promise<void> {
-    // ONLY show toasts for practice_sessions (others were too noisy)
-    if (table !== 'practice_sessions') {
+    if (table === 'practice_sessions') {
+      const displayName = this.formatPracticeDateForToast(itemName)
+      let message: string
+      switch (eventType) {
+        case 'INSERT':
+          message = `${userName} scheduled practice for ${displayName}`
+          break
+        case 'UPDATE':
+          message = `${userName} updated practice details`
+          break
+        case 'DELETE':
+          message = `${userName} cancelled practice`
+          break
+      }
+      this.showToast(message, 'info')
       return
     }
 
-    // Format practice date for display
-    const displayName = this.formatPracticeDateForToast(itemName)
-
-    // Show immediate toast for practice changes
-    let message: string
-    switch (eventType) {
-      case 'INSERT':
-        message = `${userName} scheduled practice for ${displayName}`
-        break
-      case 'UPDATE':
-        message = `${userName} updated practice details`
-        break
-      case 'DELETE':
-        message = `${userName} cancelled practice`
-        break
+    if (table !== 'songs' && table !== 'setlists' && table !== 'shows') {
+      return
     }
+    this.enqueueBatchedToast(userName, eventType, table, itemName)
+  }
 
-    this.showToast(message, 'info')
+  /**
+   * Buffer a song/setlist/show change into the 2s batch window, keyed by who
+   * made it. Same batching the legacy per-table path used, but keyed on the
+   * audit user_name so no local user lookup is needed.
+   */
+  private enqueueBatchedToast(
+    userName: string,
+    eventType: 'INSERT' | 'UPDATE' | 'DELETE',
+    table: string,
+    itemName: string
+  ): void {
+    let pending = this.pendingToasts.get(userName)
+    if (!pending) {
+      pending = {
+        userId: userName,
+        userName,
+        changes: [],
+        timestamp: Date.now(),
+      }
+      this.pendingToasts.set(userName, pending)
+    }
+    pending.changes.push({ type: eventType, table, itemName })
+
+    if (this.toastBatchTimeout) {
+      clearTimeout(this.toastBatchTimeout)
+    }
+    this.toastBatchTimeout = setTimeout(() => {
+      this.flushToasts()
+    }, this.TOAST_BATCH_DELAY)
   }
 
   /**
@@ -1065,7 +1098,15 @@ export class RealtimeManager extends EventEmitter {
             : change.type === 'UPDATE'
               ? 'updated'
               : 'deleted'
-        const message = `${userName} ${action} "${change.itemName}"`
+        const kind =
+          change.table === 'songs'
+            ? 'song '
+            : change.table === 'setlists'
+              ? 'setlist '
+              : change.table === 'shows'
+                ? 'show '
+                : ''
+        const message = `${userName} ${action} ${kind}"${change.itemName}"`
 
         this.showToast(message, 'info')
       } else {

@@ -69,9 +69,9 @@ export function QueueSongRow({
       onClick={onClick}
       className={[
         'flex items-center gap-3 px-3 py-2.5 rounded-lg',
-        'bg-[#1a1a1a] border border-[#2a2a2a] group',
-        isDragging ? 'opacity-50 ring-1 ring-[#f17827ff]/50' : '',
-        onClick ? 'cursor-pointer hover:bg-[#1f1f1f] transition-colors' : '',
+        'bg-bg-2 border border-border-1 group',
+        isDragging ? 'opacity-50 ring-1 ring-accent/50' : '',
+        onClick ? 'cursor-pointer hover:bg-bg-3 transition-colors' : '',
         className,
       ]
         .filter(Boolean)
@@ -91,13 +91,13 @@ export function QueueSongRow({
         >
           <GripVertical
             size={14}
-            className="text-[#404040] group-hover:text-[#707070]"
+            className="text-border-2 group-hover:text-ink-4"
           />
         </span>
       )}
 
       {/* Position number */}
-      <span className="text-[#707070] text-xs w-5 text-right tabular-nums flex-shrink-0">
+      <span className="text-ink-4 text-xs w-5 text-right tabular-nums flex-shrink-0">
         {position}
       </span>
 
@@ -108,7 +108,7 @@ export function QueueSongRow({
       <div className="flex-1 min-w-0">
         <p className="text-white text-sm font-medium truncate">{song.title}</p>
         {song.artist && (
-          <p className="text-[#707070] text-xs truncate">{song.artist}</p>
+          <p className="text-ink-4 text-xs truncate">{song.artist}</p>
         )}
       </div>
 

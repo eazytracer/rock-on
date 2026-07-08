@@ -173,7 +173,7 @@ export const LinkedSongView: React.FC<LinkedSongViewProps> = ({
                     <div>
                       <span className="text-gray-500">Key:</span>{' '}
                       <span className="text-gray-900 font-medium">
-                        {song.key}
+                        {song.key || '—'}
                       </span>
                     </div>
                     <div>

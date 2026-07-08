@@ -23,8 +23,8 @@ describe('ContentLoadingSpinner', () => {
       )
 
       const spinner = screen.getByTestId('content-loading-spinner')
-      // Check that the spinner has the dark background class
-      expect(spinner.className).toContain('bg-[#0a0a0a]')
+      // Check that the spinner has the dark background token class
+      expect(spinner.className).toContain('bg-bg-0')
     })
   })
 

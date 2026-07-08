@@ -146,10 +146,12 @@ test.describe('Protected Routes', () => {
       await assertNoConsoleErrors(page, errors)
     })
 
-    test('user without band is redirected to get-started', async ({ page }) => {
+    test('user without a band can use the app (personal account)', async ({
+      page,
+    }) => {
       const user = createTestUser()
 
-      // Sign up (don't create band)
+      // Sign up (don't create/join a band)
       await signUpViaUI(page, user)
       await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
@@ -158,17 +160,14 @@ test.describe('Protected Routes', () => {
         (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
         undefined
 
-      // Try to access protected route - should redirect away from /songs
+      // Choose a personal account — no band required
+      await page.click('[data-testid="personal-account-button"]')
+
+      // Band is no longer an auth gate: a band-less user reaches the app and can
+      // access protected routes (they degrade gracefully around the missing band).
       await page.goto('/songs')
-
-      // Should be redirected to get-started, auth page, or auth with query params
-      // The exact redirect depends on session state validation
-      await expect(page).toHaveURL(/\/(get-started|auth)/, {
-        timeout: 5000,
-      })
-
-      // Verify we're NOT on the songs page (protected route)
-      await expect(page).not.toHaveURL(/\/songs/)
+      await expect(page).toHaveURL(/\/songs/, { timeout: 5000 })
+      await expect(page).not.toHaveURL(/\/(auth|get-started)/)
     })
   })
 

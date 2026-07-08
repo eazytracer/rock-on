@@ -133,7 +133,7 @@ export const SongList: React.FC<SongListProps> = ({
         (filterBy.confidence === 'new' && song.confidenceLevel < 2)
 
       const matchesKey =
-        !filterBy.key?.length || filterBy.key.includes(song.key)
+        !filterBy.key?.length || filterBy.key.includes(song.key ?? '')
 
       return (
         matchesSearch && matchesDifficulty && matchesConfidence && matchesKey

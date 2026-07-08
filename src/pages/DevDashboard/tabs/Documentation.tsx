@@ -142,7 +142,7 @@ export const Documentation: React.FC = () => {
   return (
     <div className="flex h-[calc(100vh-250px)]">
       {/* Left Sidebar - Category Selection */}
-      <div className="w-64 bg-white border-r border-divider flex flex-col">
+      <div className="w-64 bg-bg-1 border-r border-divider flex flex-col">
         <div className="p-4 border-b border-divider">
           <h3 className="text-sm font-semibold text-muted uppercase tracking-wide">
             Documentation
@@ -160,7 +160,7 @@ export const Documentation: React.FC = () => {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeCategory === 'schema'
                   ? 'bg-primary text-white'
-                  : 'text-text hover:bg-gray-100'
+                  : 'text-text hover:bg-bg-2'
               }`}
             >
               📊 Database Schema
@@ -173,7 +173,7 @@ export const Documentation: React.FC = () => {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors mt-1 ${
                 activeCategory === 'flows'
                   ? 'bg-primary text-white'
-                  : 'text-text hover:bg-gray-100'
+                  : 'text-text hover:bg-bg-2'
               }`}
             >
               🔄 User Flows
@@ -186,7 +186,7 @@ export const Documentation: React.FC = () => {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors mt-1 ${
                 activeCategory === 'tests'
                   ? 'bg-primary text-white'
-                  : 'text-text hover:bg-gray-100'
+                  : 'text-text hover:bg-bg-2'
               }`}
             >
               ✅ Test Cases
@@ -210,7 +210,7 @@ export const Documentation: React.FC = () => {
                   className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
                     selectedDiagram === section.id
                       ? 'bg-primary-light text-primary font-medium'
-                      : 'text-text hover:bg-gray-50'
+                      : 'text-text hover:bg-bg-2'
                   }`}
                 >
                   {section.title}
@@ -222,9 +222,9 @@ export const Documentation: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className="flex-1 flex flex-col bg-bg-2">
         {/* Header */}
-        <div className="bg-white border-b border-divider p-4">
+        <div className="bg-bg-1 border-b border-divider p-4">
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-xl font-bold text-text">
@@ -236,7 +236,7 @@ export const Documentation: React.FC = () => {
             </div>
             <button
               onClick={() => setRenderKey(prev => prev + 1)}
-              className="px-3 py-1.5 text-sm bg-white border border-divider rounded hover:bg-gray-50 transition-colors"
+              className="px-3 py-1.5 text-sm bg-bg-1 border border-divider rounded hover:bg-bg-2 transition-colors"
               title="Refresh diagram"
             >
               🔄 Refresh
@@ -249,7 +249,7 @@ export const Documentation: React.FC = () => {
           {currentSection?.content ? (
             currentSection.content
           ) : (
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-divider">
+            <div className="bg-bg-1 rounded-lg shadow-sm p-6 border border-divider">
               <div ref={diagramRef} className="mermaid-container" />
             </div>
           )}
@@ -274,13 +274,13 @@ const TestCaseVisualization: React.FC = () => {
       case 'PARTIAL':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'NOT_IMPLEMENTED':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-bg-2 text-ink-1 border-border-1'
       case 'IN_PROGRESS':
         return 'bg-blue-100 text-blue-800 border-blue-200'
       case 'SKIPPED':
         return 'bg-purple-100 text-purple-800 border-purple-200'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-bg-2 text-ink-1 border-border-1'
     }
   }
 
@@ -304,7 +304,7 @@ const TestCaseVisualization: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-divider">
+    <div className="bg-bg-1 rounded-lg shadow-sm border border-divider">
       {/* Summary Cards */}
       <div className="p-6 border-b border-divider">
         <div className="grid grid-cols-4 gap-4">
@@ -320,11 +320,11 @@ const TestCaseVisualization: React.FC = () => {
             </div>
             <div className="text-sm text-red-600 mt-1">Failing</div>
           </div>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="text-2xl font-bold text-gray-700">
+          <div className="bg-bg-2 border border-border-1 rounded-lg p-4">
+            <div className="text-2xl font-bold text-ink-3">
               {testCaseData.summary.notImplemented}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Not Implemented</div>
+            <div className="text-sm text-ink-3 mt-1">Not Implemented</div>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="text-2xl font-bold text-blue-700">
@@ -346,7 +346,7 @@ const TestCaseVisualization: React.FC = () => {
               %
             </span>
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-bg-2 rounded-full overflow-hidden">
             <div
               className="h-full bg-green-500 transition-all duration-300"
               style={{

@@ -1,5 +1,5 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGoBack } from '../../hooks/useGoBack'
 import {
   ArrowLeft,
   Calendar,
@@ -97,8 +97,6 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
   isNew,
   'data-testid': testId = 'entity-header',
 }) => {
-  const navigate = useNavigate()
-
   // Get status options based on entity type
   const getStatusOptions = () => {
     if (status?.options) return status.options
@@ -114,10 +112,9 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
     }
   }
 
-  // Handle back navigation
-  const handleBack = () => {
-    navigate(backPath)
-  }
+  // Handle back navigation — history-aware: return to the real referrer (e.g. the
+  // Calendar) when there is in-app history, else fall back to backPath.
+  const handleBack = useGoBack(backPath)
 
   // Format location display
   const locationDisplay = [venue, location].filter(Boolean).join(', ')
@@ -138,7 +135,7 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
 
   return (
     <div
-      className="sticky top-0 z-10 bg-[#0a0a0a] border-b border-[#2a2a2a]"
+      className="sticky top-0 z-10 bg-bg-0 border-b border-border-1"
       data-testid={testId}
     >
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
@@ -148,14 +145,14 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
             {/* Back button */}
             <button
               onClick={handleBack}
-              className="p-2 text-[#a0a0a0] hover:text-white hover:bg-[#252525] rounded-lg transition-colors flex-shrink-0"
+              className="p-2 text-ink-3 hover:text-white hover:bg-bg-4 rounded-lg transition-colors flex-shrink-0"
               data-testid={`${testId}-back-button`}
             >
               <ArrowLeft size={20} />
             </button>
 
             {/* Entity icon */}
-            <EntityIcon size={20} className="text-[#f17827ff] flex-shrink-0" />
+            <EntityIcon size={20} className="text-accent flex-shrink-0" />
 
             {/* Title */}
             <div className="min-w-0 flex-1">
@@ -196,7 +193,7 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
             {/* Date */}
             {(date || dateLabel) && (
               <div className="flex items-center gap-1.5">
-                <Calendar size={16} className="text-[#f17827ff]" />
+                <Calendar size={16} className="text-accent" />
                 {onDateSave && date ? (
                   <InlineEditableField
                     value={date}
@@ -215,13 +212,13 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
 
             {/* Separator */}
             {(date || dateLabel) && (time || timeLabel) && (
-              <span className="text-[#3a3a3a]">•</span>
+              <span className="text-ink-6">•</span>
             )}
 
             {/* Time */}
             {(time || timeLabel) && (
               <div className="flex items-center gap-1.5">
-                <Clock size={16} className="text-[#f17827ff]" />
+                <Clock size={16} className="text-accent" />
                 {onTimeSave && time ? (
                   <InlineEditableField
                     value={time}
@@ -239,9 +236,9 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
             {/* Venue */}
             {(venue || location) && (
               <>
-                <span className="text-[#3a3a3a]">•</span>
+                <span className="text-ink-6">•</span>
                 <div className="flex items-center gap-1.5">
-                  <Building2 size={16} className="text-[#f17827ff]" />
+                  <Building2 size={16} className="text-accent" />
                   {onVenueSave ? (
                     <InlineEditableField
                       value={venue || ''}
@@ -262,9 +259,9 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
             {/* Duration */}
             {(duration !== undefined || durationLabel) && (
               <>
-                <span className="text-[#3a3a3a]">•</span>
+                <span className="text-ink-6">•</span>
                 <div className="flex items-center gap-1.5">
-                  <Timer size={16} className="text-[#f17827ff]" />
+                  <Timer size={16} className="text-accent" />
                   {onDurationSave && duration !== undefined ? (
                     <InlineEditableField
                       value={duration}

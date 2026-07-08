@@ -7,20 +7,20 @@ Master overview of planned features in the `.claude/backlog/` directory.
 
 ## Feature Overview
 
-| Feature                                                 | Status                 | Priority | Complexity  | Dependencies             |
-| ------------------------------------------------------- | ---------------------- | -------- | ----------- | ------------------------ |
-| [ci-cd-pipeline](#ci-cd-pipeline)                       | Research Complete      | High     | High        | None                     |
-| [multi-band-support](#multi-band-support)               | Plan Complete          | High     | High        | None                     |
-| [account-tiers-and-access](#account-tiers-and-access)   | Research Complete      | High     | High        | multi-band-support       |
-| [social-catalog](#social-catalog)                       | Research Complete      | High     | Very High   | account-tiers-and-access |
-| [email-infrastructure](#email-infrastructure)           | Research Complete      | Medium   | Low-Medium  | None                     |
-| [unified-kebab-menu](#unified-kebab-menu)               | Research Complete      | Medium   | Medium      | None                     |
-| [email-invitations](#email-invitations)                 | Research Complete      | Medium   | Medium      | email-infrastructure     |
-| [calendar-events](#calendar-events)                     | Specification Complete | Medium   | Medium-High | email-infrastructure     |
-| [enhanced-security-testing](#enhanced-security-testing) | Research Complete      | Medium   | Medium      | ci-cd-pipeline           |
-| [guitar-tuning-system](#guitar-tuning-system)           | Research Complete      | Medium   | Medium-High | None                     |
-| [no-console-eslint-rule](#no-console-eslint-rule)       | Research Complete      | Low      | Medium      | None                     |
-| [react-native-app](#react-native-app)                   | Research Complete      | Low      | Very High   | All core features        |
+| Feature                                                                     | Status                 | Priority | Complexity  | Dependencies             |
+| --------------------------------------------------------------------------- | ---------------------- | -------- | ----------- | ------------------------ |
+| [ci-cd-pipeline](#ci-cd-pipeline)                                           | Research Complete      | High     | High        | None                     |
+| [multi-band-support](#multi-band-support)                                   | Plan Complete          | High     | High        | None                     |
+| [account-tiers-and-access](#account-tiers-and-access)                       | Research Complete      | High     | High        | multi-band-support       |
+| [social-catalog](#social-catalog)                                           | Research Complete      | High     | Very High   | account-tiers-and-access |
+| [email-infrastructure](#email-infrastructure)                               | Research Complete      | Medium   | Low-Medium  | None                     |
+| [unified-kebab-menu](#unified-kebab-menu)                                   | Research Complete      | Medium   | Medium      | None                     |
+| [email-invitations](#email-invitations)                                     | Research Complete      | Medium   | Medium      | email-infrastructure     |
+| [calendar-events](#calendar-events)                                         | Specification Complete | Medium   | Medium-High | email-infrastructure     |
+| [enhanced-security-testing](#enhanced-security-testing)                     | Research Complete      | Medium   | Medium      | ci-cd-pipeline           |
+| guitar-tuning-system → **promoted to `.claude/features/`** (DB layer built) | Active                 | Medium   | Medium-High | None                     |
+| [no-console-eslint-rule](#no-console-eslint-rule)                           | Research Complete      | Low      | Medium      | None                     |
+| [react-native-app](#react-native-app)                                       | Research Complete      | Low      | Very High   | All core features        |
 
 ## Dependency Graph
 
@@ -307,10 +307,16 @@ Master overview of planned features in the `.claude/backlog/` directory.
 
 ### guitar-tuning-system
 
-**Directory:** `guitar-tuning-system/`
-**Status:** Research Complete
+**Directory:** MOVED → `.claude/features/guitar-tuning-system/` (promoted out of backlog 2026-07-04).
+**Status:** Active — **database layer built + tested (local)**; app layer pending.
 **Priority:** Medium
 **Complexity:** Medium-High (8-12 days)
+
+**Current source of truth:** `.claude/features/guitar-tuning-system/PROGRESS.md` +
+`2026-07-04T17:01_tunings-db-design.md` (DB design, decisions resolved) +
+`2026-07-04T17:20_tunings-for-designer.md` (designer handoff). The two 2026-01 research
+docs there are **superseded historical context** (they proposed JSONB per-string; the
+shipped design uses a MIDI `smallint[]`).
 
 **Summary:** Per-string tuning storage system that enables retuning effort visualization in setlists. Store actual notes per string (not just labels) to calculate how much retuning is needed between songs.
 

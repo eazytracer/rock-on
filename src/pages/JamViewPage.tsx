@@ -279,12 +279,12 @@ export const JamViewPage: React.FC = () => {
   return (
     <div
       data-testid="jam-view-page"
-      className="min-h-screen bg-[#0a0a0a] flex flex-col"
+      className="min-h-screen bg-bg-0 flex flex-col"
     >
       {/* Header */}
-      <header className="border-b border-[#2a2a2a] px-6 py-4">
+      <header className="border-b border-border-1 px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-[#c4340a] rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent-deep rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">R</span>
           </div>
           <span className="text-white font-semibold">Rock On</span>
@@ -297,20 +297,15 @@ export const JamViewPage: React.FC = () => {
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-[#707070] text-sm">Loading jam session...</p>
+              <p className="text-ink-4 text-sm">Loading jam session...</p>
             </div>
           )}
 
           {!loading && error && (
             <div className="text-center py-20">
-              <Radio
-                size={48}
-                className="mx-auto mb-4 text-[#707070] opacity-30"
-              />
-              <p className="text-[#707070] text-lg mb-2">
-                Session not available
-              </p>
-              <p className="text-[#555] text-sm">{error}</p>
+              <Radio size={48} className="mx-auto mb-4 text-ink-4 opacity-30" />
+              <p className="text-ink-4 text-lg mb-2">Session not available</p>
+              <p className="text-ink-5 text-sm">{error}</p>
             </div>
           )}
 
@@ -327,7 +322,7 @@ export const JamViewPage: React.FC = () => {
                       one. */}
                   <span
                     data-testid="jam-view-last-updated"
-                    className="text-[#707070] text-xs"
+                    className="text-ink-4 text-xs"
                     title="This page refreshes automatically every few seconds"
                   >
                     · updated {formatAgo(lastUpdatedAt, nowTick)}
@@ -336,7 +331,7 @@ export const JamViewPage: React.FC = () => {
                 <h1 className="text-3xl font-bold text-white mb-2">
                   {payload.sessionName}
                 </h1>
-                <div className="flex items-center gap-4 text-[#707070] text-sm flex-wrap">
+                <div className="flex items-center gap-4 text-ink-4 text-sm flex-wrap">
                   <span>
                     Hosted by{' '}
                     <strong className="text-white">
@@ -375,12 +370,12 @@ export const JamViewPage: React.FC = () => {
               {viewerName === null ? (
                 <div
                   data-testid="jam-view-name-entry"
-                  className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-8"
+                  className="bg-bg-2 border border-border-1 rounded-2xl p-8"
                 >
                   <h2 className="text-white font-semibold text-lg mb-2">
                     Let the host know you're here
                   </h2>
-                  <p className="text-[#a0a0a0] text-sm mb-5">
+                  <p className="text-ink-3 text-sm mb-5">
                     Your name shows up in the session as a watcher. Leave it
                     blank to stay anonymous — the host will just see an audience
                     count.
@@ -402,12 +397,12 @@ export const JamViewPage: React.FC = () => {
                       value={nameDraft}
                       onChange={e => setNameDraft(e.target.value)}
                       maxLength={40}
-                      className="flex-1 px-4 py-2 rounded-lg bg-[#0a0a0a] border border-[#2a2a2a] text-white text-sm placeholder:text-[#707070] focus:border-primary focus:outline-none"
+                      className="flex-1 px-4 py-2 rounded-lg bg-bg-0 border border-border-1 text-white text-sm placeholder:text-ink-4 focus:border-primary focus:outline-none"
                     />
                     <button
                       data-testid="jam-view-name-submit"
                       type="submit"
-                      className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-[#e53d01] transition-colors"
+                      className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-accent-deep transition-colors"
                     >
                       Join as watcher
                     </button>
@@ -437,11 +432,11 @@ export const JamViewPage: React.FC = () => {
                         value={nameDraft}
                         onChange={e => setNameDraft(e.target.value)}
                         maxLength={40}
-                        className="flex-1 px-3 py-1.5 rounded-md bg-[#0a0a0a] border border-[#2a2a2a] text-white text-sm focus:border-primary focus:outline-none"
+                        className="flex-1 px-3 py-1.5 rounded-md bg-bg-0 border border-border-1 text-white text-sm focus:border-primary focus:outline-none"
                       />
                       <button
                         type="submit"
-                        className="px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:bg-[#e53d01] transition-colors"
+                        className="px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:bg-accent-deep transition-colors"
                       >
                         Save
                       </button>
@@ -451,7 +446,7 @@ export const JamViewPage: React.FC = () => {
                           setIsEditingName(false)
                           setNameDraft('')
                         }}
-                        className="px-3 py-1.5 rounded-md text-[#a0a0a0] text-xs hover:text-white transition-colors"
+                        className="px-3 py-1.5 rounded-md text-ink-3 text-xs hover:text-white transition-colors"
                       >
                         Cancel
                       </button>
@@ -459,7 +454,7 @@ export const JamViewPage: React.FC = () => {
                   ) : (
                     <div
                       data-testid="jam-view-watching-as"
-                      className="flex items-center gap-2 text-xs text-[#a0a0a0]"
+                      className="flex items-center gap-2 text-xs text-ink-3"
                     >
                       <span>
                         Watching as{' '}
@@ -491,23 +486,23 @@ export const JamViewPage: React.FC = () => {
                   that appears on the authenticated view is intentionally
                   omitted — see JamViewPublicPayload docs for rationale. */}
                   <div data-testid="jam-view-setlist">
-                    <h2 className="text-[#a0a0a0] text-sm font-medium uppercase tracking-wide mb-4 flex items-center gap-2">
+                    <h2 className="text-ink-3 text-sm font-medium uppercase tracking-wide mb-4 flex items-center gap-2">
                       <ListMusic size={14} />
                       Tonight's Setlist
                     </h2>
                     {setlist.length === 0 ? (
                       <div
                         data-testid="jam-view-setlist-empty"
-                        className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-6 py-10 text-center"
+                        className="bg-bg-2 border border-border-1 rounded-xl px-6 py-10 text-center"
                       >
                         <ListMusic
                           size={32}
-                          className="mx-auto mb-3 text-[#555]"
+                          className="mx-auto mb-3 text-ink-5"
                         />
-                        <p className="text-[#a0a0a0] text-sm font-medium mb-1">
+                        <p className="text-ink-3 text-sm font-medium mb-1">
                           Host hasn't added any songs yet
                         </p>
-                        <p className="text-[#707070] text-xs">
+                        <p className="text-ink-4 text-xs">
                           This page will update automatically as the setlist
                           fills in.
                         </p>
@@ -517,7 +512,7 @@ export const JamViewPage: React.FC = () => {
                         {setlist.map((item, idx) => (
                           <li
                             key={`${item.displayTitle}-${idx}`}
-                            className="flex items-center gap-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3"
+                            className="flex items-center gap-3 bg-bg-2 border border-border-1 rounded-xl px-4 py-3"
                             data-testid={`jam-view-setlist-item-${idx}`}
                           >
                             <span className="text-primary font-mono text-sm w-6 shrink-0">
@@ -527,7 +522,7 @@ export const JamViewPage: React.FC = () => {
                               <p className="text-white text-sm font-medium truncate">
                                 {item.displayTitle}
                               </p>
-                              <p className="text-[#707070] text-xs truncate">
+                              <p className="text-ink-4 text-xs truncate">
                                 {item.displayArtist}
                               </p>
                             </div>
@@ -542,19 +537,19 @@ export const JamViewPage: React.FC = () => {
                     <h3 className="text-white font-bold text-xl mb-2">
                       Want to join this jam?
                     </h3>
-                    <p className="text-[#a0a0a0] text-sm mb-6">
+                    <p className="text-ink-3 text-sm mb-6">
                       Sign up free to add your songs to the mix and jam along
                       with the band.
                     </p>
                     <button
                       data-testid="jam-view-signup-cta"
                       onClick={handleSignUp}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-[#e53d01] transition-colors"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-accent-deep transition-colors"
                     >
                       Sign up free
                       <ArrowRight size={16} />
                     </button>
-                    <p className="text-[#555] text-xs mt-4">
+                    <p className="text-ink-5 text-xs mt-4">
                       Already have an account?{' '}
                       <button
                         onClick={() =>

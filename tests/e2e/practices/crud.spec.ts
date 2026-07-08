@@ -195,8 +195,8 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await page.waitForLoadState('networkidle')
 
     // Change filter to "All" to see all practices (including today's)
-    const filterDropdown = page.locator('select').first()
-    await filterDropdown.selectOption('all')
+    await page.locator('[data-testid="practices-filter-trigger"]').click()
+    await page.locator('[data-testid="practices-filter-option-all"]').click()
     await page.waitForTimeout(500)
 
     // Wait for list to load and find the practice
@@ -291,8 +291,8 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await page.waitForLoadState('networkidle')
 
     // Change filter to "All" to see all practices
-    const filterDropdown = page.locator('select').first()
-    await filterDropdown.selectOption('all')
+    await page.locator('[data-testid="practices-filter-trigger"]').click()
+    await page.locator('[data-testid="practices-filter-option-all"]').click()
     await page.waitForTimeout(500)
 
     // Verify User A sees the practice
@@ -305,8 +305,8 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await page2.waitForLoadState('networkidle')
 
     // Change filter to "All" on page2 as well
-    const filterDropdown2 = page2.locator('select').first()
-    await filterDropdown2.selectOption('all')
+    await page2.locator('[data-testid="practices-filter-trigger"]').click()
+    await page2.locator('[data-testid="practices-filter-option-all"]').click()
     await page2.waitForTimeout(500)
 
     await expect(page2.locator('text=Synced Location').first()).toBeVisible({

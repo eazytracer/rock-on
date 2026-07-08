@@ -4,7 +4,7 @@
  * other detail pages.
  *
  * Replaces the hand-rolled:
- *   <div className="bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6">
+ *   <div className="bg-bg-1 border border-border-1 rounded-lg p-4 sm:p-6">
  *     <h2 className="text-lg font-semibold text-white mb-4">Title</h2>
  *     {...}
  *   </div>
@@ -39,7 +39,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
 }) => {
   return (
     <div
-      className={`bg-[#121212] border border-[#2a2a2a] rounded-lg p-4 sm:p-6 ${className}`}
+      className={`bg-bg-1 border border-border-1 rounded-lg p-4 sm:p-6 ${className}`}
       data-testid={testId}
     >
       {(title || actions) && (
@@ -50,9 +50,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
       )}
-      {description && (
-        <p className="text-sm text-[#707070] mb-4">{description}</p>
-      )}
+      {description && <p className="text-sm text-ink-4 mb-4">{description}</p>}
       {children}
     </div>
   )

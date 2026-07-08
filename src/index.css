@@ -2,9 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — single source of truth (mobile-redesign-port).
+   Consumed by Tailwind (see tailwind.config.js color mappings) and
+   by src/utils/tokens.ts for JS-computed inline styles. A re-skin
+   is a one-file edit here.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  /* Raw RGB channels — power Tailwind's <alpha-value> opacity modifier
+     (see tailwind.config.js: rgb(var(--x-rgb) / <alpha-value>)). */
+  --bg-0-rgb: 10 10 10;
+  --bg-1-rgb: 18 18 18;
+  --bg-2-rgb: 26 26 26;
+  --bg-3-rgb: 31 31 31;
+  --bg-4-rgb: 37 37 37;
+  --border-1-rgb: 42 42 42;
+  --border-2-rgb: 58 58 58;
+  --ink-1-rgb: 255 255 255;
+  --ink-2-rgb: 200 200 200;
+  --ink-3-rgb: 160 160 160;
+  --ink-4-rgb: 112 112 112;
+  --ink-5-rgb: 80 80 80;
+  --ink-6-rgb: 58 58 58;
+  --accent-rgb: 255 122 26; /* #ff7a1a — unified; replaces #FE4401 and #f17827 */
+  --info-rgb: 90 169 255;
+  --success-rgb: 62 201 134;
+  --warn-rgb: 255 182 72;
+  --danger-rgb: 255 93 93;
+
+  /* Ready-to-use color values for direct CSS / JS inline styles. */
+  --bg-0: rgb(var(--bg-0-rgb));
+  --bg-1: rgb(var(--bg-1-rgb));
+  --bg-2: rgb(var(--bg-2-rgb));
+  --bg-3: rgb(var(--bg-3-rgb));
+  --bg-4: rgb(var(--bg-4-rgb));
+  --border-1: rgb(var(--border-1-rgb));
+  --border-2: rgb(var(--border-2-rgb));
+  --ink-1: rgb(var(--ink-1-rgb));
+  --ink-2: rgb(var(--ink-2-rgb));
+  --ink-3: rgb(var(--ink-3-rgb));
+  --ink-4: rgb(var(--ink-4-rgb));
+  --ink-5: rgb(var(--ink-5-rgb));
+  --ink-6: rgb(var(--ink-6-rgb));
+
+  /* Accent (unified) + derived tints */
+  --accent: rgb(var(--accent-rgb));
+  --accent-hot: color-mix(in srgb, var(--accent) 86%, white);
+  --accent-deep: color-mix(in srgb, var(--accent) 78%, black);
+  --accent-soft: rgb(var(--accent-rgb) / 0.13);
+  --accent-line: rgb(var(--accent-rgb) / 0.32);
+
+  /* Semantic */
+  --info: rgb(var(--info-rgb));
+  --success: rgb(var(--success-rgb));
+  --warn: rgb(var(--warn-rgb));
+  --danger: rgb(var(--danger-rgb));
+  --danger-deep: color-mix(in srgb, var(--danger) 82%, black);
+  --info-soft: rgb(var(--info-rgb) / 0.12);
+  --success-soft: rgb(var(--success-rgb) / 0.12);
+  --warn-soft: rgb(var(--warn-rgb) / 0.14);
+  --danger-soft: rgb(var(--danger-rgb) / 0.12);
+}
+
 @layer base {
   html {
-    font-family: Inter, system-ui, sans-serif;
+    font-family: Geist, Inter, system-ui, sans-serif;
   }
 
   body {
@@ -112,4 +174,14 @@
   .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: #3a3a3a;
   }
+}
+
+/* Native date/time inputs on legacy surfaces (e.g. the practice SessionForm).
+   The app standard is the custom C0 DatePicker/TimePickerDropdown; where a native
+   input still exists, render its OS picker in dark mode so it doesn't clash with
+   the theme. (Custom pickers own their own icon; these rules only affect natives.) */
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'] {
+  color-scheme: dark;
 }
