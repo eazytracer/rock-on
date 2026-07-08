@@ -62,6 +62,11 @@ implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`
   leave-and-return); re-raisable hands after withdraw; band-change toasts restored
   (songs/setlists/shows, batched); re-sendable friend requests after decline/cancel.
 - **UI** — toggle knob overflow (off looked on; on slid outside the pill).
+- **Events — join by code** now works for a logged-in user: the Events page has a
+  "join by code" input and auto-joins from a shared `?join=CODE` link (previously
+  only signup could use a code).
+- **Friends — share code is self-provisioning** (`ensure_friend_code` RPC + column
+  default + backfill), fixing a blank friend code with no way to generate one.
 
 ### Removed
 
