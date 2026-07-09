@@ -75,7 +75,7 @@ RLS-policy narrowing; no new tables. Implementation notes:
   `event_lineup_items.tuning` + `.key`; `on_event_request_approved` extended to
   pre-raise hands on approve; **events UPDATE policy → host-only** (`events_update_host`,
   co-hosts can't alter the event). pgTAP: `023-request-pre-raise-hands` (8),
-  `024-event-cohost-permissions` (6). Not yet applied to production.
+  `024-event-cohost-permissions` (6). Applied to production 2026-07-09.
 
 ## [0.4.2] - 2026-07-08
 
