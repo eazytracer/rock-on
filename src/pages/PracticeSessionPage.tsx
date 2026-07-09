@@ -469,16 +469,31 @@ const TVLayout: React.FC<LayoutProps> = ({
           </div>
 
           <div className="flex flex-col gap-2">
-            {song.key && <KeyPill value={song.key} block />}
-            {song.bpm && <BpmPill value={String(song.bpm)} block />}
+            {song.key && (
+              <KeyPill value={song.key} block data-testid="session-song-key" />
+            )}
+            {song.bpm && (
+              <BpmPill
+                value={String(song.bpm)}
+                block
+                data-testid="session-song-bpm"
+              />
+            )}
             <DurationPill value={formatDuration(song.duration)} block />
-            <TuningPill tuning={currentTuning} block />
+            <TuningPill
+              tuning={currentTuning}
+              block
+              data-testid="session-song-tuning"
+            />
           </div>
 
           <div className="flex-1" />
 
           {nextSong && (
-            <div className="pt-3 border-t border-border-1">
+            <div
+              className="pt-3 border-t border-border-1"
+              data-testid="session-next-preview"
+            >
               <div className="text-[10px] uppercase tracking-wider text-ink-4 mb-1">
                 Up next
               </div>
@@ -597,10 +612,14 @@ const TabletLandscapeLayout: React.FC<LayoutProps> = ({
       </header>
 
       <div className="flex items-center justify-center flex-wrap gap-2 px-4 py-2 bg-bg-0 border-b border-border-1">
-        {song.key && <KeyPill value={song.key} />}
-        {song.bpm && <BpmPill value={String(song.bpm)} />}
+        {song.key && (
+          <KeyPill value={song.key} data-testid="session-song-key" />
+        )}
+        {song.bpm && (
+          <BpmPill value={String(song.bpm)} data-testid="session-song-bpm" />
+        )}
         <DurationPill value={formatDuration(song.duration)} />
-        <TuningPill tuning={currentTuning} />
+        <TuningPill tuning={currentTuning} data-testid="session-song-tuning" />
       </div>
 
       <div className="flex-1 min-h-0 p-4 overflow-hidden">
@@ -688,10 +707,22 @@ const TabletPortraitLayout: React.FC<LayoutProps> = ({
       </header>
 
       <div className="flex flex-wrap items-center justify-center gap-1.5 px-3 py-2 bg-bg-0 border-b border-border-1">
-        {song.key && <KeyPill value={song.key} size="sm" />}
-        {song.bpm && <BpmPill value={String(song.bpm)} size="sm" />}
+        {song.key && (
+          <KeyPill value={song.key} size="sm" data-testid="session-song-key" />
+        )}
+        {song.bpm && (
+          <BpmPill
+            value={String(song.bpm)}
+            size="sm"
+            data-testid="session-song-bpm"
+          />
+        )}
         <DurationPill value={formatDuration(song.duration)} size="sm" />
-        <TuningPill tuning={currentTuning} size="sm" />
+        <TuningPill
+          tuning={currentTuning}
+          size="sm"
+          data-testid="session-song-tuning"
+        />
       </div>
 
       <div className="flex-1 min-h-0 p-3 overflow-hidden">
@@ -794,10 +825,22 @@ const MobileLayout: React.FC<LayoutProps> = ({
       </div>
 
       <div className="flex items-center justify-center flex-wrap gap-1 px-2 py-2">
-        {song.key && <KeyPill value={song.key} size="sm" />}
-        {song.bpm && <BpmPill value={String(song.bpm)} size="sm" />}
+        {song.key && (
+          <KeyPill value={song.key} size="sm" data-testid="session-song-key" />
+        )}
+        {song.bpm && (
+          <BpmPill
+            value={String(song.bpm)}
+            size="sm"
+            data-testid="session-song-bpm"
+          />
+        )}
         <DurationPill value={formatDuration(song.duration)} size="sm" />
-        <TuningPill tuning={currentTuning} size="sm" />
+        <TuningPill
+          tuning={currentTuning}
+          size="sm"
+          data-testid="session-song-tuning"
+        />
       </div>
 
       <div className="flex-1 min-h-0 px-3 pb-2 overflow-hidden">

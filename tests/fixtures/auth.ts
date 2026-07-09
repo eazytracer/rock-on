@@ -195,8 +195,10 @@ export async function logoutViaUI(page: Page): Promise<void> {
   // Click logout button using data-testid
   await page.click('[data-testid="logout-button"]')
 
-  // Wait for redirect to auth page
-  await page.waitForURL('/auth', { timeout: 5000 })
+  // Wait for redirect to the auth page. The protected-route guard preserves a
+  // `?returnTo=` param on the redirect (deep-link preservation), so match the
+  // /auth path rather than the bare string.
+  await page.waitForURL(/\/auth/, { timeout: 5000 })
 }
 
 /**

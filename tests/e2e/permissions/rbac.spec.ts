@@ -266,7 +266,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     // Setup
     const admin = createTestUser()
     await signUpViaUI(adminPage, admin)
-    await createBandViaUI(adminPage, `Self Promote Test ${Date.now()}`)
+    await createBandViaUI(adminPage, `Self Elevate Test ${Date.now()}`)
 
     const inviteCode = await getInviteCodeViaUI(adminPage)
 
@@ -281,12 +281,18 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     const memberRow = memberPage
       .locator(`[data-testid="member-row-${member.email}"]`)
       .first()
-    await memberRow.click()
-    await memberPage.waitForTimeout(500)
+    // Opening the member's own row is best-effort; the promote controls are
+    // page-level, so the assertions below run unconditionally regardless.
+    if (await memberRow.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await memberRow.click()
+      await memberPage.waitForTimeout(500)
+    }
 
-    // Should not see promote button or role selector
+    // Should not see promote button or role selector.
+    // Use an exact-name match: a substring `has-text("Promote")` would falsely
+    // match unrelated buttons (e.g. a band named "…Promote…" in the sidebar).
     const promoteButton = memberPage
-      .locator('button:has-text("Promote"), button:has-text("Make Admin")')
+      .getByRole('button', { name: /^(Promote|Make Admin)$/ })
       .first()
     const roleSelect = memberPage.locator('select[name="role"]').first()
 

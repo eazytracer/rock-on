@@ -16,6 +16,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useUpcomingShows } from '../hooks/useShows'
 import { useUpcomingPractices } from '../hooks/usePractices'
+import { useEvents } from '../hooks/useEvents'
 import { useSongs } from '../hooks/useSongs'
 import { useSetlists } from '../hooks/useSetlists'
 import {
@@ -67,9 +68,18 @@ export function HomePage() {
   const { songs } = useSongs(bandId)
   const { setlists } = useSetlists(bandId)
 
+  const { events } = useEvents()
+
   const loading = showsLoading || practicesLoading
   const nextShow = upcomingShows[0]
   const nextPractice = upcomingPractices[0]
+  // Events are personal/social (not band-gated); show the soonest few.
+  const upcomingEvents = events
+    .filter(
+      e => e.scheduledDate.getTime() >= Date.now() && e.status !== 'cancelled'
+    )
+    .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
+    .slice(0, 3)
 
   // Songs work for personal accounts too; setlists/shows are band-only.
   const stats: { label: string; value: number; onClick: () => void }[] = [
@@ -99,7 +109,7 @@ export function HomePage() {
     {
       label: 'Add song',
       icon: Plus,
-      onClick: () => navigate('/songs'),
+      onClick: () => navigate('/songs?add=song'),
       testid: 'home-action-song',
     },
     {
@@ -128,7 +138,7 @@ export function HomePage() {
     {
       label: 'Add song',
       icon: Plus,
-      onClick: () => navigate('/songs'),
+      onClick: () => navigate('/songs?add=song'),
       testid: 'home-action-song',
     },
     {
@@ -289,6 +299,68 @@ export function HomePage() {
                   </div>
                 </div>
               )}
+
+              {/* Upcoming events — full width, everyone (personal/social) */}
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <Eyebrow>Upcoming events</Eyebrow>
+                  <button
+                    onClick={() => navigate('/calendar?filter=events')}
+                    data-testid="home-events-all"
+                    className="text-xs font-medium text-accent hover:brightness-110"
+                  >
+                    View all
+                  </button>
+                </div>
+                {upcomingEvents.length === 0 ? (
+                  <Card
+                    onClick={() => navigate('/events/new')}
+                    testid="home-events-empty"
+                  >
+                    <span className="text-sm text-ink-4">
+                      No upcoming events — host one
+                    </span>
+                  </Card>
+                ) : (
+                  <div
+                    className="flex flex-col gap-2"
+                    data-testid="home-events"
+                  >
+                    {upcomingEvents.map(ev => (
+                      <Card
+                        key={ev.id}
+                        onClick={() => navigate(`/events/${ev.id}`)}
+                        testid={`home-event-${ev.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="inline-flex min-w-0 items-center gap-2 font-semibold text-ink-1">
+                            <PartyPopper
+                              size={16}
+                              className="flex-shrink-0 text-accent"
+                            />
+                            <span className="truncate">{ev.name}</span>
+                          </span>
+                          <span className="flex-shrink-0 font-mono text-xs text-accent">
+                            {formatCountdown(ev.scheduledDate)}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={12} />{' '}
+                            {formatShowDate(ev.scheduledDate)} ·{' '}
+                            {formatTime12Hour(ev.scheduledDate)}
+                          </span>
+                          {ev.venue && (
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin size={12} /> {ev.venue}
+                            </span>
+                          )}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Side rail: stats + quick actions */}

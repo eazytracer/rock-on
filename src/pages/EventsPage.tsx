@@ -1,25 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import {
-  ArrowLeft,
-  PartyPopper,
-  MapPin,
-  ChevronRight,
-  Plus,
-} from 'lucide-react'
+import { PartyPopper, MapPin, ChevronRight, Plus } from 'lucide-react'
 import { useEvents } from '../hooks/useEvents'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useViewport } from '../hooks/useResponsive'
 import { EventService } from '../services/EventService'
-import { formatShowDate } from '../utils/dateHelpers'
+import { formatShowDate, formatTime12Hour } from '../utils/dateHelpers'
 import type { EventSummary, EventRsvp } from '../models/Event'
 import { Avatar } from '../components/common/Avatar'
 import { Badge } from '../components/common/Badge'
 import { Eyebrow } from '../components/common/Eyebrow'
 import { EmptyState } from '../components/common/EmptyState'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
-import { SHOW_TONE, type BadgeTone } from '../utils/tokens'
+import { BackLink } from '../components/common/BackLink'
+import { type BadgeTone } from '../utils/tokens'
 import { EventDetailContent } from './EventDetailPage'
 import { JoinEventForm } from '../components/events/JoinEventForm'
 
@@ -128,21 +123,20 @@ export function EventsPage() {
             {ev.name}
           </span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-xs text-ink-4">
-            <span>{formatShowDate(ev.scheduledDate)}</span>
+            <span>
+              {formatShowDate(ev.scheduledDate)} ·{' '}
+              {formatTime12Hour(ev.scheduledDate)}
+            </span>
             {ev.venue && (
               <span className="inline-flex items-center gap-1">
                 <MapPin size={11} /> {ev.venue}
               </span>
             )}
-            <Badge
-              tone={
-                (SHOW_TONE[ev.status as keyof typeof SHOW_TONE] ??
-                  'neutral') as BadgeTone
-              }
-              size="sm"
-            >
-              {ev.status}
-            </Badge>
+            {ev.status === 'cancelled' && (
+              <Badge tone="danger" size="sm">
+                Cancelled
+              </Badge>
+            )}
           </span>
           {/* Hosting → "N going · X% cast"; invited → your RSVP badge (D1). */}
           {hosting ? (
@@ -196,13 +190,7 @@ export function EventsPage() {
 
   return (
     <div data-testid="events-page" className="max-w-6xl">
-      <button
-        onClick={() => navigate(-1)}
-        data-testid="events-back"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink-1"
-      >
-        <ArrowLeft size={16} /> Back
-      </button>
+      <BackLink className="mb-4" data-testid="events-back" />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink-1">Events</h1>
         <button

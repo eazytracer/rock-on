@@ -34,6 +34,7 @@ interface EventRow {
   name: string
   venue: string | null
   scheduled_date: string
+  end_time: string | null
   status: EventSummary['status']
   visibility: EventSummary['visibility']
   host_user_id: string
@@ -50,6 +51,8 @@ interface ItemRow {
   song_id: string | null
   display_title: string
   display_artist: string
+  tuning: string | null
+  key: string | null
 }
 interface RequestRow {
   id: string
@@ -59,6 +62,7 @@ interface RequestRow {
   display_artist: string
   status: LineupRequest['status']
   created_date: string
+  parts: string[] | null
 }
 interface ParticipantRow {
   user_id: string
@@ -68,7 +72,7 @@ interface ParticipantRow {
 }
 
 const EVENT_COLS =
-  'id, name, venue, scheduled_date, status, visibility, host_user_id, band_id, allow_suggestions, auto_approve, short_code'
+  'id, name, venue, scheduled_date, end_time, status, visibility, host_user_id, band_id, allow_suggestions, auto_approve, short_code'
 
 function mapEvent(r: EventRow): EventSummary {
   return {
@@ -76,6 +80,7 @@ function mapEvent(r: EventRow): EventSummary {
     name: r.name,
     venue: r.venue ?? undefined,
     scheduledDate: new Date(r.scheduled_date),
+    endTime: r.end_time ? new Date(r.end_time) : undefined,
     status: r.status,
     visibility: r.visibility,
     hostUserId: r.host_user_id,
@@ -186,6 +191,7 @@ export class EventService {
     name: string
     scheduledDate: Date
     venue?: string
+    endTime?: Date
   }): Promise<string | null> {
     const supabase = getSupabaseClient()
     if (!supabase) return null
@@ -198,6 +204,7 @@ export class EventService {
         name: input.name.trim(),
         venue: input.venue?.trim() || null,
         scheduled_date: input.scheduledDate.toISOString(),
+        end_time: input.endTime ? input.endTime.toISOString() : null,
         // Unlisted = shareable by code (a short_code is auto-assigned by trigger),
         // but not publicly listed. This is the social/code-joinable default.
         visibility: 'unlisted',
@@ -267,6 +274,68 @@ export class EventService {
   }
 
   /**
+   * Edit an event's core details (host-only via RLS events_update_manager).
+   * Only supplied fields are written. `endTime: null` clears the end time.
+   * events has no BEFORE UPDATE touch trigger, so we stamp `updated_date`
+   * ourselves whenever anything changes.
+   */
+  static async updateEvent(
+    eventId: string,
+    patch: Partial<{
+      name: string
+      venue: string | null
+      scheduledDate: Date
+      endTime: Date | null
+      status: EventSummary['status']
+    }>
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const row: Record<string, unknown> = {}
+    if (patch.name !== undefined) row.name = patch.name.trim()
+    if (patch.venue !== undefined) row.venue = patch.venue?.trim() || null
+    if (patch.scheduledDate !== undefined)
+      row.scheduled_date = patch.scheduledDate.toISOString()
+    if (patch.endTime !== undefined)
+      row.end_time = patch.endTime ? patch.endTime.toISOString() : null
+    if (patch.status !== undefined) row.status = patch.status
+    if (Object.keys(row).length === 0) return { ok: true }
+    row.updated_date = new Date().toISOString()
+    const { error } = await supabase
+      .from('events')
+      .update(row as never)
+      .eq('id', eventId)
+    if (error) {
+      log.error('updateEvent failed', error)
+      return { ok: false, error: 'Could not update event' }
+    }
+    return { ok: true }
+  }
+
+  /**
+   * Soft-cancel an event: status → 'cancelled' (the schema's intent — not a
+   * hard delete). Host-only via RLS. Participants then see it as cancelled.
+   */
+  static async cancelEvent(
+    eventId: string
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const { error } = await supabase
+      .from('events')
+      .update({
+        status: 'cancelled',
+        updated_date: new Date().toISOString(),
+      } as never)
+      .eq('id', eventId)
+    if (error) {
+      log.error('cancelEvent failed', error)
+      return { ok: false, error: 'Could not cancel event' }
+    }
+    return { ok: true }
+  }
+
+  /**
    * Update the host-only Access settings (visibility + guest permissions).
    * RLS (events_update_manager) enforces host/cohost authority.
    */
@@ -303,7 +372,7 @@ export class EventService {
     const { data, error } = await supabase
       .from('event_lineup_items')
       .select(
-        'id, position, source, owner_id, song_id, display_title, display_artist'
+        'id, position, source, owner_id, song_id, display_title, display_artist, tuning, key'
       )
       .eq('event_id', eventId)
       .order('position', { ascending: true })
@@ -319,6 +388,8 @@ export class EventService {
       songId: r.song_id ?? undefined,
       displayTitle: r.display_title,
       displayArtist: r.display_artist,
+      tuning: r.tuning ?? undefined,
+      key: r.key ?? undefined,
     }))
   }
 
@@ -385,7 +456,7 @@ export class EventService {
     const { data, error } = await supabase
       .from('event_lineup_requests')
       .select(
-        'id, requester_id, source, display_title, display_artist, status, created_date'
+        'id, requester_id, source, display_title, display_artist, status, created_date, parts'
       )
       .eq('event_id', eventId)
       .eq('status', 'pending')
@@ -402,27 +473,290 @@ export class EventService {
       displayArtist: r.display_artist,
       status: r.status,
       createdDate: new Date(r.created_date),
+      parts: r.parts ?? undefined,
     }))
   }
 
-  /** Request a song (as any participant). Stays pending until the host approves. */
-  static async addRequest(
+  /**
+   * Host adds a song straight into the lineup (no request → approve round-trip).
+   * Mirrors the promote trigger: next position = COALESCE(MAX(position),0)+1 for
+   * the event, defaulting to an 'external' (not-linked) source. RLS
+   * (event_lineup_items_write_manager) enforces host/cohost authority.
+   */
+  static async addLineupItem(
     eventId: string,
-    title: string,
-    artist: string
+    input: {
+      title: string
+      artist: string
+      source?: LineupItem['source']
+      songId?: string
+      /** Per-song tuning override, stored as the tuning NAME string. */
+      tuning?: string
+      /** Per-song key override. */
+      key?: string
+    }
   ): Promise<{ ok: boolean; error?: string }> {
     const supabase = getSupabaseClient()
     if (!supabase) return { ok: false, error: 'Offline' }
     const me = await currentUserId()
     if (!me) return { ok: false, error: 'Not signed in' }
-    const { error } = await supabase.from('event_lineup_requests').insert({
+    const title = input.title.trim()
+    const artist = input.artist.trim()
+    if (!title) return { ok: false, error: 'Song title required' }
+    const { data: maxRow } = await supabase
+      .from('event_lineup_items')
+      .select('position')
+      .eq('event_id', eventId)
+      .order('position', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const nextPos =
+      ((maxRow as { position?: number } | null)?.position ?? 0) + 1
+    const { error } = await supabase.from('event_lineup_items').insert({
+      event_id: eventId,
+      position: nextPos,
+      source: input.source ?? 'external',
+      owner_id: me,
+      song_id: input.songId ?? null,
+      display_title: title,
+      display_artist: artist,
+      tuning: input.tuning?.trim() || null,
+      key: input.key?.trim() || null,
+    } as never)
+    if (error) {
+      log.error('addLineupItem failed', error)
+      return { ok: false, error: 'Could not add song' }
+    }
+    return { ok: true }
+  }
+
+  /**
+   * Reorder the lineup: set each item's position to its index in `orderedItemIds`
+   * (1-based). Manager-only via RLS (event_lineup_items_write_manager). Writes
+   * sequentially and aborts on the first failure. `event_lineup_items` has no
+   * unique constraint on (event_id, position), so per-row updates don't collide.
+   */
+  static async reorderLineup(
+    eventId: string,
+    orderedItemIds: string[]
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    if (orderedItemIds.length === 0) return { ok: true }
+    for (let i = 0; i < orderedItemIds.length; i++) {
+      const { error } = await supabase
+        .from('event_lineup_items')
+        .update({ position: i + 1 } as never)
+        .eq('id', orderedItemIds[i])
+        .eq('event_id', eventId)
+      if (error) {
+        log.error('reorderLineup failed', error)
+        return { ok: false, error: 'Could not reorder lineup' }
+      }
+    }
+    return { ok: true }
+  }
+
+  /**
+   * Edit a lineup item's display title/artist + per-song tuning/key overrides.
+   * Manager-only via RLS. Does not touch the catalog link (source/song_id) —
+   * this is a plain label edit. Tuning is stored as its NAME string; both
+   * tuning and key clear to NULL when blank.
+   */
+  static async updateLineupItem(
+    itemId: string,
+    input: { title: string; artist: string; tuning?: string; key?: string }
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const title = input.title.trim()
+    const artist = input.artist.trim()
+    if (!title) return { ok: false, error: 'Song title required' }
+    const { error } = await supabase
+      .from('event_lineup_items')
+      .update({
+        display_title: title,
+        display_artist: artist,
+        tuning: input.tuning?.trim() || null,
+        key: input.key?.trim() || null,
+      } as never)
+      .eq('id', itemId)
+    if (error) {
+      log.error('updateLineupItem failed', error)
+      return { ok: false, error: 'Could not update song' }
+    }
+    return { ok: true }
+  }
+
+  /**
+   * Remove a lineup item. Manager-only via RLS. Deleting the row CASCADES its
+   * event_hands + casting_assignments (FKs are ON DELETE CASCADE), so no manual
+   * cleanup is needed.
+   */
+  static async removeLineupItem(
+    itemId: string
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const { error } = await supabase
+      .from('event_lineup_items')
+      .delete()
+      .eq('id', itemId)
+    if (error) {
+      log.error('removeLineupItem failed', error)
+      return { ok: false, error: 'Could not remove song' }
+    }
+    return { ok: true }
+  }
+
+  /**
+   * Manager removes a participant from an event. Refuses to remove the host
+   * (would orphan the event). Clears the target's still-raised hands (pending
+   * volunteering is moot once they're gone) before deleting the participant row;
+   * accepted casts stay as history. Manager authority + self-scope enforced by
+   * RLS (event_participants_delete). Cast history intentionally preserved.
+   */
+  static async removeParticipant(
+    eventId: string,
+    userId: string
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const { data: ev } = await supabase
+      .from('events')
+      .select('host_user_id')
+      .eq('id', eventId)
+      .maybeSingle()
+    const hostId = (ev as { host_user_id?: string } | null)?.host_user_id
+    if (hostId && userId === hostId) {
+      return { ok: false, error: 'The host can’t be removed from the event' }
+    }
+    return EventService.detachParticipant(eventId, userId)
+  }
+
+  /**
+   * The current user leaves an event. Refuses if they are the host (they must
+   * delete or transfer the event instead). Clears their own still-raised hands,
+   * then removes their participant row. Self-scope enforced by RLS.
+   */
+  static async leaveEvent(
+    eventId: string
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const me = await currentUserId()
+    if (!me) return { ok: false, error: 'Not signed in' }
+    const { data: ev } = await supabase
+      .from('events')
+      .select('host_user_id')
+      .eq('id', eventId)
+      .maybeSingle()
+    const hostId = (ev as { host_user_id?: string } | null)?.host_user_id
+    if (hostId && me === hostId) {
+      return {
+        ok: false,
+        error: 'You host this event — delete or transfer it instead of leaving',
+      }
+    }
+    return EventService.detachParticipant(eventId, me)
+  }
+
+  /**
+   * Shared teardown for remove/leave: drop the user's raised hands for the event
+   * (accepted casts kept as history), then delete their participant row.
+   */
+  private static async detachParticipant(
+    eventId: string,
+    userId: string
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const { error: handsErr } = await supabase
+      .from('event_hands')
+      .delete()
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .eq('status', 'raised')
+    if (handsErr) log.error('detachParticipant: clear hands failed', handsErr)
+    const { error } = await supabase
+      .from('event_participants')
+      .delete()
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+    if (error) {
+      log.error('detachParticipant: remove failed', error)
+      return { ok: false, error: 'Could not update participants' }
+    }
+    return { ok: true }
+  }
+
+  /**
+   * Promote a participant to co-host (`cohost`) or demote back to `guest`
+   * (EC4 #1). Host-only: co-hosts can cast + approve requests (is_event_manager)
+   * but must not manage co-hosts or alter the event. The host row is never
+   * changed. Enforced here (host check) and by RLS/DB.
+   */
+  static async setParticipantTier(
+    eventId: string,
+    userId: string,
+    tier: 'cohost' | 'guest'
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const me = await currentUserId()
+    if (!me) return { ok: false, error: 'Not signed in' }
+    const { data: ev } = await supabase
+      .from('events')
+      .select('host_user_id')
+      .eq('id', eventId)
+      .maybeSingle()
+    const hostId = (ev as { host_user_id?: string } | null)?.host_user_id
+    if (!hostId || me !== hostId) {
+      return { ok: false, error: 'Only the host can change co-hosts' }
+    }
+    if (userId === hostId) {
+      return { ok: false, error: 'The host can’t be changed' }
+    }
+    const { error } = await supabase
+      .from('event_participants')
+      .update({ access_tier: tier } as never)
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+    if (error) {
+      log.error('setParticipantTier failed', error)
+      return { ok: false, error: 'Could not update co-host' }
+    }
+    return { ok: true }
+  }
+
+  /**
+   * Request a song (as any participant). Stays pending until the host approves.
+   * `parts` are the optional "I'd play" instruments the requester offers — the
+   * approve trigger pre-raises a hand for them on each part (fork E, EC4 #6).
+   */
+  static async addRequest(
+    eventId: string,
+    title: string,
+    artist: string,
+    parts?: string[]
+  ): Promise<{ ok: boolean; error?: string }> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return { ok: false, error: 'Offline' }
+    const me = await currentUserId()
+    if (!me) return { ok: false, error: 'Not signed in' }
+    const cleanParts = (parts ?? []).map(p => p.trim()).filter(Boolean)
+    const row: Record<string, unknown> = {
       event_id: eventId,
       requester_id: me,
       source: 'external',
       owner_id: me,
       display_title: title.trim(),
       display_artist: artist.trim(),
-    } as never)
+    }
+    if (cleanParts.length > 0) row.parts = cleanParts
+    const { error } = await supabase
+      .from('event_lineup_requests')
+      .insert(row as never)
     if (error) {
       log.error('addRequest failed', error)
       return { ok: false, error: 'Could not send request' }

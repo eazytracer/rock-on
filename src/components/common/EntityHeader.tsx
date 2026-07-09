@@ -1,15 +1,8 @@
 import React from 'react'
-import { useGoBack } from '../../hooks/useGoBack'
-import {
-  ArrowLeft,
-  Calendar,
-  Clock,
-  Building2,
-  Ticket,
-  ListMusic,
-  Timer,
-} from 'lucide-react'
+import { Calendar, PartyPopper, Ticket, ListMusic } from 'lucide-react'
+import { BackLink } from './BackLink'
 import { InlineEditableField } from './InlineEditableField'
+import { ScheduleMetaRow } from './ScheduleMetaRow'
 import {
   InlineStatusBadge,
   SHOW_STATUS_OPTIONS,
@@ -17,13 +10,14 @@ import {
   SETLIST_STATUS_OPTIONS,
 } from './InlineStatusBadge'
 
-type EntityType = 'show' | 'practice' | 'setlist'
+type EntityType = 'show' | 'practice' | 'setlist' | 'event'
 
 // Entity type icons for visual flair (matches sidebar navigation)
 const ENTITY_ICONS = {
   show: Ticket,
   practice: Calendar,
   setlist: ListMusic,
+  event: PartyPopper,
 } as const
 
 interface StatusConfig {
@@ -36,6 +30,7 @@ interface StatusConfig {
 interface EntityHeaderProps {
   // Navigation
   backPath: string
+  backLabel?: string // e.g., "Shows" → renders "Back to Shows"
 
   // Title - can be editable or static
   title: string
@@ -54,10 +49,17 @@ interface EntityHeaderProps {
   dateLabel?: string // e.g., "Dec 15, 2025"
   timeLabel?: string // e.g., "8:00 PM"
 
+  // Optional end time — renders as a start–end range (events)
+  endTime?: string
+  endTimeLabel?: string
+  onEndTimeSave?: (value: string | number) => void | Promise<void>
+
   // Location/Venue (optional)
   venue?: string
   location?: string
   onVenueSave?: (value: string | number) => void | Promise<void>
+  venuePlaceholder?: string
+  venueTestId?: string
 
   // Duration (optional, for shows/practices)
   duration?: number // in minutes
@@ -67,15 +69,13 @@ interface EntityHeaderProps {
   // Status
   status?: StatusConfig
 
-  // New mode flag (for future use)
-  isNew?: boolean
-
   // Test ID
   'data-testid'?: string
 }
 
 export const EntityHeader: React.FC<EntityHeaderProps> = ({
   backPath,
+  backLabel,
   title,
   onTitleSave,
   titlePlaceholder = 'Enter name',
@@ -87,14 +87,18 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
   onTimeSave,
   dateLabel,
   timeLabel,
+  endTime,
+  endTimeLabel,
+  onEndTimeSave,
   venue,
   location,
   onVenueSave,
+  venuePlaceholder,
+  venueTestId,
   duration,
   durationLabel,
   onDurationSave,
   status,
-  isNew,
   'data-testid': testId = 'entity-header',
 }) => {
   // Get status options based on entity type
@@ -107,50 +111,33 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
         return PRACTICE_STATUS_OPTIONS
       case 'setlist':
         return SETLIST_STATUS_OPTIONS
+      case 'event':
+        return SHOW_STATUS_OPTIONS
       default:
         return SHOW_STATUS_OPTIONS
     }
   }
 
-  // Handle back navigation — history-aware: return to the real referrer (e.g. the
-  // Calendar) when there is in-app history, else fall back to backPath.
-  const handleBack = useGoBack(backPath)
-
-  // Format location display
-  const locationDisplay = [venue, location].filter(Boolean).join(', ')
-
   // Get entity icon
   const EntityIcon = ENTITY_ICONS[entityType]
-
-  // Check if we have any metadata to show
-  const hasMetadata =
-    date ||
-    dateLabel ||
-    time ||
-    timeLabel ||
-    venue ||
-    location ||
-    duration ||
-    durationLabel
 
   return (
     <div
       className="sticky top-0 z-10 bg-bg-0 border-b border-border-1"
       data-testid={testId}
     >
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-        {/* Row 1: Back + Icon + Title + Status */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+        {/* Row 0: Back link on its own line above the title */}
+        <BackLink
+          to={backPath}
+          label={backLabel}
+          className="mb-2"
+          data-testid={`${testId}-back-button`}
+        />
+
+        {/* Row 1: Icon + Title + Status */}
         <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            {/* Back button */}
-            <button
-              onClick={handleBack}
-              className="p-2 text-ink-3 hover:text-white hover:bg-bg-4 rounded-lg transition-colors flex-shrink-0"
-              data-testid={`${testId}-back-button`}
-            >
-              <ArrowLeft size={20} />
-            </button>
-
             {/* Entity icon */}
             <EntityIcon size={20} className="text-accent flex-shrink-0" />
 
@@ -163,7 +150,6 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
                   type="title"
                   placeholder={titlePlaceholder}
                   required
-                  autoEdit={isNew}
                   name="name"
                   data-testid={`${testId}-name`}
                 />
@@ -187,100 +173,28 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
           )}
         </div>
 
-        {/* Row 2: Metadata - date, time, venue, duration */}
-        {hasMetadata && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm pl-12">
-            {/* Date */}
-            {(date || dateLabel) && (
-              <div className="flex items-center gap-1.5">
-                <Calendar size={16} className="text-accent" />
-                {onDateSave && date ? (
-                  <InlineEditableField
-                    value={date}
-                    displayValue={dateLabel}
-                    onSave={onDateSave}
-                    type="date"
-                    autoEdit={isNew}
-                    name="date"
-                    data-testid={`${testId}-date`}
-                  />
-                ) : (
-                  <span className="text-white">{dateLabel || date}</span>
-                )}
-              </div>
-            )}
-
-            {/* Separator */}
-            {(date || dateLabel) && (time || timeLabel) && (
-              <span className="text-ink-6">•</span>
-            )}
-
-            {/* Time */}
-            {(time || timeLabel) && (
-              <div className="flex items-center gap-1.5">
-                <Clock size={16} className="text-accent" />
-                {onTimeSave && time ? (
-                  <InlineEditableField
-                    value={time}
-                    displayValue={timeLabel}
-                    onSave={onTimeSave}
-                    type="time"
-                    data-testid={`${testId}-time`}
-                  />
-                ) : (
-                  <span className="text-white">{timeLabel || time}</span>
-                )}
-              </div>
-            )}
-
-            {/* Venue */}
-            {(venue || location) && (
-              <>
-                <span className="text-ink-6">•</span>
-                <div className="flex items-center gap-1.5">
-                  <Building2 size={16} className="text-accent" />
-                  {onVenueSave ? (
-                    <InlineEditableField
-                      value={venue || ''}
-                      displayValue={locationDisplay || undefined}
-                      onSave={onVenueSave}
-                      placeholder="Add venue"
-                      autoEdit={isNew}
-                      name="venue"
-                      data-testid={`${testId}-venue`}
-                    />
-                  ) : (
-                    <span className="text-white">{locationDisplay}</span>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Duration */}
-            {(duration !== undefined || durationLabel) && (
-              <>
-                <span className="text-ink-6">•</span>
-                <div className="flex items-center gap-1.5">
-                  <Timer size={16} className="text-accent" />
-                  {onDurationSave && duration !== undefined ? (
-                    <InlineEditableField
-                      value={duration}
-                      displayValue={durationLabel}
-                      onSave={onDurationSave}
-                      type="duration"
-                      placeholder="Duration"
-                      data-testid={`${testId}-duration`}
-                    />
-                  ) : (
-                    <span className="text-white">
-                      {durationLabel || `${duration} min`}
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+        {/* Row 2: Metadata - date, time, (end-time), venue, duration */}
+        <ScheduleMetaRow
+          className="pl-12"
+          date={date}
+          dateLabel={dateLabel}
+          onDateSave={onDateSave}
+          time={time}
+          timeLabel={timeLabel}
+          onTimeSave={onTimeSave}
+          endTime={endTime}
+          endTimeLabel={endTimeLabel}
+          onEndTimeSave={onEndTimeSave}
+          venue={venue}
+          location={location}
+          onVenueSave={onVenueSave}
+          venuePlaceholder={venuePlaceholder}
+          venueTestId={venueTestId}
+          duration={duration}
+          durationLabel={durationLabel}
+          onDurationSave={onDurationSave}
+          testId={testId}
+        />
       </div>
     </div>
   )

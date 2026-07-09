@@ -175,6 +175,11 @@ Capo: 2nd fret
       notes: markdownNotes,
     })
 
+    // The Add Song modal no longer exposes a band-notes field (notes are added
+    // after creation from the Edit Song modal). Set the band notes on the
+    // created song so the practice session has markdown to render.
+    await setBandNotesViaEditModal(page, markdownNotes)
+
     // Create practice and add the song
     await page.goto('/practices')
     await page.waitForLoadState('networkidle')
@@ -500,15 +505,45 @@ Capo: 2nd fret
     await startButton.click()
     await page.waitForURL(/\/session/, { timeout: 5000 })
 
-    // On first song, verify next song preview shows tuning
-    // The navigation area should show the next song with tuning
-    const progressArea = page.locator('[data-testid="session-progress"]')
-    await expect(progressArea).toBeVisible()
+    // On first song, verify the "Up next" preview shows the next song's tuning.
+    const nextPreview = page.locator('[data-testid="session-next-preview"]')
+    await expect(nextPreview).toBeVisible()
 
     // Look for tuning indicator (should show Drop D with warning since it's different)
-    await expect(progressArea.locator('text=Drop D')).toBeVisible()
+    await expect(nextPreview.locator('text=Drop D')).toBeVisible()
   })
 })
+
+/**
+ * Sets the band notes on the most recently created song via the Edit Song
+ * modal. The Add Song modal intentionally omits a notes field (band notes are
+ * added post-creation), so tests that need rendered notes must set them here.
+ */
+async function setBandNotesViaEditModal(
+  page: any,
+  notes: string
+): Promise<void> {
+  await page.goto('/songs')
+  await page.waitForLoadState('networkidle')
+
+  // Open the song's actions menu → Edit
+  await page.locator('[data-testid="song-actions-menu-button"]').first().click()
+  await page.locator('[data-testid="edit-song-button"]').first().click()
+
+  // Enter edit mode on the Band Notes markdown field and type the notes
+  await page
+    .locator('[data-testid="markdown-field-edit-button"]')
+    .first()
+    .click()
+  const textarea = page.locator('[data-testid="markdown-textarea"]')
+  await expect(textarea).toBeVisible({ timeout: 5000 })
+  await textarea.fill(notes)
+  await page.locator('[data-testid="markdown-save"]').click()
+
+  // Persist the song
+  await page.locator('[data-testid="song-submit-button"]').click()
+  await page.waitForTimeout(1500)
+}
 
 /**
  * Helper function to create a song with optional notes

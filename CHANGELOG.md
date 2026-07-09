@@ -7,11 +7,113 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-07-09
+
+Event-ops, co-hosts, and a broad casting/UX polish pass on top of the 0.4
+events/friends launch. **One** incremental migration
+(`20260709064907_0.4_event_ops_patch`) — additive columns + one trigger + one
+RLS-policy narrowing; no new tables. Implementation notes:
+`.claude/completed/0.4-small-patch/SUMMARY.md`.
+
+### Added
+
+- **Co-hosts** — the host can promote a participant to co-host (and revoke) from the
+  event **People** tab. Co-hosts can cast + approve requests (via `is_event_manager`);
+  they **cannot alter or delete the event** (events UPDATE narrowed to host-only).
+- **Per-song tuning & key** in the event lineup — the host sets them in the add/edit
+  tray; shown on lineup cards and in the grid's song column.
+- **Pre-raise hand on request** — a song request can carry optional "I'd play" parts;
+  approving it adds the song **and** raises the requester's hands.
+- **Host adds a song directly** to the lineup (no request round-trip); **reorder, edit,
+  and remove** lineup songs; **remove participant / leave event**.
+- **Home "Upcoming events"** card; Home "Add song" now opens the add-song modal
+  (`/songs?add`).
+- **Grid casting for guests** — tap an open cell to raise/withdraw a hand; a "You're on"
+  row highlight and "You"-first cast pickers.
+
+### Changed
+
+- **Consistent activity headers** — shared `ScheduleMetaRow` for date/time/location;
+  events edit **inline** (no separate edit page); shared page width; a unified
+  `BackLink` (simple arrow above the header) across all detail pages.
+- **Event create is a full page** (not a modal); no fields auto-open on create.
+- Calendar **"+ New" is filter-aware**; the event **status pill removed** (Cancelled-only)
+  everywhere (Calendar + Events list + detail).
+- **Friends** — name search is the primary field; **add-by-code moved into a modal**.
+- Roomier, mobile-first casting panel + grid; simplified cast panel (removed the
+  progress bar and the Simple/Detailed toggle).
+
+### Fixed
+
+- **Signup** — a "check your email" flow instead of a false "account created but no
+  session" error when email confirmation is on.
+- **Event join code preserved through auth** (`returnTo`, incl. across the emailed
+  confirmation link) so a shared `?join=CODE` survives signup/login.
+- **Band member removal now persists** — it wrote `status:'inactive'` to local storage
+  only, so the cloud-first members list re-added the member; removal now syncs to
+  Supabase before the list refetches.
+- **Practices can set a Location** — the shared schedule header hid the location field
+  when empty, so it could never be filled (the field is labelled "Location" for
+  practices, "venue" elsewhere).
+- **Deleting your only song no longer brings it back** — an empty local cache tripped a
+  recovery read that re-fetched the not-yet-deleted row; delete now removes the remote
+  row first.
+- **Add Song modal closes cleanly** — a background tuning lookup falsely marked an
+  untouched modal "dirty", popping a spurious unsaved-changes prompt on close.
+
+### Tests
+
+- Re-enabled and stabilized the Playwright e2e suite (it had been skipped through the
+  0.4 launch): fixed stale selectors/testids from the UI redesign and added stable
+  `data-testid`s where elements lacked them. Added coverage for the friends
+  (request → accept) and events (create + join-by-code) workflows. Run in small batches
+  with `--workers=2` — the default worker count overwhelms the dev container.
+
+### Database
+
+- `20260709064907_0.4_event_ops_patch.sql` — `event_lineup_requests.parts`;
+  `event_lineup_items.tuning` + `.key`; `on_event_request_approved` extended to
+  pre-raise hands on approve; **events UPDATE policy → host-only** (`events_update_host`,
+  co-hosts can't alter the event). pgTAP: `023-request-pre-raise-hands` (8),
+  `024-event-cohost-permissions` (6). Not yet applied to production.
+
+## [0.4.2] - 2026-07-08
+
+Same-day hotfix to the 0.4 events/friends launch (PR #17). No database changes.
+
+### Fixed
+
+- **Friends** — resolve real member names + search-by-name (previously showed
+  "Someone" / empty results).
+- **Events** — surface the **join-by-code** input on the Calendar → Events view.
+
+## [0.4.1] - 2026-07-08
+
+Same-day hotfix to the 0.4 events/friends launch (PR #16).
+
+### Added
+
+- **Drop Db** built-in tuning; the tuning picker is reordered (Standard · Eb · Drop D ·
+  Drop Db · then the rest) and hides bass tunings; song tuning chips are unified via a
+  reusable `TuningTag`.
+
+### Fixed
+
+- **Events — join by code** works for a logged-in user (Events-page input + auto-join
+  from a shared `?join=CODE` link; previously only signup could use a code).
+- **Friends — share code is self-provisioning** (`ensure_friend_code` RPC + column
+  default + backfill), fixing a blank friend code with no way to generate one.
+
+### Database
+
+- `event_code_join`, `tunings`, `song_hidden` migrations (additive; applied to
+  production 2026-07-08).
+
 ## [0.4.0] - 2026-07-08
 
 Mobile-redesign port + the social/event layer. A large release: 72 commits,
 ~195 files. The design source of truth is the Claude Design "Rock On" project;
-implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`.
+implementation notes live in `.claude/completed/mobile-redesign-port/SUMMARY.md`.
 
 ### Added
 
@@ -35,10 +137,8 @@ implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`
   people, add-by-code, incoming/sent requests (re-sendable after decline), a
   "who can add you" policy, and a shared-bands count.
 - **Custom tunings** — a Settings tunings manager + create flow and a song-form tuning
-  picker (writes `tuning_id`). Ships **Drop Db** as a built-in; the picker is ordered
-  Standard · Eb · Drop D · Drop Db · then the rest, and hides bass tunings. Song tuning
-  chips are unified via a reusable `TuningTag` (identical across catalog / setlist /
-  practice).
+  picker (writes `tuning_id`). _(Drop Db built-in + picker order + `TuningTag`
+  unification landed in 0.4.1.)_
 - **Songs** — **Hide / Re-add** from the catalog (`song_hidden`), a catalog
   **provenance tag** + **Source filter**, and a 4-state song-notes indicator.
 - **Notifications** — cross-context feed with a "from ‹Band›" chip when an item is from
@@ -65,11 +165,9 @@ implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`
   leave-and-return); re-raisable hands after withdraw; band-change toasts restored
   (songs/setlists/shows, batched); re-sendable friend requests after decline/cancel.
 - **UI** — toggle knob overflow (off looked on; on slid outside the pill).
-- **Events — join by code** now works for a logged-in user: the Events page has a
-  "join by code" input and auto-joins from a shared `?join=CODE` link (previously
-  only signup could use a code).
-- **Friends — share code is self-provisioning** (`ensure_friend_code` RPC + column
-  default + backfill), fixing a blank friend code with no way to generate one.
+
+_(Join-by-code for logged-in users + self-provisioning friend codes landed in 0.4.1;
+friends real-name resolution + join-by-code on the Calendar view landed in 0.4.2.)_
 
 ### Removed
 
@@ -81,8 +179,8 @@ implementation notes live in `.claude/features/mobile-redesign-port/TASKLIST.md`
 
 ### Database
 
-Eight incremental migrations — `notifications`, `friends`, `events`, `casting`,
-`social_events`, `event_code_join`, `tunings`, `song_hidden` — all **additive**
+Five incremental migrations — `notifications`, `friends`, `events`, `casting`,
+`social_events` — all **additive**
 (new tables + nullable/defaulted columns; no `DROP`/`DELETE`/`TRUNCATE`/type-change
 statements, so no data loss). **Applied to production 2026-07-08** (backed up first;
 `Local == Remote` verified). pgTAP coverage: 958 tests across 23 files, all passing.

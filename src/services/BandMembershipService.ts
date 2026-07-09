@@ -241,6 +241,16 @@ export class BandMembershipService {
   }
 
   /**
+   * Remove a member from a band (admin action). Marks the membership inactive
+   * via the repository so the change is queued for sync to Supabase — a direct
+   * local-DB write would never reach the cloud and the cloud-first members read
+   * would restore the member.
+   */
+  static async removeMember(membershipId: string): Promise<void> {
+    await repository.updateBandMembership(membershipId, { status: 'inactive' })
+  }
+
+  /**
    * Update membership role
    */
   static async updateMembershipRole(

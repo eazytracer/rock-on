@@ -36,13 +36,17 @@ gh --version | head -1
 echo "✓ GitHub CLI installed (run 'gh auth login' to authenticate)"
 
 
-# Install Playwright dependencies for Firefox
-echo "Installing Playwright system dependencies for Firefox..."
-npx playwright install-deps firefox
-
-# Install Firefox browser for Playwright
-echo "Installing Firefox browser for Playwright..."
-npx playwright install firefox
+# Install Playwright browsers + OS dependencies for the full e2e suite.
+# playwright.config.ts runs 5 projects across all three engines:
+#   chromium (Desktop Chrome + Mobile Chrome/Pixel 5),
+#   firefox  (Desktop Firefox),
+#   webkit   (Desktop Safari + Mobile Safari/iPhone 12).
+# `--with-deps` installs each browser AND its apt system libraries in one
+# root-privileged step (webkit needs libwebpmux, libenchant, libhyphen,
+# libwoff2, libmanette, etc. — missing these makes webkit fail to launch,
+# which silently kills 2 of the 5 projects = ~40% of test runs).
+echo "🎭 Installing Playwright browsers (chromium, firefox, webkit) + system deps..."
+npx playwright install --with-deps chromium firefox webkit
 
 # Install Playwright MCP server globally for convenience
 echo "Installing Playwright MCP server..."

@@ -12,7 +12,17 @@ const h = vi.hoisted(() => {
   const pull = () =>
     state.queue.length ? state.queue.shift()! : state.fallback
   const builder: Record<string, unknown> = {}
-  for (const m of ['select', 'eq', 'in', 'order', 'insert', 'update']) {
+  for (const m of [
+    'select',
+    'eq',
+    'in',
+    'order',
+    'insert',
+    'update',
+    'delete',
+    'limit',
+    'maybeSingle',
+  ]) {
     builder[m] = vi.fn(() => builder)
   }
   builder.then = (resolve: (v: unknown) => void) => resolve(pull())
@@ -154,5 +164,525 @@ describe('EventService.getEvents', () => {
   it('returns [] on a query error', async () => {
     h.state.queue = [{ data: null, error: { message: 'boom' } }]
     expect(await EventService.getEvents()).toEqual([])
+  })
+})
+
+describe('EventService.addLineupItem', () => {
+  it('inserts at the next position with external source + owner', async () => {
+    // First query resolves MAX(position) row; second resolves the insert.
+    h.state.queue = [
+      { data: { position: 3 }, error: null },
+      { data: null, error: null },
+    ]
+    const res = await EventService.addLineupItem('ev1', {
+      title: '  Wonderwall  ',
+      artist: '  Oasis ',
+    })
+    expect(res.ok).toBe(true)
+    const row = b.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(row).toMatchObject({
+      event_id: 'ev1',
+      position: 4,
+      source: 'external',
+      owner_id: 'me',
+      display_title: 'Wonderwall',
+      display_artist: 'Oasis',
+    })
+  })
+
+  it('starts at position 1 for an empty lineup', async () => {
+    h.state.queue = [
+      { data: null, error: null }, // no existing rows
+      { data: null, error: null },
+    ]
+    await EventService.addLineupItem('ev1', { title: 'A', artist: 'B' })
+    const row = b.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(row.position).toBe(1)
+  })
+
+  it('carries a supplied source + songId (catalog-linked add)', async () => {
+    h.state.queue = [
+      { data: { position: 0 }, error: null },
+      { data: null, error: null },
+    ]
+    await EventService.addLineupItem('ev1', {
+      title: 'A',
+      artist: 'B',
+      source: 'band',
+      songId: 'song-9',
+    })
+    const row = b.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(row).toMatchObject({
+      source: 'band',
+      song_id: 'song-9',
+      position: 1,
+    })
+  })
+
+  it('persists per-song tuning (name) + key when provided (6g)', async () => {
+    h.state.queue = [
+      { data: { position: 0 }, error: null },
+      { data: null, error: null },
+    ]
+    await EventService.addLineupItem('ev1', {
+      title: 'A',
+      artist: 'B',
+      tuning: '  Drop D ',
+      key: ' Am ',
+    })
+    const row = b.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(row).toMatchObject({ tuning: 'Drop D', key: 'Am' })
+  })
+
+  it('nulls tuning/key when not supplied', async () => {
+    h.state.queue = [
+      { data: { position: 0 }, error: null },
+      { data: null, error: null },
+    ]
+    await EventService.addLineupItem('ev1', { title: 'A', artist: 'B' })
+    const row = b.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(row.tuning).toBeNull()
+    expect(row.key).toBeNull()
+  })
+
+  it('rejects a blank title without inserting', async () => {
+    const res = await EventService.addLineupItem('ev1', {
+      title: '   ',
+      artist: 'B',
+    })
+    expect(res.ok).toBe(false)
+    expect(b.insert).not.toHaveBeenCalled()
+  })
+
+  it('returns an error when not signed in', async () => {
+    h.state.user = null
+    const res = await EventService.addLineupItem('ev1', {
+      title: 'A',
+      artist: 'B',
+    })
+    expect(res.ok).toBe(false)
+    expect(b.insert).not.toHaveBeenCalled()
+  })
+
+  it('surfaces an insert error', async () => {
+    h.state.queue = [
+      { data: { position: 1 }, error: null },
+      { data: null, error: { message: 'denied' } },
+    ]
+    const res = await EventService.addLineupItem('ev1', {
+      title: 'A',
+      artist: 'B',
+    })
+    expect(res.ok).toBe(false)
+  })
+})
+
+describe('EventService.addRequest', () => {
+  it('persists offered parts (trimmed, empties dropped) when provided', async () => {
+    h.state.queue = [{ data: null, error: null }]
+    const res = await EventService.addRequest('ev1', 'Song', 'Artist', [
+      ' guitar ',
+      'vox',
+      '',
+    ])
+    expect(res.ok).toBe(true)
+    const row = b.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(row.parts).toEqual(['guitar', 'vox'])
+    expect(row).toMatchObject({
+      event_id: 'ev1',
+      requester_id: 'me',
+      display_title: 'Song',
+      display_artist: 'Artist',
+    })
+  })
+
+  it('omits the parts column when no parts are offered', async () => {
+    h.state.queue = [{ data: null, error: null }]
+    await EventService.addRequest('ev1', 'Song', 'Artist')
+    const row = b.insert.mock.calls[0][0] as Record<string, unknown>
+    expect('parts' in row).toBe(false)
+  })
+})
+
+describe('EventService.reorderLineup', () => {
+  it('writes position = index+1 for each id in order', async () => {
+    h.state.queue = [
+      { data: null, error: null },
+      { data: null, error: null },
+      { data: null, error: null },
+    ]
+    const res = await EventService.reorderLineup('ev1', ['c', 'a', 'b'])
+    expect(res.ok).toBe(true)
+    // One update per item, positions 1..3 in the given order.
+    expect(b.update.mock.calls[0][0]).toMatchObject({ position: 1 })
+    expect(b.update.mock.calls[1][0]).toMatchObject({ position: 2 })
+    expect(b.update.mock.calls[2][0]).toMatchObject({ position: 3 })
+    // Scoped by item id + event id.
+    expect(b.eq).toHaveBeenCalledWith('id', 'c')
+    expect(b.eq).toHaveBeenCalledWith('id', 'a')
+    expect(b.eq).toHaveBeenCalledWith('id', 'b')
+    expect(b.eq).toHaveBeenCalledWith('event_id', 'ev1')
+  })
+
+  it('short-circuits on an empty list without updating', async () => {
+    const res = await EventService.reorderLineup('ev1', [])
+    expect(res.ok).toBe(true)
+    expect(b.update).not.toHaveBeenCalled()
+  })
+
+  it('stops and surfaces an error when an update fails', async () => {
+    h.state.queue = [
+      { data: null, error: null },
+      { data: null, error: { message: 'denied' } },
+    ]
+    const res = await EventService.reorderLineup('ev1', ['a', 'b', 'c'])
+    expect(res.ok).toBe(false)
+    // Aborts after the failing (2nd) update — never writes the 3rd.
+    expect(b.update).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('EventService.updateLineupItem', () => {
+  it('updates the trimmed title + artist for the item', async () => {
+    h.state.queue = [{ data: null, error: null }]
+    const res = await EventService.updateLineupItem('item-1', {
+      title: '  Creep ',
+      artist: ' Radiohead  ',
+    })
+    expect(res.ok).toBe(true)
+    expect(b.update.mock.calls[0][0]).toMatchObject({
+      display_title: 'Creep',
+      display_artist: 'Radiohead',
+    })
+    expect(b.eq).toHaveBeenCalledWith('id', 'item-1')
+  })
+
+  it('writes per-song tuning + key (trimmed), nulling blanks (6g)', async () => {
+    h.state.queue = [{ data: null, error: null }]
+    await EventService.updateLineupItem('item-1', {
+      title: 'A',
+      artist: 'B',
+      tuning: ' Drop C ',
+      key: '',
+    })
+    const row = b.update.mock.calls[0][0] as Record<string, unknown>
+    expect(row).toMatchObject({ tuning: 'Drop C' })
+    expect(row.key).toBeNull()
+  })
+
+  it('rejects a blank title without updating', async () => {
+    const res = await EventService.updateLineupItem('item-1', {
+      title: '   ',
+      artist: 'B',
+    })
+    expect(res.ok).toBe(false)
+    expect(b.update).not.toHaveBeenCalled()
+  })
+
+  it('surfaces an update error', async () => {
+    h.state.queue = [{ data: null, error: { message: 'denied' } }]
+    const res = await EventService.updateLineupItem('item-1', {
+      title: 'A',
+      artist: 'B',
+    })
+    expect(res.ok).toBe(false)
+  })
+})
+
+describe('EventService.removeLineupItem', () => {
+  it('deletes the lineup item by id', async () => {
+    h.state.queue = [{ data: null, error: null }]
+    const res = await EventService.removeLineupItem('item-1')
+    expect(res.ok).toBe(true)
+    expect(b.delete).toHaveBeenCalled()
+    expect(b.eq).toHaveBeenCalledWith('id', 'item-1')
+  })
+
+  it('surfaces a delete error', async () => {
+    h.state.queue = [{ data: null, error: { message: 'denied' } }]
+    const res = await EventService.removeLineupItem('item-1')
+    expect(res.ok).toBe(false)
+  })
+})
+
+describe('EventService.removeParticipant', () => {
+  it('refuses to remove the host', async () => {
+    // First query resolves the event host row.
+    h.state.queue = [{ data: { host_user_id: 'host' }, error: null }]
+    const res = await EventService.removeParticipant('ev1', 'host')
+    expect(res.ok).toBe(false)
+    expect(res.error).toMatch(/host/i)
+    // Never touches event_hands or event_participants.
+    expect(b.delete).not.toHaveBeenCalled()
+  })
+
+  it('clears the target’s raised hands then deletes the participant row', async () => {
+    h.state.queue = [
+      { data: { host_user_id: 'host' }, error: null }, // event lookup
+      { data: null, error: null }, // delete raised hands
+      { data: null, error: null }, // delete participant
+    ]
+    const res = await EventService.removeParticipant('ev1', 'u2')
+    expect(res.ok).toBe(true)
+    // Hands cleared for this user + event, scoped to raised.
+    expect(h.from).toHaveBeenCalledWith('event_hands')
+    expect(h.from).toHaveBeenCalledWith('event_participants')
+    expect(b.eq).toHaveBeenCalledWith('user_id', 'u2')
+    expect(b.eq).toHaveBeenCalledWith('event_id', 'ev1')
+    expect(b.eq).toHaveBeenCalledWith('status', 'raised')
+    expect(b.delete).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('EventService.setParticipantTier', () => {
+  it('refuses when the caller is not the host', async () => {
+    h.state.user = { id: 'cohost' }
+    h.state.queue = [{ data: { host_user_id: 'host' }, error: null }]
+    const res = await EventService.setParticipantTier('ev1', 'u2', 'cohost')
+    expect(res.ok).toBe(false)
+    expect(res.error).toMatch(/host/i)
+    expect(b.update).not.toHaveBeenCalled()
+  })
+
+  it('refuses to change the host’s own tier', async () => {
+    h.state.user = { id: 'host' }
+    h.state.queue = [{ data: { host_user_id: 'host' }, error: null }]
+    const res = await EventService.setParticipantTier('ev1', 'host', 'guest')
+    expect(res.ok).toBe(false)
+    expect(b.update).not.toHaveBeenCalled()
+  })
+
+  it('promotes a participant to co-host (host only)', async () => {
+    h.state.user = { id: 'host' }
+    h.state.queue = [
+      { data: { host_user_id: 'host' }, error: null }, // event lookup
+      { data: null, error: null }, // update
+    ]
+    const res = await EventService.setParticipantTier('ev1', 'u2', 'cohost')
+    expect(res.ok).toBe(true)
+    expect(b.update).toHaveBeenCalledWith({ access_tier: 'cohost' })
+    expect(b.eq).toHaveBeenCalledWith('user_id', 'u2')
+  })
+})
+
+describe('EventService.leaveEvent', () => {
+  it('refuses when the current user is the host', async () => {
+    h.state.user = { id: 'host' }
+    h.state.queue = [{ data: { host_user_id: 'host' }, error: null }]
+    const res = await EventService.leaveEvent('ev1')
+    expect(res.ok).toBe(false)
+    expect(res.error).toMatch(/host/i)
+    expect(b.delete).not.toHaveBeenCalled()
+  })
+
+  it('clears the caller’s raised hands then removes their participant row', async () => {
+    h.state.user = { id: 'me' }
+    h.state.queue = [
+      { data: { host_user_id: 'host' }, error: null }, // event lookup
+      { data: null, error: null }, // delete raised hands
+      { data: null, error: null }, // delete participant
+    ]
+    const res = await EventService.leaveEvent('ev1')
+    expect(res.ok).toBe(true)
+    expect(b.eq).toHaveBeenCalledWith('user_id', 'me')
+    expect(b.eq).toHaveBeenCalledWith('status', 'raised')
+    expect(b.delete).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('EventService.createEvent', () => {
+  it('persists a scheduled_date + end_time carrying the chosen time', async () => {
+    // event insert (returns id), then host-participant insert.
+    h.state.queue = [
+      { data: { id: 'ev-new' }, error: null },
+      { data: null, error: null },
+    ]
+    const start = new Date(2026, 7, 1, 19, 0, 0) // Aug 1 2026, 7:00 PM local
+    const end = new Date(2026, 7, 1, 22, 30, 0) // 10:30 PM local
+    const id = await EventService.createEvent({
+      name: '  Backyard Jam ',
+      venue: '  The Yard ',
+      scheduledDate: start,
+      endTime: end,
+    })
+    expect(id).toBe('ev-new')
+    const row = b.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(row).toMatchObject({
+      name: 'Backyard Jam',
+      venue: 'The Yard',
+      scheduled_date: start.toISOString(),
+      end_time: end.toISOString(),
+    })
+  })
+
+  it('nulls end_time when no end time is given', async () => {
+    h.state.queue = [
+      { data: { id: 'ev-new' }, error: null },
+      { data: null, error: null },
+    ]
+    await EventService.createEvent({
+      name: 'X',
+      scheduledDate: new Date(2026, 7, 1, 19, 0, 0),
+    })
+    const row = b.insert.mock.calls[0][0] as Record<string, unknown>
+    expect(row.end_time).toBeNull()
+  })
+})
+
+describe('EventService.updateEvent', () => {
+  it('writes the changed columns + stamps updated_date', async () => {
+    h.state.queue = [{ data: null, error: null }]
+    const start = new Date(2026, 8, 3, 20, 30, 0)
+    const end = new Date(2026, 8, 3, 23, 0, 0)
+    const res = await EventService.updateEvent('ev1', {
+      name: '  New Name ',
+      venue: ' New Venue ',
+      scheduledDate: start,
+      endTime: end,
+    })
+    expect(res.ok).toBe(true)
+    const row = b.update.mock.calls[0][0] as Record<string, unknown>
+    expect(row).toMatchObject({
+      name: 'New Name',
+      venue: 'New Venue',
+      scheduled_date: start.toISOString(),
+      end_time: end.toISOString(),
+    })
+    // No BEFORE UPDATE touch trigger on events → we stamp updated_date ourselves.
+    expect(row.updated_date).toBeTypeOf('string')
+    expect(b.eq).toHaveBeenCalledWith('id', 'ev1')
+  })
+
+  it('clears end_time when endTime is null', async () => {
+    h.state.queue = [{ data: null, error: null }]
+    await EventService.updateEvent('ev1', { endTime: null })
+    const row = b.update.mock.calls[0][0] as Record<string, unknown>
+    expect(row.end_time).toBeNull()
+  })
+
+  it('surfaces an update error', async () => {
+    h.state.queue = [{ data: null, error: { message: 'denied' } }]
+    const res = await EventService.updateEvent('ev1', { name: 'A' })
+    expect(res.ok).toBe(false)
+  })
+})
+
+describe('EventService.cancelEvent', () => {
+  it('sets status to cancelled', async () => {
+    h.state.queue = [{ data: null, error: null }]
+    const res = await EventService.cancelEvent('ev1')
+    expect(res.ok).toBe(true)
+    const row = b.update.mock.calls[0][0] as Record<string, unknown>
+    expect(row.status).toBe('cancelled')
+    expect(b.eq).toHaveBeenCalledWith('id', 'ev1')
+  })
+
+  it('surfaces a cancel error', async () => {
+    h.state.queue = [{ data: null, error: { message: 'denied' } }]
+    const res = await EventService.cancelEvent('ev1')
+    expect(res.ok).toBe(false)
+  })
+})
+
+describe('EventService.getEvent', () => {
+  it('selects end_time and maps it onto the summary', async () => {
+    h.state.queue = [
+      {
+        data: {
+          id: 'ev1',
+          name: 'E',
+          venue: null,
+          scheduled_date: '2026-08-01T23:00:00Z',
+          end_time: '2026-08-02T02:00:00Z',
+          status: 'scheduled',
+          visibility: 'unlisted',
+          host_user_id: 'me',
+          band_id: null,
+          allow_suggestions: true,
+          auto_approve: false,
+          short_code: 'ABC123',
+        },
+        error: null,
+      },
+    ]
+    const ev = await EventService.getEvent('ev1')
+    const selectArg = b.select.mock.calls[0][0] as string
+    expect(selectArg).toContain('end_time')
+    expect(ev?.endTime?.toISOString()).toBe(
+      new Date('2026-08-02T02:00:00Z').toISOString()
+    )
+  })
+})
+
+describe('EventService.getLineup', () => {
+  it('selects and maps per-song tuning + key onto lineup items (6g)', async () => {
+    h.state.queue = [
+      {
+        data: [
+          {
+            id: 'li1',
+            position: 1,
+            source: 'external',
+            owner_id: 'u2',
+            song_id: null,
+            display_title: 'Creep',
+            display_artist: 'Radiohead',
+            tuning: 'Drop D',
+            key: 'Am',
+          },
+          {
+            id: 'li2',
+            position: 2,
+            source: 'external',
+            owner_id: null,
+            song_id: null,
+            display_title: 'Yellow',
+            display_artist: 'Coldplay',
+            tuning: null,
+            key: null,
+          },
+        ],
+        error: null,
+      },
+    ]
+    const items = await EventService.getLineup('ev1')
+    const selectArg = b.select.mock.calls[0][0] as string
+    expect(selectArg).toContain('tuning')
+    expect(selectArg).toContain('key')
+    expect(items[0]).toMatchObject({
+      id: 'li1',
+      ownerId: 'u2',
+      tuning: 'Drop D',
+      key: 'Am',
+    })
+    // NULL tuning/key map to undefined.
+    expect(items[1].tuning).toBeUndefined()
+    expect(items[1].key).toBeUndefined()
+  })
+})
+
+describe('EventService.getPendingRequests', () => {
+  it('maps offered parts onto the request', async () => {
+    h.state.queue = [
+      {
+        data: [
+          {
+            id: 'r1',
+            requester_id: 'u2',
+            source: 'external',
+            display_title: 'Song',
+            display_artist: 'Artist',
+            status: 'pending',
+            created_date: '2026-08-01T00:00:00Z',
+            parts: ['guitar', 'vox'],
+          },
+        ],
+        error: null,
+      },
+    ]
+    const [req] = await EventService.getPendingRequests('ev1')
+    expect(req.parts).toEqual(['guitar', 'vox'])
+    const selectArg = b.select.mock.calls[0][0] as string
+    expect(selectArg).toContain('parts')
   })
 })

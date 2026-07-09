@@ -65,6 +65,10 @@ test.describe('Settings Page', () => {
   test.afterEach(async ({ page }) => {
     // Sign out after each test - with shorter timeout to avoid blocking
     try {
+      // A test may leave a modal open (e.g. the delete-account confirmation),
+      // whose overlay would intercept the logout click and hang the hook.
+      // Reload to a neutral page first to unmount any open modal.
+      await page.goto('/songs').catch(() => {})
       // Check if logout button is visible before clicking
       const logoutButton = page.locator('[data-testid="logout-button"]')
       const isVisible = await logoutButton
@@ -72,7 +76,8 @@ test.describe('Settings Page', () => {
         .catch(() => false)
       if (isVisible) {
         await logoutButton.click()
-        await page.waitForURL('/auth', { timeout: 3000 }).catch(() => {})
+        // Redirect preserves a ?returnTo= param, so match the /auth path.
+        await page.waitForURL(/\/auth/, { timeout: 3000 }).catch(() => {})
       }
     } catch {
       // Ignore logout errors (user may already be logged out or page closed)

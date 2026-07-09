@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   UserPlus,
   Check,
   X,
@@ -20,6 +19,7 @@ import { Eyebrow } from '../components/common/Eyebrow'
 import { EmptyState } from '../components/common/EmptyState'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { Dropdown } from '../components/common/Dropdown'
+import { BackLink } from '../components/common/BackLink'
 import type { FriendRequestPolicy, FriendSearchResult } from '../models/Friend'
 
 const POLICY_OPTIONS: { value: FriendRequestPolicy; label: string }[] = [
@@ -38,7 +38,6 @@ const QRCodeSVG = lazy(() =>
  * Friends list · incoming requests · add-by-code · your friend code + discovery toggle.
  */
 export function FriendsPage() {
-  const navigate = useNavigate()
   const { showToast } = useToast()
   const {
     friends,
@@ -57,6 +56,7 @@ export function FriendsPage() {
   } = useFriends()
   const [searchParams] = useSearchParams()
   const [code, setCode] = useState('')
+  const [showCodeModal, setShowCodeModal] = useState(false)
   const [sending, setSending] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [nameQuery, setNameQuery] = useState('')
@@ -127,6 +127,7 @@ export function FriendsPage() {
     if (res.ok) {
       showToast(`Friend request sent to ${res.name}`, 'success')
       setCode('')
+      setShowCodeModal(false)
     } else {
       showToast(res.error ?? 'Could not send request', 'error')
     }
@@ -141,13 +142,7 @@ export function FriendsPage() {
 
   return (
     <div data-testid="friends-page" className="max-w-5xl">
-      <button
-        onClick={() => navigate(-1)}
-        data-testid="friends-back"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink-1"
-      >
-        <ArrowLeft size={16} /> Back
-      </button>
+      <BackLink className="mb-4" data-testid="friends-back" />
       <h1 className="text-2xl font-bold text-ink-1">Friends</h1>
 
       <ContentLoadingSpinner isLoading={loading}>
@@ -249,28 +244,9 @@ export function FriendsPage() {
             {/* Add a friend — by code or by name */}
             <div data-testid="friends-add">
               <Eyebrow className="mb-2">Add a friend</Eyebrow>
-              <div className="flex gap-2">
-                <input
-                  value={code}
-                  onChange={e => setCode(e.target.value.toUpperCase())}
-                  placeholder="Enter friend code"
-                  name="friendCode"
-                  id="friend-code-input"
-                  data-testid="friends-add-input"
-                  className="flex-1 rounded-lg bg-bg-1 border border-border-1 px-3 py-2 font-mono text-sm text-ink-1 placeholder:text-ink-5 focus:border-accent focus:outline-none"
-                />
-                <button
-                  onClick={handleAdd}
-                  disabled={sending || !code.trim()}
-                  data-testid="friends-add-button"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-accent-soft px-3 py-2 text-sm font-medium text-accent disabled:opacity-50"
-                >
-                  <UserPlus size={16} /> Send
-                </button>
-              </div>
 
-              {/* Find people by name (discoverable profiles only) */}
-              <div className="mt-3">
+              {/* Primary action: find people by name (discoverable profiles). */}
+              <div>
                 <div className="relative">
                   <Search
                     size={15}
@@ -349,6 +325,16 @@ export function FriendsPage() {
                   </>
                 )}
               </div>
+
+              {/* Secondary: add by friend code — behind a button/modal so it's
+                  not mistaken for the name search. */}
+              <button
+                onClick={() => setShowCodeModal(true)}
+                data-testid="friends-add-code-button"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-1 bg-bg-1 px-3 py-2 text-sm font-medium text-ink-2 hover:border-border-2 hover:text-ink-1"
+              >
+                <UserPlus size={16} /> Add by friend code
+              </button>
             </div>
           </aside>
 
@@ -467,6 +453,60 @@ export function FriendsPage() {
           </div>
         </div>
       </ContentLoadingSpinner>
+
+      {showCodeModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setShowCodeModal(false)}
+          data-testid="friends-code-modal"
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border-2 bg-bg-2 p-5 shadow-xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mb-1 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-ink-1">
+                Add by friend code
+              </h2>
+              <button
+                onClick={() => setShowCodeModal(false)}
+                aria-label="Close"
+                data-testid="friends-code-modal-close"
+                className="rounded p-1 text-ink-4 hover:text-ink-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="mb-3 text-xs text-ink-4">
+              Enter the code a friend shared with you. QR-code scanning arrives
+              with the mobile app.
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={code}
+                onChange={e => setCode(e.target.value.toUpperCase())}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && code.trim()) void handleAdd()
+                }}
+                placeholder="Enter friend code"
+                name="friendCode"
+                id="friend-code-input"
+                data-testid="friends-add-input"
+                autoFocus
+                className="flex-1 rounded-lg bg-bg-1 border border-border-1 px-3 py-2 font-mono text-sm text-ink-1 placeholder:text-ink-5 focus:border-accent focus:outline-none"
+              />
+              <button
+                onClick={handleAdd}
+                disabled={sending || !code.trim()}
+                data-testid="friends-add-button"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                <UserPlus size={16} /> Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

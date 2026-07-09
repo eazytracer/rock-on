@@ -52,6 +52,28 @@ For multi-step tasks, state a brief plan:
 3. [Step] → verify: [check]
    Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## Versioning & Release Policy (REQUIRED)
+
+**🚨 No PR that ships to production may merge without bumping the version.**
+This bit us across the 0.4 launch — three same-day hotfixes (v0.4.1, v0.4.2)
+shipped to prod while `package.json` stayed `0.4.0` and no tags were cut, so the
+release history had to be reconstructed after the fact.
+
+Every production-bound PR MUST, before merge:
+
+1. **Bump `package.json` `version`** per SemVer (pre-1.0: features → patch is
+   acceptable, but the number MUST change — never reuse a shipped version).
+2. **Add a dated `## [x.y.z]` section to `CHANGELOG.md`** (move items out of
+   `[Unreleased]`), grouped Added / Changed / Fixed / Database.
+3. **Add a `release_notes` row** for the version (idempotent upsert in the
+   feature migration, or the release step) — this is what surfaces the in-app
+   "what's new" notification (`release_notes` vs `users.last_seen_release_version`).
+4. **Tag the merge commit** `vX.Y.Z` (annotated) and push the tag.
+
+The `/finalize` and `/release` flows automate steps 1–4; do not hand-merge a
+prod PR that skips them. A DB migration in the PR is a strong signal it is
+prod-bound — treat it as release-gated.
+
 ## Active Technologies
 
 - TypeScript 5.x with React 18+ + React, TailwindCSS, client-side database (TBD) (001-use-this-prd)

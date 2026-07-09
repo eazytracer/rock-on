@@ -10,40 +10,20 @@ import { INSTRUMENT_META, FALLBACK_INSTRUMENT } from './instrumentMeta'
 import type { CastingContext, CastingHistoryEntry } from '../../models/Casting'
 import type { RaisedHand } from '../../models/Event'
 
-/** 5-dot confidence indicator (Detailed casting). Read-only unless `onSet`. */
-function ConfidenceDots({
-  value,
-  onSet,
-}: {
-  value?: number
-  onSet?: (n: number) => void
-}) {
-  return (
-    <span className="inline-flex items-center gap-0.5" title="Confidence">
-      {[1, 2, 3, 4, 5].map(n => {
-        const filled = (value ?? 0) >= n
-        const dot = (
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${filled ? 'bg-accent' : 'bg-bg-4'}`}
-          />
-        )
-        return onSet ? (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onSet(n)}
-            aria-label={`Confidence ${n} of 5`}
-            className="p-0.5"
-          >
-            {dot}
-          </button>
-        ) : (
-          <span key={n}>{dot}</span>
-        )
-      })}
-    </span>
-  )
+// Concise part labels (band roles can be long, e.g. "Lead Vocals" → "Vox"),
+// matching the grid header.
+const SHORT_PART_LABEL: Record<string, string> = {
+  guitar: 'Guitar',
+  bass: 'Bass',
+  drums: 'Drums',
+  vox: 'Vox',
+  lead_vocals: 'Vox',
+  backing_vocals: 'BVox',
+  keys: 'Keys',
+  other: 'Other',
 }
+const shortPartLabel = (key: string, fallback: string) =>
+  SHORT_PART_LABEL[key] ?? fallback
 
 interface SongCastPanelProps {
   contextType: CastingContext
@@ -91,8 +71,11 @@ export function SongCastPanel({
   onResolveHand,
   embedded = false,
 }: SongCastPanelProps) {
-  const { defaultParts, casting, loading, assign, unassign, update } =
-    useCasting(contextType, contextId, bandId)
+  const { defaultParts, casting, loading, assign, unassign } = useCasting(
+    contextType,
+    contextId,
+    bandId
+  )
   // Cast from the right pool: EVENT → participants (guests, not just band members);
   // SETLIST → band members. The casting RLS already authorizes event participants.
   const isEvent = contextType === 'event'
@@ -101,7 +84,6 @@ export function SongCastPanel({
   const [pickingRole, setPickingRole] = useState<string | null>(null)
   const [pickingBackup, setPickingBackup] = useState(false)
   const [freeText, setFreeText] = useState('')
-  const [detailed, setDetailed] = useState(false)
   const [history, setHistory] = useState<CastingHistoryEntry[]>([])
 
   const assignablePeople = useMemo(
@@ -113,6 +95,18 @@ export function SongCastPanel({
             name: m.user?.name ?? m.profile?.displayName ?? 'Member',
           })),
     [isEvent, participants, members]
+  )
+  // Put the logged-in user first in the picker and call them out — casting
+  // yourself is common, so it shouldn't be buried under everyone else.
+  const orderedPeople = useMemo(
+    () =>
+      currentUserId
+        ? [
+            ...assignablePeople.filter(p => p.id === currentUserId),
+            ...assignablePeople.filter(p => p.id !== currentUserId),
+          ]
+        : assignablePeople,
+    [assignablePeople, currentUserId]
   )
 
   // This slot's assignments only.
@@ -137,14 +131,6 @@ export function SongCastPanel({
 
   const personName = (userId?: string) =>
     assignablePeople.find(p => p.id === userId)?.name ?? 'Member'
-
-  const partsCast = defaultParts.filter(p =>
-    slotCasting.some(c => c.roleKey === p.key && c.isPrimary)
-  ).length
-  const progressPct =
-    defaultParts.length > 0
-      ? Math.round((partsCast / defaultParts.length) * 100)
-      : 0
 
   const doAssign = async (
     roleKey: string,
@@ -189,47 +175,12 @@ export function SongCastPanel({
       }
       data-testid={`cast-panel-${slotId}`}
     >
-      <div className="mb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Eyebrow>Casting</Eyebrow>
-            <button
-              type="button"
-              onClick={() => setDetailed(d => !d)}
-              data-testid={`cast-detailed-toggle-${slotId}`}
-              aria-pressed={detailed}
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide transition-colors ${
-                detailed
-                  ? 'bg-accent-soft text-accent'
-                  : 'bg-bg-3 text-ink-4 hover:text-ink-2'
-              }`}
-            >
-              {detailed ? 'Detailed' : 'Simple'}
-            </button>
-          </div>
-          <span
-            className="font-mono text-[10px] text-ink-4"
-            data-testid="cast-progress"
-          >
-            {partsCast} of {defaultParts.length} parts · {progressPct}%
-          </span>
-        </div>
-        <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-bg-3">
-          <div
-            className="h-full rounded-full bg-accent transition-all"
-            style={{ width: `${progressPct}%` }}
-            data-testid="cast-progress-bar"
-          />
-        </div>
-      </div>
+      <Eyebrow className="mb-3">Casting</Eyebrow>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2.5">
         {defaultParts.map(part => {
           const assigned = slotCasting.filter(c => c.roleKey === part.key)
           const primaries = assigned.filter(c => c.isPrimary)
-          const backups = assigned
-            .filter(c => !c.isPrimary)
-            .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
           const instrument = INSTRUMENT_META[part.key] ?? FALLBACK_INSTRUMENT
           const InstrumentIcon = instrument.Icon
           const raisedForPart = slotHands.filter(
@@ -240,135 +191,107 @@ export function SongCastPanel({
           return (
             <div
               key={part.key}
-              className="flex items-center gap-2"
+              className="flex items-center gap-3 py-1"
               data-testid={`cast-role-${part.key}`}
             >
               <span
-                className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md"
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md"
                 style={{
                   color: instrument.color,
                   backgroundColor: `color-mix(in srgb, ${instrument.color} 16%, transparent)`,
                 }}
                 aria-hidden="true"
               >
-                <InstrumentIcon size={13} />
+                <InstrumentIcon size={16} />
               </span>
-              <span className="w-24 flex-shrink-0 text-xs text-ink-3">
-                {part.label}
+              <span className="w-24 flex-shrink-0 text-sm text-ink-3">
+                {shortPartLabel(part.key, part.label)}
               </span>
-              <div className="flex flex-1 flex-wrap items-center gap-1.5">
-                {primaries.map(c => (
-                  <span
-                    key={c.id}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-bg-3 py-0.5 pl-0.5 pr-2"
-                    data-testid={`cast-assigned-${c.id}`}
-                  >
-                    <Avatar
-                      label={c.memberName ?? personName(c.memberId)}
-                      size="xs"
-                    />
-                    <span className="text-xs text-ink-1">
-                      {c.memberName ?? personName(c.memberId)}
-                    </span>
-                    {detailed && (
-                      <ConfidenceDots
-                        value={c.confidence}
-                        onSet={
-                          canEdit
-                            ? n => void update(c.id, { confidence: n })
-                            : undefined
-                        }
-                      />
-                    )}
-                    {canEdit && (
-                      <button
-                        onClick={() => void unassign(c.id)}
-                        aria-label="Remove"
-                        data-testid={`cast-remove-${c.id}`}
-                        className="text-ink-5 hover:text-danger"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </span>
-                ))}
-                {primaries.length === 0 && raisedForPart.length === 0 && (
-                  <span className="text-xs text-ink-5">Open</span>
-                )}
-                {/* Backups (Detailed casting) */}
-                {detailed &&
-                  backups.map(c => (
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                {primaries.map(c => {
+                  const isMe = !!currentUserId && c.memberId === currentUserId
+                  return (
                     <span
                       key={c.id}
-                      className="inline-flex items-center gap-1 rounded-full border border-border-1 bg-bg-2 py-0.5 pl-0.5 pr-2"
-                      data-testid={`cast-backup-${c.id}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 ${
+                        isMe ? 'bg-info-soft ring-1 ring-info/50' : 'bg-bg-3'
+                      }`}
+                      data-testid={`cast-assigned-${c.id}`}
                     >
                       <Avatar
                         label={c.memberName ?? personName(c.memberId)}
-                        size="xs"
+                        size="sm"
                       />
-                      <span className="text-[11px] text-ink-3">
+                      <span
+                        className={`text-sm ${isMe ? 'font-medium text-info' : 'text-ink-1'}`}
+                      >
                         {c.memberName ?? personName(c.memberId)}
                       </span>
-                      <span className="text-[8px] font-semibold uppercase tracking-wide text-ink-5">
-                        backup
-                      </span>
+                      {isMe && (
+                        <span className="rounded-full bg-info px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          You
+                        </span>
+                      )}
                       {canEdit && (
                         <button
                           onClick={() => void unassign(c.id)}
-                          aria-label="Remove backup"
-                          data-testid={`cast-backup-remove-${c.id}`}
-                          className="text-ink-5 hover:text-danger"
+                          aria-label="Remove"
+                          data-testid={`cast-remove-${c.id}`}
+                          className="-mr-1 rounded p-1 text-ink-5 hover:text-danger"
                         >
-                          <X size={11} />
+                          <X size={15} />
                         </button>
                       )}
                     </span>
-                  ))}
+                  )
+                })}
+                {primaries.length === 0 && raisedForPart.length === 0 && (
+                  <span className="text-sm text-ink-5">Open</span>
+                )}
                 {/* Raise-a-hand (event only, fork #5) */}
                 {canEdit &&
                   raisedForPart.map(h => (
                     <span
                       key={h.id}
                       data-testid={`hand-${h.id}`}
-                      className="inline-flex items-center gap-1 rounded-full border border-info bg-info-soft py-0.5 pl-0.5 pr-1"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-info bg-info-soft py-1 pl-1 pr-1.5"
                     >
-                      <Avatar label={h.userName} size="xs" />
-                      <span className="text-xs font-medium text-info">
+                      <Avatar label={h.userName} size="sm" />
+                      <span className="text-sm font-medium text-info">
                         {h.userName}
                       </span>
-                      <Hand size={11} className="text-info" />
+                      <Hand size={13} className="text-info" />
                       <button
                         onClick={() => void acceptHand(h)}
                         data-testid={`hand-accept-${h.id}`}
                         aria-label={`Accept ${h.userName}`}
-                        className="rounded p-0.5 text-info hover:text-success"
+                        className="rounded p-1 text-info hover:text-success"
                       >
-                        <Check size={12} />
+                        <Check size={16} />
                       </button>
                       <button
                         onClick={() => void onResolveHand?.(h.id, false)}
                         data-testid={`hand-decline-${h.id}`}
                         aria-label={`Decline ${h.userName}`}
-                        className="rounded p-0.5 text-ink-5 hover:text-danger"
+                        className="rounded p-1 text-ink-5 hover:text-danger"
                       >
-                        <X size={12} />
+                        <X size={16} />
                       </button>
                     </span>
                   ))}
                 {!canEdit && myRaised && (
                   <span
                     data-testid={`hand-mine-${part.key}`}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-info-soft px-2 py-0.5 text-xs font-medium text-info"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-info-soft px-3 py-1.5 text-sm font-medium text-info"
                   >
-                    <Hand size={12} /> You — hand up
+                    <Hand size={14} /> You — hand up
                     <button
                       onClick={() => void onWithdrawHand?.(myRaised.id)}
                       data-testid={`hand-withdraw-${part.key}`}
                       aria-label="Withdraw hand"
-                      className="text-ink-5 hover:text-danger"
+                      className="-mr-1 rounded p-1 text-ink-5 hover:text-danger"
                     >
-                      <X size={12} />
+                      <X size={15} />
                     </button>
                   </span>
                 )}
@@ -376,9 +299,9 @@ export function SongCastPanel({
                   <button
                     onClick={() => void onRaiseHand?.(part.key)}
                     data-testid={`hand-raise-${part.key}`}
-                    className="inline-flex items-center gap-1 rounded-full border border-info bg-info-soft px-2 py-0.5 text-[11px] font-medium text-info hover:brightness-110"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-info bg-info-soft px-3 py-2 text-sm font-medium text-info hover:brightness-110"
                   >
-                    <Hand size={12} /> Raise hand
+                    <Hand size={15} /> Raise hand
                   </button>
                 )}
                 {canEdit && (
@@ -392,9 +315,9 @@ export function SongCastPanel({
                       }}
                       data-testid={`cast-assign-${part.key}`}
                       aria-label={`Assign ${part.label}`}
-                      className="inline-flex items-center gap-1 rounded-full border border-border-2 px-2 py-0.5 text-[11px] text-ink-3 hover:text-accent hover:border-accent"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border-2 px-3 py-2 text-sm text-ink-3 hover:text-accent hover:border-accent"
                     >
-                      <UserPlus size={12} /> Assign
+                      <UserPlus size={15} /> Assign
                     </button>
                     {pickingRole === part.key && (
                       <>
@@ -406,11 +329,11 @@ export function SongCastPanel({
                           }}
                         />
                         <div
-                          className="absolute left-0 z-20 mt-1 w-52 overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
+                          className="absolute left-0 z-20 mt-1 w-60 overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
                           data-testid={`cast-picker-${part.key}`}
                         >
-                          <div className="max-h-44 overflow-y-auto custom-scrollbar-thin">
-                            {assignablePeople.map(person => (
+                          <div className="max-h-52 overflow-y-auto custom-scrollbar-thin">
+                            {orderedPeople.map(person => (
                               <button
                                 key={person.id}
                                 onClick={() =>
@@ -424,10 +347,19 @@ export function SongCastPanel({
                                   )
                                 }
                                 data-testid={`cast-pick-${part.key}-${person.id}`}
-                                className="flex w-full items-center gap-2 px-2.5 py-2 text-left text-xs text-ink-2 hover:bg-bg-4 hover:text-ink-1"
+                                className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-bg-4 hover:text-ink-1 ${
+                                  person.id === currentUserId
+                                    ? 'bg-info-soft'
+                                    : ''
+                                }`}
                               >
-                                <Avatar label={person.name} size="xs" />
+                                <Avatar label={person.name} size="sm" />
                                 {person.name}
+                                {person.id === currentUserId && (
+                                  <span className="ml-auto flex-shrink-0 rounded-full bg-info px-2 py-0.5 text-[10px] font-semibold text-white">
+                                    You
+                                  </span>
+                                )}
                               </button>
                             ))}
                             {assignablePeople.length === 0 && (
@@ -473,20 +405,6 @@ export function SongCastPanel({
                       </>
                     )}
                   </div>
-                )}
-                {/* Add a backup (Detailed casting) */}
-                {detailed && canEdit && (
-                  <button
-                    onClick={() => {
-                      setPickingBackup(true)
-                      setPickingRole(part.key)
-                    }}
-                    data-testid={`cast-backup-add-${part.key}`}
-                    aria-label={`Add backup for ${part.label}`}
-                    className="inline-flex items-center gap-1 rounded-full border border-dashed border-border-2 px-2 py-0.5 text-[11px] text-ink-4 hover:text-accent hover:border-accent"
-                  >
-                    <UserPlus size={11} /> Backup
-                  </button>
                 )}
               </div>
             </div>

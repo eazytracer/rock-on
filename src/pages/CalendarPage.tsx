@@ -37,6 +37,36 @@ interface AgendaItem {
   to: string
 }
 
+// Single ordered source for activity kinds — the filter segmented control, the
+// sidebar nav order, and the "New" menu all derive from this so they can never
+// drift (Show → Practice → Event).
+const ACTIVITY_KINDS = [
+  {
+    id: 'shows',
+    label: 'Shows',
+    singular: 'Show',
+    to: '/shows/new',
+    icon: Ticket,
+    newTestid: 'calendar-new-show',
+  },
+  {
+    id: 'practices',
+    label: 'Practices',
+    singular: 'Practice',
+    to: '/practices/new',
+    icon: CalendarIcon,
+    newTestid: 'calendar-new-practice',
+  },
+  {
+    id: 'events',
+    label: 'Events',
+    singular: 'Event',
+    to: '/events/new',
+    icon: PartyPopper,
+    newTestid: 'calendar-new-event',
+  },
+] as const
+
 /**
  * Calendar (mobile-redesign-port P9).
  * Unified agenda merging Shows (accent) + Practices (info) on one time axis. Events (success)
@@ -134,31 +164,20 @@ export function CalendarPage() {
 
   const filters: { id: Filter; label: string }[] = [
     { id: 'all', label: 'All' },
-    { id: 'shows', label: 'Shows' },
-    { id: 'practices', label: 'Practices' },
-    { id: 'events', label: 'Events' },
+    ...ACTIVITY_KINDS.map(k => ({ id: k.id as Filter, label: k.label })),
   ]
 
-  const newActions = [
-    {
-      label: 'New event',
-      icon: PartyPopper,
-      to: '/events/new',
-      testid: 'calendar-new-event',
-    },
-    {
-      label: 'New show',
-      icon: Ticket,
-      to: '/shows/new',
-      testid: 'calendar-new-show',
-    },
-    {
-      label: 'New practice',
-      icon: CalendarIcon,
-      to: '/practices/new',
-      testid: 'calendar-new-practice',
-    },
-  ]
+  // The "New" menu (shown only on the "All" filter) mirrors the nav order.
+  const newActions = ACTIVITY_KINDS.map(k => ({
+    label: `New ${k.singular}`,
+    icon: k.icon,
+    to: k.to,
+    testid: k.newTestid,
+  }))
+
+  // Filter-aware primary action: on a specific filter the button creates that
+  // kind directly; on "All" it opens the menu.
+  const activeKind = ACTIVITY_KINDS.find(k => k.id === filter)
 
   const Row = ({ item }: { item: AgendaItem }) => {
     const Icon = item.icon
@@ -221,9 +240,13 @@ export function CalendarPage() {
                 <span className="truncate">{item.subtitle}</span>
               </span>
             )}
-            <Badge tone={item.tone} size="sm">
-              {item.status}
-            </Badge>
+            {/* Events don't show a status pill (Scheduled/Confirmed/…) — only a
+                Cancelled badge; shows & practices keep their status. */}
+            {(item.kind !== 'event' || item.status === 'cancelled') && (
+              <Badge tone={item.tone} size="sm">
+                {item.status}
+              </Badge>
+            )}
           </span>
         </span>
       </button>
@@ -235,39 +258,51 @@ export function CalendarPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink-1">Calendar</h1>
         <div className="relative">
-          <button
-            onClick={() => setNewMenuOpen(o => !o)}
-            data-testid="calendar-new-button"
-            aria-expanded={newMenuOpen}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white"
-          >
-            <Plus size={16} /> New
-          </button>
-          {newMenuOpen && (
+          {activeKind ? (
+            <button
+              onClick={() => navigate(activeKind.to)}
+              data-testid="calendar-new-button"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white"
+            >
+              <Plus size={16} /> New {activeKind.singular}
+            </button>
+          ) : (
             <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setNewMenuOpen(false)}
-              />
-              <div
-                className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-border-1 bg-bg-2 shadow-xl"
-                data-testid="calendar-new-menu"
+              <button
+                onClick={() => setNewMenuOpen(o => !o)}
+                data-testid="calendar-new-button"
+                aria-expanded={newMenuOpen}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white"
               >
-                {newActions.map(({ label, icon: Icon, to, testid }) => (
-                  <button
-                    key={to}
-                    onClick={() => {
-                      setNewMenuOpen(false)
-                      navigate(to)
-                    }}
-                    data-testid={testid}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-bg-3 hover:text-ink-1"
+                <Plus size={16} /> New
+              </button>
+              {newMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setNewMenuOpen(false)}
+                  />
+                  <div
+                    className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-border-1 bg-bg-2 shadow-xl"
+                    data-testid="calendar-new-menu"
                   >
-                    <Icon size={16} className="text-accent" />
-                    {label}
-                  </button>
-                ))}
-              </div>
+                    {newActions.map(({ label, icon: Icon, to, testid }) => (
+                      <button
+                        key={to}
+                        onClick={() => {
+                          setNewMenuOpen(false)
+                          navigate(to)
+                        }}
+                        data-testid={testid}
+                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-bg-3 hover:text-ink-1"
+                      >
+                        <Icon size={16} className="text-accent" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

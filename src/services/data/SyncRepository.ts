@@ -199,8 +199,22 @@ export class SyncRepository implements IDataRepository {
     await this.syncEngine.queueDelete('songs', id)
     console.log('[SyncRepository] Step 2: Complete')
 
-    // 3. queueDelete() already schedules an immediate push via scheduleImmediateSync()
-    // Don't call syncNow() here - it pulls first which would re-add the deleted song
+    // 3. queueDelete() already schedules an immediate push via scheduleImmediateSync().
+    // Don't call syncNow() here - it pulls first which would re-add the deleted song.
+    //
+    // But the immediate push is fire-and-forget, so when online we also delete
+    // from the remote directly (push-only, no pull) and AWAIT it. Otherwise a
+    // caller that refetches right after (e.g. deleting the last song in a
+    // context) hits getSongs' empty-cache recovery, which fetches the
+    // not-yet-deleted row back from Supabase and re-materializes it.
+    if (this.isOnline && this.remote) {
+      try {
+        await this.remote.deleteSong(id)
+      } catch (err) {
+        // Leave the queued delete to retry; local is already gone.
+        console.warn('[SyncRepository] Direct remote deleteSong failed:', err)
+      }
+    }
     console.log('[SyncRepository] deleteSong complete for:', id)
   }
 
@@ -460,7 +474,11 @@ export class SyncRepository implements IDataRepository {
     const updated = await this.local.updateBandMembership(id, updates)
     await this.syncEngine.queueUpdate('band_memberships', id, updates)
     if (this.isOnline) {
-      this.syncEngine.syncNow()
+      // Await the push so the change is durable in Supabase before we return.
+      // Membership mutations (role / removal via status='inactive') are read
+      // cloud-first; a fire-and-forget sync would let the cloud-first refetch
+      // race the push and re-materialize the stale row.
+      await this.syncEngine.syncNow()
     }
     return updated
   }

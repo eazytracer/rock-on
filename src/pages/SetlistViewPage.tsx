@@ -580,6 +580,7 @@ export const SetlistViewPage: React.FC = () => {
         {/* Header with inline editing */}
         <EntityHeader
           backPath="/setlists"
+          backLabel="Setlists"
           title={displayName}
           titleEditable={true}
           onTitleSave={val => saveField('name', String(val))}
@@ -590,7 +591,6 @@ export const SetlistViewPage: React.FC = () => {
             onSave: val => saveField('status', val),
             options: SETLIST_STATUS_OPTIONS,
           }}
-          isNew={isNewMode}
           data-testid="setlist"
         />
 

@@ -266,8 +266,13 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   // a snapshot captured on first render. After a successful save we update
   // the snapshot so the form reads as "clean" again.
   const initialSnapshotRef = useRef<string>('')
+  // Exclude `tuningId` from the dirty snapshot: it is backfilled asynchronously
+  // from `tuning` once the tunings list loads (see the progressive-backfill
+  // effect above), which would otherwise mark a pristine add-mode form dirty and
+  // pop a spurious "unsaved changes" dialog on close. Real tuning changes are
+  // still detected via `tuning`, which is set alongside tuningId on select.
   const currentSnapshot = JSON.stringify({
-    formData,
+    formData: { ...formData, tuningId: undefined },
     links: links.map(l => ({
       icon: l.icon,
       url: l.url,
@@ -640,8 +645,9 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     )
 
     // Mark the form clean so unsaved-changes checks read as pristine.
+    // (Mirror the currentSnapshot shape, excluding the backfilled tuningId.)
     initialSnapshotRef.current = JSON.stringify({
-      formData,
+      formData: { ...formData, tuningId: undefined },
       links: links.map(l => ({
         icon: l.icon,
         url: l.url,

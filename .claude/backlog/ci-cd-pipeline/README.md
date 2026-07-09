@@ -27,6 +27,13 @@ Comprehensive CI/CD testing pipeline with pre-commit validation and automated Gi
    - Validation procedures
    - Rollback strategies
 
+3. **Empirical Gaps & Release Gates:** `2026-07-09T19:57_empirical-gaps-and-release-gates.md` ⭐
+   - What is _actually_ true today vs. the aspirational plan above
+   - No enforced e2e gate anywhere (webkit failed silently across 3 releases)
+   - Proposed CI e2e job + required `test:e2e` in `/finalize`
+   - Proposed `release-metadata` GitHub Actions gate (version bump + changelog
+     - tag enforcement — the CLAUDE.md policy, empirically enforced)
+
 ## Quick Links
 
 - [V1.0 Roadmap](../../artifacts/2025-11-20T22:39_v1-roadmap.md) - Phase 0 item #2

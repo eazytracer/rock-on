@@ -24,6 +24,8 @@ export interface EventSummary {
   name: string
   venue?: string
   scheduledDate: Date
+  /** Optional end time (timestamptz). Absent when the host didn't set one. */
+  endTime?: Date
   status: EventStatus
   visibility: EventVisibility
   hostUserId: string
@@ -74,6 +76,10 @@ export interface LineupItem {
   songId?: string
   displayTitle: string
   displayArtist: string
+  /** Per-song tuning override (stored as the tuning NAME, e.g. "Drop D"). */
+  tuning?: string
+  /** Per-song key override (e.g. "Am"). */
+  key?: string
 }
 
 export interface LineupRequest {
@@ -84,4 +90,6 @@ export interface LineupRequest {
   displayArtist: string
   status: LineupRequestStatus
   createdDate: Date
+  /** Instruments the requester offered to play ("I'd play" chips, fork E). */
+  parts?: string[]
 }

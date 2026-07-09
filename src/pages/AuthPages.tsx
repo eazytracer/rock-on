@@ -38,6 +38,7 @@ import { useCreateBand } from '../hooks/useBands'
 import { useAuth } from '../contexts/AuthContext'
 import { authService } from '../services/auth/AuthFactory'
 import { BUILD_ID } from '../config/buildInfo'
+import { sanitizeReturnTo } from '../utils/returnTo'
 // Band type not currently used but may be needed for future features
 
 // ============================================================================
@@ -348,9 +349,17 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
 
 interface SignUpPageProps {
   onSwitchToLogin: () => void
+  /**
+   * Sanitized same-origin path to return to after signup completes. When null
+   * a brand-new account lands on the get-started flow.
+   */
+  returnTo?: string | null
 }
 
-const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
+export const SignUpPage: React.FC<SignUpPageProps> = ({
+  onSwitchToLogin,
+  returnTo = null,
+}) => {
   const navigate = useNavigate()
   const { signUp } = useAuth()
   const [email, setEmail] = useState('')
@@ -361,6 +370,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {}
@@ -401,19 +411,31 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
 
       try {
         // Use actual Supabase authentication
-        const { error } = await signUp({
-          email,
-          password,
-          name: displayName,
-        })
+        const { error, needsEmailConfirmation } = await signUp(
+          {
+            email,
+            password,
+            name: displayName,
+          },
+          // Carry the (already-sanitized) returnTo across the emailed
+          // confirmation link so a join code survives verification.
+          returnTo ?? undefined
+        )
 
         if (error) {
           setLoading(false)
           setErrors({ email: error })
-        } else {
-          // signUp handles navigation via AuthContext
+        } else if (needsEmailConfirmation) {
+          // Supabase email confirmation is enabled (prod). Show the
+          // check-your-email panel instead of navigating — the user finishes
+          // signing in via the link, which returns through /auth/callback.
           setLoading(false)
-          navigate('/get-started')
+          setAwaitingConfirmation(true)
+        } else {
+          // Session established immediately (confirmations disabled). Return to
+          // the requested destination if any, otherwise the get-started flow.
+          setLoading(false)
+          navigate(returnTo ?? '/get-started')
         }
       } catch (err) {
         console.error('Sign up error:', err)
@@ -445,6 +467,50 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // After a successful signup that requires email confirmation, show a themed
+  // "check your email" panel instead of the form. No navigation happens here —
+  // the user completes signin by clicking the emailed link.
+  if (awaitingConfirmation) {
+    return (
+      <div
+        className="min-h-screen bg-bg-1 flex items-center justify-center p-6"
+        data-testid="signup-check-email-panel"
+      >
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-accent to-accent-deep rounded-xl mb-4">
+              <Mail size={28} className="text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              Check your email
+            </h1>
+            <p className="text-ink-3 text-sm">
+              We sent a verification link to{' '}
+              <span className="font-semibold text-white">{email}</span>. Click
+              it to finish setting up your account.
+            </p>
+          </div>
+
+          <div className="bg-bg-2 rounded-xl p-8 border border-border-1 text-center">
+            <p className="text-ink-4 text-sm mb-6">
+              Didn&apos;t get it? Check your spam folder, or make sure the email
+              address above is correct.
+            </p>
+            <button
+              type="button"
+              id="signup-back-to-login"
+              data-testid="signup-back-to-login-button"
+              onClick={onSwitchToLogin}
+              className="text-sm text-accent hover:text-accent-deep transition-colors font-semibold"
+            >
+              Back to log in
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -552,11 +618,14 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
 interface LoginPageProps {
   onSuccess: () => void
   onSwitchToSignup: () => void
+  /** Sanitized same-origin path to return to after login (from ?returnTo=). */
+  returnTo?: string | null
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({
+export const LoginPage: React.FC<LoginPageProps> = ({
   onSuccess: _onSuccess,
   onSwitchToSignup,
+  returnTo = null,
 }) => {
   const navigate = useNavigate()
   const { signIn } = useAuth()
@@ -596,9 +665,9 @@ const LoginPage: React.FC<LoginPageProps> = ({
           setLoading(false)
           setErrors({ password: error })
         } else {
-          // Success - navigate to home page
-          console.log('✅ Login successful, navigating to home')
-          navigate('/')
+          // Success - return to the requested destination if any, else home.
+          console.log('✅ Login successful, navigating to', returnTo ?? '/')
+          navigate(returnTo ?? '/')
         }
       } catch (err) {
         console.error('Login error:', err)
@@ -1763,6 +1832,16 @@ export const AuthPages: React.FC = () => {
   const view = searchParams.get('view')
   const errorParam = searchParams.get('error')
   const reasonParam = searchParams.get('reason')
+  // Same-origin path to return to after auth (e.g. an event join URL). Only
+  // safe relative paths survive sanitization — external URLs become null.
+  const returnTo = sanitizeReturnTo(searchParams.get('returnTo'))
+
+  // `view=signup` (used by JamViewPage deep-links) should open the signup form.
+  useEffect(() => {
+    if (view === 'signup') {
+      setShowSignup(true)
+    }
+  }, [view])
 
   // Display session expiry message if redirected from ProtectedLayoutRoute
   useEffect(() => {
@@ -1821,7 +1900,10 @@ export const AuthPages: React.FC = () => {
     return (
       <>
         {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-        <SignUpPage onSwitchToLogin={() => setShowSignup(false)} />
+        <SignUpPage
+          onSwitchToLogin={() => setShowSignup(false)}
+          returnTo={returnTo}
+        />
       </>
     )
   }
@@ -1835,6 +1917,7 @@ export const AuthPages: React.FC = () => {
           /* Navigate handled in LoginPage */
         }}
         onSwitchToSignup={() => setShowSignup(true)}
+        returnTo={returnTo}
       />
     </>
   )

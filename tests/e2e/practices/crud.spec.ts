@@ -23,6 +23,7 @@ import {
 } from '../../fixtures/bands'
 import {
   fillInlineEditableField,
+  fillMarkdownField,
   clickToEdit,
   clickButtonReliably,
   closeBrowseSongsDrawer,
@@ -112,8 +113,8 @@ test.describe('Practice Sessions CRUD Operations', () => {
     // Set location using InlineEditableField helper
     await fillInlineEditableField(page, 'practice-location', 'Main Studio')
 
-    // Set notes using InlineEditableField helper (textarea type)
-    await fillInlineEditableField(page, 'practice-notes', 'Focus on new songs')
+    // Set notes — the notes field is a MarkdownField (not an InlineEditableField).
+    await fillMarkdownField(page, 'practice-notes', 'Focus on new songs')
 
     // Close the Browse Songs drawer if open
     await closeBrowseSongsDrawer(page)

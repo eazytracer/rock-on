@@ -48,9 +48,7 @@ function renderCard(over: Partial<Parameters<typeof LineupCard>[0]> = {}) {
       defaultParts={PARTS}
       casting={[]}
       hands={[]}
-      isManager
       selected={false}
-      sourcePill={{ tone: 'accent', label: 'Mine' }}
       onSelect={onSelect}
       {...over}
     />
@@ -59,29 +57,24 @@ function renderCard(over: Partial<Parameters<typeof LineupCard>[0]> = {}) {
 }
 
 describe('LineupCard', () => {
-  it('renders the song, artist, and source pill', () => {
+  it('renders the song and artist inline in one header row', () => {
     renderCard()
     const card = screen.getByTestId('lineup-card-li1')
     expect(card).toHaveTextContent('Seven Nation Army')
     expect(card).toHaveTextContent('The White Stripes')
-    expect(screen.getByTestId('lineup-source-li1')).toHaveTextContent('Mine')
+    // Source pills are retired on event surfaces (EC4 #5).
+    expect(screen.queryByTestId('lineup-source-li1')).toBeNull()
   })
 
-  it('summarises all-open parts for a host as "Cast N open parts" with a 0/N pill', () => {
+  it('shows an all-open cast count of 0/N', () => {
     renderCard()
-    const card = screen.getByTestId('lineup-card-li1')
-    expect(card).toHaveTextContent('Cast 3 open parts')
     expect(screen.getByTestId('lineup-cast-count-li1')).toHaveTextContent('0/3')
   })
 
-  it('drops "Cast " prefix for a guest and pluralises correctly', () => {
+  it('reflects partial casting in the count (guest view)', () => {
     renderCard({
-      isManager: false,
       casting: [cast('guitar', 'Dave'), cast('bass', 'Mo')],
     })
-    const card = screen.getByTestId('lineup-card-li1')
-    expect(card).toHaveTextContent('1 open part')
-    expect(card).not.toHaveTextContent('Cast 1 open part')
     expect(screen.getByTestId('lineup-cast-count-li1')).toHaveTextContent('2/3')
   })
 
@@ -91,13 +84,10 @@ describe('LineupCard', () => {
     expect(screen.getByTestId('lineup-hands-li1')).toHaveTextContent('1')
   })
 
-  it('shows "Fully cast" (and no hands chip) when every part has a primary', () => {
+  it('reads N/N (and shows no hands chip) when every part has a primary', () => {
     renderCard({
       casting: [cast('guitar', 'A'), cast('bass', 'B'), cast('drums', 'C')],
     })
-    const card = screen.getByTestId('lineup-card-li1')
-    expect(card).toHaveTextContent('Fully cast')
-    expect(card).not.toHaveTextContent('open part')
     expect(screen.getByTestId('lineup-cast-count-li1')).toHaveTextContent('3/3')
     expect(screen.queryByTestId('lineup-hands-li1')).toBeNull()
   })
@@ -108,5 +98,99 @@ describe('LineupCard', () => {
     expect(card).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(card)
     expect(onSelect).toHaveBeenCalledOnce()
+  })
+
+  it('shows a drag handle only when dragHandleListeners are supplied (G)', () => {
+    renderCard()
+    expect(screen.queryByTestId('lineup-drag-li1')).toBeNull()
+    renderCard({ dragHandleListeners: { onPointerDown: vi.fn() } })
+    expect(screen.getByTestId('lineup-drag-li1')).toBeInTheDocument()
+  })
+
+  it('shows a manager kebab with Edit + Remove actions when supplied (H)', () => {
+    const onEdit = vi.fn()
+    const onRemove = vi.fn()
+    renderCard({
+      actions: [
+        {
+          label: 'Edit song',
+          onClick: onEdit,
+          'data-testid': 'lineup-edit-li1',
+        },
+        {
+          label: 'Remove',
+          variant: 'danger',
+          onClick: onRemove,
+          'data-testid': 'lineup-remove-li1',
+        },
+      ],
+    })
+    fireEvent.click(screen.getByTestId('lineup-actions-li1'))
+    fireEvent.click(screen.getByTestId('lineup-edit-li1'))
+    expect(onEdit).toHaveBeenCalledOnce()
+    fireEvent.click(screen.getByTestId('lineup-actions-li1'))
+    fireEvent.click(screen.getByTestId('lineup-remove-li1'))
+    expect(onRemove).toHaveBeenCalledOnce()
+  })
+
+  it('renders no manager controls (grip/kebab) when none are supplied (guest)', () => {
+    renderCard()
+    expect(screen.queryByTestId('lineup-drag-li1')).toBeNull()
+    expect(screen.queryByTestId('lineup-actions-li1')).toBeNull()
+  })
+
+  it('shows "Added by {name}" when an ownerName is supplied (6g)', () => {
+    renderCard({ ownerName: 'Tomás' })
+    expect(screen.getByTestId('lineup-owner-li1')).toHaveTextContent(
+      'Added by Tomás'
+    )
+  })
+
+  it('omits the added-by line when ownerName is unknown', () => {
+    renderCard()
+    expect(screen.queryByTestId('lineup-owner-li1')).toBeNull()
+  })
+
+  it('displays the per-song tuning (canonical label) + key when present (6g)', () => {
+    renderCard({ item: { ...ITEM, tuning: 'Drop D', key: 'Am' } })
+    expect(screen.getByTestId('lineup-tuning-li1')).toHaveTextContent('Drop D')
+    expect(screen.getByTestId('lineup-key-li1')).toHaveTextContent('Am')
+  })
+
+  it('omits tuning/key chips when the item has neither', () => {
+    renderCard()
+    expect(screen.queryByTestId('lineup-tuning-li1')).toBeNull()
+    expect(screen.queryByTestId('lineup-key-li1')).toBeNull()
+  })
+
+  it('shows a Casting affordance (people icon + label) by the expand arrow', () => {
+    renderCard()
+    expect(screen.getByTestId('lineup-casting-li1')).toHaveTextContent(
+      'Casting'
+    )
+  })
+
+  it('highlights the parts the logged-in user is cast on', () => {
+    renderCard({
+      currentUserId: 'me',
+      casting: [
+        {
+          id: 'c1',
+          slotId: 'li1',
+          roleKey: 'guitar',
+          memberId: 'me',
+          memberName: 'Me',
+          isPrimary: true,
+        } as CastingAssignment,
+      ],
+    })
+    const chip = screen.getByTestId('lineup-you-li1')
+    expect(chip).toHaveTextContent('on')
+    expect(chip).toHaveTextContent('Guitar')
+  })
+
+  it('omits the "You\'re on" chip when the user is cast on nothing', () => {
+    renderCard({ currentUserId: 'me' })
+    expect(screen.queryByTestId('lineup-you-li1')).toBeNull()
   })
 })
