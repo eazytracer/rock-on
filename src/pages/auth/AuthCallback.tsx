@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSupabaseClient } from '../../services/supabase/client'
 import { config } from '../../config/appMode'
+import { sanitizeReturnTo } from '../../utils/returnTo'
 
 /**
  * Auth callback page for OAuth redirects (Google, etc.)
@@ -164,8 +165,17 @@ export function AuthCallback() {
 
         const { userId, bandId } = await waitForAuthState()
 
-        // If user has a band, go to home. Otherwise, go to get-started flow
-        if (bandId) {
+        // Replay a pending same-origin destination (e.g. an event join URL)
+        // if one was carried through on the callback URL. Only safe relative
+        // paths survive sanitization.
+        const returnTo = sanitizeReturnTo(params.get('returnTo'))
+
+        // returnTo (if any) takes priority — a band isn't required to, e.g.,
+        // join an event. Otherwise: has-band → home, brand-new user → get-started.
+        if (returnTo) {
+          console.log('↩️ Replaying returnTo after auth:', returnTo)
+          navigate(returnTo)
+        } else if (bandId) {
           console.log('🏠 User has band, navigating to home')
           navigate('/')
         } else if (userId) {

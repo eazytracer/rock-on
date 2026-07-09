@@ -570,6 +570,7 @@ export const ShowViewPage: React.FC = () => {
         {/* Header with inline editing */}
         <EntityHeader
           backPath="/calendar?filter=shows"
+          backLabel="Shows"
           title={show.name}
           onTitleSave={val => saveField('name', String(val))}
           titlePlaceholder="Show name"
@@ -588,12 +589,11 @@ export const ShowViewPage: React.FC = () => {
             onSave: val => saveField('status', val as Show['status']),
             options: SHOW_STATUS_OPTIONS,
           }}
-          isNew={isNewMode}
           data-testid="show"
         />
 
         {/* Content */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <div className="max-w-6xl mx-auto py-6 space-y-6">
           {/* New mode save button */}
           {isNewMode && (
             <div className="bg-bg-1 border border-accent rounded-lg p-4 flex items-center justify-between">

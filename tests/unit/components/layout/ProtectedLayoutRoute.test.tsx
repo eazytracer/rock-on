@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock the hooks and components
@@ -128,6 +128,62 @@ describe('ProtectedLayoutRoute', () => {
       // Should redirect to auth page with session-expired reason
       expect(screen.getByTestId('auth-page')).toBeInTheDocument()
       expect(screen.queryByTestId('modern-layout')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('returnTo preservation', () => {
+    // Probe that surfaces the auth page's full URL (path + query) so we can
+    // assert the returnTo param survived the redirect.
+    const AuthProbe = () => {
+      const loc = useLocation()
+      return <div data-testid="auth-probe">{loc.pathname + loc.search}</div>
+    }
+
+    const renderWithProbe = (initialEntries: string[]) =>
+      render(
+        <MemoryRouter initialEntries={initialEntries}>
+          <Routes>
+            <Route element={<ProtectedLayoutRoute />}>
+              <Route
+                path="/events"
+                element={<div data-testid="events-page">Events</div>}
+              />
+            </Route>
+            <Route path="/auth" element={<AuthProbe />} />
+          </Routes>
+        </MemoryRouter>
+      )
+
+    it('redirects an unauthenticated user with returnTo capturing path + query', () => {
+      mockUseAuthCheck.mockReturnValue({
+        isAuthenticated: false,
+        isChecking: false,
+        failureReason: 'no-user',
+      })
+
+      renderWithProbe(['/events?join=ABC123'])
+
+      const probe = screen.getByTestId('auth-probe')
+      expect(probe.textContent).toContain('/auth')
+      expect(probe.textContent).toContain(
+        `returnTo=${encodeURIComponent('/events?join=ABC123')}`
+      )
+    })
+
+    it('attaches returnTo to session-expired redirects too', () => {
+      mockUseAuthCheck.mockReturnValue({
+        isAuthenticated: false,
+        isChecking: false,
+        failureReason: 'session-expired',
+      })
+
+      renderWithProbe(['/events?join=XYZ'])
+
+      const probe = screen.getByTestId('auth-probe')
+      expect(probe.textContent).toContain('reason=session-expired')
+      expect(probe.textContent).toContain(
+        `returnTo=${encodeURIComponent('/events?join=XYZ')}`
+      )
     })
   })
 

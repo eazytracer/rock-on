@@ -33,7 +33,37 @@ export function useEventParticipants(eventId: string | undefined) {
   // Live-update as people are invited / join / RSVP.
   useRealtimeTable('event_participants', 'event_id', eventId, refetch)
 
-  return { participants, loading, refetch }
+  const removeParticipant = useCallback(
+    async (userId: string) => {
+      if (!eventId) return { ok: false, error: 'No event' }
+      const res = await EventService.removeParticipant(eventId, userId)
+      if (res.ok) await refetch()
+      return res
+    },
+    [eventId, refetch]
+  )
+  const leaveEvent = useCallback(async () => {
+    if (!eventId) return { ok: false, error: 'No event' }
+    return EventService.leaveEvent(eventId)
+  }, [eventId])
+  const setParticipantTier = useCallback(
+    async (userId: string, tier: 'cohost' | 'guest') => {
+      if (!eventId) return { ok: false, error: 'No event' }
+      const res = await EventService.setParticipantTier(eventId, userId, tier)
+      if (res.ok) await refetch()
+      return res
+    },
+    [eventId, refetch]
+  )
+
+  return {
+    participants,
+    loading,
+    refetch,
+    removeParticipant,
+    leaveEvent,
+    setParticipantTier,
+  }
 }
 
 /** List of events the current user hosts or participates in. */
@@ -161,14 +191,85 @@ export function useEventDetail(eventId: string | undefined) {
   const isManager = !!(event && user && event.hostUserId === user.id)
 
   const addRequest = useCallback(
-    async (title: string, artist: string) => {
+    async (title: string, artist: string, parts?: string[]) => {
       if (!eventId) return { ok: false, error: 'No event' }
-      const res = await EventService.addRequest(eventId, title, artist)
+      const res = await EventService.addRequest(eventId, title, artist, parts)
       if (res.ok) await refetch()
       return res
     },
     [eventId, refetch]
   )
+  const addLineupItem = useCallback(
+    async (input: {
+      title: string
+      artist: string
+      source?: LineupItem['source']
+      songId?: string
+      tuning?: string
+      key?: string
+    }) => {
+      if (!eventId) return { ok: false, error: 'No event' }
+      const res = await EventService.addLineupItem(eventId, input)
+      if (res.ok) await refetch()
+      return res
+    },
+    [eventId, refetch]
+  )
+  const reorderLineup = useCallback(
+    async (orderedItemIds: string[]) => {
+      if (!eventId) return { ok: false, error: 'No event' }
+      // Optimistic local reorder so the drag settles instantly; refetch
+      // reconciles with the server order (and reverts on failure).
+      setLineup(prev => {
+        const byId = new Map(prev.map(i => [i.id, i]))
+        const next = orderedItemIds
+          .map((id, idx) => {
+            const item = byId.get(id)
+            return item ? { ...item, position: idx + 1 } : null
+          })
+          .filter((i): i is LineupItem => i !== null)
+        return next.length === prev.length ? next : prev
+      })
+      const res = await EventService.reorderLineup(eventId, orderedItemIds)
+      await refetch()
+      return res
+    },
+    [eventId, refetch]
+  )
+  const updateLineupItem = useCallback(
+    async (
+      itemId: string,
+      input: { title: string; artist: string; tuning?: string; key?: string }
+    ) => {
+      const res = await EventService.updateLineupItem(itemId, input)
+      if (res.ok) await refetch()
+      return res
+    },
+    [refetch]
+  )
+  const removeLineupItem = useCallback(
+    async (itemId: string) => {
+      const res = await EventService.removeLineupItem(itemId)
+      if (res.ok) await refetch()
+      return res
+    },
+    [refetch]
+  )
+  const updateEvent = useCallback(
+    async (patch: Parameters<typeof EventService.updateEvent>[1]) => {
+      if (!eventId) return { ok: false, error: 'No event' }
+      const res = await EventService.updateEvent(eventId, patch)
+      if (res.ok) await refetch()
+      return res
+    },
+    [eventId, refetch]
+  )
+  const cancelEvent = useCallback(async () => {
+    if (!eventId) return { ok: false, error: 'No event' }
+    const res = await EventService.cancelEvent(eventId)
+    if (res.ok) await refetch()
+    return res
+  }, [eventId, refetch])
   const approve = useCallback(
     async (id: string) => {
       // Pass the host's current band so a matching request links to that
@@ -194,6 +295,12 @@ export function useEventDetail(eventId: string | undefined) {
     loading,
     refetch,
     addRequest,
+    addLineupItem,
+    reorderLineup,
+    updateLineupItem,
+    removeLineupItem,
+    updateEvent,
+    cancelEvent,
     approve,
     reject,
   }

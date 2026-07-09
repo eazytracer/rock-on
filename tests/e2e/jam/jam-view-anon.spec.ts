@@ -129,6 +129,21 @@ function randomShortCode(): string {
   return out
 }
 
+/**
+ * Pass the anon view's name-entry gate. On first visit the page prompts the
+ * guest to introduce themselves (`viewerName === null`) and renders the setlist
+ * only after they commit a name. Fill and submit so the setlist surface shows.
+ */
+async function joinAsWatcher(
+  page: import('@playwright/test').Page,
+  name = 'E2E Watcher'
+): Promise<void> {
+  const nameInput = page.locator('[data-testid="jam-view-name-input"]')
+  await expect(nameInput).toBeVisible({ timeout: 10000 })
+  await nameInput.fill(name)
+  await page.locator('[data-testid="jam-view-name-submit"]').click()
+}
+
 // ======================================================================
 
 test.describe('Jam Session Anonymous View — surface & failure modes', () => {
@@ -329,6 +344,9 @@ test.describe('Jam Session Anonymous View — live session (requires Supabase)',
       timeout: 10000,
     })
 
+    // Pass the name-entry gate so the setlist surface renders.
+    await joinAsWatcher(page)
+
     // Host display name should fall back to users.name when no
     // user_profiles row exists (v0.3.1 fix). The test user's name is
     // `Host <timestamp>` — assert the "Host " prefix renders.
@@ -368,6 +386,8 @@ test.describe('Jam Session Anonymous View — live session (requires Supabase)',
     await expect(page.locator('[data-testid="jam-view-page"]')).toBeVisible({
       timeout: 5000,
     })
+    // Pass the name-entry gate so the setlist surface renders.
+    await joinAsWatcher(page)
     await expect(
       page.locator('[data-testid="jam-view-setlist-empty"]')
     ).toBeVisible({ timeout: 10000 })
@@ -400,6 +420,8 @@ test.describe('Jam Session Anonymous View — live session (requires Supabase)',
   }) => {
     // Load the page with the initial 2-item setlist.
     await page.goto(`/jam/view/${shortCode}?t=${encodeURIComponent(rawToken!)}`)
+    // Pass the name-entry gate so the setlist surface renders.
+    await joinAsWatcher(page)
     const items = page.locator('[data-testid^="jam-view-setlist-item-"]')
     await expect(items).toHaveCount(2, { timeout: 5000 })
 

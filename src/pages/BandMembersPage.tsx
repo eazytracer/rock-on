@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { Avatar } from '../components/common/Avatar'
+import { BackLink } from '../components/common/BackLink'
 import {
-  ArrowLeft,
   Edit,
   Copy,
   Share2,
@@ -527,14 +527,9 @@ export const BandMembersPage: React.FC = () => {
           <>
             {/* Page Header */}
             <div className="mb-8">
+              <BackLink className="mb-4" />
               <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => window.history.back()}
-                    className="p-2 rounded-lg border border-border-1 bg-transparent text-white hover:bg-bg-3 transition-colors"
-                  >
-                    <ArrowLeft size={20} />
-                  </button>
                   <h1 className="text-3xl font-bold text-white">{band.name}</h1>
                 </div>
 
@@ -752,6 +747,7 @@ export const BandMembersPage: React.FC = () => {
                                   : member.userId
                               )
                             }
+                            data-testid={`member-actions-${member.email}`}
                             className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-white transition-colors"
                           >
                             <MoreVertical size={16} />
@@ -812,6 +808,7 @@ export const BandMembersPage: React.FC = () => {
                                     <div className="border-t border-border-1 my-1" />
                                     <button
                                       onClick={() => openRemoveMember(member)}
+                                      data-testid={`remove-member-${member.email}`}
                                       className="w-full px-4 py-2 text-left text-danger text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
                                     >
                                       <Trash2 size={16} />
@@ -1346,6 +1343,7 @@ export const BandMembersPage: React.FC = () => {
                     </button>
                     <button
                       onClick={handleRemoveMember}
+                      data-testid="confirm-remove-member"
                       className="flex-1 px-4 py-2 rounded-lg bg-danger text-white text-sm font-medium hover:bg-danger transition-colors"
                     >
                       Remove

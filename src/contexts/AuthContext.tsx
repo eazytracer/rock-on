@@ -32,7 +32,10 @@ interface AuthContextType {
   user: User | null
   session: AuthSession | null
   loading: boolean
-  signUp: (credentials: SignUpCredentials) => Promise<{ error?: string }>
+  signUp: (
+    credentials: SignUpCredentials,
+    returnTo?: string
+  ) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>
   signIn: (credentials: SignInCredentials) => Promise<{ error?: string }>
   signOut: () => Promise<void>
   isAuthenticated: boolean
@@ -567,14 +570,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     }
   }
 
-  const signUp = async (credentials: SignUpCredentials) => {
+  const signUp = async (credentials: SignUpCredentials, returnTo?: string) => {
     setLoading(true)
     try {
-      const response = await authService.signUp(credentials)
+      const response = await authService.signUp(credentials, returnTo)
       if (response.error) {
         return { error: response.error }
       }
-      return {}
+      return { needsEmailConfirmation: response.needsEmailConfirmation }
     } catch (error) {
       console.error('Sign up error:', error)
       return { error: 'An unexpected error occurred' }

@@ -14,6 +14,7 @@ import type {
   Session as SupabaseSession,
 } from '@supabase/supabase-js'
 import { getSyncRepository } from '../data/SyncRepository'
+import { sanitizeReturnTo } from '../../utils/returnTo'
 
 export class SupabaseAuthService implements IAuthService {
   private supabase
@@ -239,8 +240,22 @@ export class SupabaseAuthService implements IAuthService {
     }
   }
 
-  async signUp(credentials: SignUpCredentials): Promise<AuthResponse> {
+  async signUp(
+    credentials: SignUpCredentials,
+    returnTo?: string
+  ): Promise<AuthResponse> {
     try {
+      // Ensure the confirmation link returns the user into the app so the
+      // AuthCallback page can finish signing them in. If a safe same-origin
+      // returnTo was supplied (e.g. an event join URL), carry it across the
+      // emailed link so it survives verification. Unsafe values are dropped.
+      const safeReturnTo = sanitizeReturnTo(returnTo)
+      const emailRedirectTo = safeReturnTo
+        ? `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(
+            safeReturnTo
+          )}`
+        : `${window.location.origin}/auth/callback`
+
       const { data, error } = await this.supabase.auth.signUp({
         email: credentials.email,
         password: credentials.password,
@@ -248,6 +263,7 @@ export class SupabaseAuthService implements IAuthService {
           data: {
             name: credentials.name,
           },
+          emailRedirectTo,
         },
       })
 
@@ -260,16 +276,33 @@ export class SupabaseAuthService implements IAuthService {
       }
 
       if (!data.session) {
-        // Check if user was created but session wasn't returned
-        // This can happen if email confirmations are enabled or if there's an error
-        const errorMessage = data.user
-          ? 'Account created but session not available. Please try signing in.'
-          : 'Failed to create account. The email may already be registered.'
+        // No session but a user WAS created → Supabase email confirmation is
+        // enabled. This is a SUCCESS: the user must confirm via email before
+        // signing in. Only a missing user is a true failure.
+        if (data.user) {
+          const user: User = {
+            id: data.user.id,
+            email: data.user.email ?? credentials.email,
+            name: data.user.user_metadata?.name || credentials.name,
+            authProvider: 'email',
+            createdDate: data.user.created_at
+              ? new Date(data.user.created_at)
+              : new Date(),
+            lastLogin: new Date(),
+          }
+
+          return {
+            user,
+            session: null,
+            needsEmailConfirmation: true,
+          }
+        }
 
         return {
           user: null,
           session: null,
-          error: errorMessage,
+          error:
+            'Failed to create account. The email may already be registered.',
         }
       }
 

@@ -325,64 +325,20 @@ test.describe('Band Member Management', () => {
     await adminPage.goto('/band-members')
     await adminPage.waitForLoadState('networkidle')
 
-    // Click on member to remove
-    const memberRow = adminPage
-      .locator(`[data-testid="member-row-${member.email}"]`)
-      .first()
-    await expect(memberRow).toBeVisible({ timeout: 5000 })
-    await memberRow.click()
-    await adminPage.waitForTimeout(500)
+    // Open the member's actions menu and remove them from the band.
+    const memberRow = adminPage.locator(
+      `[data-testid="member-row-${member.email}"]`
+    )
+    await expect(memberRow.first()).toBeVisible({ timeout: 5000 })
 
-    // Look for remove button
-    const removeButton = adminPage
-      .locator(
-        'button:has-text("Remove"), button:has-text("Remove from Band"), [data-testid="remove-member"]'
-      )
-      .first()
-    const hasRemoveButton = await removeButton.isVisible().catch(() => false)
+    await adminPage.click(`[data-testid="member-actions-${member.email}"]`)
+    await adminPage.click(`[data-testid="remove-member-${member.email}"]`)
+    await adminPage.click('[data-testid="confirm-remove-member"]')
 
-    if (hasRemoveButton) {
-      // Click remove
-      await removeButton.click()
-      await adminPage.waitForTimeout(500)
-
-      // Confirm if there's a confirmation dialog
-      const confirmButton = adminPage
-        .locator('button:has-text("Confirm"), button:has-text("Yes")')
-        .first()
-      const hasConfirm = await confirmButton.isVisible().catch(() => false)
-      if (hasConfirm) {
-        await confirmButton.click()
-      }
-
-      await adminPage.waitForTimeout(2000)
-
-      // Verify member is no longer in list
-      const memberStillVisible = await memberRow.isVisible().catch(() => false)
-      expect(memberStillVisible).toBe(false)
-
-      // Verify member loses access
-      // Try to navigate member to band content
-      await memberPage.goto('/songs')
-      await memberPage.waitForTimeout(2000)
-
-      // Should either be redirected or see "no access" message
-      const currentUrl = memberPage.url()
-      const hasNoAccess =
-        currentUrl.includes('get-started') ||
-        currentUrl.includes('auth') ||
-        (await memberPage
-          .locator('text=/no access|not found|no bands/i')
-          .first()
-          .isVisible()
-          .catch(() => false))
-
-      if (!hasNoAccess) {
-        console.log('Note: Member access revocation may need verification')
-      }
-    } else {
-      console.log('Note: Remove member feature may not be implemented yet')
-    }
+    // The member's row must be gone — and STAY gone. Removal has to persist to
+    // Supabase; a local-only write would be re-materialized as active by the
+    // cloud-first members read.
+    await expect(memberRow).toHaveCount(0, { timeout: 10000 })
 
     await adminContext.close()
     await memberContext.close()

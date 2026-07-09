@@ -221,3 +221,29 @@ export async function closeBrowseSongsDrawer(page: Page): Promise<void> {
     await page.waitForTimeout(500) // Wait for drawer animation
   }
 }
+
+/**
+ * Fills a MarkdownField (notes) component, scoped to its container testId.
+ *
+ * MarkdownField has its own click-to-edit flow with global sub-element testids,
+ * so callers must scope by the field's container testid (e.g. "practice-notes")
+ * to disambiguate when several MarkdownFields share a page.
+ *
+ * @param page - Playwright Page object
+ * @param testId - The MarkdownField container test ID (e.g. "practice-notes")
+ * @param value - The markdown text to enter
+ * @param timeout - Maximum time to wait for elements (default: 5000ms)
+ */
+export async function fillMarkdownField(
+  page: Page,
+  testId: string,
+  value: string,
+  timeout = 5000
+): Promise<void> {
+  const container = page.locator(`[data-testid="${testId}"]`)
+  await container.getByTestId('markdown-field-edit-button').click()
+  const textarea = container.getByTestId('markdown-textarea')
+  await textarea.waitFor({ state: 'visible', timeout })
+  await textarea.fill(value)
+  await container.getByTestId('markdown-save').click()
+}

@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { Radio, Users, ArrowRight, ListMusic, Edit3 } from 'lucide-react'
 import type { JamViewPublicPayload } from '../models/JamSession'
 import { createLogger } from '../utils/logger'
+import { encodeReturnTo } from '../utils/returnTo'
 import { useJamPresence } from '../hooks/useJamPresence'
 
 const log = createLogger('JamViewPage')
@@ -256,7 +257,9 @@ export const JamViewPage: React.FC = () => {
   }, [])
 
   const handleSignUp = () => {
-    navigate(`/auth?view=signup&redirect=/jam/${shortCode}`)
+    navigate(
+      `/auth?view=signup&returnTo=${encodeReturnTo(`/jam/${shortCode}`)}`
+    )
   }
 
   const setlist = payload?.setlist ?? []
@@ -553,7 +556,9 @@ export const JamViewPage: React.FC = () => {
                       Already have an account?{' '}
                       <button
                         onClick={() =>
-                          navigate(`/auth?redirect=/jam/${shortCode}`)
+                          navigate(
+                            `/auth?returnTo=${encodeReturnTo(`/jam/${shortCode}`)}`
+                          )
                         }
                         className="text-primary hover:underline"
                       >

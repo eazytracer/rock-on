@@ -52,10 +52,15 @@ test.describe('Setlist and Show Sync Verification', () => {
     await addButton.click()
     await page.waitForTimeout(500)
 
-    // Fill in the setlist name
-    const nameInput = page
-      .locator('input[name="name"], [data-testid="setlist-name-input"]')
-      .first()
+    // Fill in the setlist name - the create flow now opens the full-page
+    // setlist editor whose name is an inline-editable field (starts in
+    // display mode), not a modal input.
+    const nameInput = page.locator('[data-testid="setlist-name-input"]').first()
+    const isNameInputVisible = await nameInput.isVisible().catch(() => false)
+    if (!isNameInputVisible) {
+      await page.locator('[data-testid="setlist-name-display"]').first().click()
+      await page.waitForTimeout(200)
+    }
     await expect(nameInput).toBeVisible({ timeout: 5000 })
     await nameInput.fill(setlistName)
 
@@ -250,8 +255,6 @@ test.describe('Setlist and Show Sync Verification', () => {
 
     // Create a show with a specific date: December 15, 2025
     const testDate = '2025-12-15'
-    const expectedDay = '15'
-    const expectedMonth = 'Dec'
 
     // Click Add Show button
     const addButton = page
@@ -281,27 +284,20 @@ test.describe('Setlist and Show Sync Verification', () => {
     await expect(nameInput).toBeVisible({ timeout: 5000 })
     await nameInput.fill(showName)
 
-    // Fill date - the date picker might need clicking to enter edit mode
-    const dateButton = page
-      .locator(
-        '[data-testid="show-date-display"], button:has-text("Jan"), button:has-text("Feb"), button:has-text("Mar"), button:has-text("Apr"), button:has-text("May"), button:has-text("Jun"), button:has-text("Jul"), button:has-text("Aug"), button:has-text("Sep"), button:has-text("Oct"), button:has-text("Nov"), button:has-text("Dec")'
-      )
-      .first()
-    const dateInput = page
-      .locator('input[type="date"], [data-testid="show-date-input"]')
-      .first()
+    // Set the date. The date is an inline-editable field: click its display to
+    // enter edit mode (the calendar auto-opens), type the date into the
+    // type-ahead field, and commit with Enter (which auto-saves).
+    await page.click('[data-testid="show-date-display"]')
+    const dateType = page.locator('[data-testid="show-date-input-type-input"]')
+    await expect(dateType).toBeVisible({ timeout: 5000 })
+    await dateType.fill('12/15/2025')
+    await dateType.press('Enter')
 
-    if (
-      (await dateButton.isVisible().catch(() => false)) &&
-      !(await dateInput.isVisible().catch(() => false))
-    ) {
-      // Click the date display button to enter edit mode
-      await dateButton.click()
-      await page.waitForTimeout(200)
-    }
-
-    await expect(dateInput).toBeVisible({ timeout: 5000 })
-    await dateInput.fill(testDate)
+    // The display now reflects the chosen day — this catches a display
+    // off-by-one immediately (it must read Dec 15, not Dec 14).
+    await expect(
+      page.locator('[data-testid="show-date-display"]')
+    ).toContainText('Dec 15')
 
     // Save the show
     const saveButton = page
@@ -312,60 +308,30 @@ test.describe('Setlist and Show Sync Verification', () => {
     await saveButton.click()
     await page.waitForTimeout(2000)
 
-    // Find the show in the list
-    const showItem = page.locator(`text=${showName}`).first()
-    await expect(showItem).toBeVisible({ timeout: 5000 })
+    // After creating, we land on the show detail page. Verify the show name
+    // is shown, then open the inline date field and confirm the stored date
+    // round-tripped correctly: Dec 15, NOT Dec 14 (the off-by-one bug).
+    await expect(page.getByText(showName).first()).toBeVisible({
+      timeout: 5000,
+    })
 
-    // Get the parent card/row containing this show
-    const showCard = showItem
-      .locator(
-        'xpath=ancestor::*[contains(@class, "card") or contains(@class, "row") or @data-testid]'
-      )
-      .first()
+    // Verify in Supabase that the stored date lands on the correct local
+    // calendar day. Parsing scheduled_date in the same local timezone the app
+    // uses, an off-by-one save would surface here as day 14 instead of 15.
+    const supabase = await getSupabaseAdmin()
+    const { data: shows, error } = await supabase
+      .from('shows')
+      .select('*')
+      .ilike('name', `%${showName}%`)
+    expect(error).toBeNull()
+    expect(shows!.length).toBeGreaterThan(0)
 
-    // Verify the date displays correctly (should show Dec 15, NOT Dec 14)
-    // Look for the date badge/display within the show card
-    const dateBadge = showCard.locator('text=/Dec/i').first()
-    const dayNumber = showCard.locator(`text=${expectedDay}`).first()
+    const stored = new Date(shows![0].scheduled_date)
+    expect(stored.getFullYear()).toBe(2025)
+    expect(stored.getMonth()).toBe(11) // December (0-indexed)
+    expect(stored.getDate()).toBe(15)
 
-    // The month should be visible
-    await expect(dateBadge).toBeVisible({ timeout: 5000 })
-
-    // The day should be 15, NOT 14 (which would be the off-by-one bug)
-    const pageContent = await page.content()
-
-    // Verify December 15 is shown
-    expect(pageContent).toContain(expectedMonth)
-    expect(pageContent).toContain(expectedDay)
-
-    // Make sure it's NOT showing December 14 (the bug we fixed)
-    // This is a bit fragile, but we want to ensure the date isn't shifted
-
-    console.log(
-      `✅ Show date displays correctly as ${expectedMonth} ${expectedDay}`
-    )
-
-    // Double-check by reopening the edit modal
-    await showItem.click()
-    await page.waitForTimeout(500)
-
-    // Look for edit button and click it
-    const editButton = page
-      .locator('button:has-text("Edit"), [data-testid="edit-show-button"]')
-      .first()
-    if (await editButton.isVisible()) {
-      await editButton.click()
-      await page.waitForTimeout(500)
-
-      // Verify the date input still shows the correct date
-      const editDateInput = page
-        .locator('input[type="date"], input[name="date"]')
-        .first()
-      const dateValue = await editDateInput.inputValue()
-
-      expect(dateValue).toBe(testDate)
-      console.log(`✅ Edit modal shows correct date: ${dateValue}`)
-    }
+    console.log(`✅ Show date round-trips correctly as ${testDate}`)
   })
 
   test('duplicating a setlist syncs sourceSetlistId correctly', async ({
@@ -402,9 +368,15 @@ test.describe('Setlist and Show Sync Verification', () => {
     await addButton.click()
     await page.waitForTimeout(500)
 
-    const nameInput = page
-      .locator('input[name="name"], [data-testid="setlist-name-input"]')
-      .first()
+    // The create flow now opens the full-page setlist editor whose name is
+    // an inline-editable field (starts in display mode), not a modal input.
+    const nameInput = page.locator('[data-testid="setlist-name-input"]').first()
+    const isNameInputVisible = await nameInput.isVisible().catch(() => false)
+    if (!isNameInputVisible) {
+      await page.locator('[data-testid="setlist-name-display"]').first().click()
+      await page.waitForTimeout(200)
+    }
+    await expect(nameInput).toBeVisible({ timeout: 5000 })
     await nameInput.fill(originalName)
 
     const saveButton = page

@@ -30,7 +30,7 @@ import {
   parseTime12Hour,
 } from '../utils/dateHelpers'
 import { secondsToDuration } from '../utils/formatters'
-import { ListMusic, Plus, FileText, Clock, MapPin, Play } from 'lucide-react'
+import { ListMusic, Plus, FileText, Clock, Play } from 'lucide-react'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song as DBSong } from '../models/Song'
 import type { Setlist as DBSetlist } from '../models/Setlist'
@@ -523,6 +523,7 @@ export const PracticeViewPage: React.FC = () => {
         {/* Header with inline editing */}
         <EntityHeader
           backPath="/calendar?filter=practices"
+          backLabel="Practices"
           title={headerTitle}
           titleEditable={false}
           entityType="practice"
@@ -534,6 +535,8 @@ export const PracticeViewPage: React.FC = () => {
           onTimeSave={val => saveDateTime(formattedDate, String(val))}
           venue={practice.location}
           onVenueSave={val => saveField('location', String(val) || undefined)}
+          venuePlaceholder="Add location"
+          venueTestId="practice-location"
           status={
             !isNewMode
               ? {
@@ -544,7 +547,6 @@ export const PracticeViewPage: React.FC = () => {
                 }
               : undefined
           }
-          isNew={isNewMode}
         />
 
         {/* Start Practice Button - shown for existing practices with songs */}
@@ -585,7 +587,7 @@ export const PracticeViewPage: React.FC = () => {
           {/* Details Section */}
           <SectionCard title="Details">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Duration */}
+              {/* Duration — location is edited inline in the header (venue slot). */}
               <InlineEditableField
                 label="Duration"
                 value={practice.duration}
@@ -594,16 +596,6 @@ export const PracticeViewPage: React.FC = () => {
                 type="duration"
                 icon={<Clock size={16} />}
                 data-testid="practice-duration"
-              />
-
-              {/* Location */}
-              <InlineEditableField
-                label="Location"
-                value={practice.location || ''}
-                onSave={val => saveField('location', String(val) || undefined)}
-                placeholder="Practice space, studio, etc."
-                icon={<MapPin size={16} />}
-                data-testid="practice-location"
               />
             </div>
 

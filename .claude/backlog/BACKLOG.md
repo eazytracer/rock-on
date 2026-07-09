@@ -307,16 +307,14 @@ Master overview of planned features in the `.claude/backlog/` directory.
 
 ### guitar-tuning-system
 
-**Directory:** MOVED → `.claude/features/guitar-tuning-system/` (promoted out of backlog 2026-07-04).
-**Status:** Active — **database layer built + tested (local)**; app layer pending.
+**Directory:** COMPLETED → `.claude/completed/guitar-tuning-system/SUMMARY.md` (shipped in 0.4.0–0.4.1).
+**Status:** Done — database layer + app layer shipped.
 **Priority:** Medium
 **Complexity:** Medium-High (8-12 days)
 
-**Current source of truth:** `.claude/features/guitar-tuning-system/PROGRESS.md` +
-`2026-07-04T17:01_tunings-db-design.md` (DB design, decisions resolved) +
-`2026-07-04T17:20_tunings-for-designer.md` (designer handoff). The two 2026-01 research
-docs there are **superseded historical context** (they proposed JSONB per-string; the
-shipped design uses a MIDI `smallint[]`).
+**Source of truth:** `.claude/completed/guitar-tuning-system/SUMMARY.md`
+(the folder's design/research/progress docs were compressed into that summary
+when the feature completed).
 
 **Summary:** Per-string tuning storage system that enables retuning effort visualization in setlists. Store actual notes per string (not just labels) to calculate how much retuning is needed between songs.
 

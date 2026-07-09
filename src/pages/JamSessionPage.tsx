@@ -839,7 +839,7 @@ export const JamSessionPage: React.FC = () => {
 
                 {/* Common songs panel */}
                 {activePanel === 'common' && (
-                  <div>
+                  <div data-testid="jam-common-panel">
                     {participants.filter(p => p.status === 'active').length <
                     2 ? (
                       <EmptyState

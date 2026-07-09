@@ -329,9 +329,10 @@ test.describe('Songs CRUD Operations', () => {
     await expect(deleteButton).toBeVisible({ timeout: 2000 })
     await deleteButton.click()
 
-    // Confirm dialog should appear
+    // The delete flow uses the shared ConfirmDialog. A setlist-membership check
+    // runs first, so give the dialog a little time to appear.
     const confirmDialog = page.locator('[data-testid="confirm-dialog"]')
-    await expect(confirmDialog).toBeVisible({ timeout: 2000 })
+    await expect(confirmDialog).toBeVisible({ timeout: 5000 })
 
     // Verify dialog content
     await expect(

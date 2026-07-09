@@ -1,7 +1,8 @@
 import React from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthCheck } from '../../hooks/useAuthCheck'
 import { useAuth } from '../../contexts/AuthContext'
+import { encodeReturnTo } from '../../utils/returnTo'
 import { ModernLayout } from './ModernLayout'
 
 /**
@@ -39,6 +40,13 @@ import { ModernLayout } from './ModernLayout'
 export const ProtectedLayoutRoute: React.FC = () => {
   const { isAuthenticated, isChecking, failureReason } = useAuthCheck()
   const { sessionExpired } = useAuth()
+  const location = useLocation()
+
+  // Preserve where the user was headed (e.g. `/events?join=CODE`) so the auth
+  // pages can return them there after login/signup. Only the current pathname +
+  // search is captured; it's re-validated as same-origin on the way back out.
+  const returnTo = encodeReturnTo(location.pathname + location.search)
+  const returnToParam = `&returnTo=${returnTo}`
 
   // Show loading spinner during auth check (full screen, dark theme).
   // Preserves the auth-loading-spinner testid for E2E test compatibility.
@@ -62,7 +70,9 @@ export const ProtectedLayoutRoute: React.FC = () => {
   // Handle session expiration detected by AuthContext's visibility listener
   // This catches the "left tab open overnight" scenario
   if (sessionExpired) {
-    return <Navigate to="/auth?reason=session-expired" replace />
+    return (
+      <Navigate to={`/auth?reason=session-expired${returnToParam}`} replace />
+    )
   }
 
   // Handle authentication failures with appropriate redirects
@@ -76,16 +86,26 @@ export const ProtectedLayoutRoute: React.FC = () => {
 
       case 'session-expired':
         // Session expired beyond grace period
-        return <Navigate to="/auth?reason=session-expired" replace />
+        return (
+          <Navigate
+            to={`/auth?reason=session-expired${returnToParam}`}
+            replace
+          />
+        )
 
       case 'session-invalid':
         // Session data corrupted or missing
-        return <Navigate to="/auth?reason=session-invalid" replace />
+        return (
+          <Navigate
+            to={`/auth?reason=session-invalid${returnToParam}`}
+            replace
+          />
+        )
 
       case 'no-user':
       default:
         // No user at all - send to login
-        return <Navigate to="/auth" replace />
+        return <Navigate to={`/auth?returnTo=${returnTo}`} replace />
     }
   }
 

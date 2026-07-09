@@ -46,21 +46,20 @@ test.describe('Jam Session — Match List and Save Flow', () => {
     await page.locator('[data-testid="jam-create-button"]').click()
     await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
 
-    // Match list should be visible
-    await expect(page.locator('[data-testid="jam-match-list"]')).toBeVisible({
+    // Post-redesign the Setlist panel is the default surface; the common-songs
+    // match surface now lives behind the "Common" tab. Switch to it.
+    await page.locator('[data-testid="tab-common"]').click()
+
+    // Common panel should be visible.
+    await expect(page.locator('[data-testid="jam-common-panel"]')).toBeVisible({
       timeout: 5000,
     })
 
-    // With only 1 participant (the host), no matches should be shown
-    // The empty state message should be present
-    const emptyState = page.locator(
-      '[data-testid="jam-match-list"] >> text=No common songs'
-    )
-    await expect(emptyState)
-      .toBeVisible({ timeout: 3000 })
-      .catch(() => {
-        // Alternative: matches might show if songs were pre-loaded — acceptable
-      })
+    // With only 1 participant (the host), no matches exist yet — the panel
+    // shows the "waiting for others to join" empty state rather than a list.
+    await expect(
+      page.locator('[data-testid="jam-common-panel"]')
+    ).toContainText(/waiting for others/i, { timeout: 3000 })
 
     await assertNoConsoleErrors(page, errors)
   })
@@ -108,14 +107,17 @@ test.describe('Jam Session — Match List and Save Flow', () => {
     await page.locator('[data-testid="jam-create-button"]').click()
     await page.waitForURL(/\/jam\/.+/, { timeout: 10000 })
 
-    // After creation: session card, participant list, match list all present
+    // After creation: session card, participant list, and the panel tab bar
+    // are all present. (The Setlist panel is the default surface post-redesign;
+    // the match list now lives behind the "Common" tab and only appears with
+    // 2+ participants, so it isn't part of the fresh single-host structure.)
     await expect(page.locator('[data-testid="jam-session-card"]')).toBeVisible({
       timeout: 5000,
     })
     await expect(
       page.locator('[data-testid="jam-participant-list"]')
     ).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('[data-testid="jam-match-list"]')).toBeVisible({
+    await expect(page.locator('[data-testid="jam-panel-tabs"]')).toBeVisible({
       timeout: 5000,
     })
 

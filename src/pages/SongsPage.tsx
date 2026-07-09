@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { Dropdown } from '../components/common/Dropdown'
 import { useToast } from '../contexts/ToastContext'
@@ -1061,6 +1062,17 @@ export const SongsPage: React.FC = () => {
   const [showHidden, setShowHidden] = useState(false)
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  // Deep-link: /songs?add=… opens the Add-song modal (e.g. Home "Add song"),
+  // then clears the param so a refresh doesn't reopen it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('add')) {
+      setIsAddModalOpen(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete('add')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isSetlistMenuOpen, setIsSetlistMenuOpen] = useState(false)
@@ -2292,12 +2304,18 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
       <div
         className="bg-bg-2 rounded-2xl border border-border-1 w-full max-w-md p-6"
         onClick={e => e.stopPropagation()}
+        data-testid="delete-song-dialog"
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
             <Trash2 size={20} className="text-danger" />
           </div>
-          <h3 className="text-lg font-semibold text-white">Delete Song?</h3>
+          <h3
+            className="text-lg font-semibold text-white"
+            data-testid="delete-song-dialog-title"
+          >
+            Delete Song?
+          </h3>
         </div>
 
         <p className="text-sm text-ink-3 mb-6">

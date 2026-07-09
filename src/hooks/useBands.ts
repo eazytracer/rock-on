@@ -450,11 +450,11 @@ export function useRemoveBandMember() {
       setLoading(true)
       setError(null)
 
-      // Note: BandMembershipService uses updateMembershipRole for status changes
-      // We should update status to 'inactive' rather than delete
-      // This preserves history and is better practice
-      // For now, we'll use db.bandMemberships directly as the service doesn't expose this
-      await db.bandMemberships.update(membershipId, { status: 'inactive' })
+      // Mark the membership inactive through the service/repository so the
+      // change is queued for sync to Supabase. (A direct db.* write would be
+      // invisible to the cloud, and the cloud-first members read would restore
+      // the member.)
+      await BandMembershipService.removeMember(membershipId)
 
       return true
     } catch (err) {

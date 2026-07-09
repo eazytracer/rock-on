@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Bell,
-  ArrowLeft,
   Sparkles,
   Activity,
   PartyPopper,
@@ -18,6 +17,7 @@ import type { AppNotification, NotificationKind } from '../models/Notification'
 import { EmptyState } from '../components/common/EmptyState'
 import { Eyebrow } from '../components/common/Eyebrow'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { BackLink } from '../components/common/BackLink'
 import { MarkdownRenderer } from '../components/notes/MarkdownRenderer'
 
 type NotifTab = 'all' | 'updates' | 'activity'
@@ -162,13 +162,7 @@ export function NotificationsPage() {
 
   return (
     <div data-testid="notifications-page" className="max-w-3xl">
-      <button
-        onClick={() => navigate(-1)}
-        data-testid="notifications-back"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink-1"
-      >
-        <ArrowLeft size={16} /> Back
-      </button>
+      <BackLink className="mb-4" data-testid="notifications-back" />
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink-1">Notifications</h1>

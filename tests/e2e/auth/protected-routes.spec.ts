@@ -207,8 +207,8 @@ test.describe('Protected Routes', () => {
       // Log out
       await logoutViaUI(page)
 
-      // Should be on auth page
-      await expect(page).toHaveURL('/auth')
+      // Should be on auth page (redirect preserves a ?returnTo= param)
+      await expect(page).toHaveURL(/\/auth/)
 
       // Should not be able to access protected routes anymore
       await page.goto('/songs')
