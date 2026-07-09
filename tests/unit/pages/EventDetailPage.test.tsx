@@ -271,7 +271,10 @@ describe('EventDetailPage — inline header edits + status (K/6d)', () => {
     detail.isManager = false
     detail.event = { ...baseEvent, hostUserId: 'host' }
     render(<EventDetailContent eventId="ev1" />)
-    expect(screen.queryByTestId('event-name')).toBeNull()
+    // A guest gets the read-only name (a plain heading with the `event-name`
+    // testid), NOT the host's inline-editable field — so the click-to-edit
+    // affordance (`event-name-display`) is absent.
+    expect(screen.queryByTestId('event-name-display')).toBeNull()
     expect(screen.queryByTestId('event-status')).toBeNull()
     // Guest still sees the event name, read-only.
     expect(screen.getByText('Backyard Jam')).toBeInTheDocument()
