@@ -329,7 +329,7 @@ export function SongCastPanel({
                           }}
                         />
                         <div
-                          className="absolute left-0 z-20 mt-1 w-60 overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
+                          className="absolute right-0 z-20 mt-1 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
                           data-testid={`cast-picker-${part.key}`}
                         >
                           <div className="max-h-52 overflow-y-auto custom-scrollbar-thin">

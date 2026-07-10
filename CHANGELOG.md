@@ -17,7 +17,9 @@ Mobile polish for the events page. No schema changes.
   host-only "Invite friends" button pushed the page wider than the viewport
   (~100px of dead white space, content appearing to hang off the side). The tab
   strip now scrolls within its own bounds and the invite control collapses to an
-  icon on narrow screens; the page can no longer exceed the viewport width.
+  icon on narrow screens; the page can no longer exceed the viewport width. The
+  cast panel's **Assign** popover now anchors to the right edge (opening on-screen)
+  instead of shooting off the right side.
 
 ### Changed
 
