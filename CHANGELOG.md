@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-07-10
+
+Mobile polish for the events page. No schema changes.
+
+### Fixed
+
+- **Events page no longer overflows horizontally on mobile.** The tab row's
+  host-only "Invite friends" button pushed the page wider than the viewport
+  (~100px of dead white space, content appearing to hang off the side). The tab
+  strip now scrolls within its own bounds and the invite control collapses to an
+  icon on narrow screens; the page can no longer exceed the viewport width.
+
+### Changed
+
+- **Bigger finger targets across the events UI.** Kebab menus get a comfortable
+  40px hit area on touch devices; the lineup cast panel's hand/assign controls
+  and rows have more breathing room so the kebab and the casting expander are
+  easy to tell apart and tap. (Touch enlargements are gated to coarse pointers,
+  so desktop density is unchanged.)
+
 ## [0.4.3] - 2026-07-09
 
 Event-ops, co-hosts, and a broad casting/UX polish pass on top of the 0.4

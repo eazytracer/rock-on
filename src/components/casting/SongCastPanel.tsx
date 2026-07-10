@@ -191,7 +191,7 @@ export function SongCastPanel({
           return (
             <div
               key={part.key}
-              className="flex items-center gap-3 py-1"
+              className="flex items-center gap-3 py-1.5"
               data-testid={`cast-role-${part.key}`}
             >
               <span
@@ -237,7 +237,7 @@ export function SongCastPanel({
                           onClick={() => void unassign(c.id)}
                           aria-label="Remove"
                           data-testid={`cast-remove-${c.id}`}
-                          className="-mr-1 rounded p-1 text-ink-5 hover:text-danger"
+                          className="-mr-1 rounded p-1.5 text-ink-5 hover:text-danger [@media(pointer:coarse)]:p-2"
                         >
                           <X size={15} />
                         </button>
@@ -265,7 +265,7 @@ export function SongCastPanel({
                         onClick={() => void acceptHand(h)}
                         data-testid={`hand-accept-${h.id}`}
                         aria-label={`Accept ${h.userName}`}
-                        className="rounded p-1 text-info hover:text-success"
+                        className="rounded p-1.5 text-info hover:text-success [@media(pointer:coarse)]:p-2"
                       >
                         <Check size={16} />
                       </button>
@@ -273,7 +273,7 @@ export function SongCastPanel({
                         onClick={() => void onResolveHand?.(h.id, false)}
                         data-testid={`hand-decline-${h.id}`}
                         aria-label={`Decline ${h.userName}`}
-                        className="rounded p-1 text-ink-5 hover:text-danger"
+                        className="rounded p-1.5 text-ink-5 hover:text-danger [@media(pointer:coarse)]:p-2"
                       >
                         <X size={16} />
                       </button>
@@ -289,7 +289,7 @@ export function SongCastPanel({
                       onClick={() => void onWithdrawHand?.(myRaised.id)}
                       data-testid={`hand-withdraw-${part.key}`}
                       aria-label="Withdraw hand"
-                      className="-mr-1 rounded p-1 text-ink-5 hover:text-danger"
+                      className="-mr-1 rounded p-1.5 text-ink-5 hover:text-danger [@media(pointer:coarse)]:p-2"
                     >
                       <X size={15} />
                     </button>
