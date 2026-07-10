@@ -6,6 +6,8 @@ import { useEventParticipants } from '../../hooks/useEvents'
 import { CastingAssignmentService } from '../../services/CastingAssignmentService'
 import { Avatar } from '../common/Avatar'
 import { Eyebrow } from '../common/Eyebrow'
+import { SlideOutTray } from '../common/SlideOutTray'
+import { useViewport } from '../../hooks/useResponsive'
 import { INSTRUMENT_META, FALLBACK_INSTRUMENT } from './instrumentMeta'
 import type { CastingContext, CastingHistoryEntry } from '../../models/Casting'
 import type { RaisedHand } from '../../models/Event'
@@ -71,6 +73,7 @@ export function SongCastPanel({
   onResolveHand,
   embedded = false,
 }: SongCastPanelProps) {
+  const { isMobile } = useViewport()
   const { defaultParts, casting, loading, assign, unassign } = useCasting(
     contextType,
     contextId,
@@ -319,91 +322,119 @@ export function SongCastPanel({
                     >
                       <UserPlus size={15} /> Assign
                     </button>
-                    {pickingRole === part.key && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-10"
-                          onClick={() => {
-                            setPickingRole(null)
-                            setPickingBackup(false)
-                          }}
-                        />
-                        <div
-                          className="absolute right-0 z-20 mt-1 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
-                          data-testid={`cast-picker-${part.key}`}
-                        >
-                          <div className="max-h-52 overflow-y-auto custom-scrollbar-thin">
-                            {orderedPeople.map(person => (
-                              <button
-                                key={person.id}
-                                onClick={() =>
+                    {pickingRole === part.key &&
+                      (() => {
+                        const close = () => {
+                          setPickingRole(null)
+                          setPickingBackup(false)
+                        }
+                        const body = (
+                          <>
+                            <div
+                              className={
+                                isMobile
+                                  ? ''
+                                  : 'max-h-52 overflow-y-auto custom-scrollbar-thin'
+                              }
+                            >
+                              {orderedPeople.map(person => (
+                                <button
+                                  key={person.id}
+                                  onClick={() =>
+                                    void doAssign(
+                                      part.key,
+                                      {
+                                        memberId: person.id,
+                                        memberName: person.name,
+                                      },
+                                      !pickingBackup
+                                    )
+                                  }
+                                  data-testid={`cast-pick-${part.key}-${person.id}`}
+                                  className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-bg-4 hover:text-ink-1 ${
+                                    person.id === currentUserId
+                                      ? 'bg-info-soft'
+                                      : ''
+                                  }`}
+                                >
+                                  <Avatar label={person.name} size="sm" />
+                                  {person.name}
+                                  {person.id === currentUserId && (
+                                    <span className="ml-auto flex-shrink-0 rounded-full bg-info px-2 py-0.5 text-[10px] font-semibold text-white">
+                                      You
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                              {assignablePeople.length === 0 && (
+                                <div className="px-2.5 py-2 text-xs text-ink-5">
+                                  {isEvent
+                                    ? 'No participants yet'
+                                    : 'No band members'}
+                                </div>
+                              )}
+                            </div>
+                            {/* Free-text: cast someone who can't/won't join the app. */}
+                            <form
+                              onSubmit={e => {
+                                e.preventDefault()
+                                const name = freeText.trim()
+                                if (name)
                                   void doAssign(
                                     part.key,
-                                    {
-                                      memberId: person.id,
-                                      memberName: person.name,
-                                    },
+                                    { memberName: name },
                                     !pickingBackup
                                   )
-                                }
-                                data-testid={`cast-pick-${part.key}-${person.id}`}
-                                className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-bg-4 hover:text-ink-1 ${
-                                  person.id === currentUserId
-                                    ? 'bg-info-soft'
-                                    : ''
-                                }`}
-                              >
-                                <Avatar label={person.name} size="sm" />
-                                {person.name}
-                                {person.id === currentUserId && (
-                                  <span className="ml-auto flex-shrink-0 rounded-full bg-info px-2 py-0.5 text-[10px] font-semibold text-white">
-                                    You
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                            {assignablePeople.length === 0 && (
-                              <div className="px-2.5 py-2 text-xs text-ink-5">
-                                {isEvent
-                                  ? 'No participants yet'
-                                  : 'No band members'}
-                              </div>
-                            )}
-                          </div>
-                          {/* Free-text: cast someone who can't/won't join the app. */}
-                          <form
-                            onSubmit={e => {
-                              e.preventDefault()
-                              const name = freeText.trim()
-                              if (name)
-                                void doAssign(
-                                  part.key,
-                                  { memberName: name },
-                                  !pickingBackup
-                                )
-                            }}
-                            className="flex items-center gap-1 border-t border-border-1 p-1.5"
-                          >
-                            <input
-                              value={freeText}
-                              onChange={e => setFreeText(e.target.value)}
-                              placeholder="Or type a name…"
-                              data-testid={`cast-freetext-${part.key}`}
-                              className="min-w-0 flex-1 rounded bg-bg-2 px-2 py-1 text-xs text-ink-1 placeholder:text-ink-5 focus:outline-none"
-                            />
-                            <button
-                              type="submit"
-                              disabled={!freeText.trim()}
-                              aria-label="Add typed name"
-                              data-testid={`cast-freetext-add-${part.key}`}
-                              className="flex-shrink-0 rounded p-1 text-ink-3 hover:text-accent disabled:opacity-40"
+                              }}
+                              className="flex items-center gap-1 border-t border-border-1 p-1.5"
                             >
-                              <Check size={14} />
-                            </button>
-                          </form>
-                        </div>
-                      </>
-                    )}
+                              <input
+                                value={freeText}
+                                onChange={e => setFreeText(e.target.value)}
+                                placeholder="Or type a name…"
+                                data-testid={`cast-freetext-${part.key}`}
+                                className="min-w-0 flex-1 rounded bg-bg-2 px-2 py-1.5 text-sm text-ink-1 placeholder:text-ink-5 focus:outline-none sm:py-1 sm:text-xs"
+                              />
+                              <button
+                                type="submit"
+                                disabled={!freeText.trim()}
+                                aria-label="Add typed name"
+                                data-testid={`cast-freetext-add-${part.key}`}
+                                className="flex-shrink-0 rounded p-1.5 text-ink-3 hover:text-accent disabled:opacity-40"
+                              >
+                                <Check size={14} />
+                              </button>
+                            </form>
+                          </>
+                        )
+                        // On mobile an anchored popover for a row near the
+                        // bottom is pushed off-screen behind the nav bar — use a
+                        // bottom-sheet so the whole list is always reachable.
+                        return isMobile ? (
+                          <SlideOutTray
+                            isOpen
+                            onClose={close}
+                            title={`Assign ${part.label}`}
+                            position="bottom"
+                            data-testid={`cast-picker-${part.key}`}
+                          >
+                            <div className="px-2 pb-4 pt-1">{body}</div>
+                          </SlideOutTray>
+                        ) : (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={close}
+                            />
+                            <div
+                              className="absolute right-0 z-20 mt-1 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
+                              data-testid={`cast-picker-${part.key}`}
+                            >
+                              {body}
+                            </div>
+                          </>
+                        )
+                      })()}
                   </div>
                 )}
               </div>
