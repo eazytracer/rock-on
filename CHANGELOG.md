@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-07-10
+
+Events-page mobile polish + a casting-flow cleanup. No schema changes.
+
+### Fixed
+
+- **Events page no longer overflows horizontally on mobile.** The tab row's
+  host-only "Invite friends" button pushed the page wider than the viewport
+  (~100px of dead white space, content appearing to hang off the side). The tab
+  strip now scrolls within its own bounds and the invite control collapses to an
+  icon on narrow screens; the page can no longer exceed the viewport width.
+- **Lineup drag reorder is a clean vertical swap.** Rows could be dragged
+  sideways off the grid and downward past the list (growing the page scroll);
+  drag is now constrained to the vertical axis and clamped to the list, and is
+  disabled entirely when there's only one song. Applies to both the list and
+  grid views.
+
+### Changed
+
+- **One shared cast-assign sheet for both the list and grid views** — a side
+  tray on desktop, a bottom-sheet on mobile (so a role near the screen bottom is
+  never hidden behind the nav bar). Assigning keeps the sheet open for quick
+  multi-casting, **"Currently cast" sits at the top**, and the roster is one flat
+  list with _you_ included and flagged by a small "You" pill (the old redundant,
+  heavily-highlighted "You" section is gone).
+- **Roomier, less-cluttered lineup rows.** The per-row kebab is gone — manager
+  **Edit / Remove** now live in the expanded card panel; the cast count and
+  casting icons are evenly spaced; the grid's song-title column is wider and the
+  box padding tighter to use more width on mobile.
+- **Bigger finger targets across the events UI.** Kebab menus get a comfortable
+  40px hit area on touch devices, and the cast controls/rows have more breathing
+  room. (Touch enlargements are gated to coarse pointers, so desktop density is
+  unchanged.)
+
 ## [0.4.3] - 2026-07-09
 
 Event-ops, co-hosts, and a broad casting/UX polish pass on top of the 0.4

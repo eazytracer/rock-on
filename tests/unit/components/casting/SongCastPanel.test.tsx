@@ -73,12 +73,12 @@ function renderPanel() {
 describe('SongCastPanel write-in (director-cast, no account)', () => {
   it('persists a typed name as memberName with no memberId', async () => {
     renderPanel()
-    // Open the assign picker for Guitar, then type a free-text name.
+    // Open the assign sheet for Guitar, then type a free-text name.
     fireEvent.click(screen.getByTestId('cast-assign-guitar'))
-    fireEvent.change(screen.getByTestId('cast-freetext-guitar'), {
+    fireEvent.change(screen.getByTestId('cast-sheet-freetext-input'), {
       target: { value: '  Jane Doe  ' },
     })
-    fireEvent.click(screen.getByTestId('cast-freetext-add-guitar'))
+    fireEvent.click(screen.getByTestId('cast-sheet-freetext-add'))
 
     await waitFor(() => expect(assign).toHaveBeenCalledOnce())
     const arg = assign.mock.calls[0][0] as {
@@ -94,11 +94,11 @@ describe('SongCastPanel write-in (director-cast, no account)', () => {
   it('does not submit a whitespace-only name', () => {
     renderPanel()
     fireEvent.click(screen.getByTestId('cast-assign-guitar'))
-    fireEvent.change(screen.getByTestId('cast-freetext-guitar'), {
+    fireEvent.change(screen.getByTestId('cast-sheet-freetext-input'), {
       target: { value: '   ' },
     })
     const addBtn = screen.getByTestId(
-      'cast-freetext-add-guitar'
+      'cast-sheet-freetext-add'
     ) as HTMLButtonElement
     expect(addBtn.disabled).toBe(true)
     fireEvent.click(addBtn)

@@ -76,9 +76,13 @@ export function InviteFriendsSheet({
       <button
         onClick={() => setOpen(true)}
         data-testid="event-invite-friends-button"
-        className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent hover:brightness-110"
+        aria-label="Invite friends"
+        className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-2 text-sm font-medium text-accent hover:brightness-110 sm:px-3"
       >
-        <UserPlus size={15} /> Invite friends
+        <UserPlus size={16} />
+        {/* Label collapses to an icon on narrow screens to keep the tab row
+            from overflowing; full label returns at sm+. */}
+        <span className="hidden sm:inline">Invite friends</span>
       </button>
 
       <SlideOutTray

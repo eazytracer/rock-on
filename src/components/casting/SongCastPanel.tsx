@@ -6,6 +6,8 @@ import { useEventParticipants } from '../../hooks/useEvents'
 import { CastingAssignmentService } from '../../services/CastingAssignmentService'
 import { Avatar } from '../common/Avatar'
 import { Eyebrow } from '../common/Eyebrow'
+import { CastAssignSheet } from './CastAssignSheet'
+import { useViewport } from '../../hooks/useResponsive'
 import { INSTRUMENT_META, FALLBACK_INSTRUMENT } from './instrumentMeta'
 import type { CastingContext, CastingHistoryEntry } from '../../models/Casting'
 import type { RaisedHand } from '../../models/Event'
@@ -71,6 +73,7 @@ export function SongCastPanel({
   onResolveHand,
   embedded = false,
 }: SongCastPanelProps) {
+  const { isMobile } = useViewport()
   const { defaultParts, casting, loading, assign, unassign } = useCasting(
     contextType,
     contextId,
@@ -81,9 +84,8 @@ export function SongCastPanel({
   const isEvent = contextType === 'event'
   const { participants } = useEventParticipants(isEvent ? contextId : undefined)
   const { members } = useBandMembers(isEvent ? '' : (bandId ?? ''))
+  // The role whose assign sheet is open (null = closed).
   const [pickingRole, setPickingRole] = useState<string | null>(null)
-  const [pickingBackup, setPickingBackup] = useState(false)
-  const [freeText, setFreeText] = useState('')
   const [history, setHistory] = useState<CastingHistoryEntry[]>([])
 
   const assignablePeople = useMemo(
@@ -95,18 +97,6 @@ export function SongCastPanel({
             name: m.user?.name ?? m.profile?.displayName ?? 'Member',
           })),
     [isEvent, participants, members]
-  )
-  // Put the logged-in user first in the picker and call them out — casting
-  // yourself is common, so it shouldn't be buried under everyone else.
-  const orderedPeople = useMemo(
-    () =>
-      currentUserId
-        ? [
-            ...assignablePeople.filter(p => p.id === currentUserId),
-            ...assignablePeople.filter(p => p.id !== currentUserId),
-          ]
-        : assignablePeople,
-    [assignablePeople, currentUserId]
   )
 
   // This slot's assignments only.
@@ -132,18 +122,12 @@ export function SongCastPanel({
   const personName = (userId?: string) =>
     assignablePeople.find(p => p.id === userId)?.name ?? 'Member'
 
+  // Cast a person on a role. The sheet stays open (multi-assign) — the "Currently
+  // cast" section reflects the add; the manager dismisses when done.
   const doAssign = async (
     roleKey: string,
-    person: { memberId?: string; memberName: string },
-    isPrimary = true
+    person: { memberId?: string; memberName: string }
   ) => {
-    setPickingRole(null)
-    setPickingBackup(false)
-    setFreeText('')
-    // Backups get an ordered priority among themselves (starter stays priority-less).
-    const backupCount = slotCasting.filter(
-      c => c.roleKey === roleKey && !c.isPrimary
-    ).length
     await assign({
       contextType,
       contextId,
@@ -153,8 +137,7 @@ export function SongCastPanel({
       roleKey,
       memberId: person.memberId,
       memberName: person.memberName,
-      isPrimary,
-      priority: isPrimary ? undefined : backupCount + 1,
+      isPrimary: true,
     })
   }
 
@@ -191,7 +174,7 @@ export function SongCastPanel({
           return (
             <div
               key={part.key}
-              className="flex items-center gap-3 py-1"
+              className="flex items-center gap-3 py-1.5"
               data-testid={`cast-role-${part.key}`}
             >
               <span
@@ -237,7 +220,7 @@ export function SongCastPanel({
                           onClick={() => void unassign(c.id)}
                           aria-label="Remove"
                           data-testid={`cast-remove-${c.id}`}
-                          className="-mr-1 rounded p-1 text-ink-5 hover:text-danger"
+                          className="-mr-1 rounded p-1.5 text-ink-5 hover:text-danger [@media(pointer:coarse)]:p-2"
                         >
                           <X size={15} />
                         </button>
@@ -265,7 +248,7 @@ export function SongCastPanel({
                         onClick={() => void acceptHand(h)}
                         data-testid={`hand-accept-${h.id}`}
                         aria-label={`Accept ${h.userName}`}
-                        className="rounded p-1 text-info hover:text-success"
+                        className="rounded p-1.5 text-info hover:text-success [@media(pointer:coarse)]:p-2"
                       >
                         <Check size={16} />
                       </button>
@@ -273,7 +256,7 @@ export function SongCastPanel({
                         onClick={() => void onResolveHand?.(h.id, false)}
                         data-testid={`hand-decline-${h.id}`}
                         aria-label={`Decline ${h.userName}`}
-                        className="rounded p-1 text-ink-5 hover:text-danger"
+                        className="rounded p-1.5 text-ink-5 hover:text-danger [@media(pointer:coarse)]:p-2"
                       >
                         <X size={16} />
                       </button>
@@ -289,7 +272,7 @@ export function SongCastPanel({
                       onClick={() => void onWithdrawHand?.(myRaised.id)}
                       data-testid={`hand-withdraw-${part.key}`}
                       aria-label="Withdraw hand"
-                      className="-mr-1 rounded p-1 text-ink-5 hover:text-danger"
+                      className="-mr-1 rounded p-1.5 text-ink-5 hover:text-danger [@media(pointer:coarse)]:p-2"
                     >
                       <X size={15} />
                     </button>
@@ -305,112 +288,65 @@ export function SongCastPanel({
                   </button>
                 )}
                 {canEdit && (
-                  <div className="relative">
-                    <button
-                      onClick={() => {
-                        setPickingBackup(false)
-                        setPickingRole(
-                          pickingRole === part.key ? null : part.key
-                        )
-                      }}
-                      data-testid={`cast-assign-${part.key}`}
-                      aria-label={`Assign ${part.label}`}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border-2 px-3 py-2 text-sm text-ink-3 hover:text-accent hover:border-accent"
-                    >
-                      <UserPlus size={15} /> Assign
-                    </button>
-                    {pickingRole === part.key && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-10"
-                          onClick={() => {
-                            setPickingRole(null)
-                            setPickingBackup(false)
-                          }}
-                        />
-                        <div
-                          className="absolute left-0 z-20 mt-1 w-60 overflow-hidden rounded-lg border border-border-1 bg-bg-3 shadow-xl"
-                          data-testid={`cast-picker-${part.key}`}
-                        >
-                          <div className="max-h-52 overflow-y-auto custom-scrollbar-thin">
-                            {orderedPeople.map(person => (
-                              <button
-                                key={person.id}
-                                onClick={() =>
-                                  void doAssign(
-                                    part.key,
-                                    {
-                                      memberId: person.id,
-                                      memberName: person.name,
-                                    },
-                                    !pickingBackup
-                                  )
-                                }
-                                data-testid={`cast-pick-${part.key}-${person.id}`}
-                                className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-bg-4 hover:text-ink-1 ${
-                                  person.id === currentUserId
-                                    ? 'bg-info-soft'
-                                    : ''
-                                }`}
-                              >
-                                <Avatar label={person.name} size="sm" />
-                                {person.name}
-                                {person.id === currentUserId && (
-                                  <span className="ml-auto flex-shrink-0 rounded-full bg-info px-2 py-0.5 text-[10px] font-semibold text-white">
-                                    You
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                            {assignablePeople.length === 0 && (
-                              <div className="px-2.5 py-2 text-xs text-ink-5">
-                                {isEvent
-                                  ? 'No participants yet'
-                                  : 'No band members'}
-                              </div>
-                            )}
-                          </div>
-                          {/* Free-text: cast someone who can't/won't join the app. */}
-                          <form
-                            onSubmit={e => {
-                              e.preventDefault()
-                              const name = freeText.trim()
-                              if (name)
-                                void doAssign(
-                                  part.key,
-                                  { memberName: name },
-                                  !pickingBackup
-                                )
-                            }}
-                            className="flex items-center gap-1 border-t border-border-1 p-1.5"
-                          >
-                            <input
-                              value={freeText}
-                              onChange={e => setFreeText(e.target.value)}
-                              placeholder="Or type a name…"
-                              data-testid={`cast-freetext-${part.key}`}
-                              className="min-w-0 flex-1 rounded bg-bg-2 px-2 py-1 text-xs text-ink-1 placeholder:text-ink-5 focus:outline-none"
-                            />
-                            <button
-                              type="submit"
-                              disabled={!freeText.trim()}
-                              aria-label="Add typed name"
-                              data-testid={`cast-freetext-add-${part.key}`}
-                              className="flex-shrink-0 rounded p-1 text-ink-3 hover:text-accent disabled:opacity-40"
-                            >
-                              <Check size={14} />
-                            </button>
-                          </form>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <button
+                    onClick={() =>
+                      setPickingRole(pickingRole === part.key ? null : part.key)
+                    }
+                    data-testid={`cast-assign-${part.key}`}
+                    aria-label={`Assign ${part.label}`}
+                    aria-expanded={pickingRole === part.key}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm transition-colors ${
+                      pickingRole === part.key
+                        ? 'border-accent bg-accent-soft text-accent'
+                        : 'border-border-2 text-ink-3 hover:border-accent hover:text-accent'
+                    }`}
+                  >
+                    <UserPlus size={15} />
+                    {/* Icon-only on mobile; full label at sm+. */}
+                    <span className="hidden sm:inline">Assign</span>
+                  </button>
                 )}
               </div>
             </div>
           )
         })}
       </div>
+
+      {canEdit &&
+        (() => {
+          const openPart = pickingRole
+            ? defaultParts.find(p => p.key === pickingRole)
+            : undefined
+          return (
+            <CastAssignSheet
+              isOpen={!!pickingRole}
+              onClose={() => setPickingRole(null)}
+              position={isMobile ? 'bottom' : 'right'}
+              title={openPart?.label ?? ''}
+              currentUserId={currentUserId}
+              assignablePeople={assignablePeople}
+              assignments={
+                openPart
+                  ? slotCasting.filter(
+                      c => c.roleKey === openPart.key && c.isPrimary
+                    )
+                  : []
+              }
+              hands={
+                openPart
+                  ? slotHands.filter(
+                      h => h.roleKey === openPart.key && h.status === 'raised'
+                    )
+                  : []
+              }
+              onAssign={p => {
+                if (openPart) void doAssign(openPart.key, p)
+              }}
+              onUnassign={id => void unassign(id)}
+              onAcceptHand={h => void acceptHand(h)}
+            />
+          )
+        })()}
 
       {history.length > 0 && (
         <div className="mt-3 border-t border-border-1 pt-2">

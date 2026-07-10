@@ -107,10 +107,13 @@ describe('LineupCard', () => {
     expect(screen.getByTestId('lineup-drag-li1')).toBeInTheDocument()
   })
 
-  it('shows a manager kebab with Edit + Remove actions when supplied (H)', () => {
+  it('shows Edit + Remove actions in the expanded panel when supplied (H)', () => {
     const onEdit = vi.fn()
     const onRemove = vi.fn()
+    // Actions live in the expanded card body, so render it selected + open.
     renderCard({
+      selected: true,
+      children: <div>cast panel</div>,
       actions: [
         {
           label: 'Edit song',
@@ -125,18 +128,17 @@ describe('LineupCard', () => {
         },
       ],
     })
-    fireEvent.click(screen.getByTestId('lineup-actions-li1'))
     fireEvent.click(screen.getByTestId('lineup-edit-li1'))
     expect(onEdit).toHaveBeenCalledOnce()
-    fireEvent.click(screen.getByTestId('lineup-actions-li1'))
     fireEvent.click(screen.getByTestId('lineup-remove-li1'))
     expect(onRemove).toHaveBeenCalledOnce()
   })
 
-  it('renders no manager controls (grip/kebab) when none are supplied (guest)', () => {
-    renderCard()
+  it('renders no manager controls (grip/actions) when none are supplied (guest)', () => {
+    renderCard({ selected: true, children: <div>cast panel</div> })
     expect(screen.queryByTestId('lineup-drag-li1')).toBeNull()
-    expect(screen.queryByTestId('lineup-actions-li1')).toBeNull()
+    expect(screen.queryByTestId('lineup-edit-li1')).toBeNull()
+    expect(screen.queryByTestId('lineup-remove-li1')).toBeNull()
   })
 
   it('shows "Added by {name}" when an ownerName is supplied (6g)', () => {
