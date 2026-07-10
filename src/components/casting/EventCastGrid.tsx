@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
-import { Check, Hand, X, GripVertical, Music, Star } from 'lucide-react'
+import { Hand, GripVertical, Music, Star } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -18,13 +18,16 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from '@dnd-kit/modifiers'
 import { useCasting } from '../../hooks/useCasting'
 import { useEventParticipants } from '../../hooks/useEvents'
 import { useViewport } from '../../hooks/useResponsive'
 import { useToast } from '../../contexts/ToastContext'
 import { Avatar } from '../common/Avatar'
-import { Eyebrow } from '../common/Eyebrow'
-import { SlideOutTray } from '../common/SlideOutTray'
+import { CastAssignSheet } from './CastAssignSheet'
 import { TuningTag } from '../common/MetaPill'
 import { INSTRUMENT_META, FALLBACK_INSTRUMENT } from './instrumentMeta'
 import type { BandRole } from '../../models/Casting'
@@ -32,7 +35,7 @@ import type { LineupItem, RaisedHand } from '../../models/Event'
 
 // Column widths — compact on mobile, roomier on desktop (kept in sync between
 // the header row and the body cells via these shared class strings).
-const SONG_COL = 'w-32 sm:w-40 lg:w-56'
+const SONG_COL = 'w-40 sm:w-48 lg:w-60'
 const PART_COL = 'w-14 lg:w-[5.5rem]'
 
 // Concise column labels — band roles can be long ("Lead Vocals"); the grid
@@ -100,7 +103,11 @@ function SortableGridRow({
     listeners,
   } = useSortable({ id, disabled: !enabled })
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    // Vertical-only reorder: zero the X translation so a row can only be moved
+    // up/down to swap positions, never dragged sideways off the grid.
+    transform: CSS.Transform.toString(
+      transform ? { ...transform, x: 0 } : null
+    ),
     transition,
     position: 'relative',
     zIndex: isDragging ? 20 : undefined,
@@ -149,7 +156,8 @@ export function EventCastGrid({
     [participants]
   )
 
-  const canReorder = isManager && !!onReorder
+  // Reordering needs at least two rows to swap; a single-song lineup can't move.
+  const canReorder = isManager && !!onReorder && lineup.length > 1
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
@@ -171,8 +179,6 @@ export function EventCastGrid({
   const lastCellRef = useRef<ActiveCell | null>(null)
   if (activeCell) lastCellRef.current = activeCell
   const sheetCell = activeCell ?? lastCellRef.current
-
-  const [freeText, setFreeText] = useState('')
 
   const doAssign = async (
     item: LineupItem,
@@ -206,13 +212,6 @@ export function EventCastGrid({
     if (res.ok) await onResolveHand?.(h.id, true)
   }
 
-  const submitFreeText = async (item: LineupItem, role: BandRole) => {
-    const name = freeText.trim()
-    if (!name) return
-    setFreeText('')
-    await doAssign(item, role, { memberName: name })
-  }
-
   if (loading) {
     return <div className="py-2 text-xs text-ink-5">Loading casting…</div>
   }
@@ -234,18 +233,6 @@ export function EventCastGrid({
           h.status === 'raised'
       )
     : []
-  const takenIds = new Set([
-    ...sheetHands.map(h => h.userId),
-    ...sheetAssignments.map(a => a.memberId).filter((id): id is string => !!id),
-  ])
-  // "Cast yourself" gets its own callout at the top of the sheet (not buried
-  // under "Everyone else"); everyone else is the rest.
-  const me = currentUserId
-    ? assignablePeople.find(p => p.id === currentUserId && !takenIds.has(p.id))
-    : undefined
-  const sheetOthers = assignablePeople.filter(
-    p => !takenIds.has(p.id) && p.id !== currentUserId
-  )
 
   const renderCells = (item: LineupItem) =>
     defaultParts.map(role => {
@@ -356,7 +343,7 @@ export function EventCastGrid({
   return (
     <div className="space-y-2.5">
       <div
-        className="w-fit max-w-full rounded-lg bg-bg-2 border border-border-1 p-4"
+        className="w-fit max-w-full rounded-lg bg-bg-2 border border-border-1 p-2 sm:p-4"
         data-testid="event-cast-grid"
       >
         <div className="relative">
@@ -364,6 +351,7 @@ export function EventCastGrid({
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
               onDragEnd={dragEvent => void handleDragEnd(dragEvent)}
             >
               <div className="flex w-max flex-col">
@@ -512,157 +500,28 @@ export function EventCastGrid({
         </div>
 
         {isManager && (
-          <SlideOutTray
+          <CastAssignSheet
             isOpen={!!activeCell}
             onClose={() => setActiveCell(null)}
+            position={isMobile ? 'bottom' : 'right'}
             title={
               sheetCell
                 ? `${sheetCell.role.label} · ${sheetCell.item.displayTitle}`
                 : ''
             }
-            position={isMobile ? 'bottom' : 'right'}
+            currentUserId={currentUserId}
+            assignablePeople={assignablePeople}
+            assignments={sheetAssignments}
+            hands={sheetHands}
+            onAssign={p => {
+              if (sheetCell) void doAssign(sheetCell.item, sheetCell.role, p)
+            }}
+            onUnassign={id => void unassign(id)}
+            onAcceptHand={h => {
+              if (sheetCell) void acceptHand(sheetCell.item, sheetCell.role, h)
+            }}
             data-testid="cast-cell-sheet"
-          >
-            {sheetCell && (
-              <div className="flex flex-col gap-4 px-6 py-4">
-                {me && (
-                  <div>
-                    <Eyebrow className="mb-2">You</Eyebrow>
-                    <button
-                      onClick={() =>
-                        void doAssign(sheetCell.item, sheetCell.role, {
-                          memberId: me.id,
-                          memberName: me.name,
-                        })
-                      }
-                      data-testid="cast-sheet-you"
-                      className="flex w-full items-center gap-2 rounded-lg border border-info bg-info-soft px-2.5 py-2 text-left hover:brightness-110"
-                    >
-                      <Avatar label={me.name} size="xs" />
-                      <span className="flex-1 truncate text-sm font-medium text-info">
-                        {me.name}
-                      </span>
-                      <span className="flex-shrink-0 rounded-full bg-info px-2 py-0.5 text-[10px] font-semibold text-white">
-                        You
-                      </span>
-                    </button>
-                  </div>
-                )}
-                {sheetHands.length > 0 && (
-                  <div>
-                    <Eyebrow className="mb-2">Raised hands</Eyebrow>
-                    <div className="flex flex-col gap-1.5">
-                      {sheetHands.map(h => (
-                        <div
-                          key={h.id}
-                          data-testid={`cast-sheet-hand-${h.userId}`}
-                          className="flex items-center gap-2 rounded-lg border border-info bg-info-soft px-2.5 py-2"
-                        >
-                          <Avatar label={h.userName} size="xs" />
-                          <span className="flex-1 truncate text-sm text-info">
-                            {h.userName}
-                          </span>
-                          <Hand size={13} className="text-info" />
-                          <button
-                            onClick={() =>
-                              void acceptHand(sheetCell.item, sheetCell.role, h)
-                            }
-                            data-testid={`cast-sheet-hand-cast-${h.userId}`}
-                            className="inline-flex items-center gap-1 rounded-full bg-info px-2 py-1 text-[11px] font-semibold text-white hover:brightness-110"
-                          >
-                            <Check size={12} /> Cast
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {sheetAssignments.length > 0 && (
-                  <div>
-                    <Eyebrow className="mb-2">Currently cast</Eyebrow>
-                    <div className="flex flex-col gap-1.5">
-                      {sheetAssignments.map(a => (
-                        <div
-                          key={a.id}
-                          className="flex items-center gap-2 rounded-lg bg-bg-3 px-2.5 py-2"
-                        >
-                          <Avatar label={a.memberName ?? 'Member'} size="xs" />
-                          <span className="flex-1 truncate text-sm text-ink-1">
-                            {a.memberName ?? 'Member'}
-                          </span>
-                          <button
-                            onClick={() => void unassign(a.id)}
-                            aria-label="Remove"
-                            data-testid={`cast-unassign-${a.id}`}
-                            className="rounded p-1 text-ink-5 hover:text-danger"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <Eyebrow className="mb-2">Everyone else</Eyebrow>
-                  {sheetOthers.length === 0 ? (
-                    <p className="text-xs text-ink-5">
-                      No one else to cast yet.
-                    </p>
-                  ) : (
-                    <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar-thin">
-                      {sheetOthers.map(p => (
-                        <button
-                          key={p.id}
-                          onClick={() =>
-                            void doAssign(sheetCell.item, sheetCell.role, {
-                              memberId: p.id,
-                              memberName: p.name,
-                            })
-                          }
-                          data-testid={`cast-sheet-person-${p.id}`}
-                          className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-bg-3"
-                        >
-                          <Avatar label={p.name} size="xs" />
-                          <span className="truncate text-sm text-ink-2">
-                            {p.name}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <form
-                  onSubmit={e => {
-                    e.preventDefault()
-                    void submitFreeText(sheetCell.item, sheetCell.role)
-                  }}
-                  className="flex items-center gap-2 border-t border-border-1 pt-3"
-                >
-                  <input
-                    value={freeText}
-                    onChange={e => setFreeText(e.target.value)}
-                    placeholder="Type a name…"
-                    name="freeTextName"
-                    id="cast-sheet-freetext"
-                    data-testid="cast-sheet-freetext-input"
-                    className="min-w-0 flex-1 rounded-lg bg-bg-3 px-3 py-2 text-sm text-ink-1 placeholder:text-ink-5 focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!freeText.trim()}
-                    data-testid="cast-sheet-freetext-add"
-                    className="flex-shrink-0 rounded-lg bg-accent-soft px-3 py-2 text-sm font-medium text-accent disabled:opacity-40"
-                  >
-                    Add
-                  </button>
-                </form>
-              </div>
-            )}
-          </SlideOutTray>
+          />
         )}
       </div>
       {(canRaiseHand || isManager) && (

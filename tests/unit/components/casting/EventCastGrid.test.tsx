@@ -57,9 +57,23 @@ describe('EventCastGrid', () => {
     expect(grid.container.querySelector('svg')).not.toBeNull()
   })
 
-  it('shows a drag handle per row for a manager with onReorder', () => {
-    renderGrid()
+  it('shows a drag handle per row for a manager with onReorder (2+ songs)', () => {
+    // Reorder needs at least two rows to swap, so a single-song lineup has no
+    // handle; render two so the grip appears.
+    renderGrid({
+      lineup: [
+        ...LINEUP,
+        {
+          id: 'li2',
+          position: 2,
+          source: 'mine',
+          displayTitle: 'No Surprises',
+          displayArtist: 'Radiohead',
+        },
+      ],
+    })
     expect(screen.getByTestId('cast-grid-drag-li1')).toBeInTheDocument()
+    expect(screen.getByTestId('cast-grid-drag-li2')).toBeInTheDocument()
   })
 
   it('hides the drag handle when onReorder is absent', () => {

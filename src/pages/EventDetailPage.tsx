@@ -45,6 +45,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from '@dnd-kit/modifiers'
+import {
   useEventDetail,
   useEventHands,
   useEventParticipants,
@@ -771,12 +775,16 @@ export function EventDetailContent({
                   <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
+                    modifiers={[
+                      restrictToVerticalAxis,
+                      restrictToParentElement,
+                    ]}
                     onDragEnd={dragEvent => void handleLineupDragEnd(dragEvent)}
                   >
                     <SortableContext
                       items={lineup.map(i => i.id)}
                       strategy={verticalListSortingStrategy}
-                      disabled={!isManager}
+                      disabled={!isManager || lineup.length <= 1}
                     >
                       <div
                         className="flex flex-col gap-3"
@@ -786,7 +794,7 @@ export function EventDetailContent({
                           <SortableLineupCard
                             key={item.id}
                             id={item.id}
-                            enabled={isManager}
+                            enabled={isManager && lineup.length > 1}
                           >
                             {dragHandleListeners => (
                               <LineupCard
@@ -1461,7 +1469,10 @@ function SortableLineupCard({
     isDragging,
   } = useSortable({ id, disabled: !enabled })
   const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    // Vertical-only reorder: zero the X so a card can't be dragged sideways.
+    transform: CSS.Transform.toString(
+      transform ? { ...transform, x: 0 } : null
+    ),
     transition,
     opacity: isDragging ? 0.6 : undefined,
     zIndex: isDragging ? 20 : undefined,

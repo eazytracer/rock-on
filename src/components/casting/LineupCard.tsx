@@ -8,7 +8,7 @@ import {
   Users,
   Star,
 } from 'lucide-react'
-import { KebabMenu, type KebabMenuItem } from '../common/KebabMenu'
+import type { KebabMenuItem } from '../common/KebabMenu'
 import { TuningTag } from '../common/MetaPill'
 import type { BandRole, CastingAssignment } from '../../models/Casting'
 import type { LineupItem, RaisedHand } from '../../models/Event'
@@ -38,7 +38,7 @@ interface LineupCardProps {
    * see it.
    */
   dragHandleListeners?: DragHandleListeners
-  /** Manager-only card actions (Edit / Remove) shown in a kebab menu. */
+  /** Manager-only card actions (Edit / Remove) shown in the expanded panel. */
   actions?: KebabMenuItem[]
   /** Resolved name of whoever added/requested the song ("Added by {name}"). */
   ownerName?: string
@@ -50,9 +50,10 @@ interface LineupCardProps {
  * One song in the event Lineup, as a compact single-row card (EC4 #3 — a
  * vertical column of numbered rows like the setlist builder, so a host can see
  * as many songs as possible). The header is ONE line: [grip] · title · artist ·
- * hands tally · cast count · chevron · [kebab]. The grip and kebab sit inline
- * beside the title (never on their own row); clicking the title toggles the
- * embedded cast panel. Source pills are retired on event surfaces (EC4 #5).
+ * hands tally · cast count · chevron. The grip sits inline beside the title
+ * (never on its own row); clicking the title toggles the embedded cast panel.
+ * Manager Edit/Remove actions live inside that expanded panel (not a row kebab),
+ * keeping the collapsed row uncluttered. Source pills are retired (EC4 #5).
  * An optional second meta line shows "Added by {name}" plus the per-song
  * tuning (colored) + key when present.
  */
@@ -171,49 +172,45 @@ export function LineupCard({
               </span>
             )}
           </span>
-          {handsTotal > 0 && (
+          {/* Trailing metrics — evenly spaced (hands · cast count · casting ·
+              chevron). Manager Edit/Remove live in the expanded body, not here. */}
+          <span className="flex flex-shrink-0 items-center gap-2.5">
+            {handsTotal > 0 && (
+              <span
+                data-testid={`lineup-hands-${item.id}`}
+                className="inline-flex flex-shrink-0 items-center gap-1 rounded-lg bg-info-soft px-2 py-0.5 text-[11px] font-semibold text-info"
+              >
+                <Hand size={11} /> {handsTotal}
+              </span>
+            )}
             <span
-              data-testid={`lineup-hands-${item.id}`}
-              className="inline-flex flex-shrink-0 items-center gap-1 rounded-lg bg-info-soft px-2 py-0.5 text-[11px] font-semibold text-info"
+              data-testid={`lineup-cast-count-${item.id}`}
+              className={`inline-flex flex-shrink-0 items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-bold ${
+                fullyCast
+                  ? 'border-success/30 bg-success/10 text-success'
+                  : 'border-accent/30 bg-accent-soft text-accent'
+              }`}
             >
-              <Hand size={11} /> {handsTotal}
+              {fullyCast && <CheckCircle2 size={12} />}
+              {castCount}/{total}
             </span>
-          )}
-          <span
-            data-testid={`lineup-cast-count-${item.id}`}
-            className={`inline-flex flex-shrink-0 items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-bold ${
-              fullyCast
-                ? 'border-success/30 bg-success/10 text-success'
-                : 'border-accent/30 bg-accent-soft text-accent'
-            }`}
-          >
-            {fullyCast && <CheckCircle2 size={12} />}
-            {castCount}/{total}
+            {/* Casting affordance — labels what the expand opens. Icon always;
+                "Casting" text only when there's room. */}
+            <span
+              className="inline-flex flex-shrink-0 items-center gap-1 text-[11px] text-ink-4"
+              data-testid={`lineup-casting-${item.id}`}
+            >
+              <Users size={13} />
+              <span className="hidden sm:inline">Casting</span>
+            </span>
+            <ChevronDown
+              size={16}
+              className={`flex-shrink-0 text-ink-4 transition-transform ${
+                selected ? 'rotate-180' : ''
+              }`}
+            />
           </span>
-          {/* Casting affordance — labels what the expand opens. Icon always;
-              "Casting" text only when there's room. */}
-          <span
-            className="inline-flex flex-shrink-0 items-center gap-1 text-[11px] text-ink-4"
-            data-testid={`lineup-casting-${item.id}`}
-          >
-            <Users size={13} />
-            <span className="hidden sm:inline">Casting</span>
-          </span>
-          <ChevronDown
-            size={16}
-            className={`flex-shrink-0 text-ink-4 transition-transform ${
-              selected ? 'rotate-180' : ''
-            }`}
-          />
         </button>
-        {actions && actions.length > 0 && (
-          <KebabMenu
-            items={actions}
-            triggerSize="sm"
-            align="right"
-            data-testid={`lineup-actions-${item.id}`}
-          />
-        )}
       </div>
 
       {selected && children && (
@@ -230,6 +227,28 @@ export function LineupCard({
             </div>
           )}
           {children}
+          {actions && actions.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border-1 pt-3">
+              {actions.map(action => {
+                const Icon = action.icon
+                return (
+                  <button
+                    key={action.label}
+                    onClick={action.onClick}
+                    data-testid={action['data-testid']}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      action.variant === 'danger'
+                        ? 'text-danger hover:bg-danger/10'
+                        : 'text-ink-3 hover:bg-bg-3 hover:text-white'
+                    }`}
+                  >
+                    {Icon && <Icon size={15} />}
+                    {action.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
