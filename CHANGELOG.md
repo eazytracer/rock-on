@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-07-23
+
+Production hotfixes: existing members locked out of onboarding, an
+unrecoverable signed-in-but-empty state, and a friend re-add dead-end.
+
+### Fixed
+
+- **Existing band members are no longer forced into new-user onboarding.**
+  Returning members (especially on a fresh browser/device) were routed to the
+  "join solo / join a band" screen, and entering their band code errored
+  "already a member" — a dead end that locked the whole band out. Root cause:
+  `AuthContext.loadUserData` resolved membership from the local IndexedDB cache
+  only, which is empty for users whose stale `last_full_sync` skipped the
+  initial sync; the guard then downgraded a valid member to Personal and wiped
+  their `currentBandId`. It now falls back to a cloud-first membership read
+  (the same source the join-code path trusts) and never discards a persisted
+  band context on an unresolved/cold cache.
+- **Signing out always works, even on a degraded network.** `signOut` now
+  clears local session state first and unconditionally, then attempts the
+  network sign-out under a bounded timeout. Previously a hung
+  `supabase.auth.signOut()` could trap a user on a broken/empty screen with no
+  way out but purging the browser cache.
+- **Re-adding a friend works after unfriending.** Removing a friend and adding
+  them again no longer errors "you're already friends". Unfriend now clears the
+  stale `accepted` friend-request row (via an `AFTER DELETE` trigger on
+  `friendships`), and the send path self-heals any orphaned `accepted` rows
+  left by earlier builds.
+
+### Database
+
+- `20260723051100_friendship_unfriend_cleanup.sql` — `AFTER DELETE ON
+friendships` trigger that clears the paired `friend_requests` row(s); one-time
+  cleanup of orphaned `accepted` rows; `release_notes` upsert for 0.4.5. No new
+  tables or grants.
+
+### Notes
+
+- A deeper auth-guard hardening (fail-closed against the real Supabase session
+  to close the remaining unauthenticated-access window, plus a recovery screen
+  for the signed-in-but-unhydrated state) is scoped as a reviewed follow-up —
+  see `.claude/features/production-auth-onboarding-fixes/`.
+
 ## [0.4.4] - 2026-07-10
 
 Events-page mobile polish + a casting-flow cleanup. No schema changes.

@@ -142,4 +142,34 @@ describe('FriendService.sendRequestToUser', () => {
     expect(res.ok).toBe(false)
     expect(b.update).not.toHaveBeenCalled()
   })
+
+  it('reactivates a stale accepted row when the pair are no longer friends', async () => {
+    // unfriend → re-add: the old accept left an 'accepted' row occupying the
+    // UNIQUE slot; with no live friendship it must reactivate, not dead-end.
+    h.state.queue = [
+      { data: null, error: { code: '23505' } }, // insert conflict
+      { data: { id: 'r1', status: 'accepted' }, error: null }, // stale accepted row
+      { data: false, error: null }, // are_friends RPC → not friends
+      { data: null, error: null }, // update → pending
+      { data: [{ user_id: 'u2', name: 'Zoe' }], error: null }, // namesFor
+    ]
+    const res = await FriendService.sendRequestToUser('u2')
+    expect(h.rpc).toHaveBeenCalledWith('are_friends', { u1: 'me', u2: 'u2' })
+    expect(b.update).toHaveBeenCalledWith({
+      status: 'pending',
+      responded_date: null,
+    })
+    expect(res).toEqual({ ok: true, name: 'Zoe' })
+  })
+
+  it('blocks re-add when an accepted row reflects a live friendship', async () => {
+    h.state.queue = [
+      { data: null, error: { code: '23505' } }, // insert conflict
+      { data: { id: 'r1', status: 'accepted' }, error: null }, // accepted row
+      { data: true, error: null }, // are_friends RPC → still friends
+    ]
+    const res = await FriendService.sendRequestToUser('u2')
+    expect(res).toEqual({ ok: false, error: "You're already friends" })
+    expect(b.update).not.toHaveBeenCalled()
+  })
 })

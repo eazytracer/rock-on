@@ -334,8 +334,15 @@ export class FriendService {
       return { ok: false, error: 'Could not send request' }
     }
     // A request row already exists for this exact direction (the UNIQUE
-    // requester/addressee pair). If it's a stale declined/cancelled one,
-    // reactivate it so the user can re-request; otherwise report its state.
+    // requester/addressee pair). Reactivate a stale row so the user can
+    // re-request; otherwise report its state. Reactivatable rows are:
+    //  - declined / cancelled: terminal rows the decline/cancel paths free,
+    //  - accepted-but-no-longer-friends: an orphaned row left behind when the
+    //    pair unfriended. The accept trigger writes `friendships` but keeps the
+    //    request row at 'accepted', and unfriend only deletes the friendship —
+    //    so re-adding used to dead-end on "You're already friends". This
+    //    self-heals rows predating the AFTER DELETE ON friendships cleanup
+    //    trigger (v0.4.5).
     const { data: existing } = await supabase
       .from('friend_requests')
       .select('id, status')
@@ -343,7 +350,13 @@ export class FriendService {
       .eq('addressee_id', targetId)
       .maybeSingle()
     const row = existing as { id: string; status: string } | null
-    if (row && (row.status === 'declined' || row.status === 'cancelled')) {
+    const reactivatable =
+      !!row &&
+      (row.status === 'declined' ||
+        row.status === 'cancelled' ||
+        (row.status === 'accepted' &&
+          !(await FriendService.areFriends(me, targetId))))
+    if (row && reactivatable) {
       const { error: upErr } = await supabase
         .from('friend_requests')
         .update({ status: 'pending', responded_date: null } as never)
@@ -359,6 +372,27 @@ export class FriendService {
           ? "You're already friends"
           : 'Request already pending',
     }
+  }
+
+  /**
+   * Whether the two users currently have a friendship row, via the are_friends
+   * RPC (order-independent). On error, fail safe by assuming they ARE friends so
+   * a stale 'accepted' request is never reactivated against a real friend.
+   */
+  private static async areFriends(a: string, b: string): Promise<boolean> {
+    const supabase = getSupabaseClient()
+    if (!supabase) return true
+    // rpc is untyped here (no generated DB types) — cast the call.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)('are_friends', {
+      u1: a,
+      u2: b,
+    })
+    if (error) {
+      log.error('are_friends failed', error)
+      return true
+    }
+    return data === true
   }
 
   static async acceptRequest(id: string): Promise<void> {
