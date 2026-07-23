@@ -491,29 +491,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         .first()
       setCurrentUserProfile(profile || null)
 
-      // Load all bands user is a member of from IndexedDB
-      const memberships = await db.bandMemberships
+      // Load all bands the user is a member of. Read the local cache first
+      // (fast, offline-friendly), but if it's empty fall back to a cloud-first
+      // membership read. Pre-update / cross-device users can hold a valid
+      // server-side membership that was never synced into IndexedDB (a stale
+      // `last_full_sync` makes SyncEngine skip the initial sync that would fill
+      // it). Without this fallback such a user is wrongly treated as band-less
+      // and pushed into new-user onboarding — while the cloud-first join-code
+      // path insists they're "already a member" (v0.4.5 lockout fix).
+      let memberships = await db.bandMemberships
         .where('userId')
         .equals(userId)
         .filter(m => m.status === 'active')
         .toArray()
 
-      // TEMP FIX: If no band memberships in IndexedDB, this is a fresh sign-in
-      // The pull-from-Supabase sync isn't implemented yet, so we need to manually
-      // fetch the user's bands from Supabase
+      // `membershipResolved` is true when we have an AUTHORITATIVE membership
+      // list — local rows were found, or the cloud read succeeded. It is false
+      // only when the cache is empty AND the cloud read failed (offline); in
+      // that case we must NOT destroy a persisted band context below.
+      let membershipResolved = memberships.length > 0
+
       if (memberships.length === 0) {
-        console.log(
-          'No band memberships found in IndexedDB - user may need to be added to a band'
-        )
-        // For now, we'll just show "No Band Selected"
-        // TODO: Implement initial sync from Supabase when pull sync is ready
+        try {
+          const { repository } = await import(
+            '../services/data/RepositoryFactory'
+          )
+          const remote = await repository.getUserMemberships(userId)
+          memberships = remote.filter(m => m.status === 'active')
+          membershipResolved = true
+        } catch (error) {
+          console.warn(
+            'Cloud membership fallback failed; preserving stored context:',
+            error
+          )
+        }
+      }
+
+      // Resolve band details, fetching any band not yet in the local cache
+      // (cloud-first) so a cold IndexedDB still yields real bands.
+      const resolveBand = async (id: string): Promise<Band | undefined> => {
+        const local = await db.bands.get(id)
+        if (local) return local
+        try {
+          const { repository } = await import(
+            '../services/data/RepositoryFactory'
+          )
+          return (await repository.getBand(id)) || undefined
+        } catch {
+          return undefined
+        }
       }
 
       const bands = await Promise.all(
-        memberships.map(async membership => {
-          const band = await db.bands.get(membership.bandId)
-          return band
-        })
+        memberships.map(m => resolveBand(m.bandId))
       )
       // Dedupe by band id — duplicate active memberships can exist in IndexedDB
       // and would otherwise render as repeated bands (switcher, "Your bands").
@@ -530,39 +560,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       // `currentBandId` → auto-select first band (preserves prior default when
       // no intent has ever been chosen). A stale band (removed membership)
       // downgrades to Personal rather than throwing.
-      const validBandIds = new Set(
-        bands.filter((b): b is Band => !!b).map(b => b.id)
-      )
+      const validBandIds = new Set(uniqueBands.map(b => b.id))
       const intent = localStorage.getItem('rockon.context')
 
-      const applyPersonal = () => {
+      // clearStored=true wipes the persisted `currentBandId`. Only do that when
+      // we KNOW the user belongs in Personal (explicit intent, or an
+      // authoritative empty membership list) — never because a cold cache
+      // couldn't be read, or an existing member gets dumped to onboarding.
+      const applyPersonal = (clearStored: boolean) => {
         setCurrentBand(null)
         setCurrentBandId(null)
         setCurrentUserRole(null)
-        localStorage.removeItem('currentBandId')
+        if (clearStored) localStorage.removeItem('currentBandId')
       }
 
       if (intent === 'personal') {
         // Intentional Personal context — do NOT auto-select a band.
-        applyPersonal()
+        applyPersonal(true)
+      } else if (!membershipResolved && bandId) {
+        // Offline with a cold cache but a remembered band — keep the user in
+        // their band context rather than dumping them to onboarding. Best-effort
+        // band details; role stays null until a sync succeeds.
+        const band = await resolveBand(bandId)
+        setCurrentBand(band || null)
+        setCurrentBandId(bandId)
+        setCurrentUserRole(null)
       } else {
         const targetBandId =
           intent && validBandIds.has(intent)
             ? intent
             : bandId && validBandIds.has(bandId)
               ? bandId
-              : bands[0]?.id || null
+              : uniqueBands[0]?.id || null
 
         if (targetBandId) {
-          const band = await db.bands.get(targetBandId)
+          const band = await resolveBand(targetBandId)
           setCurrentBand(band || null)
           setCurrentBandId(targetBandId)
           localStorage.setItem('currentBandId', targetBandId)
           const membership = memberships.find(m => m.bandId === targetBandId)
           setCurrentUserRole(membership?.role || null)
         } else {
-          // No bands at all → Personal by circumstance.
-          applyPersonal()
+          // Authoritatively band-less → Personal by circumstance.
+          applyPersonal(true)
         }
       }
     } catch (error) {
@@ -632,17 +672,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     try {
       console.log('🚪 Signing out...')
 
-      // 1. Sign out from Supabase (clears auth session)
-      await authService.signOut()
-
-      // 2. Clear all local state
+      // 1. Clear local session state FIRST and unconditionally. This is the
+      //    guaranteed escape hatch: the user is always signed out locally even
+      //    if the network sign-out hangs or fails. Without this, a degraded
+      //    network could trap a user on a broken/empty screen with no way out
+      //    but purging the browser cache. `logout()` also dispatches
+      //    `auth-logout`, which the route guard reacts to → redirect to /auth.
       logout()
+
+      // 2. Best-effort network sign-out under a bounded timeout so a hung
+      //    `supabase.auth.signOut()` can never block recovery.
+      await Promise.race([
+        authService.signOut(),
+        new Promise<void>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Network sign-out timed out')),
+            5000
+          )
+        ),
+      ])
 
       console.log('✅ Sign out complete')
     } catch (error) {
-      console.error('Sign out error:', error)
-      // Still try to clear local state even if Supabase signOut fails
-      logout()
+      // Local state is already cleared above — a network failure/timeout here
+      // is non-fatal to the user's ability to sign out and recover.
+      console.warn(
+        'Network sign-out failed or timed out (local session already cleared):',
+        error
+      )
     } finally {
       setLoading(false)
     }

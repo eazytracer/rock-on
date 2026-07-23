@@ -7,7 +7,7 @@
 
 begin;
 
-select plan(22);
+select plan(23);
 
 -- ── user_profiles columns (3) ───────────────────────────────────────────────
 select has_column('user_profiles', 'discoverable', 'user_profiles.discoverable exists');
@@ -108,6 +108,22 @@ select results_eq(
     current_setting('test.fr_b'), current_setting('test.fr_a')),
   ARRAY[true],
   'are_friends() should be true (order-independent) after accept');
+
+-- ── unfriend cleanup trigger (1): deleting a friendship clears the paired
+--    friend_requests row (incl. the stale 'accepted' one) so the pair can
+--    re-add each other — the v0.4.5 re-add lockout fix.
+DELETE FROM public.friendships
+  WHERE user_a = LEAST(current_setting('test.fr_a')::uuid, current_setting('test.fr_b')::uuid)
+    AND user_b = GREATEST(current_setting('test.fr_a')::uuid, current_setting('test.fr_b')::uuid);
+
+select results_eq(
+  format($f$SELECT count(*)::int FROM public.friend_requests
+    WHERE (requester_id = %L::uuid AND addressee_id = %L::uuid)
+       OR (requester_id = %L::uuid AND addressee_id = %L::uuid)$f$,
+    current_setting('test.fr_a'), current_setting('test.fr_b'),
+    current_setting('test.fr_b'), current_setting('test.fr_a')),
+  ARRAY[0],
+  'Unfriending should clear the paired friend_requests row (re-add unblocked)');
 
 select * from finish();
 rollback;
