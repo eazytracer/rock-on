@@ -3,8 +3,6 @@
  *
  * Represents gigs, concerts, and live performances.
  * Separated from PracticeSession for clean domain separation.
- *
- * Based on: .claude/specifications/proposed-unified-schema-v2.md (lines 88-200)
  */
 
 export interface Show {
