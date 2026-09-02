@@ -1,6 +1,7 @@
 # Rock-On
 
-A band management application for musicians to organize songs, setlists, shows, and practice sessions.
+A band management application for musicians to organize songs, setlists, shows,
+and practice sessions — plus jam sessions and venue events.
 
 ## Quick Start
 
@@ -8,32 +9,35 @@ A band management application for musicians to organize songs, setlists, shows, 
 # 1. Install dependencies
 npm install
 
-# 2. Start Supabase and generate environment files
+# 2. Start Supabase and generate environment files (first time only)
 npm run setup:local
 
-# 3. Start development server
+# 3. Start development (Supabase + edge functions + dev server)
 npm run start:dev
 ```
 
 Your app will be running at http://localhost:5173
 
-See [QUICKSTART.md](./QUICKSTART.md) for more details.
+`setup:local` dynamically extracts API keys from `supabase status`, so the
+generated env files work even if Supabase generates different keys per machine.
 
 ## Features
 
-- **Song Library** - Manage your band's song catalog with lyrics, chords, and metadata
-- **Setlists** - Create and organize setlists for performances
-- **Shows** - Track upcoming and past performances
-- **Practice Sessions** - Log practice sessions and track progress
-- **Band Management** - Invite members and collaborate
-- **Offline-First** - Works offline with automatic sync when connected
+- **Song Library** — catalog with lyrics, chords, tuning, and metadata
+- **Setlists** — build and order setlists for performances
+- **Shows** — track upcoming and past performances
+- **Practice Sessions** — schedule/log practices, with a live session mode
+- **Jam Sessions** — impromptu jams; join by code, match songs across catalogs
+- **Events** — venue-oriented lineups, RSVP, and casting
+- **Band Management** — invite members and collaborate
+- **Offline-First** — works offline with automatic sync when connected
 
 ## Tech Stack
 
-- **Frontend**: React 18+, TypeScript, TailwindCSS
-- **Backend**: Supabase (PostgreSQL, Auth, Realtime)
-- **Local Storage**: IndexedDB for offline-first architecture
-- **Testing**: Vitest (unit), Playwright (E2E), pgTAP (database)
+- **Frontend:** React 18+, TypeScript, TailwindCSS, Vite
+- **Backend:** Supabase (PostgreSQL, Auth, Realtime, Edge Functions)
+- **Local Storage:** IndexedDB (Dexie) for offline-first architecture
+- **Testing:** Vitest (unit), Playwright (E2E), pgTAP (database)
 
 ## Development
 
@@ -46,30 +50,51 @@ See [QUICKSTART.md](./QUICKSTART.md) for more details.
 
 | Command | Description |
 |---------|-------------|
-| `npm run setup:local` | First time setup (start Supabase + generate env files) |
-| `npm run start:dev` | Start development (Supabase + env + dev server) |
-| `npm run dev` | Start dev server only |
+| `npm run setup:local` | First-time setup (Supabase + generate env files) |
+| `npm run start:dev` | Start local dev (Supabase + edge functions + server) |
+| `npm run start:staging` | Start with remote Supabase |
+| `npm run env:status` | Check active environment |
+| `npm run supabase:studio` | Open the database UI |
+| `npm run dev` | Dev server only |
 | `npm run build` | Build for production |
-| `npm run test` | Run unit tests |
-| `npm run test:e2e` | Run E2E tests (Playwright) |
-| `npm run test:db` | Run database tests (pgTAP) |
-| `npm run test:all` | Run all tests |
+| `npm run test` | Unit + integration tests |
+| `npm run test:e2e` | E2E tests (Playwright) |
+| `npm run test:all` | All tests (app + database) |
 
-### Environment Management
+Full test layout: `tests/README.md`. Environment guide: `ENVIRONMENTS.md`.
 
-| Environment | Command | Use Case |
-|-------------|---------|----------|
-| Development | `npm run start:dev` | Daily development (local Supabase) |
-| Staging | `npm run start:staging` | Testing with remote Supabase |
-| Test | `npm run start:test` | CI/CD and automated testing |
+### Environment Modes
 
-See [ENVIRONMENTS.md](./ENVIRONMENTS.md) for full environment management guide.
+| Mode | Use When | Supabase | Email Confirmations |
+|------|----------|----------|---------------------|
+| Development | Daily coding | Local | Disabled |
+| Staging | Testing before deploy | Remote | Enabled |
+| Test | CI/CD, automated tests | Local | Mock |
+| Production | Deployed app | Remote | Enabled |
+
+### Local URLs
+
+- App: http://localhost:5173
+- Supabase Studio: http://127.0.0.1:54323
+- Supabase API: http://127.0.0.1:54321
+- Mailpit (emails): http://127.0.0.1:54324
+
+### Troubleshooting
+
+```bash
+npm run supabase:status   # Is Supabase running?
+npm run supabase:start    # Start it if stopped
+npm run start:dev         # "Email not confirmed"? → switch to local Supabase
+npm run supabase:reset    # Reset the local database
+npm run env:status        # Lost track of which environment is active?
+```
 
 ## Documentation
 
-- [QUICKSTART.md](./QUICKSTART.md) - Getting started guide
-- [ENVIRONMENTS.md](./ENVIRONMENTS.md) - Environment configuration
-- [CLAUDE.md](./CLAUDE.md) - Development guidelines and conventions
+- [CLAUDE.md](./CLAUDE.md) — coding rules and project policy
+- [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) — how we build (agent workflow)
+- [ENVIRONMENTS.md](./ENVIRONMENTS.md) — environment configuration
+- Database schema: `.claude/specifications/unified-database-schema.md`
 
 ## Project Structure
 
@@ -86,10 +111,7 @@ rock-on/
 ├── supabase/               # Supabase configuration
 │   ├── migrations/         # Database migrations
 │   └── tests/              # Database tests (pgTAP)
-├── tests/                  # Application tests
-│   ├── unit/               # Unit tests
-│   ├── e2e/                # E2E tests (Playwright)
-│   └── integration/        # Integration tests
+├── tests/                  # Application tests (unit, e2e, integration)
 └── scripts/                # Helper scripts
 ```
 

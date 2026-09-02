@@ -2,8 +2,7 @@
  * Dev-only UI preview page.
  *
  * Mounted at /dev/ui-preview (outside the authenticated layout). Contains
- * proposed component previews for the UI unification pass documented in
- * .claude/artifacts/2026-04-22T20:57_ui-unification-and-cleanup-assessment.md
+ * proposed component previews for the UI unification pass.
  *
  * Do NOT import from this directory anywhere in the production app. All
  * components here are drafts and will be moved/rewritten when approved.
