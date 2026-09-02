@@ -1,82 +1,48 @@
 # rock-on Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-09-27
+Coding rules and project policy for agents working in this repo. For the broader
+"how we build" process (research → plan → implement → test → release), see
+`docs/DEVELOPMENT.md`.
 
-## Development Strategy and Guidelines
+## Development Strategy
 
-1. Think Before Coding
-   Don't assume. Don't hide confusion. Surface tradeoffs.
-
-Before implementing:
-
-State your assumptions explicitly. If uncertain, ask.
-If multiple interpretations exist, present them - don't pick silently.
-If a simpler approach exists, say so. Push back when warranted.
-If something is unclear, stop. Name what's confusing. Ask. 2. Simplicity First
-Minimum code that solves the problem. Nothing speculative.
-
-No features beyond what was asked.
-No abstractions for single-use code.
-No "flexibility" or "configurability" that wasn't requested.
-No error handling for impossible scenarios.
-If you write 200 lines and it could be 50, rewrite it.
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-3. Surgical Changes
-   Touch only what you must. Clean up only your own mess.
-
-When editing existing code:
-
-Don't "improve" adjacent code, comments, or formatting.
-Don't refactor things that aren't broken.
-Match existing style, even if you'd do it differently.
-If you notice unrelated dead code, mention it - don't delete it.
-When your changes create orphans:
-
-Remove imports/variables/functions that YOUR changes made unused.
-Don't remove pre-existing dead code unless asked.
-The test: Every changed line should trace directly to the user's request.
-
-4. Goal-Driven Execution
-   Define success criteria. Loop until verified.
-
-Transform tasks into verifiable goals:
-
-"Add validation" → "Write tests for invalid inputs, then make them pass"
-"Fix the bug" → "Write a test that reproduces it, then make it pass"
-"Refactor X" → "Ensure tests pass before and after"
-For multi-step tasks, state a brief plan:
-
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-   Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+1. **Think before coding.** State assumptions explicitly; if uncertain, ask. If
+   multiple interpretations exist, present them — don't pick silently. If a
+   simpler approach exists, say so. If something is unclear, stop and name it.
+2. **Simplicity first.** Minimum code that solves the problem, nothing
+   speculative. No abstractions for single-use code, no unrequested
+   "flexibility," no error handling for impossible scenarios. If 200 lines could
+   be 50, rewrite it.
+3. **Surgical changes.** Touch only what you must. Don't refactor or reformat
+   adjacent code, don't fix unrelated things (mention them instead). Remove
+   orphans your own changes create; leave pre-existing dead code alone unless
+   asked. Every changed line should trace to the request.
+4. **Goal-driven execution.** Turn tasks into verifiable goals ("add validation"
+   → "write tests for invalid inputs, then make them pass"). Loop until verified.
 
 ## Versioning & Release Policy (REQUIRED)
 
 **🚨 No PR that ships to production may merge without bumping the version.**
-This bit us across the 0.4 launch — three same-day hotfixes (v0.4.1, v0.4.2)
-shipped to prod while `package.json` stayed `0.4.0` and no tags were cut, so the
-release history had to be reconstructed after the fact.
 
 Every production-bound PR MUST, before merge:
 
-1. **Bump `package.json` `version`** per SemVer (pre-1.0: features → patch is
-   acceptable, but the number MUST change — never reuse a shipped version).
+1. **Bump `package.json` `version`** per SemVer (pre-1.0: features may be a patch,
+   but the number MUST change — never reuse a shipped version).
 2. **Add a dated `## [x.y.z]` section to `CHANGELOG.md`** (move items out of
    `[Unreleased]`), grouped Added / Changed / Fixed / Database.
-3. **Add a `release_notes` row** for the version (idempotent upsert in the
-   feature migration, or the release step) — this is what surfaces the in-app
-   "what's new" notification (`release_notes` vs `users.last_seen_release_version`).
+3. **Add a `release_notes` row** for the version (idempotent upsert) — this drives
+   the in-app "what's new" notification (`release_notes` vs
+   `users.last_seen_release_version`).
 4. **Tag the merge commit** `vX.Y.Z` (annotated) and push the tag.
 
-The `/finalize` and `/release` flows automate steps 1–4; do not hand-merge a
-prod PR that skips them. A DB migration in the PR is a strong signal it is
-prod-bound — treat it as release-gated.
+The `/finalize` and `/release` flows automate steps 1–4. A DB migration in the PR
+is a strong signal it is prod-bound — treat it as release-gated.
 
 ## Active Technologies
 
-- TypeScript 5.x with React 18+ + React, TailwindCSS, client-side database (TBD) (001-use-this-prd)
+TypeScript 5.x, React 18+, TailwindCSS, Vite. Supabase (Postgres/Auth/Realtime/
+Edge Functions). Offline-first: IndexedDB (Dexie) + sync queue. Testing: Vitest,
+Playwright, pgTAP.
 
 ## Project Structure
 
@@ -87,967 +53,210 @@ src/
   │   ├── data/        # Repository pattern & sync engine
   │   ├── auth/        # Authentication services
   │   └── supabase/    # Supabase client
-  └── ...
+  ├── components/ pages/ hooks/ contexts/ models/ utils/
 tests/
-  ├── unit/            # Unit tests (mirror src/ structure)
-  │   ├── config/
-  │   └── services/
-  ├── integration/     # Integration tests
-  ├── e2e/             # End-to-end tests (Playwright)
-  └── contract/        # API contract tests
+  ├── unit/            # mirror src/ structure
+  ├── integration/ e2e/ (Playwright) contract/
+supabase/
+  ├── migrations/ functions/ tests/ (pgTAP)
 ```
 
 ## Commands
 
-### Testing Commands (REQUIRED)
-
-**Run tests before AND after all code changes:**
-
 ```bash
-# Run application tests (unit, integration)
-npm test
+npm run start:dev   # ALWAYS use this to start dev — never start Supabase, the
+                    # dev server, or edge functions manually. Handles the full
+                    # sequence: local Supabase → dev .env → edge functions
+                    # (supabase functions serve --no-verify-jwt, required for
+                    # jam-view + Spotify search) → Vite. Edge logs: /tmp/edge-functions.log
+npm run setup:local # First-time: start Supabase + generate .env.development/.env.test
 
-# Quick tests for fast feedback (components, hooks, contexts ~2s)
-npm run test:quick
-
-# Run specific test categories
-npm run test:unit        # All unit tests
-npm run test:services    # Service layer tests only
-npm run test:integration # Integration tests
-
-# Run specific test file
-npm test -- tests/unit/services/data/SyncRepository.test.ts
-
-# Run tests in a directory
-npm test -- tests/unit/services/
-
-# Run tests in watch mode (for development)
-npm run test:watch
-
-# Run tests with coverage
-npm test -- --coverage
-
-# Run database tests (pgTAP schema validation)
-npm run test:db
-
-# Run E2E tests (Playwright)
-npm run test:e2e              # Run all E2E tests
-npm run test:e2e:ui           # Run with interactive UI
-npm run test:e2e:debug        # Run in debug mode
-npm run test:e2e:report       # View test report
-
-# Run all tests (application + database + E2E)
-npm run test:all
+npm run dev         # Dev server only
+npm run build       # Production build
+npm run lint        # Lint
+npm run type-check  # tsc --noEmit
 ```
 
-**E2E Test Prerequisites:**
+Test commands and layout live in `tests/README.md` (the single source). Quick
+reference: `npm test` (unit+integration), `npm run test:quick` (~2s), `npm run
+test:e2e` (Playwright — needs `supabase start` + `npm run env:dev`), `npm run
+test:db` (pgTAP), `npm run test:all`.
 
-- ✅ Local Supabase must be running: `supabase start`
-- ✅ Development environment must be active: `npm run env:dev`
-- ✅ Dev server should be running: `npm run dev` (Playwright starts it automatically)
+Environment management: `ENVIRONMENTS.md`.
 
-**Quick E2E Setup:**
+## Supabase — Remote (production) access
 
-```bash
-# Ensure local Supabase is running and environment is configured
-npm run start:dev  # Starts Supabase + sets dev env + runs dev server
+**🚨 Secret handling (non-negotiable):**
 
-# In another terminal, run E2E tests
-npm run test:e2e
-```
-
-**See `/workspaces/rock-on/ENVIRONMENTS.md` for full environment management guide**
-
-### Other Commands
-
-```bash
-npm run lint       # Lint code
-npm run type-check # TypeScript type checking
-npm run dev        # Start development server
-npm run build      # Build for production
-```
-
-### Local Development Setup
-
-**ALWAYS use `npm run start:dev` to start the development environment — never start Supabase, the dev server, or edge functions manually.**
-
-`npm run start:dev` (via `scripts/start-dev.sh`) handles the full startup sequence:
-
-1. Starts local Supabase (if not already running)
-2. Sets the `.env.local` to development config
-3. Starts the **Edge Functions runtime** in the background (`supabase functions serve --no-verify-jwt`) — required for Jam Session (`jam-view`) and Spotify search features
-4. Starts the Vite dev server
-
-Edge function logs are written to `/tmp/edge-functions.log`.
-
-```bash
-# First time setup (generates .env.development and .env.test from local Supabase)
-npm run setup:local
-
-# This command:
-# - Starts local Supabase if not running
-# - Extracts API keys from supabase status
-# - Generates .env.development with local config
-# - Generates .env.test with service role key for E2E tests
-
-# Start full dev environment (Supabase + edge functions + Vite)
-npm run start:dev
-```
-
-### Supabase Commands
-
-#### Local
-
-```bash
-npx supabase start           # Start local Supabase
-npx supabase db reset        # Rebuild local DB from baseline + all incremental migrations
-npx supabase db push         # Apply not-yet-applied local migrations
-npm run test:db              # pgTAP schema validation
-```
-
-#### Remote (production) — secure access procedure
-
-**🚨 Secret handling rules (non-negotiable):**
-
-- **Never** `echo`, `cat`, `printf`, `od`, `xxd`, or otherwise dump the
-  contents of `.env.supabase.local` or the value of `$SUPABASE_ACCESS_TOKEN`
-  to a terminal. The output ends up in CI logs, shell history, and
-  conversation transcripts.
-- If you need to check _that_ a token is set but not its value, use a
-  length/prefix check only:
+- **Never** `echo`/`cat`/`printf`/`od`/`xxd` the contents of
+  `.env.supabase.local` or `$SUPABASE_ACCESS_TOKEN`. To check a token is set
+  without printing it:
   ```bash
   source .env.supabase.local
   echo "token length: ${#SUPABASE_ACCESS_TOKEN}, prefix: ${SUPABASE_ACCESS_TOKEN:0:4}"
-  # Valid tokens are prefixed `sbp_` and ~50-60 chars long.
+  # Valid tokens are prefixed `sbp_` and ~50-60 chars.
   ```
-- If a token is ever printed in full by accident, **revoke it immediately**
-  in Supabase Studio → Account → Access Tokens, and generate a new one.
-- `.env.supabase.local` must be in `.gitignore`. Verify before committing
-  after any env work.
+- If a token is ever printed in full, **revoke it immediately** (Supabase Studio →
+  Account → Access Tokens) and generate a new one.
+- `.env.supabase.local` must be in `.gitignore`. Exactly one
+  `export SUPABASE_ACCESS_TOKEN=...` line; rewrite the whole file when rotating
+  (appending silently concatenates into an invalid token).
 
-**Required env file format (`.env.supabase.local`):**
-
-```bash
-export SUPABASE_ACCESS_TOKEN=sbp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-# Optional — only needed for `db push --linked` / `migration list --linked`
-# if the CLI's saved DB password isn't already linked to the project.
-# Get from: Supabase Studio → Project Settings → Database → Connection string
-# export SUPABASE_DB_PASSWORD='your-db-password-here'
-```
-
-**Rules for the file:**
-
-- Exactly one `export SUPABASE_ACCESS_TOKEN=...` line (no appends on top of
-  stale values — this silently concatenates strings into an invalid token).
-- `export` prefix is required so `source` propagates the value to child
-  processes (the supabase CLI runs as a child).
-- When rotating, **rewrite the whole file** with `cat > .env.supabase.local
-<<'EOF' ... EOF`. Don't append.
-
-**Full remote workflow:**
+**Remote workflow (always list before you push):**
 
 ```bash
-# 1. Load credentials
 source .env.supabase.local
-
-# 2. Link to project (one-time per workspace — persists in .supabase/)
-supabase link --project-ref khzeuxxhigqcmrytsfux
-
-# 3. Verify what's currently applied on prod (read-only, always run first)
-supabase migration list --linked
-
-# 4. Review the local vs remote delta — the output shows which local
-#    migrations are not yet applied. Read it carefully.
-
-# 5. Apply new migrations (writes to prod)
-supabase db push --linked
-
-# 6. Re-verify after push
-supabase migration list --linked
-
-# 7. Deploy edge functions if any changed
-supabase functions deploy <function-name> --project-ref khzeuxxhigqcmrytsfux
+supabase link --project-ref khzeuxxhigqcmrytsfux   # one-time per workspace
+supabase migration list --linked                    # read-only — always run first
+supabase db push --linked                           # applies unapplied migrations
+supabase migration list --linked                    # re-verify
 ```
 
-**Before any destructive remote command, confirm:**
-
-- ✅ Access token is set and valid (length/prefix check above)
-- ✅ You've just run `supabase migration list --linked` and understand what
-  the push will apply
-- ✅ You've tested the migration locally via `supabase db reset` and pgTAP
-- ✅ You've reviewed the migration file for `DROP POLICY` / `DROP TABLE` /
-  any non-idempotent statements
-- ✅ (For non-emergency changes) A human has reviewed the migration file
+Before any destructive remote command, confirm: token valid; you've just run
+`migration list --linked` and understand the delta; migration tested locally via
+`supabase db reset` + pgTAP; reviewed for `DROP POLICY`/`DROP TABLE`/non-idempotent
+statements; (non-emergency) a human reviewed it.
 
 ## Code Style
 
-TypeScript 5.x with React 18+: Follow standard conventions
-
 ### Date/Time Handling (CRITICAL)
 
-**🚨 TWO common timezone bugs to avoid:**
+Two timezone bugs to avoid — use the `utils/dateHelpers` helpers, never raw
+`Date` string methods:
 
-**Bug 1: Displaying dates - NEVER use `toISOString().split('T')[0]`**
+- **Displaying:** never `new Date(date).toISOString().split('T')[0]` (converts to
+  UTC first → off-by-one). Use `formatDateForInput(date)`.
+- **Parsing:** never `new Date("YYYY-MM-DD")` (parses as UTC midnight → previous
+  day west of UTC). Use `parseDateInputAsLocal(dateStr)`.
 
-This causes off-by-one date bugs because `toISOString()` converts to UTC first:
+Helpers: `formatDateForInput` (`<input type="date">`), `parseDateInputAsLocal`
+(parse YYYY-MM-DD as local), `formatDateTimeForInput` (`datetime-local`),
+`formatShowDate` ("Dec 8, 2025"), `formatTime12Hour` ("8:00 PM"),
+`parseTime12Hour(timeStr, baseDate)`.
 
-- Example: Dec 15 11pm EST → Dec 16 4am UTC → displays as "Dec 16" (WRONG!)
+### Testability Attributes (REQUIRED)
 
-```typescript
-// ❌ WRONG - causes timezone bugs when displaying
-const dateStr = new Date(date).toISOString().split('T')[0]
+All form inputs and interactive elements need testability attributes:
+- Inputs: `name` (camelCase), `id` (kebab-case, for `<label htmlFor>`),
+  `data-testid` (`{context}-{field}-{type}`, e.g. `login-email-input`).
+- Buttons/interactive: `data-testid`.
+- Page roots: `data-testid="<page-name>-page"`.
 
-// ✅ CORRECT - uses local timezone
-import { formatDateForInput } from '../utils/dateHelpers'
-const dateStr = formatDateForInput(date)
-```
-
-**Bug 2: Parsing dates - NEVER use `new Date("YYYY-MM-DD")`**
-
-This parses as UTC midnight, which becomes the previous day in timezones west of UTC:
-
-- Example: `new Date("2024-12-20")` → Dec 19 7pm EST (WRONG!)
-
-```typescript
-// ❌ WRONG - parses as UTC, causes off-by-one when storing
-const baseDate = new Date(formData.date)
-
-// ✅ CORRECT - parses as local timezone
-import { parseDateInputAsLocal } from '../utils/dateHelpers'
-const baseDate = parseDateInputAsLocal(formData.date)
-```
-
-**When to use each helper:**
-
-- `formatDateForInput(date)` - Display date in `<input type="date">` (YYYY-MM-DD)
-- `parseDateInputAsLocal(dateStr)` - Parse YYYY-MM-DD string as LOCAL time
-- `formatDateTimeForInput(date)` - For `<input type="datetime-local">` value
-- `formatShowDate(date)` - For display ("Dec 8, 2025")
-- `formatTime12Hour(date)` - For display ("8:00 PM")
-- `parseTime12Hour(timeStr, baseDate)` - Parse "8:00 PM" and combine with base date
-
-### Testability Standards (REQUIRED)
-
-**All form inputs and interactive elements must include testability attributes:**
-
-**Form Inputs (`<input>`, `<textarea>`, `<select>`):**
-
-- `name` attribute - For form functionality
-- `id` attribute - For label association (`<label htmlFor="id">`)
-- `data-testid` attribute - For E2E testing
-
-**Buttons and Interactive Elements:**
-
-- `data-testid` attribute - For E2E testing
-
-**Example:**
-
-```tsx
-<InputField
-  label="Email"
-  name="email"                    // Form functionality
-  id="login-email"                // Label association
-  data-testid="login-email-input" // E2E testing
-  type="email"
-  value={email}
-  onChange={setEmail}
-/>
-
-<Button
-  type="submit"
-  data-testid="login-submit-button"
->
-  Log In
-</Button>
-```
-
-**Naming Conventions:**
-
-- `id`: kebab-case (`login-email`, `band-name`)
-- `name`: camelCase (`email`, `bandName`)
-- `data-testid`: `{context}-{field}-{type}` (`login-email-input`, `create-band-button`)
-
-**Benefits:** Stable E2E tests, better accessibility, browser autofill, password manager support
-
-**Full Reference:** `.claude/specifications/2025-10-22T14:01_design-style-guide.md` (Testability Standards section)
+When an e2e test needs an element without an id, **add the id** — don't work
+around it with brittle selectors. If that causes significant changes, draft an
+artifact and hand it off.
 
 ### System Dialogs & Scrollbars (PROHIBITED)
 
-**🚨 NEVER use native browser dialogs or scrollbars:**
+- **Never** `alert()` / `confirm()` / `prompt()`. Use `useToast()` for messages
+  and `useConfirm()` + `<ConfirmDialog>` for confirmations.
+- **Never** native scrollbars — use `custom-scrollbar` / `custom-scrollbar-thin`
+  on `overflow-y-auto` elements.
 
-```typescript
-// ❌ WRONG - Never use native dialogs
-alert('Something happened')
-confirm('Are you sure?')
-prompt('Enter name:')
-
-// ✅ CORRECT - Use themed components
-import { useToast } from '../contexts/ToastContext'
-const { showToast } = useToast()
-showToast('Something happened', 'success')
-
-// ✅ CORRECT - Use ConfirmDialog for confirmations
-import { useConfirm } from '../hooks/useConfirm'
-import { ConfirmDialog } from '../components/common/ConfirmDialog'
-
-const { confirm, dialogProps } = useConfirm()
-const confirmed = await confirm({
-  title: 'Delete Item',
-  message: 'Are you sure?',
-  variant: 'danger',
-  confirmLabel: 'Delete',
-})
-// Render <ConfirmDialog {...dialogProps} /> in your component
-```
-
-**Scrollbars - Always use custom styling:**
-
-```tsx
-// ❌ WRONG - Native scrollbar
-<div className="overflow-y-auto">...</div>
-
-// ✅ CORRECT - Themed scrollbar
-<div className="overflow-y-auto custom-scrollbar">...</div>
-// or for compact areas:
-<div className="overflow-y-auto custom-scrollbar-thin">...</div>
-```
-
-**Why?**
-
-- Native dialogs cannot be styled to match our dark theme
-- They block the entire browser, not just the app
-- They cannot be tested reliably in E2E tests
-- They provide poor UX on mobile devices
-- Native scrollbars break the visual design
+Why: native dialogs/scrollbars can't be themed, block the whole browser, test
+poorly, and hurt mobile UX.
 
 ### Logging
 
-**Use the environment-aware logger instead of `console.*` calls:**
+Use the environment-aware logger, never `console.*`:
 
 ```typescript
-// ❌ WRONG - console.log shows in production
-console.log('Debug info')
-
-// ✅ CORRECT - Use namespaced logger
 import { createLogger } from '../utils/logger'
 const log = createLogger('MyComponent')
-
-log.debug('Detailed info') // Dev only
-log.info('User action') // Dev + test
-log.warn('Recoverable issue') // Dev + test
-log.error('Failure', error) // Always logged
+log.debug(...) // dev only    log.info/warn(...) // dev+test    log.error(...) // always
 ```
 
-**Log levels by environment:**
+## Database & Migrations
 
-| Level   | Dev | Test | Prod |
-| ------- | --- | ---- | ---- |
-| `debug` | ✅  | ❌   | ❌   |
-| `info`  | ✅  | ✅   | ❌   |
-| `warn`  | ✅  | ✅   | ❌   |
-| `error` | ✅  | ✅   | ✅   |
+**🚨 Production exists. The baseline is frozen — never edit it.** Schema changes
+land as **incremental migrations**.
 
-**Full Reference:** `.claude/specifications/logging.md`
+- **Schema of record:** `.claude/specifications/unified-database-schema.md`
+  (documents IndexedDB camelCase ↔ Supabase snake_case side by side). Never guess
+  a table/column name — check it.
+- **Baseline:** `supabase/migrations/20251106000000_baseline_schema.sql` (17
+  tables, RLS, audit log, realtime, triggers). Fresh installs = baseline + all
+  incremental migrations in order (`supabase db reset`).
 
-## Database Setup & Migration Policy
+### One migration per release/feature
 
-### Fresh Installation (New Supabase Project)
-
-**Local Development:**
+Not one-per-commit. While a feature is in development, amend its single migration
+file in place; only start a new file when the release ships or a logically
+distinct feature begins. Once a migration is deployed to prod it's frozen forever
+(prod records applied versions and never re-applies).
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start Supabase and generate environment files
-npm run setup:local
-
-# 3. Start development (sets env + starts server)
-npm run start:dev
-
-# That's it! The setup:local script handles:
-# - Starting local Supabase
-# - Generating .env.development with correct API keys
-# - Generating .env.test for E2E testing
+supabase migration new <feature_name>   # first time only, at feature kickoff
+# then edit that same file as the schema evolves
+supabase db reset && npm run test:db     # test locally
 ```
 
-**Manual Setup (if needed):**
+**Every incremental migration must be idempotent:** `CREATE TABLE/INDEX IF NOT
+EXISTS`, `ADD COLUMN IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`, `DROP POLICY IF
+EXISTS` before `CREATE POLICY`, and `DO $$ ... EXCEPTION WHEN duplicate_object`
+guards for constraint/publication adds.
 
-```bash
-# 1. Start local Supabase
-npx supabase start
-
-# 2. Apply baseline migration
-npx supabase db push
-
-# 3. Verify
-psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"
-# Should see: 17 tables
-```
-
-**Remote (Production/Staging):**
-
-```bash
-# 1. Ensure .env.supabase.local exists with valid SUPABASE_ACCESS_TOKEN
-# Token expires: Check file for expiration date
-# Get new token: https://supabase.com/dashboard/account/tokens
-
-# 2. Link to remote project
-source .env.supabase.local && supabase link --project-ref khzeuxxhigqcmrytsfux
-
-# 3. Apply baseline migration
-source .env.supabase.local && supabase db push --linked
-
-# 4. Verify via Supabase Studio
-# Go to: https://supabase.com/dashboard/project/khzeuxxhigqcmrytsfux/editor
-```
-
-**What's included in baseline migration:**
-
-- ✅ All 17 tables (users, bands, songs, setlists, shows, etc.)
-- ✅ Version tracking (`version`, `last_modified_by` columns)
-- ✅ Audit log system (complete change history)
-- ✅ RLS policies (security)
-- ✅ Realtime sync (5 tables enabled)
-- ✅ All triggers and indexes
-
-**Migration file:** `supabase/migrations/20251106000000_baseline_schema.sql`
-
-### Existing Database (Already Migrated)
-
-**Do nothing!** Old migrations already applied. Continue using incremental migrations for future changes.
-
-### Migration Policy: One Migration Per Release/Feature
-
-**🚨 CRITICAL: Production exists. Baseline is frozen for prod parity.**
-
-A real production database now exists. The previous pre-1.0 "modify the
-baseline directly" policy has been retired. Going forward, schema changes
-land as **incremental migrations**, with strict rules about when to create
-one vs. when to amend an in-progress one.
-
-**The rule:** one consolidated incremental migration per release/feature.
-**Not** one-per-commit. **Not** one-per-fix. While a feature is in
-development, its migration file is the single accumulating file for that
-feature — you amend it as the schema evolves. Only when the release ships
-(or a logically distinct new feature begins) do you start a new migration
-file.
-
-**While actively developing a feature with schema changes:**
-
-```bash
-# Step 1 (first time only, at feature kickoff): create the feature's
-#                                               migration file.
-supabase migration new <feature_name>
-# → creates supabase/migrations/<timestamp>_<feature_name>.sql
-
-# Step 2 (every time thereafter during development): edit THAT file in
-#                                                   place as the schema
-#                                                   evolves.
-vim supabase/migrations/<timestamp>_<feature_name>.sql
-
-# Step 3: test locally
-supabase db reset   # applies baseline + all prior migrations + yours
-npm run test:db     # verify schema integrity
-
-# Step 4: commit the updated migration file
-git add supabase/migrations/<timestamp>_<feature_name>.sql
-git commit -m "<feature>: <what schema change was added>"
-```
-
-**Only create a NEW migration file when:**
-
-- The current release ships (→ freeze its migration, start a new one for the
-  next release)
-- A logically distinct feature begins (not just a bug fix or tweak to the
-  current feature)
-
-**Why this shape:**
-
-- Production databases apply migrations by version; re-running a migration
-  is skipped once its version is recorded. If you modify a migration after
-  it's been deployed, production will never see the later edits. So once a
-  migration ships, it's frozen forever.
-- Per-commit migrations produce noise that's hard to review. Consolidating
-  into one file per feature keeps the migration history readable.
-- Using `IF NOT EXISTS` / `DROP ... IF EXISTS` guards throughout means
-  amending an in-progress migration is safe to re-run locally via
-  `supabase db reset`.
-
-**Every incremental migration must be idempotent.** Use:
-
-- `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`
-- `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
-- `CREATE OR REPLACE FUNCTION`
-- `DROP POLICY IF EXISTS ...` immediately before `CREATE POLICY ...`
-- `DO $$ BEGIN ALTER TABLE ... ADD CONSTRAINT ...; EXCEPTION WHEN duplicate_object THEN NULL; END $$;`
-  for constraint adds (PostgreSQL doesn't support `IF NOT EXISTS` there)
-- `DO $$ BEGIN ALTER PUBLICATION ... ADD TABLE ...; EXCEPTION WHEN duplicate_object THEN NULL; END $$;`
-  for publication adds
-
-**🚨 Any new table in an incremental migration MUST include an explicit
-`GRANT` statement for the `authenticated` role.** The baseline's
-
-```sql
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
-```
-
-is a **snapshot grant** — it only applies to tables that exist when that
-migration runs. Tables created later do NOT inherit it. Without an
-explicit grant, PostgREST returns 403 on every query despite valid JWTs.
-
-For every new table:
+**🚨 Every new table MUST include explicit `GRANT`s** for `authenticated` AND
+`service_role` — the baseline's blanket grant is a snapshot that does NOT cover
+later tables. Without them PostgREST/edge functions get 403/empty-result (this
+caused the v0.3.1 jam-view cascade).
 
 ```sql
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.<new_table> TO authenticated;
--- If the table uses a SERIAL / BIGSERIAL column (not gen_random_uuid):
-GRANT USAGE ON SEQUENCE public.<new_table>_<col>_seq TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.<new_table> TO service_role;
+-- SERIAL/BIGSERIAL columns also need: GRANT USAGE ON SEQUENCE ... TO authenticated;
 ```
 
-Local Supabase has more permissive default privileges than hosted, so
-missing grants may not surface in `supabase db reset` / pgTAP testing —
-they only fail on production. This bit us in v0.3.0 (fixed in v0.3.1).
+**Enforcement:** `npm run lint:migrations` (pre-merge gate — verifies every
+`CREATE TABLE` has grants) and `npm run test:db` (pgTAP). Local Supabase has
+permissive defaults that mask missing grants — they only fail on prod, which is
+why the linter checks SQL text.
 
-**Automated enforcement:** `npm run lint:migrations` parses every migration
-file and verifies each `CREATE TABLE` has explicit `GRANT` statements (or
-a covering broad grant / default-privilege setup) for BOTH `authenticated`
-AND `service_role`. Runs at the SQL-text level so local permissive
-defaults cannot mask missing grants. Must pass before any PR that touches
-`supabase/migrations/` merges. Exit 1 on violations.
-
-```bash
-npm run lint:migrations    # pre-merge gate for migration content
-npm run test:db            # pgTAP schema integrity (488+ tests)
-```
-
-**Edge functions that query public tables via service_role** need those
-grants just like authenticated code paths — `rolbypassrls = true` disables
-RLS but does NOT confer table-level privileges. This was the root cause
-of v0.3.1's 404 cascade on `jam-view`.
-
-**Deploying to production:**
-
-```bash
-# Verify you know what's on prod:
-source .env.supabase.local && supabase migration list --linked
-
-# Apply whatever isn't applied yet:
-source .env.supabase.local && supabase db push --linked
-```
-
-**The baseline stays as the canonical "fresh install" script.** New dev
-environments bootstrap from baseline + all incremental migrations in order.
-`supabase db reset` for local dev still just works. Do NOT edit the baseline
-any more — schema changes go into a new incremental migration file.
-
-**Reference migration:**
-`supabase/migrations/20260422220000_social_catalog_and_jam_sessions.sql` —
-the first post-baseline incremental migration, shipped 2026-04-22. Use it
-as a template for the structure of future feature migrations.
-
-### Migration Archive
-
-**Archived incremental migrations:**
-
-- `archive/` - Original 1-17 migrations (2025-10-25 to 2025-11-05)
-- `archive/patches-2025-11-07/` - Patch migrations (5 files) consolidated into baseline
-
-**Archive contents:**
-
-- Kept for historical reference
-- Shows schema evolution during development
-- Can be referenced to understand why changes were made
-- DO NOT apply these - all changes are in the baseline
+Reference migration (template for new feature migrations):
+`supabase/migrations/20260422220000_social_catalog_and_jam_sessions.sql`.
 
 ## Edge Function Policy
 
-Every Supabase edge function requires two explicit, documented decisions:
+Every edge function needs two documented decisions, both recorded as a row in
+`supabase/functions/FUNCTIONS.md` (a PR adding a function without updating the
+manifest is incomplete):
 
-1. **Auth mode** — does the function verify JWT at the Supabase gateway,
-   or is it intentionally exposed to anonymous callers?
-2. **Role context** — does the function query public tables via
-   service_role (needs grants per the Migration Policy above) or via the
+1. **Auth mode** — JWT-verified at the gateway, or intentionally anonymous?
+2. **Role context** — queries via `service_role` (needs table grants — see above;
+   `rolbypassrls` disables RLS but does NOT confer table privileges) or via the
    caller's JWT (relies on RLS)?
 
-**Both decisions live in `supabase/functions/FUNCTIONS.md`.** Every
-function has a row in that table; a PR that adds a function without
-updating the manifest is incomplete.
-
-### Deployment
-
-Always deploy via a versioned script that consults the manifest. Do NOT
-run `supabase functions deploy <name>` ad-hoc — the auth-mode flag is
-easy to forget (v0.3.1 hit a 401 on anonymous jam-view because
-`--no-verify-jwt` was missing on first deploy).
-
-```bash
-# Correct deploy flow:
-source .env.supabase.local
-# Reads FUNCTIONS.md and deploys each function with its documented flag
-./scripts/deploy-edge-functions.sh <name>  # or all
-```
-
-### Post-deploy smoke
-
-After any function deploy, run `./scripts/smoke-edge-functions.sh` to
-verify each function returns its expected status code for its expected
-auth context (anonymous GET for `--no-verify-jwt` functions; 401 for
-auth-required functions without a JWT). Failure = rollback.
-
-### When a function queries public tables via service_role
-
-The tables it reads/writes MUST have `GRANT SELECT, INSERT, UPDATE,
-DELETE ... TO service_role` in a migration. `rolbypassrls=true` on the
-service_role lets it bypass RLS policies, but it does NOT confer
-table-level privileges — missing grants fail with "permission denied"
-which supabase-js typically surfaces as an empty result, which the
-function then returns as "not found" / 404.
-
-**This is the gotcha that caused v0.3.1's jam-view 404 cascade.** The
-`npm run lint:migrations` check now catches it at the migration-authoring
-layer.
-
-## Database Schema Reference
-
-**CRITICAL**: When working with database tables and columns, ALWAYS reference the authoritative schema documentation. Never guess table or column names.
-
-### 🚨 SCHEMA VALIDATION RULES 🚨
-
-**BEFORE making any schema changes, you MUST:**
-
-1. **Read the schema spec**: `.claude/specifications/unified-database-schema.md`
-2. **Check baseline migration**: `supabase/migrations/20251106000000_baseline_schema.sql`
-3. **Check actual Supabase tables**:
-   - Use Supabase Studio UI (if local Supabase is running)
-   - Look at RemoteRepository field mappings
-4. **Test locally first**: `supabase db reset` to verify migration works
-5. **Validate field names match**:
-   - IndexedDB: `camelCase`
-   - Supabase: `snake_case`
-   - Example: `lastModified` ↔ `last_modified` (NOT `updated_date`)
-
-**NEVER:**
-
-- ❌ Assume a column exists without checking
-- ❌ Use `updated_date` for setlists (use `last_modified`)
-- ❌ Copy field mappings from one table to another without verification
-- ❌ Create a trigger without checking column names
-- ❌ Modify the baseline migration (create new incremental migrations instead)
-
-### Unified Database Schema
-
-**File:** `.claude/specifications/unified-database-schema.md` ⭐ **USE THIS**
-
-**This is the ONLY authoritative source** for database operations. It documents:
-
-- Both IndexedDB (camelCase) and Supabase (snake_case) side-by-side
-- Field name mappings between systems
-- Repository layer translation logic
-- Critical differences (e.g., `bpm` ↔ `tempo`, `practice_sessions` table name)
-
-**Quick Reference:**
-
-- **Application/IndexedDB:** camelCase (`userId`, `createdDate`, `bandMemberships`)
-- **Supabase/PostgreSQL:** snake_case (`user_id`, `created_date`, `band_memberships`)
-- **Repository Layer:** Automatically converts between conventions
-
-**Critical Table-Specific Fields:**
-
-| Table               | Timestamp Column | Notes                                  |
-| ------------------- | ---------------- | -------------------------------------- |
-| `songs`             | `updated_date`   | Uses updated_date ✓                    |
-| `bands`             | `updated_date`   | Uses updated_date ✓                    |
-| `setlists`          | `last_modified`  | Uses last_modified (NOT updated_date!) |
-| `practice_sessions` | `created_date`   | No update timestamp                    |
-| `band_memberships`  | `joined_date`    | No update timestamp                    |
-
-**Critical Table Names:**
-
-- ✅ Supabase: `practice_sessions` (with underscore)
-- ❌ NOT: `practices`
-
-**Critical Field Differences:**
-
-- IndexedDB `bpm` ↔ Supabase `tempo`
-- IndexedDB camelCase ↔ Supabase snake_case
-- Songs use `context_id` (TEXT in Supabase), not `band_id`
-- Setlists use `last_modified` (NOT `updated_date`)
-- Setlists have `items` JSONB column for songs/breaks/sections
-
-## Testing Policy
-
-**CRITICAL**: Always run tests before and after making changes:
-
-1. **Before starting work**: Run `npm run start:test` to ensure all tests pass
-2. **After making changes**: Run tests for affected areas
-3. **Before committing**: Run full test suite (`npm run start:test`)
-
-**Current Test Status** (as of 2025-11-20):
-
-- 491 passing tests across 25 test files
-- 64 failing tests across 8 test files (under investigation)
-- Primary issue: Journey tests require Supabase environment setup
-
-**Test Organization**:
-
-- All tests in `tests/` directory (NOT in `src/__tests__/`)
-- Unit tests: `tests/unit/` (mirror `src/` structure) - 23 files
-- Integration tests: `tests/integration/` - 1 file
-- Journey tests: `tests/journeys/` - 4 files (require Supabase)
-- Contract tests: `tests/contract/` - 3 files (require Supabase)
-- E2E tests: `tests/e2e/` - 11 files (Playwright)
-- Database tests: `supabase/tests/` - 11 files (pgTAP)
-
-**Test Execution Guide**: See `.claude/setup/TESTING-ENVIRONMENT-SETUP.md` for detailed test type requirements and execution instructions.
-
-### Database Testing (pgTAP)
-
-Rock-On uses pgTAP for comprehensive database schema validation. Tests validate:
-
-- ✅ Schema integrity (tables, columns, indexes, constraints)
-- ✅ RLS policies (row-level security)
-- ✅ Triggers & functions (version tracking, audit logging)
-- ✅ Data integrity (foreign keys, check constraints)
-- ✅ Realtime configuration
-
-**Running Database Tests:**
-
-```bash
-npm run test:db           # Run database tests only
-npm run test:all          # Run all tests (app + database)
-supabase test db          # Direct command
-```
-
-**Test Files:** `supabase/tests/*.test.sql`
-
-- `000-setup-test-helpers.sql` - Helper functions for testing
-- `001-schema-tables.test.sql` - Table existence (17 tests)
-- `002-schema-columns.test.sql` - Column validation (81 tests)
-- `003-schema-indexes.test.sql` - Index validation (29 tests)
-- `004-schema-constraints.test.sql` - Constraint validation (42 tests)
-- `005-functions-triggers.test.sql` - Function/trigger validation (29 tests)
-- `006-rls-policies.test.sql` - RLS policy existence (71 tests)
-- `007-011` - RLS behavior, audit logging, realtime, data integrity
-
-**Test Status:** Schema validation tests (001-005) passing. RLS and integration tests (006-011) have known issues due to:
-
-- Seed data contamination (existing test data interfering with tests)
-- Schema design issues (audit_log FK constraints, trigger on columns that don't exist)
-- Personal songs + audit_log FK incompatibility
-
-**When to Run Database Tests:**
-
-- ✅ After modifying migrations
-- ✅ After schema changes
-- ✅ Before deploying to production
-- ✅ When RLS policies change
-- ✅ When adding/modifying triggers
-
-## Authentication Flow
-
-### Session Validation
-
-The app uses a multi-layer authentication check with persistent layout:
-
-1. **useAuthCheck hook** (`src/hooks/useAuthCheck.ts`)
-   - Validates localStorage keys (`currentUserId`, `currentBandId`)
-   - Checks session from `SessionManager.loadSession()`
-   - Applies **1.5-hour grace period** for expired sessions
-   - Cleans up stale localStorage on invalid sessions
-   - Re-runs on every route change to catch expired sessions
-   - Only shows loading spinner on initial mount (prevents flicker during navigation)
-
-2. **ProtectedLayoutRoute** (`src/components/layout/ProtectedLayoutRoute.tsx`)
-   - Combines authentication check with persistent layout
-   - Shows full-screen loading spinner only on initial auth check
-   - Wraps all protected routes in `ModernLayout` with `<Outlet />`
-   - Redirects BEFORE rendering layout if unauthenticated:
-     - `no-user` → `/auth`
-     - `no-band` → `/auth?view=get-started`
-     - `session-expired` → `/auth?reason=session-expired`
-     - `session-invalid` → `/auth?reason=session-invalid`
-
-3. **ContentLoadingSpinner** (`src/components/common/ContentLoadingSpinner.tsx`)
-   - Used by individual pages for content-area-only loading states
-   - Keeps sidebar/navbar visible while page content loads
-   - Provides dark theme background matching the app
-
-4. **SessionExpiredModal** (`src/components/auth/SessionExpiredModal.tsx`)
-   - Handles session expiry detected by AuthContext
-   - Shows toast notification and redirects to `/auth`
-   - Does NOT show a modal overlay (redirect-only)
-
-### Persistent Layout Architecture
-
-The layout uses React Router's nested routes pattern:
-
-```tsx
-// In App.tsx
-<Route element={<ProtectedLayoutRoute />}>
-  <Route path="/songs" element={<SongsPage />} />
-  <Route path="/setlists" element={<SetlistsPage />} />
-  {/* ... other protected routes */}
-</Route>
-```
-
-**Benefits:**
-
-- Sidebar and navbar persist during navigation (no remount)
-- No white screen flicker when changing pages
-- Content loading happens in the main content area only
-- True SPA feel with smooth transitions
-
-**Individual pages should:**
-
-- NOT import or wrap with `ModernLayout` (it's in ProtectedLayoutRoute)
-- Use `ContentLoadingSpinner` for loading states
-- Have `data-testid="<page-name>-page"` on root div
-
-### Grace Period
-
-Sessions have a **1.5-hour grace period** after expiry to allow:
-
-- Brief offline periods during gigs/practices
-- Token refresh delays
-- Network connectivity issues
-
-After the grace period, users must re-authenticate.
-
-### Key Files
-
-| File                                              | Purpose                          |
-| ------------------------------------------------- | -------------------------------- |
-| `src/hooks/useAuthCheck.ts`                       | Unified auth validation hook     |
-| `src/components/layout/ProtectedLayoutRoute.tsx`  | Auth + persistent layout wrapper |
-| `src/components/common/ContentLoadingSpinner.tsx` | Content-area loading spinner     |
-| `src/components/auth/SessionExpiredModal.tsx`     | Session expiry redirect handler  |
-| `src/contexts/AuthContext.tsx`                    | Auth state management            |
-| `src/services/auth/SessionManager.ts`             | Session storage and validation   |
-
-## Recent Changes
-
-- 2026-01-19: Persistent layout - ProtectedLayoutRoute wraps all protected routes with ModernLayout, eliminating white screen flicker during navigation
-- 2026-01-19: ContentLoadingSpinner component for content-area-only loading states
-- 2026-01-19: Removed old ProtectedRoute component (replaced by ProtectedLayoutRoute)
-- 2026-01-17: Improved auth flow - useAuthCheck hook with grace period, simplified SessionExpiredModal (redirect-only)
-- 2026-01-17: Test performance optimization - parallel threads, split test scripts (test:quick, test:unit, etc.)
-- 2026-01-17: Added E2E tests for session expiry scenarios (53 tests across all browsers)
-- 2025-11-07: Implemented pgTAP database test suite (269 tests covering schema, RLS, triggers, audit logging)
-- 2025-11-06: Consolidated 17 migrations into single baseline (supabase/migrations/20251106000000_baseline_schema.sql)
-- 2025-10-25: Phase 1 Supabase sync complete (73 tests passing)
-- 2025-10-25: All remaining tasks planned with detailed implementation guides
-- 001-use-this-prd: Added TypeScript 5.x with React 18+ + React, TailwindCSS, client-side database
-
-<!-- MANUAL ADDITIONS START -->
-
-## Artifact Creation
-
-**Artifacts are documentation files only - NOT code, scripts, or configuration files.**
-
-### What Gets Timestamped (Artifacts)
-
-Artifacts are stored in `.claude/artifacts/` and include:
-
-- Design documents
-- Architecture specifications
-- Implementation summaries
-- Planning documents
-- PRDs and feature specs
-- Status reports and summaries
-
-**Naming convention:** `YYYY-MM-DDTHH:mm_{filename}.md`
-
-**Creation process:**
-
-1. Run `date +%Y-%m-%dT%H:%M` to get current timestamp
-2. Create file with timestamp prefix (e.g., `2025-11-07T21:30_migration-consolidation-summary.md`)
-3. Include frontmatter with timestamp and prompt summary
-4. When updating, add new timestamp to frontmatter as "appended time"
-
-### What DOES NOT Get Timestamped (Code/Scripts)
-
-The following should use standard naming conventions WITHOUT datetime prefixes:
-
-- ✅ Source code files (`.ts`, `.tsx`, `.js`, etc.)
-- ✅ Test files (`.test.ts`, `.test.sql`, etc.)
-- ✅ Configuration files (`.json`, `.yml`, `.toml`, etc.)
-- ✅ Scripts (`.sh`, `.sql`, utility scripts)
-- ✅ SQL seed files (`seed-mvp-data.sql`)
-
-**Note on Migration Files:**
-Migration files DO use timestamps, but in Supabase's special format (`YYYYMMDDHHmmss_description.sql`) for ordering purposes. This is a Supabase convention, not the artifact datetime prefix pattern. During pre-1.0 development, modify the baseline directly rather than creating new migrations.
-
-**Example:**
-
-```
-✅ Correct (artifact):     .claude/artifacts/2025-11-07T21:30_consolidation-summary.md
-✅ Correct (test):         supabase/tests/007-rls-band-isolation.test.sql
-✅ Correct (code):         src/services/data/SyncEngine.ts
-✅ Correct (script):       scripts/setup-dev.sh
-✅ Correct (seed):         supabase/seed-mvp-data.sql
-❌ Wrong (code):           src/services/data/2025-11-07T21:30_SyncEngine.ts
-❌ Wrong (test):           supabase/tests/2025-11-07T21:30_rls-test.test.sql
-```
-
-## Agent File Creation (CRITICAL)
-
-**Sub-agents (Task tool) cannot persist files to the filesystem directly.**
-
-When a sub-agent attempts to create files (especially in `.claude/` directories), the file operations shown in the agent's output are **internal to that agent's context** and do NOT actually create files on disk.
-
-**After any agent attempts to create a file, you MUST:**
-
-1. Verify the file exists: `ls -la <path>` or check with the Read tool
-2. If the file doesn't exist, create the directory and write the file yourself
-3. Use the content from the agent's output to populate the file
-
-**Example workflow:**
-
-```bash
-# Agent reports creating: .claude/active-work/issues/my-issue/diagnosis.md
-
-# Step 1: Verify (will likely fail)
-ls -la .claude/active-work/issues/my-issue/
-
-# Step 2: Create directory if missing
-mkdir -p .claude/active-work/issues/my-issue/
-
-# Step 3: Write the file using the agent's content
-# Use the Write tool with content from agent output
-```
-
-**Why this happens:**
-
-- Sub-agents run in isolated contexts
-- Their file operations are simulated within their execution
-- Only the parent conversation can persist files to the actual filesystem
-- This is by design for security and isolation
-
-**Directories commonly affected:**
-
-- `.claude/active-work/` - Diagnosis reports, research docs
-- `.claude/artifacts/` - Design documents, summaries
-- `.claude/features/` - Feature plans and specs
-
-<!-- MANUAL ADDITIONS END -->
+Deploy via the versioned script, never ad-hoc (the `--no-verify-jwt` flag is easy
+to forget): `./scripts/deploy-edge-functions.sh <name|all>`. Smoke-test after:
+`./scripts/smoke-edge-functions.sh` (failure = rollback).
 
 ## Repository Layer Guardrails (CRITICAL)
 
 **Never write directly to `db.*` (Dexie/IndexedDB) outside the storage layer.**
+Direct writes bypass the sync queue — Supabase never sees the change. Use
+`repository.addSong()` / `updateSong()` etc. (see `IDataRepository.ts`).
 
-Direct writes bypass the sync queue — Supabase will never see the change.
-Always use `repository.addSong()`, `repository.updateSong()`, etc. (see `IDataRepository.ts`).
+Enforced by ESLint (`npm run lint`) and a ratchet test
+(`tests/unit/guardrails/db-direct-write.test.ts`). Allowed files (storage layer):
+`LocalRepository.ts`, `SyncEngine.ts`, `RealtimeManager.ts`, seed files,
+`DatabaseService.ts`, `src/services/database/index.ts`. The `KNOWN_VIOLATIONS`
+list (tech debt) must only ever shrink — when migrating a file, remove it from
+both the test and the `.eslintrc.cjs` overrides.
 
-Two enforced guardrails catch violations automatically:
+## Testing discipline
 
-- **ESLint** (`npm run lint`) — `error` on new files, `warn` on known tech debt
-- **Static test** (`npm test`) — ratchet in `tests/unit/guardrails/db-direct-write.test.ts`
+- Run tests before AND after changes; run the full suite before committing.
+- **Don't skip or defer failing tests.** Fix the source code after confirming the
+  test is correct and necessary. If a test is truly frivolous, delete it — don't
+  leave it skipped.
 
-**Allowed files** (storage layer — may write to `db.*` directly):
-`LocalRepository.ts`, `SyncEngine.ts`, `RealtimeManager.ts`, seed files, `DatabaseService.ts`, `src/services/database/index.ts`
+## Auth flow (quick reference)
 
-**Known violations** (existing tech debt — list must only ever shrink):
-See `KNOWN_VIOLATIONS` in `tests/unit/guardrails/db-direct-write.test.ts` and the `overrides` block in `.eslintrc.cjs`. When migrating a file, remove it from both.
-
-- please do not suggest skipping tests or addressing them later. If it was important enough to make the test case then it should pass. If they are truly frivolous we should delete them. When asked to address test findings you should always work to fix the source code after validating the test is correct and necessary.
-- We need to be using unique and logical identifiers for our viewport elements to assist in e2e testing and observability. If you are working on e2e tests and find an element that you need to check for that does not have an id, do not use alternative methods to find it, instead add an id to the element. If this causes significant changes, draft an artifact explaining what needs to be changed and prompt the user to have another agent apply the fixes
+Multi-layer auth with a persistent layout. `useAuthCheck` validates the session
+on every route change (with a **1.5-hour grace period** for brief offline
+stretches during gigs); `ProtectedLayoutRoute` combines the check with the
+persistent `ModernLayout` and redirects unauthenticated users before rendering.
+Pages don't wrap themselves in `ModernLayout`; they use `ContentLoadingSpinner`
+for content-area loading. Key files: `hooks/useAuthCheck.ts`,
+`components/layout/ProtectedLayoutRoute.tsx`, `contexts/AuthContext.tsx`,
+`services/auth/SessionManager.ts`.

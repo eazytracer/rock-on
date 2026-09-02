@@ -83,7 +83,6 @@ async function initializeApp() {
   })
 
   // IndexedDB is populated via sync from Supabase on first login
-  // See: .claude/specifications/2025-10-27T18:16_test-data-and-seeding-specification.md
   logger.debug('📦 IndexedDB will be populated from Supabase on first login')
 
   // Render the app

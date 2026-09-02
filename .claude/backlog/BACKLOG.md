@@ -2,391 +2,226 @@
 
 Master overview of planned features in the `.claude/backlog/` directory.
 
-**Last Updated:** 2026-04-24
-**Total Features:** 12
+**Last Updated:** 2026-09-01 (reconciled against shipped v0.4.5)
+**Open Features:** 7 (see below)
 
-## Feature Overview
+> **2026-09-01 reconciliation:** This backlog was reconciled against the actual
+> v0.4.5 codebase. Several large items shipped since the previous update
+> (2026-04-24) and have been moved to "Shipped / Superseded" below. The
+> human-facing curated view — with consolidation rationale — lives in the vault
+> note **Rock On Backlog** (`30-resources/`).
 
-| Feature                                                                     | Status                 | Priority | Complexity  | Dependencies             |
-| --------------------------------------------------------------------------- | ---------------------- | -------- | ----------- | ------------------------ |
-| [ci-cd-pipeline](#ci-cd-pipeline)                                           | Research Complete      | High     | High        | None                     |
-| [multi-band-support](#multi-band-support)                                   | Plan Complete          | High     | High        | None                     |
-| [account-tiers-and-access](#account-tiers-and-access)                       | Research Complete      | High     | High        | multi-band-support       |
-| [social-catalog](#social-catalog)                                           | Research Complete      | High     | Very High   | account-tiers-and-access |
-| [email-infrastructure](#email-infrastructure)                               | Research Complete      | Medium   | Low-Medium  | None                     |
-| [unified-kebab-menu](#unified-kebab-menu)                                   | Research Complete      | Medium   | Medium      | None                     |
-| [email-invitations](#email-invitations)                                     | Research Complete      | Medium   | Medium      | email-infrastructure     |
-| [calendar-events](#calendar-events)                                         | Specification Complete | Medium   | Medium-High | email-infrastructure     |
-| [enhanced-security-testing](#enhanced-security-testing)                     | Research Complete      | Medium   | Medium      | ci-cd-pipeline           |
-| guitar-tuning-system → **promoted to `.claude/features/`** (DB layer built) | Active                 | Medium   | Medium-High | None                     |
-| [no-console-eslint-rule](#no-console-eslint-rule)                           | Research Complete      | Low      | Medium      | None                     |
-| [react-native-app](#react-native-app)                                       | Research Complete      | Low      | Very High   | All core features        |
+## Feature Overview (open items only)
 
-## Dependency Graph
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      FOUNDATION LAYER                           │
-├─────────────────────────────────────────────────────────────────┤
-│  ci-cd-pipeline ←── enhanced-security-testing                   │
-│  (GitHub Actions)    (SAST scanning, RLS tests)                │
-│                                                                 │
-│  multi-band-support ←── account-tiers-and-access ←── social-catalog  │
-│  (95% exists)           (Free/Pro tiers)          (Personal songs,   │
-│                                                    setlists + jams)   │
-│                                                                 │
-│  email-infrastructure ←── email-invitations                     │
-│  (Resend + edge fn       (Band join invites)                    │
-│   patterns + email_logs) ←── calendar-events                    │
-│                              (.ics for shows & practices)       │
-├─────────────────────────────────────────────────────────────────┤
-│                     INDEPENDENT FEATURES                        │
-├─────────────────────────────────────────────────────────────────┤
-│  unified-kebab-menu    guitar-tuning-system                     │
-│  (UI consistency)      (Per-string storage                      │
-│                         + setlist retuning)                     │
-│                                                                 │
-│  no-console-eslint-rule                                         │
-│  (456 violations to fix)                                        │
-├─────────────────────────────────────────────────────────────────┤
-│                       FUTURE MILESTONE                          │
-├─────────────────────────────────────────────────────────────────┤
-│  react-native-app                                               │
-│  (Requires all core features stable)                            │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Feature                                                             | Status                           | Priority | Complexity   | Dependencies       |
+| ------------------------------------------------------------------- | -------------------------------- | -------- | ------------ | ------------------ |
+| [email-and-notifications](#email-and-notifications)                 | Research/Spec Complete           | Medium   | Medium-High  | None               |
+| [account-tiers-and-access](#account-tiers-and-access)               | Stub shipped — wire-up remaining | High     | Medium       | None (stub exists) |
+| [multi-band-support](#multi-band-support)                           | Mostly implemented               | Medium   | Low (polish) | None               |
+| [enhanced-security-testing](#enhanced-security-testing)             | Unblocked — ready                | Medium   | Medium       | ci-cd (shipped)    |
+| [ci-cd: deploy + migration-safety](#ci-cd-deploy--migration-safety) | Partial                          | Medium   | Medium       | None               |
+| [no-console-eslint-rule](#no-console-eslint-rule)                   | Research Complete                | Low      | Medium       | None               |
+| [react-native-app](#react-native-app)                               | Research Complete                | Low      | Very High    | Stable web app     |
+| [open-jam-venue-mode](#open-jam-venue-mode)                         | Open questions                   | Medium   | High         | Events (shipped)   |
 
 ## Recommended Implementation Order
 
-### Phase 1: Infrastructure & Quality
-
-1. **ci-cd-pipeline** - Essential for safe deployments
-2. **no-console-eslint-rule** - Code quality improvement (can parallel with CI)
-
-### Phase 2: Core Features
-
-3. **multi-band-support** - 95% infrastructure exists, quick win
-4. **unified-kebab-menu** - UI consistency before adding more features
-5. **email-infrastructure** - Foundation for email-invitations + calendar-events; implement as part of whichever of those ships first
-6. **email-invitations** - Enables band growth (builds on email-infrastructure)
-7. **calendar-events** - Auto-send .ics calendar invites for shows/practices (also on email-infrastructure; can ship alongside or after email-invitations)
-
-### Phase 3: Security & Business
-
-8. **enhanced-security-testing** - Depends on CI pipeline
-9. **account-tiers-and-access** - Depends on multi-band (revenue feature)
-10. **social-catalog** - Personal songs + personal setlists + jam sessions (depends on account-tiers for tier gating stub)
-
-### Phase 4: Musician Features
-
-11. **guitar-tuning-system** - Per-string tuning with setlist retuning indicators
-
-### Phase 5: Mobile (Post-1.0)
-
-12. **react-native-app** - Major undertaking, requires stable web app; QR-based jam session joining is high-value on native
+1. **no-console-eslint-rule** — quick code-quality win, can parallel anything.
+2. **multi-band-support** — verify remaining UI polish (logic mostly exists).
+3. **email-and-notifications** — Phase 1 infra, then invitations + .ics invites.
+4. **enhanced-security-testing** — CI now exists; add SAST + RLS/security tests.
+5. **account-tiers-and-access** — wire tier gating + Stripe onto the shipped stub.
+6. **ci-cd: deploy + migration-safety** — extend the existing validation workflow.
+7. **open-jam-venue-mode** — resolve open questions; aligns with the venue /
+   jukebox-for-tips product direction.
+8. **react-native-app** — post-1.0, requires a stable web app.
 
 ---
 
 ## Feature Details
 
-### ci-cd-pipeline
+### email-and-notifications
 
-**Directory:** `ci-cd-pipeline/`
-**Status:** Research Complete
-**Priority:** High
-**Complexity:** High (20+ hours)
+**Directory:** `email-and-notifications/` (consolidated 2026-09-01 from the former
+`email-infrastructure`, `email-invitations`, and `calendar-events` items)
+**Status:** Research / Spec Complete — not built (no `_shared/`, no `email_logs`,
+no Resend as of v0.4.5)
+**Priority:** Medium
+**Complexity:** Medium-High
 
-**Summary:** GitHub Actions workflow for automated testing, linting, type checking, and deployment. Includes pre-commit hooks via Husky.
+**Summary:** One epic, three phases — a shared email substrate plus two
+consumers. See the folder's `README.md` for the phase breakdown.
 
-**Key Components:**
+- **Phase 1 — Infrastructure** (`infrastructure-shared-services.md`): Resend
+  setup, `supabase/functions/_shared/` helpers, `email_logs` +
+  `user_notification_prefs` tables, deliverability compliance.
+- **Phase 2a — Band invitations** (`invitations-*.md`): tokenized email invites
+  to join a band, `/join?code=xxx` flow.
+- **Phase 2b — Calendar / .ics invites** (`ics-invites-*.md`): auto-send `.ics`
+  attachments on show/practice create/update/cancel.
 
-- PR validation workflow (lint, type-check, unit tests)
-- Deployment workflow (build, deploy to production)
-- Pre-commit hooks (lint-staged)
-- Database migration safety checks
+**⚠️ Naming:** the `ics-invites-*` files were the old `calendar-events` item.
+Renamed to avoid collision with the **shipped Events feature** (venue lineups) —
+a completely different thing.
 
-**Blockers:** None
-
----
-
-### multi-band-support
-
-**Directory:** `multi-band-support/`
-**Status:** Plan Complete (95% infrastructure exists)
-**Priority:** High
-**Complexity:** High (but mostly UI/UX work)
-
-**Summary:** Allow users to belong to multiple bands and switch between them. Most database infrastructure already exists (band_memberships table, RLS policies).
-
-**Key Components:**
-
-- Band switcher UI in navbar
-- CurrentBand context enhancement
-- Navigation/routing updates
-- IndexedDB partitioning by band
-
-**Blockers:** None - infrastructure largely complete
-
-**Note:** This is a prerequisite for account-tiers-and-access.
+**Blockers:** None.
 
 ---
 
 ### account-tiers-and-access
 
 **Directory:** `account-tiers-and-access/`
-**Status:** Research Complete
+**Status:** Stub shipped — enforcement remaining
 **Priority:** High
-**Complexity:** High (30+ hours)
+**Complexity:** Medium (reduced — schema groundwork done)
 
-**Summary:** User-based tier system with free and pro tiers. Free tier limited to 1 band, pro tier unlimited. Access codes for promotional/beta access.
+**Summary:** Free/pro tier system with feature gating. **The dependency
+inverted:** social-catalog already shipped the `users.account_tier` stub column
+(default 'free') and left an explicit `TODO: wire to account_tier limits when
+account-tiers-and-access ships` in `JamSessionService`. What remains is the
+gating enforcement + Stripe + admin/access-code UI — NOT the schema work the
+original research assumed.
 
-**Key Components:**
+**Remaining:** tier-limit enforcement (e.g. jam session caps), Stripe
+subscriptions, access-code redemption, feature gating, admin panel.
 
-- User tiers (free/pro) stored in users table
-- Access codes system with redemption tracking
-- Stripe integration for subscriptions
-- Feature gating based on tier
-- Admin panel for access code management
-
-**Dependencies:** multi-band-support (users need multi-band before tiers matter)
-
----
-
-### social-catalog
-
-**Directory:** `social-catalog/`
-**Status:** Research Complete
-**Priority:** High
-**Complexity:** Very High (40–50 hours)
-
-**Summary:** Unified initiative covering personal song catalog, personal setlists, and jam sessions. Users maintain a personal song library independent of any band, can create personal setlists, and can host/join temporary "jam sessions" where participants find common songs via QR code or short hash. Non-authenticated users can view jam session results via a scoped read-only token (onboarding hook). Free users get 1 active jam session; pro users unlimited.
-
-**Key Components:**
-
-- Personal song catalog UI (schema exists, UI does not)
-- Personal setlists (requires relaxing `setlists.band_id` to nullable)
-- `jam_sessions`, `jam_participants`, `jam_song_matches` new tables
-- Multi-tier song matching algorithm (`normalize_text()` SQL function + `normalized_title`/`normalized_artist` columns)
-- QR code + short hash invite system
-- Supabase Edge Function for unauthenticated read-only jam view
-- Public route `/jam/view/:shortCode` outside `ProtectedLayoutRoute`
-- `users.account_tier` stub column (default 'free') for future tier gating
-- Save jam session as personal setlist (tagged with 'jam')
-
-**Dependencies:** account-tiers-and-access (for `account_tier` column pattern and tier limit constants)
-
-**Schema Changes Required:**
-
-- New tables: `jam_sessions`, `jam_participants`, `jam_song_matches`
-- New columns: `songs.normalized_title`, `songs.normalized_artist`, `users.account_tier`, `users.tier_updated_at`, `setlists.context_type`, `setlists.context_id`, `setlists.jam_session_id`, `setlists.tags`
-- Breaking change: `setlists.band_id` becomes nullable
+**Blockers:** None (was: multi-band-support — no longer gating).
 
 ---
 
-### unified-kebab-menu
+### multi-band-support
 
-**Directory:** `unified-kebab-menu/`
-**Status:** Research Complete
+**Directory:** `multi-band-support/`
+**Status:** Mostly implemented — verify polish
 **Priority:** Medium
-**Complexity:** Medium (8-12 hours)
+**Complexity:** Low (remaining is UI polish)
 
-**Summary:** Consolidate 5 different kebab menu styling patterns into a single reusable component. Improves UI consistency and mobile usability.
+**Summary:** Belong to multiple bands and switch between them. Band-switch logic
+already exists in `AuthContext` (`switchBand` / `onSwitchBand`); most DB
+infrastructure (band_memberships, RLS) predates this. Re-scope to: audit what's
+live vs. the plan's "95% done" claim and finish any remaining switcher UI/UX.
 
-**Key Components:**
-
-- `KebabMenu` component with standardized API
-- Migration of 8 component locations
-- Proper accessibility (keyboard nav, ARIA)
-- Consistent styling across all pages
-
-**Blockers:** None
-
-**Note:** Should be done before adding new features to maintain UI consistency.
-
----
-
-### email-infrastructure
-
-**Directory:** `email-infrastructure/`
-**Status:** Research Complete
-**Priority:** Medium
-**Complexity:** Low-Medium (6-10 hours standalone, or folds into the first email feature shipped)
-
-**Summary:** Shared email scaffolding — Resend account & domain verification, edge function conventions (`_shared/` helpers for CORS, Resend client, logging, rate limiting), unified `email_logs` table, `user_notification_prefs` table, sending identity setup, and deliverability best practices. Not a standalone "feature" a user sees; it's the substrate both `email-invitations` and `calendar-events` build on.
-
-**Key Components:**
-
-- Resend account setup + `rockon.app` domain verification (SPF/DKIM/DMARC)
-- `supabase/functions/_shared/` utilities: `cors.ts`, `email.ts`, `logging.ts`, `rateLimit.ts`
-- `email_logs` table — unified across all sending purposes (invitation, event-invite, event-update, event-cancel, welcome, digest)
-- `user_notification_prefs` table — per-user opt-out toggles
-- Hand-rolled HTML template conventions + plain-text fallback requirement
-- List-Unsubscribe header (Gmail/Yahoo Feb 2024 bulk sender compliance)
-- In-memory rate limiter for v1; Postgres-backed deferred to v2
-- Secrets: `RESEND_API_KEY`, `APP_URL`, `EMAIL_FROM_ADDRESS`
-
-**Blockers:** None
-
-**Note:** This document formalizes the shared infrastructure so whichever of `email-invitations` or `calendar-events` ships first builds it once and the second feature reuses it. If shipping both at once, do this setup as Phase 1 and then the two features' Phase 2+ work runs in parallel.
-
----
-
-### email-invitations
-
-**Directory:** `email-invitations/`
-**Status:** Research Complete
-**Priority:** Medium
-**Complexity:** Medium (15-20 hours on top of email-infrastructure)
-
-**Summary:** Send email invitations to join bands using Resend service. Replaces current "share join code" workflow with direct email invites. Enhanced `/join?code=xxx` flow that skips the create-band / join-band decision for invited users and sends them directly to a confirmation page.
-
-**Key Components:**
-
-- Resend integration (via shared `email-infrastructure`)
-- Invitation tokens with expiration (`nanoid`, 10 chars)
-- Email templates for invitations
-- `/join?code=xxx` invitation acceptance flow with `sessionStorage`-based code persistence across auth redirects
-- Supabase Edge Function `send-invitation` for sending
-- `invite_codes` schema additions: `type`, `invited_email`, `email_sent_at`, `email_status`
-
-**Dependencies:** `email-infrastructure` (shared Resend setup + `email_logs` table)
-
-**Blockers:** None
-
----
-
-### calendar-events
-
-**Directory:** `calendar-events/`
-**Status:** Specification Complete
-**Priority:** Medium
-**Complexity:** Medium-High (3-4 weeks if email-infrastructure is already in place; +1 week from scratch)
-
-**Summary:** Auto-send iCalendar (`.ics`) invites to all band members when a show or practice is created, updated, or cancelled. v1 uses standards-based `.ics` attachments over Resend — works universally across Gmail, Apple Mail, Outlook, Yahoo without per-user OAuth. Native Google Calendar / Microsoft Graph APIs deferred to v2. Calendly / Cal.com availability sharing deferred to v3 (with a recommendation to build native, not integrate third-party).
-
-**Key Components:**
-
-- `send-event-invite` edge function (auth-verified, service_role for cross-member lookups)
-- `ical-generator` library for VTIMEZONE-aware `.ics` generation
-- Stable UID + incrementing SEQUENCE for update/cancel semantics
-- Schema additions to `shows` + `practice_sessions`: `timezone`, `end_time`, `calendar_uid`, `calendar_sequence`
-- `user_notification_prefs` toggles for event invites / updates / cancellations (shared with `email-infrastructure`)
-- Timezone selector in event create/edit forms (default to creator's browser IANA zone)
-- "Calendar invites" admin panel on event detail page showing delivery status per recipient
-- List-Unsubscribe one-click support
-
-**Dependencies:** `email-infrastructure` (Resend + `email_logs` + `_shared/` edge fn helpers)
-
-**Blockers:** None
-
-**v2 Deferred:** RSVP capture, external `ShowContact` invitees (venue mgr, sound engineer), native Google Calendar / Microsoft Graph API integration, recurring events (RRULE), bounce webhooks.
-
-**v3 Deferred:** Member availability sharing. Research recommends native implementation over Calendly (no availability API) or Cal.com (requires separate account per member).
+**Blockers:** None.
 
 ---
 
 ### enhanced-security-testing
 
 **Directory:** `enhanced-security-testing/`
-**Status:** Research Complete
+**Status:** Unblocked — ready to start
 **Priority:** Medium
-**Complexity:** Medium (15-20 hours)
+**Complexity:** Medium
 
-**Summary:** Add SAST (Static Application Security Testing) scanning to CI pipeline. Includes RLS policy testing and security-focused pgTAP tests.
+**Summary:** SAST scanning + RLS policy behavior tests + security-focused pgTAP
+in CI. Its only dependency (ci-cd) now exists (`.github/workflows/ci.yml`), so
+this is ready to pick up.
 
-**Key Components:**
+**Key Components:** Semgrep-or-similar SAST in CI, RLS behavior tests, secrets
+scanning, security review checklist.
 
-- Semgrep or similar SAST tool in CI
-- RLS policy behavior tests
-- Secrets scanning (git-secrets or similar)
-- Security-focused code review checklist
-
-**Dependencies:** ci-cd-pipeline (needs CI infrastructure first)
+**Blockers:** None (ci-cd shipped).
 
 ---
 
-### guitar-tuning-system
+### ci-cd: deploy + migration-safety
 
-**Directory:** COMPLETED → `.claude/completed/guitar-tuning-system/SUMMARY.md` (shipped in 0.4.0–0.4.1).
-**Status:** Done — database layer + app layer shipped.
+**Directory:** `ci-cd-pipeline/` (kept for the deploy/migration-safety research)
+**Status:** Partial — validation shipped, deploy not
 **Priority:** Medium
-**Complexity:** Medium-High (8-12 days)
+**Complexity:** Medium
 
-**Source of truth:** `.claude/completed/guitar-tuning-system/SUMMARY.md`
-(the folder's design/research/progress docs were compressed into that summary
-when the feature completed).
+**Summary:** The CI _validation_ pipeline shipped — `.github/workflows/ci.yml`
+runs lint, type-check, prettier, ER-diagram check, and unit tests with coverage
+on PRs. **Remaining:** a deploy workflow (build + deploy to prod) and a
+migration-safety job. Re-scoped from "build CI" to "extend the existing CI."
 
-**Summary:** Per-string tuning storage system that enables retuning effort visualization in setlists. Store actual notes per string (not just labels) to calculate how much retuning is needed between songs.
-
-**Key Components:**
-
-- `GuitarTuning` JSONB type with per-string notes
-- `TuningLibrary` with pre-built tunings (Standard, Drop D, etc.)
-- `TuningComparator` algorithm for effort calculation
-- `CustomTuningDialog` for band-specific tunings
-- `RetuningIndicator` component in setlist view
-
-**Use Case:**
-
-```
-Standard → Drop D = 1 string (quick tune)
-Standard → Half-step down = 6 strings (full retune or guitar swap)
-```
-
-**Blockers:** None
-
-**Note:** Updated from simpler TEXT-field approach based on user requirement for retuning effort visualization in setlists.
+**Blockers:** None.
 
 ---
 
 ### no-console-eslint-rule
 
 **Directory:** `no-console-eslint-rule/`
-**Status:** Research Complete
+**Status:** Research Complete — not started
 **Priority:** Low
-**Complexity:** Medium (2-4 hours)
+**Complexity:** Medium
 
-**Summary:** Enable ESLint's `no-console` rule and migrate 456 violations across 44 files to use the `createLogger` utility.
+**Summary:** Enable ESLint `no-console` and migrate the violations to
+`createLogger`. Rule is still not enabled in `.eslintrc.cjs` as of v0.4.5.
+(Original count: ~456 violations across 44 files — re-count before starting.)
 
-**Key Components:**
-
-- Enable `no-console: 'warn'` initially
-- Migrate services (47 violations in RealtimeManager alone)
-- Handle special cases (logger.ts itself, debug utilities)
-- Escalate to `no-console: 'error'`
-
-**Blockers:** None
+**Blockers:** None.
 
 ---
 
 ### react-native-app
 
 **Directory:** `react-native-app/`
-**Status:** Research Complete
-**Priority:** Low (Post-1.0)
+**Status:** Research Complete (Post-1.0)
+**Priority:** Low
 **Complexity:** Very High (100+ hours)
 
-**Summary:** Native mobile app using React Native with true offline-first architecture. Shares business logic with web app via shared packages.
+**Summary:** Native mobile app (React Native) with offline-first architecture,
+sharing the sync engine with web. Major undertaking; requires a stable web app.
+QR-based jam-session joining is high-value on native.
 
-**Key Components:**
-
-- React Native setup (Expo or bare)
-- SQLite or WatermelonDB for local storage
-- Shared sync engine with web
-- Native UI components
-- Push notifications
-
-**Dependencies:** All core features should be stable first
-
-**Note:** This is a major undertaking planned for post-1.0 when the web app is feature-complete and stable.
+**Blockers:** All core features should be stable first.
 
 ---
 
-## Outdated/Superseded Items
+### open-jam-venue-mode
 
-### custom-tuning-support (CONSOLIDATED)
+**Directory:** `open-jam-venue-mode/`
+**Status:** Open questions captured
+**Priority:** Medium
+**Complexity:** High
 
-**Reason:** Merged into `guitar-tuning-system`. The original research (2025-12-11) proposed a JSONB-based system. The updated `guitar-tuning-system` research (2026-01-22) incorporates this approach with per-string note storage to enable retuning effort calculation for setlist planning.
+**Summary:** Venue-hosted open jams — the seed of the product direction toward
+venues and live-jukebox-for-tips acts. Builds on the shipped Events feature. Not
+in the previous BACKLOG.md (added after 2026-04-24). See
+`open-jam-venue-mode/2026-04-29T06:06_open-questions.md`.
+
+**Blockers:** Open product questions to resolve first.
+
+---
+
+## Shipped / Superseded (retired from the active backlog)
+
+These were open items in the 2026-04-24 backlog; verified shipped against v0.4.5
+on 2026-09-01.
+
+### social-catalog — ✅ SHIPPED
+
+Personal catalog + jam sessions landed in
+`supabase/migrations/20260422220000_social_catalog_and_jam_sessions.sql`
+(`JamSessionService`, public `/jam/view/:shortCode` route). The single biggest
+backlog item — done. (Left a deliberate `account_tier` stub for the tiers item.)
+
+### Events / venue lineups — ✅ SHIPPED
+
+`supabase/migrations/20260703164738_social_events.sql`, `EventService`,
+EventsPage. Venue lineups, RSVP, "raise a hand," host casting. **Distinct from
+the `calendar-events`/.ics-invites item** (now under `email-and-notifications/`).
+
+### unified-kebab-menu — ✅ SHIPPED
+
+`src/components/common/KebabMenu.tsx` exists and is adopted across ~6 components.
+The "5 inconsistent kebab patterns" problem is resolved.
+
+### guitar-tuning-system — ✅ SHIPPED (0.4.0–0.4.1)
+
+Per-string tuning + retuning indicators. Summary in
+`.claude/completed/guitar-tuning-system/SUMMARY.md`.
+
+### custom-tuning-support — CONSOLIDATED
+
+Merged into guitar-tuning-system (per-string JSONB storage for retuning-effort
+calculation).
+
+### ci-cd-pipeline (validation) — ✅ SHIPPED
+
+The validation half shipped (`ci.yml`). Only the deploy + migration-safety work
+remains — tracked above as its own re-scoped item.
 
 ---
 
@@ -394,42 +229,43 @@ Standard → Half-step down = 6 strings (full retune or guitar swap)
 
 ```
 .claude/backlog/
-├── BACKLOG.md                      # This file
+├── BACKLOG.md                          # This file
 ├── account-tiers-and-access/
 │   └── 2026-01-21T19:05_research.md
-├── calendar-events/
-│   ├── spec.md
-│   ├── research.md
-│   └── flow-diagrams.md
-├── ci-cd-pipeline/
-│   └── 2025-11-21T23:44_research.md
-├── email-infrastructure/
-│   └── shared-services.md
-├── email-invitations/
-│   ├── spec.md
-│   ├── research.md
-│   └── flow-diagrams.md
+├── ci-cd-pipeline/                     # deploy + migration-safety remain
+│   ├── README.md
+│   ├── 2025-11-21T23:44_research.md
+│   ├── 2025-11-21T23:44_implementation-plan.md
+│   └── 2026-07-09T19:57_empirical-gaps-and-release-gates.md
+├── email-and-notifications/            # consolidated epic (infra + invites + .ics)
+│   ├── README.md
+│   ├── infrastructure-shared-services.md
+│   ├── invitations-research.md
+│   ├── invitations-spec.md
+│   ├── invitations-flow-diagrams.md
+│   ├── ics-invites-research.md
+│   ├── ics-invites-spec.md
+│   └── ics-invites-flow-diagrams.md
 ├── enhanced-security-testing/
-│   └── 2026-01-06T16:33_research.md
-├── guitar-tuning-system/
-│   ├── 2026-01-06T16:31_research.md (original)
-│   └── 2026-01-22T15:25_research.md (enhanced with per-string storage)
+│   ├── 2026-01-06T16:33_research.md
+│   └── tasks.md
 ├── multi-band-support/
-│   └── plan.md
+│   ├── plan.md
+│   └── tasks.md
 ├── no-console-eslint-rule/
 │   └── research.md
-├── react-native-app/
-│   └── 2025-12-11T16:54_research.md
-└── unified-kebab-menu/
-    └── 2026-01-20T22:48_research.md
+├── open-jam-venue-mode/
+│   └── 2026-04-29T06:06_open-questions.md
+└── react-native-app/
+    └── 2025-12-11T16:54_research.md
 ```
 
 ## How to Use This Backlog
 
-1. **Start a feature:** Move directory from `backlog/` to `features/` when starting work
-2. **Research phase:** Run `/research <feature-name>` to create/update research document
-3. **Planning phase:** Run `/plan <feature-name>` to create implementation plan and tasks
-4. **Implementation:** Run `/implement <feature-name>` to execute tasks
-5. **Completion:** Run `/finalize <feature-name>` to move to `completed/`
+1. **Start a feature:** move its directory from `backlog/` to `features/`.
+2. **Research → Plan → Implement → Finalize** via the workflow in
+   `docs/DEVELOPMENT.md`.
+3. **Completion:** summarize and move to `completed/`.
 
-See `CLAUDE.md` for full workflow documentation.
+See `docs/DEVELOPMENT.md` for the full workflow and the vault **Rock On Backlog**
+note for the curated roadmap view.

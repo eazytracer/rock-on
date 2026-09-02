@@ -7,9 +7,6 @@
  *
  * IndexedDB is now populated via SyncEngine.performInitialSync() on first login.
  *
- * See: .claude/specifications/2025-10-27T18:16_test-data-and-seeding-specification.md
- * See: .claude/artifacts/2025-10-31T13:20_seed-data-consolidation-plan.md
- *
  * @deprecated Since 2025-10-31
  */
 

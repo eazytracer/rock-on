@@ -162,3 +162,6 @@ exports/
 
 # Database backups
 backups/
+
+# Hermes agent working space (plans, scratch)
+.hermes/

@@ -10,8 +10,6 @@ import {
  *
  * Represents rehearsals, writing sessions, recording sessions, etc.
  * NOTE: Shows/gigs are now in the separate Show model (see src/models/Show.ts)
- *
- * Based on: .claude/specifications/proposed-unified-schema-v2.md (lines 250-298)
  */
 export interface PracticeSession {
   id: string
