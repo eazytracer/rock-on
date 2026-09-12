@@ -215,10 +215,7 @@ test.describe('Protected Routes', () => {
       await expect(page).toHaveURL(/\/auth/, { timeout: 5000 })
     })
 
-    test('session expired redirect includes reason param', async ({
-      page,
-      context,
-    }) => {
+    test('signed-out redirect includes reason param', async ({ page }) => {
       const user = createTestUser()
 
       // Sign up and create band
@@ -241,18 +238,20 @@ test.describe('Protected Routes', () => {
         (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
         undefined
 
-      // Corrupt the session data to simulate expired/invalid session
+      // Remove the Supabase session tokens to simulate sign-out / expiry.
+      // (Phase 1: the SDK session is the source of truth; there is no
+      // rock_on_session mirror anymore.)
       await page.evaluate(() => {
-        // Clear the session storage but keep the user/band IDs
-        // This simulates an invalid session state
-        localStorage.removeItem('rock_on_session')
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-')) localStorage.removeItem(key)
+        }
       })
 
       // Try to access a protected route
       await page.goto('/songs')
 
-      // Should redirect to auth with session-invalid reason
-      await expect(page).toHaveURL(/\/auth(\?reason=session-invalid)?/, {
+      // Should redirect to auth with the signed-out reason
+      await expect(page).toHaveURL(/\/auth\?reason=signed-out/, {
         timeout: 5000,
       })
     })
@@ -293,10 +292,13 @@ test.describe('Protected Routes', () => {
         (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
         undefined
 
-      // Now invalidate the session but keep localStorage keys
-      // This simulates what happens when session expires while user is away
+      // Now invalidate the session but keep the identity keys.
+      // This simulates the session going away while the user is elsewhere.
+      // (Phase 1: clear the Supabase SDK tokens — the source of truth.)
       await page.evaluate(() => {
-        localStorage.removeItem('rock_on_session')
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-')) localStorage.removeItem(key)
+        }
       })
 
       // Navigate to another protected page
@@ -332,9 +334,11 @@ test.describe('Protected Routes', () => {
         (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
         undefined
 
-      // Now invalidate the session
+      // Now invalidate the session (Phase 1: clear the Supabase SDK tokens)
       await page.evaluate(() => {
-        localStorage.removeItem('rock_on_session')
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-')) localStorage.removeItem(key)
+        }
       })
 
       // Click a navigation link instead of direct URL navigation

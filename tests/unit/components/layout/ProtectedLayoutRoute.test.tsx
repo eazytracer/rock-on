@@ -49,15 +49,17 @@ const renderWithRouter = (initialEntries = ['/']) => {
 describe('ProtectedLayoutRoute', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Default mock values
+    // Default mock values. Phase 1: the component reads currentUser + loading
+    // from AuthContext (no more sessionExpired flag).
     mockUseAuth.mockReturnValue({
-      sessionExpired: false,
+      currentUser: null,
+      loading: false,
       user: null,
       currentBand: null,
       signOut: vi.fn(),
       syncing: false,
       realtimeManager: null,
-    } as ReturnType<typeof useAuth>)
+    } as unknown as ReturnType<typeof useAuth>)
   })
 
   describe('Loading State', () => {
@@ -100,6 +102,16 @@ describe('ProtectedLayoutRoute', () => {
         failureReason: null,
       })
 
+      mockUseAuth.mockReturnValue({
+        currentUser: { id: 'user-1', email: 'test@test.com' },
+        loading: false,
+        user: { id: 'user-1', email: 'test@test.com' },
+        currentBand: null,
+        signOut: vi.fn(),
+        syncing: false,
+        realtimeManager: null,
+      } as unknown as ReturnType<typeof useAuth>)
+
       renderWithRouter(['/songs'])
 
       // Should render the layout, NOT redirect to get-started
@@ -107,25 +119,17 @@ describe('ProtectedLayoutRoute', () => {
       expect(screen.queryByTestId('auth-page')).not.toBeInTheDocument()
     })
 
-    it('redirects to /auth?reason=session-expired when sessionExpired is true', () => {
+    it('redirects to /auth?reason=session-error when failureReason is session-error', () => {
       mockUseAuthCheck.mockReturnValue({
-        isAuthenticated: true,
+        isAuthenticated: false,
         isChecking: false,
-        failureReason: null,
+        hasBand: false,
+        failureReason: 'session-error',
       })
-
-      mockUseAuth.mockReturnValue({
-        sessionExpired: true,
-        user: null,
-        currentBand: null,
-        signOut: vi.fn(),
-        syncing: false,
-        realtimeManager: null,
-      } as ReturnType<typeof useAuth>)
 
       renderWithRouter(['/songs'])
 
-      // Should redirect to auth page with session-expired reason
+      // Should redirect to auth page (session-error → /auth?reason=session-error)
       expect(screen.getByTestId('auth-page')).toBeInTheDocument()
       expect(screen.queryByTestId('modern-layout')).not.toBeInTheDocument()
     })
@@ -170,17 +174,17 @@ describe('ProtectedLayoutRoute', () => {
       )
     })
 
-    it('attaches returnTo to session-expired redirects too', () => {
+    it('attaches returnTo to signed-out redirects too', () => {
       mockUseAuthCheck.mockReturnValue({
         isAuthenticated: false,
         isChecking: false,
-        failureReason: 'session-expired',
+        failureReason: 'signed-out',
       })
 
       renderWithProbe(['/events?join=XYZ'])
 
       const probe = screen.getByTestId('auth-probe')
-      expect(probe.textContent).toContain('reason=session-expired')
+      expect(probe.textContent).toContain('reason=signed-out')
       expect(probe.textContent).toContain(
         `returnTo=${encodeURIComponent('/events?join=XYZ')}`
       )
@@ -196,7 +200,8 @@ describe('ProtectedLayoutRoute', () => {
       })
 
       mockUseAuth.mockReturnValue({
-        sessionExpired: false,
+        currentUser: { id: 'user-1', email: 'test@test.com' },
+        loading: false,
         user: { id: 'user-1', email: 'test@test.com' },
         currentBand: { id: 'band-1', name: 'Test Band' },
         signOut: vi.fn(),

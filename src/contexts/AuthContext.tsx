@@ -17,8 +17,8 @@ import {
   SignUpCredentials,
   SignInCredentials,
   IAuthService,
+  AuthChangeEvent,
 } from '../services/auth/types'
-import { SessionManager } from '../services/auth/SessionManager'
 import { RealtimeManager } from '../services/data/RealtimeManager'
 import {
   setupRealtimeDebug,
@@ -26,6 +26,9 @@ import {
 } from '../utils/debugRealtime'
 import { RemoteRepository } from '../services/data/RemoteRepository'
 import { isE2ETestEnvironment } from '../config/appMode'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('AuthContext')
 
 interface AuthContextType {
   // Legacy auth fields (keep for backward compatibility)
@@ -39,9 +42,6 @@ interface AuthContextType {
   signIn: (credentials: SignInCredentials) => Promise<{ error?: string }>
   signOut: () => Promise<void>
   isAuthenticated: boolean
-
-  // Session management
-  sessionExpired: boolean
 
   // New database-connected auth fields
   currentUser: User | null
@@ -103,99 +103,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const realtimeManagerRef = useRef<RealtimeManager | null>(null)
   const [realtimeManagerReady, setRealtimeManagerReady] = useState(false)
 
-  // Session expiry monitoring
-  const [sessionExpired, setSessionExpired] = useState(false)
-  const sessionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Check session expiry periodically
-  useEffect(() => {
-    if (!session) {
-      // No session, clear interval if exists
-      if (sessionCheckIntervalRef.current) {
-        clearInterval(sessionCheckIntervalRef.current)
-        sessionCheckIntervalRef.current = null
-      }
-      setSessionExpired(false)
-      return
-    }
-
-    // Check session validity immediately
-    const checkSession = () => {
-      const currentSession = SessionManager.loadSession()
-      if (!currentSession || !SessionManager.isSessionValid(currentSession)) {
-        console.warn('⚠️ Session expired - user needs to re-authenticate')
-        setSessionExpired(true)
-        setSession(null)
-        setUser(null)
-
-        // Clear localStorage keys so ProtectedRoute will redirect properly
-        // This ensures useAuthCheck sees no valid session
-        localStorage.removeItem('currentUserId')
-        localStorage.removeItem('currentBandId')
-        SessionManager.clearSession()
-
-        // Clear interval since session is expired
-        if (sessionCheckIntervalRef.current) {
-          clearInterval(sessionCheckIntervalRef.current)
-          sessionCheckIntervalRef.current = null
-        }
-      }
-    }
-
-    // Check immediately
-    checkSession()
-
-    // Then check every 30 seconds
-    sessionCheckIntervalRef.current = setInterval(checkSession, 30000)
-
-    // Also check when tab becomes visible (handles "left open overnight" scenario)
-    // This is critical for mobile where tabs may be backgrounded for extended periods
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log(
-          '[AuthContext] Tab became visible - checking session validity'
-        )
-        checkSession()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      if (sessionCheckIntervalRef.current) {
-        clearInterval(sessionCheckIntervalRef.current)
-        sessionCheckIntervalRef.current = null
-      }
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [session])
-
   // Multi-tab session sync - listen for auth changes in other tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      // Check if auth-related localStorage keys changed
-      if (e.key === 'currentUserId') {
-        if (e.newValue === null && e.oldValue !== null) {
-          // User signed out in another tab
-          console.log('🔄 Sign out detected in another tab')
-          logout()
-          setSession(null)
-          setUser(null)
-          setSessionExpired(false)
-        } else if (e.newValue !== null && e.oldValue === null) {
-          // User signed in in another tab
-          console.log('🔄 Sign in detected in another tab - reloading')
-          window.location.reload()
-        }
-      } else if (e.key?.startsWith('sb-')) {
-        // Supabase session changed in another tab
-        if (e.newValue === null && e.oldValue !== null) {
-          // Session cleared in another tab
-          console.log('🔄 Session cleared in another tab')
-          logout()
-          setSession(null)
-          setUser(null)
-        }
+      // Check if currentUserId was removed (sign-out in another tab)
+      if (
+        e.key === 'currentUserId' &&
+        e.newValue === null &&
+        e.oldValue !== null
+      ) {
+        // User signed out in another tab
+        log.info('Sign out detected in another tab')
+        logout()
+        setSession(null)
+        setUser(null)
+      } else if (
+        e.key === 'currentUserId' &&
+        e.newValue !== null &&
+        e.oldValue === null
+      ) {
+        // User signed in in another tab - reload to pick up new session
+        log.info('Sign in detected in another tab - reloading')
+        window.location.reload()
       }
     }
 
@@ -293,10 +222,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 '../services/supabase/client'
               )
               const supabase = getSupabaseClient()
-              const storedSession = SessionManager.loadSession()
-              if (storedSession?.accessToken) {
-                supabase.realtime.setAuth(storedSession.accessToken)
-                // Removed: console.log with sensitive data (CRITICAL SECURITY)
+              // Get session from Supabase SDK (single source of truth)
+              const currentSession = await authService.getSession()
+              if (currentSession?.accessToken) {
+                supabase.realtime.setAuth(currentSession.accessToken)
               } else {
                 console.warn('⚠️ No session token found - realtime may fail')
               }
@@ -348,121 +277,154 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
     loadInitialSession()
 
-    // Subscribe to auth state changes
-    const unsubscribe = authService.onAuthStateChange(async newSession => {
-      setSession(newSession)
-      setUser(newSession?.user || null)
-      SessionManager.saveSession(newSession)
+    // Subscribe to auth state changes with event information
+    const unsubscribe =
+      authService.onAuthStateChangeWithEvent?.(
+        async (event: AuthChangeEvent, newSession: AuthSession | null) => {
+          log.debug('Auth state change event', {
+            event,
+            hasSession: !!newSession,
+          })
 
-      // When user signs in, also load their database data
-      if (newSession?.user?.id) {
-        const userId = newSession.user.id
-
-        // Import repository for sync operations
-        const { repository } = await import(
-          '../services/data/RepositoryFactory'
-        )
-
-        // Set current user ID on sync engine (enables periodic pull sync)
-        repository.setCurrentUser(userId)
-
-        // Skip sync in test environment to avoid race conditions with test setup
-        if (!isE2ETestEnvironment()) {
-          // Check if initial sync is needed (first login or > 30 days)
-          const needsSync = await repository.isInitialSyncNeeded()
-
-          if (needsSync) {
-            // Removed: console.log (security)
-            setSyncing(true)
-
-            try {
-              // Perform initial sync: download all data from Supabase to IndexedDB
-              await repository.performInitialSync(userId)
-              // Removed: console.log (security)
-            } catch (error) {
-              console.error('❌ Initial sync failed:', error)
-              // Continue anyway - user can manually refresh or data will sync incrementally
-              // We don't want to block login if sync fails
-            } finally {
-              setSyncing(false)
-            }
+          // Handle SIGNED_OUT event
+          if (event === 'SIGNED_OUT') {
+            log.info('SIGNED_OUT event received - clearing state')
+            logout()
+            setSession(null)
+            setUser(null)
+            setAuthReady(false)
+            return
           }
-        }
 
-        // Load user data from IndexedDB
-        const storedBandId = localStorage.getItem('currentBandId')
-        await loadUserData(userId, storedBandId)
-        localStorage.setItem('currentUserId', userId)
-
-        // Start real-time sync for user's bands
-        const memberships = await db.bandMemberships
-          .where('userId')
-          .equals(userId)
-          .filter(m => m.status === 'active')
-          .toArray()
-
-        if (memberships.length > 0) {
-          try {
-            // Removed: tab ID generation (was only used for logging)
-
-            // Removed: console.log with sensitive data (CRITICAL SECURITY)
-
-            // 🔥 SET REALTIME AUTH BEFORE ANY SUBSCRIPTIONS
+          // Handle TOKEN_REFRESHED event - update in-memory session silently
+          if (event === 'TOKEN_REFRESHED' && newSession) {
+            log.debug('Token refreshed, updating session')
+            setSession(newSession)
+            // Update realtime auth token
             const { getSupabaseClient } = await import(
               '../services/supabase/client'
             )
             const supabase = getSupabaseClient()
             supabase.realtime.setAuth(newSession.accessToken)
-            // Removed: console.log (security)
+            return
+          }
 
-            // Removed: console.log (security)
-            // Only create if doesn't exist yet
-            if (!realtimeManagerRef.current) {
-              // Removed: console.log (security)
-              realtimeManagerRef.current = new RealtimeManager()
-              setupRealtimeDebug(realtimeManagerRef.current)
-              setRealtimeManagerReady(true)
-            } else {
-              // Removed: console.log (security)
-            }
+          // Handle SIGNED_IN event
+          if (event === 'SIGNED_IN' && newSession?.user?.id) {
+            const userId = newSession.user.id
+            setSession(newSession)
+            setUser(newSession.user)
 
-            // Subscribe using the manager instance
-            const bandIds = memberships.map(m => m.bandId)
-            await realtimeManagerRef.current.subscribeToUserBands(
-              userId,
-              bandIds
+            // Import repository for sync operations
+            const { repository } = await import(
+              '../services/data/RepositoryFactory'
             )
-            // Removed: console.log (security)
 
-            // Track user activity for multi-device sync optimization
-            try {
-              const remoteRepo = new RemoteRepository()
-              await remoteRepo.updateUserActivity()
-            } catch (activityError) {
-              // Non-fatal: activity tracking failure shouldn't block sign-in
-              console.warn('⚠️ Failed to update user activity:', activityError)
+            // Set current user ID on sync engine (enables periodic pull sync)
+            repository.setCurrentUser(userId)
+
+            // Skip sync in test environment to avoid race conditions with test setup
+            if (!isE2ETestEnvironment()) {
+              // Check if initial sync is needed (first login or > 30 days)
+              const needsSync = await repository.isInitialSyncNeeded()
+
+              if (needsSync) {
+                setSyncing(true)
+
+                try {
+                  // Perform initial sync: download all data from Supabase to IndexedDB
+                  await repository.performInitialSync(userId)
+                } catch (error) {
+                  console.error('❌ Initial sync failed:', error)
+                  // Continue anyway - user can manually refresh or data will sync incrementally
+                  // We don't want to block login if sync fails
+                } finally {
+                  setSyncing(false)
+                }
+              }
             }
-          } catch (error) {
-            console.error('❌ Failed to start real-time sync:', error)
-            if (error instanceof Error) {
-              console.error('Error details:', error.message, error.stack)
+
+            // Load user data from IndexedDB
+            const storedBandId = localStorage.getItem('currentBandId')
+            await loadUserData(userId, storedBandId)
+            localStorage.setItem('currentUserId', userId)
+
+            // Start real-time sync for user's bands
+            const memberships = await db.bandMemberships
+              .where('userId')
+              .equals(userId)
+              .filter(m => m.status === 'active')
+              .toArray()
+
+            if (memberships.length > 0) {
+              try {
+                // 🔥 SET REALTIME AUTH BEFORE ANY SUBSCRIPTIONS
+                const { getSupabaseClient } = await import(
+                  '../services/supabase/client'
+                )
+                const supabase = getSupabaseClient()
+                supabase.realtime.setAuth(newSession.accessToken)
+
+                // Only create if doesn't exist yet
+                if (!realtimeManagerRef.current) {
+                  realtimeManagerRef.current = new RealtimeManager()
+                  setupRealtimeDebug(realtimeManagerRef.current)
+                  setRealtimeManagerReady(true)
+                }
+
+                // Subscribe using the manager instance
+                const bandIds = memberships.map(m => m.bandId)
+                await realtimeManagerRef.current.subscribeToUserBands(
+                  userId,
+                  bandIds
+                )
+
+                // Track user activity for multi-device sync optimization
+                try {
+                  const remoteRepo = new RemoteRepository()
+                  await remoteRepo.updateUserActivity()
+                } catch (activityError) {
+                  // Non-fatal: activity tracking failure shouldn't block sign-in
+                  console.warn(
+                    '⚠️ Failed to update user activity:',
+                    activityError
+                  )
+                }
+              } catch (error) {
+                console.error('❌ Failed to start real-time sync:', error)
+                if (error instanceof Error) {
+                  console.error('Error details:', error.message, error.stack)
+                }
+              }
+            }
+
+            // CRITICAL: Signal that auth setup is complete
+            setAuthReady(true)
+            if (authReadyResolveRef.current) {
+              authReadyResolveRef.current()
+              authReadyResolveRef.current = null
             }
           }
         }
+      ) ||
+      authService.onAuthStateChange(async newSession => {
+        // Fallback if onAuthStateChangeWithEvent is not available (MockAuthService)
+        // This path doesn't distinguish events, so we can't optimize TOKEN_REFRESHED
+        setSession(newSession)
+        setUser(newSession?.user || null)
 
-        // CRITICAL: Signal that auth setup is complete
-        // Removed: console.log (security)
-        setAuthReady(true)
-        if (authReadyResolveRef.current) {
-          authReadyResolveRef.current()
-          authReadyResolveRef.current = null
+        if (newSession?.user?.id) {
+          // Similar logic to SIGNED_IN above, but without event context
+          const userId = newSession.user.id
+          const storedBandId = localStorage.getItem('currentBandId')
+          await loadUserData(userId, storedBandId)
+          localStorage.setItem('currentUserId', userId)
+          setAuthReady(true)
+        } else {
+          logout()
+          setAuthReady(false)
         }
-      } else {
-        // User signed out, clear database state
-        setAuthReady(false)
-        logout()
-      }
-    })
+      })
 
     return () => {
       unsubscribe()
@@ -826,9 +788,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       signOut,
       isAuthenticated: !!user,
 
-      // Session management
-      sessionExpired,
-
       // New database-connected fields
       currentUser,
       currentUserProfile,
@@ -857,7 +816,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       signUp,
       signIn,
       signOut,
-      sessionExpired,
       currentUser,
       currentUserProfile,
       currentBand,

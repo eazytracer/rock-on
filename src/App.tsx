@@ -11,7 +11,6 @@ import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
 import { ProtectedLayoutRoute } from './components/layout/ProtectedLayoutRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { AuthCallback } from './pages/auth/AuthCallback'
-import { SessionExpiredModal } from './components/auth/SessionExpiredModal'
 import { ConflictResolutionModal } from './components/sync/ConflictResolutionModal'
 import { useSyncConflicts } from './hooks/useSyncConflicts'
 
@@ -185,9 +184,6 @@ const AppContent: React.FC = () => {
     // The previous `bg-surface` (`#F5F5F5`) caused a light-gray flash to
     // show through during route-level Suspense fallbacks.
     <div className="min-h-screen bg-bg-0">
-      {/* Session expiry modal */}
-      <SessionExpiredModal />
-
       {/* Sync conflict resolution modal */}
       <ConflictResolutionModal
         conflict={currentConflict}

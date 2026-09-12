@@ -173,7 +173,34 @@ Iterate on Q6 copy per Eric's reaction.
 
 ## Findings (Task 0 fills this in)
 
-_TBD — Supabase offline getSession()/event behavior._
+**Supabase SDK offline behavior (from @supabase/auth-js v2.76.1 source analysis):**
+
+1. **`getSession()` offline with expired access token:**
+   - `getSession()` → `_useSession()` → `__loadSession()` reads from localStorage (synchronous, no network)
+   - If access token is expired (within `EXPIRY_MARGIN_MS`), it calls `_callRefreshToken()`
+   - `_callRefreshToken()` → `_refreshAccessToken()` makes a network request with retryable() wrapper
+   - **OFFLINE BEHAVIOR:** Network request fails → `isAuthRetryableFetchError()` check
+   - If retryable (network error), it does NOT emit SIGNED_OUT and does NOT remove the session
+   - The session stays in localStorage; `getSession()` returns `{ data: { session: null }, error }`
+   - **CRITICAL:** getSession() returns NULL on a retryable refresh failure, NOT the persisted session
+
+2. **`_recoverAndRefresh()` behavior (called on visibility change and initialization):**
+   - Loads session from storage, checks validity
+   - If expired and autoRefreshToken=true, attempts refresh
+   - On retryable error (network): logs error, does NOT remove session, does NOT emit SIGNED_OUT
+   - On non-retryable error (invalid refresh token): removes session, would eventually trigger SIGNED_OUT
+3. **Auto-refresh ticker:**
+   - Runs every AUTO_REFRESH_TICK_DURATION_MS when tab visible
+   - On network error: swallows it, does NOT remove session
+   - Session stays valid for the refresh token lifetime (~30 days)
+
+**IMPLICATION FOR TASK 1:**
+
+- `getSession()` returns `null` when offline with expired access token (even though the session is still in storage)
+- The guard MUST distinguish between "no session exists" vs "session exists but temporarily unrefreshable"
+- Solution: Check `supabase.auth.getSession()` first; if null, check in-memory AuthContext state as fallback
+- Only treat as signed-out if BOTH are null OR on explicit SIGNED_OUT event
+- Network errors during refresh are retryable and do NOT trigger sign-out
 
 ## Rollback
 
