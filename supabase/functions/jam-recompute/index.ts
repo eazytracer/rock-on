@@ -30,8 +30,7 @@ function json(body: unknown, status = 200) {
   })
 }
 
-// deno-lint-ignore no-explicit-any
-Deno.serve(async (req: any) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }

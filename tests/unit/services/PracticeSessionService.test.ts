@@ -202,6 +202,67 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
       expect(result.sessions).toHaveLength(1)
       expect(result.sessions[0].id).toBe('session-2')
     })
+
+    it('keeps a practice scheduled while inside its window (start passed, end not)', async () => {
+      // BUG FIX: categorize on effective end (start + duration), not start.
+      const now = new Date()
+      const startedAgo = new Date(now.getTime() - 30 * 60 * 1000) // 30 min ago
+
+      const inWindow: PracticeSession = {
+        id: 'in-window',
+        bandId: 'band-1',
+        scheduledDate: startedAgo,
+        duration: 120, // ends 90 min from now → still upcoming
+        type: 'rehearsal',
+        status: 'scheduled',
+        songs: [],
+        attendees: [],
+        objectives: [],
+        completedObjectives: [],
+        createdDate: new Date(),
+      }
+
+      mockGetPracticeSessions.mockResolvedValue([inWindow])
+
+      // Its computed status is still 'scheduled' (not 'cancelled'), so it
+      // survives a scheduled-status filter even though its start is in the past.
+      const result = await PracticeSessionService.getSessions({
+        bandId: 'band-1',
+        status: 'scheduled',
+      })
+
+      expect(result.sessions).toHaveLength(1)
+      expect(result.sessions[0].id).toBe('in-window')
+    })
+
+    it('marks a practice cancelled once past its effective end and never started', async () => {
+      const now = new Date()
+      const longAgo = new Date(now.getTime() - 5 * 60 * 60 * 1000) // 5h ago
+
+      const expired: PracticeSession = {
+        id: 'expired',
+        bandId: 'band-1',
+        scheduledDate: longAgo,
+        duration: 60, // ended 4h ago
+        type: 'rehearsal',
+        status: 'scheduled',
+        songs: [],
+        attendees: [],
+        objectives: [],
+        completedObjectives: [],
+        createdDate: new Date(),
+      }
+
+      mockGetPracticeSessions.mockResolvedValue([expired])
+
+      const result = await PracticeSessionService.getSessions({
+        bandId: 'band-1',
+        status: 'cancelled',
+      })
+
+      expect(result.sessions).toHaveLength(1)
+      expect(result.sessions[0].id).toBe('expired')
+    })
   })
 
   describe('createSession', () => {
@@ -336,6 +397,120 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
       // Assert
       expect(result.songs).toHaveLength(1)
       expect(result.attendees).toHaveLength(1)
+    })
+  })
+
+  describe('duplicateSession', () => {
+    const buildSource = (): PracticeSession => ({
+      id: 'source-1',
+      bandId: 'band-1',
+      setlistId: 'setlist-1',
+      scheduledDate: new Date('2025-10-28T18:00:00'),
+      startTime: new Date('2025-10-28T18:05:00'),
+      endTime: new Date('2025-10-28T20:00:00'),
+      duration: 120,
+      location: 'Studio A',
+      type: 'rehearsal',
+      status: 'completed',
+      songs: [
+        {
+          songId: 'song-1',
+          timeSpent: 3600,
+          status: 'completed',
+          sectionsWorked: ['verse'],
+          improvements: ['tighter'],
+          needsWork: ['bridge'],
+          memberRatings: [],
+        },
+      ],
+      attendees: [{ memberId: 'member-1', confirmed: true, attended: true }],
+      notes: 'Focus on the bridge',
+      wrapupNotes: 'Went well',
+      objectives: ['Nail the bridge'],
+      completedObjectives: ['Nail the bridge'],
+      sessionRating: 5,
+      createdDate: new Date('2025-10-01'),
+      version: 3,
+      lastModifiedBy: 'user-9',
+    })
+
+    it('copies template content but resets session-specific fields', async () => {
+      mockGetPracticeSession.mockResolvedValue(buildSource())
+      mockAddPracticeSession.mockImplementation((s: PracticeSession) =>
+        Promise.resolve(s)
+      )
+
+      const result = await PracticeSessionService.duplicateSession('source-1')
+
+      // Template content copied
+      expect(result.bandId).toBe('band-1')
+      expect(result.setlistId).toBe('setlist-1')
+      expect(result.duration).toBe(120)
+      expect(result.location).toBe('Studio A')
+      expect(result.type).toBe('rehearsal')
+      expect(result.notes).toBe('Focus on the bridge')
+      expect(result.objectives).toEqual(['Nail the bridge'])
+
+      // Fresh identity + planned status
+      expect(result.id).not.toBe('source-1')
+      expect(result.status).toBe('scheduled')
+      expect(result.startTime).toBeUndefined()
+      expect(result.endTime).toBeUndefined()
+      expect(result.wrapupNotes).toBeUndefined()
+      expect(result.sessionRating).toBeUndefined()
+      expect(result.completedObjectives).toEqual([])
+      expect(result.version).toBeUndefined()
+      expect(result.lastModifiedBy).toBeUndefined()
+
+      // Song references copied, progress reset
+      expect(result.songs).toHaveLength(1)
+      expect(result.songs[0].songId).toBe('song-1')
+      expect(result.songs[0].timeSpent).toBe(0)
+      expect(result.songs[0].status).toBe('not-started')
+      expect(result.songs[0].needsWork).toEqual([])
+
+      // Attendees copied, confirmation/attendance reset
+      expect(result.attendees).toHaveLength(1)
+      expect(result.attendees[0].memberId).toBe('member-1')
+      expect(result.attendees[0].confirmed).toBe(false)
+      expect(result.attendees[0].attended).toBe(false)
+
+      expect(mockAddPracticeSession).toHaveBeenCalledTimes(1)
+    })
+
+    it('defaults scheduledDate to one week after the source', async () => {
+      mockGetPracticeSession.mockResolvedValue(buildSource())
+      mockAddPracticeSession.mockImplementation((s: PracticeSession) =>
+        Promise.resolve(s)
+      )
+
+      const result = await PracticeSessionService.duplicateSession('source-1')
+
+      const expected =
+        new Date('2025-10-28T18:00:00').getTime() + 7 * 24 * 60 * 60 * 1000
+      expect(new Date(result.scheduledDate).getTime()).toBe(expected)
+    })
+
+    it('lets an overridden scheduledDate win', async () => {
+      mockGetPracticeSession.mockResolvedValue(buildSource())
+      mockAddPracticeSession.mockImplementation((s: PracticeSession) =>
+        Promise.resolve(s)
+      )
+
+      const chosen = new Date('2025-12-01T19:00:00')
+      const result = await PracticeSessionService.duplicateSession('source-1', {
+        scheduledDate: chosen,
+      })
+
+      expect(new Date(result.scheduledDate).getTime()).toBe(chosen.getTime())
+    })
+
+    it('throws when the source session does not exist', async () => {
+      mockGetPracticeSession.mockResolvedValue(null)
+
+      await expect(
+        PracticeSessionService.duplicateSession('missing')
+      ).rejects.toThrow('Session not found')
     })
   })
 

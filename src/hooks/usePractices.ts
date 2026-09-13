@@ -4,6 +4,7 @@ import { getSyncRepository } from '../services/data/SyncRepository'
 import { useAuth } from '../contexts/AuthContext'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { SyncStatus } from '../services/data/syncTypes'
+import { getPracticeEffectiveEnd } from '../utils/dateHelpers'
 
 /**
  * Hook to fetch practices (rehearsals) for a band
@@ -150,11 +151,14 @@ export function useUpcomingPractices(bandId: string) {
   const { practices, loading, error, refetch } = usePractices(bandId)
 
   const now = new Date()
+  // Categorize on the practice's EFFECTIVE END (start + duration, or actual
+  // endTime), not its start. A practice whose start has passed but whose end
+  // has not is still upcoming/planned — not history.
   const upcomingPractices = practices.filter(
-    practice => new Date(practice.scheduledDate) >= now
+    practice => getPracticeEffectiveEnd(practice) >= now
   )
   const pastPractices = practices.filter(
-    practice => new Date(practice.scheduledDate) < now
+    practice => getPracticeEffectiveEnd(practice) < now
   )
 
   return { upcomingPractices, pastPractices, loading, error, refetch }
@@ -199,6 +203,39 @@ export function useCreatePractice() {
   }
 
   return { createPractice, loading, error }
+}
+
+/**
+ * Hook to duplicate an existing practice as a starting point for a new one.
+ */
+export function useDuplicatePractice() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  const duplicatePractice = async (
+    practiceId: string,
+    overrides?: { scheduledDate?: Date }
+  ) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const newPractice = await PracticeSessionService.duplicateSession(
+        practiceId,
+        overrides
+      )
+
+      return newPractice.id
+    } catch (err) {
+      console.error('Error duplicating practice:', err)
+      setError(err as Error)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { duplicatePractice, loading, error }
 }
 
 /**
