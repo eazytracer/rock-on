@@ -235,7 +235,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
       expect(result.sessions[0].id).toBe('in-window')
     })
 
-    it('marks a practice cancelled once past its effective end and never started', async () => {
+    it('marks a past, never-started practice completed (NOT cancelled) — cancelled is user-set only', async () => {
       const now = new Date()
       const longAgo = new Date(now.getTime() - 5 * 60 * 60 * 1000) // 5h ago
 
@@ -255,13 +255,50 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
 
       mockGetPracticeSessions.mockResolvedValue([expired])
 
+      // It should be 'completed', never auto-'cancelled'.
+      const asCompleted = await PracticeSessionService.getSessions({
+        bandId: 'band-1',
+        status: 'completed',
+      })
+      expect(asCompleted.sessions).toHaveLength(1)
+      expect(asCompleted.sessions[0].id).toBe('expired')
+
+      // And it must NOT be derived as cancelled.
+      mockGetPracticeSessions.mockResolvedValue([expired])
+      const asCancelled = await PracticeSessionService.getSessions({
+        bandId: 'band-1',
+        status: 'cancelled',
+      })
+      expect(asCancelled.sessions).toHaveLength(0)
+    })
+
+    it('honors an explicitly user-set cancelled status', async () => {
+      const now = new Date()
+      const future = new Date(now.getTime() + 86400000)
+
+      const userCancelled: PracticeSession = {
+        id: 'user-cancelled',
+        bandId: 'band-1',
+        scheduledDate: future,
+        duration: 60,
+        type: 'rehearsal',
+        status: 'cancelled', // deliberately set by a user
+        songs: [],
+        attendees: [],
+        objectives: [],
+        completedObjectives: [],
+        createdDate: new Date(),
+      }
+
+      mockGetPracticeSessions.mockResolvedValue([userCancelled])
+
       const result = await PracticeSessionService.getSessions({
         bandId: 'band-1',
         status: 'cancelled',
       })
 
       expect(result.sessions).toHaveLength(1)
-      expect(result.sessions[0].id).toBe('expired')
+      expect(result.sessions[0].id).toBe('user-cancelled')
     })
   })
 

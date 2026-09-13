@@ -28,6 +28,7 @@ import {
   formatDateForInput,
   parseDateInputAsLocal,
   parseTime12Hour,
+  getPracticeEffectiveEnd,
 } from '../utils/dateHelpers'
 import { secondsToDuration } from '../utils/formatters'
 import { ListMusic, Plus, FileText, Clock, Play } from 'lucide-react'
@@ -69,21 +70,29 @@ const dbSongToUISong = (dbSong: DBSong): UISong => {
   }
 }
 
-// Helper to determine session status
+// Helper to determine session status.
+// Mirrors PracticeSessionService.getSessionStatus — keep in sync.
 const getSessionStatus = (session: PracticeSession): SessionStatus => {
   const now = new Date()
-  const scheduledTime = new Date(session.scheduledDate)
 
+  // 'cancelled' is only ever a user-set status — never auto-derived.
+  if (session.status === 'cancelled') {
+    return 'cancelled'
+  }
   if (session.endTime) {
     return 'completed'
   }
   if (session.startTime) {
     return 'in-progress'
   }
-  if (scheduledTime > now) {
+  // Scheduled until the effective end (start + duration) passes, not merely
+  // its start time.
+  if (getPracticeEffectiveEnd(session) > now) {
     return 'scheduled'
   }
-  return 'cancelled'
+  // Past its window and never explicitly started → it happened; 'completed',
+  // never 'cancelled'.
+  return 'completed'
 }
 
 // Format duration in minutes to hours/minutes

@@ -458,6 +458,12 @@ export class PracticeSessionService {
   private static getSessionStatus(session: PracticeSession): SessionStatus {
     const now = new Date()
 
+    // An explicitly-set 'cancelled' is the user's decision and is honored.
+    // Cancellation is NEVER auto-derived — a practice only becomes cancelled
+    // when someone deliberately sets it.
+    if (session.status === 'cancelled') {
+      return 'cancelled'
+    }
     if (session.endTime) {
       return 'completed'
     }
@@ -470,10 +476,10 @@ export class PracticeSessionService {
     if (getPracticeEffectiveEnd(session) > now) {
       return 'scheduled'
     }
-    // Past its effective end and never started. Absent an explicit cancel this
-    // is a missed/expired practice; kept as 'cancelled' to preserve existing
-    // filter/label behavior. (Revisit if a dedicated 'missed' state is added.)
-    return 'cancelled'
+    // Past its effective end and never explicitly started. It happened (or was
+    // simply not logged) — treat as 'completed', NOT 'cancelled'. Cancelled is
+    // only ever a user-set status (handled above).
+    return 'completed'
   }
 
   /**
