@@ -119,6 +119,37 @@ export function isUpcomingDate(date: Date | string): boolean {
 }
 
 /**
+ * Compute a practice session's effective end time — the moment it stops being
+ * "upcoming"/planned and becomes historical.
+ *
+ * Uses the actual `endTime` if the session has ended; otherwise the scheduled
+ * start (`scheduledDate`) plus the planned `duration` (minutes). This is the
+ * single source of truth for planned-vs-past categorization: a practice whose
+ * start time has passed but whose end time has not is still upcoming, not
+ * history.
+ *
+ * @param session - object with a start (scheduledDate), planned duration in
+ *   minutes, and optional actual endTime.
+ */
+export function getPracticeEffectiveEnd(session: {
+  scheduledDate: Date | string
+  duration?: number
+  endTime?: Date | string | null
+}): Date {
+  if (session.endTime) {
+    return typeof session.endTime === 'string'
+      ? new Date(session.endTime)
+      : session.endTime
+  }
+  const start =
+    typeof session.scheduledDate === 'string'
+      ? new Date(session.scheduledDate)
+      : session.scheduledDate
+  const durationMs = (session.duration ?? 0) * 60 * 1000
+  return new Date(start.getTime() + durationMs)
+}
+
+/**
  * Format a date for input fields (YYYY-MM-DD)
  *
  * IMPORTANT: Uses LOCAL timezone, not UTC!

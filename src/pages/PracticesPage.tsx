@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Trash2,
   Edit2,
+  Copy,
   CheckCircle,
   XCircle,
 } from 'lucide-react'
@@ -25,9 +26,14 @@ import {
   useUpcomingPractices,
   useUpdatePractice,
   useDeletePractice,
+  useDuplicatePractice,
 } from '../hooks/usePractices'
 import { useSongs } from '../hooks/useSongs'
-import { formatShowDate, formatTime12Hour } from '../utils/dateHelpers'
+import {
+  formatShowDate,
+  formatTime12Hour,
+  getPracticeEffectiveEnd,
+} from '../utils/dateHelpers'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song } from '../models/Song'
 
@@ -59,6 +65,7 @@ interface PracticeCardProps {
   setOpenMenuId: (id: string | null) => void
   onClick: () => void
   onEdit: () => void
+  onDuplicate: () => void | Promise<void>
   onMarkComplete: () => void | Promise<void>
   onCancel: () => void | Promise<void>
   onDelete: () => void
@@ -73,6 +80,7 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
   setOpenMenuId,
   onClick,
   onEdit,
+  onDuplicate,
   onMarkComplete,
   onCancel,
   onDelete,
@@ -179,6 +187,14 @@ const PracticeCard: React.FC<PracticeCardProps> = ({
               >
                 <Edit2 size={16} />
                 Edit
+              </button>
+              <button
+                onClick={onDuplicate}
+                data-testid={`duplicate-practice-${practice.id}`}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-white text-sm hover:bg-bg-4 transition-colors border-t border-border-1"
+              >
+                <Copy size={16} />
+                Duplicate
               </button>
               {practice.status === 'scheduled' && (
                 <button
@@ -299,6 +315,7 @@ export const PracticesPage: React.FC = () => {
     useUpcomingPractices(currentBandId)
   const { updatePractice } = useUpdatePractice()
   const { deletePractice } = useDeletePractice()
+  const { duplicatePractice } = useDuplicatePractice()
 
   // DATABASE: Load songs using hook instead of direct queries
   const { songs: allBandSongs } = useSongs(currentBandId)
@@ -310,18 +327,20 @@ export const PracticesPage: React.FC = () => {
 
   const now = new Date()
 
-  // DATABASE: Combine and filter practices based on filter
+  // DATABASE: Combine and filter practices based on filter.
+  // Categorize on the effective END (start + duration), not the start — a
+  // practice whose start has passed but whose end has not is still upcoming.
   const allPractices = [...upcomingPractices, ...pastPractices]
   const filteredPractices = allPractices
     .filter(practice => {
       if (filter === 'upcoming')
         return (
-          new Date(practice.scheduledDate) > now &&
+          getPracticeEffectiveEnd(practice) > now &&
           practice.status === 'scheduled'
         )
       if (filter === 'past')
         return (
-          new Date(practice.scheduledDate) <= now ||
+          getPracticeEffectiveEnd(practice) <= now ||
           practice.status === 'completed' ||
           practice.status === 'cancelled'
         )
@@ -353,6 +372,20 @@ export const PracticesPage: React.FC = () => {
     } catch (error) {
       console.error('Error deleting practice:', error)
       showToast('Failed to delete practice', 'error')
+    }
+  }
+
+  // DATABASE: Duplicate practice as a starting point for a new one
+  const handleDuplicatePractice = async (id: string) => {
+    try {
+      const newId = await duplicatePractice(id)
+      setOpenMenuId(null)
+      showToast('Practice duplicated', 'success')
+      // Open the new practice so the user can set its date
+      navigate(`/practices/${newId}`)
+    } catch (error) {
+      console.error('Error duplicating practice:', error)
+      showToast('Failed to duplicate practice', 'error')
     }
   }
 
@@ -592,6 +625,7 @@ export const PracticesPage: React.FC = () => {
                     navigate(`/practices/${practice.id}`)
                     setOpenMenuId(null)
                   }}
+                  onDuplicate={() => handleDuplicatePractice(practice.id)}
                   onMarkComplete={() => handleMarkComplete(practice.id)}
                   onCancel={() => handleCancelPractice(practice.id)}
                   onDelete={() => {

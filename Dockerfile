@@ -3,6 +3,10 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# bash is required by the prebuild script (scripts/generate-build-info.sh),
+# which uses bash-only syntax; alpine ships only sh by default.
+RUN apk add --no-cache bash
+
 # Copy package files
 COPY package.json package-lock.json* ./
 
