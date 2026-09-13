@@ -9,7 +9,7 @@ import {
 } from '../types'
 import { castingService } from './CastingService'
 import { repository } from './data/RepositoryFactory'
-import { getPracticeEffectiveEnd } from '../utils/dateHelpers'
+import { getPracticeSessionStatus } from '../utils/dateHelpers'
 
 export interface SessionFilters {
   bandId: string
@@ -100,7 +100,7 @@ export class PracticeSessionService {
     // Apply status filter (client-side)
     if (filters.status) {
       sessions = sessions.filter(
-        session => this.getSessionStatus(session) === filters.status
+        session => getPracticeSessionStatus(session) === filters.status
       )
     }
 
@@ -272,7 +272,7 @@ export class PracticeSessionService {
       throw new Error('Session not found')
     }
 
-    const status = this.getSessionStatus(session)
+    const status = getPracticeSessionStatus(session)
     if (status !== 'scheduled') {
       throw new Error('Session cannot be started')
     }
@@ -453,33 +453,6 @@ export class PracticeSessionService {
     if (sessionData.duration && sessionData.duration <= 0) {
       throw new Error('Duration must be positive')
     }
-  }
-
-  private static getSessionStatus(session: PracticeSession): SessionStatus {
-    const now = new Date()
-
-    // An explicitly-set 'cancelled' is the user's decision and is honored.
-    // Cancellation is NEVER auto-derived — a practice only becomes cancelled
-    // when someone deliberately sets it.
-    if (session.status === 'cancelled') {
-      return 'cancelled'
-    }
-    if (session.endTime) {
-      return 'completed'
-    }
-    if (session.startTime) {
-      return 'in-progress'
-    }
-    // Stay 'scheduled' until the effective end (start + duration) passes — a
-    // practice that has started its window but wasn't explicitly started is
-    // still scheduled, not history.
-    if (getPracticeEffectiveEnd(session) > now) {
-      return 'scheduled'
-    }
-    // Past its effective end and never explicitly started. It happened (or was
-    // simply not logged) — treat as 'completed', NOT 'cancelled'. Cancelled is
-    // only ever a user-set status (handled above).
-    return 'completed'
   }
 
   /**

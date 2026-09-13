@@ -28,14 +28,13 @@ import {
   formatDateForInput,
   parseDateInputAsLocal,
   parseTime12Hour,
-  getPracticeEffectiveEnd,
+  getPracticeSessionStatus,
 } from '../utils/dateHelpers'
 import { secondsToDuration } from '../utils/formatters'
 import { ListMusic, Plus, FileText, Clock, Play } from 'lucide-react'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song as DBSong } from '../models/Song'
 import type { Setlist as DBSetlist } from '../models/Setlist'
-import type { SessionStatus } from '../types'
 import { useCreatePractice, useUpdatePractice } from '../hooks/usePractices'
 import {
   DndContext,
@@ -68,31 +67,6 @@ const dbSongToUISong = (dbSong: DBSong): UISong => {
     avatarColor: generateAvatarColor(dbSong.title),
     referenceLinks: dbSong.referenceLinks,
   }
-}
-
-// Helper to determine session status.
-// Mirrors PracticeSessionService.getSessionStatus — keep in sync.
-const getSessionStatus = (session: PracticeSession): SessionStatus => {
-  const now = new Date()
-
-  // 'cancelled' is only ever a user-set status — never auto-derived.
-  if (session.status === 'cancelled') {
-    return 'cancelled'
-  }
-  if (session.endTime) {
-    return 'completed'
-  }
-  if (session.startTime) {
-    return 'in-progress'
-  }
-  // Scheduled until the effective end (start + duration) passes, not merely
-  // its start time.
-  if (getPracticeEffectiveEnd(session) > now) {
-    return 'scheduled'
-  }
-  // Past its window and never explicitly started → it happened; 'completed',
-  // never 'cancelled'.
-  return 'completed'
 }
 
 // Format duration in minutes to hours/minutes
@@ -504,7 +478,7 @@ export const PracticeViewPage: React.FC = () => {
   const formattedTime = formatTime12Hour(practiceDate)
   const dateLabel = formatShowDate(practiceDate)
 
-  const status = getSessionStatus(practice)
+  const status = getPracticeSessionStatus(practice)
 
   // Header title - auto-generated from date
   const headerTitle = `Practice on ${practiceDate.toLocaleDateString('en-US', {

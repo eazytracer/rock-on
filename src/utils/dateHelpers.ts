@@ -2,6 +2,8 @@
  * Utility functions for date and time formatting
  */
 
+import type { SessionStatus } from '../types'
+
 /**
  * Human countdown to a date, day-granular and timezone-local.
  * "Today" / "Tomorrow" / "In 5 days" / "3d ago".
@@ -147,6 +149,43 @@ export function getPracticeEffectiveEnd(session: {
       : session.scheduledDate
   const durationMs = (session.duration ?? 0) * 60 * 1000
   return new Date(start.getTime() + durationMs)
+}
+
+/**
+ * Canonical practice-session status.
+ *
+ * Single source of truth for BOTH the calendar/list filter and the detail-page
+ * status pill — do not re-implement this logic anywhere else (it used to be
+ * duplicated in PracticeSessionService and PracticeViewPage, which drifted and
+ * caused a bug where past practices wrongly showed "cancelled").
+ *
+ * Rules:
+ * - 'cancelled' is ONLY ever a user-set status — it is never auto-derived.
+ * - Ended (has endTime) → 'completed'; explicitly started (has startTime) →
+ *   'in-progress'; still within its effective window → 'scheduled'.
+ * - Past its effective end and never started → 'completed' (it happened),
+ *   never 'cancelled'.
+ */
+export function getPracticeSessionStatus(session: {
+  status?: SessionStatus
+  scheduledDate: Date | string
+  duration?: number
+  startTime?: Date | string | null
+  endTime?: Date | string | null
+}): SessionStatus {
+  if (session.status === 'cancelled') {
+    return 'cancelled'
+  }
+  if (session.endTime) {
+    return 'completed'
+  }
+  if (session.startTime) {
+    return 'in-progress'
+  }
+  if (getPracticeEffectiveEnd(session) > new Date()) {
+    return 'scheduled'
+  }
+  return 'completed'
 }
 
 /**
