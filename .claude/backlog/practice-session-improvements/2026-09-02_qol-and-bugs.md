@@ -125,3 +125,59 @@ fields reset, new id/date, status scheduled, start/end/rating cleared.
 Not a production DB change (no migration). Ships behind the normal version-bump
 release gate (both are user-facing). Suitable for the quick-win batch, not the
 grill-me feature track.
+
+---
+
+## ⚠️ 2026-09-XX addendum — the implemented work landed on a DEAD surface
+
+Discovered during live testing (Eric on 10.10.10.30). **`/practices`
+(`PracticesPage`) is no longer reachable from the nav.** The calendar was
+consolidated several versions ago: the sidebar "Practices" link now routes to
+`/calendar?filter=practices` (`Sidebar.tsx:208`), i.e. the CalendarPage agenda.
+The `/practices` route + `PracticesPage` still exist in `App.tsx:243` but nothing
+navigates there — orphaned code that was never cleaned up.
+
+Consequences for this batch:
+
+- **QOL 2 (Duplicate)** was implemented in `PracticesPage` (kebab menu) — a page
+  users can't reach. It works (verified via direct URL) but is effectively dead.
+- **Bug 1 (planned-vs-past)** was fixed in `PracticesPage` + `usePractices` +
+  `getSessionStatus`. The `usePractices`/service parts are shared and still
+  apply, but the reachable list is CalendarPage.
+
+**The bug ALSO exists on the reachable surface (confirmed):**
+`CalendarPage.tsx:157-163` splits upcoming/past on `i.date.getTime()` (the
+practice's `scheduledDate` = start), ignoring duration — same class of bug as the
+original report, and this is the version users see. Fix: apply
+`getPracticeEffectiveEnd` to practice agenda items. Caveat: shows/events carry no
+`duration`, so only practice items use effective-end; shows/events keep
+start-based categorization (or grow their own end model separately).
+
+**Reachable surface has NO per-item action menu.** CalendarPage agenda rows are
+click-through to the detail page (`to: /practices/:id`); there is no inline
+kebab. Only a "New" menu exists. So Duplicate/Edit/Delete have nowhere to live on
+the current reachable UI without adding one.
+
+### Open decisions (pending Eric — do not implement until answered)
+
+1. **Where do per-practice actions (Duplicate/Edit/Delete) live?**
+   - (a) practice DETAIL page (`PracticeViewPage`, `/practices/:id`) — reachable,
+     natural "open then act" flow; move Duplicate there. _(likely simplest)_
+   - (b) inline kebab on CalendarPage agenda rows.
+   - (c) both.
+2. **Orphaned `/practices` list** — delete the dead route + `PracticesPage`
+   component (keep `/practices/new` + `/practices/:id`, which ARE still used by
+   CalendarPage's New menu and the detail/session flow), or leave for a separate
+   cleanup?
+3. **Confirm** the planned-vs-past fix should target `CalendarPage` (the
+   reachable surface) as the primary site.
+
+### Verified facts (for whoever implements)
+
+- `/practices/new` and `/practices/:id` (→ `PracticeViewPage`) ARE reachable and
+  in use (CalendarPage New menu `:355`, PracticeViewPage/SessionPage navigation).
+  Only the `/practices` _list_ is orphaned.
+- CalendarPage detail link for a practice: `to: /practices/${p.id}`
+  (`CalendarPage.tsx:132`).
+- The `getPracticeEffectiveEnd` helper (added in `src/utils/dateHelpers.ts`)
+  already exists and is the right tool for the CalendarPage fix.

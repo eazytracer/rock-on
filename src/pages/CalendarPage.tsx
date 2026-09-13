@@ -13,7 +13,11 @@ import { useAuth } from '../contexts/AuthContext'
 import { useShows } from '../hooks/useShows'
 import { usePractices } from '../hooks/usePractices'
 import { useEvents } from '../hooks/useEvents'
-import { formatTime12Hour, formatCountdown } from '../utils/dateHelpers'
+import {
+  formatTime12Hour,
+  formatCountdown,
+  getPracticeEffectiveEnd,
+} from '../utils/dateHelpers'
 import { Badge } from '../components/common/Badge'
 import { EmptyState } from '../components/common/EmptyState'
 import { JoinEventForm } from '../components/events/JoinEventForm'
@@ -28,6 +32,13 @@ interface AgendaItem {
   kindLabel: string
   icon: LucideIcon
   date: Date
+  /**
+   * When the item stops being "upcoming" and becomes past. For practices this
+   * is the effective end (start + duration) so a practice stays upcoming
+   * through its whole window; shows/events have no duration, so it equals
+   * `date` (start-based).
+   */
+  endDate: Date
   title: string
   subtitle?: string
   status: string
@@ -106,6 +117,7 @@ export function CalendarPage() {
             kindLabel: 'Show',
             icon: Ticket,
             date: new Date(s.scheduledDate),
+            endDate: new Date(s.scheduledDate),
             title: s.name,
             subtitle: s.venue ?? s.location,
             status: s.status,
@@ -123,6 +135,9 @@ export function CalendarPage() {
             kindLabel: 'Practice',
             icon: CalendarIcon,
             date: new Date(p.scheduledDate),
+            // Practices stay "upcoming" until their effective end (start +
+            // duration), not merely their start time.
+            endDate: getPracticeEffectiveEnd(p),
             title: 'Practice',
             subtitle: p.location,
             status: p.status,
@@ -140,6 +155,7 @@ export function CalendarPage() {
             kindLabel: 'Event',
             icon: PartyPopper,
             date: new Date(e.scheduledDate),
+            endDate: new Date(e.scheduledDate),
             title: e.name,
             subtitle: e.venue,
             status: e.status,
@@ -156,10 +172,10 @@ export function CalendarPage() {
 
   const now = Date.now()
   const upcoming = items
-    .filter(i => i.date.getTime() >= now)
+    .filter(i => i.endDate.getTime() >= now)
     .sort((a, b) => a.date.getTime() - b.date.getTime())
   const past = items
-    .filter(i => i.date.getTime() < now)
+    .filter(i => i.endDate.getTime() < now)
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
   const filters: { id: Filter; label: string }[] = [

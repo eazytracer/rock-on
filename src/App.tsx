@@ -40,11 +40,6 @@ const ShowsPage = lazy(() =>
     default: module.ShowsPage,
   }))
 )
-const PracticesPage = lazy(() =>
-  import('./pages/PracticesPage').then(module => ({
-    default: module.PracticesPage,
-  }))
-)
 const PracticeViewPage = lazy(() =>
   import('./pages/PracticeViewPage').then(module => ({
     default: module.PracticeViewPage,
@@ -240,7 +235,14 @@ const AppContent: React.FC = () => {
             <Route path="/shows" element={<ShowsPage />} />
             <Route path="/shows/new" element={<ShowViewPage />} />
             <Route path="/shows/:showId" element={<ShowViewPage />} />
-            <Route path="/practices" element={<PracticesPage />} />
+            {/* The standalone practices list was consolidated into the Calendar
+                agenda (calendar consolidation). Redirect the retired /practices
+                route to the canonical filtered calendar for old bookmarks. The
+                /practices/new and /practices/:id detail routes remain live. */}
+            <Route
+              path="/practices"
+              element={<Navigate to="/calendar?filter=practices" replace />}
+            />
             <Route path="/practices/new" element={<PracticeViewPage />} />
             <Route
               path="/practices/:practiceId"

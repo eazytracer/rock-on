@@ -21,32 +21,35 @@ else
     echo "✅ Supabase is already running"
 fi
 
-# Get Supabase status output
+# Get Supabase credentials in machine-readable form.
+# Modern Supabase CLI emits JSON from `status` by default; `-o env` gives a
+# stable KEY="value" format we can parse without box-drawing characters.
 echo "📋 Getting Supabase credentials..."
-STATUS_OUTPUT=$(npx supabase status 2>/dev/null)
+STATUS_ENV=$(npx supabase status -o env 2>/dev/null)
 
-# Extract values from status output
-# The output uses box-drawing characters (│) as separators
-# Use awk to split on │ and get the second field (the value)
+# Pull a value out of the `-o env` output and strip surrounding quotes.
+extract_env() {
+    echo "$STATUS_ENV" | grep "^$1=" | head -1 | cut -d'=' -f2- | tr -d '"'
+}
 
-# API URL - look for "Project URL" row
-API_URL=$(echo "$STATUS_OUTPUT" | grep "Project URL" | awk -F'│' '{print $3}' | tr -d '[:space:]')
+# API URL
+API_URL=$(extract_env "API_URL")
 if [ -z "$API_URL" ]; then
     API_URL="http://127.0.0.1:54321"
     echo "⚠️  Could not extract API URL, using default: $API_URL"
 fi
 
-# Anon Key - look for "Publishable" row
-ANON_KEY=$(echo "$STATUS_OUTPUT" | grep "Publishable" | awk -F'│' '{print $3}' | tr -d '[:space:]')
+# Anon key — the JWT anon key that supabase-js expects for VITE_SUPABASE_ANON_KEY.
+ANON_KEY=$(extract_env "ANON_KEY")
 if [ -z "$ANON_KEY" ]; then
-    echo "❌ Could not extract anon key from supabase status"
+    echo "❌ Could not extract anon key from 'supabase status -o env'"
     echo "Status output:"
-    echo "$STATUS_OUTPUT"
+    echo "$STATUS_ENV"
     exit 1
 fi
 
-# Service Role Key (for tests) - look for "Secret" row
-SERVICE_KEY=$(echo "$STATUS_OUTPUT" | grep "Secret" | awk -F'│' '{print $3}' | tr -d '[:space:]')
+# Service role key (for tests / admin operations).
+SERVICE_KEY=$(extract_env "SERVICE_ROLE_KEY")
 
 # Get Google Client ID from existing .env.local if available
 GOOGLE_CLIENT_ID=""
