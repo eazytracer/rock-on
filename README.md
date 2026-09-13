@@ -5,21 +5,37 @@ and practice sessions — plus jam sessions and venue events.
 
 ## Quick Start
 
+We use [`just`](https://github.com/casey/just) recipes for day-to-day tasks
+(`just` with no args lists them). App and tests run in Docker on the project's
+pinned Node — see **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** for the full guide.
+
 ```bash
-# 1. Install dependencies
-npm install
+# First-time setup (start Supabase + generate env files)
+just setup
 
-# 2. Start Supabase and generate environment files (first time only)
-npm run setup:local
-
-# 3. Start development (Supabase + edge functions + dev server)
-npm run start:dev
+# Start local dev (full containerized stack)
+just dev
 ```
 
 Your app will be running at http://localhost:5173
 
-`setup:local` dynamically extracts API keys from `supabase status`, so the
-generated env files work even if Supabase generates different keys per machine.
+`just setup` extracts API keys from `supabase status`, so the generated env files
+work even if Supabase generates different keys per machine. Before committing,
+run `just check` (lint + type-check + unit tests — mirrors CI).
+
+<details>
+<summary>Raw npm equivalents (without <code>just</code>)</summary>
+
+```bash
+npm install
+npm run setup:local   # first-time: Supabase + env files
+npm run start:dev     # Supabase + edge functions + dev server
+```
+
+Note: run tests/build in Docker on Node 24 (see docs/LOCAL_DEV.md) — a
+mismatched host Node causes phantom test failures.
+
+</details>
 
 ## Features
 
@@ -48,29 +64,29 @@ generated env files work even if Supabase generates different keys per machine.
 
 ### Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run setup:local` | First-time setup (Supabase + generate env files) |
-| `npm run start:dev` | Start local dev (Supabase + edge functions + server) |
-| `npm run start:staging` | Start with remote Supabase |
-| `npm run env:status` | Check active environment |
-| `npm run supabase:studio` | Open the database UI |
-| `npm run dev` | Dev server only |
-| `npm run build` | Build for production |
-| `npm run test` | Unit + integration tests |
-| `npm run test:e2e` | E2E tests (Playwright) |
-| `npm run test:all` | All tests (app + database) |
+| Command                   | Description                                          |
+| ------------------------- | ---------------------------------------------------- |
+| `npm run setup:local`     | First-time setup (Supabase + generate env files)     |
+| `npm run start:dev`       | Start local dev (Supabase + edge functions + server) |
+| `npm run start:staging`   | Start with remote Supabase                           |
+| `npm run env:status`      | Check active environment                             |
+| `npm run supabase:studio` | Open the database UI                                 |
+| `npm run dev`             | Dev server only                                      |
+| `npm run build`           | Build for production                                 |
+| `npm run test`            | Unit + integration tests                             |
+| `npm run test:e2e`        | E2E tests (Playwright)                               |
+| `npm run test:all`        | All tests (app + database)                           |
 
 Full test layout: `tests/README.md`. Environment guide: `ENVIRONMENTS.md`.
 
 ### Environment Modes
 
-| Mode | Use When | Supabase | Email Confirmations |
-|------|----------|----------|---------------------|
-| Development | Daily coding | Local | Disabled |
-| Staging | Testing before deploy | Remote | Enabled |
-| Test | CI/CD, automated tests | Local | Mock |
-| Production | Deployed app | Remote | Enabled |
+| Mode        | Use When               | Supabase | Email Confirmations |
+| ----------- | ---------------------- | -------- | ------------------- |
+| Development | Daily coding           | Local    | Disabled            |
+| Staging     | Testing before deploy  | Remote   | Enabled             |
+| Test        | CI/CD, automated tests | Local    | Mock                |
+| Production  | Deployed app           | Remote   | Enabled             |
 
 ### Local URLs
 
