@@ -181,26 +181,40 @@ The finalize command adds an entry to the project's `CHANGELOG.md`:
 - Delete song sync issue - songs no longer reappear after deletion
 ```
 
-## Version Bump (Optional)
+## Version Bump — Phase 1 (REQUIRED for prod-bound features)
 
-For features that warrant a version bump, the finalize command prompts:
+Per the two-phase release policy in `CLAUDE.md`, `/finalize` owns **Phase 1**:
+the version bump, CHANGELOG section, and `release_notes` row all land **in the
+PR** so the merge commit carries them. (`/release` later only tags that merge
+commit — Phase 2 — and never re-bumps.)
+
+For any prod-bound feature (a DB migration is a strong signal), before creating
+the PR:
 
 ```
-Feature complete! Does this warrant a version bump?
+Feature complete! Version bump for the PR (Phase 1):
 
-1. No version change (internal refactor, tests only)
-2. Patch (0.1.1) - Bug fixes only
-3. Minor (0.2.0) - New feature, backward compatible
-4. Major (1.0.0) - Breaking changes
+1. No version change (non-prod chore only: docs, tests — add `skip-release` PR label)
+2. Patch (0.4.5 → 0.4.6) - Bug fixes only
+3. Minor (0.4.5 → 0.5.0) - New feature, backward compatible
+4. Major (0.4.5 → 1.0.0) - Breaking changes
 
 Select [1-4]:
 ```
 
-If a version bump is selected:
+If a bump is selected, do all three IN the PR (never on `main`):
 
-1. Updates `package.json` version
-2. Moves CHANGELOG [Unreleased] items to new version section
-3. Suggests creating a GitHub release tag
+1. `npm version <patch|minor|major> --no-git-tag-version` (updates
+   `package.json` + `package-lock.json`; the `--no-git-tag-version` flag is
+   essential — tagging is Phase 2, post-merge).
+2. Move `CHANGELOG.md` `[Unreleased]` items into a dated `## [x.y.z] - YYYY-MM-DD`
+   section (groups: Added / Changed / Fixed / Database).
+3. Add the idempotent `release_notes` upsert for the version to the PR's
+   migration.
+
+Do NOT tag here — the tag must point at the merge commit, which doesn't exist
+yet. Tagging is `/release` (Phase 2). The `release-metadata` CI gate will block
+the PR if the bump or CHANGELOG section is missing (unless `skip-release` is set).
 
 ## Git Workflow Options
 
@@ -218,15 +232,9 @@ git diff
 Ask the agent to create the commit with the suggested message.
 
 **Option 3: Create PR**
-Ask the agent to push and create a pull request.
-
-**Option 4: Create Release** (after merging)
-
-```bash
-git tag v0.2.0
-git push origin v0.2.0
-gh release create v0.2.0 --generate-notes
-```
+Ask the agent to push and create a pull request. (Tagging is NOT done here —
+that is `/release` Phase 2, after the PR merges. The merge commit already
+carries the version from Phase 1 above.)
 
 ## Handling Issues
 

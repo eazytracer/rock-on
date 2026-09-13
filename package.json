@@ -1,7 +1,7 @@
 {
   "name": "rock-on",
   "private": true,
-  "version": "0.4.5",
+  "version": "0.5.0",
   "type": "module",
   "engines": {
     "node": ">=24 <25"
@@ -12,6 +12,8 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "lint:migrations": "node scripts/lint-migrations.mjs",
+    "check:release-metadata": "node scripts/check-release-metadata.mjs",
+    "check:release-tag": "node scripts/check-release-tag.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

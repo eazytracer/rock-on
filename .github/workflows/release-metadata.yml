@@ -1,0 +1,66 @@
+name: Release Metadata
+
+# Enforces the two-phase release policy in CLAUDE.md:
+#   - PR to main: Phase 1 preconditions (version bumped vs base + dated CHANGELOG
+#     section). Bypassable with the `skip-release` label for non-prod chores.
+#   - Push to main: Phase 2 audit (a v<version> tag must exist for the merged
+#     package.json version) — fails loudly if /release was not run.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-metadata-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase1-pr-preconditions:
+    name: Phase 1 — PR preconditions
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          # Need base branch history to diff package.json versions.
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Ensure base ref available
+        run: git fetch origin ${{ github.base_ref }} --depth=1
+
+      - name: Check version bump + CHANGELOG section
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          # skip-release label bypasses Phase 1 for non-prod chores.
+          SKIP_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'skip-release') }}
+        run: node scripts/check-release-metadata.mjs
+
+  phase2-tag-audit:
+    name: Phase 2 — post-merge tag audit
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          # Tags aren't fetched by default; need them for the audit.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Verify v<version> tag exists for merged version
+        run: node scripts/check-release-tag.mjs
