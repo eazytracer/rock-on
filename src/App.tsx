@@ -7,6 +7,8 @@ import {
 } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from './services/queryClient'
 import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
 import { ProtectedLayoutRoute } from './components/layout/ProtectedLayoutRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
@@ -271,15 +273,17 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <ToastProvider>
-          <ItemSyncStatusProvider>
-            <AppContent />
-          </ItemSyncStatusProvider>
-        </ToastProvider>
-      </AuthProvider>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <AuthProvider>
+          <ToastProvider>
+            <ItemSyncStatusProvider>
+              <AppContent />
+            </ItemSyncStatusProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </Router>
+    </QueryClientProvider>
   )
 }
 
