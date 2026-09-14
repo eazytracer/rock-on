@@ -8,9 +8,11 @@ import {
   SignUpCredentials,
   SignInCredentials,
   AuthResponse,
+  AuthChangeEvent,
+  AuthStateChangeCallback,
 } from './types'
 import type {
-  AuthChangeEvent,
+  AuthChangeEvent as SupabaseAuthChangeEvent,
   Session as SupabaseSession,
 } from '@supabase/supabase-js'
 import { getSyncRepository } from '../data/SyncRepository'
@@ -19,20 +21,24 @@ import { sanitizeReturnTo } from '../../utils/returnTo'
 export class SupabaseAuthService implements IAuthService {
   private supabase
   private listeners: ((session: AuthSession | null) => void)[] = []
+  private eventListeners: AuthStateChangeCallback[] = []
 
   constructor() {
     this.supabase = getSupabaseClient()
 
     // Set up auth state listener
     this.supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, supabaseSession: SupabaseSession | null) => {
+      (
+        event: SupabaseAuthChangeEvent,
+        supabaseSession: SupabaseSession | null
+      ) => {
         this.handleAuthStateChange(event, supabaseSession)
       }
     )
   }
 
   private async handleAuthStateChange(
-    event: AuthChangeEvent,
+    event: SupabaseAuthChangeEvent,
     supabaseSession: SupabaseSession | null
   ): Promise<void> {
     const session = supabaseSession
@@ -45,12 +51,20 @@ export class SupabaseAuthService implements IAuthService {
       await this.syncUserToLocalDB(session.user)
     }
 
-    // Now notify listeners (after data is synced)
+    // Notify both types of listeners
     this.notifyListeners(session)
+    this.notifyEventListeners(event as AuthChangeEvent, session)
   }
 
   private notifyListeners(session: AuthSession | null): void {
     this.listeners.forEach(listener => listener(session))
+  }
+
+  private notifyEventListeners(
+    event: AuthChangeEvent,
+    session: AuthSession | null
+  ): void {
+    this.eventListeners.forEach(listener => listener(event, session))
   }
 
   private async mapSupabaseSession(
@@ -458,6 +472,27 @@ export class SupabaseAuthService implements IAuthService {
     // Return unsubscribe function
     return () => {
       this.listeners = this.listeners.filter(listener => listener !== callback)
+    }
+  }
+
+  onAuthStateChangeWithEvent(callback: AuthStateChangeCallback): () => void {
+    this.eventListeners.push(callback)
+
+    // Immediately call with current session
+    this.getSession().then(async session => {
+      // If user has an existing session, sync their data before calling callback
+      if (session?.user) {
+        await this.syncUserToLocalDB(session.user)
+      }
+      // Call with SIGNED_IN event for existing session
+      callback(session ? 'SIGNED_IN' : 'SIGNED_OUT', session)
+    })
+
+    // Return unsubscribe function
+    return () => {
+      this.eventListeners = this.eventListeners.filter(
+        listener => listener !== callback
+      )
     }
   }
 

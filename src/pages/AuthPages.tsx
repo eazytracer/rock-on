@@ -1845,14 +1845,14 @@ export const AuthPages: React.FC = () => {
 
   // Display session expiry message if redirected from ProtectedLayoutRoute
   useEffect(() => {
-    if (reasonParam === 'session-expired') {
+    if (reasonParam === 'signed-out') {
       setToast({
-        message: 'Your session expired. Please log in again.',
+        message: "You've been signed out. Please sign in again.",
         type: 'info',
       })
-    } else if (reasonParam === 'session-invalid') {
+    } else if (reasonParam === 'session-error') {
       setToast({
-        message: 'Your session was invalid. Please log in again.',
+        message: 'There was a problem with your session. Please sign in again.',
         type: 'info',
       })
     }

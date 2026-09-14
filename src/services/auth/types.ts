@@ -30,6 +30,24 @@ export interface AuthResponse {
   needsEmailConfirmation?: boolean
 }
 
+/**
+ * Auth state change event types from Supabase SDK
+ */
+export type AuthChangeEvent =
+  | 'SIGNED_IN'
+  | 'SIGNED_OUT'
+  | 'TOKEN_REFRESHED'
+  | 'USER_UPDATED'
+  | 'PASSWORD_RECOVERY'
+
+/**
+ * Callback for auth state changes with event type
+ */
+export type AuthStateChangeCallback = (
+  event: AuthChangeEvent,
+  session: AuthSession | null
+) => void
+
 export interface IAuthService {
   signUp(
     credentials: SignUpCredentials,
@@ -40,4 +58,9 @@ export interface IAuthService {
   getSession(): Promise<AuthSession | null>
   refreshSession(): Promise<AuthSession | null>
   onAuthStateChange(callback: (session: AuthSession | null) => void): () => void
+  /**
+   * Subscribe to auth state changes with event type information.
+   * Provides more granular control than onAuthStateChange.
+   */
+  onAuthStateChangeWithEvent?(callback: AuthStateChangeCallback): () => void
 }

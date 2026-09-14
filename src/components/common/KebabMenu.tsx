@@ -28,7 +28,7 @@ interface KebabMenuProps {
  * Canonical 3-dot kebab menu.
  *
  * Replaces 7–8 hand-rolled implementations across SongsPage, SetlistsPage,
- * ShowsPage, PracticesPage, BandMembersPage, and SongListItem — each of which
+ * ShowsPage, BandMembersPage, and SongListItem — each of which
  * had slightly different z-indexes, widths, or missing backdrops.
  */
 export function KebabMenu({

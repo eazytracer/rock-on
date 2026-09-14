@@ -28,13 +28,13 @@ import {
   formatDateForInput,
   parseDateInputAsLocal,
   parseTime12Hour,
+  getPracticeSessionStatus,
 } from '../utils/dateHelpers'
 import { secondsToDuration } from '../utils/formatters'
 import { ListMusic, Plus, FileText, Clock, Play } from 'lucide-react'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song as DBSong } from '../models/Song'
 import type { Setlist as DBSetlist } from '../models/Setlist'
-import type { SessionStatus } from '../types'
 import { useCreatePractice, useUpdatePractice } from '../hooks/usePractices'
 import {
   DndContext,
@@ -67,23 +67,6 @@ const dbSongToUISong = (dbSong: DBSong): UISong => {
     avatarColor: generateAvatarColor(dbSong.title),
     referenceLinks: dbSong.referenceLinks,
   }
-}
-
-// Helper to determine session status
-const getSessionStatus = (session: PracticeSession): SessionStatus => {
-  const now = new Date()
-  const scheduledTime = new Date(session.scheduledDate)
-
-  if (session.endTime) {
-    return 'completed'
-  }
-  if (session.startTime) {
-    return 'in-progress'
-  }
-  if (scheduledTime > now) {
-    return 'scheduled'
-  }
-  return 'cancelled'
 }
 
 // Format duration in minutes to hours/minutes
@@ -495,7 +478,7 @@ export const PracticeViewPage: React.FC = () => {
   const formattedTime = formatTime12Hour(practiceDate)
   const dateLabel = formatShowDate(practiceDate)
 
-  const status = getSessionStatus(practice)
+  const status = getPracticeSessionStatus(practice)
 
   // Header title - auto-generated from date
   const headerTitle = `Practice on ${practiceDate.toLocaleDateString('en-US', {

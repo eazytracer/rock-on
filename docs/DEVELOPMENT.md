@@ -43,6 +43,7 @@ Authoritative detail is in `CLAUDE.md`:
 
 ## See also
 
+- `docs/LOCAL_DEV.md` — running locally, tests, and the `just` recipes.
 - `CLAUDE.md` — the authoritative coding rules an agent loads for this repo.
 - `README.md` — setup and commands.
 - Vault: **Agentic Development Workflow** (the full process) and **Rock On** (the

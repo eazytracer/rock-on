@@ -19,7 +19,7 @@ services:
   # SUPABASE INITIALIZATION (one-time setup via CLI)
   # ===========================================================================
   supabase-init:
-    image: node:22-alpine
+    image: node:24-alpine
     container_name: rock-on-supabase-init
     volumes:
       # Mount docker.sock to control host Docker

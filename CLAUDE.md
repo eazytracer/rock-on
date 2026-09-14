@@ -24,19 +24,40 @@ Coding rules and project policy for agents working in this repo. For the broader
 
 **🚨 No PR that ships to production may merge without bumping the version.**
 
-Every production-bound PR MUST, before merge:
+Releasing splits cleanly into two phases. This split resolves the tag
+chicken-and-egg: a git tag must point at the **merge commit**, which does not
+exist until the PR merges — so tagging is inherently post-merge, and never
+requires an extra "release commit".
+
+**Phase 1 — IN the PR (before merge), part of the reviewable diff:**
 
 1. **Bump `package.json` `version`** per SemVer (pre-1.0: features may be a patch,
    but the number MUST change — never reuse a shipped version).
 2. **Add a dated `## [x.y.z]` section to `CHANGELOG.md`** (move items out of
    `[Unreleased]`), grouped Added / Changed / Fixed / Database.
-3. **Add a `release_notes` row** for the version (idempotent upsert) — this drives
-   the in-app "what's new" notification (`release_notes` vs
-   `users.last_seen_release_version`).
-4. **Tag the merge commit** `vX.Y.Z` (annotated) and push the tag.
+3. **Add a `release_notes` row** for the version (idempotent upsert, in the PR's
+   migration) — this drives the in-app "what's new" notification (`release_notes`
+   vs `users.last_seen_release_version`).
 
-The `/finalize` and `/release` flows automate steps 1–4. A DB migration in the PR
-is a strong signal it is prod-bound — treat it as release-gated.
+The merge commit therefore already carries the correct version, changelog, and
+release-notes row.
+
+**Phase 2 — AFTER merge, on `main` (no new commit):**
+
+4. **Tag the merge commit** `vX.Y.Z` (annotated) and push the tag; create the
+   GitHub release from the CHANGELOG section. A tag is a pointer to the existing
+   merge commit — it adds no commit and changes no files.
+
+`/finalize` performs Phase 1 (on the feature branch, before the PR). `/release`
+performs Phase 2 only (on `main`, after merge) — it does **not** re-bump or
+re-commit. A DB migration in the PR is a strong signal it is prod-bound — treat
+it as release-gated.
+
+**Enforcement (`.github/workflows/release-metadata.yml`):** Phase 1 is checked on
+every `pull_request` → `main` (version bumped vs `origin/main` + a dated
+`## [<version>]` CHANGELOG section present), bypassable only via a `skip-release`
+label for non-prod chores. Phase 2 is audited on `push` → `main` (a `v<version>`
+tag must exist for the merged `package.json` version, else the job fails loudly).
 
 ## Active Technologies
 
@@ -137,6 +158,7 @@ Helpers: `formatDateForInput` (`<input type="date">`), `parseDateInputAsLocal`
 ### Testability Attributes (REQUIRED)
 
 All form inputs and interactive elements need testability attributes:
+
 - Inputs: `name` (camelCase), `id` (kebab-case, for `<label htmlFor>`),
   `data-testid` (`{context}-{field}-{type}`, e.g. `login-email-input`).
 - Buttons/interactive: `data-testid`.

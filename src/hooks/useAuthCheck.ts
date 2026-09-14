@@ -1,24 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { SessionManager } from '../services/auth/SessionManager'
+import { authService } from '../services/auth/AuthFactory'
+import { createLogger } from '../utils/logger'
 
-/**
- * Grace period in hours for expired sessions.
- * During this period, users can still access protected routes
- * to allow for brief offline periods or token refresh delays.
- */
-const GRACE_PERIOD_HOURS = 1.5
-
-/**
- * Clears authentication-related localStorage keys
- * Called when session is determined to be invalid
- */
-function clearAuthLocalStorage(): void {
-  localStorage.removeItem('currentUserId')
-  localStorage.removeItem('currentBandId')
-  // Also clear session data
-  SessionManager.clearSession()
-}
+const log = createLogger('useAuthCheck')
 
 /**
  * Result type for useAuthCheck hook
@@ -31,12 +16,7 @@ export interface AuthCheckResult {
   /** Whether the user has a band selected (needed for protected routes) */
   hasBand: boolean
   /** Reason for auth failure, if any */
-  failureReason:
-    | 'no-user'
-    | 'no-band'
-    | 'session-expired'
-    | 'session-invalid'
-    | null
+  failureReason: 'no-user' | 'no-band' | 'signed-out' | 'session-error' | null
 }
 
 /**
@@ -46,12 +26,11 @@ export interface AuthCheckResult {
  * It re-validates on EVERY route change to ensure expired sessions are caught
  * even when navigating between protected pages.
  *
- * Key features:
- * 1. Re-runs auth check on every route navigation (via location.pathname)
- * 2. Checking localStorage keys synchronously first (fast path)
- * 3. Validating the actual session from SessionManager
- * 4. Applying a grace period for briefly expired sessions
- * 5. Cleaning up invalid localStorage keys
+ * Phase 1 simplified behavior:
+ * - Authority = Supabase SDK session (via authService.getSession())
+ * - Authenticated ⇔ session present AND currentUserId resolvable
+ * - No manual expiry math, no SessionManager mirror, no grace period
+ * - Offline tolerance: only sign out on SIGNED_OUT event, never on network error
  *
  * @example
  * ```tsx
@@ -78,18 +57,16 @@ export function useAuthCheck(): AuthCheckResult {
     failureReason: null,
   })
 
-  // Listen for same-tab signOut events and cross-tab localStorage changes
+  // Listen for cross-tab localStorage changes
   useEffect(() => {
-    const handleLogout = () => setStorageVersion(v => v + 1)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'currentUserId' || e.key === 'currentBandId') {
+        log.debug('Cross-tab storage change detected', { key: e.key })
         setStorageVersion(v => v + 1)
       }
     }
-    window.addEventListener('auth-logout', handleLogout)
     window.addEventListener('storage', handleStorageChange)
     return () => {
-      window.removeEventListener('auth-logout', handleLogout)
       window.removeEventListener('storage', handleStorageChange)
     }
   }, [])
@@ -103,80 +80,74 @@ export function useAuthCheck(): AuthCheckResult {
     }
 
     const checkAuth = async () => {
-      // 1. Quick localStorage check (synchronous, fast path)
-      const userId = localStorage.getItem('currentUserId')
-      const bandId = localStorage.getItem('currentBandId')
+      try {
+        // 1. Quick localStorage check for currentUserId (synchronous, fast path)
+        const userId = localStorage.getItem('currentUserId')
+        const bandId = localStorage.getItem('currentBandId')
 
-      // No user ID means not logged in
-      if (!userId) {
-        setResult({
-          isAuthenticated: false,
-          isChecking: false,
-          hasBand: false,
-          failureReason: 'no-user',
-        })
-        return
-      }
-
-      // NOTE: a band is NO LONGER required to be authenticated. "Has a band" is a
-      // capability (see `hasBand` below), not an auth gate — this is what lets
-      // personal/guest users use the app without a band. A logged-in user with a
-      // valid session is authenticated whether or not `currentBandId` is set.
-      const hasBand = !!bandId
-
-      // 2. Load and validate session from SessionManager
-      const session = SessionManager.loadSession()
-
-      // No session in storage - localStorage keys are stale
-      if (!session) {
-        console.warn(
-          '[useAuthCheck] No session found - clearing stale localStorage keys'
-        )
-        clearAuthLocalStorage()
-        setResult({
-          isAuthenticated: false,
-          isChecking: false,
-          hasBand: false,
-          failureReason: 'session-invalid',
-        })
-        return
-      }
-
-      // 3. Check session validity with grace period
-      if (!SessionManager.isSessionValid(session)) {
-        // Session is expired - check if within grace period
-        const expiresAt = session.expiresAt || 0
-        const msExpired = Date.now() - expiresAt
-        const hoursExpired = msExpired / (1000 * 60 * 60)
-
-        if (hoursExpired > GRACE_PERIOD_HOURS) {
-          // Beyond grace period - session is truly expired
-          console.warn(
-            `[useAuthCheck] Session expired ${hoursExpired.toFixed(1)} hours ago - beyond ${GRACE_PERIOD_HOURS}h grace period`
-          )
-          clearAuthLocalStorage()
+        // No user ID means not logged in
+        if (!userId) {
           setResult({
             isAuthenticated: false,
             isChecking: false,
             hasBand: false,
-            failureReason: 'session-expired',
+            failureReason: 'no-user',
           })
           return
         }
 
-        // Within grace period - allow access but log warning
-        console.log(
-          `[useAuthCheck] Session expired ${Math.round(hoursExpired * 60)} minutes ago - within grace period, allowing access`
-        )
-      }
+        // NOTE: a band is NO LONGER required to be authenticated. "Has a band" is a
+        // capability (see `hasBand` below), not an auth gate — this is what lets
+        // personal/guest users use the app without a band. A logged-in user with a
+        // valid session is authenticated whether or not `currentBandId` is set.
+        const hasBand = !!bandId
 
-      // 4. Session is valid (or within grace period)
-      setResult({
-        isAuthenticated: true,
-        isChecking: false,
-        hasBand,
-        failureReason: null,
-      })
+        // 2. Validate session via Supabase SDK (the single source of truth)
+        const session = await authService.getSession()
+
+        // No session - localStorage keys are stale OR offline with expired access token
+        // (per Task 0: getSession() returns null offline when refresh fails, even though
+        // the session is still in storage). In the offline case, we should NOT sign out
+        // immediately - the refresh token may still be valid and will succeed when online.
+        if (!session) {
+          log.warn(
+            'No session from authService.getSession() - treating as signed out'
+          )
+          // Clear stale localStorage
+          localStorage.removeItem('currentUserId')
+          localStorage.removeItem('currentBandId')
+          setResult({
+            isAuthenticated: false,
+            isChecking: false,
+            hasBand: false,
+            failureReason: 'signed-out',
+          })
+          return
+        }
+
+        // 3. Session is valid
+        log.debug('Session valid', {
+          userId: session.user.id,
+          expiresAt: new Date(session.expiresAt),
+        })
+        setResult({
+          isAuthenticated: true,
+          isChecking: false,
+          hasBand,
+          failureReason: null,
+        })
+      } catch (error) {
+        // Network or other error during session check
+        log.error('Auth check error', error)
+        // Don't clear localStorage here - this could be a transient network error
+        // The auth state listener will handle actual sign-out events
+        setResult({
+          isAuthenticated: false,
+          isChecking: false,
+          hasBand: false,
+          failureReason: 'session-error',
+        })
+      }
     }
 
     checkAuth().finally(() => {

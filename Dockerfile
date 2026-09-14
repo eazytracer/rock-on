@@ -1,7 +1,11 @@
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
+
+# bash is required by the prebuild script (scripts/generate-build-info.sh),
+# which uses bash-only syntax; alpine ships only sh by default.
+RUN apk add --no-cache bash
 
 # Copy package files
 COPY package.json package-lock.json* ./
@@ -16,7 +20,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
 WORKDIR /app
 
@@ -39,7 +43,7 @@ EXPOSE 3000
 CMD ["serve", "-s", "dist", "-l", "3000"]
 
 # Development stage
-FROM node:22-alpine AS development
+FROM node:24-alpine AS development
 
 WORKDIR /app
 

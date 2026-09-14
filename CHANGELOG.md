@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-13
+
+Database & session simplification plus calendar/practice quality-of-life fixes,
+and a developer-experience pass (containerized workflow, `just` recipes, local
+dev guide).
+
+### Added
+
+- **`just` recipes + `docs/LOCAL_DEV.md`** — one-command local dev/test/build via
+  a containerized workflow (Node 24 in Docker), so the app and all gates run in a
+  reproducible environment regardless of host Node.
+- **`getPracticeSessionStatus` shared helper** (`utils/dateHelpers`) — the single
+  source of truth for practice status, used by both the calendar filter and the
+  detail page.
+- **`.claude/tasks/` agent task-file queue** — self-contained, ready-to-execute
+  work items (seeded with the practice e2e-spec rework).
+
+### Changed
+
+- **Session management now uses the Supabase SDK as the single source of truth.**
+  Removed the bespoke `SessionManager` localStorage session mirror and the
+  `SessionExpiredModal`; auth guards read the SDK session plus in-memory auth
+  state, with clearer "signed out due to inactivity" messaging instead of the
+  blanket "session invalid".
+- **Standardized on Node 24** across Dockerfile, docker-compose, CI,
+  devcontainer, `.nvmrc`, and `package.json` engines.
+
+### Fixed
+
+- **Practices stay in "upcoming" through their whole window.** The calendar
+  agenda now categorizes upcoming-vs-past by an item's effective end
+  (start + duration for practices), not its start time, so a practice that has
+  begun but not ended no longer jumps to history.
+- **Practices no longer default to a "cancelled" status.** `cancelled` is now
+  only ever a user-set status; a past, never-started practice reads as
+  "completed" instead of being auto-marked cancelled (fixed in both the service
+  and the detail page, which had drifted copies of the logic).
+- **Retired the orphaned `/practices` list page.** The route now redirects to the
+  canonical `/calendar?filter=practices` agenda (the reachable surface since the
+  calendar consolidation); the create/detail/session routes are unchanged.
+
+### Database
+
+- `20260913175153_release_notes_0_5_0.sql` — idempotent `release_notes` upsert
+  for 0.5.0 (drives the in-app "what's new" notification). Data-only; no schema
+  change.
+
 ## [0.4.5] - 2026-07-23
 
 Production hotfixes: existing members locked out of onboarding, an

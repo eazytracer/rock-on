@@ -9,6 +9,7 @@ import {
 } from '../types'
 import { castingService } from './CastingService'
 import { repository } from './data/RepositoryFactory'
+import { getPracticeSessionStatus } from '../utils/dateHelpers'
 
 export interface SessionFilters {
   bandId: string
@@ -99,7 +100,7 @@ export class PracticeSessionService {
     // Apply status filter (client-side)
     if (filters.status) {
       sessions = sessions.filter(
-        session => this.getSessionStatus(session) === filters.status
+        session => getPracticeSessionStatus(session) === filters.status
       )
     }
 
@@ -144,6 +145,66 @@ export class PracticeSessionService {
       notes: sessionData.notes,
       objectives: sessionData.objectives || [],
       completedObjectives: [],
+    }
+
+    return await repository.addPracticeSession(newSession)
+  }
+
+  /**
+   * Duplicate an existing practice session as a starting point for a new one.
+   *
+   * Copies template content (type, duration, location, setlist, objectives,
+   * notes, song references, invitee list) but resets everything
+   * session-specific: a fresh id/createdDate, status 'scheduled', cleared
+   * start/end/wrapup/rating/completed-objectives, per-song progress reset, and
+   * attendee confirmed/attended reset. `overrides` (e.g. a chosen
+   * scheduledDate) win over the copied values; scheduledDate defaults to one
+   * week after the source.
+   */
+  static async duplicateSession(
+    sessionId: string,
+    overrides?: { scheduledDate?: Date }
+  ): Promise<PracticeSession> {
+    const source = await this.getSessionById(sessionId)
+    if (!source) {
+      throw new Error('Session not found')
+    }
+
+    const defaultDate = new Date(
+      new Date(source.scheduledDate).getTime() + 7 * 24 * 60 * 60 * 1000
+    )
+
+    const newSession: PracticeSession = {
+      id: crypto.randomUUID(),
+      bandId: source.bandId,
+      setlistId: source.setlistId,
+      scheduledDate: overrides?.scheduledDate ?? defaultDate,
+      duration: source.duration,
+      location: source.location,
+      type: source.type,
+      status: 'scheduled',
+      createdDate: new Date(),
+      // Copy song references, reset per-song progress
+      songs: source.songs.map(s => ({
+        songId: s.songId,
+        timeSpent: 0,
+        status: 'not-started',
+        sectionsWorked: [],
+        improvements: [],
+        needsWork: [],
+        memberRatings: [],
+      })),
+      // Copy invitees, reset confirmation/attendance
+      attendees: source.attendees.map(a => ({
+        memberId: a.memberId,
+        confirmed: false,
+        attended: false,
+      })),
+      notes: source.notes,
+      objectives: [...source.objectives],
+      completedObjectives: [],
+      // Deliberately NOT copied: startTime, endTime, wrapupNotes,
+      // sessionRating, version, lastModifiedBy (fresh planned session).
     }
 
     return await repository.addPracticeSession(newSession)
@@ -211,7 +272,7 @@ export class PracticeSessionService {
       throw new Error('Session not found')
     }
 
-    const status = this.getSessionStatus(session)
+    const status = getPracticeSessionStatus(session)
     if (status !== 'scheduled') {
       throw new Error('Session cannot be started')
     }
@@ -392,23 +453,6 @@ export class PracticeSessionService {
     if (sessionData.duration && sessionData.duration <= 0) {
       throw new Error('Duration must be positive')
     }
-  }
-
-  private static getSessionStatus(session: PracticeSession): SessionStatus {
-    const now = new Date()
-    const scheduledTime = new Date(session.scheduledDate)
-
-    if (session.endTime) {
-      return 'completed'
-    }
-    if (session.startTime) {
-      return 'in-progress'
-    }
-    if (scheduledTime > now) {
-      return 'scheduled'
-    }
-    // Session was scheduled in the past but never started
-    return 'cancelled'
   }
 
   /**
