@@ -109,6 +109,35 @@ For e2e specifically: `just dev` (or `just dev-host`) in one terminal, then
 `just test-e2e` in another. See `tests/README.md` for the full test-layer
 breakdown.
 
+## Applying migrations to production
+
+Prod is remote Supabase. The documented flow is `supabase link` + `supabase db
+push --linked` (see `CLAUDE.md` → "Supabase — Remote (production) access").
+
+On a machine where `supabase link` won't work — e.g. this Mac mini, where the
+direct DB host is IPv6-only and the access token lacks the org-level privilege
+`link` requires — use the pooler helper, which connects over the IPv4 Supavisor
+pooler with an explicit `--db-url`:
+
+```bash
+# one-time: .env.supabase.local (gitignored) needs, each on its own export line:
+#   export SUPABASE_ACCESS_TOKEN=sbp_...
+#   export SUPABASE_DB_PASSWORD=...          # Project Settings -> Database
+
+source .env.supabase.local
+scripts/prod-db.sh list      # READ-ONLY — always run first; shows the local-vs-remote delta
+# review the delta, then:
+scripts/prod-db.sh push      # applies unapplied migrations to prod
+scripts/prod-db.sh list      # re-verify (every migration local == remote)
+```
+
+The password is read from `SUPABASE_DB_PASSWORD` and URL-encoded inside the
+script, so it never lands in argv or shell history. Host/ref default to this
+project; override with `SUPABASE_PROJECT_REF` / `SUPABASE_POOLER_HOST` /
+`SUPABASE_POOLER_PORT` for another project (get the exact pooler host from
+`GET /v1/projects/<ref>/config/database/pooler`). Always `list` before you
+`push` — same discipline as the `--linked` flow.
+
 ## Troubleshooting
 
 - **Tests fail locally but pass in CI** — you're almost certainly running on the
