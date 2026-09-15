@@ -227,7 +227,66 @@ insert into each newly-covered table writes an `audit_log` row. Run
 
 ---
 
-## RESUME ADDENDUM — 2026-09-14 (Section A.6 done; B & D re-scoped)
+## RESUME ADDENDUM — 2026-09-15 (PHASE 2 COMPLETE — gate executed end-to-end)
+
+Eric approved the re-scope + gate ("we're on a branch, we can always undo…").
+Executed the entire remaining plan as verified-green slices (Docker node:24-alpine
+each; buildInfo checked out before every commit). **All sections done.**
+
+Commits (this session, on top of `541a681`):
+
+- `ed832e9` gate slice 1 — deleted orphaned pre-repository services (DatabaseService,
+  SyncService, InitialSetupService, CastingSuggestionService, MemberCapabilityService,
+  dead BandService member methods, SongService.getUserAccessibleSongs).
+- `a895929` gate slice 2 — deleted shelved CastingService + dead casting wrappers in
+  PracticeSessionService/SetlistService.
+- `d7e0c24` / `9adab56` / `ac9b524` / `57cc021` — Section C: every reachable page /
+  component / hook routed off `db.*` onto `repository.*`. Added `updateUserProfile`
+  to IDataRepository + all impls (grp3).
+- `07dc810` — RealtimeManager slimmed to a pure change-notifier (emits `*:changed` +
+  toasts from audit_log; no data application). ~-1900 lines. Rewrote its test to the
+  new contract; deleted the frivolous audit-mapping test.
+- `00de351` — Section D: AuthContext cloud-first bootstrap (no blocking initial sync,
+  no local-cache reads); auth services off `db.*` (Mock = in-memory; Supabase = only
+  provisions the users row).
+- `372f369` — **THE GATE:** RepositoryFactory → RemoteRepository; deleted SyncEngine,
+  SyncRepository, LocalRepository, Dexie schema (services/database), seed modules,
+  auditMappers, debugSync, resetDatabase, useSyncConflicts + ConflictResolutionModal,
+  DevDashboard; simplified useSyncStatus/useItemSyncStatus to connectivity/in-memory;
+  trimmed sync methods off IDataRepository; removed db-direct-write guardrail test +
+  eslint rule; "clear local data" now clears the TanStack cache. Fixed test/setup.ts.
+- `ff97d17` — dropped dexie / dexie-react-hooks / fake-indexeddb / mermaid deps;
+  removed Dexie test scaffolding (tests/journeys — never collected; integration
+  template; testDatabase helper); deleted DevDashboard ER-diagram infra (script,
+  npm scripts, husky hook block, schema-diagram-sync test).
+- `f60eb1b` — Section F: `20260915000000_extend_audit_triggers.sql` (audit triggers +
+  band_id derivation for bands, band_memberships, song_castings, song_assignments,
+  member_capabilities) + pgTAP `025-extended-audit-logging.test.sql`.
+- `98ef296` — Section G: Phase-1 release metadata **v0.6.0** (package.json bump, dated
+  CHANGELOG [0.6.0] section, release_notes upsert folded into the F migration).
+
+### Final verification (all green)
+
+- Docker node:24-alpine: **type-check clean, lint 0 problems, build OK, `npm test`
+  56 files / 788 passing.**
+- Local Supabase: **`supabase db reset` applies clean; `npm run test:db` 26 files /
+  980 pgTAP pass; `npm run lint:migrations` pass; `check:release-metadata` pass.**
+
+### NOT verifiable headless (needs full stack + real browsers) — hand-off for Eric
+
+- Two-browser live cross-member refresh via the new audit triggers (bands/memberships/
+  casting now emit change events — confirm the other browser refreshes).
+- Cold-start login on a fresh device (cloud-first bootstrap with no local cache).
+- Offline behavior: the app is now online-only; confirm the intended UX when offline
+  (reads/writes fail fast rather than queueing). This is a **product decision** worth a
+  look — the old offline-during-gigs affordance is gone by design.
+
+### Phase 2 = Phase 2 of `auth-and-data-simplification`. Remaining = \*\*Phase 2 tag is
+
+post-merge\*\* (`/release` tags the merge commit `v0.6.0`; do NOT tag pre-merge). Prod DB
+push of the F migration is a separate deliberate step (references/remote-prod-deploy.md).
+
+---
 
 ### ✓ Section A COMPLETE (commit `541a681`)
 
