@@ -169,3 +169,24 @@ CREATE TRIGGER song_assignments_audit_log AFTER INSERT OR UPDATE OR DELETE ON pu
 DROP TRIGGER IF EXISTS member_capabilities_audit_log ON public.member_capabilities;
 CREATE TRIGGER member_capabilities_audit_log AFTER INSERT OR UPDATE OR DELETE ON public.member_capabilities
   FOR EACH ROW EXECUTE FUNCTION log_audit_trail();
+
+-- ============================================================================
+-- 3. v0.6.0 release notes (Phase 1 release_notes row — data-only upsert)
+--    Idempotent via ON CONFLICT (version). Drives the in-app "what's new".
+-- ============================================================================
+INSERT INTO public.release_notes (version, title, body) VALUES (
+  '0.6.0',
+  'Faster, simpler, always in sync',
+  $md$Under the hood, Rock-On now talks to the cloud directly instead of keeping a
+copy of your data on your device and syncing it in the background:
+
+- **Your data is always current.** Changes you or your bandmates make show up
+  without waiting on a background sync — everyone sees the same thing, sooner.
+- **Less to go wrong.** Removing the on-device copy and the sync engine cuts out
+  a whole class of "it synced on my phone but not my laptop" glitches.
+- **A lighter, faster app.** The app downloads and starts up leaner than before.
+
+You shouldn't have to change anything — just keep using Rock-On as usual.$md$
+) ON CONFLICT (version) DO UPDATE
+  SET title = EXCLUDED.title, body = EXCLUDED.body;
+

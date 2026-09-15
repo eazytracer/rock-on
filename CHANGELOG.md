@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-15
+
+Phase 2 data-layer simplification: the web client is now a naive online Supabase
+client. The on-device IndexedDB (Dexie) mirror and the background sync engine are
+gone; reads/writes go straight to Supabase, with TanStack Query as an ephemeral
+in-memory cache and the `audit_log` change-feed (Supabase Realtime) as the single
+freshness push. Net removal of several thousand lines.
+
+### Changed
+
+- **All data access now routes through `RemoteRepository` (direct Supabase).**
+  `RepositoryFactory` returns the remote repository; every page, hook, and service
+  reads/writes via `repository.*` instead of `db.*` (Dexie).
+- **`AuthContext` bootstrap is cloud-first.** Login no longer performs a blocking
+  initial sync or populates a local cache; user/profile/band/membership reads come
+  straight from Supabase.
+- **Auth services (`SupabaseAuthService`, `MockAuthService`) no longer write to
+  Dexie.** `MockAuthService` uses an in-memory store; `SupabaseAuthService` only
+  provisions the Supabase `users` row.
+- **`RealtimeManager` slimmed to a pure change-notifier** — it emits
+  `{entity}:changed` events + batched toasts from `audit_log`, and no longer maps
+  audit rows back into a local database.
+- **"Clear local data" (Settings) now clears the TanStack Query cache** instead of
+  deleting an IndexedDB database.
+
+### Removed
+
+- **Dexie/sync layer:** `SyncEngine`, `SyncRepository`, `LocalRepository`, the
+  Dexie schema (`services/database`), seed modules, `auditMappers`, `debugSync`,
+  `resetDatabase`, and the `dexie` / `dexie-react-hooks` / `fake-indexeddb`
+  dependencies.
+- **Sync UI:** the sync-conflict modal + `useSyncConflicts` (conflicts can't occur
+  without a sync queue); the `DevDashboard` (Dexie inspector / sync-queue viewer)
+  and its `mermaid` dependency.
+- **Orphaned pre-repository services:** `DatabaseService`, `SyncService`,
+  `InitialSetupService`, `CastingSuggestionService`, `MemberCapabilityService`,
+  the shelved `CastingService`, and dead `BandService`/`SongService` methods.
+
+### Database
+
+- **`extend_audit_triggers` migration** — adds `audit_log` triggers for `bands`,
+  `band_memberships`, `song_castings`, `song_assignments`, and
+  `member_capabilities` so their changes reach the realtime change-feed (the web
+  client's only push channel). Extends `log_audit_trail()` band_id derivation for
+  the new tables. Covered by pgTAP (`025-extended-audit-logging`).
+
 ## [0.5.0] - 2026-09-13
 
 Database & session simplification plus calendar/practice quality-of-life fixes,
