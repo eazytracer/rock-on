@@ -26,17 +26,6 @@ vi.mock('../../../src/services/data/RepositoryFactory', () => {
   }
 })
 
-// Mock CastingService to avoid dependency issues
-vi.mock('../../../src/services/CastingService', () => ({
-  castingService: {
-    copyCasting: vi.fn(),
-    getCastingsForContext: vi.fn(),
-    createCasting: vi.fn(),
-    getCompleteCasting: vi.fn(),
-    getMemberAssignments: vi.fn(),
-  },
-}))
-
 // Import PracticeSessionService AFTER the mock is set up
 import { PracticeSessionService } from '../../../src/services/PracticeSessionService'
 // Import the mocked repository to get access to the mock functions

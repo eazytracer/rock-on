@@ -62,10 +62,6 @@ const KNOWN_VIOLATIONS = new Set([
   'src/services/auth/MockAuthService.ts',
   'src/services/auth/SupabaseAuthService.ts',
 
-  // Casting service — pre-repository feature area (legacy, Dexie-local)
-  // TODO: superseded by CastingAssignmentService; slated for deletion
-  'src/services/CastingService.ts',
-
   // Hooks — should not write to db; route through useSongs/useBands hooks that
   // delegate to repository, or add dedicated repository methods
 
