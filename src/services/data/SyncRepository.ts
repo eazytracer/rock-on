@@ -819,6 +819,13 @@ export class SyncRepository implements IDataRepository {
     return this.local.getUser(id)
   }
 
+  async getUserProfile(
+    userId: string
+  ): Promise<import('../../models/User').UserProfile | null> {
+    // Profiles live remotely; RemoteRepository is the source of truth.
+    return this.remote.getUserProfile(userId)
+  }
+
   /**
    * Check if initial sync is needed
    * @returns true if initial sync should be performed

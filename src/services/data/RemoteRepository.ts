@@ -7,6 +7,7 @@ import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
 import { BandMembership, InviteCode } from '../../models/BandMembership'
 import { User } from '../../models/User'
+import type { UserProfile } from '../../models/User'
 import {
   SongPersonalNote,
   SongPersonalNoteInput,
@@ -1159,6 +1160,31 @@ export class RemoteRepository implements IDataRepository {
     if (!data) return null
 
     return this.mapUserFromSupabase(data)
+  }
+
+  async getUserProfile(userId: string): Promise<UserProfile | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) return null
+
+    const row = data as any
+    return {
+      id: row.id,
+      userId: row.user_id,
+      displayName: row.display_name ?? '',
+      primaryInstrument: row.primary_instrument ?? undefined,
+      instruments: row.instruments ?? [],
+      avatarUrl: row.avatar_url ?? undefined,
+      createdDate: row.created_date ? new Date(row.created_date) : new Date(),
+      updatedDate: row.updated_date ? new Date(row.updated_date) : new Date(),
+    }
   }
 
   // ========== USER FIELD MAPPING ==========

@@ -488,6 +488,13 @@ export class LocalRepository implements IDataRepository {
     return user || null
   }
 
+  async getUserProfile(
+    userId: string
+  ): Promise<import('../../models/User').UserProfile | null> {
+    const profile = await db.userProfiles.where('userId').equals(userId).first()
+    return profile || null
+  }
+
   async addUser(user: User): Promise<User> {
     await db.users.add(user)
     return user

@@ -11,6 +11,7 @@ import {
   JamSongMatch,
 } from '../../models/JamSession'
 import { User } from '../../models/User'
+import type { UserProfile } from '../../models/User'
 import type {
   SongPersonalNote,
   SongPersonalNoteInput,
@@ -219,6 +220,9 @@ export interface IDataRepository {
   // ========== USERS ==========
   /** Get a user by ID (cloud-first; for viewing other band members' profiles) */
   getUser(id: string): Promise<User | null>
+
+  /** Get a user's profile (instruments, display name) by user ID */
+  getUserProfile(userId: string): Promise<UserProfile | null>
 
   // ========== SONG PERSONAL NOTES ==========
   getPersonalNote(

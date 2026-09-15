@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import {
   useBand,
@@ -12,8 +12,9 @@ import {
 } from '../../../src/hooks/useBands'
 import { BandService } from '../../../src/services/BandService'
 import { BandMembershipService } from '../../../src/services/BandMembershipService'
-import { getSyncRepository } from '../../../src/services/data/SyncRepository'
+import { repository } from '../../../src/services/data/RepositoryFactory'
 import { getSupabaseClient } from '../../../src/services/supabase/client'
+import { createQueryWrapper } from '../helpers/queryWrapper'
 import type { Band } from '../../../src/models/Band'
 import type {
   BandMembership,
@@ -21,34 +22,7 @@ import type {
 } from '../../../src/models/BandMembership'
 import type { UserProfile } from '../../../src/models/User'
 
-// Mock database - consolidated mock for all database operations
-vi.mock('../../../src/services/database', () => ({
-  db: {
-    bands: {
-      add: vi.fn(),
-    },
-    userProfiles: {
-      where: vi.fn(() => ({
-        equals: vi.fn(() => ({
-          first: vi.fn(),
-        })),
-      })),
-    },
-    bandMemberships: {
-      add: vi.fn(),
-      put: vi.fn().mockResolvedValue(undefined),
-      update: vi.fn(),
-      delete: vi.fn(),
-      where: vi.fn(() => ({
-        equals: vi.fn(() => ({
-          toArray: vi.fn(),
-        })),
-      })),
-    },
-  },
-}))
-
-// Mock Supabase client
+// Mock Supabase client (used by createBandInSupabase + waitForMembership)
 vi.mock('../../../src/services/supabase/client', () => {
   const mockSingle = vi.fn()
   const mockEq = vi.fn(() => ({
@@ -63,7 +37,7 @@ vi.mock('../../../src/services/supabase/client', () => {
   const mockInsert = vi.fn(() => ({
     select: mockSelect,
   }))
-  const mockFrom = vi.fn((table: string) => ({
+  const mockFrom = vi.fn(() => ({
     insert: mockInsert,
     select: mockSelect,
   }))
@@ -80,41 +54,19 @@ vi.mock('../../../src/services/supabase/client', () => {
   }
 })
 
-// Mock services
+// Mock services + repository (data access now goes through repository, not db)
 vi.mock('../../../src/services/BandService')
 vi.mock('../../../src/services/BandMembershipService')
-vi.mock('../../../src/services/data/SyncRepository', () => {
-  const mockCallbacks = new Set<() => void>()
-
-  const mockRepo = {
-    on: vi.fn((event: string, callback: () => void) => {
-      mockCallbacks.add(callback)
-    }),
-    off: vi.fn((event: string, callback: () => void) => {
-      mockCallbacks.delete(callback)
-    }),
-    _triggerChange: () => {
-      mockCallbacks.forEach(cb => cb())
-    },
-    _clearMockCallbacks: () => mockCallbacks.clear(),
-    // Data access methods
+vi.mock('../../../src/services/data/RepositoryFactory', () => ({
+  repository: {
     getUser: vi.fn(),
-    getBand: vi.fn(),
-    getBandMemberships: vi.fn(),
-    getBandMembers: vi.fn(),
-    getUserMemberships: vi.fn(),
-    createBand: vi.fn(),
-  }
-
-  return {
-    SyncRepository: {
-      getInstance: vi.fn(() => mockRepo),
-    },
-    getSyncRepository: vi.fn(() => mockRepo),
-  }
-})
+    getUserProfile: vi.fn(),
+  },
+}))
 
 describe('useBands Hooks', () => {
+  const wrapper = () => createQueryWrapper().wrapper
+
   const mockBand: Band = {
     id: 'band-1',
     name: 'Test Band',
@@ -151,21 +103,16 @@ describe('useBands Hooks', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-
-    // Set default return values for service mocks
     vi.mocked(BandMembershipService.getBandInviteCodes).mockResolvedValue([])
     vi.mocked(BandMembershipService.getBandMembers).mockResolvedValue([])
     vi.mocked(BandMembershipService.getUserBands).mockResolvedValue([])
   })
 
-  afterEach(() => {
-    const repo = getSyncRepository() as any
-    repo._clearMockCallbacks()
-  })
-
   describe('useBand Hook', () => {
     it('should return initial loading state', () => {
-      const { result } = renderHook(() => useBand('band-1'))
+      const { result } = renderHook(() => useBand('band-1'), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(true)
       expect(result.current.band).toBeNull()
@@ -175,11 +122,11 @@ describe('useBands Hooks', () => {
     it('should fetch band using BandService', async () => {
       vi.mocked(BandService.getBandById).mockResolvedValue(mockBand)
 
-      const { result } = renderHook(() => useBand('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
+      const { result } = renderHook(() => useBand('band-1'), {
+        wrapper: wrapper(),
       })
+
+      await waitFor(() => expect(result.current.loading).toBe(false))
 
       expect(BandService.getBandById).toHaveBeenCalledWith('band-1')
       expect(result.current.band).toEqual(mockBand)
@@ -187,7 +134,7 @@ describe('useBands Hooks', () => {
     })
 
     it('should handle null bandId', () => {
-      const { result } = renderHook(() => useBand(''))
+      const { result } = renderHook(() => useBand(''), { wrapper: wrapper() })
 
       expect(result.current.loading).toBe(false)
       expect(result.current.band).toBeNull()
@@ -198,53 +145,22 @@ describe('useBands Hooks', () => {
       const mockError = new Error('Failed to fetch band')
       vi.mocked(BandService.getBandById).mockRejectedValue(mockError)
 
-      const { result } = renderHook(() => useBand('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
+      const { result } = renderHook(() => useBand('band-1'), {
+        wrapper: wrapper(),
       })
+
+      await waitFor(() => expect(result.current.error).toBeInstanceOf(Error))
 
       expect(result.current.band).toBeNull()
       expect(result.current.error).toEqual(mockError)
-    })
-
-    it('should listen to sync events and refetch', async () => {
-      vi.mocked(BandService.getBandById).mockResolvedValue(mockBand)
-
-      const { result } = renderHook(() => useBand('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
-      })
-
-      // Update mock to return different data
-      const updatedBand = { ...mockBand, name: 'Updated Band' }
-      vi.mocked(BandService.getBandById).mockResolvedValue(updatedBand)
-
-      // Trigger sync event
-      act(() => {
-        const repo = getSyncRepository() as any
-        repo._triggerChange()
-      })
-
-      await waitFor(() => {
-        expect(result.current.band?.name).toBe('Updated Band')
-      })
-    })
-
-    it('should cleanup event listeners on unmount', () => {
-      const repo = getSyncRepository()
-      const { unmount } = renderHook(() => useBand('band-1'))
-
-      unmount()
-
-      expect(repo.off).toHaveBeenCalled()
     })
   })
 
   describe('useBandMemberships Hook', () => {
     it('should return initial loading state', () => {
-      const { result } = renderHook(() => useBandMemberships('band-1'))
+      const { result } = renderHook(() => useBandMemberships('band-1'), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(true)
       expect(result.current.memberships).toEqual([])
@@ -256,11 +172,11 @@ describe('useBands Hooks', () => {
         mockMembership,
       ])
 
-      const { result } = renderHook(() => useBandMemberships('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
+      const { result } = renderHook(() => useBandMemberships('band-1'), {
+        wrapper: wrapper(),
       })
+
+      await waitFor(() => expect(result.current.loading).toBe(false))
 
       expect(BandMembershipService.getBandMembers).toHaveBeenCalledWith(
         'band-1'
@@ -270,7 +186,9 @@ describe('useBands Hooks', () => {
     })
 
     it('should handle null bandId', () => {
-      const { result } = renderHook(() => useBandMemberships(''))
+      const { result } = renderHook(() => useBandMemberships(''), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(false)
       expect(result.current.memberships).toEqual([])
@@ -283,82 +201,50 @@ describe('useBands Hooks', () => {
         mockError
       )
 
-      const { result } = renderHook(() => useBandMemberships('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
+      const { result } = renderHook(() => useBandMemberships('band-1'), {
+        wrapper: wrapper(),
       })
+
+      await waitFor(() => expect(result.current.error).toBeInstanceOf(Error))
 
       expect(result.current.memberships).toEqual([])
       expect(result.current.error).toEqual(mockError)
-    })
-
-    it('should listen to sync events', async () => {
-      vi.mocked(BandMembershipService.getBandMembers).mockResolvedValue([
-        mockMembership,
-      ])
-
-      const { result } = renderHook(() => useBandMemberships('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
-      })
-
-      const newMembership = {
-        ...mockMembership,
-        id: 'membership-2',
-        userId: 'user-2',
-      }
-      vi.mocked(BandMembershipService.getBandMembers).mockResolvedValue([
-        mockMembership,
-        newMembership,
-      ])
-
-      act(() => {
-        const repo = getSyncRepository() as any
-        repo._triggerChange()
-      })
-
-      await waitFor(() => {
-        expect(result.current.memberships).toHaveLength(2)
-      })
     })
   })
 
   describe('useBandMembers Hook', () => {
     const mockUserProfile: UserProfile = {
+      id: 'profile-1',
       userId: 'user-1',
       displayName: 'Test User',
-      email: 'test@example.com',
+      instruments: ['guitar'],
       avatarUrl: 'https://example.com/avatar.jpg',
       createdDate: new Date('2025-01-01'),
+      updatedDate: new Date('2025-01-01'),
     }
 
     it('should return initial loading state', () => {
-      const { result } = renderHook(() => useBandMembers('band-1'))
+      const { result } = renderHook(() => useBandMembers('band-1'), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(true)
       expect(result.current.members).toEqual([])
       expect(result.current.error).toBeNull()
     })
 
-    it('should fetch members with profiles', async () => {
+    it('should fetch members with profiles via repository', async () => {
       vi.mocked(BandMembershipService.getBandMembers).mockResolvedValue([
         mockMembership,
       ])
+      vi.mocked(repository.getUser).mockResolvedValue(null)
+      vi.mocked(repository.getUserProfile).mockResolvedValue(mockUserProfile)
 
-      const { db } = await import('../../../src/services/database')
-      vi.mocked(db.userProfiles.where).mockReturnValue({
-        equals: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(mockUserProfile),
-        }),
-      } as any)
-
-      const { result } = renderHook(() => useBandMembers('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
+      const { result } = renderHook(() => useBandMembers('band-1'), {
+        wrapper: wrapper(),
       })
+
+      await waitFor(() => expect(result.current.loading).toBe(false))
 
       expect(result.current.members).toHaveLength(1)
       expect(result.current.members[0].membership).toEqual(mockMembership)
@@ -366,7 +252,9 @@ describe('useBands Hooks', () => {
     })
 
     it('should handle null bandId', () => {
-      const { result } = renderHook(() => useBandMembers(''))
+      const { result } = renderHook(() => useBandMembers(''), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(false)
       expect(result.current.members).toEqual([])
@@ -378,11 +266,11 @@ describe('useBands Hooks', () => {
         mockError
       )
 
-      const { result } = renderHook(() => useBandMembers('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
+      const { result } = renderHook(() => useBandMembers('band-1'), {
+        wrapper: wrapper(),
       })
+
+      await waitFor(() => expect(result.current.error).toBeInstanceOf(Error))
 
       expect(result.current.members).toEqual([])
       expect(result.current.error).toEqual(mockError)
@@ -391,7 +279,9 @@ describe('useBands Hooks', () => {
 
   describe('useBandInviteCodes Hook', () => {
     it('should return initial loading state', () => {
-      const { result } = renderHook(() => useBandInviteCodes('band-1'))
+      const { result } = renderHook(() => useBandInviteCodes('band-1'), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(true)
       expect(result.current.inviteCodes).toEqual([])
@@ -403,11 +293,11 @@ describe('useBands Hooks', () => {
         mockInviteCode,
       ])
 
-      const { result } = renderHook(() => useBandInviteCodes('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
+      const { result } = renderHook(() => useBandInviteCodes('band-1'), {
+        wrapper: wrapper(),
       })
+
+      await waitFor(() => expect(result.current.loading).toBe(false))
 
       expect(BandMembershipService.getBandInviteCodes).toHaveBeenCalledWith(
         'band-1'
@@ -422,19 +312,20 @@ describe('useBands Hooks', () => {
         inactiveCo,
       ])
 
-      const { result } = renderHook(() => useBandInviteCodes('band-1'))
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false)
+      const { result } = renderHook(() => useBandInviteCodes('band-1'), {
+        wrapper: wrapper(),
       })
 
-      // Should filter to only active codes
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
       expect(result.current.inviteCodes).toHaveLength(1)
       expect(result.current.inviteCodes[0].isActive).toBe(true)
     })
 
     it('should handle null bandId', () => {
-      const { result } = renderHook(() => useBandInviteCodes(''))
+      const { result } = renderHook(() => useBandInviteCodes(''), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(false)
       expect(result.current.inviteCodes).toEqual([])
@@ -443,7 +334,9 @@ describe('useBands Hooks', () => {
 
   describe('useCreateBand Hook', () => {
     it('should return initial state', () => {
-      const { result } = renderHook(() => useCreateBand())
+      const { result } = renderHook(() => useCreateBand(), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(false)
       expect(result.current.error).toBeNull()
@@ -454,11 +347,7 @@ describe('useBands Hooks', () => {
       const bandData = { name: 'New Band', description: 'A new band' }
       const newBandId = 'band-new'
 
-      // Mock Supabase client response
       const mockSupabaseClient = getSupabaseClient() as any
-
-      // First call: band creation (insert + select + single)
-      // Second call: membership wait (select + eq + eq + single)
       mockSupabaseClient._mockSingle
         .mockResolvedValueOnce({
           data: {
@@ -484,9 +373,9 @@ describe('useBands Hooks', () => {
           error: null,
         })
 
-      vi.mocked(BandMembershipService.getBandMembers).mockResolvedValue([])
-
-      const { result } = renderHook(() => useCreateBand())
+      const { result } = renderHook(() => useCreateBand(), {
+        wrapper: wrapper(),
+      })
 
       let returnedId: string | undefined
       await act(async () => {
@@ -501,33 +390,36 @@ describe('useBands Hooks', () => {
     it('should handle creation errors', async () => {
       const errorMessage = 'Database error'
 
-      // Mock Supabase client error response
       const mockSupabaseClient = getSupabaseClient() as any
       mockSupabaseClient._mockSingle.mockResolvedValue({
         data: null,
         error: { message: errorMessage },
       })
 
-      const { result } = renderHook(() => useCreateBand())
+      const { result } = renderHook(() => useCreateBand(), {
+        wrapper: wrapper(),
+      })
 
       await act(async () => {
         try {
           await result.current.createBand({ name: 'Test' }, 'user-1')
-        } catch (err) {
+        } catch {
           // Expected to throw
         }
       })
 
+      await waitFor(() => expect(result.current.error).toBeInstanceOf(Error))
       expect(result.current.error).toEqual(
         new Error(`Failed to create band: ${errorMessage}`)
       )
-      expect(result.current.loading).toBe(false)
     })
   })
 
   describe('useGenerateInviteCode Hook', () => {
     it('should return initial state', () => {
-      const { result } = renderHook(() => useGenerateInviteCode())
+      const { result } = renderHook(() => useGenerateInviteCode(), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(false)
       expect(result.current.error).toBeNull()
@@ -539,7 +431,9 @@ describe('useBands Hooks', () => {
         mockInviteCode
       )
 
-      const { result } = renderHook(() => useGenerateInviteCode())
+      const { result } = renderHook(() => useGenerateInviteCode(), {
+        wrapper: wrapper(),
+      })
 
       let code: string | undefined
       await act(async () => {
@@ -559,23 +453,27 @@ describe('useBands Hooks', () => {
         mockError
       )
 
-      const { result } = renderHook(() => useGenerateInviteCode())
+      const { result } = renderHook(() => useGenerateInviteCode(), {
+        wrapper: wrapper(),
+      })
 
       await act(async () => {
         try {
           await result.current.generateCode('band-1', 'user-1')
-        } catch (err) {
+        } catch {
           // Expected to throw
         }
       })
 
-      expect(result.current.error).toEqual(mockError)
+      await waitFor(() => expect(result.current.error).toEqual(mockError))
     })
   })
 
   describe('useRemoveBandMember Hook', () => {
     it('should return initial state', () => {
-      const { result } = renderHook(() => useRemoveBandMember())
+      const { result } = renderHook(() => useRemoveBandMember(), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(false)
       expect(result.current.error).toBeNull()
@@ -583,18 +481,21 @@ describe('useBands Hooks', () => {
     })
 
     it('should remove member by updating status to inactive', async () => {
-      vi.mocked(BandMembershipService.getUserBands).mockResolvedValue([
-        mockMembership,
-      ])
+      vi.mocked(BandMembershipService.removeMember).mockResolvedValue(
+        undefined as never
+      )
 
-      const { result } = renderHook(() => useRemoveBandMember())
+      const { result } = renderHook(() => useRemoveBandMember(), {
+        wrapper: wrapper(),
+      })
 
       await act(async () => {
         await result.current.removeMember('membership-1')
       })
 
-      // Should update membership status, not delete
-      expect(result.current.loading).toBe(false)
+      expect(BandMembershipService.removeMember).toHaveBeenCalledWith(
+        'membership-1'
+      )
       expect(result.current.error).toBeNull()
     })
 
@@ -602,23 +503,27 @@ describe('useBands Hooks', () => {
       const mockError = new Error('Failed to remove member')
       vi.mocked(BandMembershipService.removeMember).mockRejectedValue(mockError)
 
-      const { result } = renderHook(() => useRemoveBandMember())
+      const { result } = renderHook(() => useRemoveBandMember(), {
+        wrapper: wrapper(),
+      })
 
       await act(async () => {
         try {
           await result.current.removeMember('membership-1')
-        } catch (err) {
+        } catch {
           // Expected to throw
         }
       })
 
-      expect(result.current.error).toEqual(mockError)
+      await waitFor(() => expect(result.current.error).toEqual(mockError))
     })
   })
 
   describe('useUpdateMemberRole Hook', () => {
     it('should return initial state', () => {
-      const { result } = renderHook(() => useUpdateMemberRole())
+      const { result } = renderHook(() => useUpdateMemberRole(), {
+        wrapper: wrapper(),
+      })
 
       expect(result.current.loading).toBe(false)
       expect(result.current.error).toBeNull()
@@ -628,7 +533,9 @@ describe('useBands Hooks', () => {
     it('should update role using BandMembershipService', async () => {
       vi.mocked(BandMembershipService.updateMembershipRole).mockResolvedValue()
 
-      const { result } = renderHook(() => useUpdateMemberRole())
+      const { result } = renderHook(() => useUpdateMemberRole(), {
+        wrapper: wrapper(),
+      })
 
       await act(async () => {
         await result.current.updateRole('membership-1', 'admin')
@@ -638,7 +545,7 @@ describe('useBands Hooks', () => {
         'membership-1',
         'admin'
       )
-      expect(result.current.loading).toBe(false)
+      expect(result.current.error).toBeNull()
     })
 
     it('should handle update errors', async () => {
@@ -647,17 +554,19 @@ describe('useBands Hooks', () => {
         mockError
       )
 
-      const { result } = renderHook(() => useUpdateMemberRole())
+      const { result } = renderHook(() => useUpdateMemberRole(), {
+        wrapper: wrapper(),
+      })
 
       await act(async () => {
         try {
           await result.current.updateRole('membership-1', 'admin')
-        } catch (err) {
+        } catch {
           // Expected to throw
         }
       })
 
-      expect(result.current.error).toEqual(mockError)
+      await waitFor(() => expect(result.current.error).toEqual(mockError))
     })
   })
 })

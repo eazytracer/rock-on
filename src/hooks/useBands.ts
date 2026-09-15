@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react'
-import { db } from '../services/database'
+import { useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { BandService } from '../services/BandService'
 import { BandMembershipService } from '../services/BandMembershipService'
-import { getSyncRepository } from '../services/data/SyncRepository'
+import { repository } from '../services/data/RepositoryFactory'
+import { queryKeys } from '../services/queryClient'
 import { getSupabaseClient } from '../services/supabase/client'
 import type { Band } from '../models/Band'
 import type {
@@ -35,7 +36,6 @@ async function createBandInSupabase(bandInput: {
     settings: bandInput.settings || {},
   }
 
-  // Use 'as any' to bypass TypeScript's overly strict Supabase types
   const { data, error } = await supabase
     .from('bands')
     .insert(newBand as any)
@@ -51,10 +51,8 @@ async function createBandInSupabase(bandInput: {
     throw new Error('Band created but no data returned from Supabase')
   }
 
-  // Cast to any to work around TypeScript's overly strict types
   const bandData = data as any
 
-  // Convert snake_case to camelCase for application use
   return {
     id: bandData.id,
     name: bandData.name,
@@ -66,8 +64,8 @@ async function createBandInSupabase(bandInput: {
 }
 
 /**
- * Helper: Wait for band membership to be created by Supabase trigger
- * Queries Supabase directly (not IndexedDB) to avoid sync race conditions
+ * Helper: Wait for band membership to be created by the Supabase
+ * auto_add_band_creator trigger. Queries Supabase directly (the source of truth).
  */
 async function waitForMembership(
   bandId: string,
@@ -78,7 +76,6 @@ async function waitForMembership(
   const startTime = Date.now()
 
   while (Date.now() - startTime < options.timeout) {
-    // Query Supabase directly for the membership (source of truth)
     const { data, error } = await supabase
       .from('band_memberships')
       .select('*')
@@ -87,13 +84,8 @@ async function waitForMembership(
       .single()
 
     if (data) {
-      console.log('[waitForMembership] Membership found in Supabase:', data)
-
-      // Type the Supabase row data properly
       const row = data as BandMembershipRow
-
-      // Convert snake_case to camelCase for application use
-      const membership: BandMembership = {
+      return {
         id: row.id,
         userId: row.user_id,
         bandId: row.band_id,
@@ -102,16 +94,6 @@ async function waitForMembership(
         status: row.status,
         permissions: row.permissions || [],
       }
-
-      // Add to IndexedDB for caching (fire and forget)
-      db.bandMemberships.put(membership).catch(err => {
-        console.warn(
-          '[waitForMembership] Failed to cache membership in IndexedDB:',
-          err
-        )
-      })
-
-      return membership
     }
 
     // If error is not "not found", throw immediately
@@ -120,7 +102,6 @@ async function waitForMembership(
       throw new Error(`Failed to query membership: ${error.message}`)
     }
 
-    // Wait before retry
     await new Promise(resolve => setTimeout(resolve, options.interval))
   }
 
@@ -132,414 +113,268 @@ async function waitForMembership(
 }
 
 /**
- * Hook to fetch a band by ID
+ * Hook to fetch a band by ID.
  */
 export function useBand(bandId: string) {
-  const [band, setBand] = useState<Band | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const query = useQuery({
+    queryKey: queryKeys.bands.detail(bandId),
+    queryFn: async () => {
+      const found = await BandService.getBandById(bandId)
+      return found || null
+    },
+    enabled: !!bandId,
+  })
 
-  useEffect(() => {
-    if (!bandId) {
-      setBand(null)
-      setLoading(false)
-      return
-    }
-
-    const fetchBand = async () => {
-      try {
-        setLoading(true)
-        const foundBand = await BandService.getBandById(bandId)
-        setBand(foundBand || null)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching band:', err)
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchBand()
-
-    // Listen for sync events to refetch data
-    const repo = getSyncRepository()
-    repo.on('changed', fetchBand)
-
-    return () => {
-      repo.off('changed', fetchBand)
-    }
-  }, [bandId])
-
-  return { band, loading, error }
+  return {
+    band: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error as Error | null,
+  }
 }
 
 /**
- * Hook to fetch band memberships for a band
+ * Hook to fetch band memberships for a band.
  */
 export function useBandMemberships(bandId: string) {
-  const [memberships, setMemberships] = useState<BandMembership[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const query = useQuery({
+    queryKey: queryKeys.memberships.band(bandId),
+    queryFn: () => BandMembershipService.getBandMembers(bandId),
+    enabled: !!bandId,
+  })
 
-  useEffect(() => {
-    if (!bandId) {
-      setMemberships([])
-      setLoading(false)
-      return
-    }
-
-    const fetchMemberships = async () => {
-      try {
-        setLoading(true)
-        const bandMemberships =
-          await BandMembershipService.getBandMembers(bandId)
-        setMemberships(bandMemberships)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching memberships:', err)
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchMemberships()
-
-    // Listen for sync events to refetch data
-    const repo = getSyncRepository()
-    repo.on('changed', fetchMemberships)
-
-    return () => {
-      repo.off('changed', fetchMemberships)
-    }
-  }, [bandId])
-
-  return { memberships, loading, error }
+  return {
+    memberships: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error as Error | null,
+  }
 }
 
 /**
- * Hook to get band members with their profile info
- * Fetches User data from Supabase (cloud-first) to ensure all band members are visible
+ * Hook to get band members with their profile info.
+ * Fetches User + UserProfile from Supabase (cloud-first) so all band members
+ * are visible with instruments/display info.
  */
 export function useBandMembers(bandId: string) {
-  const [members, setMembers] = useState<
-    Array<{
-      membership: BandMembership
-      user: User | null
-      profile: UserProfile | null
-    }>
-  >([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const query = useQuery({
+    queryKey: [...queryKeys.memberships.band(bandId), 'withProfiles'],
+    queryFn: async () => {
+      const memberships = await BandMembershipService.getBandMembers(bandId)
+      return Promise.all(
+        memberships.map(async membership => {
+          const user = await repository.getUser(membership.userId)
+          const profile = await repository.getUserProfile(membership.userId)
+          return {
+            membership,
+            user: (user as User | null) || null,
+            profile: (profile as UserProfile | null) || null,
+          }
+        })
+      )
+    },
+    enabled: !!bandId,
+  })
 
-  useEffect(() => {
-    if (!bandId) {
-      setMembers([])
-      setLoading(false)
-      return
-    }
-
-    const fetchMembers = async () => {
-      try {
-        setLoading(true)
-
-        // Get repository for cloud-first queries
-        const repo = getSyncRepository()
-
-        // Get memberships via service (already cloud-first)
-        const memberships = await BandMembershipService.getBandMembers(bandId)
-
-        // Get user and profile data for each member (cloud-first to see all band members)
-        const membersWithData = await Promise.all(
-          memberships.map(async membership => {
-            // Cloud-first: Get user from Supabase so User 2 can see User 1's data
-            const user = await repo.getUser(membership.userId)
-
-            // Also try to get profile (instruments, etc.) - still local for now
-            const profile = await db.userProfiles
-              .where('userId')
-              .equals(membership.userId)
-              .first()
-
-            return {
-              membership,
-              user: user || null,
-              profile: profile || null,
-            }
-          })
-        )
-
-        setMembers(membersWithData)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching band members:', err)
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchMembers()
-
-    // Listen for sync events to refetch data
-    const repo = getSyncRepository()
-    repo.on('changed', fetchMembers)
-
-    return () => {
-      repo.off('changed', fetchMembers)
-    }
-  }, [bandId])
-
-  return { members, loading, error }
+  return {
+    members: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error as Error | null,
+  }
 }
 
 /**
- * Hook to get active invite codes for a band
+ * Hook to get active invite codes for a band.
  */
 export function useBandInviteCodes(bandId: string) {
-  const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  const fetchInviteCodes = async () => {
-    if (!bandId) {
-      setInviteCodes([])
-      setLoading(false)
-      return
-    }
-
-    try {
-      setLoading(true)
+  const query = useQuery({
+    queryKey: [...queryKeys.bands.detail(bandId), 'inviteCodes'],
+    queryFn: async () => {
       const codes = await BandMembershipService.getBandInviteCodes(bandId)
-      // Filter for active codes only (client-side filtering)
-      const activeCodes = codes.filter(code => code.isActive === true)
-      setInviteCodes(activeCodes)
-      setError(null)
-    } catch (err) {
-      console.error('Error fetching invite codes:', err)
-      setError(err as Error)
-    } finally {
-      setLoading(false)
-    }
+      return codes.filter(code => code.isActive === true)
+    },
+    enabled: !!bandId,
+  })
+
+  return {
+    inviteCodes: (query.data ?? []) as InviteCode[],
+    loading: query.isLoading,
+    error: query.error as Error | null,
+    refetch: useCallback(async () => {
+      await query.refetch()
+    }, [query]),
   }
-
-  useEffect(() => {
-    fetchInviteCodes()
-
-    // Listen for sync events to refetch data
-    const repo = getSyncRepository()
-    repo.on('changed', fetchInviteCodes)
-
-    return () => {
-      repo.off('changed', fetchInviteCodes)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchInviteCodes is stable, bandId is the trigger
-  }, [bandId])
-
-  return { inviteCodes, loading, error, refetch: fetchInviteCodes }
 }
 
 /**
- * Hook to create a band
+ * Hook to create a band.
  *
- * IMPORTANT: Uses server-side creation pattern to prevent duplicate memberships
- * - Creates band directly in Supabase (not IndexedDB)
- * - auto_add_band_creator trigger creates membership atomically
- * - Polls until membership syncs to IndexedDB
- * - No manual membership creation (prevents duplicates)
+ * Server-side creation: the band is created directly in Supabase and the
+ * auto_add_band_creator trigger creates the owner membership atomically; we
+ * poll Supabase until the membership exists before returning.
  */
 export function useCreateBand() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const createBand = async (bandData: Partial<Band>, ownerId: string) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      console.log('[useCreateBand] Creating band in Supabase:', bandData.name)
-
-      // Step 1: Create band directly in Supabase
-      // This triggers auto_add_band_creator which creates the membership
-      // The trigger uses auth.uid() to determine the creator automatically
+  const mutation = useMutation({
+    mutationFn: async ({
+      bandData,
+      ownerId,
+    }: {
+      bandData: Partial<Band>
+      ownerId: string
+    }) => {
       const newBand = await createBandInSupabase({
         name: bandData.name || 'My Band',
         description: bandData.description || '',
         settings: bandData.settings,
       })
 
-      console.log('[useCreateBand] Band created in Supabase:', newBand.id)
-
-      // Step 2: Add band to IndexedDB immediately (don't wait for sync)
-      await db.bands.add({
-        id: newBand.id,
-        name: newBand.name,
-        description: newBand.description,
-        createdDate: newBand.createdDate,
-        memberIds: newBand.memberIds,
-        settings: newBand.settings,
-      })
-
-      console.log('[useCreateBand] Band added to IndexedDB')
-
-      // Step 3: Wait for trigger to create membership and sync to IndexedDB
-      // The auto_add_band_creator trigger creates the membership in Supabase
-      // We poll until the sync engine pulls it to IndexedDB
-      console.log('[useCreateBand] Waiting for membership to sync...')
+      // Wait for the trigger-created membership to exist in Supabase.
       await waitForMembership(newBand.id, ownerId, {
         timeout: 5000,
         interval: 500,
       })
 
-      console.log('[useCreateBand] Membership synced successfully')
-
       return newBand.id
-    } catch (err) {
-      console.error('[useCreateBand] Error creating band:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['bands'] })
+      queryClient.invalidateQueries({ queryKey: ['memberships'] })
+    },
+  })
 
-  return { createBand, loading, error }
+  return {
+    createBand: (bandData: Partial<Band>, ownerId: string) =>
+      mutation.mutateAsync({ bandData, ownerId }),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
 
 /**
- * Hook to generate an invite code
+ * Hook to generate an invite code.
  */
 export function useGenerateInviteCode() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const generateCode = async (bandId: string, createdBy: string) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Create invite code via service
+  const mutation = useMutation({
+    mutationFn: async ({
+      bandId,
+      createdBy,
+    }: {
+      bandId: string
+      createdBy: string
+    }) => {
       const inviteCode = await BandMembershipService.createInviteCode({
         bandId,
         createdBy,
       })
-
       return inviteCode.code
-    } catch (err) {
-      console.error('Error generating invite code:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['bands'] })
+    },
+  })
 
-  return { generateCode, loading, error }
+  return {
+    generateCode: (bandId: string, createdBy: string) =>
+      mutation.mutateAsync({ bandId, createdBy }),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
 
 /**
- * Hook to remove a member from a band
+ * Hook to remove a member from a band.
  */
 export function useRemoveBandMember() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const removeMember = async (membershipId: string) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Mark the membership inactive through the service/repository so the
-      // change is queued for sync to Supabase. (A direct db.* write would be
-      // invisible to the cloud, and the cloud-first members read would restore
-      // the member.)
+  const mutation = useMutation({
+    mutationFn: async (membershipId: string) => {
+      // Mark inactive through the service so the change reaches Supabase.
       await BandMembershipService.removeMember(membershipId)
-
       return true
-    } catch (err) {
-      console.error('Error removing band member:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['memberships'] })
+    },
+  })
 
-  return { removeMember, loading, error }
+  return {
+    removeMember: (membershipId: string) => mutation.mutateAsync(membershipId),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
 
 /**
- * Hook to update a band membership role
+ * Hook to update a band membership role.
  */
 export function useUpdateMemberRole() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const updateRole = async (
-    membershipId: string,
-    role: 'owner' | 'admin' | 'member'
-  ) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Map UI role to database role
-      let dbRole: 'admin' | 'member' | 'viewer'
-
-      if (role === 'owner' || role === 'admin') {
-        dbRole = 'admin'
-      } else {
-        dbRole = 'member'
-      }
-
-      // Update role via service
+  const mutation = useMutation({
+    mutationFn: async ({
+      membershipId,
+      role,
+    }: {
+      membershipId: string
+      role: 'owner' | 'admin' | 'member'
+    }) => {
+      const dbRole: 'admin' | 'member' | 'viewer' =
+        role === 'owner' || role === 'admin' ? 'admin' : 'member'
       await BandMembershipService.updateMembershipRole(membershipId, dbRole)
-
       return true
-    } catch (err) {
-      console.error('Error updating member role:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['memberships'] })
+    },
+  })
 
-  return { updateRole, loading, error }
+  return {
+    updateRole: (membershipId: string, role: 'owner' | 'admin' | 'member') =>
+      mutation.mutateAsync({ membershipId, role }),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
 
 /**
- * Hook to update a band's information
+ * Hook to update a band's information.
  */
 export function useUpdateBand() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const updateBand = async (
-    bandId: string,
-    updates: {
-      name?: string
-      description?: string
-      settings?: Record<string, any>
-    }
-  ) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Update band via service
+  const mutation = useMutation({
+    mutationFn: async ({
+      bandId,
+      updates,
+    }: {
+      bandId: string
+      updates: {
+        name?: string
+        description?: string
+        settings?: Record<string, any>
+      }
+    }) => {
       await BandService.updateBand(bandId, updates)
-
       return true
-    } catch (err) {
-      console.error('Error updating band:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['bands'] })
+    },
+  })
 
-  return { updateBand, loading, error }
+  return {
+    updateBand: (
+      bandId: string,
+      updates: {
+        name?: string
+        description?: string
+        settings?: Record<string, any>
+      }
+    ) => mutation.mutateAsync({ bandId, updates }),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
