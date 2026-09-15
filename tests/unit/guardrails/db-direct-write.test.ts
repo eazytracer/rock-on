@@ -57,17 +57,11 @@ const ALWAYS_ALLOWED = new Set([
 // Fix the file, migrate writes to repository.*, then remove it from this list.
 // This list must only ever shrink.
 const KNOWN_VIOLATIONS = new Set([
-  // Auth services — write user/profile/band data during login setup
-  // TODO: route through repository or a dedicated AuthRepository
+  // Auth services — write user/profile/band data during login setup.
+  // Coupled to the local-cache bootstrap; migrated with the AuthContext
+  // cloud-first swap (Phase 2 gate), not independently.
   'src/services/auth/MockAuthService.ts',
   'src/services/auth/SupabaseAuthService.ts',
-
-  // Hooks — should not write to db; route through useSongs/useBands hooks that
-  // delegate to repository, or add dedicated repository methods
-
-  // Pages — should never write to db directly; use hooks/services instead
-  'src/pages/AuthPages.tsx',
-  'src/pages/BandMembersPage.tsx',
 ])
 
 // ─── Detection ────────────────────────────────────────────────────────────────

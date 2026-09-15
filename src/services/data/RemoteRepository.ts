@@ -1187,6 +1187,32 @@ export class RemoteRepository implements IDataRepository {
     }
   }
 
+  async updateUserProfile(
+    userId: string,
+    updates: Partial<UserProfile>
+  ): Promise<UserProfile | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const row: Record<string, unknown> = {
+      updated_date: new Date().toISOString(),
+    }
+    if (updates.displayName !== undefined)
+      row.display_name = updates.displayName
+    if (updates.primaryInstrument !== undefined)
+      row.primary_instrument = updates.primaryInstrument
+    if (updates.instruments !== undefined) row.instruments = updates.instruments
+    if (updates.avatarUrl !== undefined) row.avatar_url = updates.avatarUrl
+
+    const { error } = await supabase
+      .from('user_profiles')
+      // @ts-expect-error - Supabase generated types are overly strict, using Record<string, unknown> for field mapping
+      .update(row)
+      .eq('user_id', userId)
+
+    if (error) throw error
+    return this.getUserProfile(userId)
+  }
+
   // ========== USER FIELD MAPPING ==========
 
   private mapUserFromSupabase(row: any): User {

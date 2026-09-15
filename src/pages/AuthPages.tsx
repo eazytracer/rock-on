@@ -31,7 +31,7 @@ import {
 // 6. Join Band Modal: Same as Get Started join flow for modals
 // All operations include proper error handling with try-catch blocks and error toasts
 // ============================================================================
-import { db } from '../services/database'
+import { repository } from '../services/data/RepositoryFactory'
 import { BandMembershipService } from '../services/BandMembershipService'
 import { EventService } from '../services/EventService'
 import { useCreateBand } from '../hooks/useBands'
@@ -1685,10 +1685,9 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({
         throw new Error('No user logged in')
       }
 
-      const foundCode = await db.inviteCodes
-        .where('code')
-        .equals(inviteCode.toUpperCase())
-        .first()
+      const foundCode = await repository.getInviteCodeByCode(
+        inviteCode.toUpperCase()
+      )
 
       if (foundCode) {
         // Validation checks
@@ -1709,11 +1708,11 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({
         const bandId = foundCode.bandId
 
         // Check if already a member
-        const existingMembership = await db.bandMemberships
-          .where('userId')
-          .equals(currentUserId)
-          .and(m => m.bandId === bandId)
-          .first()
+        const userMemberships =
+          await repository.getUserMemberships(currentUserId)
+        const existingMembership = userMemberships.find(
+          m => m.bandId === bandId
+        )
 
         if (existingMembership) {
           setLoading(false)
@@ -1722,7 +1721,7 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({
         }
 
         // Create membership
-        await db.bandMemberships.add({
+        await repository.addBandMembership({
           id: crypto.randomUUID(),
           userId: currentUserId,
           bandId,
@@ -1733,12 +1732,12 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({
         })
 
         // Increment uses
-        await db.inviteCodes.update(foundCode.id, {
-          currentUses: foundCode.currentUses + 1,
-        })
+        if (foundCode.id) {
+          await repository.incrementInviteCodeUsage(foundCode.id)
+        }
 
         // Get band name
-        const band = await db.bands.get(bandId)
+        const band = await repository.getBand(bandId)
 
         setLoading(false)
         onSuccess(band?.name || 'the band')

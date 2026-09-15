@@ -826,6 +826,14 @@ export class SyncRepository implements IDataRepository {
     return this.remote.getUserProfile(userId)
   }
 
+  async updateUserProfile(
+    userId: string,
+    updates: Partial<import('../../models/User').UserProfile>
+  ): Promise<import('../../models/User').UserProfile | null> {
+    // Profiles live remotely; write straight through to Supabase.
+    return this.remote.updateUserProfile(userId, updates)
+  }
+
   /**
    * Check if initial sync is needed
    * @returns true if initial sync should be performed

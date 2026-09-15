@@ -495,6 +495,20 @@ export class LocalRepository implements IDataRepository {
     return profile || null
   }
 
+  async updateUserProfile(
+    userId: string,
+    updates: Partial<import('../../models/User').UserProfile>
+  ): Promise<import('../../models/User').UserProfile | null> {
+    const profile = await db.userProfiles.where('userId').equals(userId).first()
+    if (!profile?.id) return null
+    await db.userProfiles.update(profile.id, {
+      ...updates,
+      updatedDate: new Date(),
+    })
+    const updated = await db.userProfiles.get(profile.id)
+    return updated || null
+  }
+
   async addUser(user: User): Promise<User> {
     await db.users.add(user)
     return user

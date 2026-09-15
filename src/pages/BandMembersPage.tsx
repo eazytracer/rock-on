@@ -20,7 +20,7 @@ import {
   Music2,
 } from 'lucide-react'
 // DATABASE INTEGRATION: Import database and hooks
-import { db } from '../services/database'
+import { repository } from '../services/data/RepositoryFactory'
 import { useToast } from '../contexts/ToastContext'
 import {
   useBand,
@@ -279,10 +279,7 @@ export const BandMembersPage: React.FC = () => {
 
     try {
       // Get the user profile
-      const profile = await db.userProfiles
-        .where('userId')
-        .equals(selectedMember.userId)
-        .first()
+      const profile = await repository.getUserProfile(selectedMember.userId)
 
       if (profile) {
         // Convert instruments back to array format
@@ -291,10 +288,9 @@ export const BandMembersPage: React.FC = () => {
           inst => inst.isPrimary
         )?.name
 
-        await db.userProfiles.update(profile.id, {
+        await repository.updateUserProfile(selectedMember.userId, {
           instruments: instrumentNames,
           primaryInstrument: primaryInstrument || instrumentNames[0],
-          updatedDate: new Date(),
         })
 
         // Update local state

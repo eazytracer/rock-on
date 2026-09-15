@@ -224,6 +224,12 @@ export interface IDataRepository {
   /** Get a user's profile (instruments, display name) by user ID */
   getUserProfile(userId: string): Promise<UserProfile | null>
 
+  /** Update a user's profile (instruments, display name, etc.) by user ID */
+  updateUserProfile(
+    userId: string,
+    updates: Partial<UserProfile>
+  ): Promise<UserProfile | null>
+
   // ========== SONG PERSONAL NOTES ==========
   getPersonalNote(
     songId: string,
