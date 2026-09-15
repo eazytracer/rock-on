@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { User } from '../../models/User'
 import { getSupabaseClient } from '../supabase/client'
-import { db } from '../database'
 import {
   IAuthService,
   AuthSession,
@@ -15,7 +13,6 @@ import type {
   AuthChangeEvent as SupabaseAuthChangeEvent,
   Session as SupabaseSession,
 } from '@supabase/supabase-js'
-import { getSyncRepository } from '../data/SyncRepository'
 import { sanitizeReturnTo } from '../../utils/returnTo'
 
 export class SupabaseAuthService implements IAuthService {
@@ -127,130 +124,18 @@ export class SupabaseAuthService implements IAuthService {
     }
   }
 
+  /**
+   * Provision the signed-in user. The web client no longer keeps a local
+   * IndexedDB mirror (Phase 2 data-layer simplification) — all reads are
+   * cloud-first via the repository. The only durable side effect needed at
+   * sign-in is ensuring the user row exists in Supabase `public.users`, which
+   * foreign keys (e.g. bands.created_by) depend on.
+   */
   private async syncUserToLocalDB(user: User): Promise<void> {
     try {
-      // CRITICAL: First, ensure user exists in Supabase public.users table
-      // This is required for foreign key constraints (bands.created_by references users.id)
       await this.ensureUserInSupabase(user)
-
-      // Check if user exists in local DB
-      const existingUser = await db.users.get(user.id)
-
-      if (existingUser) {
-        // Update last login
-        await db.users.update(user.id, { lastLogin: new Date() })
-      } else {
-        // Add user to local DB using put (upsert) to handle race conditions
-        await db.users.put(user)
-
-        // Check if profile exists before creating
-        const existingProfile = await db.userProfiles
-          .where('userId')
-          .equals(user.id)
-          .first()
-        if (!existingProfile) {
-          // Create user profile only if it doesn't exist
-          await db.userProfiles.add({
-            id: crypto.randomUUID(),
-            userId: user.id,
-            displayName: user.name,
-            instruments: [],
-            createdDate: new Date(),
-            updatedDate: new Date(),
-          })
-        }
-      }
-
-      // CRITICAL: Sync user's bands and memberships from Supabase to IndexedDB
-      await this.syncUserBandsFromSupabase(user.id)
-
-      // Perform initial sync if needed (downloads songs, setlists, practices)
-      const syncRepo = getSyncRepository()
-      const needsSync = await syncRepo.isInitialSyncNeeded()
-
-      if (needsSync) {
-        console.log('🔄 Initial sync needed, downloading all data...')
-        await syncRepo.performInitialSync(user.id)
-        console.log('✅ Initial sync complete')
-      } else {
-        // Set current user for periodic sync even if initial sync not needed
-        const syncEngine = (syncRepo as any).syncEngine
-        if (syncEngine && syncEngine.setCurrentUser) {
-          syncEngine.setCurrentUser(user.id)
-        }
-        console.log('ℹ️ Initial sync not needed, data already synced')
-      }
     } catch (error) {
-      console.error('Failed to sync user to local DB:', error)
-    }
-  }
-
-  private async syncUserBandsFromSupabase(userId: string): Promise<void> {
-    try {
-      // Fetch user's band memberships from Supabase
-      const { data: memberships, error: membershipsError } = await this.supabase
-        .from('band_memberships')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-
-      if (membershipsError) {
-        console.error(
-          'Failed to fetch band memberships from Supabase:',
-          membershipsError
-        )
-        return
-      }
-
-      if (!memberships || memberships.length === 0) {
-        console.log('No band memberships found in Supabase for user:', userId)
-        return
-      }
-
-      // Fetch the associated bands
-      const bandIds = (memberships as any[]).map((m: any) => m.band_id)
-      const { data: bands, error: bandsError } = await this.supabase
-        .from('bands')
-        .select('*')
-        .in('id', bandIds)
-
-      if (bandsError) {
-        console.error('Failed to fetch bands from Supabase:', bandsError)
-        return
-      }
-
-      // Store bands in IndexedDB
-      for (const band of (bands as any[]) || []) {
-        await db.bands.put({
-          id: band.id,
-          name: band.name,
-          description: band.description || '',
-          createdDate: new Date(
-            band.created_date || band.createdDate || new Date()
-          ),
-          settings: band.settings || {},
-          memberIds: [], // Will be populated from memberships
-        })
-      }
-
-      // Store band memberships in IndexedDB
-      for (const membership of memberships as any[]) {
-        await db.bandMemberships.put({
-          id: membership.id,
-          bandId: membership.band_id,
-          userId: membership.user_id,
-          role: membership.role,
-          permissions: membership.permissions || [],
-          status: membership.status,
-          joinedDate: new Date(membership.joined_date),
-        })
-      }
-
-      console.log(
-        `Synced ${bands?.length || 0} bands and ${memberships.length} memberships to IndexedDB for user: ${userId}`
-      )
-    } catch (error) {
-      console.error('Failed to sync bands from Supabase:', error)
+      console.error('Failed to provision user in Supabase:', error)
     }
   }
 

@@ -1,5 +1,4 @@
-import { User } from '../../models/User'
-import { db } from '../database'
+import { User, UserProfile } from '../../models/User'
 import {
   IAuthService,
   AuthSession,
@@ -29,6 +28,15 @@ const MOCK_USERS = [
     instruments: ['Drums', 'Percussion'],
   },
 ]
+
+/**
+ * In-memory stores. MockAuthService is a dev/test-only backend (local mode,
+ * VITE_MOCK_AUTH=true); post Phase 2 there is no local IndexedDB mirror, so the
+ * mock keeps its own ephemeral state rather than writing to Dexie. State lives
+ * for the tab's lifetime — exactly the mock's intended scope.
+ */
+const mockUsers = new Map<string, User>()
+const mockProfiles = new Map<string, UserProfile>()
 
 export class MockAuthService implements IAuthService {
   private currentSession: AuthSession | null = null
@@ -74,7 +82,6 @@ export class MockAuthService implements IAuthService {
   }
 
   private async createUser(credentials: SignUpCredentials): Promise<User> {
-    // Create user in database
     const userId = crypto.randomUUID()
     const user: User = {
       id: userId,
@@ -85,10 +92,8 @@ export class MockAuthService implements IAuthService {
       lastLogin: new Date(),
     }
 
-    await db.users.add(user)
-
-    // Create user profile
-    await db.userProfiles.add({
+    mockUsers.set(user.id, user)
+    mockProfiles.set(user.id, {
       id: crypto.randomUUID(),
       userId: user.id,
       displayName: credentials.name,
@@ -101,8 +106,10 @@ export class MockAuthService implements IAuthService {
   }
 
   private async findUserByEmail(email: string): Promise<User | null> {
-    const users = await db.users.where('email').equals(email).toArray()
-    return users.length > 0 ? users[0] : null
+    for (const user of mockUsers.values()) {
+      if (user.email === email) return user
+    }
+    return null
   }
 
   private createSession(user: User): AuthSession {
@@ -156,11 +163,11 @@ export class MockAuthService implements IAuthService {
       let user: User | null = null
 
       if (mockUser) {
-        // Check if mock user exists in database
+        // Check if mock user exists in the in-memory store
         user = await this.findUserByEmail(mockUser.email)
 
         if (!user) {
-          // Create mock user in database
+          // Create mock user
           user = await this.createUser({
             email: mockUser.email,
             password: mockUser.password,
@@ -168,22 +175,11 @@ export class MockAuthService implements IAuthService {
           })
 
           // Update profile with instruments
-          const profile = await db.userProfiles
-            .where('userId')
-            .equals(user.id)
-            .first()
+          const profile = mockProfiles.get(user.id)
           if (profile) {
-            await db.userProfiles.update(profile.id, {
-              instruments: mockUser.instruments,
-              primaryInstrument: mockUser.instruments[0],
-            })
+            profile.instruments = mockUser.instruments
+            profile.primaryInstrument = mockUser.instruments[0]
           }
-
-          // Add user to default 'band1' band
-          await this.ensureUserHasBandMembership(user.id)
-        } else {
-          // User exists, but make sure they have a band membership
-          await this.ensureUserHasBandMembership(user.id)
         }
       } else {
         // Try to find regular user
@@ -198,7 +194,8 @@ export class MockAuthService implements IAuthService {
       }
 
       // Update last login
-      await db.users.update(user.id, { lastLogin: new Date() })
+      user.lastLogin = new Date()
+      mockUsers.set(user.id, user)
 
       const session = this.createSession(user)
       this.saveSession(session)
@@ -214,37 +211,6 @@ export class MockAuthService implements IAuthService {
         session: null,
         error: 'Failed to sign in',
       }
-    }
-  }
-
-  private async ensureUserHasBandMembership(userId: string): Promise<void> {
-    try {
-      // Check if user already has a band membership
-      const existingMemberships = await db.bandMemberships
-        .where('userId')
-        .equals(userId)
-        .toArray()
-
-      if (existingMemberships.length > 0) {
-        console.log('User already has band membership')
-        return
-      }
-
-      // Add user to the default 'band1' band
-      const membership = {
-        id: crypto.randomUUID(),
-        userId,
-        bandId: 'band1',
-        role: 'member' as 'admin' | 'member' | 'viewer',
-        joinedDate: new Date(),
-        status: 'active' as 'active' | 'inactive' | 'pending',
-        permissions: ['member'],
-      }
-
-      await db.bandMemberships.add(membership)
-      console.log('Added user to default band:', userId)
-    } catch (error) {
-      console.error('Error ensuring band membership:', error)
     }
   }
 
