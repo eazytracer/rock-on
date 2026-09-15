@@ -152,9 +152,8 @@ export class BandMembershipService {
 
     console.log('[BandMembershipService] Creating membership:', membership)
     try {
-      // CRITICAL: Create in Supabase directly (bypass queue)
-      // This ensures the membership exists in Supabase before subsequent queries
-      // We DON'T add to LocalRepository here to avoid duplicates when pullFromRemote runs
+      // Create the membership in Supabase (writes go straight to the cloud —
+      // there is no local queue/cache anymore).
       const remote = new RemoteRepository()
 
       // Create in remote Supabase (synchronously, not queued)

@@ -2,8 +2,7 @@
  * CastingAssignmentService — per-song, per-role member assignments on a setlist or
  * event, plus band-wide "who played what" history.
  *
- * The clean v1 casting service (Supabase-only + RLS). Distinct from the legacy,
- * shelved `CastingService` (Dexie-local, broken) which this replaces going forward.
+ * The clean v1 casting service (Supabase-only + RLS).
  * Writes are authorized by RLS (band admin for setlists, event host/cohost for
  * events) with WITH CHECK binding band↔context↔song — the service only shapes rows.
  */
