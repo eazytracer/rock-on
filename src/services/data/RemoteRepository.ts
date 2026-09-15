@@ -19,11 +19,7 @@ import {
   SongNoteEntryUpdate,
 } from '../../models/SongNoteEntry'
 import { supabase } from '../supabase/client'
-import {
-  IncrementalSyncResult,
-  createEmptyIncrementalSyncResult,
-  AuditLogEntry,
-} from './syncTypes'
+import { AuditLogEntry } from './syncTypes'
 import {
   JamSession,
   JamParticipant,
@@ -1551,32 +1547,9 @@ export class RemoteRepository implements IDataRepository {
     }
   }
 
-  // ========== SYNC OPERATIONS ==========
-  // These are no-op implementations since RemoteRepository doesn't handle sync orchestration
-  // Sync is handled by SyncRepository/SyncEngine
-
   setCurrentUser(_userId: string): void {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-  }
-
-  async isInitialSyncNeeded(): Promise<boolean> {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-    return false
-  }
-
-  async performInitialSync(_userId: string): Promise<void> {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-  }
-
-  async pullFromRemote(_userId: string): Promise<void> {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-  }
-
-  async pullIncrementalChanges(
-    _userId: string
-  ): Promise<IncrementalSyncResult> {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-    return createEmptyIncrementalSyncResult()
+    // No-op: RemoteRepository reads/writes Supabase directly; there is no
+    // per-user sync orchestration or local cache to scope.
   }
 
   // ========== JAM SESSIONS ==========

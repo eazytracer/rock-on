@@ -4,7 +4,6 @@ import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
 import { BandMembership, InviteCode } from '../../models/BandMembership'
-import { IncrementalSyncResult } from './syncTypes'
 import {
   JamSession,
   JamParticipant,
@@ -139,34 +138,6 @@ export interface IDataRepository {
    * Set the current user ID for sync operations
    */
   setCurrentUser(userId: string): void
-
-  /**
-   * Check if initial sync is needed
-   * Returns true if never synced or > 30 days since last full sync
-   */
-  isInitialSyncNeeded(): Promise<boolean>
-
-  /**
-   * Perform initial sync - download all data from cloud on first login
-   */
-  performInitialSync(userId: string): Promise<void>
-
-  /**
-   * Pull changes from remote (incremental sync)
-   */
-  pullFromRemote(userId: string): Promise<void>
-
-  /**
-   * Pull incremental changes from remote since last sync
-   * Called on every app load to catch updates from other devices
-   */
-  pullIncrementalChanges(userId: string): Promise<IncrementalSyncResult>
-
-  /**
-   * Get the sync engine instance (if available)
-   * Only SyncRepository has a sync engine
-   */
-  getSyncEngine?(): import('./SyncEngine').SyncEngine | null
 
   // ========== JAM SESSIONS (Supabase-only, no local cache) ==========
 

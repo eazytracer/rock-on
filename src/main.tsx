@@ -9,7 +9,6 @@ import './index.css'
 import { initializePerformanceMonitoring } from './utils/performance'
 import { initializeMobilePerformance } from './utils/mobilePerformance'
 import './utils/testSupabaseConnection'
-import './utils/debugSync'
 import { BUILD_ID } from './config/buildInfo'
 import { logger } from './utils/logger'
 

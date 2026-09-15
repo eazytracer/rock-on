@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { SyncRepository } from '../services/data/SyncRepository'
-import type { SyncStatus as SyncEngineStatus } from '../services/data/syncTypes'
 
 /**
- * Sync status information exposed by the hook
+ * Sync status information exposed by the hook.
+ *
+ * Post Phase 2 the web client is a naive online Supabase client — there is no
+ * offline sync queue, so `isSyncing`/`pendingCount`/`failedCount` are always
+ * zero/false. The hook is retained (same shape) to drive the online/offline +
+ * Supabase-connectivity affordances in the layout chrome.
  */
 export interface SyncStatus {
   isOnline: boolean
-  isSupabaseConnected: boolean // NEW: actual Supabase connectivity
+  isSupabaseConnected: boolean
   isSyncing: boolean
   pendingCount: number
   failedCount: number
@@ -23,31 +26,9 @@ export interface UseSyncStatusReturn extends SyncStatus {
 }
 
 /**
- * React hook that provides real-time sync status information
- *
- * Features:
- * - Subscribes to sync engine status changes
- * - Tracks online/offline status
- * - Shows pending sync queue count
- * - Shows last successful sync time
- * - Shows sync errors
- * - Provides manual sync trigger
- *
- * @example
- * ```tsx
- * function SyncIndicator() {
- *   const { isOnline, isSyncing, pendingCount, sync } = useSyncStatus()
- *
- *   return (
- *     <div>
- *       <span>{isOnline ? 'Online' : 'Offline'}</span>
- *       {isSyncing && <Spinner />}
- *       {pendingCount > 0 && <span>{pendingCount} pending</span>}
- *       <button onClick={sync}>Sync Now</button>
- *     </div>
- *   )
- * }
- * ```
+ * React hook that reports connectivity for the layout chrome:
+ * - browser online/offline state
+ * - Supabase reachability (periodic auth-session health check)
  */
 export function useSyncStatus(): UseSyncStatusReturn {
   const [status, setStatus] = useState<SyncStatus>({
@@ -59,15 +40,14 @@ export function useSyncStatus(): UseSyncStatusReturn {
     lastSyncTime: null,
     syncError: null,
   })
-  const supabaseCheckInterval = useRef<NodeJS.Timeout | null>(null)
+  const supabaseCheckInterval = useRef<ReturnType<typeof setInterval> | null>(
+    null
+  )
 
   useEffect(() => {
-    const repo = SyncRepository.getInstance()
-
     // Check Supabase connectivity
     const checkSupabaseConnection = async () => {
       try {
-        // Dynamic import to avoid circular dependencies
         const { getSupabaseClient } = await import(
           '../services/supabase/client'
         )
@@ -78,7 +58,6 @@ export function useSyncStatus(): UseSyncStatusReturn {
           return
         }
 
-        // Quick health check - try to get auth session
         const { error } = await supabase.auth.getSession()
 
         setStatus(prev => {
@@ -103,63 +82,17 @@ export function useSyncStatus(): UseSyncStatusReturn {
       }
     }, 30000)
 
-    // Subscribe to sync engine status changes
-    const unsubscribe = repo.onSyncStatusChange(
-      (engineStatus: SyncEngineStatus) => {
-        setStatus(prevStatus => {
-          // Only update if values have actually changed to prevent unnecessary re-renders
-          const newLastSyncTime = engineStatus.lastSyncTime || null
-          const hasChanged =
-            prevStatus.isSyncing !== engineStatus.isSyncing ||
-            prevStatus.pendingCount !== engineStatus.pendingCount ||
-            prevStatus.failedCount !== engineStatus.failedCount ||
-            prevStatus.lastSyncTime?.getTime() !== newLastSyncTime?.getTime()
-
-          if (!hasChanged) {
-            return prevStatus // Return same reference to prevent re-render
-          }
-
-          // If sync succeeded, mark Supabase as connected
-          const isSupabaseConnected =
-            engineStatus.isSyncing || !engineStatus.lastError
-              ? true
-              : prevStatus.isSupabaseConnected
-
-          return {
-            ...prevStatus,
-            isSyncing: engineStatus.isSyncing,
-            pendingCount: engineStatus.pendingCount,
-            failedCount: engineStatus.failedCount,
-            lastSyncTime: newLastSyncTime,
-            isSupabaseConnected,
-          }
-        })
-      }
-    )
-
     // Handle online/offline events
     const handleOnline = () => {
-      setStatus(prevStatus => {
-        if (prevStatus.isOnline) {
-          return prevStatus // Already online, don't re-render
-        }
-        return {
-          ...prevStatus,
-          isOnline: true,
-        }
-      })
+      setStatus(prevStatus =>
+        prevStatus.isOnline ? prevStatus : { ...prevStatus, isOnline: true }
+      )
     }
 
     const handleOffline = () => {
-      setStatus(prevStatus => {
-        if (!prevStatus.isOnline) {
-          return prevStatus // Already offline, don't re-render
-        }
-        return {
-          ...prevStatus,
-          isOnline: false,
-        }
-      })
+      setStatus(prevStatus =>
+        !prevStatus.isOnline ? prevStatus : { ...prevStatus, isOnline: false }
+      )
     }
 
     window.addEventListener('online', handleOnline)
@@ -167,7 +100,6 @@ export function useSyncStatus(): UseSyncStatusReturn {
 
     // Cleanup on unmount
     return () => {
-      unsubscribe()
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
       if (supabaseCheckInterval.current) {
@@ -176,28 +108,10 @@ export function useSyncStatus(): UseSyncStatusReturn {
     }
   }, [])
 
-  // Manual sync trigger
+  // No-op sync trigger: reads are already always fresh from Supabase (cloud
+  // is the source of truth). Retained so existing call sites keep compiling.
   const sync = useCallback(async () => {
-    try {
-      const repo = SyncRepository.getInstance()
-      await repo.syncAll()
-
-      // Clear any previous errors on successful sync
-      setStatus(prevStatus => ({
-        ...prevStatus,
-        syncError: null,
-      }))
-    } catch (error) {
-      // Set error message
-      setStatus(prevStatus => ({
-        ...prevStatus,
-        syncError:
-          error instanceof Error ? error.message : 'Unknown sync error',
-      }))
-
-      // Re-throw so calling code can handle if needed
-      throw error
-    }
+    setStatus(prevStatus => ({ ...prevStatus, syncError: null }))
   }, [])
 
   return {

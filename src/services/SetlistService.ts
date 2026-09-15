@@ -1,4 +1,3 @@
-import { db } from './database'
 import { Setlist } from '../models/Setlist'
 import { SetlistStatus, SetlistSong } from '../types'
 import { repository } from './data/RepositoryFactory'
@@ -415,7 +414,7 @@ export class SetlistService {
     let needsPracticeSongs = 0
 
     for (const setlistSong of setlist.songs || []) {
-      const song = await db.songs.get(setlistSong.songId)
+      const song = await repository.getSong(setlistSong.songId)
       if (!song) continue
 
       const daysSincePractice = song.lastPracticed

@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import type { IDataRepository } from '../../../src/services/data/IDataRepository'
-import type { BandMembership, InviteCode } from '../../../src/models/BandMembership'
+import type {
+  BandMembership,
+  InviteCode,
+} from '../../../src/models/BandMembership'
 
 // Mock the RepositoryFactory module BEFORE importing BandMembershipService
 vi.mock('../../../src/services/data/RepositoryFactory', () => {
@@ -34,7 +37,6 @@ vi.mock('../../../src/services/data/RepositoryFactory', () => {
     updateInviteCode: mockUpdateInviteCode,
     deleteInviteCode: mockDeleteInviteCode,
     incrementInviteCodeUsage: mockIncrementInviteCodeUsage,
-    pullFromRemote: mockPullFromRemote,
   }
 
   return {
@@ -58,21 +60,37 @@ import { BandMembershipService } from '../../../src/services/BandMembershipServi
 import { repository } from '../../../src/services/data/RepositoryFactory'
 
 // Extract mock functions for test assertions
-const mockGetBandMemberships = repository.getBandMemberships as ReturnType<typeof vi.fn>
-const mockGetUserMemberships = repository.getUserMemberships as ReturnType<typeof vi.fn>
-const mockAddBandMembership = repository.addBandMembership as ReturnType<typeof vi.fn>
-const mockUpdateBandMembership = repository.updateBandMembership as ReturnType<typeof vi.fn>
-const mockDeleteBandMembership = repository.deleteBandMembership as ReturnType<typeof vi.fn>
+const mockGetBandMemberships = repository.getBandMemberships as ReturnType<
+  typeof vi.fn
+>
+const mockGetUserMemberships = repository.getUserMemberships as ReturnType<
+  typeof vi.fn
+>
+const mockAddBandMembership = repository.addBandMembership as ReturnType<
+  typeof vi.fn
+>
+const mockUpdateBandMembership = repository.updateBandMembership as ReturnType<
+  typeof vi.fn
+>
+const mockDeleteBandMembership = repository.deleteBandMembership as ReturnType<
+  typeof vi.fn
+>
 
 // Extract invite code mock functions (now in repository)
 const mockGetInviteCodes = repository.getInviteCodes as ReturnType<typeof vi.fn>
 const mockGetInviteCode = repository.getInviteCode as ReturnType<typeof vi.fn>
-const mockGetInviteCodeByCode = repository.getInviteCodeByCode as ReturnType<typeof vi.fn>
+const mockGetInviteCodeByCode = repository.getInviteCodeByCode as ReturnType<
+  typeof vi.fn
+>
 const mockAddInviteCode = repository.addInviteCode as ReturnType<typeof vi.fn>
-const mockUpdateInviteCode = repository.updateInviteCode as ReturnType<typeof vi.fn>
-const mockDeleteInviteCode = repository.deleteInviteCode as ReturnType<typeof vi.fn>
-const mockIncrementInviteCodeUsage = repository.incrementInviteCodeUsage as ReturnType<typeof vi.fn>
-const mockPullFromRemote = repository.pullFromRemote as ReturnType<typeof vi.fn>
+const mockUpdateInviteCode = repository.updateInviteCode as ReturnType<
+  typeof vi.fn
+>
+const mockDeleteInviteCode = repository.deleteInviteCode as ReturnType<
+  typeof vi.fn
+>
+const mockIncrementInviteCodeUsage =
+  repository.incrementInviteCodeUsage as ReturnType<typeof vi.fn>
 
 describe('BandMembershipService - Migrated to Repository Pattern', () => {
   beforeEach(() => {
@@ -123,7 +141,7 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       expect(mockGetUserMemberships).toHaveBeenCalledWith('user-123')
       // Should only return active memberships (client-side filter)
       expect(result).toHaveLength(2)
-      expect(result.every((m) => m.status === 'active')).toBe(true)
+      expect(result.every(m => m.status === 'active')).toBe(true)
     })
 
     it('should return empty array when user has no bands', async () => {
@@ -181,7 +199,7 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       expect(mockGetBandMemberships).toHaveBeenCalledWith('band-123')
       // Should only return active memberships (client-side filter)
       expect(result).toHaveLength(2)
-      expect(result.every((m) => m.status === 'active')).toBe(true)
+      expect(result.every(m => m.status === 'active')).toBe(true)
     })
 
     it('should return empty array when band has no members', async () => {
@@ -212,7 +230,10 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       mockUpdateBandMembership.mockResolvedValue(updatedMembership)
 
       // Act
-      await BandMembershipService.updateMembershipRole('membership-123', 'admin')
+      await BandMembershipService.updateMembershipRole(
+        'membership-123',
+        'admin'
+      )
 
       // Assert
       expect(mockUpdateBandMembership).toHaveBeenCalledTimes(1)
@@ -226,7 +247,10 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       mockUpdateBandMembership.mockResolvedValue({} as any)
 
       // Act
-      await BandMembershipService.updateMembershipRole('membership-123', 'member')
+      await BandMembershipService.updateMembershipRole(
+        'membership-123',
+        'member'
+      )
 
       // Assert
       expect(mockUpdateBandMembership).toHaveBeenCalledWith('membership-123', {
@@ -239,7 +263,10 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       mockUpdateBandMembership.mockResolvedValue({} as any)
 
       // Act
-      await BandMembershipService.updateMembershipRole('membership-123', 'viewer')
+      await BandMembershipService.updateMembershipRole(
+        'membership-123',
+        'viewer'
+      )
 
       // Assert
       expect(mockUpdateBandMembership).toHaveBeenCalledWith('membership-123', {
@@ -609,12 +636,14 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       // Mock no existing membership via repository
       mockGetUserMemberships.mockResolvedValue([])
 
-      // Mock increment usage and pull from remote
+      // Mock increment usage
       mockIncrementInviteCodeUsage.mockResolvedValue(undefined)
-      mockPullFromRemote.mockResolvedValue(undefined)
 
       // Act
-      const result = await BandMembershipService.joinBandWithCode('user-999', 'ABC123')
+      const result = await BandMembershipService.joinBandWithCode(
+        'user-999',
+        'ABC123'
+      )
 
       // Assert
       expect(result.success).toBe(true)
@@ -627,7 +656,6 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       })
       expect(result.membership?.id).toBeDefined()
       expect(mockIncrementInviteCodeUsage).toHaveBeenCalledWith('invite-1')
-      expect(mockPullFromRemote).toHaveBeenCalledWith('user-999')
     })
 
     it('should reject if code is invalid', async () => {
@@ -635,7 +663,10 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       mockGetInviteCodeByCode.mockResolvedValue(null)
 
       // Act
-      const result = await BandMembershipService.joinBandWithCode('user-999', 'INVALID')
+      const result = await BandMembershipService.joinBandWithCode(
+        'user-999',
+        'INVALID'
+      )
 
       // Assert
       expect(result.success).toBe(false)
@@ -672,7 +703,10 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       ])
 
       // Act
-      const result = await BandMembershipService.joinBandWithCode('user-999', 'ABC123')
+      const result = await BandMembershipService.joinBandWithCode(
+        'user-999',
+        'ABC123'
+      )
 
       // Assert
       expect(result.success).toBe(false)

@@ -13,8 +13,6 @@ import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
 import { ProtectedLayoutRoute } from './components/layout/ProtectedLayoutRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { AuthCallback } from './pages/auth/AuthCallback'
-import { ConflictResolutionModal } from './components/sync/ConflictResolutionModal'
-import { useSyncConflicts } from './hooks/useSyncConflicts'
 
 // Lazy load pages for better performance
 const AuthPages = lazy(() =>
@@ -114,11 +112,6 @@ const EventCreatePage = lazy(() =>
 )
 
 // Dev-only pages
-const DevDashboard = lazy(() =>
-  import('./pages/DevDashboard/DevDashboard').then(module => ({
-    default: module.DevDashboard,
-  }))
-)
 const DevUIPreviewPage = lazy(() =>
   import('./pages/DevUIPreview/DevUIPreviewPage').then(module => ({
     default: module.DevUIPreviewPage,
@@ -128,8 +121,6 @@ const DevUIPreviewPage = lazy(() =>
 const AppContent: React.FC = () => {
   const { syncing, realtimeManager } = useAuth()
   const { showToast } = useToast()
-  const { currentConflict, resolveConflict, dismissConflict } =
-    useSyncConflicts()
 
   // Listen for toast events from RealtimeManager
   // CRITICAL: We must use a ref to the listener so we can properly clean it up
@@ -181,13 +172,6 @@ const AppContent: React.FC = () => {
     // The previous `bg-surface` (`#F5F5F5`) caused a light-gray flash to
     // show through during route-level Suspense fallbacks.
     <div className="min-h-screen bg-bg-0">
-      {/* Sync conflict resolution modal */}
-      <ConflictResolutionModal
-        conflict={currentConflict}
-        onResolve={resolveConflict}
-        onDismiss={dismissConflict}
-      />
-
       {/* Sync indicator overlay — themed to match the app (dark surface
           with brand-orange accent). Previously `bg-blue-600`, which was
           the visible "blue banner" at the top of every page while sync
@@ -212,8 +196,7 @@ const AppContent: React.FC = () => {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/get-started" element={<AuthPages />} />
 
-          {/* Dev Dashboard - accessible in development only (no layout) */}
-          <Route path="/dev/dashboard" element={<DevDashboard />} />
+          {/* Dev-only preview page (no layout) */}
           <Route path="/dev/ui-preview" element={<DevUIPreviewPage />} />
 
           {/* Public jam session view — no auth required */}

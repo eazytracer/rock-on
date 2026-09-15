@@ -178,17 +178,9 @@ export class BandMembershipService {
       throw error
     }
 
-    // Now pull from remote to get the band data
-    // The membership is already in Supabase, so getUserMemberships() will find it
-    console.log('[BandMembershipService] Pulling band data from remote')
-    try {
-      await repository.pullFromRemote(userId)
-      console.log('[BandMembershipService] Band data pulled successfully')
-    } catch (error) {
-      console.error('[BandMembershipService] Failed to pull band data:', error)
-      // Don't fail the join if pull fails - membership is already created
-    }
-
+    // The membership is now in Supabase. Reads are cloud-first (repository →
+    // RemoteRepository), so there is no local cache to pre-populate — the next
+    // getUserMemberships()/getBand() will fetch it directly.
     console.log('[BandMembershipService] Join successful, returning membership')
     return { success: true, membership }
   }

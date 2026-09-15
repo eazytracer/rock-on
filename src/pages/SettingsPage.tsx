@@ -17,7 +17,7 @@ import {
   Info,
 } from 'lucide-react'
 import { isDev } from '../config/environment'
-import { db } from '../services/database'
+import { queryClient } from '../services/queryClient'
 import { logger } from '../utils/logger'
 import { VERSION_DISPLAY, BUILD_ID } from '../config/buildInfo'
 
@@ -68,9 +68,8 @@ export const SettingsPage: React.FC = () => {
         'Account deletion not yet implemented - clearing local data only'
       )
 
-      // Clear local database
-      await db.delete()
-      await db.open()
+      // Clear the in-memory query cache (no local IndexedDB mirror anymore)
+      queryClient.clear()
 
       showToast('Local data cleared. Account deletion coming soon.', 'info')
 
@@ -98,9 +97,8 @@ export const SettingsPage: React.FC = () => {
     }
 
     try {
-      logger.info('Clearing local IndexedDB data')
-      await db.delete()
-      await db.open()
+      logger.info('Clearing in-memory query cache')
+      queryClient.clear()
       showToast('Local data cleared', 'success')
 
       // Sign out to force fresh sync on next login

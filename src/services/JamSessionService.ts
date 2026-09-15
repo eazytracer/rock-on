@@ -504,25 +504,9 @@ export class JamSessionService {
       lastModified: new Date(),
     })
 
-    // FK-write race: `setlists` writes go through the offline-safe sync
-    // queue (local IndexedDB first, then pushed to Supabase), but
-    // `jam_sessions` writes go DIRECTLY to Supabase (no local cache,
-    // per the "Supabase-only" design for ephemeral sessions). The
-    // `jam_sessions.saved_setlist_id` FK references `setlists(id)`,
-    // so the update below would 409 if the queued INSERT hasn't landed
-    // on the server yet.
-    //
-    // `flushPendingWrites` waits for any in-flight sync to finish, then
-    // pushes the queue. After it returns, the setlists row is
-    // guaranteed present in Supabase and the FK update is safe.
-    //
-    // `getSyncEngine?()` is only wired on SyncRepository; LocalRepository
-    // + RemoteRepository don't need the flush (they don't use a queue),
-    // so the optional chaining is the documented escape hatch.
-    const syncEngine = repository.getSyncEngine?.()
-    if (syncEngine) {
-      await syncEngine.flushPendingWrites()
-    }
+    // `addSetlist` now writes straight to Supabase (RemoteRepository — no
+    // offline queue), so the setlists row is guaranteed present before the
+    // jam_sessions.saved_setlist_id FK update below. No queue flush needed.
 
     // Mark session as saved. If this fails (network blip, RLS change,
     // anything), roll back the setlist we just created so a retry
