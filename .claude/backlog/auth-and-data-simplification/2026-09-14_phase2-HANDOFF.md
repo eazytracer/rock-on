@@ -224,3 +224,71 @@ insert into each newly-covered table writes an `audit_log` row. Run
   are now unused by web (song-group feature trimmed).
 - `updateUserActivity`/`getUserLastActiveAt` instantiate RemoteRepository
   directly → survive the swap untouched.
+
+---
+
+## RESUME ADDENDUM — 2026-09-14 (Section A.6 done; B & D re-scoped)
+
+### ✓ Section A COMPLETE (commit `541a681`)
+
+`useRealtimeSync` deleted; the 4 view pages now use `useRealtimeInvalidate`,
+which gained an **optional `onChange` callback** (+ optional `queryKey`) so
+pages still backed by manual `db.*` loads keep live cross-user refresh until
+Section C migrates them to real queries. Docker verify: **989 pass / 65 files,
+type-check clean, 0 lint errors** (warnings 41→33: the deleted hook's
+`console.log`s were the difference). Baseline before starting matched exactly —
+no drift.
+
+### ⚠️ Sections B & D are NOT independently do-able — every remaining slice is gate-coupled
+
+Verified against the running architecture + schema-of-record. The handoff's
+"route services through `repository.*`, add castings/capabilities to the
+interface" plan would mean building throwaway CRUD against **deny-all tables**
+to keep **orphaned** code alive. Findings:
+
+- **Casting/capability Supabase tables are RLS-enabled with ZERO policies =
+  deny-all.** `unified-database-schema.md` §"Known Issues" (~L1074-1090,
+  authoritative): `song_castings`, `song_assignments`, `assignment_roles`,
+  `member_capabilities` — _"the application code does not query these tables."_
+  Adding RemoteRepository methods for them = queries that silently return `[]`.
+- **`CastingService` is explicitly shelved.** `CastingAssignmentService.ts:5-6`:
+  _"The clean v1 casting service (Supabase-only + RLS). Distinct from the legacy,
+  shelved `CastingService` (Dexie-local, broken) which this replaces going
+  forward."_ Live casting path = `useCasting` → `CastingAssignmentService` →
+  `SongCastPanel` (used by `EventDetailPage`) — already cloud-native, NOT in
+  KNOWN_VIOLATIONS.
+- **The rest of the KNOWN_VIOLATIONS services have no live callers:**
+  - `MemberCapabilityService` → only `CastingSuggestionService`, whose singleton
+    has zero consumers (dead serving dead).
+  - `BandService` member methods (`db.members`/`db.bands`) → superseded by
+    `BandMembershipService` (`repository.getBandMemberships` + `useBands`); only
+    caller is `DatabaseService` (already ALWAYS_ALLOWED, gate-deletion slated).
+  - `InitialSetupService` → no importer in `src`.
+  - `SongService.getUserAccessibleSongs` (the ONE clean
+    `db.bandMemberships`→`repository.getUserMemberships` swap) → also uncalled.
+- **The two genuinely-live KNOWN_VIOLATIONS files are the auth services**
+  (`SupabaseAuthService`, `MockAuthService`): their `db.*` writes populate the
+  local cache DURING login — coupled to cache-removal (the gate), not
+  independently migratable.
+- **Section D (todo 8) is also gate-coupled.** `AuthContext.loadUserData`
+  (AuthContext.tsx:443-517) reads `db.users`/`db.userProfiles`/
+  `db.bandMemberships`/`db.bands` **local-cache-first**; `currentUser` via
+  `db.users.get(userId)` has NO cloud fallback. Removing the initial-sync calls
+  before the factory swap leaves those reads unfed → cold-start break.
+
+### RECOMMENDED re-scope (pending Eric's go-ahead — this is still the STOP gate)
+
+- **Skip Section B's "add repository methods" work entirely.** Do NOT build CRUD
+  against deny-all tables for dead code.
+- Fold the orphaned services into the **gate mass-deletion** (Section E): delete
+  `CastingService`, `MemberCapabilityService`, `casting/CastingSuggestionService`,
+  `BandService` member-methods (or the whole file if `DatabaseService` also
+  goes), `setup/InitialSetupService`, and `SongService.getUserAccessibleSongs`.
+  Grep each for importers again at delete time.
+- **Section D moves INTO the gate**, sequenced WITH the factory swap so
+  `loadUserData` reads resolve cloud-first (RemoteRepository) the moment the
+  local cache stops being populated.
+- Auth-service `db.*` writes: remove as part of the gate's cache teardown.
+
+Net: after A.6, there is **no safe pre-gate mechanical work left**. Next action
+is Eric's go-ahead on the (now larger) deletion gate.
