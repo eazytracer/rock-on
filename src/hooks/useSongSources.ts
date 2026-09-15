@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { db } from '../services/database'
+import { repository } from '../services/data/RepositoryFactory'
 import type { Song } from '../models/Song'
 
 /**
@@ -36,17 +36,21 @@ export function useSongSources(personalSongs: Song[]): Map<string, string> {
 
     const resolveSources = async () => {
       try {
-        const origins = await db.songs.bulkGet(linkedFromIds)
+        const originList = await Promise.all(
+          linkedFromIds.map(id => repository.getSong(id))
+        )
         const originById = new Map(
-          origins.filter((s): s is Song => !!s).map(s => [s.id, s])
+          originList.filter((s): s is Song => !!s).map(s => [s.id, s])
         )
 
         const bandIds = Array.from(
           new Set(Array.from(originById.values()).map(s => s.contextId))
         )
-        const bands = await db.bands.bulkGet(bandIds)
+        const bandList = await Promise.all(
+          bandIds.map(id => repository.getBand(id))
+        )
         const bandNameById = new Map(
-          bands
+          bandList
             .filter((b): b is NonNullable<typeof b> => !!b)
             .map(b => [b.id, b.name])
         )
