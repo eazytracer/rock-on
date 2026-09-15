@@ -40,9 +40,9 @@ import {
 } from '../components/practice/ScrollableNotes'
 import { FooterNextPreview } from '../components/practice/FooterNextPreview'
 import { tuningColor } from '../utils/tunings'
-import { db } from '../services/database'
 import { useAuth } from '../contexts/AuthContext'
 import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
+import { repository } from '../services/data/RepositoryFactory'
 import { createLogger } from '../utils/logger'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song } from '../models/Song'
@@ -173,7 +173,7 @@ export const PracticeSessionPage: React.FC = () => {
       return
     }
     try {
-      const practiceSession = await db.practiceSessions.get(practiceId)
+      const practiceSession = await repository.getPracticeSession(practiceId)
       if (!practiceSession) {
         setError('Practice not found')
         setLoading(false)
@@ -184,7 +184,7 @@ export const PracticeSessionPage: React.FC = () => {
       const loaded: Song[] = []
       if (practiceSession.songs && practiceSession.songs.length > 0) {
         for (const sessionSong of practiceSession.songs) {
-          const song = await db.songs.get(sessionSong.songId)
+          const song = await repository.getSong(sessionSong.songId)
           if (song) loaded.push(song)
         }
       }

@@ -18,8 +18,7 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
 import { useToast } from '../contexts/ToastContext'
-import { db } from '../services/database'
-import { getSyncRepository } from '../services/data/SyncRepository'
+import { repository } from '../services/data/RepositoryFactory'
 import { secondsToDuration } from '../utils/formatters'
 import {
   formatShowDate,
@@ -221,10 +220,7 @@ export const ShowViewPage: React.FC = () => {
   // Load show data
   const loadShow = useCallback(async () => {
     // Load available setlists for picker
-    const allSetlists = await db.setlists
-      .where('bandId')
-      .equals(currentBandId)
-      .toArray()
+    const allSetlists = await repository.getSetlists(currentBandId)
     setAvailableSetlists(allSetlists)
 
     // For new mode, show is already initialized
@@ -234,7 +230,7 @@ export const ShowViewPage: React.FC = () => {
 
     try {
       setLoading(true)
-      const showData = await db.shows.get(showId)
+      const showData = await repository.getShow(showId)
 
       if (!showData) {
         navigate('/shows')
@@ -246,7 +242,7 @@ export const ShowViewPage: React.FC = () => {
 
       // Load setlist if linked
       if (showData.setlistId) {
-        const setlistData = await db.setlists.get(showData.setlistId)
+        const setlistData = await repository.getSetlist(showData.setlistId)
         if (setlistData) {
           setSetlist(setlistData)
 
@@ -254,7 +250,7 @@ export const ShowViewPage: React.FC = () => {
           const items: UISetlistItem[] = []
           for (const item of setlistData.items || []) {
             if (item.type === 'song' && item.songId) {
-              const song = await db.songs.get(item.songId)
+              const song = await repository.getSong(item.songId)
               if (song) {
                 items.push({
                   id: item.id || crypto.randomUUID(),
@@ -316,7 +312,7 @@ export const ShowViewPage: React.FC = () => {
       if (!showId) return
 
       try {
-        const repo = getSyncRepository()
+        const repo = repository
         await repo.updateShow(showId, {
           [field]: value,
           updatedDate: new Date(),
@@ -350,7 +346,7 @@ export const ShowViewPage: React.FC = () => {
       if (!showId) return
 
       try {
-        const repo = getSyncRepository()
+        const repo = repository
         await repo.updateShow(showId, {
           scheduledDate: scheduledDateTime,
           updatedDate: new Date(),
@@ -382,7 +378,7 @@ export const ShowViewPage: React.FC = () => {
       if (!showId) return
 
       try {
-        const repo = getSyncRepository()
+        const repo = repository
         await repo.updateShow(showId, {
           contacts: filteredContacts,
           updatedDate: new Date(),
@@ -411,7 +407,7 @@ export const ShowViewPage: React.FC = () => {
       // Fork the setlist if it's different from the current one
       const needsFork = isNewMode || setlistId !== show?.setlistId
       if (needsFork) {
-        const originalSetlist = await db.setlists.get(setlistId)
+        const originalSetlist = await repository.getSetlist(setlistId)
         if (originalSetlist) {
           const forkedId = crypto.randomUUID()
           const forkedSetlist = {
@@ -423,7 +419,7 @@ export const ShowViewPage: React.FC = () => {
             createdDate: new Date(),
             lastModified: new Date(),
           }
-          const repo = getSyncRepository()
+          const repo = repository
           await repo.addSetlist(forkedSetlist)
           await saveField('setlistId', forkedId)
           setSetlist(forkedSetlist)
@@ -432,7 +428,7 @@ export const ShowViewPage: React.FC = () => {
           const items: UISetlistItem[] = []
           for (const item of originalSetlist.items || []) {
             if (item.type === 'song' && item.songId) {
-              const song = await db.songs.get(item.songId)
+              const song = await repository.getSong(item.songId)
               if (song) {
                 items.push({
                   id: item.id || crypto.randomUUID(),
@@ -467,7 +463,7 @@ export const ShowViewPage: React.FC = () => {
         lastModified: new Date(),
       }
 
-      const repo = getSyncRepository()
+      const repo = repository
       await repo.addSetlist(newSetlist)
       await saveField('setlistId', newSetlistId)
       setSetlist(newSetlist)
@@ -486,7 +482,7 @@ export const ShowViewPage: React.FC = () => {
 
     try {
       const newId = crypto.randomUUID()
-      const repo = getSyncRepository()
+      const repo = repository
       await repo.addShow({
         ...show,
         id: newId,

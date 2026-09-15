@@ -20,8 +20,7 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
 import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
-import { db } from '../services/database'
-import { getSyncRepository } from '../services/data/SyncRepository'
+import { repository } from '../services/data/RepositoryFactory'
 import {
   formatShowDate,
   formatTime12Hour,
@@ -156,16 +155,12 @@ export const PracticeViewPage: React.FC = () => {
     const loadPractice = async () => {
       // Load available songs and setlists for picker
       if (currentBandId) {
-        const loadedDbSongs = await db.songs
-          .where('contextType')
-          .equals('band')
-          .and(s => s.contextId === currentBandId)
-          .toArray()
+        const loadedDbSongs = await repository.getSongs({
+          contextType: 'band',
+          contextId: currentBandId,
+        })
 
-        const loadedDbSetlists = await db.setlists
-          .where('bandId')
-          .equals(currentBandId)
-          .toArray()
+        const loadedDbSetlists = await repository.getSetlists(currentBandId)
 
         setDbSongs(loadedDbSongs)
         setDbSetlists(loadedDbSetlists)
@@ -195,7 +190,7 @@ export const PracticeViewPage: React.FC = () => {
         }
 
         // Load the practice session
-        const practiceSession = await db.practiceSessions.get(practiceId)
+        const practiceSession = await repository.getPracticeSession(practiceId)
 
         if (!practiceSession) {
           navigate('/practices')
@@ -208,7 +203,7 @@ export const PracticeViewPage: React.FC = () => {
         const practiceSongs: UIPracticeSong[] = []
         if (practiceSession.songs && practiceSession.songs.length > 0) {
           for (const sessionSong of practiceSession.songs) {
-            const song = await db.songs.get(sessionSong.songId)
+            const song = await repository.getSong(sessionSong.songId)
             if (song) {
               practiceSongs.push({
                 id: crypto.randomUUID(),
@@ -723,10 +718,7 @@ export const PracticeViewPage: React.FC = () => {
             onClose={() => setEditingSong(null)}
             onSave={async updatedSong => {
               try {
-                await getSyncRepository().updateSong(
-                  updatedSong.id!,
-                  updatedSong
-                )
+                await repository.updateSong(updatedSong.id!, updatedSong)
                 // Update the song in our local state
                 setDbSongs(prev =>
                   prev.map(s => (s.id === updatedSong.id ? updatedSong : s))

@@ -20,8 +20,7 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
 import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
-import { db } from '../services/database'
-import { getSyncRepository } from '../services/data/SyncRepository'
+import { repository } from '../services/data/RepositoryFactory'
 import { secondsToDuration } from '../utils/formatters'
 import { formatShowDate } from '../utils/dateHelpers'
 import type { Setlist as DBSetlist } from '../models/Setlist'
@@ -156,16 +155,12 @@ export const SetlistViewPage: React.FC = () => {
     const loadSetlist = async () => {
       // Load available songs and setlists for picker
       if (currentBandId) {
-        const loadedDbSongs = await db.songs
-          .where('contextType')
-          .equals('band')
-          .and(s => s.contextId === currentBandId)
-          .toArray()
+        const loadedDbSongs = await repository.getSongs({
+          contextType: 'band',
+          contextId: currentBandId,
+        })
 
-        const loadedDbSetlists = await db.setlists
-          .where('bandId')
-          .equals(currentBandId)
-          .toArray()
+        const loadedDbSetlists = await repository.getSetlists(currentBandId)
 
         setDbSongs(loadedDbSongs)
         setDbSetlists(loadedDbSetlists.filter(s => s.id !== setlistId))
@@ -180,7 +175,7 @@ export const SetlistViewPage: React.FC = () => {
         setLoading(true)
 
         // Load setlist
-        const dbSetlist = await db.setlists.get(setlistId)
+        const dbSetlist = await repository.getSetlist(setlistId)
         if (!dbSetlist) {
           navigate('/setlists')
           return
@@ -192,10 +187,10 @@ export const SetlistViewPage: React.FC = () => {
         setFormNotes(dbSetlist.notes || '')
 
         // Load associated show - check if any show references this setlist
-        const showsWithThisSetlist = await db.shows
-          .where('setlistId')
-          .equals(setlistId!)
-          .first()
+        const bandShows = await repository.getShows(currentBandId)
+        const showsWithThisSetlist = bandShows.find(
+          s => s.setlistId === setlistId
+        )
 
         if (showsWithThisSetlist) {
           setAssociatedShow({
@@ -205,7 +200,7 @@ export const SetlistViewPage: React.FC = () => {
           })
         } else if (dbSetlist.showId) {
           // Fallback to legacy showId on setlist
-          const show = await db.shows.get(dbSetlist.showId)
+          const show = await repository.getShow(dbSetlist.showId)
           if (show) {
             setAssociatedShow({
               id: show.id!,
@@ -219,7 +214,7 @@ export const SetlistViewPage: React.FC = () => {
         const populatedItems: UISetlistItem[] = await Promise.all(
           (dbSetlist.items || []).map(async item => {
             if (item.type === 'song' && item.songId) {
-              const song = await db.songs.get(item.songId)
+              const song = await repository.getSong(item.songId)
               if (song) {
                 return {
                   ...item,
@@ -259,14 +254,14 @@ export const SetlistViewPage: React.FC = () => {
       }
 
       try {
-        const repo = getSyncRepository()
+        const repo = repository
         await repo.updateSetlist(setlistId, {
           [field]: value,
           lastModified: new Date(),
         })
 
         // Refresh setlist data
-        const updatedSetlist = await db.setlists.get(setlistId)
+        const updatedSetlist = await repository.getSetlist(setlistId)
         if (updatedSetlist) {
           setSetlist(updatedSetlist)
         }
@@ -282,7 +277,7 @@ export const SetlistViewPage: React.FC = () => {
   const createSetlist = async () => {
     try {
       setSaving(true)
-      const repo = getSyncRepository()
+      const repo = repository
 
       // Build items for save
       const dbItems = items.map((item, index) => ({
@@ -350,7 +345,7 @@ export const SetlistViewPage: React.FC = () => {
     if (!setlistId || isNewMode) return
 
     try {
-      const repo = getSyncRepository()
+      const repo = repository
       const dbItems = orderedItems.map((item, index) => ({
         id: item.id,
         type: item.type,
@@ -428,7 +423,7 @@ export const SetlistViewPage: React.FC = () => {
       // Save to database if we have an existing setlist
       if (setlistId && !isNewMode) {
         try {
-          const repo = getSyncRepository()
+          const repo = repository
           const dbItems = newItems.map((item, index) => ({
             id: item.id,
             type: item.type,
@@ -495,7 +490,7 @@ export const SetlistViewPage: React.FC = () => {
     // Auto-save for existing setlists
     if (setlistId && !isNewMode) {
       try {
-        const repo = getSyncRepository()
+        const repo = repository
         const dbItems = newItems.map(item => ({
           id: item.id,
           type: item.type,
@@ -539,7 +534,7 @@ export const SetlistViewPage: React.FC = () => {
     // Auto-save for existing setlists
     if (setlistId && !isNewMode) {
       try {
-        const repo = getSyncRepository()
+        const repo = repository
         const dbItems = newItems.map(item => ({
           id: item.id,
           type: item.type,
@@ -853,7 +848,7 @@ export const SetlistViewPage: React.FC = () => {
             onClose={() => setEditingSong(null)}
             onSave={async updatedSong => {
               try {
-                const repo = getSyncRepository()
+                const repo = repository
                 await repo.updateSong(updatedSong.id!, updatedSong)
                 // Update the song in our local state
                 setDbSongs(prev =>

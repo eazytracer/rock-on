@@ -12,7 +12,7 @@ import {
   useCreateNoteEntry,
   useDeleteNoteEntry,
 } from '../../hooks/useNotes'
-import { db } from '../../services/database'
+import { repository } from '../../services/data/RepositoryFactory'
 import type { SongNoteEntryInput } from '../../models/SongNoteEntry'
 
 interface SongNotesPanelProps {
@@ -74,7 +74,7 @@ export const SongNotesPanel: React.FC<SongNotesPanelProps> = ({
 
       for (const uid of uniqueUserIds) {
         try {
-          const user = await db.users.get(uid)
+          const user = await repository.getUser(uid)
           if (user) {
             names[uid] = user.name || user.email || 'Unknown'
           }
