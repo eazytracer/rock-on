@@ -47,8 +47,6 @@ const ALWAYS_ALLOWED = new Set([
   'src/database/seedMvpData.ts',
   // Legacy pre-repository services — kept for historical compatibility
   'src/database/services.ts',
-  // DatabaseService — bulk migration/import utility
-  'src/services/DatabaseService.ts',
   // Database utility module — schema/migration helpers
   'src/services/database/index.ts',
 ])
@@ -64,18 +62,9 @@ const KNOWN_VIOLATIONS = new Set([
   'src/services/auth/MockAuthService.ts',
   'src/services/auth/SupabaseAuthService.ts',
 
-  // Setup service — writes band membership on first launch
-  // TODO: route through repository.addBandMembership()
-  'src/services/setup/InitialSetupService.ts',
-
-  // Casting/capability services — pre-repository feature areas
-  // TODO: add castings + capabilities to IDataRepository, route through it
+  // Casting service — pre-repository feature area (legacy, Dexie-local)
+  // TODO: superseded by CastingAssignmentService; slated for deletion
   'src/services/CastingService.ts',
-  'src/services/MemberCapabilityService.ts',
-
-  // BandService — legacy service with direct member/band writes
-  // TODO: route through repository.addBand(), repository.updateBand()
-  'src/services/BandService.ts',
 
   // Hooks — should not write to db; route through useSongs/useBands hooks that
   // delegate to repository, or add dedicated repository methods

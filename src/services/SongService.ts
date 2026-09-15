@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { db } from './database' // Keep for entities not yet in repository (bandMemberships)
 import { repository } from './data/RepositoryFactory'
 import { Song } from '../models/Song'
 
@@ -123,49 +122,6 @@ export class SongService {
       contextId: bandId,
       ...additionalFilters,
     })
-  }
-
-  /**
-   * Get all songs accessible by a user (personal + bands they're in)
-   */
-  static async getUserAccessibleSongs(
-    userId: string
-  ): Promise<SongListResponse> {
-    // Get user's band memberships (keep using db.bandMemberships until it's in repository)
-    const memberships = await db.bandMemberships
-      .where('userId')
-      .equals(userId)
-      .and(m => m.status === 'active')
-      .toArray()
-
-    const bandIds = memberships.map(m => m.bandId)
-
-    // Get personal songs from repository
-    const personalSongs = await repository.getSongs({
-      contextType: 'personal',
-      contextId: userId,
-    })
-
-    // Get band songs from repository
-    const bandSongsPromises = bandIds.map(bandId =>
-      repository.getSongs({
-        contextType: 'band',
-        contextId: bandId,
-      })
-    )
-    const bandSongsArrays = await Promise.all(bandSongsPromises)
-    const bandSongs = bandSongsArrays.flat()
-
-    // Combine and sort
-    const songs = [...personalSongs, ...bandSongs].sort((a, b) =>
-      a.title.localeCompare(b.title)
-    )
-
-    return {
-      songs,
-      total: songs.length,
-      filtered: songs.length,
-    }
   }
 
   static async createSong(songData: CreateSongRequest): Promise<Song> {
