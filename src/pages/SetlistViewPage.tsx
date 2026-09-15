@@ -19,7 +19,7 @@ import { AddItemDropdown } from '../components/common/AddItemDropdown'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
-import { useRealtimeSync } from '../hooks/useRealtimeSync'
+import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
 import { db } from '../services/database'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import { secondsToDuration } from '../utils/formatters'
@@ -142,10 +142,10 @@ export const SetlistViewPage: React.FC = () => {
   )
 
   // Subscribe to real-time sync events
-  useRealtimeSync({
+  useRealtimeInvalidate({
     events: ['setlists:changed', 'songs:changed', 'shows:changed'],
     bandId: currentBandId,
-    onSync: () => {
+    onChange: () => {
       // Trigger data refetch
       setRefetchTrigger(prev => prev + 1)
     },

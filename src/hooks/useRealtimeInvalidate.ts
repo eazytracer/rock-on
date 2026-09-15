@@ -22,8 +22,18 @@ interface RealtimeEventPayload {
 interface UseRealtimeInvalidateOptions {
   /** RealtimeManager events to listen for. */
   events: RealtimeChangeEvent[]
-  /** Query key to invalidate when a matching event arrives. */
-  queryKey: QueryKey
+  /**
+   * Query key to invalidate when a matching event arrives. Optional: pages not
+   * yet backed by a TanStack query pass `onChange` instead (transitional — see
+   * Phase 2 Section C, which migrates those pages to real queries and drops the
+   * callback).
+   */
+  queryKey?: QueryKey
+  /**
+   * Called on a matching event instead of/in addition to invalidation. Used by
+   * pages that still load their own state via a manual refetch function.
+   */
+  onChange?: () => void | Promise<void>
   /** Only react to events for this band (omit to react to all). */
   bandId?: string
   /** Skip events caused by the current user's own writes. Default true. */
@@ -45,6 +55,7 @@ interface UseRealtimeInvalidateOptions {
 export function useRealtimeInvalidate({
   events,
   queryKey,
+  onChange,
   bandId,
   skipOwnChanges = true,
   debounce = 100,
@@ -55,8 +66,13 @@ export function useRealtimeInvalidate({
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Stable key string so the effect doesn't re-run on new array/key identities.
-  const queryKeyString = JSON.stringify(queryKey)
+  const queryKeyString = JSON.stringify(queryKey ?? null)
   const eventsString = JSON.stringify(events)
+
+  // Keep the callback in a ref so a new inline function identity each render
+  // doesn't re-subscribe the effect.
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
 
   useEffect(() => {
     if (!realtimeManager) return
@@ -70,7 +86,8 @@ export function useRealtimeInvalidate({
       }
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       timeoutRef.current = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey })
+        if (queryKey) queryClient.invalidateQueries({ queryKey })
+        onChangeRef.current?.()
       }, debounce)
     }
 

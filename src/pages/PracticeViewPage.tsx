@@ -19,7 +19,7 @@ import { MarkdownField } from '../components/notes/MarkdownField'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
-import { useRealtimeSync } from '../hooks/useRealtimeSync'
+import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
 import { db } from '../services/database'
 import { getSyncRepository } from '../services/data/SyncRepository'
 import {
@@ -132,10 +132,10 @@ export const PracticeViewPage: React.FC = () => {
   const [refetchTrigger, setRefetchTrigger] = useState(0)
 
   // Subscribe to real-time sync events
-  useRealtimeSync({
+  useRealtimeInvalidate({
     events: ['songs:changed', 'practices:changed'],
     bandId: currentBandId,
-    onSync: () => {
+    onChange: () => {
       // Trigger refetch of practice data
       setRefetchTrigger(prev => prev + 1)
     },

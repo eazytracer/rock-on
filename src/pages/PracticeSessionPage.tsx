@@ -42,7 +42,7 @@ import { FooterNextPreview } from '../components/practice/FooterNextPreview'
 import { tuningColor } from '../utils/tunings'
 import { db } from '../services/database'
 import { useAuth } from '../contexts/AuthContext'
-import { useRealtimeSync } from '../hooks/useRealtimeSync'
+import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
 import { createLogger } from '../utils/logger'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song } from '../models/Song'
@@ -206,10 +206,10 @@ export const PracticeSessionPage: React.FC = () => {
     loadData()
   }, [loadData])
 
-  useRealtimeSync({
+  useRealtimeInvalidate({
     events: ['songs:changed', 'practices:changed'],
     bandId: currentBandId || '',
-    onSync: () => {
+    onChange: () => {
       loadData()
     },
   })

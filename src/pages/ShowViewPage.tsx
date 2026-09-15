@@ -16,7 +16,7 @@ import {
 } from '../components/common/SongListItem'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
-import { useRealtimeSync } from '../hooks/useRealtimeSync'
+import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
 import { useToast } from '../contexts/ToastContext'
 import { db } from '../services/database'
 import { getSyncRepository } from '../services/data/SyncRepository'
@@ -298,10 +298,10 @@ export const ShowViewPage: React.FC = () => {
   }, [loadShow])
 
   // Subscribe to real-time sync events
-  useRealtimeSync({
+  useRealtimeInvalidate({
     events: ['shows:changed', 'setlists:changed', 'songs:changed'],
     bandId: currentBandId,
-    onSync: loadShow,
+    onChange: loadShow,
   })
 
   // Save a single field
