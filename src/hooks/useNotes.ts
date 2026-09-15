@@ -1,370 +1,255 @@
-import { useState, useEffect, useCallback } from 'react'
-import { db } from '../services/database'
-import { getSyncRepository } from '../services/data/SyncRepository'
-import type {
-  SongPersonalNote,
-  SongPersonalNoteInput,
-} from '../models/SongPersonalNote'
+import { useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { repository } from '../services/data/RepositoryFactory'
+import { queryKeys } from '../services/queryClient'
+import type { SongPersonalNoteInput } from '../models/SongPersonalNote'
 import type { SongNoteEntry, SongNoteEntryInput } from '../models/SongNoteEntry'
 
 /**
- * Hook to manage band-level notes on a song (song.notes field)
+ * Hook to manage band-level notes on a song (song.notes field).
  */
 export function useBandNotes(songId: string) {
-  const [notes, setNotes] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const fetchNotes = useCallback(async () => {
-    try {
-      setLoading(true)
-      const song = await db.songs.get(songId)
-      setNotes(song?.notes || '')
-      setError(null)
-    } catch (err) {
-      console.error('[useBandNotes] Error fetching notes:', err)
-      setError(err as Error)
-    } finally {
-      setLoading(false)
-    }
-  }, [songId])
+  const query = useQuery({
+    queryKey: [...queryKeys.songs.detail(songId), 'bandNotes'],
+    queryFn: async () => {
+      const song = await repository.getSong(songId)
+      return song?.notes || ''
+    },
+    enabled: !!songId,
+  })
 
-  useEffect(() => {
-    if (!songId) {
-      setNotes('')
-      setLoading(false)
-      return
-    }
-
-    fetchNotes()
-  }, [songId, fetchNotes])
-
-  const updateNotes = async (newNotes: string) => {
-    try {
-      setError(null)
-      await getSyncRepository().updateSong(songId, { notes: newNotes })
-      setNotes(newNotes)
-    } catch (err) {
-      console.error('[useBandNotes] Error updating notes:', err)
-      setError(err as Error)
-      throw err
-    }
-  }
+  const mutation = useMutation({
+    mutationFn: async (newNotes: string) => {
+      await repository.updateSong(songId, { notes: newNotes })
+      return newNotes
+    },
+    onSuccess: newNotes => {
+      queryClient.setQueryData(
+        [...queryKeys.songs.detail(songId), 'bandNotes'],
+        newNotes
+      )
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['songs'] })
+    },
+  })
 
   return {
-    notes,
-    loading,
-    error,
-    updateNotes,
-    refetch: fetchNotes,
+    notes: query.data ?? '',
+    loading: query.isLoading,
+    error: (query.error || mutation.error) as Error | null,
+    updateNotes: (newNotes: string) => mutation.mutateAsync(newNotes),
+    refetch: useCallback(async () => {
+      await query.refetch()
+    }, [query]),
   }
 }
 
 /**
- * Hook to manage personal notes for a song
+ * Hook to manage personal notes for a song.
  */
 export function usePersonalNote(
   songId: string,
   userId: string,
   bandId: string
 ) {
-  const [personalNote, setPersonalNote] = useState<SongPersonalNote | null>(
-    null
-  )
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
+  const queryKey = [...queryKeys.notes.personalForUser(userId, bandId), songId]
 
-  const fetchNote = useCallback(async () => {
-    try {
-      setLoading(true)
-      const note = await db.songPersonalNotes
-        .where('[songId+userId+bandId]')
-        .equals([songId, userId, bandId])
-        .first()
-      setPersonalNote(note || null)
-      setError(null)
-    } catch (err) {
-      console.error('[usePersonalNote] Error fetching note:', err)
-      setError(err as Error)
-    } finally {
-      setLoading(false)
-    }
-  }, [songId, userId, bandId])
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const note = await repository.getPersonalNote(songId, userId, bandId)
+      return note || null
+    },
+    enabled: !!songId && !!userId && !!bandId,
+  })
 
-  useEffect(() => {
-    if (!songId || !userId || !bandId) {
-      setPersonalNote(null)
-      setLoading(false)
-      return
-    }
+  const upsertMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const input: SongPersonalNoteInput = { songId, userId, bandId, content }
+      return repository.upsertPersonalNote(input)
+    },
+    onSuccess: updated => {
+      queryClient.setQueryData(queryKey, updated)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notes.personalForUser(userId, bandId),
+      })
+    },
+  })
 
-    fetchNote()
-  }, [songId, userId, bandId, fetchNote])
+  const deleteMutation = useMutation({
+    mutationFn: async (noteId: string) => {
+      await repository.deletePersonalNote(noteId)
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(queryKey, null)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notes.personalForUser(userId, bandId),
+      })
+    },
+  })
 
-  const upsertNote = async (content: string) => {
-    try {
-      setError(null)
-      const input: SongPersonalNoteInput = {
-        songId,
-        userId,
-        bandId,
-        content,
-      }
-
-      // Use local repository directly (not yet synced to remote)
-      const repo = getSyncRepository()
-      const updated = await repo.upsertPersonalNote(input)
-      setPersonalNote(updated)
-      return updated
-    } catch (err) {
-      console.error('[usePersonalNote] Error upserting note:', err)
-      setError(err as Error)
-      throw err
-    }
-  }
-
-  const deleteNote = async () => {
-    try {
-      if (!personalNote) return
-
-      setError(null)
-      const repo = getSyncRepository()
-      await repo.deletePersonalNote(personalNote.id)
-      setPersonalNote(null)
-    } catch (err) {
-      console.error('[usePersonalNote] Error deleting note:', err)
-      setError(err as Error)
-      throw err
-    }
-  }
+  const personalNote = query.data ?? null
 
   return {
     personalNote,
-    loading,
-    error,
-    upsertNote,
-    deleteNote,
-    refetch: fetchNote,
+    loading: query.isLoading,
+    error: (query.error ||
+      upsertMutation.error ||
+      deleteMutation.error) as Error | null,
+    upsertNote: (content: string) => upsertMutation.mutateAsync(content),
+    deleteNote: async () => {
+      if (!personalNote) return
+      await deleteMutation.mutateAsync(personalNote.id)
+    },
+    refetch: useCallback(async () => {
+      await query.refetch()
+    }, [query]),
   }
 }
 
 /**
  * Hook to determine which of the given songs have a non-empty personal note
- * for the current user + band context. Runs a single batched Dexie query
- * instead of one query per song, for use in list views (e.g. SongsPage).
+ * for the current user + band context. Fetches the user's notes once and
+ * filters client-side, for use in list views (e.g. SongsPage).
  */
 export function useBulkPersonalNotePresence(
   songIds: string[],
   userId: string,
   bandId: string
 ): Set<string> {
-  const [presentSongIds, setPresentSongIds] = useState<Set<string>>(
-    () => new Set()
-  )
+  const idsKey = [...songIds].sort().join(',')
 
-  useEffect(() => {
-    if (songIds.length === 0) {
-      setPresentSongIds(new Set())
-      return
-    }
+  const query = useQuery({
+    queryKey: [
+      ...queryKeys.notes.personalForUser(userId, bandId),
+      'presence',
+      idsKey,
+    ],
+    queryFn: async () => {
+      const notes = await repository.getPersonalNotesForUser(userId, bandId)
+      const idSet = new Set(songIds)
+      return notes
+        .filter(note => idSet.has(note.songId) && !!note.content?.trim())
+        .map(note => note.songId)
+    },
+    enabled: songIds.length > 0 && !!userId && !!bandId,
+  })
 
-    let cancelled = false
-
-    const fetchPresence = async () => {
-      try {
-        const notes = await db.songPersonalNotes
-          .where('songId')
-          .anyOf(songIds)
-          .filter(
-            note =>
-              note.userId === userId &&
-              note.bandId === bandId &&
-              !!note.content?.trim()
-          )
-          .toArray()
-
-        if (!cancelled) {
-          setPresentSongIds(new Set(notes.map(note => note.songId)))
-        }
-      } catch (err) {
-        console.error(
-          '[useBulkPersonalNotePresence] Error fetching notes:',
-          err
-        )
-      }
-    }
-
-    fetchPresence()
-
-    return () => {
-      cancelled = true
-    }
-    // songIds is re-created each render; join to a stable key so the query
-    // only re-runs when the actual set of song ids changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [songIds.join(','), userId, bandId])
-
-  return presentSongIds
+  return new Set(query.data ?? [])
 }
 
 /**
- * Hook to fetch note entries for a song
+ * Hook to fetch note entries for a song (band-visible + the user's own),
+ * newest first.
  */
 export function useNoteEntries(songId: string, bandId: string, userId: string) {
-  const [entries, setEntries] = useState<SongNoteEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  const fetchEntries = useCallback(async () => {
-    try {
-      setLoading(true)
-
-      // Fetch all entries for the song
-      const allEntries = await db.songNoteEntries
-        .where('songId')
-        .equals(songId)
-        .filter(e => e.bandId === bandId)
-        .toArray()
-
-      // Filter to show only band-visible entries OR user's personal entries
+  const query = useQuery({
+    queryKey: queryKeys.notes.entriesForSong(songId, bandId),
+    queryFn: async () => {
+      const allEntries = await repository.getNoteEntriesForSong(songId, bandId)
       const visibleEntries = allEntries.filter(
         entry => entry.visibility === 'band' || entry.userId === userId
       )
-
-      // Sort by date (newest first)
-      visibleEntries.sort((a, b) => {
-        const dateA = new Date(b.createdDate).getTime()
-        const dateB = new Date(a.createdDate).getTime()
-        return dateA - dateB
-      })
-
-      setEntries(visibleEntries)
-      setError(null)
-    } catch (err) {
-      console.error('[useNoteEntries] Error fetching entries:', err)
-      setError(err as Error)
-    } finally {
-      setLoading(false)
-    }
-  }, [songId, bandId, userId])
-
-  useEffect(() => {
-    if (!songId || !bandId) {
-      setEntries([])
-      setLoading(false)
-      return
-    }
-
-    fetchEntries()
-  }, [songId, bandId, fetchEntries])
+      visibleEntries.sort(
+        (a, b) =>
+          new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
+      )
+      return visibleEntries
+    },
+    enabled: !!songId && !!bandId,
+  })
 
   return {
-    entries,
-    loading,
-    error,
-    refetch: fetchEntries,
+    entries: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error as Error | null,
+    refetch: useCallback(async () => {
+      await query.refetch()
+    }, [query]),
   }
 }
 
 /**
- * Hook to create a note entry
+ * Hook to create a note entry.
  */
 export function useCreateNoteEntry() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const createEntry = async (input: SongNoteEntryInput) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const repo = getSyncRepository()
-      const entry = await repo.createNoteEntry(input)
-
-      return entry
-    } catch (err) {
-      console.error('[useCreateNoteEntry] Error creating entry:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+  const mutation = useMutation({
+    mutationFn: (input: SongNoteEntryInput) =>
+      repository.createNoteEntry(input),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
+    },
+  })
 
   return {
-    createEntry,
-    loading,
-    error,
+    createEntry: (input: SongNoteEntryInput) => mutation.mutateAsync(input),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
   }
 }
 
 /**
- * Hook to update a note entry
+ * Hook to update a note entry.
  */
 export function useUpdateNoteEntry() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const updateEntry = async (
-    entryId: string,
-    content: string,
-    visibility: 'personal' | 'band'
-  ) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const repo = getSyncRepository()
-      const updated = await repo.updateNoteEntry(entryId, {
-        content,
-        visibility,
-      })
-
-      return updated
-    } catch (err) {
-      console.error('[useUpdateNoteEntry] Error updating entry:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+  const mutation = useMutation({
+    mutationFn: ({
+      entryId,
+      content,
+      visibility,
+    }: {
+      entryId: string
+      content: string
+      visibility: 'personal' | 'band'
+    }): Promise<SongNoteEntry> =>
+      repository.updateNoteEntry(entryId, { content, visibility }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
+    },
+  })
 
   return {
-    updateEntry,
-    loading,
-    error,
+    updateEntry: (
+      entryId: string,
+      content: string,
+      visibility: 'personal' | 'band'
+    ) => mutation.mutateAsync({ entryId, content, visibility }),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
   }
 }
 
 /**
- * Hook to delete a note entry
+ * Hook to delete a note entry.
  */
 export function useDeleteNoteEntry() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const deleteEntry = async (entryId: string) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const repo = getSyncRepository()
-      await repo.deleteNoteEntry(entryId)
-
+  const mutation = useMutation({
+    mutationFn: async (entryId: string) => {
+      await repository.deleteNoteEntry(entryId)
       return true
-    } catch (err) {
-      console.error('[useDeleteNoteEntry] Error deleting entry:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
+    },
+  })
 
   return {
-    deleteEntry,
-    loading,
-    error,
+    deleteEntry: (entryId: string) => mutation.mutateAsync(entryId),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
   }
 }
