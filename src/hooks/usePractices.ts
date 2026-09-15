@@ -1,151 +1,53 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PracticeSessionService } from '../services/PracticeSessionService'
-import { getSyncRepository } from '../services/data/SyncRepository'
-import { useAuth } from '../contexts/AuthContext'
+import { repository } from '../services/data/RepositoryFactory'
+import { queryKeys } from '../services/queryClient'
+import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { PracticeSession } from '../models/PracticeSession'
-import type { SyncStatus } from '../services/data/syncTypes'
 import { getPracticeEffectiveEnd } from '../utils/dateHelpers'
 
 /**
- * Hook to fetch practices (rehearsals) for a band
+ * Hook to fetch practices (rehearsals) for a band, sorted by date ascending.
+ *
+ * Reads via TanStack Query (ephemeral cache); realtime `practices:changed`
+ * events invalidate the query. Return shape (`practices`, `loading`, `error`,
+ * `refetch`) preserved for consumers.
  */
 export function usePractices(bandId: string) {
-  const [practices, setPractices] = useState<PracticeSession[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  const { realtimeManager } = useAuth()
-
-  // Use ref to track the current realtime handler for proper cleanup
-  const realtimeHandlerRef = useRef<
-    | ((event: { bandId: string; action: string; recordId: string }) => void)
-    | null
-  >(null)
-
-  // Memoize fetchPractices with optional silent mode (no loading state change)
-  const fetchPractices = useCallback(
-    async (silent = false) => {
-      try {
-        console.log(
-          '[usePractices] Fetching practices for band:',
-          bandId,
-          silent ? '(silent)' : ''
-        )
-        if (!silent) {
-          setLoading(true)
-        }
-        const response = await PracticeSessionService.getSessions({ bandId })
-
-        // Filter to only rehearsals
-        const rehearsals = response.sessions.filter(p => p.type === 'rehearsal')
-
-        // Sort by date (ascending)
-        rehearsals.sort((a, b) => {
-          const dateA = new Date(a.scheduledDate).getTime()
-          const dateB = new Date(b.scheduledDate).getTime()
-          return dateA - dateB
-        })
-
-        console.log(
-          '[usePractices] Fetched practices count:',
-          rehearsals.length
-        )
-        setPractices(rehearsals)
-        setError(null)
-      } catch (err) {
-        console.error('[usePractices] Error fetching practices:', err)
-        setError(err as Error)
-      } finally {
-        if (!silent) {
-          setLoading(false)
-        }
-      }
+  const query = useQuery({
+    queryKey: queryKeys.practices.band(bandId),
+    queryFn: async () => {
+      const response = await PracticeSessionService.getSessions({ bandId })
+      const rehearsals = response.sessions.filter(p => p.type === 'rehearsal')
+      rehearsals.sort(
+        (a, b) =>
+          new Date(a.scheduledDate).getTime() -
+          new Date(b.scheduledDate).getTime()
+      )
+      return rehearsals
     },
-    [bandId]
-  )
+    enabled: !!bandId,
+  })
 
-  useEffect(() => {
-    if (!bandId) {
-      setPractices([])
-      setLoading(false)
-      return
-    }
+  useRealtimeInvalidate({
+    events: ['practices:changed'],
+    bandId,
+    queryKey: queryKeys.practices.band(bandId),
+  })
 
-    console.log('[usePractices] Mounting hook for band:', bandId)
-    fetchPractices() // Initial load - show loading state
-
-    // Subscribe to sync changes for live updates
-    const repo = getSyncRepository()
-    const handleSyncChange = (status: SyncStatus) => {
-      // Only refetch when sync COMPLETES, not when it starts
-      // This prevents double-fetching during creation/updates
-      if (!status.isSyncing && status.pendingCount === 0) {
-        console.log('[usePractices] Sync completed, refetching practices...')
-        fetchPractices(true) // Silent mode
-      } else {
-        console.log(
-          '[usePractices] Sync status changed - isSyncing:',
-          status.isSyncing,
-          'pending:',
-          status.pendingCount,
-          '- not refetching'
-        )
-      }
-    }
-
-    const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
-
-    // Cleanup previous realtime handler if exists
-    if (realtimeManager && realtimeHandlerRef.current) {
-      realtimeManager.off('practices:changed', realtimeHandlerRef.current)
-      realtimeHandlerRef.current = null
-    }
-
-    // Listen for real-time changes from RealtimeManager
-    const handleRealtimeChange = ({
-      bandId: changedBandId,
-    }: {
-      bandId: string
-      action: string
-      recordId: string
-    }) => {
-      // Only refetch if the change is for the current band
-      if (changedBandId === bandId) {
-        console.log(
-          '[usePractices] Realtime change detected for band, refetching...'
-        )
-        fetchPractices(true) // Silent mode - update list without loading state
-      }
-    }
-
-    if (realtimeManager) {
-      console.log(
-        '[usePractices] Registering realtime listener for band:',
-        bandId
-      )
-      realtimeManager.on('practices:changed', handleRealtimeChange)
-      realtimeHandlerRef.current = handleRealtimeChange
-    } else {
-      console.warn(
-        '[usePractices] No realtimeManager available, real-time updates disabled'
-      )
-    }
-
-    // Cleanup
-    return () => {
-      console.log('[usePractices] Unmounting hook for band:', bandId)
-      unsubscribe()
-      if (realtimeManager && realtimeHandlerRef.current) {
-        realtimeManager.off('practices:changed', realtimeHandlerRef.current)
-        realtimeHandlerRef.current = null
-      }
-    }
-  }, [bandId, realtimeManager, fetchPractices])
-
-  return { practices, loading, error, refetch: fetchPractices }
+  return {
+    practices: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error as Error | null,
+    refetch: useCallback(async () => {
+      await query.refetch()
+    }, [query]),
+  }
 }
 
 /**
- * Hook to get upcoming and past practices separately
+ * Hook to get upcoming and past practices separately.
  */
 export function useUpcomingPractices(bandId: string) {
   const { practices, loading, error, refetch } = usePractices(bandId)
@@ -165,17 +67,13 @@ export function useUpcomingPractices(bandId: string) {
 }
 
 /**
- * Hook to create a new practice
+ * Hook to create a new practice.
  */
 export function useCreatePractice() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const createPractice = async (practiceData: Partial<PracticeSession>) => {
-    try {
-      setLoading(true)
-      setError(null)
-
+  const mutation = useMutation({
+    mutationFn: async (practiceData: Partial<PracticeSession>) => {
       const newPractice = await PracticeSessionService.createSession({
         bandId: practiceData.bandId || '',
         type: 'rehearsal',
@@ -191,68 +89,70 @@ export function useCreatePractice() {
         objectives: practiceData.objectives || [],
         notes: practiceData.notes,
       })
-
       return newPractice.id
-    } catch (err) {
-      console.error('Error creating practice:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['practices'] })
+    },
+  })
 
-  return { createPractice, loading, error }
+  return {
+    createPractice: (practiceData: Partial<PracticeSession>) =>
+      mutation.mutateAsync(practiceData),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
 
 /**
  * Hook to duplicate an existing practice as a starting point for a new one.
  */
 export function useDuplicatePractice() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const duplicatePractice = async (
-    practiceId: string,
-    overrides?: { scheduledDate?: Date }
-  ) => {
-    try {
-      setLoading(true)
-      setError(null)
-
+  const mutation = useMutation({
+    mutationFn: async ({
+      practiceId,
+      overrides,
+    }: {
+      practiceId: string
+      overrides?: { scheduledDate?: Date }
+    }) => {
       const newPractice = await PracticeSessionService.duplicateSession(
         practiceId,
         overrides
       )
-
       return newPractice.id
-    } catch (err) {
-      console.error('Error duplicating practice:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['practices'] })
+    },
+  })
 
-  return { duplicatePractice, loading, error }
+  return {
+    duplicatePractice: (
+      practiceId: string,
+      overrides?: { scheduledDate?: Date }
+    ) => mutation.mutateAsync({ practiceId, overrides }),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
 
 /**
- * Hook to update a practice
+ * Hook to update a practice.
  */
 export function useUpdatePractice() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const updatePractice = async (
-    practiceId: string,
-    updates: Partial<PracticeSession>
-  ) => {
-    try {
-      setLoading(true)
-      setError(null)
-
+  const mutation = useMutation({
+    mutationFn: async ({
+      practiceId,
+      updates,
+    }: {
+      practiceId: string
+      updates: Partial<PracticeSession>
+    }) => {
       await PracticeSessionService.updateSession(practiceId, {
         scheduledDate: updates.scheduledDate
           ? new Date(updates.scheduledDate).toISOString()
@@ -265,52 +165,46 @@ export function useUpdatePractice() {
         status: updates.status,
         songs: updates.songs,
       })
-
       return true
-    } catch (err) {
-      console.error('Error updating practice:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['practices'] })
+    },
+  })
 
-  return { updatePractice, loading, error }
+  return {
+    updatePractice: (practiceId: string, updates: Partial<PracticeSession>) =>
+      mutation.mutateAsync({ practiceId, updates }),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
 
 /**
- * Hook to delete a practice
+ * Hook to delete a practice.
  */
 export function useDeletePractice() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const deletePractice = async (practiceId: string) => {
-    try {
-      setLoading(true)
-      setError(null)
-
+  const mutation = useMutation({
+    mutationFn: async (practiceId: string) => {
       await PracticeSessionService.deleteSession(practiceId)
-
       return true
-    } catch (err) {
-      console.error('Error deleting practice:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['practices'] })
+    },
+  })
 
-  return { deletePractice, loading, error }
+  return {
+    deletePractice: (practiceId: string) => mutation.mutateAsync(practiceId),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
 
 /**
- * Hook to get song suggestions from upcoming shows
- *
- * NOTE: This hook still uses direct database access for setlists.
- * Full migration requires SetlistService integration which is tracked separately.
+ * Hook to get song suggestions from upcoming shows/gigs (their setlists).
  */
 export function useAutoSuggestSongs(bandId: string) {
   const [suggestedSongs, setSuggestedSongs] = useState<string[]>([])
@@ -322,25 +216,20 @@ export function useAutoSuggestSongs(bandId: string) {
       setLoading(true)
       setError(null)
 
-      // Get upcoming shows (gigs) using PracticeSessionService
+      // Get upcoming shows (gigs) using PracticeSessionService.
       const now = new Date()
       const response = await PracticeSessionService.getSessions({
         bandId,
         startDate: now.toISOString(),
       })
 
-      // Filter to only shows/gigs
       const upcomingShows = response.sessions.filter(s => s.type === 'gig')
 
-      // Get setlists for those shows
+      // Collect song IDs from each upcoming show's setlist (via repository).
       const songIds = new Set<string>()
-
-      // Note: This still requires direct database access for setlists
-      // until SetlistService provides the necessary methods
       for (const show of upcomingShows) {
         if (show.setlistId) {
-          const { db } = await import('../services/database')
-          const setlist = await db.setlists.get(show.setlistId)
+          const setlist = await repository.getSetlist(show.setlistId)
           if (setlist?.items) {
             setlist.items.forEach(item => {
               if (item.type === 'song' && item.songId) {
