@@ -32,7 +32,7 @@ import {
 // ============================================
 // DATABASE & UTILITIES - REAL IMPORTS
 // ============================================
-import { db } from '../services/database'
+import { repository } from '../services/data/RepositoryFactory'
 import { useUpcomingShows, useDeleteShow } from '../hooks/useShows'
 import { centsToDollars, dollarsToCents } from '../utils/formatters'
 import {
@@ -125,10 +125,7 @@ export const ShowsPage: React.FC = () => {
     const loadSetlists = async () => {
       try {
         // Load all setlists for the current band
-        const allSetlists = await db.setlists
-          .where('bandId')
-          .equals(currentBandId)
-          .toArray()
+        const allSetlists = await repository.getSetlists(currentBandId)
 
         // Build a map of setlistId -> setlist for quick lookup
         const setlistMap: Record<string, Setlist> = {}
@@ -485,7 +482,7 @@ const ShowCard: React.FC<{
         const songs = []
         for (const item of setlist.items) {
           if (item.type === 'song' && item.songId) {
-            const song = await db.songs.get(item.songId)
+            const song = await repository.getSong(item.songId)
             if (song) {
               songs.push({
                 ...song,

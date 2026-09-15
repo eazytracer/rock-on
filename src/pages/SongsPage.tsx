@@ -44,7 +44,7 @@ import {
 } from '../utils/formatters'
 // Tuning color spine — canonical Palette A (same source as SongListItem / setlist detail)
 import { tuningColor } from '../utils/tunings'
-import { db } from '../services/database'
+import { repository } from '../services/data/RepositoryFactory'
 // DBSong type imported but not currently used directly
 // PHASE 2: Sync status visualization
 import { SyncIcon } from '../components/sync/SyncIcon'
@@ -1101,21 +1101,23 @@ export const SongsPage: React.FC = () => {
             let nextShow: { name: string; date: string } | undefined
 
             try {
-              // Find setlists containing this song
-              const setlists = await db.setlists
-                .filter(setlist =>
-                  setlist.items?.some(
-                    item => item.type === 'song' && item.songId === dbSong.id
-                  )
+              // Find setlists containing this song (within the song's context)
+              const contextSetlists =
+                dbSong.contextType === 'personal'
+                  ? await repository.getPersonalSetlists(dbSong.contextId)
+                  : await repository.getSetlists(dbSong.contextId)
+              const setlists = contextSetlists.filter(setlist =>
+                setlist.items?.some(
+                  item => item.type === 'song' && item.songId === dbSong.id
                 )
-                .toArray()
+              )
 
               if (setlists.length > 0) {
                 // For each setlist, check if it has a linked show
                 for (const setlist of setlists) {
                   if (setlist.showId) {
                     // Load the show from dedicated shows table
-                    const show = await db.shows.get(setlist.showId)
+                    const show = await repository.getShow(setlist.showId)
 
                     if (show && show.scheduledDate) {
                       const showDate = new Date(show.scheduledDate)

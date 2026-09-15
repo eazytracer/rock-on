@@ -48,8 +48,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 
 // DATABASE INTEGRATION: Import database hooks and utilities
-import { db } from '../services/database'
-import { getSyncRepository } from '../services/data/SyncRepository'
+import { repository } from '../services/data/RepositoryFactory'
 import { SongService } from '../services/SongService'
 import { secondsToDuration } from '../utils/formatters'
 import { formatShowDate } from '../utils/dateHelpers'
@@ -1562,25 +1561,20 @@ export const SetlistsPage: React.FC = () => {
         setError(null)
 
         // Load setlists for the band
-        const loadedDbSetlists = await db.setlists
-          .where('bandId')
-          .equals(currentBandId)
-          .toArray()
+        const loadedDbSetlists = await repository.getSetlists(currentBandId)
 
         // Load songs for the band
-        const loadedDbSongs = await db.songs
-          .where('contextType')
-          .equals('band')
-          .and(s => s.contextId === currentBandId)
-          .toArray()
+        const loadedDbSongs = await repository.getSongs({
+          contextType: 'band',
+          contextId: currentBandId,
+        })
 
         // Load personal songs for the current user (for personal setlist picker)
         const loadedPersonalSongs = currentUserId
-          ? await db.songs
-              .where('contextType')
-              .equals('personal')
-              .and(s => s.contextId === currentUserId)
-              .toArray()
+          ? await repository.getSongs({
+              contextType: 'personal',
+              contextId: currentUserId,
+            })
           : []
 
         // Store raw database data
@@ -1592,10 +1586,7 @@ export const SetlistsPage: React.FC = () => {
         const uiSongs: UISong[] = loadedDbSongs.map(dbSongToUISong)
 
         // Load shows from dedicated shows table
-        const dbShows = await db.shows
-          .where('bandId')
-          .equals(currentBandId)
-          .toArray()
+        const dbShows = await repository.getShows(currentBandId)
 
         const uiShows: UIShow[] = dbShows.map(show => ({
           id: show.id!,
@@ -1604,11 +1595,8 @@ export const SetlistsPage: React.FC = () => {
         }))
 
         // Load practices (practice sessions with type='rehearsal')
-        const dbPractices = await db.practiceSessions
-          .where('bandId')
-          .equals(currentBandId)
-          .and(p => p.type === 'rehearsal')
-          .toArray()
+        const allSessions = await repository.getPracticeSessions(currentBandId)
+        const dbPractices = allSessions.filter(p => p.type === 'rehearsal')
 
         const uiPractices: UIPractice[] = dbPractices.map(practice => ({
           id: practice.id!,
@@ -1624,7 +1612,7 @@ export const SetlistsPage: React.FC = () => {
               | { id: string; name: string; date: string }
               | undefined
             if (dbSetlist.showId) {
-              const show = await db.shows.get(dbSetlist.showId)
+              const show = await repository.getShow(dbSetlist.showId)
               if (show) {
                 associatedShow = {
                   id: show.id!,
@@ -1638,7 +1626,7 @@ export const SetlistsPage: React.FC = () => {
             const populatedItems: UISetlistItem[] = await Promise.all(
               (dbSetlist.items || []).map(async item => {
                 if (item.type === 'song' && item.songId) {
-                  const song = await db.songs.get(item.songId)
+                  const song = await repository.getSong(item.songId)
                   if (song) {
                     return {
                       ...item,
@@ -1721,7 +1709,7 @@ export const SetlistsPage: React.FC = () => {
           const populatedItems: UISetlistItem[] = await Promise.all(
             (s.items ?? []).map(async item => {
               if (item.type === 'song' && item.songId) {
-                const song = await db.songs.get(item.songId)
+                const song = await repository.getSong(item.songId)
                 if (song) return { ...item, song: dbSongToUISong(song) }
               }
               return item as UISetlistItem
@@ -1776,7 +1764,7 @@ export const SetlistsPage: React.FC = () => {
         return
       }
       try {
-        const repo = getSyncRepository()
+        const repo = repository
         const newId = crypto.randomUUID()
         const now = new Date()
         await repo.addSetlist({
@@ -1793,18 +1781,14 @@ export const SetlistsPage: React.FC = () => {
           lastModified: now,
         })
         // Refresh personal setlists and open editor
-        const refreshed = await db.setlists
-          .filter(
-            s => s.contextType === 'personal' && s.contextId === currentUserId
-          )
-          .reverse()
-          .toArray()
+        const personalSetlists =
+          await repository.getPersonalSetlists(currentUserId)
+        const refreshed = [...personalSetlists].reverse()
         setPersonalDbSongs(
-          await db.songs
-            .where('contextType')
-            .equals('personal')
-            .and(s => s.contextId === currentUserId)
-            .toArray()
+          await repository.getSongs({
+            contextType: 'personal',
+            contextId: currentUserId,
+          })
         )
         const newUISetlist: UISetlist = {
           id: newId,
@@ -1913,13 +1897,11 @@ export const SetlistsPage: React.FC = () => {
   // DATABASE INTEGRATION: Delete setlist (using hook)
   const handleDelete = async (setlistId: string) => {
     try {
-      // Clear any show references (still need db for this query, but it's read-only)
-      const shows = await db.practiceSessions
-        .where('setlistId')
-        .equals(setlistId)
-        .toArray()
+      // Clear any show references (read-only query)
+      const bandSessions = await repository.getPracticeSessions(currentBandId)
+      const shows = bandSessions.filter(p => p.setlistId === setlistId)
 
-      const repo = getSyncRepository()
+      const repo = repository
       for (const show of shows) {
         await repo.updatePracticeSession(show.id!, { setlistId: undefined })
       }
@@ -1983,7 +1965,7 @@ export const SetlistsPage: React.FC = () => {
       }
 
       // Check if setlist exists (read-only operation)
-      const exists = await db.setlists.get(updatedSetlist.id)
+      const exists = await repository.getSetlist(updatedSetlist.id)
 
       if (exists) {
         // Update existing using hook
@@ -1998,7 +1980,7 @@ export const SetlistsPage: React.FC = () => {
 
       // Update or add associated show if selected
       if (updatedSetlist.associatedShow) {
-        const repo = getSyncRepository()
+        const repo = repository
         await repo.updatePracticeSession(updatedSetlist.associatedShow.id, {
           setlistId: updatedSetlist.id,
         })
@@ -2007,13 +1989,8 @@ export const SetlistsPage: React.FC = () => {
       // Reload the appropriate setlists based on what was saved
       const isPersonalSave = updatedSetlist.contextType === 'personal'
       const dbSetlists = isPersonalSave
-        ? await db.setlists
-            .filter(
-              s => s.contextType === 'personal' && s.contextId === currentUserId
-            )
-            .reverse()
-            .toArray()
-        : await db.setlists.where('bandId').equals(currentBandId).toArray()
+        ? [...(await repository.getPersonalSetlists(currentUserId))].reverse()
+        : await repository.getSetlists(currentBandId)
 
       // Re-convert to UI format (reuse loading logic)
       const reloadedSetlists: UISetlist[] = await Promise.all(
@@ -2022,7 +1999,7 @@ export const SetlistsPage: React.FC = () => {
             | { id: string; name: string; date: string }
             | undefined
           if (dbSetlist.showId) {
-            const show = await db.shows.get(dbSetlist.showId)
+            const show = await repository.getShow(dbSetlist.showId)
             if (show) {
               associatedShow = {
                 id: show.id!,
@@ -2035,7 +2012,7 @@ export const SetlistsPage: React.FC = () => {
           const populatedItems: UISetlistItem[] = await Promise.all(
             (dbSetlist.items || []).map(async item => {
               if (item.type === 'song' && item.songId) {
-                const song = await db.songs.get(item.songId)
+                const song = await repository.getSong(item.songId)
                 if (song) {
                   return {
                     ...item,
@@ -2111,11 +2088,10 @@ export const SetlistsPage: React.FC = () => {
       })
       // Refresh personal songs in state so the drawer shows the new song
       if (currentUserId) {
-        const refreshed = await db.songs
-          .where('contextType')
-          .equals('personal')
-          .and(s => s.contextId === currentUserId)
-          .toArray()
+        const refreshed = await repository.getSongs({
+          contextType: 'personal',
+          contextId: currentUserId,
+        })
         setPersonalDbSongs(refreshed)
       }
       return newSong.id!
