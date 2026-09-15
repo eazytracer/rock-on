@@ -96,6 +96,27 @@ error-only toast; the PAGE's existing try/catch shows the error toast)
 
 DONE: foundation, interface extension, song-group trim, useSongs.
 
+### Hook migrations progress (Section A)
+
+- ✓ useSongs (b964bfe) — template
+- ✓ useSetlists (b2b1e2d)
+- ✓ useShows (4e91690)
+- ✓ usePractices (8935adf) — also removed dynamic db.setlists import
+- ✓ useBands (f840ff9) — added repository.getUserProfile (interface + Remote +
+  Sync + Local impls); rewrote useBands.test.ts; removed from KNOWN_VIOLATIONS
+- ✓ useNotes (5d55141) — routed all note reads through repository
+- ☐ Section A.6 REMAINING: view pages still import useRealtimeSync
+  (PracticeViewPage, SetlistViewPage, ShowViewPage, PracticeSessionPage) →
+  switch to useRealtimeInvalidate or a local onSync refetch, then DELETE
+  src/hooks/useRealtimeSync.ts. (useRealtimeSync is otherwise unused.)
+
+KNOWN_VIOLATIONS now remaining: auth services, InitialSetupService,
+CastingService, MemberCapabilityService, BandService, AuthPages, BandMembersPage.
+(SongLinkingService, useSongs, useBands already removed.)
+
+Full unit suite currently: 989 passing (was 992; -3 = obsolete useBands
+sync-event/listener tests removed, expected).
+
 ---
 
 ## REMAINING WORK (ordered; do in this sequence)
