@@ -13,17 +13,18 @@ Master overview of planned features in the `.claude/backlog/` directory.
 
 ## Feature Overview (open items only)
 
-| Feature                                                             | Status                           | Priority       | Complexity       | Dependencies           |
-| ------------------------------------------------------------------- | -------------------------------- | -------------- | ---------------- | ---------------------- |
-| [auth-and-data-simplification](#auth-and-data-simplification)       | Research Complete                | High (Phase 1) | M (P1) / XL (P2) | Flutter apps (P2 only) |
-| [email-and-notifications](#email-and-notifications)                 | Research/Spec Complete           | Medium         | Medium-High      | None                   |
-| [account-tiers-and-access](#account-tiers-and-access)               | Stub shipped — wire-up remaining | High           | Medium           | None (stub exists)     |
-| [multi-band-support](#multi-band-support)                           | Mostly implemented               | Medium         | Low (polish)     | None                   |
-| [enhanced-security-testing](#enhanced-security-testing)             | Unblocked — ready                | Medium         | Medium           | ci-cd (shipped)        |
-| [ci-cd: deploy + migration-safety](#ci-cd-deploy--migration-safety) | Partial                          | Medium         | Medium           | None                   |
-| [no-console-eslint-rule](#no-console-eslint-rule)                   | Research Complete                | Low            | Medium           | None                   |
-| [react-native-app](#react-native-app)                               | Research Complete                | Low            | Very High        | Stable web app         |
-| [open-jam-venue-mode](#open-jam-venue-mode)                         | Open questions                   | Medium         | High             | Events (shipped)       |
+| Feature                                                                              | Status                           | Priority       | Complexity       | Dependencies                |
+| ------------------------------------------------------------------------------------ | -------------------------------- | -------------- | ---------------- | --------------------------- |
+| [auth-and-data-simplification](#auth-and-data-simplification)                        | Research Complete                | High (Phase 1) | M (P1) / XL (P2) | Flutter apps (P2 only)      |
+| [email-and-notifications](#email-and-notifications)                                  | Research/Spec Complete           | Medium         | Medium-High      | None                        |
+| [account-tiers-and-access](#account-tiers-and-access)                                | Stub shipped — wire-up remaining | High           | Medium           | None (stub exists)          |
+| [multi-band-support](#multi-band-support)                                            | Mostly implemented               | Medium         | Low (polish)     | None                        |
+| [enhanced-security-testing](#enhanced-security-testing)                              | Unblocked — ready                | Medium         | Medium           | ci-cd (shipped)             |
+| [ci-cd: deploy + migration-safety](#ci-cd-deploy--migration-safety)                  | Partial                          | Medium         | Medium           | None                        |
+| [no-console-eslint-rule](#no-console-eslint-rule)                                    | Research Complete                | Low            | Medium           | None                        |
+| [react-native-app](#react-native-app)                                                | Research Complete                | Low            | Very High        | Stable web app              |
+| [open-jam-venue-mode](#open-jam-venue-mode)                                          | Open questions                   | Medium         | High             | Events (shipped)            |
+| [cross-catalog-song-matching](cross-catalog-song-matching/2026-09-14_parked-idea.md) | Idea / parked                    | Low            | High             | Open jam mode; legal review |
 
 ## Recommended Implementation Order
 

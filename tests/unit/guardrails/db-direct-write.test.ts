@@ -77,11 +77,6 @@ const KNOWN_VIOLATIONS = new Set([
   // TODO: route through repository.addBand(), repository.updateBand()
   'src/services/BandService.ts',
 
-  // SongLinkingService — songGroups + songGroupMemberships not yet in repository
-  // (songs.add/update already fixed; remaining writes are group metadata tables)
-  // TODO: add songGroups + songGroupMemberships to IDataRepository
-  'src/services/SongLinkingService.ts',
-
   // Hooks — should not write to db; route through useSongs/useBands hooks that
   // delegate to repository, or add dedicated repository methods
   'src/hooks/useBands.ts',

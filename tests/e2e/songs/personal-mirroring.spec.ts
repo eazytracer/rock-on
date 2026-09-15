@@ -9,7 +9,7 @@
  *   personal side after copy-to-personal)
  *
  * Underlying data flow goes through SongLinkingService.copyBandSongToPersonal,
- * which links the two records via songGroupId + linkedFromSongId.
+ * which links the two records via linkedFromSongId.
  */
 import { test, expect, Page } from '@playwright/test'
 import {
