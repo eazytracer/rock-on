@@ -10,6 +10,16 @@ import {
   JamParticipant,
   JamSongMatch,
 } from '../../models/JamSession'
+import { User } from '../../models/User'
+import type {
+  SongPersonalNote,
+  SongPersonalNoteInput,
+} from '../../models/SongPersonalNote'
+import type {
+  SongNoteEntry,
+  SongNoteEntryInput,
+  SongNoteEntryUpdate,
+} from '../../models/SongNoteEntry'
 
 export interface SongFilter {
   id?: string
@@ -205,4 +215,38 @@ export interface IDataRepository {
     sessionId: string,
     matches: Omit<JamSongMatch, 'id'>[]
   ): Promise<JamSongMatch[]>
+
+  // ========== USERS ==========
+  /** Get a user by ID (cloud-first; for viewing other band members' profiles) */
+  getUser(id: string): Promise<User | null>
+
+  // ========== SONG PERSONAL NOTES ==========
+  getPersonalNote(
+    songId: string,
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote | null>
+  getPersonalNotesForUser(
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote[]>
+  upsertPersonalNote(input: SongPersonalNoteInput): Promise<SongPersonalNote>
+  deletePersonalNote(id: string): Promise<void>
+
+  // ========== SONG NOTE ENTRIES ==========
+  getNoteEntriesForSong(
+    songId: string,
+    bandId: string
+  ): Promise<SongNoteEntry[]>
+  getNoteEntriesForSession(
+    sessionType: 'practice' | 'show',
+    sessionId: string
+  ): Promise<SongNoteEntry[]>
+  getNoteEntry(id: string): Promise<SongNoteEntry | null>
+  createNoteEntry(input: SongNoteEntryInput): Promise<SongNoteEntry>
+  updateNoteEntry(
+    id: string,
+    updates: SongNoteEntryUpdate
+  ): Promise<SongNoteEntry>
+  deleteNoteEntry(id: string): Promise<void>
 }
