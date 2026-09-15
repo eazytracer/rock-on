@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { usePersonalSongs } from '../../../src/hooks/useSongs'
 import { SongService } from '../../../src/services/SongService'
+import { createQueryWrapper } from '../helpers/queryWrapper'
 import type { Song } from '../../../src/models/Song'
 
 // Mock SongService
@@ -15,31 +16,14 @@ vi.mock('../../../src/services/SongService', () => ({
   },
 }))
 
-// Mock AuthContext
+// Mock AuthContext — hook reads realtimeManager + user.id
 vi.mock('../../../src/contexts/AuthContext', () => ({
   useAuth: vi.fn(() => ({
+    user: { id: 'user-123' },
     currentUserId: 'user-123',
     currentBandId: 'band-456',
     realtimeManager: null,
   })),
-}))
-
-// Mock database
-vi.mock('../../../src/services/database', () => ({
-  db: {
-    songs: {
-      where: vi.fn(() => ({
-        equals: vi.fn(() => ({
-          filter: vi.fn(() => ({ toArray: vi.fn().mockResolvedValue([]) })),
-          toArray: vi.fn().mockResolvedValue([]),
-        })),
-      })),
-      toCollection: vi.fn(() => ({
-        toArray: vi.fn().mockResolvedValue([]),
-        filter: vi.fn(() => ({ toArray: vi.fn().mockResolvedValue([]) })),
-      })),
-    },
-  },
 }))
 
 function makePersonalSong(
@@ -87,7 +71,9 @@ describe('usePersonalSongs', () => {
       filtered: 2,
     })
 
-    const { result } = renderHook(() => usePersonalSongs('user-123'))
+    const { result } = renderHook(() => usePersonalSongs('user-123'), {
+      wrapper: createQueryWrapper().wrapper,
+    })
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -100,7 +86,9 @@ describe('usePersonalSongs', () => {
   })
 
   it('returns empty array when userId is empty', async () => {
-    const { result } = renderHook(() => usePersonalSongs(''))
+    const { result } = renderHook(() => usePersonalSongs(''), {
+      wrapper: createQueryWrapper().wrapper,
+    })
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -120,7 +108,10 @@ describe('usePersonalSongs', () => {
 
     const { result, rerender } = renderHook(
       ({ userId }: { userId: string }) => usePersonalSongs(userId),
-      { initialProps: { userId: 'user-a' } }
+      {
+        initialProps: { userId: 'user-a' },
+        wrapper: createQueryWrapper().wrapper,
+      }
     )
 
     await waitFor(() => expect(result.current.loading).toBe(false))
@@ -138,13 +129,14 @@ describe('usePersonalSongs', () => {
       new Error('Network error') as never
     )
 
-    const { result } = renderHook(() => usePersonalSongs('user-123'))
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false)
+    const { result } = renderHook(() => usePersonalSongs('user-123'), {
+      wrapper: createQueryWrapper().wrapper,
     })
 
-    expect(result.current.error).toBeInstanceOf(Error)
+    await waitFor(() => {
+      expect(result.current.error).toBeInstanceOf(Error)
+    })
+
     expect(result.current.songs).toHaveLength(0)
   })
 
@@ -155,7 +147,9 @@ describe('usePersonalSongs', () => {
       filtered: 0,
     })
 
-    const { result } = renderHook(() => usePersonalSongs('user-123'))
+    const { result } = renderHook(() => usePersonalSongs('user-123'), {
+      wrapper: createQueryWrapper().wrapper,
+    })
 
     // Initially loading
     expect(result.current.loading).toBe(true)
@@ -169,7 +163,9 @@ describe('usePersonalSongs', () => {
       filtered: 1,
     })
 
-    const { result } = renderHook(() => usePersonalSongs('user-123'))
+    const { result } = renderHook(() => usePersonalSongs('user-123'), {
+      wrapper: createQueryWrapper().wrapper,
+    })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 

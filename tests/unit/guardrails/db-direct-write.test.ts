@@ -80,7 +80,6 @@ const KNOWN_VIOLATIONS = new Set([
   // Hooks — should not write to db; route through useSongs/useBands hooks that
   // delegate to repository, or add dedicated repository methods
   'src/hooks/useBands.ts',
-  'src/hooks/useSongs.ts',
 
   // Pages — should never write to db directly; use hooks/services instead
   'src/pages/AuthPages.tsx',

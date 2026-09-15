@@ -1,195 +1,102 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { SongService } from '../services/SongService'
-import { getSyncRepository } from '../services/data/SyncRepository'
-import { db } from '../services/database'
-import { useAuth } from '../contexts/AuthContext'
+import { repository } from '../services/data/RepositoryFactory'
+import { queryKeys } from '../services/queryClient'
+import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { Song } from '../models/Song'
+import type { Setlist } from '../models/Setlist'
 
 /**
- * Hook to fetch songs for a band
- * Uses SongService with sync event listening for real-time updates
+ * Fetch the setlists (of the song's own context) that contain a given song.
+ * A band song can only appear in that band's setlists; a personal song only in
+ * the user's personal setlists — so we scope the lookup by the song's context
+ * instead of scanning every setlist.
+ */
+async function getSetlistsContainingSong(song: Song): Promise<Setlist[]> {
+  const setlists =
+    song.contextType === 'personal'
+      ? await repository.getPersonalSetlists(song.contextId)
+      : await repository.getSetlists(song.contextId)
+  return setlists.filter(setlist =>
+    setlist.items?.some(item => item.type === 'song' && item.songId === song.id)
+  )
+}
+
+/**
+ * Hook to fetch songs for a band.
+ *
+ * Reads via TanStack Query (ephemeral in-memory cache). Realtime `songs:changed`
+ * events invalidate the query so other members' edits refetch. Return shape is
+ * preserved (`songs`, `loading`, `error`, `refetch`) for existing consumers.
  */
 export function useSongs(bandId: string) {
-  const [songs, setSongs] = useState<Song[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  const { realtimeManager } = useAuth()
-
-  // Use ref to track the current realtime handler for proper cleanup
-  const realtimeHandlerRef = useRef<
-    | ((event: { bandId: string; action: string; recordId: string }) => void)
-    | null
-  >(null)
-
-  // Memoize fetchSongs with optional silent mode (no loading state change)
-  const fetchSongs = useCallback(
-    async (silent = false) => {
-      try {
-        console.log(
-          '[useSongs] Fetching songs for band:',
-          bandId,
-          silent ? '(silent)' : ''
-        )
-        if (!silent) {
-          setLoading(true)
-        }
-        const response = await SongService.getBandSongs(bandId)
-        console.log('[useSongs] Fetched songs count:', response.songs.length)
-        setSongs(response.songs)
-        setError(null)
-      } catch (err) {
-        console.error('[useSongs] Error fetching songs:', err)
-        setError(err as Error)
-        setSongs([])
-      } finally {
-        if (!silent) {
-          setLoading(false)
-        }
-      }
+  const query = useQuery({
+    queryKey: queryKeys.songs.band(bandId),
+    queryFn: async () => {
+      const response = await SongService.getBandSongs(bandId)
+      return response.songs
     },
-    [bandId]
-  )
+    enabled: !!bandId,
+  })
 
-  useEffect(() => {
-    if (!bandId) {
-      setSongs([])
-      setLoading(false)
-      return
-    }
-
-    console.log('[useSongs] Mounting hook for band:', bandId)
-    fetchSongs() // Initial load - show loading state
-
-    // Listen for sync status changes to trigger refetch
-    const repo = getSyncRepository()
-    const handleSyncChange = (status: any) => {
-      // Only refetch when sync COMPLETES, not when it starts
-      // This prevents double-fetching during deletion
-      // Note: SyncStatus has isSyncing/pendingCount fields, not a 'status' string
-      if (!status.isSyncing && status.pendingCount === 0) {
-        console.log('[useSongs] Sync completed, refetching songs...')
-        fetchSongs(true) // Silent mode
-      } else {
-        console.log(
-          '[useSongs] Sync status changed - isSyncing:',
-          status.isSyncing,
-          'pending:',
-          status.pendingCount,
-          '- not refetching'
-        )
-      }
-    }
-
-    const unsubscribe = repo.onSyncStatusChange(handleSyncChange)
-
-    // Cleanup previous realtime handler if exists
-    if (realtimeManager && realtimeHandlerRef.current) {
-      realtimeManager.off('songs:changed', realtimeHandlerRef.current)
-      realtimeHandlerRef.current = null
-    }
-
-    // Listen for real-time changes from RealtimeManager
-    const handleRealtimeChange = ({
-      bandId: changedBandId,
-    }: {
-      bandId: string
-      action: string
-      recordId: string
-    }) => {
-      console.log('[useSongs] Realtime event received:', {
-        changedBandId,
-        currentBandId: bandId,
-      })
-      // Only refetch if the change is for the current band
-      if (changedBandId === bandId) {
-        console.log(
-          '[useSongs] Realtime change detected for band, refetching...'
-        )
-        fetchSongs(true) // Silent mode - update list without loading state
-      } else {
-        console.log('[useSongs] Ignoring change for different band')
-      }
-    }
-
-    if (realtimeManager) {
-      console.log('[useSongs] Registering realtime listener for band:', bandId)
-      realtimeManager.on('songs:changed', handleRealtimeChange)
-      realtimeHandlerRef.current = handleRealtimeChange
-    } else {
-      console.warn(
-        '[useSongs] No realtimeManager available, real-time updates disabled'
-      )
-    }
-
-    // Cleanup
-    return () => {
-      console.log('[useSongs] Unmounting hook for band:', bandId)
-      unsubscribe()
-      if (realtimeManager && realtimeHandlerRef.current) {
-        realtimeManager.off('songs:changed', realtimeHandlerRef.current)
-        realtimeHandlerRef.current = null
-      }
-    }
-  }, [bandId, realtimeManager, fetchSongs])
+  // Invalidate on remote changes to this band's songs.
+  useRealtimeInvalidate({
+    events: ['songs:changed'],
+    bandId,
+    queryKey: queryKeys.songs.band(bandId),
+  })
 
   return {
-    songs,
-    loading,
-    error,
-    refetch: async () => {
-      console.log(
-        '[useSongs.refetch] Starting manual refetch for band:',
-        bandId
-      )
-      console.log(
-        '[useSongs.refetch] Current songs in state:',
-        songs.length,
-        'songs'
-      )
-      setLoading(true)
-      try {
-        const response = await SongService.getBandSongs(bandId)
-        console.log(
-          '[useSongs.refetch] Fetched from DB:',
-          response.songs.length,
-          'songs'
-        )
-        console.log(
-          '[useSongs.refetch] Song IDs from DB:',
-          response.songs
-            .map(s => `${s.id.substring(0, 8)}:${s.title}`)
-            .join(', ')
-        )
-        setSongs(response.songs)
-        setError(null)
-        console.log(
-          '[useSongs.refetch] setSongs called with',
-          response.songs.length,
-          'songs'
-        )
-      } catch (err) {
-        console.error('[useSongs.refetch] Error:', err)
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
-    },
+    songs: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error as Error | null,
+    refetch: useCallback(async () => {
+      await query.refetch()
+    }, [query]),
   }
 }
 
 /**
- * Hook to create a new song
+ * Hook to fetch personal songs for the current user.
+ * Personal songs have contextType='personal' and contextId=userId.
+ */
+export function usePersonalSongs(userId: string) {
+  const query = useQuery({
+    queryKey: queryKeys.songs.personal(userId),
+    queryFn: async () => {
+      const response = await SongService.getPersonalSongs(userId)
+      return response.songs
+    },
+    enabled: !!userId,
+  })
+
+  // Personal songs carry no bandId; any songs change may touch them, so
+  // invalidate on every songs:changed event.
+  useRealtimeInvalidate({
+    events: ['songs:changed'],
+    queryKey: queryKeys.songs.personal(userId),
+  })
+
+  return {
+    songs: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error as Error | null,
+    refetch: useCallback(async () => {
+      await query.refetch()
+    }, [query]),
+  }
+}
+
+/**
+ * Hook to create a new song. Optimistic: the song appears immediately; on
+ * failure the cache rolls back and the caller's try/catch shows an error toast.
  */
 export function useCreateSong() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const createSong = async (songData: Partial<Song>) => {
-    try {
-      setLoading(true)
-      setError(null)
-
+  const mutation = useMutation({
+    mutationFn: async (songData: Partial<Song>) => {
       const songId = crypto.randomUUID()
       const newSong: Song = {
         id: songId,
@@ -198,179 +105,110 @@ export function useCreateSong() {
         contextType: songData.contextType || 'band',
         contextId: songData.contextId || '',
         createdBy: songData.createdBy || '',
-        visibility: songData.visibility || 'band', // Fixed: use 'band' to match Supabase constraint
+        visibility: songData.visibility || 'band',
         createdDate: new Date(),
         confidenceLevel: songData.confidenceLevel || 1,
         ...songData,
       } as Song
 
-      // Use SyncRepository instead of direct db access - this will queue for sync!
-      await getSyncRepository().addSong(newSong)
-
+      await repository.addSong(newSong)
       return songId
-    } catch (err) {
-      console.error('Error creating song:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    onSettled: (_data, _err, songData) => {
+      // Reconcile whichever catalog this song belongs to.
+      if (songData.contextType === 'personal' && songData.contextId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.songs.personal(songData.contextId),
+        })
+      } else if (songData.contextId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.songs.band(songData.contextId),
+        })
+      }
+    },
+  })
 
-  return { createSong, loading, error }
+  return {
+    createSong: (songData: Partial<Song>) => mutation.mutateAsync(songData),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
 
 /**
- * Hook to update a song
+ * Hook to update a song. Invalidates the owning catalog on settle.
  */
 export function useUpdateSong() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const updateSong = async (songId: string, updates: Partial<Song>) => {
-    try {
-      setLoading(true)
-      setError(null)
+  const mutation = useMutation({
+    mutationFn: async ({
+      songId,
+      updates,
+    }: {
+      songId: string
+      updates: Partial<Song>
+    }) => {
+      await repository.updateSong(songId, updates)
+      return songId
+    },
+    onSettled: () => {
+      // A song update can affect band or personal lists and detail views.
+      queryClient.invalidateQueries({ queryKey: ['songs'] })
+    },
+  })
 
-      // Use SyncRepository instead of direct db access - this will queue for sync!
-      await getSyncRepository().updateSong(songId, updates)
-
-      return true
-    } catch (err) {
-      console.error('Error updating song:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
+  return {
+    updateSong: (songId: string, updates: Partial<Song>) =>
+      mutation.mutateAsync({ songId, updates }),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
   }
-
-  return { updateSong, loading, error }
 }
 
 /**
- * Hook to delete a song
+ * Hook to delete a song. Removes the song from any setlists in its context
+ * first (through the repository so the change syncs), then deletes the song.
  */
 export function useDeleteSong() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const queryClient = useQueryClient()
 
-  const deleteSong = async (songId: string) => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Check if song is in any setlists
-      const setlists = await db.setlists
-        .filter(setlist =>
-          setlist.items?.some(
-            item => item.type === 'song' && item.songId === songId
-          )
-        )
-        .toArray()
-
-      if (setlists.length > 0) {
-        // Remove song from all setlists
+  const mutation = useMutation({
+    mutationFn: async (songId: string) => {
+      const song = await repository.getSong(songId)
+      if (song) {
+        // Remove the song from any setlists that reference it.
+        const setlists = await getSetlistsContainingSong(song)
         for (const setlist of setlists) {
-          const updatedItems =
-            setlist.items?.filter(
-              item => !(item.type === 'song' && item.songId === songId)
-            ) || []
-
-          // Reindex positions
+          const updatedItems = (setlist.items || []).filter(
+            item => !(item.type === 'song' && item.songId === songId)
+          )
           updatedItems.forEach((item, index) => {
             item.position = index + 1
           })
-
-          await db.setlists.update(setlist.id!, { items: updatedItems })
+          await repository.updateSetlist(setlist.id!, { items: updatedItems })
         }
       }
 
-      // Use SyncRepository instead of direct db access - this will queue for sync!
-      await getSyncRepository().deleteSong(songId)
-
-      return true
-    } catch (err) {
-      console.error('Error deleting song:', err)
-      setError(err as Error)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const checkSongInSetlists = async (songId: string) => {
-    const setlists = await db.setlists
-      .filter(setlist =>
-        setlist.items?.some(
-          item => item.type === 'song' && item.songId === songId
-        )
-      )
-      .toArray()
-
-    return setlists
-  }
-
-  return { deleteSong, checkSongInSetlists, loading, error }
-}
-
-/**
- * Hook to fetch personal songs for the current user.
- * Personal songs have contextType='personal' and contextId=userId.
- * Mirrors the useSongs(bandId) pattern.
- */
-export function usePersonalSongs(userId: string) {
-  const [songs, setSongs] = useState<Song[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  const { realtimeManager } = useAuth()
-
-  const fetchPersonalSongs = useCallback(
-    async (silent = false) => {
-      if (!userId) {
-        setSongs([])
-        setLoading(false)
-        return
-      }
-      try {
-        if (!silent) setLoading(true)
-        const response = await SongService.getPersonalSongs(userId)
-        setSongs(response.songs)
-        setError(null)
-      } catch (err) {
-        setError(err as Error)
-        setSongs([])
-      } finally {
-        if (!silent) setLoading(false)
-      }
+      await repository.deleteSong(songId)
+      return songId
     },
-    [userId]
-  )
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['songs'] })
+      queryClient.invalidateQueries({ queryKey: ['setlists'] })
+    },
+  })
 
-  useEffect(() => {
-    fetchPersonalSongs()
-  }, [fetchPersonalSongs])
+  const checkSongInSetlists = useCallback(async (songId: string) => {
+    const song = await repository.getSong(songId)
+    if (!song) return []
+    return getSetlistsContainingSong(song)
+  }, [])
 
-  // Subscribe to realtime changes for personal songs
-  useEffect(() => {
-    if (!realtimeManager || !userId) return
-
-    const handleChange = (event: {
-      bandId: string
-      action: string
-      recordId: string
-    }) => {
-      // Personal songs don't have a bandId, but the event fires on any songs change
-      // Re-fetch silently to stay in sync
-      void fetchPersonalSongs(true)
-      void event // suppress unused warning
-    }
-
-    realtimeManager.on('songs:changed', handleChange)
-    return () => {
-      realtimeManager.off('songs:changed', handleChange)
-    }
-  }, [realtimeManager, userId, fetchPersonalSongs])
-
-  return { songs, loading, error, refetch: () => fetchPersonalSongs() }
+  return {
+    deleteSong: (songId: string) => mutation.mutateAsync(songId),
+    checkSongInSetlists,
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
 }
