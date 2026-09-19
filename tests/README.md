@@ -1,6 +1,7 @@
 # Rock-On Test Suite Documentation
 
 ## Table of Contents
+
 1. [Test Strategy Overview](#test-strategy-overview)
 2. [Test Types](#test-types)
 3. [Mock Patterns](#mock-patterns)
@@ -12,16 +13,22 @@
 
 ## Test Strategy Overview
 
-Rock-On uses a multi-layered testing strategy to ensure code quality, reliability, and maintainability:
+Rock-On is a naive online Supabase client (Phase 2 data-layer simplification):
+there is no local IndexedDB mirror and no sync engine. Reads/writes go straight
+to Supabase via `RemoteRepository`; TanStack Query is the ephemeral in-memory
+cache, and the `audit_log` change-feed (Supabase Realtime) drives freshness.
 
-- **Unit Tests** - Fast, isolated tests for individual components
-- **Integration Tests** - Test interactions with real Supabase database
-- **Journey Tests** - End-to-end user workflow tests with real infrastructure
-- **E2E Tests** - Browser-based tests using Playwright
-- **Contract Tests** - API contract validation tests
-- **Database Tests** - Schema validation using pgTAP
+Testing layers:
 
-**Key Principle:** Mock at the boundary, not internally.
+- **Unit Tests** - Fast, isolated tests for components, hooks, services, and the
+  repository (Supabase client mocked).
+- **Integration Tests** - Exercise `RemoteRepository` against a mocked/real
+  Supabase surface.
+- **E2E Tests** - Browser-based tests using Playwright (full stack).
+- **Contract Tests** - API contract validation.
+- **Database Tests** - Schema + trigger validation using pgTAP.
+
+**Key Principle:** Mock at the boundary (the Supabase client), not internally.
 
 ---
 
@@ -31,40 +38,39 @@ Rock-On uses a multi-layered testing strategy to ensure code quality, reliabilit
 
 **Purpose:** Test individual units of code in isolation
 **Speed:** ⚡ Very Fast (< 1s per test)
-**Isolation:** Complete - all dependencies mocked
-**Use When:** Testing business logic, calculations, transformations
+**Isolation:** Complete - dependencies mocked (repository or Supabase client)
+**Use When:** Testing business logic, hooks, transformations, repository mapping
 
 **Structure:**
+
 ```
 tests/unit/
 ├── config/          # Configuration tests
 ├── hooks/           # React hooks tests
 ├── services/        # Service layer tests
-│   ├── data/        # Repository & sync tests
+│   ├── data/        # RemoteRepository & RealtimeManager tests
 │   └── auth/        # Authentication tests
 └── utils.test.ts    # Utility function tests
 ```
 
 ### Integration Tests (`tests/integration/`)
 
-**Purpose:** Test component interactions with real database
-**Speed:** 🐢 Slow (2-10s per test)
-**Isolation:** Partial - uses real Supabase, mocked UI
-**Use When:** Testing database operations, sync flows
-
-### Journey Tests (`tests/journeys/`)
-
-**Purpose:** Test complete user workflows
-**Speed:** 🐌 Very Slow (10-60s per journey)
-**Isolation:** None - uses real infrastructure
-**Use When:** Testing critical user paths, multi-step flows
+**Purpose:** Test `RemoteRepository` behavior against Supabase
+**Speed:** 🐢 Slower
+**Use When:** Testing query shaping, field mapping, and RLS-facing paths
 
 ### E2E Tests (`tests/e2e/`)
 
 **Purpose:** Browser-based UI testing
-**Speed:** 🐌 Very Slow (10-120s per test)
+**Speed:** 🐌 Very Slow
 **Isolation:** None - full stack with real browser
-**Use When:** Testing UI interactions, visual regressions
+**Use When:** Testing UI interactions, multi-member live flows, visual checks
+
+### Database Tests (`supabase/tests/`, pgTAP)
+
+**Purpose:** Validate schema, RLS policies, and triggers (incl. `audit_log`
+change-feed coverage)
+**Run:** `supabase db reset && npm run test:db`
 
 ---
 
@@ -72,7 +78,7 @@ tests/unit/
 
 ### Pattern 1: Service Layer Tests (Most Common)
 
-**What to Mock:** Repository layer
+**What to Mock:** Repository layer (`RepositoryFactory`)
 **What NOT to Mock:** Business logic within the service
 
 ```typescript
@@ -128,68 +134,54 @@ describe('SongService', () => {
 ```
 
 **Why This Pattern?**
+
 - ✅ Tests business logic in isolation
 - ✅ Fast execution (no real database calls)
 - ✅ Predictable, deterministic results
 - ✅ Easy to test error conditions
 
-### Pattern 2: Repository Layer Tests
+### Pattern 2: Repository Layer Tests (`RemoteRepository`)
 
-**What to Mock:** LocalRepository, RemoteRepository, SyncEngine
-**What NOT to Mock:** SyncRepository logic
+**What to Mock:** The Supabase client (`services/supabase/client`)
+**What NOT to Mock:** `RemoteRepository`'s query shaping / field mapping
+
+`RemoteRepository` is the only repository — it talks directly to Supabase. Mock
+the Supabase client's fluent query builder and assert the repository maps
+snake_case rows to camelCase models (and shapes writes correctly).
 
 ```typescript
-// ✅ CORRECT: tests/unit/services/data/SyncRepository.test.ts
+// ✅ CORRECT: tests/unit/services/data/RemoteRepository.test.ts
 
-vi.mock('../../../../src/services/data/LocalRepository')
-vi.mock('../../../../src/services/data/RemoteRepository')
-vi.mock('../../../../src/services/data/SyncEngine')
+vi.mock('../../../../src/services/supabase/client', () => {
+  const mockSingle = vi.fn()
+  const mockEq = vi.fn(() => ({ single: mockSingle, maybeSingle: mockSingle }))
+  const mockSelect = vi.fn(() => ({ eq: mockEq }))
+  const mockFrom = vi.fn(() => ({ select: mockSelect }))
 
-import { SyncRepository } from '../../../../src/services/data/SyncRepository'
-import { LocalRepository } from '../../../../src/services/data/LocalRepository'
+  return {
+    supabase: { from: mockFrom },
+    getSupabaseClient: vi.fn(() => ({
+      from: mockFrom,
+      _mockSingle: mockSingle,
+    })),
+  }
+})
+
 import { RemoteRepository } from '../../../../src/services/data/RemoteRepository'
 
-describe('SyncRepository', () => {
-  let syncRepository: SyncRepository
-  let mockLocal: any
-  let mockRemote: any
-
-  beforeEach(() => {
-    mockLocal = {
-      getSongs: vi.fn(),
-      addSong: vi.fn(),
-      // ... other methods
-    }
-    mockRemote = {
-      getSongs: vi.fn(),
-      addSong: vi.fn(),
-      // ... other methods
-    }
-
-    vi.mocked(LocalRepository).mockImplementation(() => mockLocal)
-    vi.mocked(RemoteRepository).mockImplementation(() => mockRemote)
-
-    syncRepository = new SyncRepository('test-user-id')
-  })
-
-  it('should delegate to LocalRepository when offline', async () => {
-    // Arrange
-    Object.defineProperty(navigator, 'onLine', { value: false })
-    mockLocal.getSongs.mockResolvedValue([])
-
-    // Act
-    await syncRepository.getSongs('band-1')
-
-    // Assert
-    expect(mockLocal.getSongs).toHaveBeenCalled()
-    expect(mockRemote.getSongs).not.toHaveBeenCalled()
+describe('RemoteRepository', () => {
+  it('maps a Supabase row to the Song model', async () => {
+    // Arrange the mocked query result, then:
+    const repo = new RemoteRepository()
+    const song = await repo.getSong('song-1')
+    // Assert camelCase mapping, e.g. expect(song?.createdDate).toBeInstanceOf(Date)
   })
 })
 ```
 
 ### Pattern 3: React Hooks Tests
 
-**What to Mock:** Services, Repositories, Supabase client
+**What to Mock:** Services, the repository, and/or the Supabase client
 **What NOT to Mock:** React hooks logic, React Testing Library
 
 ```typescript
@@ -197,43 +189,28 @@ describe('SyncRepository', () => {
 
 // 1. Mock Supabase client
 vi.mock('../../../src/services/supabase/client', () => {
-  const mockInsert = vi.fn()
-  const mockSelect = vi.fn()
   const mockSingle = vi.fn()
-  const mockFrom = vi.fn(() => ({
-    insert: mockInsert.mockReturnValue({
-      select: mockSelect.mockReturnValue({
-        single: mockSingle
-      })
-    })
-  }))
+  const mockSelect = vi.fn(() => ({ single: mockSingle }))
+  const mockInsert = vi.fn(() => ({ select: mockSelect }))
+  const mockFrom = vi.fn(() => ({ insert: mockInsert }))
 
   return {
     getSupabaseClient: vi.fn(() => ({
       from: mockFrom,
       _mockSingle: mockSingle, // Expose for test setup
-    }))
+    })),
   }
 })
 
-// 2. Mock services
-vi.mock('../../../src/services/BandService')
-vi.mock('../../../src/services/BandMembershipService')
-
-// 3. Mock repository
-vi.mock('../../../src/services/data/SyncRepository', () => {
-  const mockRepo = {
-    on: vi.fn(),
-    off: vi.fn(),
+// 2. Mock the repository (RepositoryFactory)
+vi.mock('../../../src/services/data/RepositoryFactory', () => ({
+  repository: {
     getUser: vi.fn(),
     getBand: vi.fn(),
+    getUserMemberships: vi.fn(),
     // ... other data methods
-  }
-
-  return {
-    getSyncRepository: vi.fn(() => mockRepo),
-  }
-})
+  },
+}))
 
 import { renderHook, act } from '@testing-library/react'
 import { useCreateBand } from '../../../src/hooks/useBands'
@@ -245,7 +222,7 @@ describe('useBands Hooks', () => {
     const mockSupabaseClient = getSupabaseClient() as any
     mockSupabaseClient._mockSingle.mockResolvedValue({
       data: { id: 'band-1', name: 'Test Band' },
-      error: null
+      error: null,
     })
 
     // Act
@@ -261,29 +238,18 @@ describe('useBands Hooks', () => {
 })
 ```
 
-### Pattern 4: Integration Tests (NO Mocks)
+> **TanStack Query note:** hooks that use `useQuery`/`useMutation` need a
+> `QueryClientProvider` wrapper in `renderHook`. Create a fresh `QueryClient`
+> per test (with retries disabled) so cache state doesn't leak between tests.
 
-**What to Mock:** Nothing - use real Supabase
-**What to Setup:** Test database with seed data
+### Pattern 4: RealtimeManager Tests
 
-```typescript
-// ✅ CORRECT: tests/integration/template.test.ts
+`RealtimeManager` is a pure change-notifier: it subscribes to the `audit_log`
+Realtime channel and emits `{entity}:changed` events plus batched toasts. It no
+longer writes to any local store. Mock the Supabase Realtime channel and assert
+the emitted events, not any data application.
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import { resetTestDatabase } from '../helpers/testDatabase'
-
-describe('Integration Test', () => {
-  beforeEach(async () => {
-    // Real database reset - no mocks!
-    await resetTestDatabase()
-  })
-
-  it('should perform real database operations', async () => {
-    // Use real services, real repository, real Supabase
-    // No mocks - this tests the full integration
-  })
-})
-```
+See `tests/unit/services/data/RealtimeManager.test.ts` for the current pattern.
 
 ---
 
@@ -293,32 +259,33 @@ describe('Integration Test', () => {
 
 ```
 ┌─────────────────────────────────────────┐
-│          UI Components (React)          │ ← E2E/Journey Tests
+│          UI Components (React)          │ ← E2E Tests
 ├─────────────────────────────────────────┤
-│        React Hooks (useBands)           │ ← Mock: Services, Repository
+│  React Hooks (useBands, TanStack Query) │ ← Mock: Services, Repository, Supabase
 ├─────────────────────────────────────────┤
 │   Services (BandService, SongService)   │ ← Mock: Repository
 ├─────────────────────────────────────────┤
 │      RepositoryFactory (Singleton)      │
 ├─────────────────────────────────────────┤
-│      SyncRepository (Orchestrator)      │ ← Mock: Local, Remote, Engine
-├─────┬───────────────────────────┬───────┤
-│Local│    SyncEngine (Queue)     │Remote │ ← Mock: Supabase, Dexie
-├─────┴───────────────────────────┴───────┤
-│   Dexie (IndexedDB)   Supabase Client  │ ← Integration Tests (real)
+│   RemoteRepository (direct Supabase)    │ ← Mock: Supabase client
+├─────────────────────────────────────────┤
+│            Supabase Client              │ ← Integration/E2E (real)
 └─────────────────────────────────────────┘
+
+Freshness: RealtimeManager subscribes to audit_log (Supabase Realtime) and
+emits *:changed events → hooks invalidate TanStack Query caches.
 ```
 
 ### What to Mock at Each Layer
 
-| Layer | Test Type | Mock This | Keep Real |
-|-------|-----------|-----------|-----------|
-| **Services** | Unit | Repository | Business logic |
-| **Hooks** | Unit | Services, Repository, Supabase | Hook logic, React |
-| **Repository** | Unit | Local, Remote, Engine | Orchestration logic |
-| **Data Access** | Unit | Supabase client, Dexie | Transformation logic |
-| **Integration** | Integration | Nothing | Everything |
-| **Journey** | Journey | Nothing | Everything |
+| Layer               | Test Type   | Mock This                      | Keep Real                     |
+| ------------------- | ----------- | ------------------------------ | ----------------------------- |
+| **Services**        | Unit        | Repository                     | Business logic                |
+| **Hooks**           | Unit        | Services, Repository, Supabase | Hook logic, React, TanStack   |
+| **Repository**      | Unit        | Supabase client                | Query shaping / field mapping |
+| **RealtimeManager** | Unit        | Supabase Realtime channel      | Event emission / batching     |
+| **Integration**     | Integration | (minimal)                      | RemoteRepository + Supabase   |
+| **E2E**             | E2E         | Nothing                        | Everything                    |
 
 ---
 
@@ -327,12 +294,12 @@ describe('Integration Test', () => {
 ### ❌ Anti-Pattern 1: Mocking Too Deep
 
 ```typescript
-// ❌ WRONG: Don't mock implementation details
+// ❌ WRONG: Don't mock the thing you're testing
 vi.mock('../../../src/services/SongService', () => ({
   SongService: {
     getAllSongs: vi.fn(),
     addSong: vi.fn(),
-  }
+  },
 }))
 
 // Test becomes useless - you're testing the mock, not the code!
@@ -345,47 +312,29 @@ vi.mock('../../../src/services/SongService', () => ({
 ### ❌ Anti-Pattern 2: Mixing Old and New Mock Patterns
 
 ```typescript
-// ❌ WRONG: Mixing database mocks with repository mocks
+// ❌ WRONG: reaching for a Dexie-style fluent chain that no longer exists
 vi.mock('../../../src/services/data/RepositoryFactory', () => ({
-  repository: { getInviteCodes: vi.fn() }
+  repository: { getInviteCodeByCode: vi.fn() }
 }))
 
 // Then later in test:
-mockInviteCodesWhere.mockReturnValue({ ... }) // This doesn't exist!
+mockInviteCodesWhere.mockReturnValue({ ... }) // db.* no longer exists!
 ```
 
-**Why It's Wrong:** Test setup and implementation use different mocking strategies.
+**Why It's Wrong:** There is no `db.*` / Dexie layer anymore. Everything goes
+through `repository.*` (or, one level down, the mocked Supabase client).
 
 **✅ Fix:** Use repository mocks consistently:
 
 ```typescript
-// Mock setup
 const mockGetInviteCodeByCode = vi.fn()
-
-// Test
 mockGetInviteCodeByCode.mockResolvedValue(mockInviteCode)
 ```
 
 ### ❌ Anti-Pattern 3: Not Clearing Mocks Between Tests
 
 ```typescript
-// ❌ WRONG: Mocks retain state from previous tests
-describe('Service Tests', () => {
-  it('test 1', async () => {
-    mockGetSongs.mockResolvedValue([song1])
-    // ... test
-  })
-
-  it('test 2', async () => {
-    // mockGetSongs still has previous config!
-    // This test may pass/fail unpredictably
-  })
-})
-```
-
-**✅ Fix:** Always clear mocks in beforeEach:
-
-```typescript
+// ✅ Fix: Always clear mocks in beforeEach
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -440,8 +389,9 @@ import { BandMembershipService } from '../../../src/services/BandMembershipServi
 import { repository } from '../../../src/services/data/RepositoryFactory'
 
 // 3. Extract mocks
-const mockGetInviteCodeByCode = repository.getInviteCodeByCode as ReturnType<typeof vi.fn>
-const mockAddInviteCode = repository.addInviteCode as ReturnType<typeof vi.fn>
+const mockGetInviteCodeByCode = repository.getInviteCodeByCode as ReturnType<
+  typeof vi.fn
+>
 
 // 4. Write tests
 describe('BandMembershipService', () => {
@@ -450,145 +400,39 @@ describe('BandMembershipService', () => {
   })
 
   it('should validate invite code', async () => {
-    // Arrange
     const mockCode = {
       id: '1',
       code: 'ABC123',
       isActive: true,
       maxUses: 10,
-      currentUses: 5
+      currentUses: 5,
     }
     mockGetInviteCodeByCode.mockResolvedValue(mockCode)
 
-    // Act
     const result = await BandMembershipService.validateInviteCode('ABC123')
 
-    // Assert
     expect(result.valid).toBe(true)
     expect(mockGetInviteCodeByCode).toHaveBeenCalledWith('ABC123')
   })
 
   it('should reject invalid invite code', async () => {
-    // Arrange
     mockGetInviteCodeByCode.mockResolvedValue(null)
 
-    // Act
     const result = await BandMembershipService.validateInviteCode('INVALID')
 
-    // Assert
     expect(result.valid).toBe(false)
     expect(result.error).toBe('Invalid invite code')
   })
 })
 ```
 
-### Example 2: Repository Test with Lower-Level Mocks
+### Example 2: RealtimeManager Test (event emission)
 
-**File:** `tests/unit/services/data/SyncRepository.test.ts`
+**File:** `tests/unit/services/data/RealtimeManager.test.ts`
 
-```typescript
-// 1. Mock dependencies
-vi.mock('../../../../src/services/data/LocalRepository')
-vi.mock('../../../../src/services/data/RemoteRepository')
-vi.mock('../../../../src/services/data/SyncEngine')
-
-// 2. Import classes
-import { SyncRepository } from '../../../../src/services/data/SyncRepository'
-import { LocalRepository } from '../../../../src/services/data/LocalRepository'
-import { RemoteRepository } from '../../../../src/services/data/RemoteRepository'
-
-// 3. Setup test
-describe('SyncRepository', () => {
-  let syncRepo: SyncRepository
-  let mockLocal: any
-  let mockRemote: any
-
-  beforeEach(() => {
-    mockLocal = {
-      getSongs: vi.fn(),
-      addSong: vi.fn(),
-    }
-    mockRemote = {
-      getSongs: vi.fn(),
-      addSong: vi.fn(),
-    }
-
-    vi.mocked(LocalRepository).mockImplementation(() => mockLocal)
-    vi.mocked(RemoteRepository).mockImplementation(() => mockRemote)
-
-    syncRepo = new SyncRepository('user-1')
-  })
-
-  it('should use LocalRepository when offline', async () => {
-    // Arrange
-    Object.defineProperty(navigator, 'onLine', { value: false })
-    mockLocal.getSongs.mockResolvedValue([])
-
-    // Act
-    await syncRepo.getSongs('band-1')
-
-    // Assert
-    expect(mockLocal.getSongs).toHaveBeenCalled()
-    expect(mockRemote.getSongs).not.toHaveBeenCalled()
-  })
-})
-```
-
-### Example 3: Hook Test with Multiple Mocks
-
-**File:** `tests/unit/hooks/useBands.test.ts`
-
-```typescript
-// 1. Mock Supabase client
-vi.mock('../../../src/services/supabase/client', () => {
-  const mockSingle = vi.fn()
-  const mockSelect = vi.fn(() => ({ single: mockSingle }))
-  const mockInsert = vi.fn(() => ({ select: mockSelect }))
-  const mockFrom = vi.fn(() => ({ insert: mockInsert }))
-
-  return {
-    getSupabaseClient: vi.fn(() => ({
-      from: mockFrom,
-      _mockSingle: mockSingle,
-    }))
-  }
-})
-
-// 2. Mock repository
-vi.mock('../../../src/services/data/SyncRepository', () => ({
-  getSyncRepository: vi.fn(() => ({
-    on: vi.fn(),
-    off: vi.fn(),
-    getUser: vi.fn(),
-    getBand: vi.fn(),
-  }))
-}))
-
-// 3. Import and test
-import { renderHook, act } from '@testing-library/react'
-import { useCreateBand } from '../../../src/hooks/useBands'
-import { getSupabaseClient } from '../../../src/services/supabase/client'
-
-describe('useCreateBand', () => {
-  it('should create band successfully', async () => {
-    // Arrange
-    const mockClient = getSupabaseClient() as any
-    mockClient._mockSingle.mockResolvedValue({
-      data: { id: 'band-1', name: 'Test' },
-      error: null
-    })
-
-    // Act
-    const { result } = renderHook(() => useCreateBand())
-    await act(async () => {
-      await result.current.createBand({ name: 'Test' }, 'user-1')
-    })
-
-    // Assert
-    expect(result.current.error).toBeNull()
-  })
-})
-```
+Mock the Supabase Realtime channel, feed a synthetic `audit_log` change, and
+assert a `{entity}:changed` event is emitted (and that own-changes don't toast).
+No data-application assertions — the manager only notifies.
 
 ---
 
@@ -596,14 +440,14 @@ describe('useCreateBand', () => {
 
 ### When to Use Which Pattern
 
-| You're Testing | Mock This | Example File |
-|----------------|-----------|--------------|
-| Service (BandService) | Repository | `tests/unit/services/BandService.test.ts` |
-| Service (SongService) | Repository | `tests/unit/services/SongService.test.ts` |
-| Repository (SyncRepository) | Local, Remote, Engine | `tests/unit/services/data/SyncRepository.test.ts` |
-| Hook (useBands) | Services, Repository, Supabase | `tests/unit/hooks/useBands.test.ts` |
-| Integration Flow | Nothing (real deps) | `tests/integration/template.test.ts` |
-| User Journey | Nothing (real deps) | `tests/journeys/sync-journeys.test.ts` |
+| You're Testing                | Mock This                      | Example File                                        |
+| ----------------------------- | ------------------------------ | --------------------------------------------------- |
+| Service (BandService)         | Repository                     | `tests/unit/services/BandService.test.ts`           |
+| Service (SongService)         | Repository                     | `tests/unit/services/SongService.test.ts`           |
+| Repository (RemoteRepository) | Supabase client                | `tests/unit/services/data/RemoteRepository.test.ts` |
+| Hook (useBands)               | Services, Repository, Supabase | `tests/unit/hooks/useBands.test.ts`                 |
+| RealtimeManager               | Supabase Realtime channel      | `tests/unit/services/data/RealtimeManager.test.ts`  |
+| DB schema / triggers / RLS    | Nothing (pgTAP)                | `supabase/tests/*.test.sql`                         |
 
 ### Mock Setup Checklist
 
@@ -613,6 +457,7 @@ describe('useCreateBand', () => {
 - [ ] `vi.clearAllMocks()` in `beforeEach()`
 - [ ] Mock returns match real data structures
 - [ ] All mock methods used in tests are defined
+- [ ] TanStack-Query hooks wrapped in a fresh `QueryClientProvider`
 
 ### Test Writing Checklist
 
@@ -629,10 +474,11 @@ describe('useCreateBand', () => {
 
 - **Vitest Documentation:** https://vitest.dev
 - **React Testing Library:** https://testing-library.com/react
+- **TanStack Query:** https://tanstack.com/query
 - **Playwright (E2E):** https://playwright.dev
-- **Rock-On Test Helpers:** `tests/helpers/`
+- **pgTAP:** https://pgtap.org
 
 ---
 
-**Last Updated:** 2025-11-21
+**Last Updated:** 2026-09-15
 **Maintainer:** Rock-On Development Team
