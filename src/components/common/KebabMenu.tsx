@@ -66,8 +66,11 @@ export function KebabMenu({
       {/* Transparent backdrop — click anywhere outside to close */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 z-40 cursor-default"
+          onClick={e => {
+            e.stopPropagation()
+            setIsOpen(false)
+          }}
           aria-hidden="true"
         />
       )}
@@ -98,7 +101,11 @@ export function KebabMenu({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className={dropdownClasses} role="menu">
+        <div
+          className={dropdownClasses}
+          role="menu"
+          onClick={e => e.stopPropagation()}
+        >
           {items.map((item, index) => {
             const Icon = item.icon
             const isDanger = item.variant === 'danger'

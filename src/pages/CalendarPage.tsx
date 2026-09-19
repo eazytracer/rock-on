@@ -490,20 +490,6 @@ export function CalendarPage() {
         'Creates a new practice from this one, songs included. Pick a date.',
       fields: [
         {
-          kind: 'select',
-          key: 'type',
-          label: 'Type',
-          value: p.type,
-          options: [
-            { value: 'rehearsal', label: 'Rehearsal' },
-            { value: 'writing', label: 'Writing' },
-            { value: 'recording', label: 'Recording' },
-            { value: 'audition', label: 'Audition' },
-            { value: 'lesson', label: 'Lesson' },
-            { value: 'gig', label: 'Gig' },
-          ],
-        },
-        {
           kind: 'datetime',
           key: 'scheduledDate',
           label: 'Date & time',
@@ -582,7 +568,6 @@ export function CalendarPage() {
           scheduledDate: v.scheduledDate as Date,
           duration: v.duration as number | undefined,
           location: (v.location as string) || undefined,
-          type: v.type as import('../types').SessionType,
           notes: (v.notes as string) || undefined,
         })
         showToast('Practice duplicated', 'success')
