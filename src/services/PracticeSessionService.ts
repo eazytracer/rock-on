@@ -155,31 +155,34 @@ export class PracticeSessionService {
    * notes, song references, invitee list) but resets everything
    * session-specific: a fresh id/createdDate, status 'scheduled', cleared
    * start/end/wrapup/rating/completed-objectives, per-song progress reset, and
-   * attendee confirmed/attended reset. `overrides` (e.g. a chosen
-   * scheduledDate) win over the copied values; scheduledDate defaults to one
-   * week after the source.
+   * attendee confirmed/attended reset. `overrides` (the modal's edited scalar
+   * fields) win over the copied values; scheduledDate defaults to the SOURCE's
+   * date (a placeholder the modal forces the user to set).
    */
   static async duplicateSession(
     sessionId: string,
-    overrides?: { scheduledDate?: Date }
+    overrides?: {
+      scheduledDate?: Date
+      duration?: number
+      location?: string
+      type?: SessionType
+      notes?: string
+      objectives?: string[]
+    }
   ): Promise<PracticeSession> {
     const source = await this.getSessionById(sessionId)
     if (!source) {
       throw new Error('Session not found')
     }
 
-    const defaultDate = new Date(
-      new Date(source.scheduledDate).getTime() + 7 * 24 * 60 * 60 * 1000
-    )
-
     const newSession: PracticeSession = {
       id: crypto.randomUUID(),
       bandId: source.bandId,
       setlistId: source.setlistId,
-      scheduledDate: overrides?.scheduledDate ?? defaultDate,
-      duration: source.duration,
-      location: source.location,
-      type: source.type,
+      scheduledDate: overrides?.scheduledDate ?? new Date(source.scheduledDate),
+      duration: overrides?.duration ?? source.duration,
+      location: overrides?.location ?? source.location,
+      type: overrides?.type ?? source.type,
       status: 'scheduled',
       createdDate: new Date(),
       // Copy song references, reset per-song progress
@@ -198,8 +201,8 @@ export class PracticeSessionService {
         confirmed: false,
         attended: false,
       })),
-      notes: source.notes,
-      objectives: [...source.objectives],
+      notes: overrides?.notes ?? source.notes,
+      objectives: overrides?.objectives ?? [...source.objectives],
       completedObjectives: [],
       // Deliberately NOT copied: startTime, endTime, wrapupNotes,
       // sessionRating, version, lastModifiedBy (fresh planned session).

@@ -504,7 +504,7 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
       expect(mockAddPracticeSession).toHaveBeenCalledTimes(1)
     })
 
-    it('defaults scheduledDate to one week after the source', async () => {
+    it('defaults scheduledDate to the same date as the source', async () => {
       mockGetPracticeSession.mockResolvedValue(buildSource())
       mockAddPracticeSession.mockImplementation((s: PracticeSession) =>
         Promise.resolve(s)
@@ -512,12 +512,12 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
 
       const result = await PracticeSessionService.duplicateSession('source-1')
 
-      const expected =
-        new Date('2025-10-28T18:00:00').getTime() + 7 * 24 * 60 * 60 * 1000
-      expect(new Date(result.scheduledDate).getTime()).toBe(expected)
+      expect(new Date(result.scheduledDate).getTime()).toBe(
+        new Date('2025-10-28T18:00:00').getTime()
+      )
     })
 
-    it('lets an overridden scheduledDate win', async () => {
+    it('lets overridden scalar fields win', async () => {
       mockGetPracticeSession.mockResolvedValue(buildSource())
       mockAddPracticeSession.mockImplementation((s: PracticeSession) =>
         Promise.resolve(s)
@@ -526,9 +526,17 @@ describe('PracticeSessionService - Migrated to Repository Pattern', () => {
       const chosen = new Date('2025-12-01T19:00:00')
       const result = await PracticeSessionService.duplicateSession('source-1', {
         scheduledDate: chosen,
+        duration: 90,
+        location: 'Studio B',
+        type: 'writing',
+        notes: 'Horns only',
       })
 
       expect(new Date(result.scheduledDate).getTime()).toBe(chosen.getTime())
+      expect(result.duration).toBe(90)
+      expect(result.location).toBe('Studio B')
+      expect(result.type).toBe('writing')
+      expect(result.notes).toBe('Horns only')
     })
 
     it('throws when the source session does not exist', async () => {

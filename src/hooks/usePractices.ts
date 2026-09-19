@@ -116,7 +116,7 @@ export function useDuplicatePractice() {
       overrides,
     }: {
       practiceId: string
-      overrides?: { scheduledDate?: Date }
+      overrides?: Parameters<typeof PracticeSessionService.duplicateSession>[1]
     }) => {
       const newPractice = await PracticeSessionService.duplicateSession(
         practiceId,
@@ -132,7 +132,7 @@ export function useDuplicatePractice() {
   return {
     duplicatePractice: (
       practiceId: string,
-      overrides?: { scheduledDate?: Date }
+      overrides?: Parameters<typeof PracticeSessionService.duplicateSession>[1]
     ) => mutation.mutateAsync({ practiceId, overrides }),
     loading: mutation.isPending,
     error: mutation.error as Error | null,

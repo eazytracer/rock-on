@@ -7,12 +7,22 @@ import {
   PartyPopper,
   Clock,
   MapPin,
+  Copy,
+  Trash2,
+  ExternalLink,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { useShows } from '../hooks/useShows'
-import { usePractices } from '../hooks/usePractices'
+import { useShows, useDeleteShow, useDuplicateShow } from '../hooks/useShows'
+import {
+  usePractices,
+  useDeletePractice,
+  useDuplicatePractice,
+} from '../hooks/usePractices'
 import { useEvents } from '../hooks/useEvents'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../hooks/useConfirm'
+import { repository } from '../services/data/RepositoryFactory'
 import {
   formatTime12Hour,
   formatCountdown,
@@ -22,6 +32,15 @@ import { Badge } from '../components/common/Badge'
 import { EmptyState } from '../components/common/EmptyState'
 import { JoinEventForm } from '../components/events/JoinEventForm'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { KebabMenu, type KebabMenuItem } from '../components/common/KebabMenu'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import {
+  DuplicateModal,
+  type DuplicateField,
+  type DuplicateSummary,
+  type DuplicateSetlistSelector,
+  type DuplicateModalResult,
+} from '../components/common/DuplicateModal'
 import { SHOW_TONE, PRACTICE_TONE, type BadgeTone } from '../utils/tokens'
 
 type Filter = 'all' | 'shows' | 'practices' | 'events'
@@ -106,6 +125,24 @@ export function CalendarPage() {
   const { practices, loading: practicesLoading } = usePractices(bandId)
   const { events, loading: eventsLoading } = useEvents()
   const loading = showsLoading || practicesLoading || eventsLoading
+
+  const { showToast } = useToast()
+  const { confirm, dialogProps } = useConfirm()
+  const { deleteShow } = useDeleteShow()
+  const { deletePractice } = useDeletePractice()
+  const { duplicateShow } = useDuplicateShow()
+  const { duplicatePractice } = useDuplicatePractice()
+
+  // Duplicate modal: which item (show|practice) is being duplicated, if any.
+  const [dupTarget, setDupTarget] = useState<{
+    kind: 'show' | 'practice'
+    id: string
+  } | null>(null)
+  const [dupSubmitting, setDupSubmitting] = useState(false)
+  // Band setlists for the show duplicate modal's setlist selector.
+  const [bandSetlists, setBandSetlists] = useState<
+    { id: string; name: string }[]
+  >([])
 
   const items = useMemo<AgendaItem[]>(() => {
     const showItems: AgendaItem[] =
@@ -195,17 +232,88 @@ export function CalendarPage() {
   // kind directly; on "All" it opens the menu.
   const activeKind = ACTIVITY_KINDS.find(k => k.id === filter)
 
+  // Open the duplicate modal for a show/practice row.
+  const openDuplicate = (kind: 'show' | 'practice', id: string) => {
+    if (kind === 'show') {
+      // Load band setlists for the modal's fork selector (fire-and-forget).
+      repository
+        .getSetlists(bandId)
+        .then(sls =>
+          setBandSetlists(sls.map(s => ({ id: s.id, name: s.name })))
+        )
+        .catch(() => setBandSetlists([]))
+    }
+    setDupTarget({ kind, id })
+  }
+
+  // Hard-delete a show/practice after confirmation (host controls area).
+  const handleDelete = async (kind: 'show' | 'practice', item: AgendaItem) => {
+    const label = kind === 'show' ? item.title : 'this practice'
+    const ok = await confirm({
+      title: `Delete ${kind}`,
+      message: `Delete ${label}? This can't be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (!ok) return
+    try {
+      if (kind === 'show') await deleteShow(item.id)
+      else await deletePractice(item.id)
+      showToast(`${kind === 'show' ? 'Show' : 'Practice'} deleted`, 'success')
+    } catch {
+      showToast(`Failed to delete ${kind}`, 'error')
+    }
+  }
+
+  // Build the kebab menu for a row. Shows & practices get Open/Duplicate/Delete;
+  // events currently get no kebab (rework pending) — return null.
+  const kebabItems = (item: AgendaItem): KebabMenuItem[] | null => {
+    if (item.kind === 'event') return null
+    const kind = item.kind as 'show' | 'practice'
+    return [
+      {
+        label: 'Open',
+        icon: ExternalLink,
+        onClick: () => navigate(item.to),
+        'data-testid': `calendar-item-open-${item.id}`,
+      },
+      {
+        label: 'Duplicate',
+        icon: Copy,
+        onClick: () => openDuplicate(kind, item.id),
+        'data-testid': `calendar-item-duplicate-${item.id}`,
+      },
+      {
+        label: 'Delete',
+        icon: Trash2,
+        variant: 'danger',
+        dividerBefore: true,
+        onClick: () => handleDelete(kind, item),
+        'data-testid': `calendar-item-delete-${item.id}`,
+      },
+    ]
+  }
+
   const Row = ({ item }: { item: AgendaItem }) => {
     const Icon = item.icon
     const month = item.date
       .toLocaleDateString('en-US', { month: 'short' })
       .toUpperCase()
     const day = item.date.getDate()
+    const menuItems = kebabItems(item)
     return (
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => navigate(item.to)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            navigate(item.to)
+          }
+        }}
         data-testid={`calendar-item-${item.kind}-${item.id}`}
-        className="flex w-full items-stretch gap-3 rounded-xl border border-l-[3px] border-border-1 bg-bg-1 p-3 text-left transition-colors hover:border-border-2"
+        className="flex w-full cursor-pointer items-stretch gap-3 rounded-xl border border-l-[3px] border-border-1 bg-bg-1 p-3 text-left transition-colors hover:border-border-2 focus:outline-none focus-visible:border-border-2"
         style={{ borderLeftColor: item.color }}
       >
         {/* Date tile */}
@@ -265,8 +373,227 @@ export function CalendarPage() {
             )}
           </span>
         </span>
-      </button>
+
+        {/* Corner kebab — Open / Duplicate / Delete (shows & practices only).
+            stopPropagation lives inside KebabMenu so row-navigation is safe. */}
+        {menuItems && (
+          <span className="flex flex-shrink-0 items-start">
+            <KebabMenu
+              items={menuItems}
+              align="right"
+              triggerSize="sm"
+              data-testid={`calendar-item-kebab-${item.id}`}
+            />
+          </span>
+        )}
+      </div>
     )
+  }
+
+  // Derive the duplicate modal's config from the current target (if any).
+  const dupSource =
+    dupTarget?.kind === 'show'
+      ? shows.find(s => s.id === dupTarget.id)
+      : dupTarget?.kind === 'practice'
+        ? practices.find(p => p.id === dupTarget.id)
+        : undefined
+
+  let dupConfig: {
+    title: string
+    description: string
+    fields: DuplicateField[]
+    summaries: DuplicateSummary[]
+    setlist?: DuplicateSetlistSelector
+  } | null = null
+
+  if (dupTarget?.kind === 'show' && dupSource && 'venue' in dupSource) {
+    const s = dupSource
+    dupConfig = {
+      title: 'Duplicate show',
+      description: 'Creates a new show from this one. Pick a date to start.',
+      fields: [
+        { kind: 'text', key: 'name', label: 'Name', value: `${s.name} (copy)` },
+        {
+          kind: 'datetime',
+          key: 'scheduledDate',
+          label: 'Date & time',
+          value: new Date(),
+          required: true,
+        },
+        { kind: 'text', key: 'venue', label: 'Venue', value: s.venue ?? '' },
+        {
+          kind: 'text',
+          key: 'location',
+          label: 'Location',
+          value: s.location ?? '',
+        },
+        {
+          kind: 'number',
+          key: 'duration',
+          label: 'Duration',
+          value: s.duration,
+          suffix: 'min',
+        },
+        {
+          kind: 'text',
+          key: 'loadInTime',
+          label: 'Load-in',
+          value: s.loadInTime ?? '',
+        },
+        {
+          kind: 'text',
+          key: 'soundcheckTime',
+          label: 'Soundcheck',
+          value: s.soundcheckTime ?? '',
+        },
+        {
+          kind: 'number',
+          key: 'payment',
+          label: 'Payment',
+          value: s.payment,
+          suffix: '$',
+        },
+        {
+          kind: 'textarea',
+          key: 'notes',
+          label: 'Notes',
+          value: s.notes ?? '',
+        },
+      ],
+      summaries:
+        s.contacts && s.contacts.length > 0
+          ? [
+              {
+                key: 'contacts',
+                label: `${s.contacts.length} contact${s.contacts.length === 1 ? '' : 's'} copied`,
+              },
+            ]
+          : [],
+      setlist: {
+        // Default to forking the source show's own setlist.
+        value: s.setlistId ?? '',
+        options: bandSetlists,
+        label: 'Setlist (forked into the new show)',
+      },
+    }
+  } else if (
+    dupTarget?.kind === 'practice' &&
+    dupSource &&
+    'type' in dupSource
+  ) {
+    const p = dupSource
+    const songCount = p.songs?.length ?? 0
+    const attendeeCount = p.attendees?.length ?? 0
+    dupConfig = {
+      title: 'Duplicate practice',
+      description:
+        'Creates a new practice from this one, songs included. Pick a date.',
+      fields: [
+        {
+          kind: 'select',
+          key: 'type',
+          label: 'Type',
+          value: p.type,
+          options: [
+            { value: 'rehearsal', label: 'Rehearsal' },
+            { value: 'writing', label: 'Writing' },
+            { value: 'recording', label: 'Recording' },
+            { value: 'audition', label: 'Audition' },
+            { value: 'lesson', label: 'Lesson' },
+            { value: 'gig', label: 'Gig' },
+          ],
+        },
+        {
+          kind: 'datetime',
+          key: 'scheduledDate',
+          label: 'Date & time',
+          value: new Date(),
+          required: true,
+        },
+        {
+          kind: 'number',
+          key: 'duration',
+          label: 'Duration',
+          value: p.duration,
+          suffix: 'min',
+        },
+        {
+          kind: 'text',
+          key: 'location',
+          label: 'Location',
+          value: p.location ?? '',
+        },
+        {
+          kind: 'textarea',
+          key: 'notes',
+          label: 'Notes',
+          value: p.notes ?? '',
+        },
+      ],
+      summaries: [
+        ...(songCount > 0
+          ? [
+              {
+                key: 'songs',
+                label: `${songCount} song${songCount === 1 ? '' : 's'} copied (progress reset)`,
+              },
+            ]
+          : []),
+        ...(attendeeCount > 0
+          ? [
+              {
+                key: 'attendees',
+                label: `${attendeeCount} invitee${attendeeCount === 1 ? '' : 's'} copied (RSVP reset)`,
+              },
+            ]
+          : []),
+      ],
+    }
+  }
+
+  const handleDupSubmit = async (result: DuplicateModalResult) => {
+    if (!dupTarget) return
+    const v = result.values
+    setDupSubmitting(true)
+    try {
+      if (dupTarget.kind === 'show') {
+        const newId = await duplicateShow(
+          dupTarget.id,
+          {
+            name: (v.name as string) || 'Untitled show',
+            scheduledDate: v.scheduledDate as Date,
+            duration: v.duration as number | undefined,
+            venue: (v.venue as string) || undefined,
+            location: (v.location as string) || undefined,
+            loadInTime: (v.loadInTime as string) || undefined,
+            soundcheckTime: (v.soundcheckTime as string) || undefined,
+            payment: v.payment as number | undefined,
+            notes: (v.notes as string) || undefined,
+          },
+          result.setlistId
+            ? { mode: 'fork', sourceSetlistId: result.setlistId }
+            : { mode: 'none' }
+        )
+        showToast('Show duplicated', 'success')
+        setDupTarget(null)
+        navigate(`/shows/${newId}`)
+      } else {
+        const newId = await duplicatePractice(dupTarget.id, {
+          scheduledDate: v.scheduledDate as Date,
+          duration: v.duration as number | undefined,
+          location: (v.location as string) || undefined,
+          type: v.type as import('../types').SessionType,
+          notes: (v.notes as string) || undefined,
+        })
+        showToast('Practice duplicated', 'success')
+        setDupTarget(null)
+        navigate(`/practices/${newId}`)
+      }
+    } catch {
+      showToast('Failed to duplicate', 'error')
+    } finally {
+      setDupSubmitting(false)
+    }
   }
 
   return (
@@ -406,6 +733,25 @@ export function CalendarPage() {
           </div>
         )}
       </ContentLoadingSpinner>
+
+      {/* Duplicate modal — prefilled editable scalars + copied-collection
+          summaries. Shown for the active show/practice target. */}
+      {dupTarget && dupConfig && (
+        <DuplicateModal
+          isOpen
+          onClose={() => setDupTarget(null)}
+          title={dupConfig.title}
+          description={dupConfig.description}
+          fields={dupConfig.fields}
+          summaries={dupConfig.summaries}
+          setlist={dupConfig.setlist}
+          submitting={dupSubmitting}
+          onSubmit={handleDupSubmit}
+          data-testid="calendar-duplicate-modal"
+        />
+      )}
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   )
 }

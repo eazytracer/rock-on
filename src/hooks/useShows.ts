@@ -90,6 +90,46 @@ export function useCreateShow() {
 }
 
 /**
+ * Hook to duplicate a show. `overrides` are the modal's edited scalar fields;
+ * `setlist` chooses how the new show's (owned) setlist is created.
+ */
+export function useDuplicateShow() {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: async ({
+      showId,
+      overrides,
+      setlist,
+    }: {
+      showId: string
+      overrides: Parameters<typeof ShowService.duplicateShow>[1]
+      setlist?: Parameters<typeof ShowService.duplicateShow>[2]
+    }) => {
+      const created = await ShowService.duplicateShow(
+        showId,
+        overrides,
+        setlist
+      )
+      return created.id
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['shows'] })
+    },
+  })
+
+  return {
+    duplicateShow: (
+      showId: string,
+      overrides: Parameters<typeof ShowService.duplicateShow>[1],
+      setlist?: Parameters<typeof ShowService.duplicateShow>[2]
+    ) => mutation.mutateAsync({ showId, overrides, setlist }),
+    loading: mutation.isPending,
+    error: mutation.error as Error | null,
+  }
+}
+
+/**
  * Hook to update a show.
  */
 export function useUpdateShow() {
