@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-19
+
+Calendar item duplication. Any show or practice can be cloned from its calendar
+row as a starting point for a new one — copying the reusable template parts
+(venue/logistics, setlist, songs, invitees) while resetting instance-specific
+state (date, status, progress). No schema change.
+
+### Added
+
+- **Duplicate shows & practices from the calendar.** Each calendar row now has a
+  kebab menu (Open / Duplicate / Delete) for shows and practices; the card itself
+  still click-opens the detail page.
+- **Reusable `DuplicateModal`.** Prefilled, editable scalar fields (name, date,
+  venue, duration, etc.) plus read-only summaries of the collections that carry
+  over. The new date is required and defaults to today.
+- **`ShowService.duplicateShow` / `useDuplicateShow`.** Copies venue, logistics,
+  and contacts (with fresh ids), and forks the chosen setlist into a new
+  owned copy (defaults to the source show's setlist; may pick another or none) so
+  every show still owns a unique setlist. Resets status, dates, and audit fields.
+
+### Changed
+
+- **`PracticeSessionService.duplicateSession` reworked** — the new date now
+  defaults to the source's date (was +1 week) and accepts editable overrides
+  (type, duration, location, notes). Songs copy over with progress reset and
+  invitees copy with RSVP reset.
+
 ## [0.6.0] - 2026-09-15
 
 Phase 2 data-layer simplification: the web client is now a naive online Supabase
