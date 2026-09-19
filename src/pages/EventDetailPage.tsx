@@ -435,20 +435,6 @@ export function EventDetailContent({
     )
   }
 
-  // Host duplicates the event into a new one they host (fresh occurrence):
-  // copies name (+ " (copy)"), venue, access settings, and the full lineup;
-  // resets date/participants/requests/casting. Navigates to the new event.
-  const onDuplicateEvent = async () => {
-    if (!event) return
-    const newId = await EventService.duplicateEvent(event.id)
-    if (!newId) {
-      showToast('Could not duplicate event', 'error')
-      return
-    }
-    showToast('Event duplicated — set the new date', 'success')
-    navigate(`/events/${newId}`)
-  }
-
   // Host cancels the event (K) — soft-cancel (status='cancelled'), behind a
   // confirm. Participants then see it as cancelled.
   const onCancelEvent = async () => {
@@ -1251,30 +1237,6 @@ export function EventDetailContent({
                     />
                   </div>
                 </div>
-
-                {/* Duplicate — spin up a fresh occurrence from this event's
-                    template (name/venue/access/lineup). Host only. */}
-                {isHost && (
-                  <div>
-                    <Eyebrow className="mb-2">Reuse</Eyebrow>
-                    <button
-                      onClick={() => void onDuplicateEvent()}
-                      data-testid="event-duplicate-button"
-                      className="flex w-full items-center gap-3 rounded-xl border border-border-1 bg-bg-1 p-3 text-left transition-colors hover:border-border-2"
-                    >
-                      <Copy size={18} className="flex-shrink-0 text-ink-3" />
-                      <span className="flex-1">
-                        <span className="block text-sm font-semibold text-ink-1">
-                          Duplicate event
-                        </span>
-                        <span className="block text-xs text-ink-4">
-                          Copies the venue, access settings, and lineup into a
-                          new event you host. Set a new date after.
-                        </span>
-                      </span>
-                    </button>
-                  </div>
-                )}
 
                 {/* Danger zone — soft-cancel the event (host only). Hidden once
                     the event is already cancelled. */}

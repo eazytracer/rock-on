@@ -228,64 +228,6 @@ export class EventService {
   }
 
   /**
-   * Duplicate an existing event into a NEW event hosted by the current user.
-   *
-   * Copies the reusable "template" parts — name (suffixed " (copy)"), venue,
-   * visibility + access settings, and the full lineup (title/artist/tuning/key,
-   * in order). Resets everything instance-specific: the caller becomes host, a
-   * fresh short_code is trigger-assigned, status starts 'scheduled', and the
-   * new event carries NO participants (except the host), pending requests,
-   * raised hands, or casting. The date is copied from the source as a starting
-   * point — the host edits it for the new occurrence.
-   *
-   * Any user who can read the source (RLS-visible) can duplicate it into their
-   * own event; the copy is theirs. Returns the new event id (or null on failure).
-   */
-  static async duplicateEvent(sourceEventId: string): Promise<string | null> {
-    const source = await EventService.getEvent(sourceEventId)
-    if (!source) {
-      log.error('duplicateEvent: source event not found', sourceEventId)
-      return null
-    }
-
-    const newEventId = await EventService.createEvent({
-      name: `${source.name} (copy)`,
-      scheduledDate: source.scheduledDate,
-      venue: source.venue,
-      endTime: source.endTime,
-    })
-    if (!newEventId) return null
-
-    // Carry over the source's access settings (createEvent defaults to
-    // unlisted / allow-suggestions on / auto-approve off).
-    await EventService.updateAccess(newEventId, {
-      visibility: source.visibility,
-      allowSuggestions: source.allowSuggestions,
-      autoApprove: source.autoApprove,
-    })
-
-    // Copy the lineup in order. addLineupItem appends at MAX(position)+1, so
-    // inserting sequentially preserves the original order.
-    const lineup = await EventService.getLineup(sourceEventId)
-    for (const item of lineup) {
-      const res = await EventService.addLineupItem(newEventId, {
-        title: item.displayTitle,
-        artist: item.displayArtist,
-        source: item.source,
-        songId: item.songId,
-        tuning: item.tuning,
-        key: item.key,
-      })
-      if (!res.ok) {
-        // Non-fatal: keep the event + whatever copied so far, but surface it.
-        log.error('duplicateEvent: lineup item copy failed', res.error)
-      }
-    }
-
-    return newEventId
-  }
-
-  /**
    * Join an event by its short_code. Calls the join_event_by_code SECURITY DEFINER
    * RPC, which resolves the event (bypassing events RLS for the non-participant
    * lookup) and adds the caller as a 'guest' participant. Returns a minimal preview
