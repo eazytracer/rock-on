@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { SlideOutTray } from './SlideOutTray'
 import { Dropdown, type DropdownGroup } from './Dropdown'
-import { formatDateTimeForInput } from '../../utils/dateHelpers'
+import { DatePicker } from './DatePicker'
+import { TimePickerDropdown } from './TimePickerDropdown'
+import {
+  formatDateForInput,
+  parseDateInputAsLocal,
+  formatTime12Hour,
+  parseTime12Hour,
+} from '../../utils/dateHelpers'
 
 /**
  * A prefilled, editable scalar field shown in the duplicate modal.
@@ -216,24 +223,39 @@ export function DuplicateModal({
             )}
 
             {field.kind === 'datetime' && (
-              <input
-                id={`dup-${field.key}`}
-                name={field.key}
-                type="datetime-local"
-                data-testid={`dup-field-${field.key}`}
-                value={
-                  values[field.key]
-                    ? formatDateTimeForInput(values[field.key] as Date)
-                    : ''
-                }
-                onChange={e =>
-                  setValue(
-                    field.key,
-                    e.target.value ? new Date(e.target.value) : undefined
-                  )
-                }
-                className={inputClass}
-              />
+              <div className="flex flex-wrap gap-2">
+                <div className="flex-1 min-w-[150px]">
+                  <DatePicker
+                    value={
+                      values[field.key]
+                        ? formatDateForInput(values[field.key] as Date)
+                        : ''
+                    }
+                    onChange={dateStr => {
+                      const picked = parseDateInputAsLocal(dateStr)
+                      const cur = (values[field.key] as Date) ?? new Date()
+                      picked.setHours(cur.getHours(), cur.getMinutes(), 0, 0)
+                      setValue(field.key, picked)
+                    }}
+                    data-testid={`dup-field-${field.key}-date`}
+                  />
+                </div>
+                <div className="w-[130px]">
+                  <TimePickerDropdown
+                    value={
+                      values[field.key]
+                        ? formatTime12Hour(values[field.key] as Date)
+                        : ''
+                    }
+                    onChange={timeStr => {
+                      const base = (values[field.key] as Date) ?? new Date()
+                      const combined = parseTime12Hour(timeStr, base)
+                      if (combined) setValue(field.key, combined)
+                    }}
+                    data-testid={`dup-field-${field.key}-time`}
+                  />
+                </div>
+              </div>
             )}
 
             {field.kind === 'select' && (

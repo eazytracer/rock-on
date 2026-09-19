@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Clock, ChevronDown } from 'lucide-react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { Clock, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface TimePickerDropdownProps {
   value: string // Format: "HH:MM AM/PM" (e.g., "2:00 PM")
   onChange: (time: string) => void
-  interval?: number // Minutes between slots (default: 15)
+  /** @deprecated retained for API compatibility; minutes now use quarter presets + free type. */
+  interval?: number
   placeholder?: string
   label?: string
   required?: boolean
@@ -13,23 +14,56 @@ interface TimePickerDropdownProps {
   id?: string
   'data-testid'?: string
   className?: string
-  /** Open the dropdown immediately on mount (used for inline-edit). */
+  /** Open the popover immediately on mount (used for inline-edit). */
   autoOpen?: boolean
   /** Suppress the built-in clock icon (when the field already shows one). */
   hideIcon?: boolean
 }
 
+const MINUTE_PRESETS = ['00', '15', '30', '45']
+
+interface TimeParts {
+  hour: string // "1".."12"
+  minute: string // "00".."59"
+  period: 'AM' | 'PM'
+}
+
+/** Parse "2:30 PM" → parts. Falls back to a 12:00 PM default when unparseable. */
+function parseValue(value: string): TimeParts {
+  const m = value?.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (m) {
+    return {
+      hour: String(parseInt(m[1], 10)),
+      minute: m[2],
+      period: m[3].toUpperCase() as 'AM' | 'PM',
+    }
+  }
+  return { hour: '12', minute: '00', period: 'PM' }
+}
+
+/** Format parts → "2:30 PM", or null when the parts aren't a valid time. */
+function formatParts(parts: TimeParts): string | null {
+  const h = parseInt(parts.hour, 10)
+  const min = parseInt(parts.minute, 10)
+  if (isNaN(h) || h < 1 || h > 12) return null
+  if (isNaN(min) || min < 0 || min > 59) return null
+  return `${h}:${String(min).padStart(2, '0')} ${parts.period}`
+}
+
 /**
- * TimePickerDropdown — a Google Calendar-style scrollable time picker.
+ * TimePickerDropdown — a Google Calendar-style time control.
  *
- * Single click opens the list; typing is done via the field at the top of the
- * popover (no finicky double-click). 15-minute slots (configurable), auto-scrolls
- * to the selected/current time, keyboard nav.
+ * Opens on a single click of the value. The popover exposes three controls:
+ * an hour selector (type or step 1–12), a minute selector (quarter-hour presets
+ * :00/:15/:30/:45 with free typing for anything else), and an AM/PM toggle.
+ * Changes are staged and committed once — on Set, Enter, or click-outside — so
+ * inline auto-save fields don't close mid-entry.
+ *
+ * Contract unchanged: `value` is "H:MM AM/PM", `onChange` fires with the same.
  */
 export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
   value,
   onChange,
-  interval = 15,
   placeholder = 'Select time',
   label,
   required = false,
@@ -42,161 +76,67 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
   hideIcon = false,
 }) => {
   const [isOpen, setIsOpen] = useState(autoOpen)
-  const [typedValue, setTypedValue] = useState('')
-  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [draft, setDraft] = useState<TimeParts>(() => parseValue(value))
 
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
 
-  // Generate time slots
-  const timeSlots = useMemo(() => {
-    const slots: string[] = []
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += interval) {
-        const date = new Date(2000, 0, 1, hour, minute)
-        slots.push(
-          date.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-          })
-        )
-      }
-    }
-    return slots
-  }, [interval])
-
-  const selectedIndex = useMemo(() => {
-    if (!value) return -1
-    return timeSlots.findIndex(
-      slot => slot.toLowerCase() === value.toLowerCase()
-    )
-  }, [value, timeSlots])
-
-  // Close on click outside
+  // Re-seed the draft whenever the popover opens or the external value changes
+  // while closed, so it always reflects the latest committed value.
   useEffect(() => {
+    if (isOpen) setDraft(parseValue(value))
+  }, [isOpen, value])
+
+  const commit = useCallback(
+    (parts: TimeParts) => {
+      const formatted = formatParts(parts)
+      if (formatted) onChange(formatted)
+      setIsOpen(false)
+    },
+    [onChange]
+  )
+
+  // Commit the staged draft when clicking outside the control.
+  useEffect(() => {
+    if (!isOpen) return
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
+        commit(draft)
+      }
+    }
+    const timeoutId = setTimeout(
+      () => document.addEventListener('mousedown', handleClickOutside),
+      50
+    )
+    return () => {
+      clearTimeout(timeoutId)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen, draft, commit])
+
+  // Escape cancels (revert draft, close) without committing.
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDraft(parseValue(value))
         setIsOpen(false)
-        setHighlightedIndex(-1)
       }
     }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isOpen])
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isOpen, value])
 
-  const getCurrentTimeIndex = useCallback(() => {
-    const now = new Date()
-    const currentMinutes = now.getHours() * 60 + now.getMinutes()
-    const slotIndex = Math.round(currentMinutes / interval)
-    return Math.min(slotIndex, timeSlots.length - 1)
-  }, [interval, timeSlots.length])
-
-  const scrollToIndex = useCallback(
-    (index: number) => {
-      if (listRef.current && index >= 0 && index < timeSlots.length) {
-        const itemHeight = 36
-        listRef.current.scrollTop = Math.max(0, index * itemHeight - 100)
-      }
-    },
-    [timeSlots.length]
-  )
-
-  const handleSelectTime = useCallback(
-    (time: string) => {
-      onChange(time)
-      setTypedValue('')
-      setIsOpen(false)
-      setHighlightedIndex(-1)
-    },
-    [onChange]
-  )
-
-  // Auto-scroll to the selected time when the dropdown opens
-  useEffect(() => {
-    if (isOpen && listRef.current) {
-      const targetIndex =
-        selectedIndex >= 0 ? selectedIndex : getCurrentTimeIndex()
-      if (targetIndex >= 0) {
-        listRef.current.scrollTop = Math.max(0, targetIndex * 36 - 100)
-        setHighlightedIndex(targetIndex)
-      }
-    }
-  }, [isOpen, selectedIndex, getCurrentTimeIndex])
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!isOpen) return
-      switch (event.key) {
-        case 'Escape':
-          setIsOpen(false)
-          setHighlightedIndex(-1)
-          break
-        case 'ArrowDown':
-          event.preventDefault()
-          setHighlightedIndex(prev =>
-            prev < timeSlots.length - 1 ? prev + 1 : prev
-          )
-          scrollToIndex(highlightedIndex + 1)
-          break
-        case 'ArrowUp':
-          event.preventDefault()
-          setHighlightedIndex(prev => (prev > 0 ? prev - 1 : prev))
-          scrollToIndex(highlightedIndex - 1)
-          break
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, highlightedIndex, timeSlots, scrollToIndex])
-
-  // Type-ahead: parse a typed time (Enter inside the popover).
-  const handleTypedSubmit = () => {
-    if (!typedValue.trim()) return
-    const parsed = tryParseTime(typedValue)
-    if (parsed) {
-      onChange(parsed)
-      setTypedValue('')
-      setIsOpen(false)
-    }
-  }
-
-  const tryParseTime = (input: string): string | null => {
-    const trimmed = input.trim().toLowerCase()
-    const patterns = [
-      /^(\d{1,2})\s*(a|p)m?$/i,
-      /^(\d{1,2}):(\d{2})\s*(a|p)m?$/i,
-      /^(\d{1,2}):(\d{2})$/,
-    ]
-    for (const pattern of patterns) {
-      const match = trimmed.match(pattern)
-      if (match) {
-        let hours = parseInt(match[1])
-        const minutes = match[2] ? parseInt(match[2]) : 0
-        const period = match[3]?.toLowerCase()
-        if (!period && hours >= 0 && hours <= 23) {
-          return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(
-            'en-US',
-            { hour: 'numeric', minute: '2-digit', hour12: true }
-          )
-        }
-        if (period) {
-          if (period === 'p' && hours !== 12) hours += 12
-          if (period === 'a' && hours === 12) hours = 0
-          return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(
-            'en-US',
-            { hour: 'numeric', minute: '2-digit', hour12: true }
-          )
-        }
-      }
-    }
-    return null
+  const stepHour = (dir: 1 | -1) => {
+    setDraft(d => {
+      const cur = parseInt(d.hour, 10)
+      const base = isNaN(cur) ? 12 : cur
+      // 1..12 wrap
+      const next = ((base - 1 + dir + 12) % 12) + 1
+      return { ...d, hour: String(next) }
+    })
   }
 
   return (
@@ -207,7 +147,7 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
         </label>
       )}
 
-      {/* Trigger — a single click opens the list */}
+      {/* Trigger — a single click opens the picker */}
       <button
         type="button"
         onClick={() => !disabled && setIsOpen(o => !o)}
@@ -215,7 +155,7 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
         name={name}
         id={id}
         data-testid={dataTestId}
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
         className={`w-full h-10 px-3 bg-bg-1 border border-border-1 rounded-lg text-sm flex items-center justify-between transition-colors ${
           disabled
@@ -235,56 +175,164 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
         />
       </button>
 
-      {/* Time popover */}
+      {/* Picker popover */}
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-2 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 w-full min-w-[160px]"
-          data-testid={`${dataTestId}-dropdown`}
+          className="absolute top-full left-0 mt-2 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 p-3 min-w-[248px]"
+          data-testid={dataTestId ? `${dataTestId}-dropdown` : undefined}
+          role="dialog"
         >
-          {/* Type-ahead */}
-          <div className="p-2 border-b border-border-1">
-            <input
-              type="text"
-              value={typedValue}
-              onChange={e => setTypedValue(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleTypedSubmit()
+          <div className="flex items-start gap-2">
+            {/* Hour */}
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] uppercase tracking-wide text-ink-4 mb-1">
+                Hour
+              </span>
+              <button
+                type="button"
+                onClick={() => stepHour(1)}
+                aria-label="Increment hour"
+                className="text-ink-4 hover:text-white transition-colors"
+                data-testid={dataTestId ? `${dataTestId}-hour-up` : undefined}
+              >
+                <ChevronUp size={16} />
+              </button>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={draft.hour}
+                onChange={e =>
+                  setDraft(d => ({
+                    ...d,
+                    hour: e.target.value.replace(/\D/g, '').slice(0, 2),
+                  }))
                 }
-              }}
-              placeholder="Type a time (e.g. 2:30pm)"
-              data-testid={dataTestId ? `${dataTestId}-type-input` : undefined}
-              className="w-full h-8 px-2 bg-bg-1 border border-border-1 rounded text-white text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-            />
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    commit(draft)
+                  }
+                }}
+                data-testid={dataTestId ? `${dataTestId}-hour` : undefined}
+                className="w-12 h-10 text-center bg-bg-1 border border-border-1 rounded text-white text-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+              />
+              <button
+                type="button"
+                onClick={() => stepHour(-1)}
+                aria-label="Decrement hour"
+                className="text-ink-4 hover:text-white transition-colors"
+                data-testid={dataTestId ? `${dataTestId}-hour-down` : undefined}
+              >
+                <ChevronDown size={16} />
+              </button>
+            </div>
+
+            <span className="text-white text-lg pt-7">:</span>
+
+            {/* Minute */}
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-wide text-ink-4 mb-1 text-center">
+                Minute
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={draft.minute}
+                onChange={e =>
+                  setDraft(d => ({
+                    ...d,
+                    minute: e.target.value.replace(/\D/g, '').slice(0, 2),
+                  }))
+                }
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    commit(draft)
+                  }
+                }}
+                data-testid={dataTestId ? `${dataTestId}-minute` : undefined}
+                className="w-14 h-10 text-center bg-bg-1 border border-border-1 rounded text-white text-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+              />
+              <div className="mt-1 grid grid-cols-2 gap-1">
+                {MINUTE_PRESETS.map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setDraft(d => ({ ...d, minute: m }))}
+                    data-testid={
+                      dataTestId ? `${dataTestId}-minute-${m}` : undefined
+                    }
+                    className={`px-2 py-1 rounded text-xs transition-colors ${
+                      draft.minute === m
+                        ? 'bg-accent text-white'
+                        : 'bg-bg-1 text-ink-3 hover:bg-bg-4 hover:text-white'
+                    }`}
+                  >
+                    :{m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* AM/PM toggle */}
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-wide text-ink-4 mb-1 text-center">
+                &nbsp;
+              </span>
+              <div className="flex flex-col rounded overflow-hidden border border-border-1">
+                {(['AM', 'PM'] as const).map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setDraft(d => ({ ...d, period: p }))}
+                    data-testid={
+                      dataTestId
+                        ? `${dataTestId}-${p.toLowerCase()}`
+                        : undefined
+                    }
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                      draft.period === p
+                        ? 'bg-accent text-white'
+                        : 'bg-bg-1 text-ink-3 hover:bg-bg-4 hover:text-white'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div
-            ref={listRef}
-            className="max-h-64 overflow-y-auto py-1 custom-scrollbar"
-          >
-            {timeSlots.map((time, index) => {
-              const isSelected = selectedIndex === index
-              const isHighlighted = highlightedIndex === index
-              return (
-                <button
-                  key={time}
-                  type="button"
-                  onClick={() => handleSelectTime(time)}
-                  onMouseEnter={() => setHighlightedIndex(index)}
-                  data-testid={`${dataTestId}-option-${index}`}
-                  className={`w-full h-9 px-4 text-left text-sm transition-colors ${
-                    isSelected
-                      ? 'bg-accent text-white font-medium'
-                      : isHighlighted
-                        ? 'bg-bg-4 text-white'
-                        : 'text-ink-3 hover:bg-bg-4 hover:text-white'
-                  }`}
-                >
-                  {time}
-                </button>
-              )
-            })}
+          {/* Actions */}
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const now = new Date()
+                let h = now.getHours()
+                const period = h >= 12 ? 'PM' : 'AM'
+                h = h % 12
+                if (h === 0) h = 12
+                // Round to nearest quarter hour for the "Now" convenience.
+                const min = String(
+                  (Math.round(now.getMinutes() / 15) * 15) % 60
+                ).padStart(2, '0')
+                commit({ hour: String(h), minute: min, period })
+              }}
+              data-testid={dataTestId ? `${dataTestId}-now` : undefined}
+              className="text-xs text-accent hover:text-accent-hot transition-colors"
+            >
+              Now
+            </button>
+            <button
+              type="button"
+              onClick={() => commit(draft)}
+              disabled={!formatParts(draft)}
+              data-testid={dataTestId ? `${dataTestId}-set` : undefined}
+              className="px-4 py-1.5 rounded-lg bg-accent text-white text-sm font-semibold transition-opacity disabled:opacity-40"
+            >
+              Set
+            </button>
           </div>
         </div>
       )}
