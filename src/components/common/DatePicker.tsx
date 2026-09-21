@@ -162,6 +162,51 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     })
   }
 
+  // Live view-jump: as the user types, parse a partial date (month, month+day,
+  // M/D, etc.) and move the calendar view so they get visual confirmation
+  // (month + day-of-week) before committing with Enter. Returns null when the
+  // input is too ambiguous to jump.
+  const viewDateFromPartial = (raw: string): Date | null => {
+    const t = raw.trim().toLowerCase()
+    if (!t) return null
+    const year = viewDate.getFullYear()
+
+    // Month name (>=3 chars), optionally followed by a day: "march", "mar 5".
+    const nameMatch = t.match(/^([a-z]{3,})\s*(\d{1,2})?/)
+    if (nameMatch) {
+      const mi = MONTHS.findIndex(m => m.toLowerCase().startsWith(nameMatch[1]))
+      if (mi >= 0) {
+        const day = nameMatch[2] ? parseInt(nameMatch[2], 10) : 1
+        const clamped = Math.min(Math.max(day, 1), 31)
+        return new Date(year, mi, clamped)
+      }
+      return null
+    }
+
+    // Numeric: "3", "3/5", "3-5-2026", "03/05".
+    const numMatch = t.match(/^(\d{1,2})(?:[/-](\d{1,2}))?(?:[/-](\d{2,4}))?/)
+    if (numMatch) {
+      const mo = parseInt(numMatch[1], 10) - 1
+      if (mo < 0 || mo > 11) return null
+      const day = numMatch[2] ? parseInt(numMatch[2], 10) : 1
+      let yr = year
+      if (numMatch[3]) {
+        yr = parseInt(numMatch[3], 10)
+        if (yr < 100) yr += 2000
+      }
+      const clamped = Math.min(Math.max(day, 1), 31)
+      return new Date(yr, mo, clamped)
+    }
+
+    return null
+  }
+
+  const handleTypedChange = (raw: string) => {
+    setTypedValue(raw)
+    const jump = viewDateFromPartial(raw)
+    if (jump && !isNaN(jump.getTime())) setViewDate(jump)
+  }
+
   // Type-ahead: parse a typed date and select it (Enter inside the popover).
   const handleTypedSubmit = () => {
     if (!typedValue.trim()) return
@@ -263,14 +308,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <input
             type="text"
             value={typedValue}
-            onChange={e => setTypedValue(e.target.value)}
+            onChange={e => handleTypedChange(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') {
                 e.preventDefault()
                 handleTypedSubmit()
               }
             }}
-            placeholder="Type a date (e.g. 1/15/2026)"
+            placeholder="Type a date (e.g. March or 1/15)"
             data-testid={dataTestId ? `${dataTestId}-type-input` : undefined}
             className="w-full h-9 px-3 mb-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
           />
