@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Calendar, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import {
   formatDateForInput,
   parseDateInputAsLocal,
@@ -54,7 +54,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   'data-testid': dataTestId,
   className = '',
   autoEdit = false,
-  hideIcon = false,
 }) => {
   const [isOpen, setIsOpen] = useState(autoEdit)
   const [viewDate, setViewDate] = useState<Date>(() =>
@@ -247,7 +246,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           {displayValue}
         </span>
         <div className="flex items-center gap-2">
-          {!hideIcon && <Calendar size={18} className="text-ink-4" />}
           <ChevronDown
             size={14}
             className={`text-ink-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}

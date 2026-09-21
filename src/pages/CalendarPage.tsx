@@ -27,6 +27,7 @@ import {
   formatTime12Hour,
   formatCountdown,
   getPracticeEffectiveEnd,
+  roundUpToQuarterHour,
 } from '../utils/dateHelpers'
 import { Badge } from '../components/common/Badge'
 import { EmptyState } from '../components/common/EmptyState'
@@ -417,7 +418,7 @@ export function CalendarPage() {
           kind: 'datetime',
           key: 'scheduledDate',
           label: 'Date & time',
-          value: new Date(),
+          value: roundUpToQuarterHour(),
           required: true,
         },
         { kind: 'text', key: 'venue', label: 'Venue', value: s.venue ?? '' },
@@ -493,7 +494,7 @@ export function CalendarPage() {
           kind: 'datetime',
           key: 'scheduledDate',
           label: 'Date & time',
-          value: new Date(),
+          value: roundUpToQuarterHour(),
           required: true,
         },
         {

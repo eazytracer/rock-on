@@ -105,6 +105,19 @@ export function parseTime12Hour(
 }
 
 /**
+ * Round a date's time UP to the nearest quarter hour (:00/:15/:30/:45).
+ * Used to seed a sensible default start time instead of an odd current minute.
+ */
+export function roundUpToQuarterHour(date: Date = new Date()): Date {
+  const result = new Date(date)
+  result.setSeconds(0, 0)
+  const minutes = result.getMinutes()
+  const next = Math.ceil(minutes / 15) * 15
+  result.setMinutes(next) // handles 60 → rolls to next hour
+  return result
+}
+
+/**
  * Check if a date is in the past
  */
 export function isPastDate(date: Date | string): boolean {

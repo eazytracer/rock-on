@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Clock, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 
 interface TimePickerDropdownProps {
   value: string // Format: "H:MM AM/PM" (e.g., "2:00 PM")
@@ -16,7 +16,7 @@ interface TimePickerDropdownProps {
   className?: string
   /** Open the popover immediately on mount (used for inline-edit). */
   autoOpen?: boolean
-  /** Suppress the built-in clock icon (when the field already shows one). */
+  /** Accepted for API compatibility; the trigger no longer renders an icon. */
   hideIcon?: boolean
 }
 
@@ -82,7 +82,6 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
   'data-testid': dataTestId,
   className = '',
   autoOpen = false,
-  hideIcon = false,
 }) => {
   const [isOpen, setIsOpen] = useState(autoOpen)
   const [typed, setTyped] = useState('')
@@ -199,7 +198,6 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
         } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
       >
         <span className="flex items-center gap-2">
-          {!hideIcon && <Clock size={16} className="text-ink-4" />}
           <span className={value ? 'text-white' : 'text-ink-4'}>
             {value || placeholder}
           </span>
