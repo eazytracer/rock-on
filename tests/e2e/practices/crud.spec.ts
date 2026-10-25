@@ -10,6 +10,10 @@
  * The PracticeViewPage uses InlineEditableField components which require
  * clicking to enter edit mode before filling values.
  *
+ * Updated 2026-10: the standalone /practices list was retired (it redirects to
+ * /calendar?filter=practices). Listing, deleting and cross-member visibility
+ * are asserted on the calendar agenda and its per-row kebab menu.
+ *
  * @see /workspaces/rock-on/.claude/plans/02-create-e2e-tests.md
  * @see /workspaces/rock-on/.claude/specifications/testing-overview-and-strategy.md
  */
@@ -36,20 +40,19 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await signUpViaUI(page, user)
     await createBandViaUI(page, 'E2E Practice Test Band')
 
-    // Navigate to practices page
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
+    // Practices live on the calendar agenda
+    await page.goto('/calendar?filter=practices')
+    await expect(page.locator('[data-testid="calendar-page"]')).toBeVisible({
+      timeout: 10000,
+    })
   })
 
   test('member can schedule a new practice session', async ({ page }) => {
-    // ARRANGE: Verify we're on practices page
-    await expect(page).toHaveURL(/\/practices/)
+    // ARRANGE: Verify we're on the practices calendar
+    await expect(page).toHaveURL(/\/calendar\?filter=practices/)
 
-    // ACT: Click Schedule Practice to navigate to builder page
-    // Note: There may be two buttons (header + empty state), use first()
-    const createButton = page
-      .locator('button:has-text("Schedule Practice")')
-      .first()
+    // ACT: With the practices filter active, "New" goes straight to the builder
+    const createButton = page.locator('[data-testid="calendar-new-button"]')
     await expect(createButton).toBeVisible({ timeout: 10000 })
     await createButton.click()
 
@@ -191,59 +194,21 @@ test.describe('Practice Sessions CRUD Operations', () => {
       { timeout: 10000 }
     )
 
-    // Go back to list
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
+    // Go back to the calendar (upcoming + past are both listed)
+    await page.goto('/calendar?filter=practices')
 
-    // Change filter to "All" to see all practices (including today's)
-    await page.locator('[data-testid="practices-filter-trigger"]').click()
-    await page.locator('[data-testid="practices-filter-option-all"]').click()
-    await page.waitForTimeout(500)
+    const practiceRow = page
+      .locator('[data-testid^="calendar-item-practice-"]')
+      .filter({ hasText: 'Delete Test Location' })
+    await expect(practiceRow).toBeVisible({ timeout: 10000 })
 
-    // Wait for list to load and find the practice
-    await expect(page.locator('text=Delete Test Location').first()).toBeVisible(
-      { timeout: 10000 }
-    )
+    // ACT: Delete via the row's kebab menu + confirmation dialog
+    await practiceRow.locator('[data-testid^="calendar-item-kebab-"]').click()
+    await page.locator('[data-testid^="calendar-item-delete-"]').click()
+    await page.locator('[data-testid="confirm-dialog-confirm"]').click()
 
-    // Find and click delete button - it's in the card dropdown menu
-    const practiceCard = page
-      .locator('[data-testid^="practice-item-"]')
-      .filter({
-        hasText: 'Delete Test Location',
-      })
-    await expect(practiceCard).toBeVisible({ timeout: 5000 })
-
-    // Look for the menu button (MoreVertical icon)
-    const menuButton = practiceCard
-      .locator('button')
-      .filter({ has: page.locator('svg') })
-      .last()
-    await menuButton.click()
-    await page.waitForTimeout(300)
-
-    // Click Delete option
-    const deleteOption = page.locator('text=Delete').first()
-    if (await deleteOption.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await deleteOption.click()
-
-      // Handle confirmation dialog
-      const confirmButton = page
-        .locator(
-          '[data-testid="confirm-dialog-confirm"], button:has-text("Delete")'
-        )
-        .last()
-      if (await confirmButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await confirmButton.click()
-      }
-
-      // ASSERT: Verify practice is gone
-      await expect(page.locator('text=Delete Test Location')).not.toBeVisible({
-        timeout: 10000,
-      })
-    } else {
-      // Skip test if delete functionality not accessible
-      test.skip()
-    }
+    // ASSERT: Verify practice is gone
+    await expect(practiceRow).toHaveCount(0, { timeout: 10000 })
   })
 
   test('practice changes sync to all band members', async ({
@@ -265,15 +230,12 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await signUpViaUI(page2, userB)
     await joinBandViaUI(page2, inviteCode)
 
-    // Both pages navigate to practices
-    await page.goto('/practices')
-    await page2.goto('/practices')
-
-    await page.waitForLoadState('networkidle')
-    await page2.waitForLoadState('networkidle')
+    // Both pages navigate to the practices calendar
+    await page.goto('/calendar?filter=practices')
+    await page2.goto('/calendar?filter=practices')
 
     // ACT: User A creates practice using new page-based flow
-    await page.locator('button:has-text("Schedule Practice")').first().click()
+    await page.locator('[data-testid="calendar-new-button"]').click()
     await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
     await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
 
@@ -287,14 +249,8 @@ test.describe('Practice Sessions CRUD Operations', () => {
     await clickButtonReliably(page, '[data-testid="create-practice-button"]')
     await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
 
-    // User A goes back to list
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
-
-    // Change filter to "All" to see all practices
-    await page.locator('[data-testid="practices-filter-trigger"]').click()
-    await page.locator('[data-testid="practices-filter-option-all"]').click()
-    await page.waitForTimeout(500)
+    // User A goes back to the calendar
+    await page.goto('/calendar?filter=practices')
 
     // Verify User A sees the practice
     await expect(page.locator('text=Synced Location').first()).toBeVisible({
@@ -303,12 +259,6 @@ test.describe('Practice Sessions CRUD Operations', () => {
 
     // ASSERT: User B should see it appear (realtime sync or after refresh)
     await page2.reload()
-    await page2.waitForLoadState('networkidle')
-
-    // Change filter to "All" on page2 as well
-    await page2.locator('[data-testid="practices-filter-trigger"]').click()
-    await page2.locator('[data-testid="practices-filter-option-all"]').click()
-    await page2.waitForTimeout(500)
 
     await expect(page2.locator('text=Synced Location').first()).toBeVisible({
       timeout: 20000,

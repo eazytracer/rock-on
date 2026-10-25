@@ -111,10 +111,11 @@ test.describe('Band-less user flow (Phase 2)', () => {
       page.locator('[data-testid="setlists-band-required"]')
     ).toHaveCount(0)
 
-    // Shows and Practices remain band-only.
+    // Shows and Practices remain band-only. (/practices now redirects to the
+    // calendar, so the practice builder is where the guard lives.)
     for (const [path, testid] of [
       ['/shows', 'shows-band-required'],
-      ['/practices', 'practices-band-required'],
+      ['/practices/new', 'practices-band-required'],
     ] as const) {
       await page.goto(path)
       await expect(page.locator(`[data-testid="${testid}"]`)).toBeVisible({

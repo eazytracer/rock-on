@@ -1,6 +1,6 @@
 # Task: Rework practice e2e specs after `/practices` list removal
 
-**Status:** ready
+**Status:** done (2026-10-25, v0.6.1 — see CHANGELOG "Tests")
 **Type:** test-maintenance
 **Risk:** low (test-only; no app code)
 **Surface:** e2e (Playwright) — requires the full local stack to verify

@@ -348,7 +348,8 @@ test.describe('Persistent Layout', () => {
         { route: '/setlists', testId: 'setlists-page' },
         { route: '/calendar', testId: 'calendar-page' },
         { route: '/shows', testId: 'shows-page' },
-        { route: '/practices', testId: 'practices-page' },
+        // /practices redirects to the calendar agenda (practices filter)
+        { route: '/practices', testId: 'calendar-page' },
         { route: '/more', testId: 'more-page' },
         { route: '/notifications', testId: 'notifications-page' },
         { route: '/band-members', testId: 'band-members-page' },

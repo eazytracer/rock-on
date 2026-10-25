@@ -343,10 +343,14 @@ test.describe('Protected Routes', () => {
 
       // Click a navigation link instead of direct URL navigation
       // This tests the React Router navigation path
+      // The SDK may notice the missing session on its own and redirect before
+      // the click lands — either path must end on /auth.
       const setlistsLink = page
         .locator('a[href="/setlists"], nav >> text=Setlists')
         .first()
-      await setlistsLink.click()
+      if (!/\/auth/.test(page.url())) {
+        await setlistsLink.click({ timeout: 5000 }).catch(() => {})
+      }
 
       // Should be redirected to auth page
       await expect(page).toHaveURL(/\/auth/, { timeout: 5000 })

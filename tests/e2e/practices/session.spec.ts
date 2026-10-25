@@ -52,11 +52,8 @@ test.describe('Practice Session Mode', () => {
     })
 
     // Step 2: Create a practice and add songs
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
-
-    // Click schedule practice button
-    await page.locator('button:has-text("Schedule Practice")').first().click()
+    // Open the practice builder directly (the /practices list was retired)
+    await page.goto('/practices/new')
     await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
 
     // The practice view page should load - add songs to it
@@ -181,10 +178,8 @@ Capo: 2nd fret
     await setBandNotesViaEditModal(page, markdownNotes)
 
     // Create practice and add the song
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
-
-    await page.locator('button:has-text("Schedule Practice")').first().click()
+    // Open the practice builder directly (the /practices list was retired)
+    await page.goto('/practices/new')
     await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
     await page.waitForTimeout(1000)
 
@@ -248,10 +243,8 @@ Capo: 2nd fret
     })
 
     // Create practice with both songs
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
-
-    await page.locator('button:has-text("Schedule Practice")').first().click()
+    // Open the practice builder directly (the /practices list was retired)
+    await page.goto('/practices/new')
     await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
     await page.waitForTimeout(1000)
 
@@ -332,10 +325,8 @@ Capo: 2nd fret
     }
 
     // Create practice with all songs
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
-
-    await page.locator('button:has-text("Schedule Practice")').first().click()
+    // Open the practice builder directly (the /practices list was retired)
+    await page.goto('/practices/new')
     await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
     await page.waitForTimeout(1000)
 
@@ -407,10 +398,8 @@ Capo: 2nd fret
     })
 
     // Create practice
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
-
-    await page.locator('button:has-text("Schedule Practice")').first().click()
+    // Open the practice builder directly (the /practices list was retired)
+    await page.goto('/practices/new')
     await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
     await page.waitForTimeout(1000)
 
@@ -470,10 +459,8 @@ Capo: 2nd fret
     })
 
     // Create practice with both songs
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
-
-    await page.locator('button:has-text("Schedule Practice")').first().click()
+    // Open the practice builder directly (the /practices list was retired)
+    await page.goto('/practices/new')
     await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
     await page.waitForTimeout(1000)
 
