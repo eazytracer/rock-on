@@ -3,7 +3,11 @@ import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
-import { BandMembership, InviteCode } from '../../models/BandMembership'
+import {
+  BandMembership,
+  BandMemberWithProfile,
+  InviteCode,
+} from '../../models/BandMembership'
 import {
   JamSession,
   JamParticipant,
@@ -42,6 +46,8 @@ export interface BandFilter {
 export interface IDataRepository {
   // ========== SONGS ==========
   getSongs(filter?: SongFilter): Promise<Song[]>
+  /** Songs with the given ids in one query (e.g. a setlist's items) */
+  getSongsByIds(ids: string[]): Promise<Song[]>
   getSong(id: string): Promise<Song | null>
   addSong(song: Song): Promise<Song>
   updateSong(id: string, updates: Partial<Song>): Promise<Song>
@@ -83,6 +89,8 @@ export interface IDataRepository {
 
   // ========== BAND MEMBERSHIPS ==========
   getBandMemberships(bandId: string): Promise<BandMembership[]>
+  /** Active members of a band with their user + profile, in one query */
+  getBandMembersWithProfiles(bandId: string): Promise<BandMemberWithProfile[]>
   getUserMemberships(userId: string): Promise<BandMembership[]>
   addBandMembership(membership: BandMembership): Promise<BandMembership>
   updateBandMembership(

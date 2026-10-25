@@ -69,6 +69,11 @@ Phase 2 regressions found in end-to-end testing.
 - **Band-less users can't open the practice builder** — `/practices/new` shows
   the create/join-a-band prompt again (the guard was lost when the standalone
   practices list was retired in 0.5.0).
+- **Fewer Supabase round trips on Band Members and Setlists.** Band members
+  now load with their user + profile in one embedded query instead of 1 + 2 per
+  member, and setlist pages fetch all referenced songs in one `id IN (...)`
+  query instead of one per item (and reuse the already-loaded shows). Measured
+  on the seed band: Band Members 13 → 7 requests, Setlists 95 → 17.
 
 ### Tests
 

@@ -203,6 +203,19 @@ const calculateSetlistDuration = (items: UISetlistItem[]): number => {
   }, 0)
 }
 
+// Fetch every song referenced by these setlists in one query (not one per item)
+const loadSongsById = async (
+  setlists: { items?: DBSetlistItem[] }[]
+): Promise<Map<string, DBSong>> => {
+  const ids = setlists.flatMap(s =>
+    (s.items ?? []).flatMap(i =>
+      i.type === 'song' && i.songId ? [i.songId] : []
+    )
+  )
+  const songs = await repository.getSongsByIds(ids)
+  return new Map(songs.map(song => [song.id, song]))
+}
+
 // DATABASE INTEGRATION: Mock setlists removed - data loaded from database
 
 // Draggable Setlist Item Component
@@ -1606,6 +1619,8 @@ export const SetlistsPage: React.FC = () => {
         }))
 
         // Convert setlists to UI format with populated songs
+        const songsById = await loadSongsById(loadedDbSetlists)
+        const showsById = new Map(dbShows.map(show => [show.id, show]))
         const uiSetlists: UISetlist[] = await Promise.all(
           loadedDbSetlists.map(async dbSetlist => {
             // Load associated show if exists
@@ -1613,7 +1628,9 @@ export const SetlistsPage: React.FC = () => {
               | { id: string; name: string; date: string }
               | undefined
             if (dbSetlist.showId) {
-              const show = await repository.getShow(dbSetlist.showId)
+              const show =
+                showsById.get(dbSetlist.showId) ??
+                (await repository.getShow(dbSetlist.showId))
               if (show) {
                 associatedShow = {
                   id: show.id!,
@@ -1624,19 +1641,16 @@ export const SetlistsPage: React.FC = () => {
             }
 
             // Populate songs in items
-            const populatedItems: UISetlistItem[] = await Promise.all(
-              (dbSetlist.items || []).map(async item => {
-                if (item.type === 'song' && item.songId) {
-                  const song = await repository.getSong(item.songId)
-                  if (song) {
-                    return {
-                      ...item,
-                      song: dbSongToUISong(song),
-                    }
-                  }
-                }
-                return item as UISetlistItem
-              })
+            const populatedItems: UISetlistItem[] = (dbSetlist.items || []).map(
+              item => {
+                const song =
+                  item.type === 'song' && item.songId
+                    ? songsById.get(item.songId)
+                    : undefined
+                return song
+                  ? { ...item, song: dbSongToUISong(song) }
+                  : (item as UISetlistItem)
+              }
             )
 
             // Calculate song count and total duration
@@ -1705,17 +1719,18 @@ export const SetlistsPage: React.FC = () => {
     }
     let cancelled = false
     const hydrate = async () => {
+      const songsById = await loadSongsById(personalSetlistData)
       const hydrated = await Promise.all(
         personalSetlistData.map(async s => {
-          const populatedItems: UISetlistItem[] = await Promise.all(
-            (s.items ?? []).map(async item => {
-              if (item.type === 'song' && item.songId) {
-                const song = await repository.getSong(item.songId)
-                if (song) return { ...item, song: dbSongToUISong(song) }
-              }
-              return item as UISetlistItem
-            })
-          )
+          const populatedItems: UISetlistItem[] = (s.items ?? []).map(item => {
+            const song =
+              item.type === 'song' && item.songId
+                ? songsById.get(item.songId)
+                : undefined
+            return song
+              ? { ...item, song: dbSongToUISong(song) }
+              : (item as UISetlistItem)
+          })
           const songCount = populatedItems.filter(i => i.type === 'song').length
           return {
             id: s.id!,
@@ -1994,6 +2009,7 @@ export const SetlistsPage: React.FC = () => {
         : await repository.getSetlists(currentBandId)
 
       // Re-convert to UI format (reuse loading logic)
+      const songsById = await loadSongsById(dbSetlists)
       const reloadedSetlists: UISetlist[] = await Promise.all(
         dbSetlists.map(async dbSetlist => {
           let associatedShow:
@@ -2010,19 +2026,16 @@ export const SetlistsPage: React.FC = () => {
             }
           }
 
-          const populatedItems: UISetlistItem[] = await Promise.all(
-            (dbSetlist.items || []).map(async item => {
-              if (item.type === 'song' && item.songId) {
-                const song = await repository.getSong(item.songId)
-                if (song) {
-                  return {
-                    ...item,
-                    song: dbSongToUISong(song),
-                  }
-                }
-              }
-              return item as UISetlistItem
-            })
+          const populatedItems: UISetlistItem[] = (dbSetlist.items || []).map(
+            item => {
+              const song =
+                item.type === 'song' && item.songId
+                  ? songsById.get(item.songId)
+                  : undefined
+              return song
+                ? { ...item, song: dbSongToUISong(song) }
+                : (item as UISetlistItem)
+            }
           )
 
           const songCount = populatedItems.filter(i => i.type === 'song').length

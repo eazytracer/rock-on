@@ -1,3 +1,5 @@
+import type { User, UserProfile } from './User'
+
 export interface BandMembership {
   id: string
   userId: string
@@ -52,4 +54,11 @@ export const InviteCodeSchema = {
   maxUses: '',
   currentUses: '',
   createdDate: '',
+}
+
+/** A band membership joined with the member's user row and profile */
+export interface BandMemberWithProfile {
+  membership: BandMembership
+  user: User | null
+  profile: UserProfile | null
 }

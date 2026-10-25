@@ -61,6 +61,7 @@ vi.mock('../../../src/services/data/RepositoryFactory', () => ({
   repository: {
     getUser: vi.fn(),
     getUserProfile: vi.fn(),
+    getBandMembersWithProfiles: vi.fn(),
   },
 }))
 
@@ -233,12 +234,15 @@ describe('useBands Hooks', () => {
       expect(result.current.error).toBeNull()
     })
 
-    it('should fetch members with profiles via repository', async () => {
-      vi.mocked(BandMembershipService.getBandMembers).mockResolvedValue([
-        mockMembership,
+    it('fetches members with user + profile in one repository call', async () => {
+      const member = {
+        membership: mockMembership,
+        user: null,
+        profile: mockUserProfile,
+      }
+      vi.mocked(repository.getBandMembersWithProfiles).mockResolvedValue([
+        member,
       ])
-      vi.mocked(repository.getUser).mockResolvedValue(null)
-      vi.mocked(repository.getUserProfile).mockResolvedValue(mockUserProfile)
 
       const { result } = renderHook(() => useBandMembers('band-1'), {
         wrapper: wrapper(),
@@ -246,9 +250,14 @@ describe('useBands Hooks', () => {
 
       await waitFor(() => expect(result.current.loading).toBe(false))
 
-      expect(result.current.members).toHaveLength(1)
-      expect(result.current.members[0].membership).toEqual(mockMembership)
-      expect(result.current.members[0].profile).toEqual(mockUserProfile)
+      expect(repository.getBandMembersWithProfiles).toHaveBeenCalledTimes(1)
+      expect(repository.getBandMembersWithProfiles).toHaveBeenCalledWith(
+        'band-1'
+      )
+      // No per-member lookups (the old N+1: 1 + 2 calls per member)
+      expect(repository.getUser).not.toHaveBeenCalled()
+      expect(repository.getUserProfile).not.toHaveBeenCalled()
+      expect(result.current.members).toEqual([member])
     })
 
     it('should handle null bandId', () => {
@@ -273,7 +282,7 @@ describe('useBands Hooks', () => {
 
     it('should handle errors', async () => {
       const mockError = new Error('Failed to fetch members')
-      vi.mocked(BandMembershipService.getBandMembers).mockRejectedValue(
+      vi.mocked(repository.getBandMembersWithProfiles).mockRejectedValue(
         mockError
       )
 

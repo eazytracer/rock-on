@@ -213,25 +213,29 @@ export const SetlistViewPage: React.FC = () => {
           }
         }
 
-        // Populate songs in items
-        const populatedItems: UISetlistItem[] = await Promise.all(
-          (dbSetlist.items || []).map(async item => {
-            if (item.type === 'song' && item.songId) {
-              const song = await repository.getSong(item.songId)
-              if (song) {
-                return {
-                  ...item,
-                  id: item.id || crypto.randomUUID(),
-                  song: dbSongToUISong(song),
-                }
-              }
-            }
+        // Populate songs in items (one query for the whole setlist)
+        const items = dbSetlist.items || []
+        const songs = await repository.getSongsByIds(
+          items.flatMap(i => (i.type === 'song' && i.songId ? [i.songId] : []))
+        )
+        const songsById = new Map(songs.map(song => [song.id, song]))
+        const populatedItems: UISetlistItem[] = items.map(item => {
+          const song =
+            item.type === 'song' && item.songId
+              ? songsById.get(item.songId)
+              : undefined
+          if (song) {
             return {
               ...item,
               id: item.id || crypto.randomUUID(),
-            } as UISetlistItem
-          })
-        )
+              song: dbSongToUISong(song),
+            }
+          }
+          return {
+            ...item,
+            id: item.id || crypto.randomUUID(),
+          } as UISetlistItem
+        })
 
         setItems(populatedItems)
       } catch (err) {

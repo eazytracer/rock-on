@@ -5,7 +5,11 @@ import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
-import { BandMembership, InviteCode } from '../../models/BandMembership'
+import {
+  BandMembership,
+  BandMemberWithProfile,
+  InviteCode,
+} from '../../models/BandMembership'
 import { User } from '../../models/User'
 import type { UserProfile } from '../../models/User'
 import {
@@ -57,6 +61,22 @@ export class RemoteRepository implements IDataRepository {
     }
 
     const { data, error } = await query
+
+    if (error) throw error
+
+    return data.map(row => this.mapSongFromSupabase(row))
+  }
+
+  async getSongsByIds(ids: string[]): Promise<Song[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const unique = [...new Set(ids)]
+    if (unique.length === 0) return []
+
+    const { data, error } = await supabase
+      .from('songs')
+      .select('*')
+      .in('id', unique)
 
     if (error) throw error
 
@@ -891,6 +911,36 @@ export class RemoteRepository implements IDataRepository {
     return data.map(row => this.mapBandMembershipFromSupabase(row))
   }
 
+  async getBandMembersWithProfiles(
+    bandId: string
+  ): Promise<BandMemberWithProfile[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    // Embed users -> user_profiles via their FKs, so the whole roster is one
+    // request instead of 1 + 2 per member.
+    const { data, error } = await supabase
+      .from('band_memberships')
+      .select('*, users(*, user_profiles(*))')
+      .eq('band_id', bandId)
+      .eq('status', 'active')
+
+    if (error) throw error
+
+    return data.map((row: any) => {
+      const user = row.users ?? null
+      // user_profiles.user_id is UNIQUE, so PostgREST embeds one object; accept
+      // an array too in case the relationship is detected as one-to-many.
+      const profile = Array.isArray(user?.user_profiles)
+        ? user.user_profiles[0]
+        : user?.user_profiles
+      return {
+        membership: this.mapBandMembershipFromSupabase(row),
+        user: user ? this.mapUserFromSupabase(user) : null,
+        profile: profile ? this.mapUserProfileFromSupabase(profile) : null,
+      }
+    })
+  }
+
   async getUserMemberships(userId: string): Promise<BandMembership[]> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
@@ -1133,17 +1183,7 @@ export class RemoteRepository implements IDataRepository {
     if (error) throw error
     if (!data) return null
 
-    const row = data as any
-    return {
-      id: row.id,
-      userId: row.user_id,
-      displayName: row.display_name ?? '',
-      primaryInstrument: row.primary_instrument ?? undefined,
-      instruments: row.instruments ?? [],
-      avatarUrl: row.avatar_url ?? undefined,
-      createdDate: row.created_date ? new Date(row.created_date) : new Date(),
-      updatedDate: row.updated_date ? new Date(row.updated_date) : new Date(),
-    }
+    return this.mapUserProfileFromSupabase(data)
   }
 
   async updateUserProfile(
@@ -1182,6 +1222,19 @@ export class RemoteRepository implements IDataRepository {
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
       lastLogin: row.last_login ? new Date(row.last_login) : undefined,
       authProvider: row.auth_provider ?? 'email',
+    }
+  }
+
+  private mapUserProfileFromSupabase(row: any): UserProfile {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      displayName: row.display_name ?? '',
+      primaryInstrument: row.primary_instrument ?? undefined,
+      instruments: row.instruments ?? [],
+      avatarUrl: row.avatar_url ?? undefined,
+      createdDate: row.created_date ? new Date(row.created_date) : new Date(),
+      updatedDate: row.updated_date ? new Date(row.updated_date) : new Date(),
     }
   }
 

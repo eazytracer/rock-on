@@ -12,7 +12,6 @@ import type {
   BandMembershipRow,
   InviteCode,
 } from '../models/BandMembership'
-import type { User, UserProfile } from '../models/User'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('useBands')
@@ -154,26 +153,13 @@ export function useBandMemberships(bandId: string) {
 
 /**
  * Hook to get band members with their profile info.
- * Fetches User + UserProfile from Supabase (cloud-first) so all band members
- * are visible with instruments/display info.
+ * One embedded query returns each active membership with its User + UserProfile,
+ * so all band members are visible with instruments/display info.
  */
 export function useBandMembers(bandId: string) {
   const query = useQuery({
     queryKey: [...queryKeys.memberships.band(bandId), 'withProfiles'],
-    queryFn: async () => {
-      const memberships = await BandMembershipService.getBandMembers(bandId)
-      return Promise.all(
-        memberships.map(async membership => {
-          const user = await repository.getUser(membership.userId)
-          const profile = await repository.getUserProfile(membership.userId)
-          return {
-            membership,
-            user: (user as User | null) || null,
-            profile: (profile as UserProfile | null) || null,
-          }
-        })
-      )
-    },
+    queryFn: () => repository.getBandMembersWithProfiles(bandId),
     enabled: !!bandId,
   })
 
