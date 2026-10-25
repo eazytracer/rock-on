@@ -24,7 +24,7 @@ interface UseJamSessionState {
 }
 
 interface UseJamSessionActions {
-  joinSession: (shortCode: string, userId: string) => Promise<JamSession>
+  joinSession: (shortCode: string) => Promise<JamSession>
   leaveSession: (participantId: string) => Promise<void>
   confirmMatch: (matchId: string) => Promise<void>
   dismissMatch: (matchId: string) => Promise<void>
@@ -128,8 +128,8 @@ export function useJamSession(
   }, [session])
 
   const joinSession = useCallback(
-    async (shortCode: string, userId: string) => {
-      const joined = await JamSessionService.joinSession(shortCode, userId)
+    async (shortCode: string) => {
+      const joined = await JamSessionService.joinSession(shortCode)
       await fetchSession()
       // Return the session so callers can navigate to /jam/:id
       return joined

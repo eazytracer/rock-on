@@ -33,6 +33,10 @@ import { createLogger } from '../../utils/logger'
 
 const log = createLogger('RemoteRepository')
 
+// Columns of `users` clients may read (email, last_login and last_active_at
+// are not granted — see the privacy_lockdown migration).
+const USER_PUBLIC_COLUMNS = 'id, name, created_date, auth_provider'
+
 /**
  * Remote repository implementation using Supabase
  */
@@ -917,14 +921,20 @@ export class RemoteRepository implements IDataRepository {
     if (!supabase) throw new Error('Supabase client not initialized')
 
     // Embed users -> user_profiles via their FKs, so the whole roster is one
-    // request instead of 1 + 2 per member.
+    // request instead of 1 + 2 per member. users.email isn't selectable by
+    // clients; get_user_emails() returns only the ones the caller may see
+    // (their own, or all of them for a band admin).
     const { data, error } = await supabase
       .from('band_memberships')
-      .select('*, users(*, user_profiles(*))')
+      .select(`*, users(${USER_PUBLIC_COLUMNS}, user_profiles(*))`)
       .eq('band_id', bandId)
       .eq('status', 'active')
 
     if (error) throw error
+
+    const emails = await this.getVisibleEmails(
+      data.map((row: any) => row.user_id)
+    )
 
     return data.map((row: any) => {
       const user = row.users ?? null
@@ -935,7 +945,12 @@ export class RemoteRepository implements IDataRepository {
         : user?.user_profiles
       return {
         membership: this.mapBandMembershipFromSupabase(row),
-        user: user ? this.mapUserFromSupabase(user) : null,
+        user: user
+          ? {
+              ...this.mapUserFromSupabase(user),
+              email: emails.get(user.id) ?? '',
+            }
+          : null,
         profile: profile ? this.mapUserProfileFromSupabase(profile) : null,
       }
     })
@@ -1159,9 +1174,11 @@ export class RemoteRepository implements IDataRepository {
   async getUser(id: string): Promise<User | null> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
+    // Public columns only (users.email isn't selectable by clients — see
+    // getVisibleEmails); callers needing their own email use the auth session.
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select(USER_PUBLIC_COLUMNS)
       .eq('id', id)
       .maybeSingle()
 
@@ -1169,6 +1186,26 @@ export class RemoteRepository implements IDataRepository {
     if (!data) return null
 
     return this.mapUserFromSupabase(data)
+  }
+
+  /** Emails the caller may see (own; bandmates' if band admin), by user id */
+  private async getVisibleEmails(
+    userIds: string[]
+  ): Promise<Map<string, string>> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    if (userIds.length === 0) return new Map()
+
+    const { data, error } = await (supabase as any).rpc('get_user_emails', {
+      p_user_ids: userIds,
+    })
+    if (error) throw error
+
+    return new Map(
+      ((data ?? []) as { user_id: string; email: string }[]).map(r => [
+        r.user_id,
+        r.email,
+      ])
+    )
   }
 
   async getUserProfile(userId: string): Promise<UserProfile | null> {
@@ -1217,7 +1254,7 @@ export class RemoteRepository implements IDataRepository {
   private mapUserFromSupabase(row: any): User {
     return {
       id: row.id,
-      email: row.email,
+      email: row.email ?? '',
       name: row.name,
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
       lastLogin: row.last_login ? new Date(row.last_login) : undefined,
@@ -1634,14 +1671,32 @@ export class RemoteRepository implements IDataRepository {
 
   async getJamSessionByCode(shortCode: string): Promise<JamSession | null> {
     if (!supabase) throw new Error('Supabase client not initialized')
-    const { data, error } = await supabase
-      .from('jam_sessions')
-      .select('*')
-      .eq('short_code', shortCode)
-      .maybeSingle() // Returns null instead of 406 when no row found
+    // Code-gated lookup: jam_sessions isn't listable by non-participants.
+    // Set-returning RPC: read the array (.maybeSingle() on an RPC is a 406
+    // when no row matches).
+    const { data, error } = await (supabase as any).rpc(
+      'get_jam_session_by_code',
+      {
+        p_code: shortCode,
+      }
+    )
     if (error) throw error
-    if (!data) return null
-    return this.mapJamSessionFromSupabase(data)
+    const row = (data as any[] | null)?.[0]
+    return row ? this.mapJamSessionFromSupabase(row) : null
+  }
+
+  async joinJamSession(shortCode: string): Promise<JamSession | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    // Validates the code + active/unexpired server-side and adds the caller as
+    // a participant sharing their personal catalog (no-op if already one).
+    // Set-returning RPC: read the array (.maybeSingle() on an RPC is a 406
+    // when no row matches).
+    const { data, error } = await (supabase as any).rpc('join_jam_session', {
+      p_code: shortCode,
+    })
+    if (error) throw error
+    const row = (data as any[] | null)?.[0]
+    return row ? this.mapJamSessionFromSupabase(row) : null
   }
 
   async createJamSession(session: Omit<JamSession, 'id'>): Promise<JamSession> {

@@ -424,8 +424,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('jam_sessions', 'jam_sessions_select_by_code'),
-  'jam_sessions_select_by_code policy should exist (allows join flow lookup)'
+  not tests.policy_exists('jam_sessions', 'jam_sessions_select_by_code'),
+  'jam_sessions_select_by_code policy is gone (lookup goes through get_jam_session_by_code)'
 );
 
 select ok(
@@ -453,8 +453,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('jam_participants', 'jam_participants_insert_self'),
-  'jam_participants_insert_self policy should exist'
+  tests.policy_exists('jam_participants', 'jam_participants_insert_host_self'),
+  'jam_participants_insert_host_self policy should exist (others join via join_jam_session)'
 );
 
 select ok(
@@ -503,8 +503,8 @@ select is(
 
 select is(
   tests.policy_count('user_profiles'),
-  7,
-  'user_profiles table should have exactly 7 policies (own select + jam-coparticipant + event-coparticipant select + insert + update + friends discoverable + friend select)'
+  8,
+  'user_profiles table should have exactly 8 policies (own select + band-member + jam-coparticipant + event-coparticipant select + insert + update + friends discoverable + friend select)'
 );
 
 -- Social events (mobile-redesign-port): co-participant name visibility for casting.
@@ -578,8 +578,8 @@ select is(
 
 select is(
   tests.policy_count('jam_sessions'),
-  5,
-  'jam_sessions table should have exactly 5 policies'
+  4,
+  'jam_sessions table should have exactly 4 policies'
 );
 
 select is(

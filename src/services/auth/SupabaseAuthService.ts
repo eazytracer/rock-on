@@ -96,24 +96,29 @@ export class SupabaseAuthService implements IAuthService {
 
   private async ensureUserInSupabase(user: User): Promise<void> {
     try {
-      // Use upsert (INSERT ... ON CONFLICT UPDATE) to handle race conditions
-      const { error } = await this.supabase
+      // Create the row if missing, then refresh it. Not a single
+      // ON CONFLICT DO UPDATE: that reads excluded.email, and clients have no
+      // SELECT on users.email (privacy_lockdown migration).
+      const row = {
+        email: user.email,
+        name: user.name,
+        last_login: new Date(),
+        auth_provider: user.authProvider || 'email',
+      }
+      let { error } = await this.supabase
         .from('users')
         // @ts-expect-error - Supabase generated types are overly strict
         .upsert(
-          {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            created_date: user.createdDate || new Date(),
-            last_login: new Date(),
-            auth_provider: user.authProvider || 'email',
-          },
-          {
-            onConflict: 'id',
-            ignoreDuplicates: false, // Update on conflict
-          }
+          { id: user.id, created_date: user.createdDate || new Date(), ...row },
+          { onConflict: 'id', ignoreDuplicates: true }
         )
+      if (!error) {
+        ;({ error } = await this.supabase
+          .from('users')
+          // @ts-expect-error - Supabase generated types are overly strict
+          .update(row)
+          .eq('id', user.id))
+      }
 
       if (error) {
         log.error('Failed to sync user to Supabase public.users:', error)

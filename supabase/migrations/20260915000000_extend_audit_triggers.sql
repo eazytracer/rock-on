@@ -225,7 +225,10 @@ copy it:
 - **A friendlier time picker.** Type a time or pick from the list — it filters
   as you type.
 - **Faster and always in sync.** Under the hood, Rock-On now talks to the cloud
-  directly, so changes from you and your bandmates show up sooner.$md$,
+  directly, so changes from you and your bandmates show up sooner.
+- **More privacy.** Only band admins can see bandmates' email addresses;
+  everyone else sees names. Jam sessions can only be found and joined with
+  their code.$md$,
   NOW() + INTERVAL '1 second'
 ) ON CONFLICT (version) DO UPDATE
   SET title = EXCLUDED.title, body = EXCLUDED.body;

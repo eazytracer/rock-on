@@ -676,7 +676,7 @@ export const BandMembersPage: React.FC = () => {
                 {sortedMembers.map(member => (
                   <div
                     key={member.userId}
-                    data-testid={`member-row-${member.email}`}
+                    data-testid={`member-row-${member.userId}`}
                     className="flex items-center gap-4 p-4 bg-bg-2 rounded-xl hover:bg-bg-4 transition-colors"
                   >
                     {/* Member Info */}
@@ -693,7 +693,12 @@ export const BandMembersPage: React.FC = () => {
                         >
                           {member.name}
                         </div>
-                        <div className="text-ink-3 text-xs">{member.email}</div>
+                        {/* Only band admins get bandmates' emails */}
+                        {member.email && (
+                          <div className="text-ink-3 text-xs">
+                            {member.email}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -746,7 +751,7 @@ export const BandMembersPage: React.FC = () => {
                                   : member.userId
                               )
                             }
-                            data-testid={`member-actions-${member.email}`}
+                            data-testid={`member-actions-${member.userId}`}
                             className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-white transition-colors"
                           >
                             <MoreVertical size={16} />
@@ -807,7 +812,7 @@ export const BandMembersPage: React.FC = () => {
                                     <div className="border-t border-border-1 my-1" />
                                     <button
                                       onClick={() => openRemoveMember(member)}
-                                      data-testid={`remove-member-${member.email}`}
+                                      data-testid={`remove-member-${member.userId}`}
                                       className="w-full px-4 py-2 text-left text-danger text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
                                     >
                                       <Trash2 size={16} />
@@ -831,7 +836,7 @@ export const BandMembersPage: React.FC = () => {
               {sortedMembers.map(member => (
                 <div
                   key={member.userId}
-                  data-testid={`member-row-${member.email}`}
+                  data-testid={`member-row-${member.userId}`}
                   className="bg-bg-2 rounded-xl p-4 border border-border-1"
                 >
                   <div className="flex items-start gap-3 mb-3">
@@ -847,9 +852,11 @@ export const BandMembersPage: React.FC = () => {
                       >
                         {member.name}
                       </div>
-                      <div className="text-ink-3 text-xs truncate">
-                        {member.email}
-                      </div>
+                      {member.email && (
+                        <div className="text-ink-3 text-xs truncate">
+                          {member.email}
+                        </div>
+                      )}
                       <div className="mt-2">{getRoleBadge(member.role)}</div>
                     </div>
                     {(canRemoveMember(member) ||
@@ -1028,9 +1035,11 @@ export const BandMembersPage: React.FC = () => {
                         <div className="text-white text-xl font-semibold">
                           {selectedMember.name}
                         </div>
-                        <div className="text-ink-3 text-sm">
-                          {selectedMember.email}
-                        </div>
+                        {selectedMember.email && (
+                          <div className="text-ink-3 text-sm">
+                            {selectedMember.email}
+                          </div>
+                        )}
                         <div className="mt-2">
                           {getRoleBadge(selectedMember.role)}
                         </div>

@@ -157,6 +157,8 @@ export interface IDataRepository {
 
   /** Get a jam session by its short_code (for join flow) */
   getJamSessionByCode(shortCode: string): Promise<JamSession | null>
+  /** Join an active session by code (server-validated); null if no such code */
+  joinJamSession(shortCode: string): Promise<JamSession | null>
 
   /** Create a new jam session */
   createJamSession(session: Omit<JamSession, 'id'>): Promise<JamSession>

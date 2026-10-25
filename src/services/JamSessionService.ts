@@ -198,10 +198,7 @@ export class JamSessionService {
    * Join a jam session via short code.
    * Adds the user as a participant sharing their personal catalog.
    */
-  static async joinSession(
-    shortCode: string,
-    userId: string
-  ): Promise<JamSession> {
+  static async joinSession(shortCode: string): Promise<JamSession> {
     const session = await repository.getJamSessionByCode(shortCode)
     if (!session) {
       throw new Error('Jam session not found')
@@ -218,24 +215,10 @@ export class JamSessionService {
       throw new Error('This jam session has expired')
     }
 
-    // Add participant (ignore if already joined)
-    try {
-      await repository.addJamParticipant({
-        jamSessionId: session.id,
-        userId,
-        joinedDate: new Date(),
-        status: 'active',
-        sharedContexts: [{ type: 'personal', id: userId }],
-      })
-    } catch (err) {
-      // UNIQUE constraint violation = already a participant, that's OK
-      if (
-        !(err as Error).message?.includes('duplicate') &&
-        !(err as Error).message?.includes('unique')
-      ) {
-        throw err
-      }
-    }
+    // Join server-side: the RPC re-checks the code and expiry, and adds the
+    // caller sharing their personal catalog (no-op if already a participant).
+    // Direct participant inserts are host-only under RLS.
+    await repository.joinJamSession(shortCode)
 
     // Recompute matches now that a new participant has joined
     await this.recomputeMatches(session.id)

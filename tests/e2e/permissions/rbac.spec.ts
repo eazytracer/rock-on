@@ -3,6 +3,7 @@ import {
   createTestUser,
   signUpViaUI,
   deleteTestUser,
+  getCurrentUserId,
 } from '../../fixtures/auth'
 import {
   createBandViaUI,
@@ -133,6 +134,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
 
     const member2 = createTestUser()
     await signUpViaUI(member2Page, member2)
+    const member2Uid = await getCurrentUserId(member2Page)
     await joinBandViaUI(member2Page, inviteCode)
 
     // Member 1 tries to remove Member 2
@@ -140,7 +142,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await member1Page.waitForLoadState('networkidle')
 
     const member2Row = member1Page
-      .locator(`[data-testid="member-row-${member2.email}"]`)
+      .locator(`[data-testid="member-row-${member2Uid}"]`)
       .first()
     const rowVisible = await member2Row.isVisible().catch(() => false)
 
@@ -182,6 +184,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     // Member joins
     const member = createTestUser()
     await signUpViaUI(memberPage, member)
+    const memberUid = await getCurrentUserId(memberPage)
     await joinBandViaUI(memberPage, inviteCode)
 
     // Admin goes to members page
@@ -189,7 +192,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await adminPage.waitForLoadState('networkidle')
 
     const memberRow = adminPage
-      .locator(`[data-testid="member-row-${member.email}"]`)
+      .locator(`[data-testid="member-row-${memberUid}"]`)
       .first()
     const isVisible = await memberRow
       .isVisible({ timeout: 5000 })
@@ -224,6 +227,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
 
     // Create band (owner is automatically admin)
     await signUpViaUI(page, owner)
+    const ownerUid = await getCurrentUserId(page)
     await createBandViaUI(page, `Owner Test ${Date.now()}`)
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
@@ -245,7 +249,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await page.waitForLoadState('networkidle')
 
     const ownerRow = page
-      .locator(`[data-testid="member-row-${owner.email}"]`)
+      .locator(`[data-testid="member-row-${ownerUid}"]`)
       .first()
     await expect(ownerRow).toBeVisible({ timeout: 5000 })
 
@@ -272,6 +276,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
 
     const member = createTestUser()
     await signUpViaUI(memberPage, member)
+    const memberUid = await getCurrentUserId(memberPage)
     await joinBandViaUI(memberPage, inviteCode)
 
     // Member tries to access their own profile
@@ -279,7 +284,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await memberPage.waitForLoadState('networkidle')
 
     const memberRow = memberPage
-      .locator(`[data-testid="member-row-${member.email}"]`)
+      .locator(`[data-testid="member-row-${memberUid}"]`)
       .first()
     // Opening the member's own row is best-effort; the promote controls are
     // page-level, so the assertions below run unconditionally regardless.

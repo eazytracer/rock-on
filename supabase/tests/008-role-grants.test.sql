@@ -49,14 +49,20 @@ select plan(
 -- INSERT, UPDATE, DELETE}. A missing grant at the hosted-DB level will fail
 -- the corresponding assertion with a clear name.
 
+-- Exception: authenticated reads public.users through column grants only
+-- (email / last_login / last_active_at hidden — privacy lockdown migration).
 select ok(
-  has_table_privilege(role_name, full_table, privilege),
-  format(
-    '%s should have %s on %s',
-    role_name,
-    privilege,
-    full_table
-  )
+  case
+    when (role_name, full_table, privilege) = ('authenticated', 'public.users', 'SELECT')
+      then has_column_privilege(role_name, full_table, 'name', 'SELECT')
+        and not has_column_privilege(role_name, full_table, 'email', 'SELECT')
+    else has_table_privilege(role_name, full_table, privilege)
+  end,
+  case
+    when (role_name, full_table, privilege) = ('authenticated', 'public.users', 'SELECT')
+      then 'authenticated should have column SELECT on public.users (name, not email)'
+    else format('%s should have %s on %s', role_name, privilege, full_table)
+  end
 )
 from (
   select

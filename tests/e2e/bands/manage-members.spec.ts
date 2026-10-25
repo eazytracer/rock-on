@@ -3,6 +3,7 @@ import {
   createTestUser,
   signUpViaUI,
   deleteTestUser,
+  getCurrentUserId,
 } from '../../fixtures/auth'
 import {
   createBandViaUI,
@@ -43,6 +44,7 @@ test.describe('Band Member Management', () => {
     // Admin creates band
     const admin = createTestUser()
     await signUpViaUI(adminPage, admin)
+    const adminUid = await getCurrentUserId(adminPage)
     await expect(adminPage).toHaveURL(/\/get-started/, { timeout: 10000 })
 
     const bandName = `Member Test Band ${Date.now()}`
@@ -55,6 +57,7 @@ test.describe('Band Member Management', () => {
     // Member joins band
     const member = createTestUser()
     await signUpViaUI(memberPage, member)
+    const memberUid = await getCurrentUserId(memberPage)
     await joinBandViaUI(memberPage, inviteCode)
     await memberPage.waitForURL(/\/(songs|band-members|bands)/, {
       timeout: 10000,
@@ -66,10 +69,10 @@ test.describe('Band Member Management', () => {
 
     // Verify both members are visible
     const adminRow = adminPage
-      .locator(`[data-testid="member-row-${admin.email}"]`)
+      .locator(`[data-testid="member-row-${adminUid}"]`)
       .first()
     const memberRow = adminPage
-      .locator(`[data-testid="member-row-${member.email}"]`)
+      .locator(`[data-testid="member-row-${memberUid}"]`)
       .first()
 
     await expect(adminRow).toBeVisible({ timeout: 5000 })
@@ -109,6 +112,7 @@ test.describe('Band Member Management', () => {
 
     const member = createTestUser()
     await signUpViaUI(memberPage, member)
+    const memberUid = await getCurrentUserId(memberPage)
     await joinBandViaUI(memberPage, inviteCode)
 
     // Admin goes to members page
@@ -117,7 +121,7 @@ test.describe('Band Member Management', () => {
 
     // Click on member row to open details/edit
     const memberRow = adminPage
-      .locator(`[data-testid="member-row-${member.email}"]`)
+      .locator(`[data-testid="member-row-${memberUid}"]`)
       .first()
     await expect(memberRow).toBeVisible({ timeout: 5000 })
     await memberRow.click()
@@ -192,6 +196,7 @@ test.describe('Band Member Management', () => {
 
     const member = createTestUser()
     await signUpViaUI(memberPage, member)
+    const memberUid = await getCurrentUserId(memberPage)
     await joinBandViaUI(memberPage, inviteCode)
 
     // Admin goes to members page
@@ -200,7 +205,7 @@ test.describe('Band Member Management', () => {
 
     // Click on member
     const memberRow = adminPage
-      .locator(`[data-testid="member-row-${member.email}"]`)
+      .locator(`[data-testid="member-row-${memberUid}"]`)
       .first()
     await expect(memberRow).toBeVisible({ timeout: 5000 })
     await memberRow.click()
@@ -271,6 +276,7 @@ test.describe('Band Member Management', () => {
 
     // Create band
     await signUpViaUI(page, user)
+    const userUid = await getCurrentUserId(page)
     await createBandViaUI(page, `Self Edit Test ${Date.now()}`)
 
     // Navigate to members page
@@ -278,9 +284,7 @@ test.describe('Band Member Management', () => {
     await page.waitForLoadState('networkidle')
 
     // Click on own profile
-    const myRow = page
-      .locator(`[data-testid="member-row-${user.email}"]`)
-      .first()
+    const myRow = page.locator(`[data-testid="member-row-${userUid}"]`).first()
     await expect(myRow).toBeVisible({ timeout: 5000 })
     await myRow.click()
     await page.waitForTimeout(500)
@@ -319,6 +323,7 @@ test.describe('Band Member Management', () => {
 
     const member = createTestUser()
     await signUpViaUI(memberPage, member)
+    const memberUid = await getCurrentUserId(memberPage)
     await joinBandViaUI(memberPage, inviteCode)
 
     // Admin goes to members page
@@ -327,12 +332,12 @@ test.describe('Band Member Management', () => {
 
     // Open the member's actions menu and remove them from the band.
     const memberRow = adminPage.locator(
-      `[data-testid="member-row-${member.email}"]`
+      `[data-testid="member-row-${memberUid}"]`
     )
     await expect(memberRow.first()).toBeVisible({ timeout: 5000 })
 
-    await adminPage.click(`[data-testid="member-actions-${member.email}"]`)
-    await adminPage.click(`[data-testid="remove-member-${member.email}"]`)
+    await adminPage.click(`[data-testid="member-actions-${memberUid}"]`)
+    await adminPage.click(`[data-testid="remove-member-${memberUid}"]`)
     await adminPage.click('[data-testid="confirm-remove-member"]')
 
     // The member's row must be gone — and STAY gone. Removal has to persist to
@@ -368,6 +373,7 @@ test.describe('Band Member Management', () => {
 
     const member2 = createTestUser()
     await signUpViaUI(member2Page, member2)
+    const member2Uid = await getCurrentUserId(member2Page)
     await joinBandViaUI(member2Page, inviteCode)
 
     // Member 1 tries to remove Member 2
@@ -375,7 +381,7 @@ test.describe('Band Member Management', () => {
     await member1Page.waitForLoadState('networkidle')
 
     const member2Row = member1Page
-      .locator(`[data-testid="member-row-${member2.email}"]`)
+      .locator(`[data-testid="member-row-${member2Uid}"]`)
       .first()
     const isVisible = await member2Row.isVisible().catch(() => false)
 

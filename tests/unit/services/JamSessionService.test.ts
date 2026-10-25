@@ -17,6 +17,7 @@ vi.mock('../../../src/services/data/RepositoryFactory', () => {
     createJamSession: vi.fn(),
     updateJamSession: vi.fn(),
     addJamParticipant: vi.fn(),
+    joinJamSession: vi.fn(),
     getJamParticipants: vi.fn(),
     getJamSongMatches: vi.fn(),
     upsertJamSongMatches: vi.fn(),
@@ -119,6 +120,52 @@ describe('JamSessionService', () => {
     it('returns { allowed: true } even with empty userId', async () => {
       const result = await JamSessionService.canCreateJamSession('')
       expect(result.allowed).toBe(true)
+    })
+  })
+
+  // --------------------------------------------------------------------------
+  // joinSession — must go through the code-checked join RPC
+  // --------------------------------------------------------------------------
+
+  describe('joinSession', () => {
+    beforeEach(() => {
+      vi.spyOn(JamSessionService, 'recomputeMatches').mockResolvedValue([])
+    })
+
+    it('joins via repository.joinJamSession(code), never a direct participant insert', async () => {
+      const session = makeSession()
+      mockRepository.getJamSessionByCode.mockResolvedValue(session)
+      mockRepository.joinJamSession.mockResolvedValue(session)
+
+      const joined = await JamSessionService.joinSession('ABC123')
+
+      expect(mockRepository.joinJamSession).toHaveBeenCalledWith('ABC123')
+      expect(mockRepository.addJamParticipant).not.toHaveBeenCalled()
+      expect(JamSessionService.recomputeMatches).toHaveBeenCalledWith(
+        session.id
+      )
+      expect(joined).toEqual(session)
+    })
+
+    it('throws "Jam session not found" for an unknown code', async () => {
+      mockRepository.getJamSessionByCode.mockResolvedValue(null)
+
+      await expect(JamSessionService.joinSession('NOPE00')).rejects.toThrow(
+        'Jam session not found'
+      )
+      expect(mockRepository.joinJamSession).not.toHaveBeenCalled()
+    })
+
+    it('does not join an expired session', async () => {
+      mockRepository.getJamSessionByCode.mockResolvedValue(
+        makeSession({ expiresAt: new Date(Date.now() - 1000) })
+      )
+      mockRepository.updateJamSession.mockResolvedValue(makeSession())
+
+      await expect(JamSessionService.joinSession('ABC123')).rejects.toThrow(
+        'This jam session has expired'
+      )
+      expect(mockRepository.joinJamSession).not.toHaveBeenCalled()
     })
   })
 

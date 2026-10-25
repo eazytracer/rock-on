@@ -3,6 +3,7 @@ import {
   createTestUser,
   signUpViaUI,
   deleteTestUser,
+  getCurrentUserId,
 } from '../../fixtures/auth'
 import { createBandViaUI } from '../../fixtures/bands'
 import { selectors } from '../../helpers/selectors'
@@ -53,6 +54,7 @@ test.describe('Band Creation', () => {
 
     // Sign up and create band
     await signUpViaUI(page, user)
+    const userUid = await getCurrentUserId(page)
     await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
     const bandName = `Admin Test Band ${Date.now()}`
@@ -65,7 +67,7 @@ test.describe('Band Creation', () => {
 
     // Find user's member row
     const memberRow = page
-      .locator(`[data-testid="member-row-${user.email}"]`)
+      .locator(`[data-testid="member-row-${userUid}"]`)
       .first()
     await expect(memberRow).toBeVisible({ timeout: 5000 })
 

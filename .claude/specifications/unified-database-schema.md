@@ -81,6 +81,13 @@ All tables with both naming conventions:
 
 **Purpose:** User authentication accounts
 
+**Column access (privacy lockdown, 2026-10-25):** `authenticated` has column-level
+SELECT only on `id, name, created_date, auth_provider, account_tier,
+tier_updated_at, last_seen_release_version`. `email`, `last_login` and
+`last_active_at` are not client-readable (so `select=*` fails — always list
+columns). Emails come from `get_user_emails(uuid[])`: your own, plus bandmates'
+for band admins/owners. A new column is not readable until added to that GRANT.
+
 **Table Names:**
 
 - IndexedDB: `users`

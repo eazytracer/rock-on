@@ -304,7 +304,7 @@ export const JamSessionPage: React.FC = () => {
     }
     setIsJoining(true)
     try {
-      const joined = await joinSession(joinCode.trim().toUpperCase(), userId)
+      const joined = await joinSession(joinCode.trim().toUpperCase())
       showToast('Joined jam session!', 'success')
       setJoinCode('')
       navigate(`/jam/${joined.id}`)

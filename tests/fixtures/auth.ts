@@ -171,6 +171,17 @@ export async function loginViaUI(page: Page, user: TestUser): Promise<void> {
 }
 
 /**
+ * The signed-in user's id (from the app's `currentUserId`). Member rows are
+ * keyed by user id, since other users' emails aren't visible to non-admins.
+ */
+export async function getCurrentUserId(page: Page): Promise<string> {
+  const handle = await page.waitForFunction(() =>
+    localStorage.getItem('currentUserId')
+  )
+  return (await handle.jsonValue()) as string
+}
+
+/**
  * Delete a test user from Supabase
  */
 export async function deleteTestUser(userId: string): Promise<void> {

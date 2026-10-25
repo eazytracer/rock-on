@@ -46,6 +46,21 @@ Phase 2 regressions found in end-to-end testing.
   phone just works. This replaces the `HOST_IP` / nginx phone-testing mode.
   Production builds are unchanged.
 
+### Security
+
+- **Other users' emails are no longer readable.** Row-level security let anyone
+  who could see a `users` row — bandmates, and jam or event co-participants —
+  read its `email`, `last_login` and `last_active_at`. Those columns are no
+  longer selectable by clients. Emails come from `get_user_emails()`, which
+  returns your own email and, for band admins/owners only, their bandmates'.
+  The band roster shows emails to admins only, and member rows are keyed by user
+  id instead of email.
+- **Jam sessions can't be discovered or joined without the code.** Any signed-in
+  user could list every active jam (the code was only checked in the browser)
+  and add themselves as a participant. Lookup and join now go through
+  `get_jam_session_by_code()` / `join_jam_session()`, which require the exact
+  code and an active, unexpired session. Kicked participants stay kicked.
+
 ### Fixed
 
 - **Infinite render loop on Songs and Band Members** ("Maximum update depth
@@ -88,6 +103,13 @@ Phase 2 regressions found in end-to-end testing.
   self-test, and the unused `envCheck`.
 
 ### Database
+
+- **`privacy_lockdown` migration** — column-level `SELECT` on `users`;
+  `get_user_emails`, `get_jam_session_by_code`, `join_jam_session` RPCs; drops
+  `jam_sessions_select_by_code` and `jam_participants_insert_self` (replaced by
+  host-only `jam_participants_insert_host_self`); adds
+  `user_profiles_select_band_member` so bandmates see each other's profiles even
+  when not discoverable.
 
 - **`songs.linked_from_song_id`** (UUID, FK `songs(id)` ON DELETE SET NULL),
   added to the not-yet-deployed `extend_audit_triggers` migration. Covered by
