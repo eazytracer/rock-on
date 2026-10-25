@@ -132,9 +132,6 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (!realtimeManager) {
-      console.warn(
-        '[AppContent] No realtimeManager, toast listener not registered'
-      )
       return
     }
 
@@ -151,17 +148,14 @@ const AppContent: React.FC = () => {
       message: string
       type: 'info' | 'success' | 'error'
     }) => {
-      console.log('[AppContent] Realtime toast received:', message, type)
       showToast(message, type)
     }
     toastHandlerRef.current = handleToast
 
-    console.log('[AppContent] Registering toast listener')
     realtimeManager.on('toast', handleToast)
 
     return () => {
       if (realtimeManager && toastHandlerRef.current) {
-        console.log('[AppContent] Unregistering toast listener')
         realtimeManager.off('toast', toastHandlerRef.current)
       }
     }

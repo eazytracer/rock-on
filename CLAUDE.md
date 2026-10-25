@@ -62,7 +62,8 @@ tag must exist for the merged `package.json` version, else the job fails loudly)
 ## Active Technologies
 
 TypeScript 5.x, React 18+, TailwindCSS, Vite. Supabase (Postgres/Auth/Realtime/
-Edge Functions). Offline-first: IndexedDB (Dexie) + sync queue. Testing: Vitest,
+Edge Functions). Online-only client: direct Supabase reads/writes, TanStack Query
+as an in-memory cache, `audit_log` realtime as the change feed. Testing: Vitest,
 Playwright, pgTAP.
 
 ## Project Structure
@@ -71,7 +72,7 @@ Playwright, pgTAP.
 src/
   ├── config/          # App configuration (mode detection)
   ├── services/
-  │   ├── data/        # Repository pattern & sync engine
+  │   ├── data/        # Repository (Supabase) + realtime change-notifier
   │   ├── auth/        # Authentication services
   │   └── supabase/    # Supabase client
   ├── components/ pages/ hooks/ contexts/ models/ utils/
@@ -188,13 +189,16 @@ const log = createLogger('MyComponent')
 log.debug(...) // dev only    log.info/warn(...) // dev+test    log.error(...) // always
 ```
 
+Enforced by ESLint `no-console` (exempt: `utils/logger.ts`, `src/test/`, edge
+functions). Don't leave troubleshooting traces behind — log failures, not steps.
+
 ## Database & Migrations
 
 **🚨 Production exists. The baseline is frozen — never edit it.** Schema changes
 land as **incremental migrations**.
 
 - **Schema of record:** `.claude/specifications/unified-database-schema.md`
-  (documents IndexedDB camelCase ↔ Supabase snake_case side by side). Never guess
+  (documents app camelCase ↔ Supabase snake_case side by side). Never guess
   a table/column name — check it.
 - **Baseline:** `supabase/migrations/20251106000000_baseline_schema.sql` (17
   tables, RLS, audit log, realtime, triggers). Fresh installs = baseline + all
@@ -252,18 +256,18 @@ Deploy via the versioned script, never ad-hoc (the `--no-verify-jwt` flag is eas
 to forget): `./scripts/deploy-edge-functions.sh <name|all>`. Smoke-test after:
 `./scripts/smoke-edge-functions.sh` (failure = rollback).
 
-## Repository Layer Guardrails (CRITICAL)
+## Data Layer
 
-**Never write directly to `db.*` (Dexie/IndexedDB) outside the storage layer.**
-Direct writes bypass the sync queue — Supabase never sees the change. Use
-`repository.addSong()` / `updateSong()` etc. (see `IDataRepository.ts`).
-
-Enforced by ESLint (`npm run lint`) and a ratchet test
-(`tests/unit/guardrails/db-direct-write.test.ts`). Allowed files (storage layer):
-`LocalRepository.ts`, `SyncEngine.ts`, `RealtimeManager.ts`, seed files,
-`DatabaseService.ts`, `src/services/database/index.ts`. The `KNOWN_VIOLATIONS`
-list (tech debt) must only ever shrink — when migrating a file, remove it from
-both the test and the `.eslintrc.cjs` overrides.
+- **All data access goes through `repository`** (`services/data/RepositoryFactory`
+  → `RemoteRepository`, implementing `IDataRepository`). It reads/writes Supabase
+  directly; there is no local database or sync queue.
+- **Hooks use TanStack Query** (`services/queryClient.ts` holds the client and
+  the centralized `queryKeys`). Reference pattern: `hooks/useSongs.ts`.
+- **Live updates:** `RealtimeManager` listens to `audit_log` and emits
+  `{entity}:changed`; `useRealtimeInvalidate` turns those into query
+  invalidations. A table only produces live updates if it has an audit trigger —
+  add one in the migration when introducing a table other members should see
+  change live.
 
 ## Testing discipline
 
@@ -274,11 +278,11 @@ both the test and the `.eslintrc.cjs` overrides.
 
 ## Auth flow (quick reference)
 
-Multi-layer auth with a persistent layout. `useAuthCheck` validates the session
-on every route change (with a **1.5-hour grace period** for brief offline
-stretches during gigs); `ProtectedLayoutRoute` combines the check with the
-persistent `ModernLayout` and redirects unauthenticated users before rendering.
-Pages don't wrap themselves in `ModernLayout`; they use `ContentLoadingSpinner`
-for content-area loading. Key files: `hooks/useAuthCheck.ts`,
-`components/layout/ProtectedLayoutRoute.tsx`, `contexts/AuthContext.tsx`,
-`services/auth/SessionManager.ts`.
+The Supabase SDK session is the single source of truth. `useAuthCheck`
+re-validates it on every route change (it only signs out on a `SIGNED_OUT`
+event, never on a network error); `ProtectedLayoutRoute` combines the check with
+the persistent `ModernLayout` and redirects unauthenticated users before
+rendering. Pages don't wrap themselves in `ModernLayout`; they use
+`ContentLoadingSpinner` for content-area loading. Key files:
+`hooks/useAuthCheck.ts`, `components/layout/ProtectedLayoutRoute.tsx`,
+`contexts/AuthContext.tsx`, `services/auth/SupabaseAuthService.ts`.

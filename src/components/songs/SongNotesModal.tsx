@@ -3,6 +3,9 @@ import { X, Loader2, Users, User, HelpCircle } from 'lucide-react'
 import { useBandNotes, usePersonalNote } from '../../hooks/useNotes'
 import { useToast } from '../../contexts/ToastContext'
 import { MarkdownField } from '../notes/MarkdownField'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('SongNotesModal')
 
 interface SongNotesModalProps {
   isOpen: boolean
@@ -57,7 +60,7 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
     try {
       await updateBandNotes(next)
     } catch (err) {
-      console.error('Error saving band notes:', err)
+      log.error('Error saving band notes:', err)
       showToast('Failed to save band notes', 'error')
       throw err
     }
@@ -67,7 +70,7 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
     try {
       await upsertPersonalNote(next)
     } catch (err) {
-      console.error('Error saving personal notes:', err)
+      log.error('Error saving personal notes:', err)
       showToast('Failed to save personal notes', 'error')
       throw err
     }

@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { RemoteRepository } from '../services/data/RemoteRepository'
 import { useAuth } from '../contexts/AuthContext'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('useLastActiveTime')
 
 interface UseLastActiveTimeResult {
   lastActiveAt: Date | undefined
@@ -40,7 +43,7 @@ export function useLastActiveTime(userId?: string): UseLastActiveTimeResult {
           ? err
           : new Error('Failed to fetch last active time')
       setError(error)
-      console.warn('Failed to fetch last active time:', error)
+      log.warn('Failed to fetch last active time:', error)
     } finally {
       setIsLoading(false)
     }

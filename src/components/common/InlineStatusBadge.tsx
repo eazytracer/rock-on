@@ -1,6 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronDown, Loader2 } from 'lucide-react'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('InlineStatusBadge')
 
 interface StatusOption {
   value: string
@@ -83,7 +86,7 @@ export const InlineStatusBadge: React.FC<InlineStatusBadgeProps> = ({
         await onSave(optionValue)
         setIsOpen(false)
       } catch (err) {
-        console.error('Error saving status:', err)
+        log.error('Error saving status:', err)
       } finally {
         setIsSaving(false)
       }

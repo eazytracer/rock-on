@@ -15,28 +15,27 @@ Master overview of planned features in the `.claude/backlog/` directory.
 
 | Feature                                                                              | Status                           | Priority       | Complexity       | Dependencies                |
 | ------------------------------------------------------------------------------------ | -------------------------------- | -------------- | ---------------- | --------------------------- |
-| [auth-and-data-simplification](#auth-and-data-simplification)                        | Research Complete                | High (Phase 1) | M (P1) / XL (P2) | Flutter apps (P2 only)      |
+| [auth-and-data-simplification](#auth-and-data-simplification)                        | P1 shipped (0.5.0); P2 in PR     | High (Phase 1) | M (P1) / XL (P2) | Flutter apps (P2 only)      |
 | [email-and-notifications](#email-and-notifications)                                  | Research/Spec Complete           | Medium         | Medium-High      | None                        |
 | [account-tiers-and-access](#account-tiers-and-access)                                | Stub shipped — wire-up remaining | High           | Medium           | None (stub exists)          |
 | [multi-band-support](#multi-band-support)                                            | Mostly implemented               | Medium         | Low (polish)     | None                        |
 | [enhanced-security-testing](#enhanced-security-testing)                              | Unblocked — ready                | Medium         | Medium           | ci-cd (shipped)             |
 | [ci-cd: deploy + migration-safety](#ci-cd-deploy--migration-safety)                  | Partial                          | Medium         | Medium           | None                        |
-| [no-console-eslint-rule](#no-console-eslint-rule)                                    | Research Complete                | Low            | Medium           | None                        |
+| [no-console-eslint-rule](#no-console-eslint-rule)                                    | Done (0.6.1, pending merge)      | Low            | Medium           | None                        |
 | [react-native-app](#react-native-app)                                                | Research Complete                | Low            | Very High        | Stable web app              |
 | [open-jam-venue-mode](#open-jam-venue-mode)                                          | Open questions                   | Medium         | High             | Events (shipped)            |
 | [cross-catalog-song-matching](cross-catalog-song-matching/2026-09-14_parked-idea.md) | Idea / parked                    | Low            | High             | Open jam mode; legal review |
 
 ## Recommended Implementation Order
 
-1. **no-console-eslint-rule** — quick code-quality win, can parallel anything.
-2. **multi-band-support** — verify remaining UI polish (logic mostly exists).
-3. **email-and-notifications** — Phase 1 infra, then invitations + .ics invites.
-4. **enhanced-security-testing** — CI now exists; add SAST + RLS/security tests.
-5. **account-tiers-and-access** — wire tier gating + Stripe onto the shipped stub.
-6. **ci-cd: deploy + migration-safety** — extend the existing validation workflow.
-7. **open-jam-venue-mode** — resolve open questions; aligns with the venue /
+1. **multi-band-support** — verify remaining UI polish (logic mostly exists).
+2. **email-and-notifications** — Phase 1 infra, then invitations + .ics invites.
+3. **enhanced-security-testing** — CI now exists; add SAST + RLS/security tests.
+4. **account-tiers-and-access** — wire tier gating + Stripe onto the shipped stub.
+5. **ci-cd: deploy + migration-safety** — extend the existing validation workflow.
+6. **open-jam-venue-mode** — resolve open questions; aligns with the venue /
    jukebox-for-tips product direction.
-8. **react-native-app** — post-1.0, requires a stable web app.
+7. **react-native-app** — post-1.0, requires a stable web app.
 
 ---
 
@@ -45,7 +44,7 @@ Master overview of planned features in the `.claude/backlog/` directory.
 ### auth-and-data-simplification
 
 **Directory:** `auth-and-data-simplification/`
-**Status:** Research Complete
+**Status:** Phase 1 shipped (v0.5.0); Phase 2 complete on `feature/data-layer-simplification-phase2`, pending merge
 **Priority:** High (Phase 1) / Deferred (Phase 2)
 **Complexity:** M (Phase 1) / XL (Phase 2)
 
@@ -177,7 +176,7 @@ migration-safety job. Re-scoped from "build CI" to "extend the existing CI."
 ### no-console-eslint-rule
 
 **Directory:** `no-console-eslint-rule/`
-**Status:** Research Complete — not started
+**Status:** Done — `no-console: error` enforced (v0.6.1, pending merge)
 **Priority:** Low
 **Complexity:** Medium
 

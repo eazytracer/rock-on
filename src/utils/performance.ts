@@ -1,5 +1,8 @@
 // Performance monitoring utilities for Rock On! platform
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { createLogger } from './logger'
+
+const log = createLogger('Performance')
 
 export interface PerformanceMetrics {
   loadTime: number
@@ -83,7 +86,7 @@ export class PerformanceMonitor {
       const loadTime = performance.now()
       this.metrics.loadTime = loadTime
 
-      console.log('[Performance] Page load time:', loadTime.toFixed(2) + 'ms')
+      log.debug('Page load time:', loadTime.toFixed(2) + 'ms')
     })
   }
 
@@ -97,8 +100,8 @@ export class PerformanceMonitor {
         for (const entry of entryList.getEntries()) {
           if (entry.name === 'first-contentful-paint') {
             this.metrics.firstContentfulPaint = entry.startTime
-            console.log(
-              '[Performance] First Contentful Paint:',
+            log.debug(
+              'First Contentful Paint:',
               entry.startTime.toFixed(2) + 'ms'
             )
           }
@@ -107,7 +110,7 @@ export class PerformanceMonitor {
       fcpObserver.observe({ entryTypes: ['paint'] })
       this.observers.push(fcpObserver)
     } catch (error) {
-      console.warn('[Performance] FCP observer not supported:', error)
+      log.debug('FCP observer not supported:', error)
     }
 
     // Largest Contentful Paint
@@ -116,15 +119,15 @@ export class PerformanceMonitor {
         const entries = entryList.getEntries()
         const lastEntry = entries[entries.length - 1]
         this.metrics.largestContentfulPaint = lastEntry.startTime
-        console.log(
-          '[Performance] Largest Contentful Paint:',
+        log.debug(
+          'Largest Contentful Paint:',
           lastEntry.startTime.toFixed(2) + 'ms'
         )
       })
       lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] })
       this.observers.push(lcpObserver)
     } catch (error) {
-      console.warn('[Performance] LCP observer not supported:', error)
+      log.debug('LCP observer not supported:', error)
     }
 
     // Cumulative Layout Shift
@@ -137,15 +140,12 @@ export class PerformanceMonitor {
           }
         }
         this.metrics.cumulativeLayoutShift = clsValue
-        console.log(
-          '[Performance] Cumulative Layout Shift:',
-          clsValue.toFixed(4)
-        )
+        log.debug('Cumulative Layout Shift:', clsValue.toFixed(4))
       })
       clsObserver.observe({ entryTypes: ['layout-shift'] })
       this.observers.push(clsObserver)
     } catch (error) {
-      console.warn('[Performance] CLS observer not supported:', error)
+      log.debug('CLS observer not supported:', error)
     }
 
     // First Input Delay
@@ -154,8 +154,8 @@ export class PerformanceMonitor {
         for (const entry of entryList.getEntries()) {
           this.metrics.firstInputDelay =
             (entry as any).processingStart - entry.startTime
-          console.log(
-            '[Performance] First Input Delay:',
+          log.debug(
+            'First Input Delay:',
             this.metrics.firstInputDelay.toFixed(2) + 'ms'
           )
         }
@@ -163,7 +163,7 @@ export class PerformanceMonitor {
       fidObserver.observe({ entryTypes: ['first-input'] })
       this.observers.push(fidObserver)
     } catch (error) {
-      console.warn('[Performance] FID observer not supported:', error)
+      log.debug('FID observer not supported:', error)
     }
   }
 
@@ -175,10 +175,7 @@ export class PerformanceMonitor {
       const memory = (performance as any).memory
       if (memory) {
         this.metrics.memoryUsage = memory.usedJSHeapSize / 1024 / 1024 // Convert to MB
-        console.log(
-          '[Performance] Memory usage:',
-          this.metrics.memoryUsage.toFixed(2) + 'MB'
-        )
+        log.debug('Memory usage:', this.metrics.memoryUsage.toFixed(2) + 'MB')
       }
     }
 
@@ -321,12 +318,10 @@ export class PerformanceMonitor {
    * Start continuous monitoring
    */
   startMonitoring(): void {
-    console.log('[Performance] Starting continuous performance monitoring')
-
     // Report metrics every 5 minutes
     setInterval(() => {
       const report = this.generateReport()
-      console.log('[Performance] Performance Report:', report)
+      log.debug('Performance Report:', report)
     }, 300000)
   }
 
@@ -356,7 +351,7 @@ export function measureExecutionTime<T>(fn: () => T, label: string): T {
   const startTime = performance.now()
   const result = fn()
   const endTime = performance.now()
-  console.log(`[Performance] ${label}: ${(endTime - startTime).toFixed(2)}ms`)
+  log.debug(`${label}: ${(endTime - startTime).toFixed(2)}ms`)
   return result
 }
 
@@ -370,7 +365,7 @@ export async function measureAsyncExecutionTime<T>(
   const startTime = performance.now()
   const result = await fn()
   const endTime = performance.now()
-  console.log(`[Performance] ${label}: ${(endTime - startTime).toFixed(2)}ms`)
+  log.debug(`${label}: ${(endTime - startTime).toFixed(2)}ms`)
   return result
 }
 

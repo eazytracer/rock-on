@@ -8,7 +8,6 @@ import App from './App.tsx'
 import './index.css'
 import { initializePerformanceMonitoring } from './utils/performance'
 import { initializeMobilePerformance } from './utils/mobilePerformance'
-import './utils/testSupabaseConnection'
 import { BUILD_ID } from './config/buildInfo'
 import { logger } from './utils/logger'
 
@@ -80,9 +79,6 @@ async function initializeApp() {
     MODE: import.meta.env.MODE,
     PROD: import.meta.env.PROD,
   })
-
-  // IndexedDB is populated via sync from Supabase on first login
-  logger.debug('📦 IndexedDB will be populated from Supabase on first login')
 
   // Render the app
   logger.info('🎨 Rendering React app...')

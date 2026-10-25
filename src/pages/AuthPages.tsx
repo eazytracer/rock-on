@@ -39,7 +39,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { authService } from '../services/auth/AuthFactory'
 import { BUILD_ID } from '../config/buildInfo'
 import { sanitizeReturnTo } from '../utils/returnTo'
+import { createLogger } from '../utils/logger'
 // Band type not currently used but may be needed for future features
+
+const log = createLogger('AuthPages')
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -438,7 +441,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
           navigate(returnTo ?? '/get-started')
         }
       } catch (err) {
-        console.error('Sign up error:', err)
+        log.error('Sign up error:', err)
         setErrors({ email: 'Failed to create account. Please try again.' })
         setLoading(false)
       }
@@ -462,7 +465,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
         setErrors({ form: 'Google sign-in not available' })
       }
     } catch (err) {
-      console.error('Google sign-up error:', err)
+      log.error('Google sign-up error:', err)
       setErrors({ form: 'Failed to sign up with Google' })
     } finally {
       setLoading(false)
@@ -666,11 +669,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           setErrors({ password: error })
         } else {
           // Success - return to the requested destination if any, else home.
-          console.log('✅ Login successful, navigating to', returnTo ?? '/')
           navigate(returnTo ?? '/')
         }
       } catch (err) {
-        console.error('Login error:', err)
+        log.error('Login error:', err)
         setErrors({ password: 'Login failed. Please try again.' })
         setLoading(false)
       }
@@ -694,7 +696,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         setErrors({ form: 'Google sign-in not available' })
       }
     } catch (err) {
-      console.error('Google sign-in error:', err)
+      log.error('Google sign-in error:', err)
       setErrors({ form: 'Failed to sign in with Google' })
     } finally {
       setLoading(false)
@@ -729,7 +731,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       setLoading(false)
       navigate('/songs')
     } catch (err) {
-      console.error('Mock login error:', err)
+      log.error('Mock login error:', err)
       setErrors({ password: 'Login failed. Please try again.' })
       setLoading(false)
     }
@@ -945,18 +947,13 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
         navigate('/songs')
       }, 2000)
     } catch (err) {
-      console.error('Error creating band:', err)
+      log.error('Error creating band:', err)
       setErrors({ bandName: 'Failed to create band. Please try again.' })
       setLoading(false)
     }
   }
 
   const handleJoinBand = async () => {
-    console.log('[handleJoinBand] Starting join flow:', {
-      inviteCode,
-      user: user?.id,
-    })
-
     if (!inviteCode) {
       setErrors({ inviteCode: 'Invite code is required' })
       return
@@ -970,16 +967,13 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
         throw new Error('No user logged in')
       }
 
-      console.log('[handleJoinBand] Calling joinBandWithCode')
       // Join band using service (validates code, creates membership, increments usage)
       const result = await BandMembershipService.joinBandWithCode(
         user.id,
         inviteCode
       )
-      console.log('[handleJoinBand] Join result:', result)
 
       if (!result.success) {
-        console.log('[handleJoinBand] Join failed:', result.error)
         setLoading(false)
         setErrors({ inviteCode: result.error || 'Failed to join band' })
         return
@@ -987,36 +981,27 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
 
       // Get the band ID from the membership
       const bandId = result.membership!.bandId
-      console.log('[handleJoinBand] Join successful, band ID:', bandId)
 
       // Store bandId in localStorage as currentBandId
       localStorage.setItem('currentBandId', bandId)
-      console.log('[handleJoinBand] Stored currentBandId in localStorage')
 
       // Update AuthContext state to reflect the new current band
-      console.log('[handleJoinBand] Calling switchBand')
       await switchBand(bandId)
-      console.log('[handleJoinBand] switchBand completed')
 
       // Get band name for toast message (query via repository to ensure we have it)
-      console.log('[handleJoinBand] Fetching band details')
       const { repository } = await import('../services/data/RepositoryFactory')
       const band = await repository.getBand(bandId)
-      console.log('[handleJoinBand] Band details:', band)
 
       setLoading(false)
-      console.log('[handleJoinBand] Showing success toast')
       setToast({
         message: `You joined ${band?.name || 'the band'}!`,
         type: 'success',
       })
-      console.log('[handleJoinBand] Navigating to /songs in 2 seconds')
       setTimeout(() => {
-        console.log('[handleJoinBand] Navigating now')
         navigate('/songs')
       }, 2000)
     } catch (err) {
-      console.error('[handleJoinBand] Error caught:', err)
+      log.error('[handleJoinBand] Error caught:', err)
       setErrors({ inviteCode: 'Failed to join band. Please try again.' })
       setLoading(false)
     }
@@ -1051,7 +1036,7 @@ const GetStartedPage: React.FC<GetStartedPageProps> = () => {
         navigate(`/events/${eventId}`)
       }, 1500)
     } catch (err) {
-      console.error('[handleJoinEvent] Error caught:', err)
+      log.error('[handleJoinEvent] Error caught:', err)
       setErrors({ eventCode: 'Failed to join event. Please try again.' })
       setLoading(false)
     }
@@ -1597,7 +1582,7 @@ const _CreateBandModal: React.FC<CreateBandModalProps> = ({
       setDescription('')
       setErrors({})
     } catch (err) {
-      console.error('Error creating band:', err)
+      log.error('Error creating band:', err)
       setErrors({ bandName: 'Failed to create band. Please try again.' })
       setLoading(false)
     }
@@ -1748,7 +1733,7 @@ const _JoinBandModal: React.FC<JoinBandModalProps> = ({
         setErrors({ inviteCode: 'Invalid invite code' })
       }
     } catch (err) {
-      console.error('Error joining band:', err)
+      log.error('Error joining band:', err)
       setErrors({ inviteCode: 'Failed to join band. Please try again.' })
       setLoading(false)
     }

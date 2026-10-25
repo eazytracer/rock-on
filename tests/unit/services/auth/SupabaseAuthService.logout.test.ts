@@ -9,18 +9,15 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SupabaseAuthService } from '../../../../src/services/auth/SupabaseAuthService'
+import { logger } from '../../../../src/utils/logger'
 
 describe('SupabaseAuthService - SignOut', () => {
   let authService: SupabaseAuthService
   let mockSupabaseSignOut: ReturnType<typeof vi.fn>
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear()
-
-    // Create spy for console.log to verify logging
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
     // Mock the Supabase client
     mockSupabaseSignOut = vi.fn().mockResolvedValue({ error: null })
@@ -31,13 +28,14 @@ describe('SupabaseAuthService - SignOut', () => {
     ;(authService as any).supabase = {
       auth: {
         signOut: mockSupabaseSignOut,
-        onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } }))
-      }
+        onAuthStateChange: vi.fn(() => ({
+          data: { subscription: { unsubscribe: vi.fn() } },
+        })),
+      },
     }
   })
 
   afterEach(() => {
-    consoleLogSpy.mockRestore()
     localStorage.clear()
   })
 
@@ -49,27 +47,23 @@ describe('SupabaseAuthService - SignOut', () => {
       localStorage.setItem('regular-key', 'should-remain')
       localStorage.setItem('another-key', 'also-remain')
 
-      expect(localStorage.getItem('sb-khzeuxxhigqcmrytsfux-auth-token')).toBe('fake-token')
-      expect(localStorage.getItem('sb-project-ref-auth-token')).toBe('another-token')
+      expect(localStorage.getItem('sb-khzeuxxhigqcmrytsfux-auth-token')).toBe(
+        'fake-token'
+      )
+      expect(localStorage.getItem('sb-project-ref-auth-token')).toBe(
+        'another-token'
+      )
 
       // Act
       await authService.signOut()
 
       // Assert: Supabase keys removed, regular keys remain
-      expect(localStorage.getItem('sb-khzeuxxhigqcmrytsfux-auth-token')).toBeNull()
+      expect(
+        localStorage.getItem('sb-khzeuxxhigqcmrytsfux-auth-token')
+      ).toBeNull()
       expect(localStorage.getItem('sb-project-ref-auth-token')).toBeNull()
       expect(localStorage.getItem('regular-key')).toBe('should-remain')
       expect(localStorage.getItem('another-key')).toBe('also-remain')
-    })
-
-    it('should log each removed localStorage key', async () => {
-      localStorage.setItem('sb-test-key-1', 'value1')
-      localStorage.setItem('sb-test-key-2', 'value2')
-
-      await authService.signOut()
-
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('🗑️  Removing localStorage key: sb-test-key-1'))
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('🗑️  Removing localStorage key: sb-test-key-2'))
     })
 
     it('should handle case with no Supabase keys gracefully', async () => {
@@ -103,13 +97,6 @@ describe('SupabaseAuthService - SignOut', () => {
       // Even though Supabase signOut failed, localStorage should be cleared
       expect(localStorage.getItem('sb-test-key')).toBeNull()
     })
-
-    it('should log sign out progress', async () => {
-      await authService.signOut()
-
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('🔓 Signing out from Supabase...'))
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('✅ Supabase sign out complete'))
-    })
   })
 
   describe('Error handling', () => {
@@ -121,14 +108,18 @@ describe('SupabaseAuthService - SignOut', () => {
     })
 
     it('should log error if signOut fails', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const logErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {})
       mockSupabaseSignOut.mockRejectedValue(new Error('Test error'))
 
       await expect(authService.signOut()).rejects.toThrow()
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Supabase sign out error:', expect.any(Error))
+      expect(logErrorSpy).toHaveBeenCalledWith(
+        '[SupabaseAuthService]',
+        'Supabase sign out error:',
+        expect.any(Error)
+      )
 
-      consoleErrorSpy.mockRestore()
+      logErrorSpy.mockRestore()
     })
   })
 })

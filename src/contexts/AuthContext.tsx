@@ -20,10 +20,6 @@ import {
   AuthChangeEvent,
 } from '../services/auth/types'
 import { RealtimeManager } from '../services/data/RealtimeManager'
-import {
-  setupRealtimeDebug,
-  cleanupRealtimeDebug,
-} from '../utils/debugRealtime'
 import { RemoteRepository } from '../services/data/RemoteRepository'
 import { createLogger } from '../utils/logger'
 
@@ -180,18 +176,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
               if (currentSession?.accessToken) {
                 supabase.realtime.setAuth(currentSession.accessToken)
               } else {
-                console.warn('⚠️ No session token found - realtime may fail')
+                log.warn('No session token found - realtime may fail')
               }
 
-              // Removed: console.log (security)
               // Only create if doesn't exist yet
               if (!realtimeManagerRef.current) {
-                // Removed: console.log (security)
                 realtimeManagerRef.current = new RealtimeManager()
-                setupRealtimeDebug(realtimeManagerRef.current)
                 setRealtimeManagerReady(true)
-              } else {
-                // Removed: console.log (security)
               }
 
               // Subscribe using the manager instance
@@ -200,7 +191,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 storedUserId,
                 bandIds
               )
-              // Removed: console.log (security)
 
               // Track user activity for multi-device sync optimization
               try {
@@ -208,21 +198,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 await remoteRepo.updateUserActivity()
               } catch (activityError) {
                 // Non-fatal: activity tracking failure shouldn't block app
-                console.warn(
-                  '⚠️ Failed to update user activity:',
-                  activityError
-                )
+                log.warn('Failed to update user activity:', activityError)
               }
             } catch (error) {
-              console.error('❌ Failed to start real-time sync:', error)
-              if (error instanceof Error) {
-                console.error('Error details:', error.message, error.stack)
-              }
+              log.error('Failed to start real-time sync:', error)
             }
           }
         }
       } catch (error) {
-        console.error('Failed to load initial session:', error)
+        log.error('Failed to load initial session:', error)
       } finally {
         setLoading(false)
       }
@@ -298,7 +282,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 // Only create if doesn't exist yet
                 if (!realtimeManagerRef.current) {
                   realtimeManagerRef.current = new RealtimeManager()
-                  setupRealtimeDebug(realtimeManagerRef.current)
                   setRealtimeManagerReady(true)
                 }
 
@@ -315,16 +298,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                   await remoteRepo.updateUserActivity()
                 } catch (activityError) {
                   // Non-fatal: activity tracking failure shouldn't block sign-in
-                  console.warn(
-                    '⚠️ Failed to update user activity:',
-                    activityError
-                  )
+                  log.warn('Failed to update user activity:', activityError)
                 }
               } catch (error) {
-                console.error('❌ Failed to start real-time sync:', error)
-                if (error instanceof Error) {
-                  console.error('Error details:', error.message, error.stack)
-                }
+                log.error('Failed to start real-time sync:', error)
               }
             }
 
@@ -361,9 +338,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
       // Cleanup real-time subscriptions
       if (realtimeManagerRef.current) {
-        console.log('🔌 Disconnecting real-time sync...')
         realtimeManagerRef.current.unsubscribeAll()
-        cleanupRealtimeDebug()
         realtimeManagerRef.current = null
         setRealtimeManagerReady(false)
       }
@@ -391,7 +366,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         memberships = remote.filter(m => m.status === 'active')
         membershipResolved = true
       } catch (error) {
-        console.warn(
+        log.warn(
           'Cloud membership read failed; preserving stored context:',
           error
         )
@@ -409,8 +384,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       const bands = await Promise.all(
         memberships.map(m => resolveBand(m.bandId))
       )
-      // Dedupe by band id — duplicate active memberships can exist in IndexedDB
-      // and would otherwise render as repeated bands (switcher, "Your bands").
+      // Dedupe by band id — duplicate active memberships can exist and would
+      // otherwise render as repeated bands (switcher, "Your bands").
       const uniqueBands = Array.from(
         new Map(
           bands.filter((b): b is Band => b !== undefined).map(b => [b.id, b])
@@ -470,7 +445,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       }
     } catch (error) {
-      console.error('Failed to load user data:', error)
+      log.error('Failed to load user data:', error)
     }
   }
 
@@ -483,7 +458,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
       return { needsEmailConfirmation: response.needsEmailConfirmation }
     } catch (error) {
-      console.error('Sign up error:', error)
+      log.error('Sign up error:', error)
       return { error: 'An unexpected error occurred' }
     } finally {
       setLoading(false)
@@ -515,13 +490,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
 
       // Wait for onAuthStateChange handler to complete setup
-      console.log('⏳ Waiting for authentication setup to complete...')
       await authReadyPromise
-      console.log('✅ Authentication setup complete')
 
       return {}
     } catch (error) {
-      console.error('Sign in error:', error)
+      log.error('Sign in error:', error)
       const errorMessage =
         error instanceof Error ? error.message : 'An unexpected error occurred'
       return { error: errorMessage }
@@ -534,8 +507,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const signOut = async () => {
     setLoading(true)
     try {
-      console.log('🚪 Signing out...')
-
       // 1. Clear local session state FIRST and unconditionally. This is the
       //    guaranteed escape hatch: the user is always signed out locally even
       //    if the network sign-out hangs or fails. Without this, a degraded
@@ -555,12 +526,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           )
         ),
       ])
-
-      console.log('✅ Sign out complete')
     } catch (error) {
       // Local state is already cleared above — a network failure/timeout here
       // is non-fatal to the user's ability to sign out and recover.
-      console.warn(
+      log.warn(
         'Network sign-out failed or timed out (local session already cleared):',
         error
       )
@@ -577,11 +546,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   }
 
   const logout = () => {
-    console.log('🧹 Clearing session state (preserving offline data)...')
-
     // Disconnect real-time sync
     if (realtimeManagerRef.current) {
-      console.log('🔌 Disconnecting real-time sync...')
       realtimeManagerRef.current.unsubscribeAll()
       realtimeManagerRef.current = null
       setRealtimeManagerReady(false)
@@ -613,14 +579,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         localStorage.removeItem(key)
       }
     })
-
-    // IMPORTANT: Do NOT clear IndexedDB!
-    // This preserves offline data for multi-user scenarios
-    // Each user's data is isolated by queries filtering on user_id
-
-    console.log(
-      '✅ Session cleared (offline data preserved for multi-user support)'
-    )
   }
 
   const switchBand = async (bandId: string) => {
@@ -628,7 +586,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       // Import repository to query Supabase (cloud-first read)
       const { repository } = await import('../services/data/RepositoryFactory')
 
-      // Query Supabase for band details (User 2 might not have it in IndexedDB yet)
       const band = await repository.getBand(bandId)
       if (!band) {
         throw new Error('Band not found')
@@ -656,7 +613,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setCurrentUserRole(membership.role)
       localStorage.setItem('currentBandId', bandId)
     } catch (error) {
-      console.error('Failed to switch band:', error)
+      log.error('Failed to switch band:', error)
       throw error
     }
   }

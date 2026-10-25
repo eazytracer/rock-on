@@ -61,16 +61,3 @@ export const enableDebugFeatures = isDev
  * Enabled in development and test, disabled in production
  */
 export const enableVerboseLogging = isDev || isTest
-
-/**
- * Log environment on initialization (only in browser)
- */
-if (typeof window !== 'undefined' && isDev) {
-  console.log(`🔧 Environment: ${environment}`)
-  console.log(
-    `   Debug features: ${enableDebugFeatures ? 'enabled' : 'disabled'}`
-  )
-  console.log(
-    `   Verbose logging: ${enableVerboseLogging ? 'enabled' : 'disabled'}`
-  )
-}

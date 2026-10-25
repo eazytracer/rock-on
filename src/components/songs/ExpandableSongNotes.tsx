@@ -2,6 +2,9 @@ import React, { useState } from 'react'
 import { ChevronDown, Music, User, Save, Loader2 } from 'lucide-react'
 import { usePersonalNote, useBandNotes } from '../../hooks/useNotes'
 import { MarkdownRenderer } from '../notes/MarkdownRenderer'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('ExpandableSongNotes')
 
 interface ExpandableSongNotesProps {
   songId: string
@@ -50,7 +53,7 @@ export const ExpandableSongNotes: React.FC<ExpandableSongNotesProps> = ({
       await upsertNote(personalContent)
       setIsEditingPersonal(false)
     } catch (error) {
-      console.error('Failed to save personal note:', error)
+      log.error('Failed to save personal note:', error)
     } finally {
       setIsSaving(false)
     }

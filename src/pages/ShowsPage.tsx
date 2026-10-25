@@ -54,6 +54,9 @@ import { useItemStatus } from '../hooks/useItemSyncStatus'
 import { Show, ShowContact } from '../models/Show'
 import { Badge } from '../components/common/Badge'
 import { SHOW_TONE, type BadgeTone } from '../utils/tokens'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('ShowsPage')
 
 interface Song {
   id: string
@@ -134,7 +137,7 @@ export const ShowsPage: React.FC = () => {
         }
         setSetlistsData(setlistMap)
       } catch (err) {
-        console.error('Error loading setlists:', err)
+        log.error('Error loading setlists:', err)
       }
     }
 
@@ -229,7 +232,7 @@ export const ShowsPage: React.FC = () => {
       setShowToDelete(null)
       showToast('Show deleted', 'success')
     } catch (err) {
-      console.error('Failed to delete show:', err)
+      log.error('Failed to delete show:', err)
       showToast('Failed to delete show', 'error')
     }
   }
@@ -493,7 +496,7 @@ const ShowCard: React.FC<{
         }
         setSetlistSongs(songs)
       } catch (err) {
-        console.error('Error loading setlist songs:', err)
+        log.error('Error loading setlist songs:', err)
       }
     }
 
@@ -835,7 +838,7 @@ export const ScheduleShowModal: React.FC<{
 
       await onSave(showData)
     } catch (err) {
-      console.error('Error saving show:', err)
+      log.error('Error saving show:', err)
       showToast('Failed to save show', 'error')
     }
   }

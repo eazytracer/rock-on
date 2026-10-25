@@ -67,6 +67,9 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { TuningTag } from '../components/common/MetaPill'
 import { useConfirm } from '../hooks/useConfirm'
 import { SongLinkingService } from '../services/SongLinkingService'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('SongsPage')
 
 interface SongLink {
   id: string
@@ -1154,11 +1157,7 @@ export const SongsPage: React.FC = () => {
                 }
               }
             } catch (err) {
-              console.error(
-                'Error calculating next show for song:',
-                dbSong.id,
-                err
-              )
+              log.error('Error calculating next show for song:', dbSong.id, err)
             }
 
             // DATABASE INTEGRATION: Transform database format to display format
@@ -1218,7 +1217,7 @@ export const SongsPage: React.FC = () => {
 
         setSongs(transformedSongs)
       } catch (err) {
-        console.error('Error transforming songs:', err)
+        log.error('Error transforming songs:', err)
       }
     }
 
@@ -1415,7 +1414,7 @@ export const SongsPage: React.FC = () => {
       // Show success toast
       showToast(`Successfully duplicated "${song.title}"`, 'success')
     } catch (err) {
-      console.error('Error duplicating song:', err)
+      log.error('Error duplicating song:', err)
       showToast('Failed to duplicate song. Please try again.', 'error')
     }
     setOpenActionMenuId(null)
@@ -1424,15 +1423,6 @@ export const SongsPage: React.FC = () => {
   // DATABASE INTEGRATION: Handle delete song
   const handleDelete = async (song: Song) => {
     try {
-      console.log(`
-┌─────────────────────────────────────────────────────────────┐
-│ 🗑️  DELETE FLOW STARTED                                      │
-│ Song ID: ${song.id.substring(0, 8)}...                        │
-│ Song Title: "${song.title}"                                   │
-│ Current song count: ${songs.length}                            │
-└─────────────────────────────────────────────────────────────┘
-      `)
-
       // Check if song is in any setlists
       const setlists = await checkSongInSetlists(song.id)
 
@@ -1460,23 +1450,15 @@ export const SongsPage: React.FC = () => {
       }
 
       // Delete the song (hook handles setlist cleanup)
-      console.log('[SongsPage] Step 1: Calling deleteSong()...')
       await deleteSong(song.id)
-      console.log('[SongsPage] Step 1: deleteSong() completed')
 
       // Refetch songs to update UI
-      console.log('[SongsPage] Step 2: Calling refetch()...')
       await refetch()
-      console.log(
-        '[SongsPage] Step 2: refetch() completed, new song count:',
-        songs.length
-      )
 
       // Show success toast
       showToast(`Successfully deleted "${song.title}"`, 'success')
-      console.log('✅ DELETE FLOW COMPLETED')
     } catch (err) {
-      console.error('❌ DELETE FLOW FAILED:', err)
+      log.error('Error deleting song:', err)
       showToast('Failed to delete song. Please try again.', 'error')
     }
     setOpenActionMenuId(null)
@@ -2125,10 +2107,9 @@ export const SongsPage: React.FC = () => {
                 })
 
                 // Mirror to personal catalog when the user opted in.
-                // copyBandSongToPersonal reads the just-created song from
-                // local IndexedDB (the SyncRepository writes locally
-                // synchronously, then queues for remote sync), so it's
-                // safe to call right after createSong resolves.
+                // copyBandSongToPersonal reads the just-created song back
+                // from Supabase, which createSong has already written to by
+                // the time it resolves.
                 let mirroredToPersonal = false
                 if (options?.alsoSaveToPersonal && !isPersonalTab) {
                   try {
@@ -2139,7 +2120,7 @@ export const SongsPage: React.FC = () => {
                     await personalRefetch()
                     mirroredToPersonal = true
                   } catch (mirrorErr) {
-                    console.error(
+                    log.error(
                       'Failed to mirror to personal catalog:',
                       mirrorErr
                     )
@@ -2161,7 +2142,7 @@ export const SongsPage: React.FC = () => {
                 )
                 setIsAddModalOpen(false)
               } catch (err) {
-                console.error('Error creating song:', err)
+                log.error('Error creating song:', err)
                 showToast('Failed to create song. Please try again.', 'error')
               }
             }}
@@ -2234,7 +2215,7 @@ export const SongsPage: React.FC = () => {
                 setIsEditModalOpen(false)
                 setSelectedSong(null)
               } catch (err) {
-                console.error('Error updating song:', err)
+                log.error('Error updating song:', err)
                 showToast('Failed to update song. Please try again.', 'error')
               }
             }}

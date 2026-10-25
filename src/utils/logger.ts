@@ -11,7 +11,7 @@
  *
  *   logger.debug('Detailed debugging info')        // Only in dev
  *   logger.info('General information')             // Dev + test
- *   logger.warn('Warning message')                 // Dev + test + prod
+ *   logger.warn('Warning message')                 // Dev + test
  *   logger.error('Error occurred', error)          // Always logged
  */
 

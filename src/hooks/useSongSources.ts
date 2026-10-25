@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { repository } from '../services/data/RepositoryFactory'
 import type { Song } from '../models/Song'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('useSongSources')
 
 /**
  * Resolves the source band for personal songs that were forked from a band
@@ -15,7 +18,7 @@ export function useSongSources(personalSongs: Song[]): Map<string, string> {
   )
 
   // Stable key of the distinct linkedFromSongIds present in the current
-  // catalog, so the Dexie lookup only re-runs when that set actually
+  // catalog, so the lookup only re-runs when that set actually
   // changes (mirrors useBulkPersonalNotePresence in useNotes.ts).
   const linkedFromIds = Array.from(
     new Set(
@@ -67,7 +70,7 @@ export function useSongSources(personalSongs: Song[]): Map<string, string> {
 
         if (!cancelled) setSourceMap(map)
       } catch (err) {
-        console.error('[useSongSources] Error resolving song sources:', err)
+        log.error('Error resolving song sources:', err)
       }
     }
 

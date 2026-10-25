@@ -66,8 +66,3 @@ export const FEATURE_FLAGS = {
     true // Enabled by default - this is the bugfix
   ),
 } as const
-
-// Log feature flags in development
-if (typeof window !== 'undefined' && import.meta.env.MODE === 'development') {
-  console.log('🚩 Feature Flags:', FEATURE_FLAGS)
-}

@@ -14,6 +14,9 @@ import type {
   Session as SupabaseSession,
 } from '@supabase/supabase-js'
 import { sanitizeReturnTo } from '../../utils/returnTo'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('SupabaseAuthService')
 
 export class SupabaseAuthService implements IAuthService {
   private supabase
@@ -42,8 +45,7 @@ export class SupabaseAuthService implements IAuthService {
       ? await this.mapSupabaseSession(supabaseSession)
       : null
 
-    // CRITICAL: Sync user to local database BEFORE notifying listeners
-    // This ensures bands/memberships are in IndexedDB when AuthContext tries to load them
+    // CRITICAL: Ensure the user row exists in Supabase BEFORE notifying listeners
     if (session && event === 'SIGNED_IN') {
       await this.syncUserToLocalDB(session.user)
     }
@@ -114,20 +116,18 @@ export class SupabaseAuthService implements IAuthService {
         )
 
       if (error) {
-        console.error('⚠️ Failed to sync user to Supabase public.users:', error)
-        // Don't throw - log and continue. User can still use the app offline.
+        log.error('Failed to sync user to Supabase public.users:', error)
+        // Don't throw - log and continue.
         // Band creation will fail until this succeeds, but app should still load.
       }
     } catch (error) {
-      console.error('⚠️ Error ensuring user in Supabase:', error)
+      log.error('Error ensuring user in Supabase:', error)
       // Don't throw - this shouldn't block app initialization
     }
   }
 
   /**
-   * Provision the signed-in user. The web client no longer keeps a local
-   * IndexedDB mirror (Phase 2 data-layer simplification) — all reads are
-   * cloud-first via the repository. The only durable side effect needed at
+   * Provision the signed-in user. The only durable side effect needed at
    * sign-in is ensuring the user row exists in Supabase `public.users`, which
    * foreign keys (e.g. bands.created_by) depend on.
    */
@@ -135,7 +135,7 @@ export class SupabaseAuthService implements IAuthService {
     try {
       await this.ensureUserInSupabase(user)
     } catch (error) {
-      console.error('Failed to provision user in Supabase:', error)
+      log.error('Failed to provision user in Supabase:', error)
     }
   }
 
@@ -214,7 +214,7 @@ export class SupabaseAuthService implements IAuthService {
         session,
       }
     } catch (error) {
-      console.error('Sign up error:', error)
+      log.error('Sign up error:', error)
       return {
         user: null,
         session: null,
@@ -255,7 +255,7 @@ export class SupabaseAuthService implements IAuthService {
         session,
       }
     } catch (error) {
-      console.error('Sign in error:', error)
+      log.error('Sign in error:', error)
       return {
         user: null,
         session: null,
@@ -265,15 +265,13 @@ export class SupabaseAuthService implements IAuthService {
   }
 
   async signOut(): Promise<void> {
-    console.log('🔓 Signing out from Supabase...')
-
     let signOutError: Error | null = null
 
     try {
       // Sign out from Supabase (clears session from their storage)
       await this.supabase.auth.signOut()
     } catch (error) {
-      console.error('Supabase sign out error:', error)
+      log.error('Supabase sign out error:', error)
       signOutError = error as Error
       // Don't throw yet - still need to clear localStorage
     }
@@ -288,11 +286,8 @@ export class SupabaseAuthService implements IAuthService {
       }
     }
     keysToRemove.forEach(key => {
-      console.log(`🗑️  Removing localStorage key: ${key}`)
       localStorage.removeItem(key)
     })
-
-    console.log('✅ Supabase sign out complete')
 
     // Now throw if there was an error
     if (signOutError) {
@@ -305,7 +300,7 @@ export class SupabaseAuthService implements IAuthService {
       const { data, error } = await this.supabase.auth.getSession()
 
       if (error) {
-        console.error('Get session error:', error)
+        log.error('Get session error:', error)
         return null
       }
 
@@ -315,7 +310,7 @@ export class SupabaseAuthService implements IAuthService {
 
       return await this.mapSupabaseSession(data.session)
     } catch (error) {
-      console.error('Get session error:', error)
+      log.error('Get session error:', error)
       return null
     }
   }
@@ -325,7 +320,7 @@ export class SupabaseAuthService implements IAuthService {
       const { data, error } = await this.supabase.auth.refreshSession()
 
       if (error) {
-        console.error('Refresh session error:', error)
+        log.error('Refresh session error:', error)
         return null
       }
 
@@ -335,7 +330,7 @@ export class SupabaseAuthService implements IAuthService {
 
       return await this.mapSupabaseSession(data.session)
     } catch (error) {
-      console.error('Refresh session error:', error)
+      log.error('Refresh session error:', error)
       return null
     }
   }
@@ -399,7 +394,7 @@ export class SupabaseAuthService implements IAuthService {
 
       return {}
     } catch (error) {
-      console.error('Google sign in error:', error)
+      log.error('Google sign in error:', error)
       return { error: 'Failed to sign in with Google' }
     }
   }

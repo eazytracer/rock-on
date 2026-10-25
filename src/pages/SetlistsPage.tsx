@@ -66,6 +66,9 @@ import {
 // PHASE 2: Sync status visualization
 import { SyncIcon } from '../components/sync/SyncIcon'
 import { useItemStatus } from '../hooks/useItemSyncStatus'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('SetlistsPage')
 
 // DATABASE INTEGRATION: UI-specific types for display
 // These extend the database types with UI-specific fields
@@ -177,8 +180,6 @@ const dbSongToUISong = (dbSong: DBSong): UISong => {
     avatarColor: generateAvatarColor(dbSong.title),
   }
 }
-
-// DATABASE INTEGRATION: Mock data removed - all data now comes from IndexedDB
 
 // Helper to convert seconds to readable duration
 const formatTotalDuration = (totalSeconds: number): string => {
@@ -1521,7 +1522,7 @@ export const SetlistsPage: React.FC = () => {
     refetch: refetchPersonalSetlists,
   } = usePersonalSetlists(currentUserId) // always loaded so My Setlists tab has data immediately
 
-  // Hydrated personal setlists — songs populated from IndexedDB (mirrors band setlist load path)
+  // Hydrated personal setlists — songs populated via the repository (mirrors band setlist load path)
   const [personalUISetlists, setPersonalUISetlists] = useState<UISetlist[]>([])
 
   // DATABASE INTEGRATION: Use hooks for setlist operations
@@ -1672,7 +1673,7 @@ export const SetlistsPage: React.FC = () => {
         setAvailableShows(uiShows)
         setAvailablePractices(uiPractices)
       } catch (err) {
-        console.error('Error loading setlists:', err)
+        log.error('Error loading setlists:', err)
         setError('Failed to load setlists')
       } finally {
         setLoading(false)
@@ -1696,7 +1697,7 @@ export const SetlistsPage: React.FC = () => {
     }
   }, [location.state, uiSetlists, navigate, location.pathname])
 
-  // Hydrate personal setlists: populate item.song from IndexedDB (same pattern as band setlists)
+  // Hydrate personal setlists: populate item.song via the repository (same pattern as band setlists)
   useEffect(() => {
     if (personalSetlistData.length === 0) {
       setPersonalUISetlists([])
@@ -1807,7 +1808,7 @@ export const SetlistsPage: React.FC = () => {
         void refreshed // suppress unused warning
         setEditingSetlist(newUISetlist)
       } catch (err) {
-        console.error('Error creating personal setlist:', err)
+        log.error('Error creating personal setlist:', err)
         showToast('Failed to create setlist', 'error')
       }
     } else {
@@ -1873,7 +1874,7 @@ export const SetlistsPage: React.FC = () => {
 
       showToast('Setlist duplicated', 'success')
     } catch (err) {
-      console.error('Error duplicating setlist:', err)
+      log.error('Error duplicating setlist:', err)
       showToast('Failed to duplicate setlist', 'error')
     }
   }
@@ -1889,7 +1890,7 @@ export const SetlistsPage: React.FC = () => {
       )
       showToast('Setlist archived', 'success')
     } catch (err) {
-      console.error('Error archiving setlist:', err)
+      log.error('Error archiving setlist:', err)
       showToast('Failed to archive setlist', 'error')
     }
   }
@@ -1924,7 +1925,7 @@ export const SetlistsPage: React.FC = () => {
 
       showToast('Setlist deleted', 'success')
     } catch (err) {
-      console.error('Error deleting setlist:', err)
+      log.error('Error deleting setlist:', err)
       showToast('Failed to delete setlist', 'error')
     }
   }
@@ -2058,7 +2059,7 @@ export const SetlistsPage: React.FC = () => {
       setEditingSetlist(null)
       showToast('Setlist saved', 'success')
     } catch (err) {
-      console.error('Error saving setlist:', err)
+      log.error('Error saving setlist:', err)
       showToast('Failed to save setlist', 'error')
     }
   }

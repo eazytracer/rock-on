@@ -1,4 +1,5 @@
 import { User, UserProfile } from '../../models/User'
+import { createLogger } from '../../utils/logger'
 import {
   IAuthService,
   AuthSession,
@@ -6,6 +7,8 @@ import {
   SignInCredentials,
   AuthResponse,
 } from './types'
+
+const log = createLogger('MockAuthService')
 
 // Mock users for testing
 const MOCK_USERS = [
@@ -31,9 +34,8 @@ const MOCK_USERS = [
 
 /**
  * In-memory stores. MockAuthService is a dev/test-only backend (local mode,
- * VITE_MOCK_AUTH=true); post Phase 2 there is no local IndexedDB mirror, so the
- * mock keeps its own ephemeral state rather than writing to Dexie. State lives
- * for the tab's lifetime — exactly the mock's intended scope.
+ * VITE_MOCK_AUTH=true) that keeps its own ephemeral state. State lives for the
+ * tab's lifetime — exactly the mock's intended scope.
  */
 const mockUsers = new Map<string, User>()
 const mockProfiles = new Map<string, UserProfile>()
@@ -61,7 +63,7 @@ export class MockAuthService implements IAuthService {
           localStorage.removeItem('mock_auth_session')
         }
       } catch (error) {
-        console.error('Failed to load session:', error)
+        log.error('Failed to load session:', error)
         localStorage.removeItem('mock_auth_session')
       }
     }
@@ -143,7 +145,7 @@ export class MockAuthService implements IAuthService {
         session,
       }
     } catch (error) {
-      console.error('Sign up error:', error)
+      log.error('Sign up error:', error)
       return {
         user: null,
         session: null,
@@ -205,7 +207,7 @@ export class MockAuthService implements IAuthService {
         session,
       }
     } catch (error) {
-      console.error('Sign in error:', error)
+      log.error('Sign in error:', error)
       return {
         user: null,
         session: null,

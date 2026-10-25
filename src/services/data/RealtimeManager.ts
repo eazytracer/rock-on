@@ -3,6 +3,9 @@ import EventEmitter from 'eventemitter3'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { getSupabaseClient } from '../supabase/client'
 import type { AuditLogEntry } from './syncTypes'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('RealtimeManager')
 
 interface PendingToast {
   userId: string
@@ -51,7 +54,6 @@ export type RealtimeEvents = {
  *
  * Features:
  * - Subscribe to database changes for user's bands
- * - Update local IndexedDB when remote changes occur
  * - Mark items as "unread" if changed by another user
  * - Emit events for UI reactivity (EventEmitter pattern)
  * - Show toast notifications for remote changes
@@ -72,42 +74,12 @@ export class RealtimeManager extends EventEmitter {
   private toastBatchTimeout: NodeJS.Timeout | null = null
   private readonly TOAST_BATCH_DELAY = 2000 // 2 seconds
 
-  // Connection tracking for diagnostics
-  private connectionId: string = crypto.randomUUID()
-  private connectionStartTime: number = 0
-  private connectionMetrics = {
-    subscriptionAttempts: 0,
-    subscriptionSuccesses: 0,
-    subscriptionFailures: 0,
-    messagesReceived: 0,
-    lastMessageTime: 0,
-  }
-
   constructor() {
     super() // Initialize EventEmitter
 
     // Use the main Supabase client singleton which already has the user's session
     // The session must be set BEFORE creating RealtimeManager
     this.supabase = getSupabaseClient()
-
-    console.log(`
-┌─────────────────────────────────────────────────────────────┐
-│ 🔌 RealtimeManager Instance Created                         │
-│ Connection ID: ${this.connectionId.substring(0, 8)}...                           │
-│ Timestamp: ${new Date().toISOString()}                      │
-└─────────────────────────────────────────────────────────────┘
-    `)
-    this.logEnvironmentInfo()
-  }
-
-  private logEnvironmentInfo(): void {
-    console.log('[RealtimeManager] Environment:', {
-      userAgent: navigator.userAgent.substring(0, 100) + '...',
-      connectionType: (navigator as any).connection?.effectiveType || 'unknown',
-      online: navigator.onLine,
-      supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-      timestamp: Date.now(),
-    })
   }
 
   /**
@@ -116,17 +88,6 @@ export class RealtimeManager extends EventEmitter {
    */
   async subscribeToUserBands(userId: string, bandIds: string[]): Promise<void> {
     this.currentUserId = userId
-    this.connectionStartTime = Date.now()
-
-    console.log(`
-┌─────────────────────────────────────────────────────────────┐
-│ 📡 Subscribing to User Bands                                 │
-│ Connection ID: ${this.connectionId.substring(0, 8)}...                           │
-│ User ID: ${userId.substring(0, 8)}...                                    │
-│ Band Count: ${bandIds.length}                                                │
-│ Band IDs: ${bandIds.map(id => id.substring(0, 8)).join(', ')}           │
-└─────────────────────────────────────────────────────────────┘
-    `)
 
     for (const bandId of bandIds) {
       await this.subscribeToAuditLog(userId, bandId)
@@ -135,15 +96,6 @@ export class RealtimeManager extends EventEmitter {
     // Mark as connected if at least one subscription succeeded
     if (this.channels.size > 0) {
       this.connected = true
-      const elapsed = Date.now() - this.connectionStartTime
-      console.log(`
-✅ Subscription Successful
-   Connection ID: ${this.connectionId.substring(0, 8)}...
-   Time elapsed: ${elapsed}ms
-   Total channels: ${this.channels.size}
-   Successes: ${this.connectionMetrics.subscriptionSuccesses}
-   Failures: ${this.connectionMetrics.subscriptionFailures}
-      `)
     }
   }
 
@@ -155,22 +107,13 @@ export class RealtimeManager extends EventEmitter {
     _userId: string,
     bandId: string
   ): Promise<void> {
-    this.connectionMetrics.subscriptionAttempts++
-
     try {
       const channelName = `audit-${bandId}`
 
       // Check if already subscribed to this band
       if (this.channels.has(channelName)) {
-        console.log(
-          `[RealtimeManager] Already subscribed to ${channelName}, skipping...`
-        )
         return
       }
-
-      console.log(
-        `[RealtimeManager] Subscribing to audit log for band: ${bandId} (attempt #${this.connectionMetrics.subscriptionAttempts})`
-      )
 
       const channel = this.supabase
         .channel(channelName)
@@ -185,39 +128,26 @@ export class RealtimeManager extends EventEmitter {
           (payload: any) => {
             // Supabase realtime payload structure: { new, old, eventType, schema, table }
             this.handleAuditChange(payload).catch(error => {
-              console.error(`Error handling audit change:`, error)
+              log.error('Error handling audit change:', error)
             })
           }
         )
         .subscribe(async (status, err) => {
           if (err) {
-            this.connectionMetrics.subscriptionFailures++
-            console.error(`❌ Failed to subscribe to ${channelName}:`, err)
-            console.error(
-              `   Connection ID: ${this.connectionId.substring(0, 8)}`
-            )
-            console.error(
-              `   Failures: ${this.connectionMetrics.subscriptionFailures}`
-            )
+            log.error(`Failed to subscribe to ${channelName} (${status}):`, err)
             this.connected = false
           } else if (status === 'SUBSCRIBED') {
-            this.connectionMetrics.subscriptionSuccesses++
-            console.log(`✅ Subscribed to ${channelName} (audit-first)`)
-            console.log(
-              `   Connection ID: ${this.connectionId.substring(0, 8)}`
-            )
+            log.debug(`Subscribed to ${channelName}`)
             this.connected = true
           } else if (status === 'CHANNEL_ERROR') {
-            this.connectionMetrics.subscriptionFailures++
-            console.error(`❌ Channel error for ${channelName}`)
+            log.error(`Channel error for ${channelName}`)
             this.connected = false
           }
         })
 
       this.channels.set(channelName, channel)
     } catch (error) {
-      this.connectionMetrics.subscriptionFailures++
-      console.error(`Error subscribing to audit_log for band ${bandId}:`, error)
+      log.error(`Error subscribing to audit_log for band ${bandId}:`, error)
     }
   }
 
@@ -226,29 +156,13 @@ export class RealtimeManager extends EventEmitter {
    * Single unified handler for all entity types
    */
   private async handleAuditChange(payload: any): Promise<void> {
-    // Track message received
-    this.connectionMetrics.messagesReceived++
-    this.connectionMetrics.lastMessageTime = Date.now()
-
     // Supabase realtime sends: { new: AuditLogEntry, old: ..., eventType: 'INSERT', ... }
     const audit = payload.new as AuditLogEntry
 
     if (!audit || !audit.table_name || !audit.action) {
-      console.warn('[RealtimeManager] Invalid audit payload:', payload)
+      log.warn('Invalid audit payload:', payload)
       return
     }
-
-    console.log(
-      `📡 Received audit event (#${this.connectionMetrics.messagesReceived}):`,
-      {
-        connectionId: this.connectionId.substring(0, 8),
-        table: audit.table_name,
-        action: audit.action,
-        user: audit.user_name,
-        recordId: audit.record_id.substring(0, 8),
-        timeSinceStart: Date.now() - this.connectionStartTime,
-      }
-    )
 
     // Note: We do NOT skip changes from the same user anymore.
     // The same user may be on multiple devices, and all devices need the update.
@@ -270,7 +184,7 @@ export class RealtimeManager extends EventEmitter {
       )
 
       // Show toast with ACTUAL user name (not "Someone"!)
-      // Skip toast for own changes (but still process the data sync above)
+      // Skip toast for own changes (but still emit the change event below)
       if (!isOwnChange) {
         await this.queueToastFromAudit(
           audit.user_name,
@@ -287,10 +201,6 @@ export class RealtimeManager extends EventEmitter {
           ? 'practices:changed'
           : `${audit.table_name}:changed`
 
-      console.log(
-        `[RealtimeManager] Emitting ${eventName} event, listeners:`,
-        this.listenerCount(eventName)
-      )
       this.emit(eventName, {
         bandId: audit.band_id,
         action: audit.action,
@@ -298,7 +208,7 @@ export class RealtimeManager extends EventEmitter {
         userId: audit.user_id, // Include userId so subscribers can skip own changes
       })
     } catch (error) {
-      console.error('[RealtimeManager] Error processing audit change:', error)
+      log.error('Error processing audit change:', error)
     }
   }
 
@@ -456,14 +366,7 @@ export class RealtimeManager extends EventEmitter {
    */
   private showToast(message: string, type: 'success' | 'error' | 'info'): void {
     // Emit toast event for UI to handle
-    console.log(
-      '[RealtimeManager] Emitting toast event, listeners:',
-      this.listenerCount('toast')
-    )
     this.emit('toast', { message, type })
-
-    // Also log for debugging
-    console.log(`[Toast ${type}]: ${message}`)
   }
 
   /**
@@ -475,10 +378,9 @@ export class RealtimeManager extends EventEmitter {
         // Check if unsubscribe method exists (for test mocks)
         if (typeof channel.unsubscribe === 'function') {
           await channel.unsubscribe()
-          console.log(`Unsubscribed from ${channelName}`)
         }
       } catch (error) {
-        console.error(`Error unsubscribing from ${channelName}:`, error)
+        log.error(`Error unsubscribing from ${channelName}:`, error)
       }
     }
 
@@ -495,46 +397,11 @@ export class RealtimeManager extends EventEmitter {
   }
 
   /**
-   * Get diagnostics information for debugging
-   * Exposed for manual debugging via window.debugRealtime()
-   */
-  getDiagnostics() {
-    return {
-      connectionId: this.connectionId,
-      uptime: this.connectionStartTime
-        ? Date.now() - this.connectionStartTime
-        : 0,
-      metrics: {
-        ...this.connectionMetrics,
-        messagesPerMinute:
-          this.connectionMetrics.messagesReceived > 0 &&
-          this.connectionStartTime > 0
-            ? (
-                this.connectionMetrics.messagesReceived /
-                ((Date.now() - this.connectionStartTime) / 60000)
-              ).toFixed(2)
-            : '0.00',
-      },
-      channels: {
-        count: this.channels.size,
-        names: Array.from(this.channels.keys()),
-      },
-      state: {
-        connected: this.connected,
-        currentUserId: this.currentUserId?.substring(0, 8) + '...',
-        isOnline: navigator.onLine,
-      },
-      pendingToasts: this.pendingToasts.size,
-      timestamp: new Date().toISOString(),
-    }
-  }
-
-  /**
    * Handle disconnection
    */
   handleDisconnect(): void {
     this.connected = false
-    console.log('WebSocket disconnected')
+    log.debug('WebSocket disconnected')
   }
 
   /**
@@ -542,11 +409,9 @@ export class RealtimeManager extends EventEmitter {
    */
   async reconnect(): Promise<void> {
     if (!this.currentUserId) {
-      console.error('Cannot reconnect: no user ID')
+      log.error('Cannot reconnect: no user ID')
       return
     }
-
-    console.log('Attempting to reconnect...')
 
     // Unsubscribe from old channels
     await this.unsubscribeAll()
@@ -554,6 +419,5 @@ export class RealtimeManager extends EventEmitter {
     // Re-subscribe (would need to store band IDs)
     // For now, just mark as connected (full implementation would re-subscribe)
     this.connected = true
-    console.log('Reconnected')
   }
 }

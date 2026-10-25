@@ -1,6 +1,9 @@
 import { BandMembership, InviteCode } from '../models/BandMembership'
 import { repository } from './data/RepositoryFactory'
 import { RemoteRepository } from './data/RemoteRepository'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('BandMembershipService')
 
 export interface CreateInviteCodeRequest {
   bandId: string
@@ -69,7 +72,6 @@ export class BandMembershipService {
     inviteCode?: InviteCode
     error?: string
   }> {
-    // Repository handles Supabase-first → IndexedDB fallback automatically
     // Normalize code to uppercase for case-insensitive matching
     const inviteCode = await repository.getInviteCodeByCode(code.toUpperCase())
 
@@ -103,39 +105,22 @@ export class BandMembershipService {
     membership?: BandMembership
     error?: string
   }> {
-    console.log('[BandMembershipService] joinBandWithCode called:', {
-      userId,
-      code,
-    })
-
     const validation = await this.validateInviteCode(code)
-    console.log('[BandMembershipService] Validation result:', validation)
 
     if (!validation.valid || !validation.inviteCode) {
-      console.log(
-        '[BandMembershipService] Validation failed:',
-        validation.error
-      )
       return { success: false, error: validation.error }
     }
 
     const inviteCode = validation.inviteCode
-    console.log('[BandMembershipService] Invite code valid:', inviteCode)
 
     // Check if user is already a member via repository
-    console.log(
-      '[BandMembershipService] Checking existing memberships for user:',
-      userId
-    )
     const userMemberships = await repository.getUserMemberships(userId)
-    console.log('[BandMembershipService] User memberships:', userMemberships)
 
     const existingMembership = userMemberships.find(
       m => m.bandId === inviteCode.bandId
     )
 
     if (existingMembership) {
-      console.log('[BandMembershipService] User already member')
       return { success: false, error: 'You are already a member of this band' }
     }
 
@@ -150,7 +135,6 @@ export class BandMembershipService {
       permissions: ['member'],
     }
 
-    console.log('[BandMembershipService] Creating membership:', membership)
     try {
       // Create the membership in Supabase (writes go straight to the cloud —
       // there is no local queue/cache anymore).
@@ -158,29 +142,22 @@ export class BandMembershipService {
 
       // Create in remote Supabase (synchronously, not queued)
       await remote.addBandMembership(membership)
-      console.log('[BandMembershipService] Membership created in Supabase')
     } catch (error) {
-      console.error(
-        '[BandMembershipService] Failed to create membership:',
-        error
-      )
+      log.error('Failed to create membership:', error)
       throw error
     }
 
     // Increment invite code usage via repository (uses secure Postgres function)
-    console.log('[BandMembershipService] Incrementing invite code usage')
     try {
       await repository.incrementInviteCodeUsage(inviteCode.id)
-      console.log('[BandMembershipService] Invite code usage incremented')
     } catch (error) {
-      console.error('[BandMembershipService] Failed to increment usage:', error)
+      log.error('Failed to increment usage:', error)
       throw error
     }
 
     // The membership is now in Supabase. Reads are cloud-first (repository →
     // RemoteRepository), so there is no local cache to pre-populate — the next
     // getUserMemberships()/getBand() will fetch it directly.
-    console.log('[BandMembershipService] Join successful, returning membership')
     return { success: true, membership }
   }
 

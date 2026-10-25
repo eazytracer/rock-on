@@ -43,6 +43,9 @@ import type { Show, ShowContact } from '../models/Show'
 import { DEFAULT_SHOW_DURATION } from '../models/Show'
 import type { Setlist } from '../models/Setlist'
 import type { Song } from '../models/Song'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('ShowViewPage')
 
 // Convert database song to UI song
 const dbSongToUISong = (dbSong: Song): UISong => {
@@ -282,7 +285,7 @@ export const ShowViewPage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading show:', error)
+      log.error('Error loading show:', error)
       navigate('/shows')
     } finally {
       setLoading(false)
@@ -322,7 +325,7 @@ export const ShowViewPage: React.FC = () => {
         setShow(prev => (prev ? { ...prev, [field]: value } : prev))
         showToast('Saved', 'success')
       } catch (error) {
-        console.error('Error saving field:', error)
+        log.error('Error saving field:', error)
         showToast('Failed to save', 'error')
         throw error
       }
@@ -356,7 +359,7 @@ export const ShowViewPage: React.FC = () => {
         )
         showToast('Saved', 'success')
       } catch (error) {
-        console.error('Error saving date/time:', error)
+        log.error('Error saving date/time:', error)
         showToast('Failed to save', 'error')
         throw error
       }
@@ -386,7 +389,7 @@ export const ShowViewPage: React.FC = () => {
         setContacts(filteredContacts)
         setShow(prev => (prev ? { ...prev, contacts: filteredContacts } : prev))
       } catch (error) {
-        console.error('Error saving contacts:', error)
+        log.error('Error saving contacts:', error)
         showToast('Failed to save contacts', 'error')
       }
     },
@@ -471,7 +474,7 @@ export const ShowViewPage: React.FC = () => {
 
       showToast('Setlist created. Add songs to build your setlist.', 'success')
     } catch (error) {
-      console.error('Error creating setlist:', error)
+      log.error('Error creating setlist:', error)
       showToast('Failed to create setlist', 'error')
     }
   }, [show?.name, currentBandId, saveField, showToast])
@@ -495,7 +498,7 @@ export const ShowViewPage: React.FC = () => {
       showToast('Show created', 'success')
       navigate(`/shows/${newId}`, { replace: true })
     } catch (error) {
-      console.error('Error creating show:', error)
+      log.error('Error creating show:', error)
       showToast('Failed to create show', 'error')
     }
   }, [show, contacts, currentBandId, showToast, navigate])

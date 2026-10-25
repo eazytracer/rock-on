@@ -377,8 +377,8 @@ export const SettingsPage: React.FC = () => {
                         Local Database
                       </label>
                       <p className="text-sm text-gray-400 mb-3">
-                        Clear all local IndexedDB data. This will log you out
-                        and force a fresh sync on next login.
+                        Clear cached data from this browser. This will log you
+                        out; your data is reloaded from the cloud on next login.
                       </p>
                       <button
                         onClick={handleClearLocalData}

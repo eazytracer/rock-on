@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Loader2 } from 'lucide-react'
 import { DatePicker } from './DatePicker'
 import { TimePickerDropdown } from './TimePickerDropdown'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('InlineEditableField')
 
 interface SelectOption {
   value: string
@@ -110,7 +113,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
       await onSave(editValue)
       setIsEditing(false)
     } catch (err) {
-      console.error('Error saving field:', err)
+      log.error('Error saving field:', err)
       setError('Failed to save')
     } finally {
       setIsSaving(false)
@@ -208,7 +211,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
         await onSave(newValue)
         setIsEditing(false)
       } catch (err) {
-        console.error('Error saving field:', err)
+        log.error('Error saving field:', err)
         setError('Failed to save')
       } finally {
         setIsSaving(false)
@@ -303,7 +306,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
                 await onSave(val)
                 setIsEditing(false)
               } catch (err) {
-                console.error('Error saving date:', err)
+                log.error('Error saving date:', err)
                 setError('Failed to save')
               } finally {
                 setIsSaving(false)
@@ -332,7 +335,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
                 await onSave(val)
                 setIsEditing(false)
               } catch (err) {
-                console.error('Error saving time:', err)
+                log.error('Error saving time:', err)
                 setError('Failed to save')
               } finally {
                 setIsSaving(false)

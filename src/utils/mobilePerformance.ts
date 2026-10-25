@@ -1,5 +1,8 @@
 // Mobile performance testing and optimization utilities
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { createLogger } from './logger'
+
+const log = createLogger('MobilePerf')
 
 export interface MobilePerformanceMetrics {
   batteryLevel?: number
@@ -84,7 +87,7 @@ export class MobilePerformanceOptimizer {
           })
         })
         .catch(() => {
-          console.warn('[MobilePerf] Battery API not available')
+          log.debug('Battery API not available')
         })
     }
 
@@ -235,7 +238,7 @@ export class MobilePerformanceOptimizer {
       JSON.stringify(previousOptimizations) !==
       JSON.stringify(this.optimizations)
     ) {
-      console.log('[MobilePerf] Optimizations updated:', this.optimizations)
+      log.debug('Optimizations updated:', this.optimizations)
       this.dispatchOptimizationChange()
     }
   }
@@ -258,10 +261,6 @@ export class MobilePerformanceOptimizer {
    * Pause non-essential operations for battery savings
    */
   private pauseNonEssentialOperations(): void {
-    console.log(
-      '[MobilePerf] Pausing non-essential operations for battery savings'
-    )
-
     // Reduce animation frame rate
     window.dispatchEvent(
       new CustomEvent('reduce-animations', {
@@ -281,8 +280,6 @@ export class MobilePerformanceOptimizer {
    * Resume normal operations
    */
   private resumeOperations(): void {
-    console.log('[MobilePerf] Resuming normal operations')
-
     window.dispatchEvent(
       new CustomEvent('resume-animations', {
         detail: { reason: 'page-visible' },
@@ -488,11 +485,6 @@ export const mobilePerformanceOptimizer =
 export function initializeMobilePerformance(): MobilePerformanceOptimizer {
   const optimizer = MobilePerformanceOptimizer.getInstance()
   optimizer.applyCSSOptimizations()
-
-  console.log('[MobilePerf] Mobile performance optimization initialized')
-  console.log('[MobilePerf] Device class:', optimizer.getDeviceClass())
-  console.log('[MobilePerf] Is mobile:', optimizer.isMobileDevice())
-  console.log('[MobilePerf] Optimizations:', optimizer.getOptimizations())
 
   return optimizer
 }

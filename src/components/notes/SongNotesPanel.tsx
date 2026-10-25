@@ -14,6 +14,9 @@ import {
 } from '../../hooks/useNotes'
 import { repository } from '../../services/data/RepositoryFactory'
 import type { SongNoteEntryInput } from '../../models/SongNoteEntry'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('SongNotesPanel')
 
 interface SongNotesPanelProps {
   songId: string
@@ -79,7 +82,7 @@ export const SongNotesPanel: React.FC<SongNotesPanelProps> = ({
             names[uid] = user.name || user.email || 'Unknown'
           }
         } catch (error) {
-          console.error('[SongNotesPanel] Error loading user:', uid, error)
+          log.error('Error loading user:', uid, error)
         }
       }
 
@@ -104,7 +107,7 @@ export const SongNotesPanel: React.FC<SongNotesPanelProps> = ({
     try {
       await upsertPersonalNote(personalContent)
     } catch (error) {
-      console.error('[SongNotesPanel] Error saving personal note:', error)
+      log.error('Error saving personal note:', error)
     }
   }
 
@@ -113,7 +116,7 @@ export const SongNotesPanel: React.FC<SongNotesPanelProps> = ({
       await updateBandNotes(bandNotesContent)
       setIsEditingBandNotes(false)
     } catch (error) {
-      console.error('[SongNotesPanel] Error saving band notes:', error)
+      log.error('Error saving band notes:', error)
     }
   }
 
@@ -136,7 +139,7 @@ export const SongNotesPanel: React.FC<SongNotesPanelProps> = ({
       await refetchEntries()
       setIsAddingEntry(false)
     } catch (error) {
-      console.error('[SongNotesPanel] Error creating note entry:', error)
+      log.error('Error creating note entry:', error)
     }
   }
 
@@ -147,7 +150,7 @@ export const SongNotesPanel: React.FC<SongNotesPanelProps> = ({
       await deleteEntry(entryId)
       await refetchEntries()
     } catch (error) {
-      console.error('[SongNotesPanel] Error deleting note entry:', error)
+      log.error('Error deleting note entry:', error)
     }
   }
 

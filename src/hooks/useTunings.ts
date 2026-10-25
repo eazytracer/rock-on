@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { TuningService } from '../services/TuningService'
 import type { Tuning } from '../models/Tuning'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('useTunings')
 
 /**
  * Tunings available to the current user for an optional instrument, sourced from
@@ -29,7 +32,7 @@ export function useTunings(instrument?: 'guitar' | 'bass'): {
       setAll(await TuningService.getAllTunings())
       setError(null)
     } catch (err) {
-      console.error('[useTunings] Error fetching tunings:', err)
+      log.error('Error fetching tunings:', err)
       setError(err as Error)
     } finally {
       setLoading(false)

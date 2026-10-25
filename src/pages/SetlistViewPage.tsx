@@ -41,6 +41,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('SetlistViewPage')
 
 // Convert database song to UI song
 const dbSongToUISong = (dbSong: DBSong): UISong => {
@@ -232,7 +235,7 @@ export const SetlistViewPage: React.FC = () => {
 
         setItems(populatedItems)
       } catch (err) {
-        console.error('Error loading setlist:', err)
+        log.error('Error loading setlist:', err)
         navigate('/setlists')
       } finally {
         setLoading(false)
@@ -266,7 +269,7 @@ export const SetlistViewPage: React.FC = () => {
           setSetlist(updatedSetlist)
         }
       } catch (err) {
-        console.error(`Error saving ${field}:`, err)
+        log.error(`Error saving ${field}:`, err)
         showToast(`Failed to save ${field}`, 'error')
       }
     },
@@ -307,7 +310,7 @@ export const SetlistViewPage: React.FC = () => {
       showToast('Setlist created', 'success')
       navigate(`/setlists/${newId}`, { replace: true })
     } catch (err) {
-      console.error('Error creating setlist:', err)
+      log.error('Error creating setlist:', err)
       showToast('Failed to create setlist', 'error')
     } finally {
       setSaving(false)
@@ -362,7 +365,7 @@ export const SetlistViewPage: React.FC = () => {
         lastModified: new Date(),
       })
     } catch (err) {
-      console.error('Error saving items:', err)
+      log.error('Error saving items:', err)
     }
   }
 
@@ -440,7 +443,7 @@ export const SetlistViewPage: React.FC = () => {
             lastModified: new Date(),
           })
         } catch (err) {
-          console.error('Error saving item notes:', err)
+          log.error('Error saving item notes:', err)
           showToast('Failed to save notes', 'error')
         }
       }
@@ -508,7 +511,7 @@ export const SetlistViewPage: React.FC = () => {
         })
         showToast('Break added', 'success')
       } catch (error) {
-        console.error('Failed to save break:', error)
+        log.error('Failed to save break:', error)
         showToast('Failed to add break', 'error')
       }
     }
@@ -552,7 +555,7 @@ export const SetlistViewPage: React.FC = () => {
         })
         showToast('Section added', 'success')
       } catch (error) {
-        console.error('Failed to save section:', error)
+        log.error('Failed to save section:', error)
         showToast('Failed to add section', 'error')
       }
     }
@@ -872,7 +875,7 @@ export const SetlistViewPage: React.FC = () => {
                 setEditingSong(null)
                 showToast('Song updated', 'success')
               } catch (error) {
-                console.error('Error updating song:', error)
+                log.error('Error updating song:', error)
                 showToast('Failed to update song', 'error')
               }
             }}

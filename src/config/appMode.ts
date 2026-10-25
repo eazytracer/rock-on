@@ -95,9 +95,9 @@ if (typeof window !== 'undefined') {
   import('../utils/logger').then(({ logger }) => {
     logger.info(`🚀 Rock On running in ${config.mode} mode`)
     if (config.isLocal) {
-      logger.info('📦 Using local-only mode (Dexie + Mock Auth)')
+      logger.info('📦 Using local-only mode (Mock Auth)')
     } else {
-      logger.info('☁️  Using production mode (Dexie + Supabase sync)')
+      logger.info('☁️  Using production mode (Supabase)')
     }
   })
 }

@@ -31,6 +31,9 @@ import {
   useUpdateMemberRole,
   useUpdateBand,
 } from '../hooks/useBands'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('BandMembersPage')
 
 // Types
 interface Instrument {
@@ -253,7 +256,7 @@ export const BandMembersPage: React.FC = () => {
       await refetchInviteCodes()
       showToast(`New invite code generated: ${newCode}`)
     } catch (error) {
-      console.error('Error generating invite code:', error)
+      log.error('Error generating invite code:', error)
       showToast('Failed to generate invite code')
     }
   }
@@ -268,7 +271,7 @@ export const BandMembersPage: React.FC = () => {
       setShowEditBandModal(false)
       showToast('Band info updated successfully')
     } catch (error) {
-      console.error('Error updating band:', error)
+      log.error('Error updating band:', error)
       showToast('Failed to update band info')
     }
   }
@@ -305,7 +308,7 @@ export const BandMembersPage: React.FC = () => {
         showToast('Instruments updated successfully')
       }
     } catch (error) {
-      console.error('Error updating instruments:', error)
+      log.error('Error updating instruments:', error)
       showToast('Failed to update instruments')
     }
   }
@@ -324,7 +327,7 @@ export const BandMembersPage: React.FC = () => {
       setSelectedMember(null)
       showToast('Member removed successfully')
     } catch (error) {
-      console.error('Error removing member:', error)
+      log.error('Error removing member:', error)
       showToast('Failed to remove member')
     }
   }
@@ -343,7 +346,7 @@ export const BandMembersPage: React.FC = () => {
       setOpenMenuId(null)
       showToast(`${member.name} is now an admin`)
     } catch (error) {
-      console.error('Error updating role:', error)
+      log.error('Error updating role:', error)
       showToast('Failed to update role')
     }
   }
@@ -362,7 +365,7 @@ export const BandMembersPage: React.FC = () => {
       setOpenMenuId(null)
       showToast(`${member.name} is now a member`)
     } catch (error) {
-      console.error('Error updating role:', error)
+      log.error('Error updating role:', error)
       showToast('Failed to update role')
     }
   }
@@ -397,7 +400,7 @@ export const BandMembersPage: React.FC = () => {
       setSelectedMember(null)
       showToast('Ownership transferred successfully')
     } catch (error) {
-      console.error('Error transferring ownership:', error)
+      log.error('Error transferring ownership:', error)
       showToast('Failed to transfer ownership')
     }
   }
