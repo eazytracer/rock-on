@@ -32,8 +32,9 @@ npm run setup:local   # first-time: Supabase + env files
 npm run start:dev     # Supabase + edge functions + dev server
 ```
 
-Note: run tests/build in Docker on Node 24 (see docs/LOCAL_DEV.md) — a
-mismatched host Node causes phantom test failures.
+Note: these `npm` commands are for **inside the devcontainer**. On the host, run
+the app and tests through `just` / Docker on Node 24 (see docs/LOCAL_DEV.md →
+"Where am I running?") — a mismatched host Node causes phantom test failures.
 
 </details>
 

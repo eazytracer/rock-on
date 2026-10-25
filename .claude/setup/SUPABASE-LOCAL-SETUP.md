@@ -1,5 +1,8 @@
 # Supabase Local Development Setup Guide
 
+> **Historical (2025).** For how to run the stack today — including host vs
+> devcontainer — see `docs/LOCAL_DEV.md` → "Where am I running?".
+
 This guide walks you through setting up Supabase to run locally in Docker, giving you a full local database for development.
 
 ## Benefits of Local Supabase
@@ -188,6 +191,7 @@ npx supabase db reset  # Apply migration
 ```
 
 **Option B: Use Studio**
+
 1. Go to http://localhost:54323
 2. Use Table Editor or SQL Editor to make changes
 3. Generate migration from diff:
@@ -290,12 +294,14 @@ This would have caught the `updated_date` vs `last_modified` issue immediately!
 After setup:
 
 1. **Test the setlists migration locally first**
+
    ```bash
    npx supabase db reset
    # Verify in Studio that items column exists
    ```
 
 2. **Run our app against local Supabase**
+
    ```bash
    npm run dev
    # Test creating/editing setlists

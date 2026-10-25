@@ -96,14 +96,9 @@ You are a Diagnose Agent specialized in root cause analysis of test failures, bu
 1. **Start environment:**
 
    ```bash
-   # Ensure Supabase running
-   supabase start
-
-   # Start dev server
-   npm run dev
-
-   # Set development environment
-   npm run env:dev
+   # Start the full stack (Supabase + edge functions + app) — host: `just dev`;
+   # inside the devcontainer: `npm run start:dev`
+   # (see docs/LOCAL_DEV.md → "Where am I running?")
    ```
 
 2. **Navigate to failure point:**

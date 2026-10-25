@@ -284,8 +284,8 @@ All tests passing. Feature works as expected. No issues found.
 2. **Use Chrome DevTools MCP to reproduce:**
 
    ```
-   # Start dev server if not running
-   npm run dev
+   # Start the app if not running — host: `just dev`; inside the devcontainer:
+   # `npm run start:dev` (see docs/LOCAL_DEV.md → "Where am I running?")
 
    # Use Chrome MCP to manually reproduce
    mcp__chrome-devtools__navigate_page: http://localhost:5173/songs
@@ -555,7 +555,8 @@ Before marking testing complete:
    Error: net::ERR_CONNECTION_REFUSED at http://localhost:5173
    ```
 
-   **Fix:** `npm run dev` (Playwright should start it automatically)
+   **Fix:** start the app — `just dev` on the host, `npm run start:dev` inside
+   the devcontainer (see docs/LOCAL_DEV.md → "Where am I running?")
 
 3. **Wrong environment:**
 

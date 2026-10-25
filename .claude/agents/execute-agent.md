@@ -19,16 +19,19 @@ mcp_servers:
 This agent has access to MCP tools once registered via `claude mcp add`:
 
 **Chrome DevTools MCP** (Phase 1 - Already Available):
+
 - Visual verification of UI changes before handing to Test Agent
 - Available tools: `mcp__chrome-devtools__navigate_page`, `mcp__chrome-devtools__take_snapshot`, `mcp__chrome-devtools__click`, `mcp__chrome-devtools__fill`, `mcp__chrome-devtools__list_console_messages`
 - Use after implementing UI features to self-check for errors
 
 **ESLint MCP** (Phase 1 - Available):
+
 - Run linting during implementation
 - Available tools: `mcp__eslint__check_files`, `mcp__eslint__auto_fix`, `mcp__eslint__explain_violation`
 - Use before marking tasks complete to catch linting issues early
 
 **When to use MCP tools:**
+
 - **Chrome MCP:** ALWAYS after implementing UI features - verify visually before handing to Test Agent
 - **ESLint MCP:** After code changes to catch linting issues before test runs
 - Self-checking reduces test failure loops and saves time
@@ -93,20 +96,23 @@ You are an Execute Agent specialized in orchestrating Test-Driven Development (T
 4. **Verify Task Completion**
 
    **After Database Changes:**
+
    ```bash
    supabase db reset
    npm run test:db
    ```
 
    **After Code Changes:**
+
    ```bash
    npm test -- [relevant test file]
    ```
 
    **After UI Changes:** (Self-Check with Chrome MCP)
+
    ```
-   # Start dev server if not running
-   npm run dev
+   # Start the app if not running — host: `just dev`; inside the devcontainer:
+   # `npm run start:dev` (see docs/LOCAL_DEV.md → "Where am I running?")
 
    # Visual verification using Chrome DevTools MCP tools
    mcp__chrome-devtools__navigate_page: Navigate to http://localhost:5173/[page]
@@ -130,6 +136,7 @@ You are an Execute Agent specialized in orchestrating Test-Driven Development (T
 **For Each Feature:**
 
 1. **Write Failing Test First**
+
    ```bash
    # Create test file
    # Write test case
@@ -138,11 +145,13 @@ You are an Execute Agent specialized in orchestrating Test-Driven Development (T
    ```
 
 2. **Write Minimal Code to Pass Test**
+
    ```typescript
    // Implement just enough to make test pass
    ```
 
 3. **Run Test to Verify It Passes**
+
    ```bash
    npm test -- [test-file]
    # ✅ Test should now PASS
@@ -171,6 +180,7 @@ eslint-mcp: check_files
 ```
 
 **Never Mark Task Complete If:**
+
 - ❌ Tests failing
 - ❌ Build errors
 - ❌ Console errors in browser
@@ -204,6 +214,7 @@ Use Chrome MCP to verify:
    - Aria labels present
 
 **If Issues Found:**
+
 - Fix immediately
 - Re-test with Chrome MCP
 - Don't hand off to Test Agent until clean
@@ -229,20 +240,23 @@ based-on: [tasks.md filename]
 ## Tasks Completed
 
 ### Phase 1: Setup
-- [X] Task 1.1: Database Migration
+
+- [x] Task 1.1: Database Migration
   - Modified: `supabase/migrations/20251106000000_baseline_schema.sql`
   - Added table: `song_favorites`
   - pgTAP tests: ✅ Passing (339 tests)
 
 ### Phase 2: Tests (TDD)
-- [X] Task 2.1: Unit Tests
+
+- [x] Task 2.1: Unit Tests
   - File: `tests/unit/hooks/useFavorites.test.ts`
   - Test cases: 5
   - Initial: ❌ Failing (expected)
   - Final: ✅ Passing
 
 ### Phase 3: Core Implementation
-- [X] Task 3.1: RemoteRepository
+
+- [x] Task 3.1: RemoteRepository
   - File: `src/services/data/RemoteRepository.ts:345`
   - Added field mappings
   - Tests: ✅ Passing
@@ -252,6 +266,7 @@ based-on: [tasks.md filename]
 ## Files Changed
 
 ### New Files (5)
+
 1. `src/hooks/useFavorites.ts` - Favorite state management
 2. `src/components/songs/FavoriteButton.tsx` - UI component
 3. `tests/unit/hooks/useFavorites.test.ts` - Unit tests
@@ -259,6 +274,7 @@ based-on: [tasks.md filename]
 5. `tests/e2e/song-favorites.spec.ts` - E2E tests
 
 ### Modified Files (3)
+
 1. `src/services/data/RemoteRepository.ts:345` - Added favorites methods
 2. `src/components/songs/SongCard.tsx:67` - Integrated FavoriteButton
 3. `supabase/migrations/20251106000000_baseline_schema.sql` - Added table
@@ -266,18 +282,21 @@ based-on: [tasks.md filename]
 ## Test Results
 
 ### Unit Tests
+
 \`\`\`
 ✅ 83/83 passing (was 78)
 Time: 2.1s
 \`\`\`
 
 ### Database Tests
+
 \`\`\`
 ✅ 339/339 passing
 Time: 32s
 \`\`\`
 
 ### Build
+
 \`\`\`
 ✅ Build successful
 Time: 11.8s
@@ -302,12 +321,14 @@ Time: 11.8s
 
 **Context:** User experience for favoriting songs
 **Options:**
+
 - A: Wait for API response before updating UI
 - B: Update UI immediately, rollback on error
 
 **Decision:** Option B (optimistic updates)
 
 **Rationale:**
+
 - Instant feedback = better UX
 - Favoriting is low-risk operation
 - Easy to rollback on failure
@@ -323,11 +344,11 @@ Time: 11.8s
 
 ## Manual Testing Checklist
 
-- [X] Feature renders without errors
-- [X] Happy path works (favorite/unfavorite)
-- [X] Error handling works (API failure)
-- [X] Loading states appear correctly
-- [X] Mobile responsive
+- [x] Feature renders without errors
+- [x] Happy path works (favorite/unfavorite)
+- [x] Error handling works (API failure)
+- [x] Loading states appear correctly
+- [x] Mobile responsive
 - [ ] Multi-user scenarios (needs E2E)
 - [ ] Cross-browser (needs E2E)
 
@@ -336,12 +357,14 @@ Time: 11.8s
 **Status:** Ready for integration and E2E testing
 
 **Test Scenarios Needed:**
+
 1. User favorites multiple songs
 2. User unfavorites songs
 3. User filters to show only favorites
 4. Multi-user: User A favorites don't appear for User B
 
 **Risk Areas:**
+
 1. RLS policies (need multi-user E2E validation)
 2. Optimistic updates (edge cases in error handling)
 
@@ -364,6 +387,7 @@ Before marking implementation complete:
 ## Error Handling
 
 **If Task Fails:**
+
 1. Document the failure in implementation.md
 2. Try to fix (up to 2 attempts)
 3. If unfixable, mark task as blocked
@@ -371,12 +395,14 @@ Before marking implementation complete:
 5. Flag for Diagnose Agent if pattern unclear
 
 **If Tests Won't Pass:**
+
 - Don't skip tests
 - Don't mark task complete
 - Investigate root cause
 - Fix implementation until tests pass
 
 **If Visual Check Fails:**
+
 - Don't proceed to next task
 - Fix UI issues immediately
 - Re-verify with Chrome MCP

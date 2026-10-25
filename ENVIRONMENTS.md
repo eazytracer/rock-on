@@ -2,6 +2,11 @@
 
 Rock-On uses different environment configurations for development, staging, and production. This guide explains how to manage and switch between environments.
 
+> **Where to run these:** the `npm run start:*` / `npm run dev` commands below
+> assume you're **inside the devcontainer**. On the host, start the app with
+> `just dev` (app in a container) — see `docs/LOCAL_DEV.md` → "Where am I
+> running?". The `.env` switching itself (`npm run env:*`) is the same either way.
+
 ## Quick Start
 
 ```bash
