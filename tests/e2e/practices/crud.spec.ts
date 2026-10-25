@@ -104,7 +104,10 @@ test.describe('Practice Sessions CRUD Operations', () => {
     })
 
     // Verify duration is displayed (default is 2h)
-    await expect(page.locator('text=2h')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('practice-duration-display')).toHaveText(
+      '2h',
+      { timeout: 5000 }
+    )
   })
 
   test('practice can include notes', async ({ page }) => {
