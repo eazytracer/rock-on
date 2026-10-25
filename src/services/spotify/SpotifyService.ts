@@ -6,6 +6,8 @@
  * to keep credentials secure.
  */
 
+import { getSupabaseUrl } from '../../config/appMode'
+
 export interface SpotifyTrack {
   id: string
   name: string
@@ -109,7 +111,7 @@ let spotifyServiceInstance: SpotifyService | null = null
 /**
  * Get the SpotifyService singleton instance
  *
- * @param baseUrl - Optional base URL (uses import.meta.env.VITE_SUPABASE_URL if not provided)
+ * @param baseUrl - Optional base URL (uses getSupabaseUrl() if not provided)
  * @param anonKey - Optional anon key (uses import.meta.env.VITE_SUPABASE_ANON_KEY if not provided)
  * @returns SpotifyService instance
  */
@@ -119,8 +121,7 @@ export function getSpotifyService(
 ): SpotifyService {
   if (!spotifyServiceInstance || baseUrl || anonKey) {
     const url =
-      baseUrl ||
-      `${import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321'}/functions/v1`
+      baseUrl || `${getSupabaseUrl() || 'http://localhost:54321'}/functions/v1`
     const key = anonKey || import.meta.env.VITE_SUPABASE_ANON_KEY || ''
     spotifyServiceInstance = new SpotifyService(url, key)
   }

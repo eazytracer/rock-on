@@ -5,12 +5,12 @@
 # Starts the full development stack:
 # 1. Starts Supabase via the host CLI (creates DB, roles, runs migrations/seed)
 #    and serves edge functions
-# 2. Starts nginx proxy (if HOST_IP set, for phone testing)
-# 3. Starts the Rock-On app container
+# 2. Starts the Rock-On app container. In dev the app calls Supabase on
+#    whatever host it was opened from (port 54321), so it also works from other
+#    machines on the LAN and phones at http://<this-machine's-ip>:5173.
 #
 # Usage:
-#   ./start-docker.sh                           # Start with localhost
-#   HOST_IP=192.168.1.100 ./start-docker.sh     # Start for phone testing
+#   ./start-docker.sh
 # =============================================================================
 
 set -e
@@ -22,12 +22,6 @@ NC='\033[0m'
 echo -e "${GREEN}=============================================="
 echo "Rock-On Docker Development Stack"
 echo -e "==============================================${NC}"
-
-HOST_IP="${HOST_IP:-localhost}"
-export HOST_IP
-
-echo -e "${YELLOW}Host IP: $HOST_IP${NC}"
-echo ""
 
 # Step 1: Start Supabase with the host CLI (it runs its services in Docker).
 # Current CLI releases are glibc-linked, so they can't run in an alpine init
@@ -50,19 +44,10 @@ echo -e "${GREEN}Starting edge functions...${NC}"
 supabase functions serve --no-verify-jwt > /tmp/edge-functions.log 2>&1 &
 echo "  Edge functions running (PID $!) → logs: /tmp/edge-functions.log"
 
-# Step 2: Start the app (and proxy if external access needed)
+# Step 2: Start the app
 echo ""
 echo -e "${GREEN}[2/2] Starting Rock-On app...${NC}"
-
-if [ "$HOST_IP" != "localhost" ]; then
-    echo -e "${YELLOW}External access enabled - starting nginx proxy${NC}"
-    docker compose --profile proxy up --build -d supabase-proxy
-    echo ""
-    echo -e "${GREEN}Access from phone:${NC}"
-    echo "  App:     http://$HOST_IP:5173"
-    echo "  API:     http://$HOST_IP:54321"
-    echo "  Studio:  http://$HOST_IP:54323"
-    echo ""
-fi
+LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}')
+echo -e "${YELLOW}  App: http://localhost:5173${LAN_IP:+  ·  LAN/phone: http://$LAN_IP:5173}${NC}"
 
 docker compose up --build rock-on-dev

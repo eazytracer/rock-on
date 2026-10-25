@@ -5,7 +5,6 @@
 #
 # Usage:
 #   ./start-docker.sh                           # Start everything
-#   HOST_IP=192.168.1.100 ./start-docker.sh     # Start for phone testing
 #
 # Or manually:
 #   supabase start                              # Start Supabase (host CLI)
@@ -15,26 +14,6 @@
 version: '3.8'
 
 services:
-  # ===========================================================================
-  # SUPABASE PROXY (exposes localhost-bound Supabase to external IPs)
-  # ===========================================================================
-  # Supabase CLI binds to 127.0.0.1, so we need a proxy for phone testing.
-  # This nginx container forwards external requests to the local Supabase services.
-  supabase-proxy:
-    image: nginx:alpine
-    container_name: rock-on-supabase-proxy
-    restart: unless-stopped
-    ports:
-      - "54321:54321"   # Supabase API
-      - "54323:54323"   # Supabase Studio
-      - "54324:54324"   # Inbucket (email testing)
-    volumes:
-      - ./docker/nginx-proxy.conf:/etc/nginx/nginx.conf:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    profiles:
-      - proxy
-
   # ===========================================================================
   # APPLICATION SERVICE
   # ===========================================================================
@@ -53,9 +32,10 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_MOCK_AUTH=false
-      # For phone testing, set HOST_IP to your machine's IP
-      # host.docker.internal resolves to host on Docker Desktop (Win/Mac)
-      - VITE_SUPABASE_URL=http://${HOST_IP:-host.docker.internal}:54321
+      # Local Supabase on the host. In dev the browser swaps this hostname for
+      # the one the page was opened on (getSupabaseUrl), so the app works from
+      # any machine on the LAN or a phone.
+      - VITE_SUPABASE_URL=http://host.docker.internal:54321
       - VITE_SUPABASE_ANON_KEY=${ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID:-mock}
     extra_hosts:

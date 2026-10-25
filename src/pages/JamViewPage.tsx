@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { Radio, Users, ArrowRight, ListMusic, Edit3 } from 'lucide-react'
 import type { JamViewPublicPayload } from '../models/JamSession'
 import { createLogger } from '../utils/logger'
+import { getSupabaseUrl } from '../config/appMode'
 import { encodeReturnTo } from '../utils/returnTo'
 import { useJamPresence } from '../hooks/useJamPresence'
 
@@ -137,7 +138,7 @@ export const JamViewPage: React.FC = () => {
     const fetchSession = async (silent: boolean) => {
       try {
         // Construct Edge Function URL
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const supabaseUrl = getSupabaseUrl()
         if (!supabaseUrl) {
           // In development without Supabase, show a placeholder so the
           // page can still be exercised locally. The demo payload only

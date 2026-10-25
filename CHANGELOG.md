@@ -41,6 +41,10 @@ Phase 2 regressions found in end-to-end testing.
   no longer makes a debug-only `auth.getUser()` round trip.
 - Removed leftover IndexedDB/sync wording from the Settings page, startup logs,
   comments and `CLAUDE.md`.
+- **Local dev works from any machine on the LAN.** On the Vite dev server the
+  app now calls local Supabase on the host the page was opened from (port 54321) instead of a baked-in `localhost`, so opening it from a desktop or
+  phone just works. This replaces the `HOST_IP` / nginx phone-testing mode.
+  Production builds are unchanged.
 
 ### Fixed
 

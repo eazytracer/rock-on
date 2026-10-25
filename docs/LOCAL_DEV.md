@@ -76,8 +76,7 @@ just dev-host   # inside the devcontainer: npm run start:dev
   isn't up (DB, roles, migrations, seed), serves the edge functions in the
   background, then runs the app container in the foreground. Ctrl-C stops the
   app; Supabase keeps running (`just down`), and so do the edge functions
-  (`pkill -f "supabase functions serve"`). Phone testing:
-  `HOST_IP=<your-ip> ./start-docker.sh` (also starts the nginx proxy).
+  (`pkill -f "supabase functions serve"`).
 - `just dev-host` runs `npm run start:dev`: Supabase + dev `.env` + edge
   functions + Vite in the current environment. Edge logs go to
   `/tmp/edge-functions.log` in both modes.
@@ -90,6 +89,13 @@ Once up, the local URLs (from `just status`):
 | Supabase API    | http://127.0.0.1:54321 |
 | Supabase Studio | http://127.0.0.1:54323 |
 | Inbucket/Mail   | http://127.0.0.1:54324 |
+
+**From another machine or a phone:** open `http://<this-machine's-LAN-IP>:5173`
+(`just dev` prints it). In dev the app calls Supabase on the host the page was
+opened from, keeping the local port (`getSupabaseUrl()` in
+`src/config/appMode.ts`), so opened at `10.10.10.30:5173` it talks to
+`10.10.10.30:54321` — the Supabase CLI listens on all interfaces. Remote (https)
+Supabase URLs and production builds are unaffected.
 
 ## Supabase lifecycle
 
@@ -183,6 +189,10 @@ project; override with `SUPABASE_PROJECT_REF` / `SUPABASE_POOLER_HOST` /
   (seen on the Mac mini), download the zip it prints and unzip it into
   `~/Library/Caches/ms-playwright/<name>-<build>/`, then `touch
 INSTALLATION_COMPLETE` in that directory.
+- **App loads from another machine but every API call fails** — something is
+  calling Supabase without `getSupabaseUrl()` (e.g. a new raw
+  `import.meta.env.VITE_SUPABASE_URL`), so it hits the _viewer's_ localhost.
+  Route it through `getSupabaseUrl()`.
 - **A migration edit doesn't show up locally** — local Supabase already recorded
   that migration version as applied; `just reset` re-runs everything.
 

@@ -60,6 +60,24 @@ export function getAppMode(): AppMode {
   return 'production'
 }
 
+// In dev, point the local Supabase URL at whatever host the page was loaded
+// from (keeping its port), so the app works when opened from another machine on
+// the LAN or a phone — not only where `localhost` is the Supabase host. Remote
+// (https) Supabase URLs are left alone.
+export function getSupabaseUrl(): string | undefined {
+  const url = import.meta.env.VITE_SUPABASE_URL
+  if (
+    url?.startsWith('http://') &&
+    import.meta.env.MODE === 'development' &&
+    typeof window !== 'undefined'
+  ) {
+    const local = new URL(url)
+    local.hostname = window.location.hostname
+    return local.origin
+  }
+  return url
+}
+
 export function getConfig(): AppConfig {
   const mode = getAppMode()
 
@@ -78,8 +96,7 @@ export function getConfig(): AppConfig {
     enableSupabaseAuth: mode === 'production',
 
     // Supabase settings
-    supabaseUrl:
-      mode === 'production' ? import.meta.env.VITE_SUPABASE_URL : undefined,
+    supabaseUrl: mode === 'production' ? getSupabaseUrl() : undefined,
     supabaseAnonKey:
       mode === 'production'
         ? import.meta.env.VITE_SUPABASE_ANON_KEY
