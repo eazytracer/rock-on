@@ -25,6 +25,9 @@ import {
   JamParticipant,
   JamSongMatch,
 } from '../../models/JamSession'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('RemoteRepository')
 
 /**
  * Remote repository implementation using Supabase
@@ -67,12 +70,10 @@ export class RemoteRepository implements IDataRepository {
       .from('songs')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapSongFromSupabase(data)
   }
@@ -82,19 +83,6 @@ export class RemoteRepository implements IDataRepository {
 
     const mappedSong = this.mapSongToSupabase(song)
 
-    // Debug logging for RLS issues
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    console.log('[RemoteRepository.addSong] Debug info:', {
-      songId: song.id,
-      createdBy: mappedSong.created_by,
-      contextId: mappedSong.context_id,
-      contextType: mappedSong.context_type,
-      authUid: user?.id,
-      authUidMatches: mappedSong.created_by === user?.id,
-    })
-
     const { data, error } = await supabase
       .from('songs')
       .insert(mappedSong as any)
@@ -102,11 +90,7 @@ export class RemoteRepository implements IDataRepository {
       .single()
 
     if (error) {
-      console.error('[RemoteRepository.addSong] Insert failed:', {
-        error,
-        mappedSong,
-        authUser: user?.id,
-      })
+      log.error('addSong insert failed:', error)
       throw error
     }
 
@@ -173,6 +157,8 @@ export class RemoteRepository implements IDataRepository {
       result.last_modified_by = song.lastModifiedBy
     if (song.referenceLinks !== undefined)
       result.reference_links = song.referenceLinks
+    if (song.linkedFromSongId !== undefined)
+      result.linked_from_song_id = song.linkedFromSongId || null
 
     return result
   }
@@ -213,6 +199,7 @@ export class RemoteRepository implements IDataRepository {
       createdBy: row.created_by,
       visibility: row.visibility ?? 'band', // Default to 'band' for MVP
       songGroupId: row.song_group_id,
+      linkedFromSongId: row.linked_from_song_id ?? undefined,
       lastModifiedBy: row.last_modified_by ?? undefined,
     }
   }
@@ -281,12 +268,10 @@ export class RemoteRepository implements IDataRepository {
       .from('bands')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapBandFromSupabase(data)
   }
@@ -406,12 +391,10 @@ export class RemoteRepository implements IDataRepository {
       .from('setlists')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapSetlistFromSupabase(data)
   }
@@ -569,12 +552,10 @@ export class RemoteRepository implements IDataRepository {
       .from('practice_sessions')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapPracticeSessionFromSupabase(data)
   }
@@ -729,12 +710,10 @@ export class RemoteRepository implements IDataRepository {
       .from('shows')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapShowFromSupabase(data)
   }
@@ -915,26 +894,14 @@ export class RemoteRepository implements IDataRepository {
   async getUserMemberships(userId: string): Promise<BandMembership[]> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    console.log(
-      '[RemoteRepository.getUserMemberships] Querying for userId:',
-      userId
-    )
     const { data, error } = await supabase
       .from('band_memberships')
       .select('*')
       .eq('user_id', userId)
 
     if (error) {
-      console.error('[RemoteRepository.getUserMemberships] Error:', error)
+      log.error('getUserMemberships failed:', error)
       throw error
-    }
-
-    console.log(
-      '[RemoteRepository.getUserMemberships] Found memberships:',
-      data?.length || 0
-    )
-    if (data && data.length > 0) {
-      console.log('[RemoteRepository.getUserMemberships] Memberships:', data)
     }
 
     return data.map(row => this.mapBandMembershipFromSupabase(row))
@@ -943,10 +910,7 @@ export class RemoteRepository implements IDataRepository {
   async addBandMembership(membership: BandMembership): Promise<BandMembership> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    // Removed: console.log with user/band IDs (security)
-
     const mapped = this.mapBandMembershipToSupabase(membership) as any
-    // Removed: console.log with membership data (security)
 
     const { data, error } = await supabase
       .from('band_memberships')
@@ -955,11 +919,10 @@ export class RemoteRepository implements IDataRepository {
       .single()
 
     if (error) {
-      console.error('[RemoteRepository.addBandMembership] Error:', error)
+      log.error('addBandMembership failed:', error)
       throw error
     }
 
-    // Removed: console.log with membership data (security)
     return this.mapBandMembershipFromSupabase(data)
   }
 
@@ -1114,7 +1077,7 @@ export class RemoteRepository implements IDataRepository {
     const { error } = await supabase.rpc('update_user_activity')
 
     if (error) {
-      console.error('[RemoteRepository.updateUserActivity] Error:', error)
+      log.error('updateUserActivity failed:', error)
       throw error
     }
   }
@@ -1307,12 +1270,10 @@ export class RemoteRepository implements IDataRepository {
       .eq('song_id', songId)
       .eq('user_id', userId)
       .eq('band_id', bandId)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapPersonalNoteFromSupabase(data)
   }
@@ -1467,12 +1428,10 @@ export class RemoteRepository implements IDataRepository {
       .from('song_note_entries')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapNoteEntryFromSupabase(data)
   }

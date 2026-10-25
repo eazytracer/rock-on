@@ -259,41 +259,42 @@ All tables with both naming conventions:
 
 **Fields:**
 
-| Application        | IndexedDB         | Supabase            | Type             | Required | Default    | Description                                                    |
-| ------------------ | ----------------- | ------------------- | ---------------- | -------- | ---------- | -------------------------------------------------------------- |
-| `id`               | `id`              | `id`                | UUID             | Yes      | auto       | Unique identifier                                              |
-| `title`            | `title`           | `title`             | string           | Yes      | -          | Song title                                                     |
-| `artist`           | `artist`          | `artist`            | string           | Yes      | -          | Artist name                                                    |
-| `album`            | `album`           | -                   | string           | No       | -          | Album name (IndexedDB only)                                    |
-| `duration`         | `duration`        | `duration`          | number           | Yes      | -          | Duration in seconds                                            |
-| `key`              | `key`             | `key`               | string           | Yes      | -          | Musical key                                                    |
-| `bpm`              | `bpm`             | `tempo`             | number           | Yes      | 120        | Beats per minute                                               |
-| `timeSignature`    | -                 | `time_signature`    | string           | No       | -          | Time signature (Supabase only)                                 |
-| `difficulty`       | `difficulty`      | `difficulty`        | number           | Yes      | 1          | Difficulty (1-5)                                               |
-| `guitarTuning`     | `guitarTuning`    | `guitar_tuning`     | string           | No       | 'Standard' | Guitar tuning (both systems)                                   |
-| `genre`            | -                 | `genre`             | string           | No       | -          | Musical genre (Supabase only)                                  |
-| `lyrics`           | `lyrics`          | -                   | string           | No       | -          | Song lyrics (IndexedDB only)                                   |
-| `lyricsUrl`        | -                 | `lyrics_url`        | string           | No       | -          | Lyrics link (Supabase only)                                    |
-| `notes`            | `notes`           | `notes`             | string           | No       | -          | Practice notes                                                 |
-| `chordsUrl`        | -                 | `chords_url`        | string           | No       | -          | Chords/tabs link (Supabase only)                               |
-| `recordingUrl`     | -                 | `recording_url`     | string           | No       | -          | Recording link (Supabase only)                                 |
-| `chords`           | `chords`          | -                   | string[]         | No       | []         | Chord progression (IndexedDB only)                             |
-| `tags`             | `tags`            | -                   | string[]         | No       | []         | Tags/categories (IndexedDB only)                               |
-| `structure`        | `structure`       | -                   | object[]         | No       | []         | Song structure (IndexedDB only)                                |
-| `referenceLinks`   | `referenceLinks`  | `reference_links`   | object[]/JSONB   | No       | []         | External links (both systems)                                  |
-| `createdDate`      | `createdDate`     | `created_date`      | Date/TIMESTAMPTZ | Yes      | NOW()      | Creation date                                                  |
-| `updatedDate`      | -                 | `updated_date`      | Date/TIMESTAMPTZ | No       | -          | Last modification (Supabase only)                              |
-| `lastPracticed`    | `lastPracticed`   | `last_practiced`    | Date/TIMESTAMPTZ | No       | -          | Last practice date                                             |
-| `confidenceLevel`  | `confidenceLevel` | `confidence_level`  | number           | Yes      | 1          | Confidence (1-5)                                               |
-| `contextType`      | `contextType`     | `context_type`      | enum             | Yes      | -          | 'band' or 'personal'                                           |
-| `contextId`        | `contextId`       | `context_id`        | string           | Yes      | -          | Band ID or User ID                                             |
-| `createdBy`        | `createdBy`       | `created_by`        | UUID             | Yes      | -          | Creator user ID                                                |
-| `visibility`       | `visibility`      | `visibility`        | enum             | Yes      | 'band'     | Visibility level                                               |
-| `songGroupId`      | `songGroupId`     | `song_group_id`     | UUID             | No       | -          | Linked song group                                              |
-| `normalizedTitle`  | -                 | `normalized_title`  | string           | No       | computed   | Normalized title for jam matching (Supabase generated column)  |
-| `normalizedArtist` | -                 | `normalized_artist` | string           | No       | computed   | Normalized artist for jam matching (Supabase generated column) |
-| `version`          | `version`         | `version`           | number           | No       | 1          | Version for conflict detection                                 |
-| `lastModifiedBy`   | `lastModifiedBy`  | `last_modified_by`  | UUID             | No       | -          | Last modifier user ID                                          |
+| Application        | IndexedDB          | Supabase              | Type             | Required | Default    | Description                                                           |
+| ------------------ | ------------------ | --------------------- | ---------------- | -------- | ---------- | --------------------------------------------------------------------- |
+| `id`               | `id`               | `id`                  | UUID             | Yes      | auto       | Unique identifier                                                     |
+| `title`            | `title`            | `title`               | string           | Yes      | -          | Song title                                                            |
+| `artist`           | `artist`           | `artist`              | string           | Yes      | -          | Artist name                                                           |
+| `album`            | `album`            | -                     | string           | No       | -          | Album name (IndexedDB only)                                           |
+| `duration`         | `duration`         | `duration`            | number           | Yes      | -          | Duration in seconds                                                   |
+| `key`              | `key`              | `key`                 | string           | Yes      | -          | Musical key                                                           |
+| `bpm`              | `bpm`              | `tempo`               | number           | Yes      | 120        | Beats per minute                                                      |
+| `timeSignature`    | -                  | `time_signature`      | string           | No       | -          | Time signature (Supabase only)                                        |
+| `difficulty`       | `difficulty`       | `difficulty`          | number           | Yes      | 1          | Difficulty (1-5)                                                      |
+| `guitarTuning`     | `guitarTuning`     | `guitar_tuning`       | string           | No       | 'Standard' | Guitar tuning (both systems)                                          |
+| `genre`            | -                  | `genre`               | string           | No       | -          | Musical genre (Supabase only)                                         |
+| `lyrics`           | `lyrics`           | -                     | string           | No       | -          | Song lyrics (IndexedDB only)                                          |
+| `lyricsUrl`        | -                  | `lyrics_url`          | string           | No       | -          | Lyrics link (Supabase only)                                           |
+| `notes`            | `notes`            | `notes`               | string           | No       | -          | Practice notes                                                        |
+| `chordsUrl`        | -                  | `chords_url`          | string           | No       | -          | Chords/tabs link (Supabase only)                                      |
+| `recordingUrl`     | -                  | `recording_url`       | string           | No       | -          | Recording link (Supabase only)                                        |
+| `chords`           | `chords`           | -                     | string[]         | No       | []         | Chord progression (IndexedDB only)                                    |
+| `tags`             | `tags`             | -                     | string[]         | No       | []         | Tags/categories (IndexedDB only)                                      |
+| `structure`        | `structure`        | -                     | object[]         | No       | []         | Song structure (IndexedDB only)                                       |
+| `referenceLinks`   | `referenceLinks`   | `reference_links`     | object[]/JSONB   | No       | []         | External links (both systems)                                         |
+| `createdDate`      | `createdDate`      | `created_date`        | Date/TIMESTAMPTZ | Yes      | NOW()      | Creation date                                                         |
+| `updatedDate`      | -                  | `updated_date`        | Date/TIMESTAMPTZ | No       | -          | Last modification (Supabase only)                                     |
+| `lastPracticed`    | `lastPracticed`    | `last_practiced`      | Date/TIMESTAMPTZ | No       | -          | Last practice date                                                    |
+| `confidenceLevel`  | `confidenceLevel`  | `confidence_level`    | number           | Yes      | 1          | Confidence (1-5)                                                      |
+| `contextType`      | `contextType`      | `context_type`        | enum             | Yes      | -          | 'band' or 'personal'                                                  |
+| `contextId`        | `contextId`        | `context_id`          | string           | Yes      | -          | Band ID or User ID                                                    |
+| `createdBy`        | `createdBy`        | `created_by`          | UUID             | Yes      | -          | Creator user ID                                                       |
+| `visibility`       | `visibility`       | `visibility`          | enum             | Yes      | 'band'     | Visibility level                                                      |
+| `songGroupId`      | `songGroupId`      | `song_group_id`       | UUID             | No       | -          | Linked song group                                                     |
+| `linkedFromSongId` | `linkedFromSongId` | `linked_from_song_id` | UUID             | No       | -          | Origin band song of a personal copy (FK songs.id, ON DELETE SET NULL) |
+| `normalizedTitle`  | -                  | `normalized_title`    | string           | No       | computed   | Normalized title for jam matching (Supabase generated column)         |
+| `normalizedArtist` | -                  | `normalized_artist`   | string           | No       | computed   | Normalized artist for jam matching (Supabase generated column)        |
+| `version`          | `version`          | `version`             | number           | No       | 1          | Version for conflict detection                                        |
+| `lastModifiedBy`   | `lastModifiedBy`   | `last_modified_by`    | UUID             | No       | -          | Last modifier user ID                                                 |
 
 **CRITICAL Naming Differences:**
 

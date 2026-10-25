@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { BandRequiredPrompt } from '../components/common/BandRequiredPrompt'
 import { EntityHeader } from '../components/common/EntityHeader'
 import { InlineEditableField } from '../components/common/InlineEditableField'
 import { SectionCard } from '../components/common/SectionCard'
@@ -50,6 +51,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('PracticeViewPage')
 
 // Convert database song to UI song
 const dbSongToUISong = (dbSong: DBSong): UISong => {
@@ -217,7 +221,7 @@ export const PracticeViewPage: React.FC = () => {
         }
         setSongs(practiceSongs)
       } catch (err) {
-        console.error('Error loading practice:', err)
+        log.error('Error loading practice:', err)
         navigate('/practices')
       } finally {
         if (isInitialLoad) {
@@ -245,7 +249,7 @@ export const PracticeViewPage: React.FC = () => {
         setPractice(prev => (prev ? { ...prev, [field]: value } : prev))
         showToast('Saved', 'success')
       } catch (error) {
-        console.error('Error saving field:', error)
+        log.error('Error saving field:', error)
         showToast('Failed to save', 'error')
         throw error
       }
@@ -275,7 +279,7 @@ export const PracticeViewPage: React.FC = () => {
         )
         showToast('Saved', 'success')
       } catch (error) {
-        console.error('Error saving date/time:', error)
+        log.error('Error saving date/time:', error)
         showToast('Failed to save', 'error')
         throw error
       }
@@ -311,7 +315,7 @@ export const PracticeViewPage: React.FC = () => {
         navigate(`/practices/${newPracticeId}`, { replace: true })
       }
     } catch (error) {
-      console.error('Error creating practice:', error)
+      log.error('Error creating practice:', error)
       showToast('Failed to create practice', 'error')
     }
   }, [practice, songs, currentBandId, createPractice, showToast, navigate])
@@ -360,7 +364,7 @@ export const PracticeViewPage: React.FC = () => {
         })),
       })
     } catch (err) {
-      console.error('Error saving song order:', err)
+      log.error('Error saving song order:', err)
     }
   }
 
@@ -389,7 +393,7 @@ export const PracticeViewPage: React.FC = () => {
             })),
           })
         } catch (err) {
-          console.error('Error saving session notes:', err)
+          log.error('Error saving session notes:', err)
           showToast('Failed to save notes', 'error')
         }
       }
@@ -494,6 +498,16 @@ export const PracticeViewPage: React.FC = () => {
     songId: s.songId,
     notes: s.notes, // Session-specific notes
   }))
+
+  // Practices are a band feature — band-less users get a create/join-a-band prompt.
+  if (!currentBandId) {
+    return (
+      <BandRequiredPrompt
+        feature="Practices"
+        testid="practices-band-required"
+      />
+    )
+  }
 
   return (
     <ContentLoadingSpinner isLoading={loading}>
@@ -734,7 +748,7 @@ export const PracticeViewPage: React.FC = () => {
                 setEditingSong(null)
                 showToast('Song updated', 'success')
               } catch (error) {
-                console.error('Error updating song:', error)
+                log.error('Error updating song:', error)
                 showToast('Failed to update song', 'error')
               }
             }}

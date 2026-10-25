@@ -1,11 +1,14 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PracticeSessionService } from '../services/PracticeSessionService'
 import { repository } from '../services/data/RepositoryFactory'
-import { queryKeys } from '../services/queryClient'
+import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { PracticeSession } from '../models/PracticeSession'
 import { getPracticeEffectiveEnd } from '../utils/dateHelpers'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('usePractices')
 
 /**
  * Hook to fetch practices (rehearsals) for a band, sorted by date ascending.
@@ -37,7 +40,7 @@ export function usePractices(bandId: string) {
   })
 
   return {
-    practices: query.data ?? [],
+    practices: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
     refetch: useCallback(async () => {
@@ -52,16 +55,22 @@ export function usePractices(bandId: string) {
 export function useUpcomingPractices(bandId: string) {
   const { practices, loading, error, refetch } = usePractices(bandId)
 
-  const now = new Date()
   // Categorize on the practice's EFFECTIVE END (start + duration, or actual
   // endTime), not its start. A practice whose start has passed but whose end
-  // has not is still upcoming/planned — not history.
-  const upcomingPractices = practices.filter(
-    practice => getPracticeEffectiveEnd(practice) >= now
-  )
-  const pastPractices = practices.filter(
-    practice => getPracticeEffectiveEnd(practice) < now
-  )
+  // has not is still upcoming/planned — not history. Memoized: consumers key
+  // effects on these arrays, so they must keep their identity until
+  // `practices` changes.
+  const { upcomingPractices, pastPractices } = useMemo(() => {
+    const now = new Date()
+    return {
+      upcomingPractices: practices.filter(
+        practice => getPracticeEffectiveEnd(practice) >= now
+      ),
+      pastPractices: practices.filter(
+        practice => getPracticeEffectiveEnd(practice) < now
+      ),
+    }
+  }, [practices])
 
   return { upcomingPractices, pastPractices, loading, error, refetch }
 }
@@ -243,7 +252,7 @@ export function useAutoSuggestSongs(bandId: string) {
       setSuggestedSongs(Array.from(songIds))
       return Array.from(songIds)
     } catch (err) {
-      console.error('Error getting song suggestions:', err)
+      log.error('Error getting song suggestions:', err)
       setError(err as Error)
       return []
     } finally {

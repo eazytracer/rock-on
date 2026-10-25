@@ -14,6 +14,13 @@ import { QueryClient } from '@tanstack/react-query'
  *   explicit invalidation and the next window focus.
  * - retry is modest: a failed read surfaces quickly rather than hanging the UI.
  */
+/**
+ * Stable fallback for `query.data ?? EMPTY_ARRAY`. A literal `[]` is a new
+ * reference every render, so a consumer effect keyed on it that sets state
+ * loops forever while the query has no data yet.
+ */
+export const EMPTY_ARRAY: never[] = []
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

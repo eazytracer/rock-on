@@ -1,6 +1,7 @@
+import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ShowService } from '../services/ShowService'
-import { queryKeys } from '../services/queryClient'
+import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { Show } from '../models/Show'
 
@@ -30,7 +31,7 @@ export function useShows(bandId: string) {
   })
 
   return {
-    shows: query.data ?? [],
+    shows: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
   }
@@ -42,13 +43,19 @@ export function useShows(bandId: string) {
 export function useUpcomingShows(bandId: string) {
   const { shows, loading, error } = useShows(bandId)
 
-  const now = new Date()
-  const upcomingShows = shows.filter(
-    show => show.scheduledDate >= now && show.status !== 'cancelled'
-  )
-  const pastShows = shows.filter(
-    show => show.scheduledDate < now || show.status === 'completed'
-  )
+  // Memoized: consumers key effects on these arrays, so they must keep their
+  // identity until `shows` changes.
+  const { upcomingShows, pastShows } = useMemo(() => {
+    const now = new Date()
+    return {
+      upcomingShows: shows.filter(
+        show => show.scheduledDate >= now && show.status !== 'cancelled'
+      ),
+      pastShows: shows.filter(
+        show => show.scheduledDate < now || show.status === 'completed'
+      ),
+    }
+  }, [shows])
 
   return { upcomingShows, pastShows, loading, error }
 }

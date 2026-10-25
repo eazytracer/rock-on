@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { SongService } from '../services/SongService'
 import { repository } from '../services/data/RepositoryFactory'
-import { queryKeys } from '../services/queryClient'
+import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { Song } from '../models/Song'
 import type { Setlist } from '../models/Setlist'
@@ -48,7 +48,7 @@ export function useSongs(bandId: string) {
   })
 
   return {
-    songs: query.data ?? [],
+    songs: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
     refetch: useCallback(async () => {
@@ -79,7 +79,7 @@ export function usePersonalSongs(userId: string) {
   })
 
   return {
-    songs: query.data ?? [],
+    songs: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
     refetch: useCallback(async () => {

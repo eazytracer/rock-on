@@ -8,7 +8,7 @@ import {
   type SpyInstance,
 } from 'vitest'
 import React from 'react'
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { useAuthCheck } from '../../../src/hooks/useAuthCheck'
 import * as AuthFactory from '../../../src/services/auth/AuthFactory'
@@ -33,6 +33,7 @@ function createWrapper(initialPath = '/test') {
 describe('useAuthCheck Hook (Phase 1)', () => {
   let getItemSpy: SpyInstance
   let removeItemSpy: SpyInstance
+  let setItemSpy: SpyInstance
   let mockStorage: Record<string, string>
 
   beforeEach(() => {
@@ -50,6 +51,11 @@ describe('useAuthCheck Hook (Phase 1)', () => {
       .mockImplementation((key: string) => {
         delete mockStorage[key]
       })
+    setItemSpy = vi
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation((key: string, value: string) => {
+        mockStorage[key] = value
+      })
 
     // Default mock: no session
     vi.mocked(AuthFactory.authService.getSession).mockResolvedValue(null)
@@ -58,6 +64,7 @@ describe('useAuthCheck Hook (Phase 1)', () => {
   afterEach(() => {
     getItemSpy.mockRestore()
     removeItemSpy.mockRestore()
+    setItemSpy.mockRestore()
   })
 
   describe('No User Scenario', () => {
@@ -153,6 +160,31 @@ describe('useAuthCheck Hook (Phase 1)', () => {
       expect(removeItemSpy).toHaveBeenCalledWith('currentUserId')
       expect(removeItemSpy).toHaveBeenCalledWith('currentBandId')
     })
+
+    it('stays signed-out when the guard remounts after clearing the stale ids', async () => {
+      // The SDK's SIGNED_OUT event re-renders AuthProvider, which can remount
+      // the route guard. The fresh check no longer finds currentUserId (the
+      // first check cleared it) and used to downgrade to no-user, dropping
+      // the ?reason=signed-out redirect.
+      mockStorage = { currentUserId: 'user-123', currentBandId: 'band-456' }
+      vi.mocked(AuthFactory.authService.getSession).mockResolvedValue(null)
+
+      const first = renderHook(() => useAuthCheck(), {
+        wrapper: createWrapper(),
+      })
+      await waitFor(() => {
+        expect(first.result.current.failureReason).toBe('signed-out')
+      })
+      first.unmount()
+
+      const second = renderHook(() => useAuthCheck(), {
+        wrapper: createWrapper(),
+      })
+      await waitFor(() => {
+        expect(second.result.current.isChecking).toBe(false)
+      })
+      expect(second.result.current.failureReason).toBe('signed-out')
+    })
   })
 
   describe('Valid Session Scenario', () => {
@@ -222,6 +254,42 @@ describe('useAuthCheck Hook (Phase 1)', () => {
       })
 
       expect(removeItemSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Same-tab sign-out', () => {
+    it('drops to unauthenticated as soon as AuthContext dispatches auth-logout', async () => {
+      // Without this the guard kept isAuthenticated=true after logout(), hit
+      // the "valid session but no user" recovery path and hard-reloaded.
+      mockStorage = { currentUserId: 'user-123', currentBandId: 'band-456' }
+      vi.mocked(AuthFactory.authService.getSession).mockResolvedValue({
+        user: {
+          id: 'user-123',
+          email: 'test@example.com',
+          name: 'Test User',
+          authProvider: 'email',
+          createdDate: new Date(),
+          lastLogin: new Date(),
+        },
+        accessToken: 'mock-token',
+        expiresAt: Date.now() + 3600000,
+      })
+
+      const { result } = renderHook(() => useAuthCheck(), {
+        wrapper: createWrapper(),
+      })
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true)
+      })
+
+      act(() => {
+        delete mockStorage.currentUserId
+        delete mockStorage.currentBandId
+        window.dispatchEvent(new CustomEvent('auth-logout'))
+      })
+
+      expect(result.current.isAuthenticated).toBe(false)
+      expect(result.current.failureReason).toBe('no-user')
     })
   })
 

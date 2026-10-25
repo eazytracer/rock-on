@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Calendar item duplication. Any show or practice can be cloned from its calendar
 row as a starting point for a new one — copying the reusable template parts
 (venue/logistics, setlist, songs, invitees) while resetting instance-specific
-state (date, status, progress). No schema change.
+state (date, status, progress). Also a logging cleanup pass and fixes for
+Phase 2 regressions found in end-to-end testing.
 
 ### Added
 
@@ -33,6 +34,59 @@ state (date, status, progress). No schema change.
   defaults to the source's date (was +1 week) and accepts editable overrides
   (type, duration, location, notes). Songs copy over with progress reset and
   invitees copy with RSVP reset.
+- **Logging cleanup.** All `console.*` calls now go through the
+  environment-aware logger (errors only in production), and ESLint `no-console`
+  enforces it. Early troubleshooting traces were removed — including several that
+  dumped tokens, invite codes or full user/band objects — and `RemoteRepository.addSong`
+  no longer makes a debug-only `auth.getUser()` round trip.
+- Removed leftover IndexedDB/sync wording from the Settings page, startup logs,
+  comments and `CLAUDE.md`.
+
+### Fixed
+
+- **Infinite render loop on Songs and Band Members** ("Maximum update depth
+  exceeded"). The TanStack hooks returned a fresh `[]` every render while data
+  was loading, re-triggering page effects that set state; they now share a
+  stable `EMPTY_ARRAY`.
+- **Shows page refetched setlists in an endless loop.** `useUpcomingShows` /
+  `useUpcomingPractices` rebuilt their upcoming/past arrays every render; now
+  memoized.
+- **Mirrored songs lost their link to the band song** (no chain icon, "Copy to
+  My Songs" not marked as copied, no source-band label). `linkedFromSongId` was
+  only ever stored in the removed IndexedDB mirror; it's now a Supabase column.
+- Single-row lookups that find nothing (e.g. a song with no personal note) no
+  longer log a 406 network error — they use `maybeSingle()`.
+- **Sign Out no longer hard-reloads the page.** The route guard never reacted to
+  `logout()`, so it fell into its "valid session but no user" recovery path and
+  called `window.location.reload()`. `useAuthCheck` now handles `auth-logout`.
+- **"You were signed out" redirect was intermittently lost** when a session
+  expired: a remount of the route guard re-checked after the stale ids were
+  cleared and downgraded `signed-out` to `no-user`. A per-tab marker keeps it.
+- **Band-less users can't open the practice builder** — `/practices/new` shows
+  the create/join-a-band prompt again (the guard was lost when the standalone
+  practices list was retired in 0.5.0).
+
+### Tests
+
+- Practice e2e specs repointed from the retired `/practices` list to the
+  calendar agenda and its row menu; page-inventory and band-less specs updated.
+- Sign-out-while-navigating specs tolerate the SDK redirecting before the click.
+
+### Removed
+
+- Console troubleshooting helpers: `window.debugRealtime()` (+
+  `RealtimeManager.getDiagnostics`), the auto-loaded `testSupabaseConnection`
+  self-test, and the unused `envCheck`.
+
+### Database
+
+- **`songs.linked_from_song_id`** (UUID, FK `songs(id)` ON DELETE SET NULL),
+  added to the not-yet-deployed `extend_audit_triggers` migration. Covered by
+  pgTAP (`026-song-linked-from`). Songs mirrored before this release can't be
+  re-linked (the link was never stored server-side).
+- **v0.6.1 `release_notes` row**, folded into the not-yet-deployed
+  `extend_audit_triggers` migration and stamped after 0.6.0 (the in-app "what's
+  new" shows only the newest note, so it also summarizes 0.6.0).
 
 ## [0.6.0] - 2026-09-15
 

@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { repository } from '../services/data/RepositoryFactory'
-import { queryKeys } from '../services/queryClient'
+import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import type { SongPersonalNoteInput } from '../models/SongPersonalNote'
 import type { SongNoteEntry, SongNoteEntryInput } from '../models/SongNoteEntry'
 
@@ -143,7 +143,7 @@ export function useBulkPersonalNotePresence(
     enabled: songIds.length > 0 && !!userId && !!bandId,
   })
 
-  return new Set(query.data ?? [])
+  return new Set(query.data ?? EMPTY_ARRAY)
 }
 
 /**
@@ -168,7 +168,7 @@ export function useNoteEntries(songId: string, bandId: string, userId: string) {
   })
 
   return {
-    entries: query.data ?? [],
+    entries: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
     refetch: useCallback(async () => {

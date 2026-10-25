@@ -22,5 +22,15 @@ module.exports = {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
     'no-extra-semi': 'off', // Prettier handles semicolons
+    // Use src/utils/logger (environment-aware) instead of console.*
+    'no-console': 'error',
   },
+  overrides: [
+    {
+      // The logger wraps console; test setup and edge functions (Deno, logs to
+      // Supabase) write to the console directly by design.
+      files: ['src/utils/logger.ts', 'src/test/**', 'supabase/functions/**'],
+      rules: { 'no-console': 'off' },
+    },
+  ],
 }

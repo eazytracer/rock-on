@@ -44,6 +44,11 @@ export interface AuthCheckResult {
  * }
  * ```
  */
+// Per-tab marker set when a check clears identity because the session is gone.
+// The SIGNED_OUT event that follows can remount the route guard; the fresh check
+// then finds no currentUserId and must still report signed-out, not no-user.
+const SIGNED_OUT_MARKER = 'rockon:signedOut'
+
 export function useAuthCheck(): AuthCheckResult {
   const location = useLocation()
   // Track if this is the initial mount
@@ -71,6 +76,25 @@ export function useAuthCheck(): AuthCheckResult {
     }
   }, [])
 
+  // Same-tab sign-out: AuthContext.logout() dispatches `auth-logout`. Drop to
+  // unauthenticated synchronously (batched with logout's own state updates) so
+  // the guard redirects instead of seeing "valid session, no user" and taking
+  // the recovery-ladder reload.
+  useEffect(() => {
+    const handleLogout = () => {
+      setResult({
+        isAuthenticated: false,
+        isChecking: false,
+        hasBand: false,
+        failureReason: 'no-user',
+      })
+    }
+    window.addEventListener('auth-logout', handleLogout)
+    return () => {
+      window.removeEventListener('auth-logout', handleLogout)
+    }
+  }, [])
+
   useEffect(() => {
     // Only show loading spinner on initial mount, not on subsequent route changes
     // This prevents white screen flicker during navigation
@@ -85,13 +109,15 @@ export function useAuthCheck(): AuthCheckResult {
         const userId = localStorage.getItem('currentUserId')
         const bandId = localStorage.getItem('currentBandId')
 
-        // No user ID means not logged in
+        // No user ID means not logged in (or signed out earlier in this tab)
         if (!userId) {
           setResult({
             isAuthenticated: false,
             isChecking: false,
             hasBand: false,
-            failureReason: 'no-user',
+            failureReason: sessionStorage.getItem(SIGNED_OUT_MARKER)
+              ? 'signed-out'
+              : 'no-user',
           })
           return
         }
@@ -116,6 +142,7 @@ export function useAuthCheck(): AuthCheckResult {
           // Clear stale localStorage
           localStorage.removeItem('currentUserId')
           localStorage.removeItem('currentBandId')
+          sessionStorage.setItem(SIGNED_OUT_MARKER, '1')
           setResult({
             isAuthenticated: false,
             isChecking: false,
@@ -126,6 +153,9 @@ export function useAuthCheck(): AuthCheckResult {
         }
 
         // 3. Session is valid
+        if (sessionStorage.getItem(SIGNED_OUT_MARKER)) {
+          sessionStorage.removeItem(SIGNED_OUT_MARKER)
+        }
         log.debug('Session valid', {
           userId: session.user.id,
           expiresAt: new Date(session.expiresAt),

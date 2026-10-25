@@ -13,6 +13,8 @@
 --   2. Installs AFTER INSERT/UPDATE/DELETE audit triggers on:
 --        bands, band_memberships, song_castings, song_assignments,
 --        member_capabilities
+--   3. Adds songs.linked_from_song_id (personal copy -> origin band song),
+--      previously an IndexedDB-only field the online client lost.
 --
 -- Idempotent: CREATE OR REPLACE FUNCTION + DROP TRIGGER IF EXISTS before CREATE.
 -- No new tables, so no GRANTs required (existing tables already granted).
@@ -171,6 +173,18 @@ CREATE TRIGGER member_capabilities_audit_log AFTER INSERT OR UPDATE OR DELETE ON
   FOR EACH ROW EXECUTE FUNCTION log_audit_trail();
 
 -- ============================================================================
+-- 2b. songs.linked_from_song_id
+--     A personal copy of a band song ("Also save to my personal catalog" /
+--     "Copy to My Songs") points back at its origin. This drives the mirrored
+--     state + chain icon and the source-band label. It only ever existed in the
+--     IndexedDB mirror, so it was lost when the client went online-only.
+--     ON DELETE SET NULL: deleting the band song keeps the personal copy.
+-- ============================================================================
+ALTER TABLE public.songs
+  ADD COLUMN IF NOT EXISTS linked_from_song_id UUID
+  REFERENCES public.songs(id) ON DELETE SET NULL;
+
+-- ============================================================================
 -- 3. v0.6.0 release notes (Phase 1 release_notes row — data-only upsert)
 --    Idempotent via ON CONFLICT (version). Drives the in-app "what's new".
 -- ============================================================================
@@ -190,3 +204,28 @@ You shouldn't have to change anything — just keep using Rock-On as usual.$md$
 ) ON CONFLICT (version) DO UPDATE
   SET title = EXCLUDED.title, body = EXCLUDED.body;
 
+
+-- ============================================================================
+-- 4. v0.6.1 release notes (data-only upsert, same idempotent pattern)
+--    The in-app "what's new" shows only the newest row, and both rows land in
+--    one transaction (same NOW()), so 0.6.1 is stamped explicitly later and its
+--    body also summarizes 0.6.0.
+-- ============================================================================
+INSERT INTO public.release_notes (version, title, body, published_at) VALUES (
+  '0.6.1',
+  'Duplicate shows & practices',
+  $md$Setting up a gig or rehearsal that looks a lot like the last one? Now you can
+copy it:
+
+- **Duplicate from the calendar.** Every show and practice has a new menu
+  (Open / Duplicate / Delete) on its calendar row.
+- **Start from what you had.** A show copies its venue, logistics, contacts and
+  setlist; a practice copies its songs and invitees. Pick the new date, tweak
+  anything you like, and save.
+- **A friendlier time picker.** Type a time or pick from the list — it filters
+  as you type.
+- **Faster and always in sync.** Under the hood, Rock-On now talks to the cloud
+  directly, so changes from you and your bandmates show up sooner.$md$,
+  NOW() + INTERVAL '1 second'
+) ON CONFLICT (version) DO UPDATE
+  SET title = EXCLUDED.title, body = EXCLUDED.body;

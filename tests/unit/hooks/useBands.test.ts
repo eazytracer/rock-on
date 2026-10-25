@@ -260,6 +260,17 @@ describe('useBands Hooks', () => {
       expect(result.current.members).toEqual([])
     })
 
+    it('returns a stable empty array across renders while there is no data', () => {
+      // BandMembersPage has an effect keyed on `members` that calls setState;
+      // a fresh [] per render made it loop ("Maximum update depth exceeded").
+      const { result, rerender } = renderHook(() => useBandMembers(''), {
+        wrapper: wrapper(),
+      })
+      const first = result.current.members
+      rerender()
+      expect(result.current.members).toBe(first)
+    })
+
     it('should handle errors', async () => {
       const mockError = new Error('Failed to fetch members')
       vi.mocked(BandMembershipService.getBandMembers).mockRejectedValue(

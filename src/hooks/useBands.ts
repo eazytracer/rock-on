@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { BandService } from '../services/BandService'
 import { BandMembershipService } from '../services/BandMembershipService'
 import { repository } from '../services/data/RepositoryFactory'
-import { queryKeys } from '../services/queryClient'
+import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { getSupabaseClient } from '../services/supabase/client'
 import type { Band } from '../models/Band'
 import type {
@@ -13,6 +13,9 @@ import type {
   InviteCode,
 } from '../models/BandMembership'
 import type { User, UserProfile } from '../models/User'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('useBands')
 
 /**
  * Helper: Create band directly in Supabase (server-side creation)
@@ -43,7 +46,7 @@ async function createBandInSupabase(bandInput: {
     .single()
 
   if (error) {
-    console.error('[createBandInSupabase] Failed to create band:', error)
+    log.error('createBandInSupabase: failed to create band:', error)
     throw new Error(`Failed to create band: ${error.message}`)
   }
 
@@ -98,7 +101,7 @@ async function waitForMembership(
 
     // If error is not "not found", throw immediately
     if (error && error.code !== 'PGRST116') {
-      console.error('[waitForMembership] Supabase query error:', error)
+      log.error('waitForMembership: Supabase query error:', error)
       throw new Error(`Failed to query membership: ${error.message}`)
     }
 
@@ -143,7 +146,7 @@ export function useBandMemberships(bandId: string) {
   })
 
   return {
-    memberships: query.data ?? [],
+    memberships: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
   }
@@ -175,7 +178,7 @@ export function useBandMembers(bandId: string) {
   })
 
   return {
-    members: query.data ?? [],
+    members: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
   }
@@ -195,7 +198,7 @@ export function useBandInviteCodes(bandId: string) {
   })
 
   return {
-    inviteCodes: (query.data ?? []) as InviteCode[],
+    inviteCodes: (query.data ?? EMPTY_ARRAY) as InviteCode[],
     loading: query.isLoading,
     error: query.error as Error | null,
     refetch: useCallback(async () => {

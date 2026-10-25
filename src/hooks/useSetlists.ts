@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { SetlistService } from '../services/SetlistService'
 import { repository } from '../services/data/RepositoryFactory'
-import { queryKeys } from '../services/queryClient'
+import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { Setlist } from '../models/Setlist'
 import type { SetlistItem } from '../types'
@@ -31,7 +31,7 @@ export function useSetlists(bandId: string) {
   })
 
   return {
-    setlists: query.data ?? [],
+    setlists: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
   }
@@ -304,7 +304,7 @@ export function usePersonalSetlists(userId: string) {
   })
 
   return {
-    setlists: query.data ?? [],
+    setlists: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
     refetch: useCallback(async () => {
