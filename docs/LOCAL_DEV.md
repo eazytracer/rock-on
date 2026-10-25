@@ -6,17 +6,40 @@ Day-to-day tasks are wrapped as [`just`](https://github.com/casey/just) recipes.
 Run `just` with no arguments to see the full list. The recipes are the source of
 truth for exact commands; this doc explains the workflow around them.
 
-## Golden rule: run app + tests in Docker
+## Where am I running? (read this first)
 
-Anything that runs the app or the test suite goes through Docker, on the
+**Rule: the app and the unit/integration tests always run in a container** on the
 project's pinned **Node 24** (`.nvmrc`, `Dockerfile`, `package.json` engines).
+How you get there depends on where your shell is:
 
-Why this matters: the host machine's Node may not match, and a _newer_ host Node
-(24+) ships a native `localStorage` global that shadows jsdom's in tests —
-producing failures that don't exist in CI or the container. Containerizing gives
-one honest, reproducible environment. The `just` quality-gate recipes
-(`lint`, `type-check`, `test`, `build`) already run inside `node:24-alpine`, so
-prefer them over bare `npm run …` on the host.
+```bash
+[ -f /.dockerenv ] && echo "inside a container" || echo "on the host"
+```
+
+| Your shell is…                                 | Start the app with                      | Quality gates                  |
+| ---------------------------------------------- | --------------------------------------- | ------------------------------ |
+| **On the host** (e.g. the Mac mini)            | `just dev` — Vite in the app container  | `just lint` / `just check` / … |
+| **Inside the devcontainer** (`.devcontainer/`) | `npm run start:dev` (= `just dev-host`) | `npm run …` directly is fine   |
+
+- **Host:** don't use `npm run start:dev` / `npm run dev` / `npm test` — they run
+  on host Node. `just dev` starts Supabase with the host CLI (its services run in
+  Docker), serves the edge functions, and runs Vite in the `rock-on-dev`
+  container on :5173. The host needs Docker, the Supabase CLI and `just`; host
+  Node is only for ad-hoc scripts.
+- **Devcontainer:** the workspace _is_ the app's container (Node 24, Supabase CLI,
+  Playwright browsers all installed by `.devcontainer/setup.sh`), so
+  `npm run start:dev` is the right way to start it there. This is the pattern the
+  repo grew up with.
+
+Why this matters: a host Node that doesn't match drifts from CI, and a _newer_
+host Node (24+) ships a native `localStorage` global that shadows jsdom's in tests
+— producing failures that don't exist in CI or the container.
+
+**Exceptions that run on the host by design:** the Supabase CLI itself (it
+orchestrates Docker), `supabase test db` (pgTAP runs in the DB container), and the
+Playwright runner for e2e — its browsers can be a shared host install
+(`~/Library/Caches/ms-playwright`) driving the containerized app at
+`localhost:5173`.
 
 ## Prerequisites
 
@@ -41,19 +64,23 @@ wipes env).
 
 ## Running the app
 
-Two ways, both backed by a local Supabase in Docker:
+Pick by where your shell is (see above); both are backed by a local Supabase in
+Docker:
 
 ```bash
-just dev        # full containerized stack (app + Supabase) — recommended default
-just dev-host   # hybrid: Supabase in Docker, Vite + edge functions on the host
+just dev        # from the host: app in the rock-on-dev container
+just dev-host   # inside the devcontainer: npm run start:dev
 ```
 
-- `just dev` runs `./start-docker.sh`: initializes Supabase (DB, roles,
-  migrations, seed) then starts the app container. Use this for a clean,
-  reproducible run, and for phone testing (`HOST_IP=<your-ip> ./start-docker.sh`).
-- `just dev-host` runs `npm run start:dev`: Supabase in Docker but Vite and the
-  edge-function runtime on the host — a faster inner loop while coding. Edge
-  logs go to `/tmp/edge-functions.log`.
+- `just dev` runs `./start-docker.sh`: starts Supabase with the host CLI if it
+  isn't up (DB, roles, migrations, seed), serves the edge functions in the
+  background, then runs the app container in the foreground. Ctrl-C stops the
+  app; Supabase keeps running (`just down`), and so do the edge functions
+  (`pkill -f "supabase functions serve"`). Phone testing:
+  `HOST_IP=<your-ip> ./start-docker.sh` (also starts the nginx proxy).
+- `just dev-host` runs `npm run start:dev`: Supabase + dev `.env` + edge
+  functions + Vite in the current environment. Edge logs go to
+  `/tmp/edge-functions.log` in both modes.
 
 Once up, the local URLs (from `just status`):
 
@@ -149,6 +176,15 @@ project; override with `SUPABASE_PROJECT_REF` / `SUPABASE_POOLER_HOST` /
 - **Ports already in use (5173 / 5432 / 54321-54324)** — another stack is
   running. `just down` to stop Supabase; stop any stray app container.
 - **Stale data / weird state** — `just reset` for a clean database.
+- **`git: not found` in the app container logs** — harmless; the build-info
+  script falls back when git isn't in the alpine image.
+- **Playwright says a browser/ffmpeg "Executable doesn't exist"** — run
+  `npx playwright install chromium`. If it hangs after the download reaches 100%
+  (seen on the Mac mini), download the zip it prints and unzip it into
+  `~/Library/Caches/ms-playwright/<name>-<build>/`, then `touch
+INSTALLATION_COMPLETE` in that directory.
+- **A migration edit doesn't show up locally** — local Supabase already recorded
+  that migration version as applied; `just reset` re-runs everything.
 
 ## See also
 

@@ -3,7 +3,8 @@
 # Rock-On Docker Startup Script
 # =============================================================================
 # Starts the full development stack:
-# 1. Initializes Supabase via CLI (creates DB, roles, runs migrations/seed)
+# 1. Starts Supabase via the host CLI (creates DB, roles, runs migrations/seed)
+#    and serves edge functions
 # 2. Starts nginx proxy (if HOST_IP set, for phone testing)
 # 3. Starts the Rock-On app container
 #
@@ -28,9 +29,26 @@ export HOST_IP
 echo -e "${YELLOW}Host IP: $HOST_IP${NC}"
 echo ""
 
-# Step 1: Initialize Supabase
-echo -e "${GREEN}[1/2] Initializing Supabase...${NC}"
-docker compose --profile init run --rm supabase-init
+# Step 1: Start Supabase with the host CLI (it runs its services in Docker).
+# Current CLI releases are glibc-linked, so they can't run in an alpine init
+# container — and the edge functions below need the host CLI anyway.
+echo -e "${GREEN}[1/2] Starting Supabase...${NC}"
+if ! command -v supabase >/dev/null 2>&1; then
+    echo "Supabase CLI not found — install it: brew install supabase/tap/supabase" >&2
+    exit 1
+fi
+if supabase status >/dev/null 2>&1; then
+    echo "  ✓ Supabase is already running"
+else
+    supabase start
+fi
+
+# Edge functions (jam-view, Spotify search) aren't part of the app container;
+# serve them with the host's Supabase CLI against the same local stack.
+echo ""
+echo -e "${GREEN}Starting edge functions...${NC}"
+supabase functions serve --no-verify-jwt > /tmp/edge-functions.log 2>&1 &
+echo "  Edge functions running (PID $!) → logs: /tmp/edge-functions.log"
 
 # Step 2: Start the app (and proxy if external access needed)
 echo ""

@@ -85,24 +85,29 @@ supabase/
 
 ## Commands
 
-```bash
-npm run start:dev   # ALWAYS use this to start dev — never start Supabase, the
-                    # dev server, or edge functions manually. Handles the full
-                    # sequence: local Supabase → dev .env → edge functions
-                    # (supabase functions serve --no-verify-jwt, required for
-                    # jam-view + Spotify search) → Vite. Edge logs: /tmp/edge-functions.log
-npm run setup:local # First-time: start Supabase + generate .env.development/.env.test
+**The app always runs in a container.** Before starting anything, check where
+your shell is and follow `docs/LOCAL_DEV.md` → "Where am I running?":
 
-npm run dev         # Dev server only
-npm run build       # Production build
-npm run lint        # Lint
-npm run type-check  # tsc --noEmit
+- **On the host** (`/.dockerenv` absent): `just dev` — Supabase (host CLI) +
+  edge functions + Vite in the `rock-on-dev` container. Use the `just` recipes
+  for lint/type-check/tests; never run the app or unit tests on host Node.
+- **Inside the devcontainer**: `npm run start:dev` (workspace = app container).
+
+Either way, never start Supabase, Vite, or edge functions by hand — the scripts
+handle the sequence (edge functions are required for jam-view + Spotify search;
+logs: `/tmp/edge-functions.log`).
+
+```bash
+just setup          # First-time: start Supabase + generate .env.development/.env.test
+just check          # lint + type-check + unit tests (in node:24-alpine)
+just build          # Production build
 ```
 
 Test commands and layout live in `tests/README.md` (the single source). Quick
-reference: `npm test` (unit+integration), `npm run test:quick` (~2s), `npm run
-test:e2e` (Playwright — needs `supabase start` + `npm run env:dev`), `npm run
-test:db` (pgTAP), `npm run test:all`.
+reference (on the host use the `just` equivalents, which containerize Node):
+`npm test` / `just test` (unit+integration), `npm run test:quick` /
+`just test-quick` (~2s), `npm run test:e2e` / `just test-e2e` (Playwright — needs
+the stack up), `npm run test:db` / `just test-db` (pgTAP).
 
 Environment management: `ENVIRONMENTS.md`.
 

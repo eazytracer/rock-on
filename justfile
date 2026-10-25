@@ -22,11 +22,11 @@ default:
 
 # ─── Local dev stack ─────────────────────────────────────────────────────────
 
-# Full containerized stack (app + Supabase in Docker) — the default way to run
+# From the host: Supabase (host CLI) + edge functions + app in the rock-on-dev container
 dev:
     ./start-docker.sh
 
-# Faster hybrid loop: Supabase in Docker, Vite + edge functions on host
+# Inside the devcontainer (workspace = app container): npm run start:dev
 dev-host:
     npm run start:dev
 
