@@ -11,8 +11,9 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react'
-import { Pencil, Check, X, Eye, Edit3 } from 'lucide-react'
+import { Pencil, Check, X } from 'lucide-react'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { MarkdownWriter } from './MarkdownWriter'
 
 export interface MarkdownFieldProps {
   value: string
@@ -45,9 +46,6 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
   // Static Tailwind class strings keyed off tone (no dynamic interpolation).
   const toneHoverText =
     tone === 'info' ? 'hover:text-info' : 'hover:text-accent'
-  const toneActiveBg = tone === 'info' ? 'bg-info' : 'bg-accent'
-  const toneFocusBorder =
-    tone === 'info' ? 'focus:border-info' : 'focus:border-accent'
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const [mode, setMode] = useState<'edit' | 'preview'>('edit')
@@ -170,76 +168,38 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
         </div>
       ) : (
         <div className="p-3">
-          <div className="flex items-center gap-1 mb-2">
-            <button
-              onClick={() => setMode('edit')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                mode === 'edit'
-                  ? `${toneActiveBg} text-on-accent`
-                  : 'text-ink-3 hover:text-ink-1'
-              }`}
-              data-testid="markdown-mode-edit"
-            >
-              <Edit3 size={12} />
-              Edit
-            </button>
-            <button
-              onClick={() => setMode('preview')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                mode === 'preview'
-                  ? `${toneActiveBg} text-on-accent`
-                  : 'text-ink-3 hover:text-ink-1'
-              }`}
-              data-testid="markdown-mode-preview"
-            >
-              <Eye size={12} />
-              Preview
-            </button>
-            <div className="flex-1" />
-            <button
-              onClick={handleCancel}
-              title="Cancel"
-              data-testid="markdown-cancel"
-              className="w-8 h-8 flex items-center justify-center rounded text-ink-3 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-              aria-label="Cancel"
-            >
-              <X size={14} />
-            </button>
-            <button
-              onClick={handleSave}
-              title="Save"
-              data-testid="markdown-save"
-              className="w-8 h-8 flex items-center justify-center rounded text-green-400 hover:bg-green-400/10 transition-colors"
-              aria-label="Save"
-            >
-              <Check size={14} />
-            </button>
-          </div>
-
-          {mode === 'edit' ? (
-            <textarea
-              value={draft}
-              onChange={e => {
-                const v = e.target.value
-                if (v.length <= maxLength) setDraft(v)
-              }}
-              autoFocus
-              rows={10}
-              placeholder="Markdown supported — ##, **, lists, > blockquote..."
-              data-testid="markdown-textarea"
-              className={`w-full p-3 bg-bg-0 border border-border-1 rounded text-ink-1 text-sm font-mono resize-y ${toneFocusBorder} focus:outline-none`}
-            />
-          ) : (
-            <div className="min-h-[120px] p-3 bg-bg-0 border border-border-1 rounded">
-              {draft ? (
-                <MarkdownRenderer content={draft} />
-              ) : (
-                <p className="text-ink-5 text-sm italic">
-                  Nothing to preview yet...
-                </p>
-              )}
-            </div>
-          )}
+          <MarkdownWriter
+            value={draft}
+            onChange={setDraft}
+            mode={mode === 'edit' ? 'write' : 'preview'}
+            onModeChange={m => setMode(m === 'write' ? 'edit' : 'preview')}
+            onDone={handleSave}
+            onCancel={handleCancel}
+            maxLength={maxLength}
+            tone={tone}
+            actions={
+              <>
+                <button
+                  onClick={handleCancel}
+                  title="Cancel"
+                  data-testid="markdown-cancel"
+                  className="w-8 h-8 flex items-center justify-center rounded text-ink-3 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                  aria-label="Cancel"
+                >
+                  <X size={14} />
+                </button>
+                <button
+                  onClick={handleSave}
+                  title="Save"
+                  data-testid="markdown-save"
+                  className="w-8 h-8 flex items-center justify-center rounded text-green-400 hover:bg-green-400/10 transition-colors"
+                  aria-label="Save"
+                >
+                  <Check size={14} />
+                </button>
+              </>
+            }
+          />
 
           <div className="mt-2 flex items-center justify-between text-xs">
             {isDirty ? (

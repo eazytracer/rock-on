@@ -23,6 +23,7 @@ import {
   SongNoteEntryUpdate,
 } from '../../models/SongNoteEntry'
 import { supabase } from '../supabase/client'
+import { ApiError } from '../api/errors'
 import { AuditLogEntry } from './syncTypes'
 import {
   JamSession,
@@ -121,18 +122,32 @@ export class RemoteRepository implements IDataRepository {
     return this.mapSongFromSupabase(data)
   }
 
-  async updateSong(id: string, updates: Partial<Song>): Promise<Song> {
+  async updateSong(
+    id: string,
+    updates: Partial<Song>,
+    expectedVersion?: number
+  ): Promise<Song> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('songs')
       // @ts-expect-error - Supabase generated types are overly strict, using Record<string, any> for field mapping
       .update(this.mapSongToSupabase(updates))
       .eq('id', id)
-      .select()
-      .single()
+    // Only write if nobody saved since we read it (the song page's per-field
+    // saves). No row back means the version moved on.
+    if (expectedVersion !== undefined)
+      query = query.eq('version', expectedVersion)
+    const { data, error } = await query.select().maybeSingle()
 
     if (error) throw error
+    if (!data)
+      throw new ApiError(
+        expectedVersion !== undefined ? 'stale_version' : 'not_found',
+        expectedVersion !== undefined
+          ? 'Someone just changed this. Showing the latest.'
+          : 'This song was deleted.'
+      )
 
     return this.mapSongFromSupabase(data)
   }

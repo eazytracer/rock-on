@@ -201,10 +201,12 @@ test.describe('Song Search and Filtering', () => {
     await page.locator('button:has-text("Save")').first().click()
     await page.waitForTimeout(1500)
 
-    // Tap the Drop D tuning chip
+    // Desktop: open the Tuning menu, then pick Drop D
+    await page.locator('[data-testid="song-tuning-filter"]').click()
     await page
       .locator('[data-testid="song-tuning-filter-option-Drop D"]')
       .click()
+    await page.keyboard.press('Escape')
     await page.waitForTimeout(1000)
 
     // Should only see Drop D song

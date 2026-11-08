@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { EntityHeader } from '../components/common/EntityHeader'
 import { SETLIST_STATUS_OPTIONS } from '../components/common/InlineStatusBadge'
@@ -13,7 +13,6 @@ import {
   generateInitials,
 } from '../components/common/SongListItem'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
-import { EditSongModal } from '../components/songs/EditSongModal'
 import { SongNotesModal } from '../components/songs/SongNotesModal'
 import { AddItemDropdown } from '../components/common/AddItemDropdown'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
@@ -23,6 +22,7 @@ import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
 import { repository } from '../services/data/RepositoryFactory'
 import { secondsToDuration } from '../utils/formatters'
 import { formatShowDate } from '../utils/dateHelpers'
+import { songHref } from '../utils/songOrigin'
 import type { Setlist as DBSetlist } from '../models/Setlist'
 import type { Song as DBSong } from '../models/Song'
 import { Clock, Music2, Calendar, ListMusic } from 'lucide-react'
@@ -118,8 +118,24 @@ export const SetlistViewPage: React.FC = () => {
   const [dbSongs, setDbSongs] = useState<DBSong[]>([])
   const [dbSetlists, setDbSetlists] = useState<DBSetlist[]>([])
 
-  // Edit song modal state
-  const [editingSong, setEditingSong] = useState<DBSong | null>(null)
+  // ?selected=<songId> (Back from the song page): that song's row is marked
+  // and scrolled into view.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [selectedSongId] = useState(() => searchParams.get('selected'))
+  useEffect(() => {
+    if (!searchParams.has('selected')) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('selected')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+  useEffect(() => {
+    if (!selectedSongId || !items.length) return
+    requestAnimationFrame(() =>
+      document
+        .querySelector('[data-selected="true"]')
+        ?.scrollIntoView({ block: 'center' })
+    )
+  }, [selectedSongId, items.length])
 
   // Song notes modal state
   const [songNotesModal, setSongNotesModal] = useState<{
@@ -752,16 +768,18 @@ export const SetlistViewPage: React.FC = () => {
                                 'this item'
                             )
                           }
-                          onEdit={
-                            item.type === 'song' && item.song
-                              ? () => {
-                                  const songToEdit = dbSongs.find(
-                                    s => s.id === item.song?.id
+                          selected={
+                            !!selectedSongId && item.songId === selectedSongId
+                          }
+                          onOpenSong={
+                            item.type === 'song' && item.songId && !isNewMode
+                              ? () =>
+                                  navigate(
+                                    songHref(item.songId!, {
+                                      kind: 'setlist',
+                                      id: setlistId!,
+                                    })
                                   )
-                                  if (songToEdit) {
-                                    setEditingSong(songToEdit)
-                                  }
-                                }
                               : undefined
                           }
                           onSaveSessionNotes={
@@ -847,44 +865,6 @@ export const SetlistViewPage: React.FC = () => {
 
         {/* Confirm Dialog */}
         <ConfirmDialog {...dialogProps} />
-
-        {/* Edit Song Modal */}
-        {editingSong && (
-          <EditSongModal
-            song={editingSong}
-            onClose={() => setEditingSong(null)}
-            onSave={async updatedSong => {
-              try {
-                const repo = repository
-                await repo.updateSong(updatedSong.id!, updatedSong)
-                // Update the song in our local state
-                setDbSongs(prev =>
-                  prev.map(s => (s.id === updatedSong.id ? updatedSong : s))
-                )
-                // Also update the displayed items
-                setItems(prev =>
-                  prev.map(item => {
-                    if (
-                      item.type === 'song' &&
-                      item.song?.id === updatedSong.id
-                    ) {
-                      return {
-                        ...item,
-                        song: dbSongToUISong(updatedSong),
-                      }
-                    }
-                    return item
-                  })
-                )
-                setEditingSong(null)
-                showToast('Song updated', 'success')
-              } catch (error) {
-                log.error('Error updating song:', error)
-                showToast('Failed to update song', 'error')
-              }
-            }}
-          />
-        )}
 
         {/* Song Notes Modal */}
         {songNotesModal && (

@@ -20,6 +20,7 @@ import { useRealtimeInvalidate } from '../hooks/useRealtimeInvalidate'
 import { useToast } from '../contexts/ToastContext'
 import { repository } from '../services/data/RepositoryFactory'
 import { secondsToDuration } from '../utils/formatters'
+import { songHref } from '../utils/songOrigin'
 import {
   formatShowDate,
   formatTime12Hour,
@@ -853,6 +854,17 @@ export const ShowViewPage: React.FC = () => {
                           item={item}
                           isEditing={false}
                           songNumber={songNumber}
+                          onOpenSong={
+                            item.type === 'song' && item.songId && !isNewMode
+                              ? () =>
+                                  navigate(
+                                    songHref(item.songId!, {
+                                      kind: 'show',
+                                      id: showId!,
+                                    })
+                                  )
+                              : undefined
+                          }
                         />
                       )
                     })

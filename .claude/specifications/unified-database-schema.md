@@ -310,6 +310,10 @@ for band admins/owners. A new column is not readable until added to that GRANT.
 `band_songs_not_in_my_catalog()`, `copy_band_songs_to_personal(p_song_ids)`. Contract tests:
 `supabase/tests/030-songs.test.sql`. Per-list view settings live in `user_preferences.list_views` keyed `songs:<contextId>`.
 
+**RPCs (phase 2.1, `20261110120000_redesign_phase_2_1.sql`):** `set_setlist_item_note(p_setlist_id, p_item_id, p_notes)`
+(replaces one `setlists.items[]` entry's `notes`; SECURITY INVOKER, so RLS decides; `not_found` if the item is gone). Contract
+tests: `supabase/tests/031-song-page.test.sql`.
+
 **CRITICAL Naming Differences:**
 
 - **BPM field:** IndexedDB uses `bpm`, Supabase uses `tempo`

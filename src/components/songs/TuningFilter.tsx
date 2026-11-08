@@ -1,20 +1,25 @@
 /**
- * Tuning filter chips. The chip is the tuning (its colour and short name), not
- * a pill inside a chip. Phones scroll the row; desktop shows what fits on one
- * line and puts the rest behind "+N", which opens a sheet with every tuning.
+ * Tuning filter (docs/redesign/10 · 1.6). Desktop: one "Tuning" chip that
+ * opens an anchored multi-select menu in pitch order; the chip names the
+ * selection ("Tuning", "D DROP", "2 tunings"). Phones keep the scrolling row
+ * of tuning-coloured chips, one tuning at a time.
  */
-import React, { useLayoutEffect, useRef, useState } from 'react'
-import { Check } from 'lucide-react'
-import { Chip, Sheet, SheetItem, TuningPill } from '../ui'
-import { tuningColor, tuningLabel, tuningShortLabel } from '../../utils/tunings'
+import React, { useState } from 'react'
+import { Check, ChevronDown } from 'lucide-react'
+import { Chip, Sheet } from '../ui'
+import {
+  canonicalTuningId,
+  tuningColor,
+  tuningLabel,
+  tuningOrderIndex,
+  tuningShortLabel,
+} from '../../utils/tunings'
 
 const TuningChip: React.FC<{
   tuning: string
   on: boolean
   onClick: () => void
-  /** Copy in the hidden measuring row: not focusable, no testid. */
-  measure?: boolean
-}> = ({ tuning, on, onClick, measure }) => {
+}> = ({ tuning, on, onClick }) => {
   const c = tuningColor(tuning)
   return (
     <button
@@ -22,8 +27,7 @@ const TuningChip: React.FC<{
       aria-pressed={on}
       aria-label={`Only ${tuningLabel(tuning)}`}
       onClick={onClick}
-      tabIndex={measure ? -1 : undefined}
-      data-testid={measure ? undefined : `song-tuning-filter-option-${tuning}`}
+      data-testid={`song-tuning-filter-option-${tuning}`}
       className="shrink-0 inline-flex items-center h-[38px] px-3.5 rounded-full font-mono text-[12.5px] font-bold tracking-[.03em] whitespace-nowrap"
       style={
         on
@@ -40,148 +44,127 @@ const TuningChip: React.FC<{
   )
 }
 
+/** Pitch order (built-ins), then anything custom by name. */
+const byPitch = (a: string, b: string) =>
+  tuningOrderIndex(canonicalTuningId(a)) -
+    tuningOrderIndex(canonicalTuningId(b)) || a.localeCompare(b)
+
 export const TuningFilter: React.FC<{
   tunings: string[]
   counts: Map<string, number>
-  value: string | null
-  onChange: (tuning: string | null) => void
-  /** Desktop: fit to one line with "+N"; phones: horizontal scroll. */
-  fit: boolean
-}> = ({ tunings, counts, value, onChange, fit }) => {
-  const rowRef = useRef<HTMLDivElement>(null)
-  const measureRef = useRef<HTMLDivElement>(null)
-  const [shown, setShown] = useState(tunings.length)
-  const [sheet, setSheet] = useState(false)
+  value: string[]
+  onChange: (tunings: string[]) => void
+  /** Desktop: one chip with a menu; phones: a scrolling row of chips. */
+  menu: boolean
+}> = ({ tunings, counts, value, onChange, menu }) => {
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null)
 
-  // Count how many chips fit beside "All tunings" and a "+N" chip.
-  useLayoutEffect(() => {
-    if (!fit) return
-    const row = rowRef.current
-    const measure = measureRef.current
-    if (!row || !measure) return
-    const compute = () => {
-      const items = [...measure.children] as HTMLElement[]
-      const [all, more, ...chips] = items
-      const gap = 8
-      let used = all.offsetWidth
-      let n = 0
-      for (const chip of chips) {
-        const rest = chips.length - (n + 1)
-        const need =
-          used + gap + chip.offsetWidth + (rest ? gap + more.offsetWidth : 0)
-        if (need > row.clientWidth) break
-        used += gap + chip.offsetWidth
-        n++
-      }
-      setShown(n)
-    }
-    compute()
-    const ro = new ResizeObserver(compute)
-    ro.observe(row)
-    return () => ro.disconnect()
-  }, [fit, tunings])
-
-  const toggle = (t: string) => onChange(value === t ? null : t)
-  // The selected tuning always stays visible, even when it would overflow.
-  let visible = fit ? tunings.slice(0, shown) : tunings
-  if (fit && value && !visible.includes(value) && visible.length)
-    visible = [...visible.slice(0, -1), value]
-  const hidden = tunings.length - visible.length
-
-  return (
-    <div
-      ref={rowRef}
-      className={`relative flex items-center gap-2 min-w-0 ${
-        fit ? 'overflow-hidden' : 'overflow-x-auto no-scrollbar -mx-4 px-4'
-      }`}
-      data-testid="song-tuning-filter"
-    >
-      <Chip
-        on={!value}
-        onClick={() => onChange(null)}
-        className="shrink-0"
-        data-testid="song-tuning-filter-all"
+  if (!menu)
+    return (
+      <div
+        className="relative flex items-center gap-2 min-w-0 overflow-x-auto no-scrollbar -mx-4 px-4"
+        data-testid="song-tuning-filter"
       >
-        All tunings
-      </Chip>
-      {visible.map(t => (
-        <TuningChip
-          key={t}
-          tuning={t}
-          on={value === t}
-          onClick={() => toggle(t)}
-        />
-      ))}
-      {fit && hidden > 0 && (
         <Chip
-          onClick={() => setSheet(true)}
-          className="shrink-0 font-mono"
-          data-testid="song-tuning-filter-more"
+          on={!value.length}
+          onClick={() => onChange([])}
+          className="shrink-0"
+          data-testid="song-tuning-filter-all"
         >
-          +{hidden}
+          All tunings
         </Chip>
-      )}
-
-      {fit && (
-        <div
-          ref={measureRef}
-          aria-hidden
-          className="absolute left-0 top-0 flex gap-2 invisible pointer-events-none"
-        >
-          <Chip tabIndex={-1}>All tunings</Chip>
-          <Chip tabIndex={-1} className="font-mono">
-            +{tunings.length}
-          </Chip>
-          {tunings.map(t => (
+        {tunings.map(t => {
+          const on = value.length === 1 && value[0] === t
+          return (
             <TuningChip
               key={t}
               tuning={t}
-              on={false}
-              onClick={() => {}}
-              measure
+              on={on}
+              onClick={() => onChange(on ? [] : [t])}
             />
-          ))}
-        </div>
-      )}
+          )
+        })}
+      </div>
+    )
 
-      {sheet && (
+  const sorted = [...tunings].sort(byPitch)
+  const label =
+    value.length === 0
+      ? 'Tuning'
+      : value.length === 1
+        ? tuningShortLabel(value[0])
+        : `${value.length} tunings`
+  const toggle = (t: string) =>
+    onChange(value.includes(t) ? value.filter(x => x !== t) : [...value, t])
+
+  return (
+    <>
+      <Chip
+        on={value.length > 0}
+        onClick={e => {
+          const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+          setAt({ x: r.left, y: r.bottom + 8 })
+        }}
+        className={`shrink-0 ${value.length === 1 ? 'font-mono' : ''}`}
+        aria-haspopup="menu"
+        aria-expanded={!!at}
+        data-testid="song-tuning-filter"
+      >
+        {label}
+        <ChevronDown size={15} className="opacity-70" />
+      </Chip>
+      {at && (
         <Sheet
-          onClose={() => setSheet(false)}
-          title="Tuning"
-          sub="Show only songs in one tuning"
-          data-testid="song-tuning-sheet"
+          onClose={() => setAt(null)}
+          at={at}
+          width={280}
+          data-testid="song-tuning-menu"
         >
-          <div className="divide-y divide-divider max-h-[60vh] overflow-y-auto custom-scrollbar-thin pb-1">
-            <SheetItem
-              icon={
-                value ? (
-                  <span className="w-[19px]" />
-                ) : (
-                  <Check className="!text-accent" />
-                )
-              }
-              label="All tunings"
-              onClick={() => {
-                onChange(null)
-                setSheet(false)
-              }}
-            />
-            {tunings.map(t => (
-              <SheetItem
-                key={t}
-                icon={<TuningPill tuning={t} size="sm" />}
-                label={tuningLabel(t)}
-                hint={value === t ? 'Showing' : `${counts.get(t) ?? 0} songs`}
+          <div role="menu" aria-label="Tuning">
+            {sorted.map(t => {
+              const on = value.includes(t)
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={on}
+                  onClick={() => toggle(t)}
+                  className="w-full flex items-center gap-3 min-h-[40px] px-2.5 rounded-xl text-left hover:bg-bg-3"
+                  data-testid={`song-tuning-filter-option-${t}`}
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ background: tuningColor(t) }}
+                  />
+                  <span className="flex-1 truncate text-[14px] font-semibold text-ink-1">
+                    {tuningLabel(t)}
+                  </span>
+                  <span className="font-mono text-[11.5px] text-ink-3">
+                    {counts.get(t) ?? 0}
+                  </span>
+                  <span className="w-4">
+                    {on && <Check size={16} className="text-accent" />}
+                  </span>
+                </button>
+              )
+            })}
+            {value.length > 0 && (
+              <button
+                type="button"
                 onClick={() => {
-                  toggle(t)
-                  setSheet(false)
+                  onChange([])
+                  setAt(null)
                 }}
-                data-testid={`song-tuning-sheet-${t}`}
-              />
-            ))}
+                className="w-full mt-1 min-h-[40px] px-2.5 rounded-xl text-left text-[14px] font-semibold text-accent-ink hover:bg-bg-3"
+                data-testid="song-tuning-filter-clear"
+              >
+                All tunings
+              </button>
+            )}
           </div>
         </Sheet>
       )}
-    </div>
+    </>
   )
 }

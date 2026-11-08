@@ -15,6 +15,7 @@ import React, {
   useState,
 } from 'react'
 import { Search, ListMusic, ChevronRight, X } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSwitchPrompt } from '../../contexts/SwitchPromptContext'
 import { useSearch } from '../../hooks/useSearch'
@@ -23,11 +24,12 @@ import { formatSeconds, splitMatch } from '../../domain/format'
 import { TuningPill } from '../ui/TuningPill'
 import { TypeLabel } from '../ui/TypeLabel'
 import { Chip } from '../ui/Chip'
+import { songHref } from '../../utils/songOrigin'
 
 type Filter = 'all' | 'songs' | 'setlists' | 'calendar'
 
+// Songs open as /songs/:id?from=search:<q> (see `open` below).
 const KIND_PATH: Record<string, (id: string) => string> = {
-  song: id => `/songs?song=${id}`,
   setlist: id => `/setlists/${id}`,
   show: id => `/shows/${id}`,
   practice: id => `/practices/${id}`,
@@ -55,12 +57,29 @@ export function useGlobalSearch(): SearchContextValue {
   return ctx
 }
 
-/** Holds the overlay and binds ⌘K / Ctrl+K. */
+/**
+ * Holds the overlay and binds ⌘K / Ctrl+K. `?search=<q>` (Back from a song
+ * opened from search) reopens it with that query.
+ */
 export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [open, setOpen] = useState(false)
-  const openSearch = useCallback(() => setOpen(true), [])
+  const [initial, setInitial] = useState('')
+  const openSearch = useCallback(() => {
+    setInitial('')
+    setOpen(true)
+  }, [])
+  const [params, setParams] = useSearchParams()
+  useEffect(() => {
+    const q = params.get('search')
+    if (q === null) return
+    const next = new URLSearchParams(params)
+    next.delete('search')
+    setParams(next, { replace: true })
+    setInitial(q)
+    setOpen(true)
+  }, [params, setParams])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -76,7 +95,9 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <SearchContext.Provider value={{ openSearch }}>
       {children}
-      {open && <SearchOverlay onClose={() => setOpen(false)} />}
+      {open && (
+        <SearchOverlay initialQuery={initial} onClose={() => setOpen(false)} />
+      )}
     </SearchContext.Provider>
   )
 }
@@ -98,12 +119,13 @@ const Highlight: React.FC<{ text: string; query: string }> = ({
   </>
 )
 
-export const SearchOverlay: React.FC<{ onClose: () => void }> = ({
-  onClose,
-}) => {
+export const SearchOverlay: React.FC<{
+  onClose: () => void
+  initialQuery?: string
+}> = ({ onClose, initialQuery = '' }) => {
   const { currentBandId, currentBand, contextType } = useAuth()
   const { openIn } = useSwitchPrompt()
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery)
   const [filter, setFilter] = useState<Filter>('all')
   const [all, setAll] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -150,7 +172,10 @@ export const SearchOverlay: React.FC<{ onClose: () => void }> = ({
     openIn({
       bandId: h.band_id,
       name: h.context_name,
-      path: KIND_PATH[h.kind](h.id),
+      path:
+        h.kind === 'song'
+          ? songHref(h.id, { kind: 'search', q: query.trim() })
+          : KIND_PATH[h.kind](h.id),
       what: KIND_WORD[h.kind],
     })
   }

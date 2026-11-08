@@ -50,7 +50,12 @@ export interface IDataRepository {
   getSongsByIds(ids: string[]): Promise<Song[]>
   getSong(id: string): Promise<Song | null>
   addSong(song: Song): Promise<Song>
-  updateSong(id: string, updates: Partial<Song>): Promise<Song>
+  /** With `expectedVersion`, throws ApiError `stale_version` if it moved on. */
+  updateSong(
+    id: string,
+    updates: Partial<Song>,
+    expectedVersion?: number
+  ): Promise<Song>
   deleteSong(id: string): Promise<void>
 
   // ========== BANDS ==========

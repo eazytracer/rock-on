@@ -17,7 +17,6 @@ import {
   Phone,
   MoreVertical,
   X,
-  ChevronDown,
   Filter as FilterIcon,
   AlertCircle,
   Edit2,
@@ -269,7 +268,6 @@ export const ShowsPage: React.FC = () => {
               <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
                 Shows
               </h1>
-              <ChevronDown size={20} className="text-ink-3" />
             </div>
 
             <div className="flex items-center gap-3">

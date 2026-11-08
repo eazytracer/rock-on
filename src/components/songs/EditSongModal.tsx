@@ -1,13 +1,10 @@
 /**
- * Shared Edit Song Modal Component
- *
- * Extracted from SongsPage to enable reuse in SetlistViewPage and PracticeViewPage.
- * Provides full song editing capabilities including:
- * - Title, artist, album
- * - Duration, BPM, key (with Circle of Fifths)
- * - Guitar tuning
- * - Tags and notes
- * - Reference links (YouTube, Spotify, Ultimate-Guitar)
+ * Add song (docs/redesign/10 · 1.5). Existing songs are edited on the song
+ * page; this editor only creates them. Desktop: a page inside the layout with
+ * the sidebar, fields in two columns. Phones: a full-screen form.
+ * - Title (the only required field) with Spotify matches under it
+ * - Artist, album, tuning, key (Circle of Fifths), BPM, length
+ * - Links, tags, and "Also add to My Songs" for band songs
  */
 
 import React, { useEffect, useRef, useState } from 'react'
@@ -46,6 +43,7 @@ import { useNavigate } from 'react-router-dom'
 import { Settings2 } from 'lucide-react'
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges'
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog'
+import { useMediaQuery } from '../../hooks/useResponsive'
 
 // Extended link type for UI that includes id and name
 interface UILink extends ReferenceLink {
@@ -54,8 +52,6 @@ interface UILink extends ReferenceLink {
 }
 
 export interface EditSongModalProps {
-  song?: Song // Optional - if not provided, it's "add" mode
-  mode?: 'add' | 'edit' // Defaults to 'edit' if song provided, 'add' if not
   onClose: () => void
   onSave: (
     song: Song,
@@ -92,13 +88,6 @@ const secondsToMinSec = (seconds: number): { min: string; sec: string } => {
 const minSecToSeconds = (min: string, sec: string): number => {
   return (parseInt(min) || 0) * 60 + (parseInt(sec) || 0)
 }
-
-// Convert ReferenceLinks to UILinks
-const referenceLinkToUILink = (link: ReferenceLink, index: number): UILink => ({
-  ...link,
-  id: `link-${index}`,
-  name: link.description || getLinkPresetName(link.icon),
-})
 
 // Preset link names based on type
 const getLinkPresetName = (type: string): string => {
@@ -143,30 +132,24 @@ interface ChangeForm {
 }
 
 /** "You changed Tuning and Key. These haven't been saved." */
-function changedFieldsMessage(
-  song: Song | undefined,
-  form: ChangeForm,
-  links: UILink[]
-): string {
-  const { min, sec } = secondsToMinSec(song?.duration || 0)
+function changedFieldsMessage(form: ChangeForm, links: UILink[]): string {
   const before: ChangeForm = {
-    title: song?.title || '',
-    artist: song?.artist || '',
-    album: song?.album || '',
-    tuning: song?.guitarTuning || 'Standard',
-    key: song?.key || '',
-    bpm: song?.bpm ? String(song.bpm) : '',
-    durationMin: min,
-    durationSec: sec,
-    tags: song?.tags?.join(', ') || '',
+    title: '',
+    artist: '',
+    album: '',
+    tuning: 'Standard',
+    key: '',
+    bpm: '',
+    durationMin: '0',
+    durationSec: '00',
+    tags: '',
   }
   const names = [
     ...new Set(
       FIELD_NAMES.filter(([k]) => before[k] !== form[k]).map(([, n]) => n)
     ),
   ]
-  const linksBefore = (song?.referenceLinks ?? []).map(l => l.url).join()
-  if (linksBefore !== links.map(l => l.url).join()) names.push('Links')
+  if (links.length) names.push('Links')
   if (!names.length) return "Your changes haven't been saved."
   const list =
     names.length === 1
@@ -176,37 +159,27 @@ function changedFieldsMessage(
 }
 
 export const EditSongModal: React.FC<EditSongModalProps> = ({
-  song,
-  mode: explicitMode,
   onClose,
   onSave,
   showAlsoSaveToPersonal = false,
 }) => {
-  // Determine mode: explicit mode takes precedence, otherwise infer from song
-  const mode = explicitMode ?? (song ? 'edit' : 'add')
-  const isAddMode = mode === 'add'
-
-  // Add-mode-only: opt-in to also creating a linked copy in the user's
-  // personal catalog. Default off; enabled in add mode only and only when
-  // the parent has explicitly enabled the option (i.e. we're adding a
-  // band song, not a personal song).
+  const desktop = useMediaQuery('(min-width: 768px)')
+  // Opt-in to also creating a linked copy in the user's personal catalog;
+  // only offered when adding a band song.
   const [alsoSaveToPersonal, setAlsoSaveToPersonal] = useState(false)
-  const showPersonalCheckbox = isAddMode && showAlsoSaveToPersonal
-
-  const { min, sec } = secondsToMinSec(song?.duration || 0)
+  const showPersonalCheckbox = showAlsoSaveToPersonal
 
   const [formData, setFormData] = useState({
-    title: song?.title || '',
-    artist: song?.artist || '',
-    album: song?.album || '',
-    durationMin: min,
-    durationSec: sec,
-    key: song?.key || '',
-    tuning: song?.guitarTuning || 'Standard',
-    tuningId: song?.tuningId ?? (null as string | null),
-    bpm: song?.bpm ? String(song.bpm) : '',
-    tags: song?.tags?.join(', ') || '',
-    notes: song?.notes || '',
+    title: '',
+    artist: '',
+    album: '',
+    durationMin: '0',
+    durationSec: '00',
+    key: '',
+    tuning: 'Standard',
+    tuningId: null as string | null,
+    bpm: '',
+    tags: '',
   })
 
   // Custom-tuning picker data (built-ins + the user's customs, from the DB).
@@ -272,8 +245,8 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   const [spotifyPicked, setSpotifyPicked] = useState(false)
   const setSpotifyQuery = spotify.setQuery
   useEffect(() => {
-    if (isAddMode && !spotifyPicked) setSpotifyQuery(formData.title)
-  }, [isAddMode, spotifyPicked, formData.title, setSpotifyQuery])
+    if (!spotifyPicked) setSpotifyQuery(formData.title)
+  }, [spotifyPicked, formData.title, setSpotifyQuery])
 
   // Handle Spotify track selection - auto-fill form fields
   const handleSpotifySelect = (track: SpotifyTrack) => {
@@ -315,9 +288,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   }
 
   // Link management state
-  const [links, setLinks] = useState<UILink[]>(
-    song?.referenceLinks?.map(referenceLinkToUILink) || []
-  )
+  const [links, setLinks] = useState<UILink[]>([])
   // Track whether user is actively adding a new link
   const [isAddingLink, setIsAddingLink] = useState(false)
   const [linkIcon, setLinkIcon] = useState<string>('other')
@@ -664,44 +635,28 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
       description: link.name,
     }))
 
-    const savedSong: Song = isAddMode
-      ? {
-          id: crypto.randomUUID(),
-          title: formData.title,
-          artist: formData.artist,
-          album: formData.album || undefined,
-          duration,
-          key: formData.key,
-          guitarTuning: formData.tuning,
-          tuningId: formData.tuningId,
-          bpm: parseInt(formData.bpm) || 0,
-          tags,
-          notes: formData.notes || undefined,
-          referenceLinks,
-          difficulty: 1 as const,
-          structure: [],
-          chords: [],
-          createdDate: new Date(),
-          confidenceLevel: 1,
-          contextType: 'band',
-          contextId: '',
-          createdBy: '',
-          visibility: 'band',
-        }
-      : {
-          ...song!,
-          title: formData.title,
-          artist: formData.artist,
-          album: formData.album || undefined,
-          duration,
-          key: formData.key,
-          guitarTuning: formData.tuning,
-          tuningId: formData.tuningId,
-          bpm: parseInt(formData.bpm) || 0,
-          tags,
-          notes: formData.notes || undefined,
-          referenceLinks,
-        }
+    const savedSong: Song = {
+      id: crypto.randomUUID(),
+      title: formData.title,
+      artist: formData.artist,
+      album: formData.album || undefined,
+      duration,
+      key: formData.key,
+      guitarTuning: formData.tuning,
+      tuningId: formData.tuningId,
+      bpm: parseInt(formData.bpm) || 0,
+      tags,
+      referenceLinks,
+      difficulty: 1 as const,
+      structure: [],
+      chords: [],
+      createdDate: new Date(),
+      confidenceLevel: 1,
+      contextType: 'band',
+      contextId: '',
+      createdBy: '',
+      visibility: 'band',
+    }
 
     await onSave(
       savedSong,
@@ -725,7 +680,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     isDirty,
     onSave: doSave,
     title: 'Discard changes?',
-    message: changedFieldsMessage(song, formData, links),
+    message: changedFieldsMessage(formData, links),
   })
 
   // Close handler for backdrop / X / Cancel. Pops the blocking dialog if
@@ -747,584 +702,623 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   }
 
   const showMatches =
-    isAddMode &&
     !spotifyPicked &&
     formData.title.trim().length >= 3 &&
     (spotify.results.length > 0 || spotify.isLoading)
 
+  const cancelButton = (
+    <button
+      type="button"
+      onClick={handleClose}
+      className={
+        desktop
+          ? 'h-11 px-5 rounded-full bg-bg-3 text-ink-1 font-bold hover:bg-bg-4'
+          : 'justify-self-start text-[16px] font-semibold text-ink-2 hover:text-ink-1'
+      }
+      data-testid="edit-song-modal-close"
+    >
+      Cancel
+    </button>
+  )
+  const saveButton = (
+    <button
+      type="submit"
+      data-testid="song-submit-button"
+      className={`justify-self-end rounded-full bg-accent text-on-accent font-bold hover:bg-accent-deep ${
+        desktop ? 'h-11 px-6 text-[15.5px]' : 'h-10 px-5 text-[15px]'
+      }`}
+    >
+      Save
+    </button>
+  )
+
   return (
     <div
-      className="fixed inset-0 z-50 bg-bg-1 overflow-y-auto custom-scrollbar"
+      className={
+        desktop
+          ? ''
+          : 'fixed inset-0 z-50 bg-bg-1 overflow-y-auto custom-scrollbar'
+      }
       data-testid="edit-song-screen"
     >
       <form onSubmit={handleSubmit} className="min-h-full">
-        <header className="sticky top-0 z-10 bg-bg-1/95 backdrop-blur">
-          <div className="max-w-xl mx-auto grid grid-cols-[1fr_auto_1fr] items-center h-16 px-4">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="justify-self-start text-[16px] font-semibold text-ink-2 hover:text-ink-1"
-              data-testid="edit-song-modal-close"
-            >
-              Cancel
-            </button>
-            <h2 className="text-[17px] font-bold text-ink-1">
-              {isAddMode ? 'Add song' : 'Edit song'}
-            </h2>
-            <button
-              type="submit"
-              data-testid="song-submit-button"
-              className="justify-self-end h-10 px-5 rounded-full bg-accent text-on-accent text-[15px] font-bold hover:bg-accent-deep"
-            >
-              Save
-            </button>
-          </div>
-        </header>
-
-        <div className="max-w-xl mx-auto px-4 pb-16 space-y-3">
-          <div className={CARD}>
-            <div
-              className={`${FIELD} rounded-[18px] focus-within:ring-2 focus-within:ring-accent`}
-            >
-              <label htmlFor="song-title" className={LABEL}>
-                Title <span className="text-accent">Required</span>
-              </label>
-              <input
-                type="text"
-                name="title"
-                id="song-title"
-                data-testid="song-title-input"
-                value={formData.title}
-                onChange={e =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
-                placeholder="Song title"
-                autoFocus={isAddMode}
-                autoComplete="off"
-                className={INPUT}
-                required
-              />
-            </div>
-          </div>
-
-          {showMatches && (
-            <div className={`${CARD} p-3`} data-testid="spotify-matches">
-              <p className="flex items-center gap-2 px-1 pb-2 text-[12.5px] text-ink-3">
-                <span className="text-[#1DB954]">●</span> From Spotify · tap to
-                fill in
+        {desktop ? (
+          <header className="flex items-end gap-3 pb-6">
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-[11.5px] tracking-[.14em] uppercase text-ink-3">
+                Songs
               </p>
-              {spotify.results.map(track => (
-                <button
-                  key={track.id}
-                  type="button"
-                  onClick={() => handleSpotifySelect(track)}
-                  data-testid="spotify-match"
-                  className="w-full flex items-center gap-3 p-1.5 rounded-xl text-left hover:bg-bg-3"
-                >
-                  {track.albumArt ? (
-                    <img
-                      src={track.albumArt}
-                      alt=""
-                      className="w-10 h-10 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <span className="w-10 h-10 rounded-lg bg-bg-4" />
-                  )}
-                  <span className="flex-1 min-w-0">
-                    <span className="block truncate text-[15px] font-bold text-ink-1">
-                      {track.name}
-                    </span>
-                    <span className="block truncate text-[12.5px] text-ink-3">
-                      {track.artist} · {track.album}
-                    </span>
-                  </span>
-                  <span className="font-mono text-[13px] text-ink-2">
-                    {formatSeconds(
-                      SpotifyService.durationToSeconds(track.durationMs)
-                    )}
-                  </span>
-                </button>
-              ))}
-              <p className="px-1 pt-2 text-[12.5px] text-ink-3">
-                Or keep typing. Only the title is required.
-              </p>
+              <h2 className="font-display font-extrabold uppercase text-[46px] leading-[.95] text-ink-1">
+                New song
+              </h2>
             </div>
-          )}
+            {cancelButton}
+            {saveButton}
+          </header>
+        ) : (
+          <header className="sticky top-0 z-10 bg-bg-1/95 backdrop-blur">
+            <div className="max-w-xl mx-auto grid grid-cols-[1fr_auto_1fr] items-center h-16 px-4">
+              {cancelButton}
+              <h2 className="text-[17px] font-bold text-ink-1">Add song</h2>
+              {saveButton}
+            </div>
+          </header>
+        )}
 
-          <div className={`${CARD} divide-y divide-divider`}>
-            <div className={FIELD}>
-              <label htmlFor="song-artist" className={LABEL}>
-                Artist
-              </label>
-              <input
-                type="text"
-                name="artist"
-                id="song-artist"
-                data-testid="song-artist-input"
-                value={formData.artist}
-                onChange={e =>
-                  setFormData({ ...formData, artist: e.target.value })
-                }
-                placeholder="Optional"
-                className={INPUT}
-              />
-            </div>
-            <div className={FIELD}>
-              <label htmlFor="song-album" className={LABEL}>
-                Album
-              </label>
-              <input
-                type="text"
-                name="album"
-                id="song-album"
-                data-testid="song-album-input"
-                value={formData.album}
-                onChange={e =>
-                  setFormData({ ...formData, album: e.target.value })
-                }
-                placeholder="Optional"
-                className={INPUT}
-              />
-            </div>
-          </div>
-
-          <div className={`${CARD} divide-y divide-divider`}>
-            <div className={FIELD}>
-              <label htmlFor="song-tuning" className={LABEL}>
-                Tuning
-              </label>
-              <div data-testid="song-tuning-select">
-                <Dropdown
-                  data-testid="song-tuning"
-                  value={formData.tuningId}
-                  onChange={handleTuningChange}
-                  groups={tuningGroups}
-                  placeholder="Choose a tuning"
-                  footerActions={[
-                    {
-                      label: 'New tuning',
-                      icon: <Plus size={15} />,
-                      onClick: () => setCreatingTuning(true),
-                    },
-                    {
-                      label: 'Manage tunings',
-                      icon: <Settings2 size={15} />,
-                      onClick: () => navigate('/settings'),
-                    },
-                  ]}
-                  renderTriggerLabel={opt => {
-                    // Selected DB tuning → its dot + name. Legacy song with only
-                    // a guitarTuning label (id not yet resolved) → show that label.
-                    const color = opt
-                      ? opt.color
-                      : formData.tuning
-                        ? tuningColor(formData.tuning)
-                        : undefined
-                    const label = opt
-                      ? opt.label
-                      : formData.tuning
-                        ? tuningLabel(formData.tuning)
-                        : null
-                    if (!label)
-                      return (
-                        <span className="text-ink-4 truncate">
-                          Choose a tuning
-                        </span>
-                      )
-                    return (
-                      <>
-                        {color && (
-                          <span
-                            className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: color }}
-                          />
-                        )}
-                        <span className="truncate">{label}</span>
-                      </>
-                    )
-                  }}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 divide-x divide-divider">
-              <div className={FIELD}>
-                <span className={LABEL}>Key</span>
-                <button
-                  type="button"
-                  id="song-key"
-                  data-testid="song-key-button"
-                  onClick={() => setShowCircleOfFifths(true)}
-                  className={`${INPUT} text-left font-mono ${formData.key ? '' : 'text-ink-4'}`}
-                >
-                  {formData.key || 'Optional'}
-                </button>
-              </div>
-              <div className={FIELD}>
-                <label htmlFor="song-bpm" className={LABEL}>
-                  BPM
+        <div
+          className={
+            desktop
+              ? 'grid grid-cols-2 gap-6 items-start max-w-[1180px] pb-16'
+              : 'max-w-xl mx-auto px-4 pb-16 space-y-3'
+          }
+        >
+          <div className="space-y-3">
+            <div className={CARD}>
+              <div
+                className={`${FIELD} rounded-[18px] focus-within:ring-2 focus-within:ring-accent`}
+              >
+                <label htmlFor="song-title" className={LABEL}>
+                  Title <span className="text-accent">Required</span>
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric"
-                  name="bpm"
-                  id="song-bpm"
-                  data-testid="song-bpm-input"
-                  value={formData.bpm}
+                  name="title"
+                  id="song-title"
+                  data-testid="song-title-input"
+                  value={formData.title}
                   onChange={e =>
-                    setFormData({
-                      ...formData,
-                      bpm: e.target.value.replace(/\D/g, ''),
-                    })
+                    setFormData({ ...formData, title: e.target.value })
                   }
-                  placeholder="—"
-                  className={`${INPUT} font-mono`}
+                  placeholder="Song title"
+                  autoFocus
+                  autoComplete="off"
+                  className={INPUT}
+                  required
+                />
+              </div>
+            </div>
+
+            {showMatches && (
+              <div className={`${CARD} p-3`} data-testid="spotify-matches">
+                <p className="flex items-center gap-2 px-1 pb-2 text-[12.5px] text-ink-3">
+                  <span className="text-[#1DB954]">●</span> From Spotify · tap
+                  to fill in
+                </p>
+                {spotify.results.map(track => (
+                  <button
+                    key={track.id}
+                    type="button"
+                    onClick={() => handleSpotifySelect(track)}
+                    data-testid="spotify-match"
+                    className="w-full flex items-center gap-3 p-1.5 rounded-xl text-left hover:bg-bg-3"
+                  >
+                    {track.albumArt ? (
+                      <img
+                        src={track.albumArt}
+                        alt=""
+                        className="w-10 h-10 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <span className="w-10 h-10 rounded-lg bg-bg-4" />
+                    )}
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate text-[15px] font-bold text-ink-1">
+                        {track.name}
+                      </span>
+                      <span className="block truncate text-[12.5px] text-ink-3">
+                        {track.artist} · {track.album}
+                      </span>
+                    </span>
+                    <span className="font-mono text-[13px] text-ink-2">
+                      {formatSeconds(
+                        SpotifyService.durationToSeconds(track.durationMs)
+                      )}
+                    </span>
+                  </button>
+                ))}
+                <p className="px-1 pt-2 text-[12.5px] text-ink-3">
+                  Or keep typing. Only the title is required.
+                </p>
+              </div>
+            )}
+
+            <div className={`${CARD} divide-y divide-divider`}>
+              <div className={FIELD}>
+                <label htmlFor="song-artist" className={LABEL}>
+                  Artist
+                </label>
+                <input
+                  type="text"
+                  name="artist"
+                  id="song-artist"
+                  data-testid="song-artist-input"
+                  value={formData.artist}
+                  onChange={e =>
+                    setFormData({ ...formData, artist: e.target.value })
+                  }
+                  placeholder="Optional"
+                  className={INPUT}
                 />
               </div>
               <div className={FIELD}>
-                <span className={LABEL}>Length</span>
-                <div className="flex items-center font-mono">
+                <label htmlFor="song-album" className={LABEL}>
+                  Album
+                </label>
+                <input
+                  type="text"
+                  name="album"
+                  id="song-album"
+                  data-testid="song-album-input"
+                  value={formData.album}
+                  onChange={e =>
+                    setFormData({ ...formData, album: e.target.value })
+                  }
+                  placeholder="Optional"
+                  className={INPUT}
+                />
+              </div>
+            </div>
+
+            <div className={`${CARD} divide-y divide-divider`}>
+              <div className={FIELD}>
+                <label htmlFor="song-tuning" className={LABEL}>
+                  Tuning
+                </label>
+                <div data-testid="song-tuning-select">
+                  <Dropdown
+                    data-testid="song-tuning"
+                    value={formData.tuningId}
+                    onChange={handleTuningChange}
+                    groups={tuningGroups}
+                    placeholder="Choose a tuning"
+                    footerActions={[
+                      {
+                        label: 'New tuning',
+                        icon: <Plus size={15} />,
+                        onClick: () => setCreatingTuning(true),
+                      },
+                      {
+                        label: 'Manage tunings',
+                        icon: <Settings2 size={15} />,
+                        onClick: () => navigate('/settings'),
+                      },
+                    ]}
+                    renderTriggerLabel={opt => {
+                      // Selected DB tuning → its dot + name. Legacy song with only
+                      // a guitarTuning label (id not yet resolved) → show that label.
+                      const color = opt
+                        ? opt.color
+                        : formData.tuning
+                          ? tuningColor(formData.tuning)
+                          : undefined
+                      const label = opt
+                        ? opt.label
+                        : formData.tuning
+                          ? tuningLabel(formData.tuning)
+                          : null
+                      if (!label)
+                        return (
+                          <span className="text-ink-4 truncate">
+                            Choose a tuning
+                          </span>
+                        )
+                      return (
+                        <>
+                          {color && (
+                            <span
+                              className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                          )}
+                          <span className="truncate">{label}</span>
+                        </>
+                      )
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 divide-x divide-divider">
+                <div className={FIELD}>
+                  <span className={LABEL}>Key</span>
+                  <button
+                    type="button"
+                    id="song-key"
+                    data-testid="song-key-button"
+                    onClick={() => setShowCircleOfFifths(true)}
+                    className={`${INPUT} text-left font-mono ${formData.key ? '' : 'text-ink-4'}`}
+                  >
+                    {formData.key || 'Optional'}
+                  </button>
+                </div>
+                <div className={FIELD}>
+                  <label htmlFor="song-bpm" className={LABEL}>
+                    BPM
+                  </label>
                   <input
                     type="text"
                     inputMode="numeric"
-                    name="durationMinutes"
-                    id="song-duration-minutes"
-                    aria-label="Minutes"
-                    data-testid="song-duration-minutes-input"
-                    value={formData.durationMin}
+                    name="bpm"
+                    id="song-bpm"
+                    data-testid="song-bpm-input"
+                    value={formData.bpm}
                     onChange={e =>
                       setFormData({
                         ...formData,
-                        durationMin: e.target.value.replace(/\D/g, ''),
+                        bpm: e.target.value.replace(/\D/g, ''),
                       })
                     }
-                    placeholder="0"
-                    maxLength={2}
-                    className={`${INPUT_BARE} w-[2.2ch] text-right`}
+                    placeholder="—"
+                    className={`${INPUT} font-mono`}
                   />
-                  <span className="text-ink-3 font-semibold">:</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    name="durationSeconds"
-                    id="song-duration-seconds"
-                    aria-label="Seconds"
-                    data-testid="song-duration-seconds-input"
-                    value={formData.durationSec}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        durationSec: e.target.value.replace(/\D/g, ''),
-                      })
-                    }
-                    placeholder="00"
-                    maxLength={2}
-                    className={`${INPUT_BARE} w-[2.6ch]`}
-                  />
+                </div>
+                <div className={FIELD}>
+                  <span className={LABEL}>Length</span>
+                  <div className="flex items-center font-mono">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      name="durationMinutes"
+                      id="song-duration-minutes"
+                      aria-label="Minutes"
+                      data-testid="song-duration-minutes-input"
+                      value={formData.durationMin}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          durationMin: e.target.value.replace(/\D/g, ''),
+                        })
+                      }
+                      placeholder="0"
+                      maxLength={2}
+                      className={`${INPUT_BARE} w-[2.2ch] text-right`}
+                    />
+                    <span className="text-ink-3 font-semibold">:</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      name="durationSeconds"
+                      id="song-duration-seconds"
+                      aria-label="Seconds"
+                      data-testid="song-duration-seconds-input"
+                      value={formData.durationSec}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          durationSec: e.target.value.replace(/\D/g, ''),
+                        })
+                      }
+                      placeholder="00"
+                      maxLength={2}
+                      className={`${INPUT_BARE} w-[2.6ch]`}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Reference Links - inline editing */}
-          <div>
-            <p className="px-1 pt-3 pb-2 font-mono text-[11px] tracking-[.14em] uppercase text-ink-3">
-              Links
-            </p>
+          <div className="space-y-3">
+            {/* Reference Links - inline editing */}
+            <div>
+              <p className="px-1 pt-3 pb-2 font-mono text-[11px] tracking-[.14em] uppercase text-ink-3">
+                Links
+              </p>
 
-            {/* Inline Link Rows */}
-            <div className="space-y-2">
-              {/* Existing Links - Each row is inline editable */}
-              {links.map(link => {
-                const isEditing = editingLinkId === link.id
+              {/* Inline Link Rows */}
+              <div className="space-y-2">
+                {/* Existing Links - Each row is inline editable */}
+                {links.map(link => {
+                  const isEditing = editingLinkId === link.id
 
-                if (isEditing) {
-                  // Edit mode - show 3-row inline form
-                  return (
-                    <div
-                      key={link.id}
-                      className="p-3 bg-bg-0 border border-accent/50 rounded-lg space-y-3"
-                    >
-                      {/* Row 1: URL input (full width) with validation */}
-                      <div>
-                        <input
-                          type="text"
-                          value={linkUrl}
-                          onChange={e =>
-                            handleLinkUrlChange(
-                              e.target.value.slice(0, URL_MAX_LENGTH)
-                            )
-                          }
-                          placeholder="Paste URL here (e.g., youtube.com/watch?v=...)"
-                          maxLength={URL_MAX_LENGTH}
-                          autoFocus
-                          data-testid="link-url-input-edit"
-                          className={`w-full h-11 px-3 bg-bg-1 border rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20 ${
-                            getUrlError(linkUrl)
-                              ? 'border-red-500/50 focus:border-red-500'
-                              : 'border-border-1 focus:border-accent'
-                          }`}
-                        />
-                        {getUrlError(linkUrl) && (
-                          <p className="mt-1 text-xs text-red-400">
-                            {getUrlError(linkUrl)}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Row 2: Label + Icon selector with character limit */}
-                      <div className="flex gap-2">
-                        <div className="flex-1 min-w-0">
+                  if (isEditing) {
+                    // Edit mode - show 3-row inline form
+                    return (
+                      <div
+                        key={link.id}
+                        className="p-3 bg-bg-0 border border-accent/50 rounded-lg space-y-3"
+                      >
+                        {/* Row 1: URL input (full width) with validation */}
+                        <div>
                           <input
                             type="text"
-                            value={linkName}
+                            value={linkUrl}
                             onChange={e =>
-                              setLinkName(
-                                e.target.value.slice(0, LABEL_MAX_LENGTH)
+                              handleLinkUrlChange(
+                                e.target.value.slice(0, URL_MAX_LENGTH)
                               )
                             }
-                            placeholder="Label (e.g., Live Recording, Chord Chart)"
-                            maxLength={LABEL_MAX_LENGTH}
-                            data-testid="link-label-input-edit"
-                            className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-md text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+                            placeholder="Paste URL here (e.g., youtube.com/watch?v=...)"
+                            maxLength={URL_MAX_LENGTH}
+                            autoFocus
+                            data-testid="link-url-input-edit"
+                            className={`w-full h-11 px-3 bg-bg-1 border rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20 ${
+                              getUrlError(linkUrl)
+                                ? 'border-red-500/50 focus:border-red-500'
+                                : 'border-border-1 focus:border-accent'
+                            }`}
                           />
-                          {linkName.length >= LABEL_MAX_LENGTH - 10 && (
-                            <p
-                              className={`mt-1 text-xs ${linkName.length >= LABEL_MAX_LENGTH ? 'text-red-400' : 'text-ink-4'}`}
-                            >
-                              {linkName.length}/{LABEL_MAX_LENGTH}
+                          {getUrlError(linkUrl) && (
+                            <p className="mt-1 text-xs text-red-400">
+                              {getUrlError(linkUrl)}
                             </p>
                           )}
                         </div>
-                        <IconSelect
-                          value={linkIcon}
-                          onChange={val => setLinkIcon(val)}
-                          testId="link-icon-select-edit"
-                        />
+
+                        {/* Row 2: Label + Icon selector with character limit */}
+                        <div className="flex gap-2">
+                          <div className="flex-1 min-w-0">
+                            <input
+                              type="text"
+                              value={linkName}
+                              onChange={e =>
+                                setLinkName(
+                                  e.target.value.slice(0, LABEL_MAX_LENGTH)
+                                )
+                              }
+                              placeholder="Label (e.g., Live Recording, Chord Chart)"
+                              maxLength={LABEL_MAX_LENGTH}
+                              data-testid="link-label-input-edit"
+                              className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-md text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+                            />
+                            {linkName.length >= LABEL_MAX_LENGTH - 10 && (
+                              <p
+                                className={`mt-1 text-xs ${linkName.length >= LABEL_MAX_LENGTH ? 'text-red-400' : 'text-ink-4'}`}
+                              >
+                                {linkName.length}/{LABEL_MAX_LENGTH}
+                              </p>
+                            )}
+                          </div>
+                          <IconSelect
+                            value={linkIcon}
+                            onChange={val => setLinkIcon(val)}
+                            testId="link-icon-select-edit"
+                          />
+                        </div>
+
+                        {/* Row 3: Save (check) and Cancel (X) buttons */}
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="w-10 h-10 flex items-center justify-center rounded-lg border border-border-1 text-ink-4 hover:text-red-400 hover:border-red-400/50 hover:bg-red-400/10 transition-colors"
+                            title="Cancel"
+                            data-testid="cancel-edit-link-button"
+                          >
+                            <X size={18} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleAddLink}
+                            disabled={!isValidUrl(linkUrl)}
+                            className="w-10 h-10 flex items-center justify-center rounded-lg border border-border-1 text-ink-4 hover:text-green-400 hover:border-green-400/50 hover:bg-green-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-ink-4 disabled:hover:border-border-1 disabled:hover:bg-transparent"
+                            title="Save changes"
+                            data-testid="save-edit-link-button"
+                          >
+                            <Check size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  // Display mode - show link with edit/delete actions
+                  return (
+                    <div
+                      key={link.id}
+                      className="flex items-center gap-3 p-3 bg-bg-1 border border-border-1 rounded-lg group hover:border-border-2 transition-colors"
+                    >
+                      {/* Icon - use saved icon type */}
+                      <div className="flex-shrink-0">
+                        {getLinkIcon(link.icon)}
                       </div>
 
-                      {/* Row 3: Save (check) and Cancel (X) buttons */}
-                      <div className="flex justify-end gap-2">
+                      {/* Link Info */}
+                      <div className="flex-1 min-w-0">
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-ink-1 text-sm hover:text-accent transition-colors truncate block"
+                        >
+                          {link.name || getLinkPresetName(link.icon)}
+                        </a>
+                        <span className="text-xs text-ink-5 truncate block">
+                          {link.url}
+                        </span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <button
                           type="button"
-                          onClick={handleCancelEdit}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg border border-border-1 text-ink-4 hover:text-red-400 hover:border-red-400/50 hover:bg-red-400/10 transition-colors"
-                          title="Cancel"
-                          data-testid="cancel-edit-link-button"
+                          onClick={() => handleEditLink(link)}
+                          className="p-1.5 text-ink-4 hover:text-ink-1 hover:bg-border-1 rounded transition-colors"
+                          title="Edit link"
                         >
-                          <X size={18} />
+                          <Edit size={14} />
                         </button>
                         <button
                           type="button"
-                          onClick={handleAddLink}
-                          disabled={!isValidUrl(linkUrl)}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg border border-border-1 text-ink-4 hover:text-green-400 hover:border-green-400/50 hover:bg-green-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-ink-4 disabled:hover:border-border-1 disabled:hover:bg-transparent"
-                          title="Save changes"
-                          data-testid="save-edit-link-button"
+                          onClick={() => handleDeleteLink(link.id)}
+                          className="p-1.5 text-ink-4 hover:text-danger hover:bg-border-1 rounded transition-colors"
+                          title="Delete link"
                         >
-                          <Check size={18} />
+                          <X size={14} />
                         </button>
                       </div>
                     </div>
                   )
-                }
+                })}
 
-                // Display mode - show link with edit/delete actions
-                return (
-                  <div
-                    key={link.id}
-                    className="flex items-center gap-3 p-3 bg-bg-1 border border-border-1 rounded-lg group hover:border-border-2 transition-colors"
-                  >
-                    {/* Icon - use saved icon type */}
-                    <div className="flex-shrink-0">
-                      {getLinkIcon(link.icon)}
-                    </div>
-
-                    {/* Link Info */}
-                    <div className="flex-1 min-w-0">
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-ink-1 text-sm hover:text-accent transition-colors truncate block"
-                      >
-                        {link.name || getLinkPresetName(link.icon)}
-                      </a>
-                      <span className="text-xs text-ink-5 truncate block">
-                        {link.url}
-                      </span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Add New Link - shows when not editing an existing link */}
+                {!editingLinkId && (
+                  <div className="border border-border-1 border-dashed rounded-lg">
+                    {!isAddingLink ? (
+                      /* Idle state - show "Add another link..." button */
                       <button
                         type="button"
-                        onClick={() => handleEditLink(link)}
-                        className="p-1.5 text-ink-4 hover:text-ink-1 hover:bg-border-1 rounded transition-colors"
-                        title="Edit link"
+                        onClick={handleStartAddLink}
+                        className="w-full p-3 flex items-center justify-center gap-2 text-ink-4 hover:text-ink-3 hover:bg-bg-1 rounded-lg transition-colors"
+                        data-testid="start-add-link-button"
                       >
-                        <Edit size={14} />
+                        <Plus size={18} />
+                        <span className="text-sm">Add another link...</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteLink(link.id)}
-                        className="p-1.5 text-ink-4 hover:text-danger hover:bg-border-1 rounded transition-colors"
-                        title="Delete link"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-
-              {/* Add New Link - shows when not editing an existing link */}
-              {!editingLinkId && (
-                <div className="border border-border-1 border-dashed rounded-lg">
-                  {!isAddingLink ? (
-                    /* Idle state - show "Add another link..." button */
-                    <button
-                      type="button"
-                      onClick={handleStartAddLink}
-                      className="w-full p-3 flex items-center justify-center gap-2 text-ink-4 hover:text-ink-3 hover:bg-bg-1 rounded-lg transition-colors"
-                      data-testid="start-add-link-button"
-                    >
-                      <Plus size={18} />
-                      <span className="text-sm">Add another link...</span>
-                    </button>
-                  ) : (
-                    /* Active add mode - show 3-row input form */
-                    <div className="p-3 bg-bg-0 space-y-3">
-                      {/* Row 1: URL input (full width) */}
-                      <div>
-                        <input
-                          type="text"
-                          value={linkUrl}
-                          onChange={e =>
-                            handleLinkUrlChange(
-                              e.target.value.slice(0, URL_MAX_LENGTH)
-                            )
-                          }
-                          placeholder="Paste URL here (e.g., youtube.com/watch?v=...)"
-                          maxLength={URL_MAX_LENGTH}
-                          autoFocus
-                          data-testid="link-url-input"
-                          className={`w-full h-11 px-3 bg-bg-1 border rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20 ${
-                            getUrlError(linkUrl)
-                              ? 'border-red-500/50 focus:border-red-500'
-                              : 'border-border-1 focus:border-accent'
-                          }`}
-                        />
-                        {getUrlError(linkUrl) && (
-                          <p className="mt-1 text-xs text-red-400">
-                            {getUrlError(linkUrl)}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Row 2: Label + Icon selector */}
-                      <div className="flex gap-2">
-                        <div className="flex-1 min-w-0">
+                    ) : (
+                      /* Active add mode - show 3-row input form */
+                      <div className="p-3 bg-bg-0 space-y-3">
+                        {/* Row 1: URL input (full width) */}
+                        <div>
                           <input
                             type="text"
-                            value={linkName}
+                            value={linkUrl}
                             onChange={e =>
-                              setLinkName(
-                                e.target.value.slice(0, LABEL_MAX_LENGTH)
+                              handleLinkUrlChange(
+                                e.target.value.slice(0, URL_MAX_LENGTH)
                               )
                             }
-                            placeholder="Label (e.g., Live Recording, Chord Chart)"
-                            maxLength={LABEL_MAX_LENGTH}
-                            data-testid="link-label-input"
-                            className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-md text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+                            placeholder="Paste URL here (e.g., youtube.com/watch?v=...)"
+                            maxLength={URL_MAX_LENGTH}
+                            autoFocus
+                            data-testid="link-url-input"
+                            className={`w-full h-11 px-3 bg-bg-1 border rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20 ${
+                              getUrlError(linkUrl)
+                                ? 'border-red-500/50 focus:border-red-500'
+                                : 'border-border-1 focus:border-accent'
+                            }`}
                           />
-                          {linkName.length >= LABEL_MAX_LENGTH - 10 && (
-                            <p
-                              className={`mt-1 text-xs ${linkName.length >= LABEL_MAX_LENGTH ? 'text-red-400' : 'text-ink-4'}`}
-                            >
-                              {linkName.length}/{LABEL_MAX_LENGTH}
+                          {getUrlError(linkUrl) && (
+                            <p className="mt-1 text-xs text-red-400">
+                              {getUrlError(linkUrl)}
                             </p>
                           )}
                         </div>
-                        <IconSelect
-                          value={linkIcon}
-                          onChange={val => setLinkIcon(val)}
-                          testId="link-icon-select-add"
-                        />
-                      </div>
 
-                      {/* Row 3: Save (check) and Cancel (X) buttons */}
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={handleCancelAddLink}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg border border-border-1 text-ink-4 hover:text-red-400 hover:border-red-400/50 hover:bg-red-400/10 transition-colors"
-                          title="Cancel"
-                          data-testid="cancel-add-link-button"
-                        >
-                          <X size={18} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleAddLink}
-                          disabled={!isValidUrl(linkUrl)}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg border border-border-1 text-ink-4 hover:text-green-400 hover:border-green-400/50 hover:bg-green-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-ink-4 disabled:hover:border-border-1 disabled:hover:bg-transparent"
-                          title="Save link"
-                          data-testid="save-add-link-button"
-                        >
-                          <Check size={18} />
-                        </button>
+                        {/* Row 2: Label + Icon selector */}
+                        <div className="flex gap-2">
+                          <div className="flex-1 min-w-0">
+                            <input
+                              type="text"
+                              value={linkName}
+                              onChange={e =>
+                                setLinkName(
+                                  e.target.value.slice(0, LABEL_MAX_LENGTH)
+                                )
+                              }
+                              placeholder="Label (e.g., Live Recording, Chord Chart)"
+                              maxLength={LABEL_MAX_LENGTH}
+                              data-testid="link-label-input"
+                              className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-md text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+                            />
+                            {linkName.length >= LABEL_MAX_LENGTH - 10 && (
+                              <p
+                                className={`mt-1 text-xs ${linkName.length >= LABEL_MAX_LENGTH ? 'text-red-400' : 'text-ink-4'}`}
+                              >
+                                {linkName.length}/{LABEL_MAX_LENGTH}
+                              </p>
+                            )}
+                          </div>
+                          <IconSelect
+                            value={linkIcon}
+                            onChange={val => setLinkIcon(val)}
+                            testId="link-icon-select-add"
+                          />
+                        </div>
+
+                        {/* Row 3: Save (check) and Cancel (X) buttons */}
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={handleCancelAddLink}
+                            className="w-10 h-10 flex items-center justify-center rounded-lg border border-border-1 text-ink-4 hover:text-red-400 hover:border-red-400/50 hover:bg-red-400/10 transition-colors"
+                            title="Cancel"
+                            data-testid="cancel-add-link-button"
+                          >
+                            <X size={18} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleAddLink}
+                            disabled={!isValidUrl(linkUrl)}
+                            className="w-10 h-10 flex items-center justify-center rounded-lg border border-border-1 text-ink-4 hover:text-green-400 hover:border-green-400/50 hover:bg-green-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-ink-4 disabled:hover:border-border-1 disabled:hover:bg-transparent"
+                            title="Save link"
+                            data-testid="save-add-link-button"
+                          >
+                            <Check size={18} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className={CARD}>
-            <div className={FIELD}>
-              <label htmlFor="song-tags" className={LABEL}>
-                Tags
+            <div className={CARD}>
+              <div className={FIELD}>
+                <label htmlFor="song-tags" className={LABEL}>
+                  Tags
+                </label>
+                <input
+                  type="text"
+                  name="tags"
+                  id="song-tags"
+                  data-testid="song-tags-input"
+                  value={formData.tags}
+                  onChange={e =>
+                    setFormData({ ...formData, tags: e.target.value })
+                  }
+                  placeholder="90s, Opener"
+                  className={INPUT}
+                />
+              </div>
+            </div>
+
+            {showPersonalCheckbox && (
+              <label
+                htmlFor="song-also-save-personal"
+                className={`${CARD} flex items-center gap-3 px-4 py-3.5 cursor-pointer`}
+              >
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[15.5px] font-bold text-ink-1">
+                    Also add to My Songs
+                  </span>
+                  <span className="block text-[12.5px] text-ink-3">
+                    A linked copy that follows the band's version
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  name="alsoSaveToPersonal"
+                  id="song-also-save-personal"
+                  data-testid="song-also-save-personal-checkbox"
+                  checked={alsoSaveToPersonal}
+                  onChange={e => setAlsoSaveToPersonal(e.target.checked)}
+                  className="w-5 h-5 accent-[rgb(var(--accent-rgb))] cursor-pointer"
+                />
               </label>
-              <input
-                type="text"
-                name="tags"
-                id="song-tags"
-                data-testid="song-tags-input"
-                value={formData.tags}
-                onChange={e =>
-                  setFormData({ ...formData, tags: e.target.value })
-                }
-                placeholder="90s, Opener"
-                className={INPUT}
-              />
-            </div>
+            )}
           </div>
-
-          {showPersonalCheckbox && (
-            <label
-              htmlFor="song-also-save-personal"
-              className={`${CARD} flex items-center gap-3 px-4 py-3.5 cursor-pointer`}
-            >
-              <span className="flex-1 min-w-0">
-                <span className="block text-[15.5px] font-bold text-ink-1">
-                  Also add to My Songs
-                </span>
-                <span className="block text-[12.5px] text-ink-3">
-                  A linked copy that follows the band's version
-                </span>
-              </span>
-              <input
-                type="checkbox"
-                name="alsoSaveToPersonal"
-                id="song-also-save-personal"
-                data-testid="song-also-save-personal-checkbox"
-                checked={alsoSaveToPersonal}
-                onChange={e => setAlsoSaveToPersonal(e.target.checked)}
-                className="w-5 h-5 accent-[rgb(var(--accent-rgb))] cursor-pointer"
-              />
-            </label>
-          )}
         </div>
       </form>
 

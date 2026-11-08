@@ -2569,6 +2569,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_setlist_item_note: {
+        Args: { p_item_id: string; p_notes: string; p_setlist_id: string }
+        Returns: undefined
+      }
       song_next_shows: {
         Args: { p_band_id: string }
         Returns: {

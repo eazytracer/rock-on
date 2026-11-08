@@ -172,10 +172,10 @@ Capo: 2nd fret
       notes: markdownNotes,
     })
 
-    // The Add Song modal no longer exposes a band-notes field (notes are added
-    // after creation from the Edit Song modal). Set the band notes on the
-    // created song so the practice session has markdown to render.
-    await setBandNotesViaEditModal(page, markdownNotes)
+    // The Add song form has no band-notes field (notes are edited on the song
+    // page). Set the band notes on the created song so the practice session
+    // has markdown to render.
+    await setBandNotesOnSongPage(page, markdownNotes)
 
     // Create practice and add the song
     // Open the practice builder directly (the /practices list was retired)
@@ -502,33 +502,26 @@ Capo: 2nd fret
 })
 
 /**
- * Sets the band notes on the first song via the song view. The song editor
- * has no notes field (notes live in the song view), so tests that need
+ * Sets the band notes on the first song from the song page. The Add song form
+ * has no notes field (notes live on the song page), so tests that need
  * rendered notes set them here.
  */
-async function setBandNotesViaEditModal(
-  page: any,
-  notes: string
-): Promise<void> {
+async function setBandNotesOnSongPage(page: any, notes: string): Promise<void> {
   await page.goto('/songs')
   await page.waitForLoadState('networkidle')
 
-  // Open the song (below 1440 px: its own page) and edit its Band notes
+  // Open the song (below 1440 px: its own page) and edit its band note
   await page.locator('[data-testid^="song-row-"]').first().click()
-  const bandField = page.locator('[data-testid="song-notes-band-field"]')
-  await expect(bandField).toBeVisible({ timeout: 5000 })
-  await bandField.locator('[data-testid="markdown-field-edit-button"]').click()
-  const textarea = bandField.locator('[data-testid="markdown-textarea"]')
+  await page.locator('[data-testid="song-note-band-edit"]').click()
+  const textarea = page.locator('[data-testid="markdown-textarea"]')
   await expect(textarea).toBeVisible({ timeout: 5000 })
   await textarea.fill(notes)
   const saved = page.waitForResponse((r: any) =>
     r.url().includes('/rpc/set_band_note')
   )
-  await bandField.locator('[data-testid="markdown-save"]').click()
+  await page.locator('[data-testid="song-note-done"]').click()
   expect((await saved).ok()).toBe(true)
-  await expect(
-    bandField.locator('[data-testid="markdown-saved-toast"]')
-  ).toBeVisible({ timeout: 5000 })
+  await expect(textarea).toHaveCount(0)
 }
 
 /**

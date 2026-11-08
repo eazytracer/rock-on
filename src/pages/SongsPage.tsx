@@ -1,8 +1,9 @@
 /**
  * Songs (redesign phase 2 · design/demo/screens/Song Row.html, Final Pass
- * 13–17, desktop.js Songs). One catalog per context: the band's songs, or My
- * Songs in Personal. Tap a row to open it (desktop: the pane), hold or
- * right-click for the menu, swipe left for Hide / Add to set.
+ * 13–17, desktop.js Songs; docs/redesign/10 · 1.6). One catalog per context:
+ * the band's songs, or My Songs in Personal. Tap a row to open the song page;
+ * with the desktop pane, a click selects and double-click / Enter opens. Hold
+ * or right-click for the menu, swipe left for Hide / Add to set.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -28,11 +29,10 @@ import {
   useNotInMyCatalog,
   useCopyToPersonal,
   useDuplicateSong,
-  useSaveSong,
 } from '../hooks/useSongCatalog'
+import { readSongsFilter, writeSongsFilter } from '../hooks/useSongOrigin'
 import { useConfirm } from '../hooks/useConfirm'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
-import { EditSongModal } from '../components/songs/EditSongModal'
 import { SongRow } from '../components/songs/SongRow'
 import { SongDetail } from '../components/songs/SongDetail'
 import { TuningFilter } from '../components/songs/TuningFilter'
@@ -56,18 +56,17 @@ import {
 import type { Song } from '../models/Song'
 import {
   SORT_LABELS,
-  filterSongs,
+  catalogList,
   noteMark,
-  sortSongs,
   tuningsInUse,
   usageSummary,
 } from '../domain/songs'
+import { songHref } from '../utils/songOrigin'
 import { songUsage } from '../services/api/songs'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('SongsPage')
 
-type Editing = { song?: Song } | null
 type MenuState = { song: Song; at: { x: number; y: number } | null } | null
 
 export const SongsPage: React.FC = () => {
@@ -94,13 +93,25 @@ export const SongsPage: React.FC = () => {
   const { deleteSong } = useDeleteSong()
   const duplicate = useDuplicateSong()
   const copyToMine = useCopyToPersonal()
-  const saveSong = useSaveSong(currentBandId, userId)
   const { confirm, dialogProps } = useConfirm()
 
-  const [query, setQuery] = useState('')
-  const [tuning, setTuning] = useState<string | null>(null)
+  // Search and tuning filter survive a trip to the song page and back, and
+  // give the song page the same list to step through.
+  const contextKey = currentBandId ?? 'personal'
+  const [query, setQuery] = useState(() => readSongsFilter(contextKey).query)
+  const [tunings, setTunings] = useState<string[]>(
+    () => readSongsFilter(contextKey).tunings
+  )
+  useEffect(() => {
+    const f = readSongsFilter(contextKey)
+    setQuery(f.query)
+    setTunings(f.tunings)
+  }, [contextKey])
+  useEffect(
+    () => writeSongsFilter(contextKey, { query, tunings }),
+    [contextKey, query, tunings]
+  )
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [editing, setEditing] = useState<Editing>(null)
   const [menu, setMenu] = useState<MenuState>(null)
   const [menuUsage, setMenuUsage] = useState('')
   const [sheet, setSheet] = useState<'view' | 'sort' | 'pick' | null>(null)
@@ -119,7 +130,7 @@ export const SongsPage: React.FC = () => {
     () => songs.filter(s => hiddenIds.has(s.id)).length,
     [songs, hiddenIds]
   )
-  const tunings = useMemo(() => tuningsInUse(songs), [songs])
+  const inUse = useMemo(() => tuningsInUse(songs), [songs])
   const tuningCounts = useMemo(() => {
     const m = new Map<string, number>()
     for (const s of songs) {
@@ -133,17 +144,10 @@ export const SongsPage: React.FC = () => {
     [nextShows]
   )
 
-  const visible = useMemo(() => {
-    const shown = view.showHidden
-      ? songs
-      : songs.filter(s => !hiddenIds.has(s.id))
-    return sortSongs(
-      filterSongs(shown, query, tuning),
-      view.sort,
-      view.dir,
-      nextShowAt
-    )
-  }, [songs, hiddenIds, view, query, tuning, nextShowAt])
+  const visible = useMemo(
+    () => catalogList(songs, view, hiddenIds, { query, tunings }, nextShowAt),
+    [songs, hiddenIds, view, query, tunings, nextShowAt]
+  )
 
   const myNotes = useBulkPersonalNotePresence(
     useMemo(() => visible.map(s => s.id), [visible]),
@@ -155,19 +159,33 @@ export const SongsPage: React.FC = () => {
     ? (songs.find(s => s.id === selectedId) ?? visible[0] ?? null)
     : null
 
-  // /songs?song=<id> (search, notifications) opens that song.
+  // /songs?song=<id> (notifications) opens that song; ?selected=<id> (Back
+  // from the song page) selects its row and scrolls it into view.
   useEffect(() => {
-    const id = searchParams.get('song')
-    if (!id) return
+    const open = searchParams.get('song')
+    const sel = searchParams.get('selected')
+    if (!open && !sel) return
     const next = new URLSearchParams(searchParams)
     next.delete('song')
+    next.delete('selected')
     setSearchParams(next, { replace: true })
-    if (hasPane) setSelectedId(id)
-    else navigate(`/songs/${id}`)
+    if (open) {
+      if (hasPane) setSelectedId(open)
+      else navigate(songHref(open, { kind: 'songs' }))
+      return
+    }
+    setSelectedId(sel)
+    requestAnimationFrame(() =>
+      document
+        .querySelector(`[data-testid="song-row-${sel}"]`)
+        ?.scrollIntoView({ block: 'center' })
+    )
   }, [searchParams, setSearchParams, hasPane, navigate])
 
+  const openPage = (song: Song) =>
+    navigate(songHref(song.id, { kind: 'songs' }))
   const open = (song: Song) =>
-    hasPane ? setSelectedId(song.id) : navigate(`/songs/${song.id}`)
+    hasPane ? setSelectedId(song.id) : openPage(song)
 
   const openMenu = useCallback(
     (song: Song, at: { x: number; y: number } | null) => {
@@ -253,6 +271,7 @@ export const SongsPage: React.FC = () => {
     linked: isBand ? copiedIds.has(song.id) : !!song.linkedFromSongId,
     selected: selected?.id === song.id,
     onOpen: () => open(song),
+    onActivate: hasPane ? () => openPage(song) : undefined,
     onMenu: (at: { x: number; y: number } | null) => openMenu(song, at),
     onHide: () => toggleHidden(song),
     onAddToSet: () => setAddToSet(song),
@@ -261,7 +280,7 @@ export const SongsPage: React.FC = () => {
   const addButton = (
     <Button
       variant="primary"
-      onClick={() => setEditing({})}
+      onClick={() => navigate('/songs/new')}
       data-testid="add-song-button"
       className={
         isDesktop ? '' : 'fixed right-4 bottom-[104px] z-30 shadow-float'
@@ -307,7 +326,7 @@ export const SongsPage: React.FC = () => {
               : 'Songs you add here are just for you.'
           }
           action={
-            <Button variant="primary" onClick={() => setEditing({})}>
+            <Button variant="primary" onClick={() => navigate('/songs/new')}>
               <Plus size={18} /> Add song
             </Button>
           }
@@ -326,7 +345,7 @@ export const SongsPage: React.FC = () => {
             <Button
               onClick={() => {
                 setQuery('')
-                setTuning(null)
+                setTunings([])
               }}
             >
               Clear
@@ -380,7 +399,7 @@ export const SongsPage: React.FC = () => {
   return (
     <div
       data-testid="songs-page"
-      className={`md:-mx-7 lg:-mx-8 md:-mt-6 ${hasPane ? 'min-[1440px]:mr-[440px] 2xl:mr-[520px]' : ''}`}
+      className={`md:-mx-7 lg:-mx-8 md:-mt-6 ${hasPane ? 'min-[1440px]:mr-[400px] 2xl:mr-[480px]' : ''}`}
     >
       <div className="md:px-7 lg:px-8 md:pt-6">
         <PageTitle
@@ -414,16 +433,16 @@ export const SongsPage: React.FC = () => {
               className="w-full h-11 pl-10 pr-3 rounded-full md:rounded-xl bg-bg-3 text-[15px] text-ink-1 placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </label>
-          <div className="min-w-0 md:flex-1">
+          <div className={isDesktop ? 'contents' : 'min-w-0'}>
             <TuningFilter
-              tunings={tunings}
+              tunings={inUse}
               counts={tuningCounts}
-              value={tuning}
-              onChange={setTuning}
-              fit={isDesktop}
+              value={tunings}
+              onChange={setTunings}
+              menu={isDesktop}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 md:ml-auto">
             <Chip
               icon={<ArrowUpDown size={15} />}
               onClick={() => setSheet('sort')}
@@ -454,49 +473,11 @@ export const SongsPage: React.FC = () => {
 
       {hasPane && selected && (
         <aside
-          className="fixed right-0 top-0 h-screen w-[440px] 2xl:w-[520px] border-l border-border-1 bg-bg-1 overflow-y-auto custom-scrollbar-thin px-6 pt-7"
+          className="fixed right-0 top-0 h-screen w-[400px] 2xl:w-[480px] border-l border-border-1 bg-bg-1 overflow-y-auto custom-scrollbar-thin px-6 pt-7"
           data-testid="song-pane"
         >
-          <SongDetail
-            key={selected.id}
-            song={selected}
-            userId={userId}
-            pane
-            onEdit={() => setEditing({ song: selected })}
-          />
+          <SongDetail key={selected.id} song={selected} userId={userId} />
         </aside>
-      )}
-
-      {editing && (
-        <EditSongModal
-          song={editing.song}
-          mode={editing.song ? 'edit' : 'add'}
-          showAlsoSaveToPersonal={isBand}
-          onClose={() => setEditing(null)}
-          onSave={async (song, options) => {
-            try {
-              const id = await saveSong(
-                song,
-                !editing.song,
-                options?.alsoSaveToPersonal
-              )
-              showToast(
-                editing.song
-                  ? `Saved "${song.title}"`
-                  : options?.alsoSaveToPersonal
-                    ? `Added "${song.title}" to the band and My Songs`
-                    : `Added "${song.title}"`,
-                'success'
-              )
-              setEditing(null)
-              if (hasPane) setSelectedId(id)
-            } catch (err) {
-              log.error('Error saving song', err)
-              showToast("Couldn't save the song. Try again.", 'error')
-              throw err
-            }
-          }}
-        />
       )}
 
       {menu && (
@@ -507,8 +488,7 @@ export const SongsPage: React.FC = () => {
           inMySongs={copiedIds.has(menu.song.id)}
           usage={menuUsage}
           onClose={() => setMenu(null)}
-          onOpen={() => navigate(`/songs/${menu.song.id}`)}
-          onEdit={() => setEditing({ song: menu.song })}
+          onOpen={() => openPage(menu.song)}
           onAddToSet={() => setAddToSet(menu.song)}
           onCopyToMine={
             isBand ? () => handleCopyToMine([menu.song.id]) : undefined

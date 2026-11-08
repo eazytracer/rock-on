@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_LIST_VIEW,
+  catalogList,
+  commitTitle,
   filterSongs,
   linkCategory,
   noteMark,
@@ -65,11 +67,11 @@ describe('filterSongs', () => {
     song('Black', { artist: 'Pearl Jam', album: 'Ten' }),
   ]
   it('matches title, artist or album', () => {
-    expect(filterSongs(songs, 'foo', null)).toHaveLength(1)
-    expect(filterSongs(songs, 'ten', null)[0].id).toBe('Black')
+    expect(filterSongs(songs, 'foo')).toHaveLength(1)
+    expect(filterSongs(songs, 'ten')[0].id).toBe('Black')
   })
   it('narrows by tuning', () => {
-    expect(filterSongs(songs, '', 'Drop D')[0].id).toBe('Everlong')
+    expect(filterSongs(songs, '', ['Drop D'])[0].id).toBe('Everlong')
   })
 })
 
@@ -101,5 +103,63 @@ describe('small helpers', () => {
       ])
     ).toBe('Used in Fall Set and 1 show')
     expect(usageSummary([])).toBe('')
+  })
+})
+
+describe('catalogList', () => {
+  const songs = [
+    song('Black', { artist: 'Pearl Jam' }),
+    song('Everlong', { artist: 'Foo Fighters', guitarTuning: 'Drop D' }),
+    song('Alive', { artist: 'Pearl Jam' }),
+    song('Hidden', { guitarTuning: 'Drop D' }),
+  ]
+  const hidden = new Set(['Hidden'])
+  const ids = (l: Song[]) => l.map(s => s.id)
+
+  it('sorts, filters and drops hidden songs like the Songs list', () => {
+    const view = {
+      ...DEFAULT_LIST_VIEW,
+      sort: 'title' as const,
+      dir: 'asc' as const,
+    }
+    expect(
+      ids(catalogList(songs, view, hidden, { query: '', tunings: [] }))
+    ).toEqual(['Alive', 'Black', 'Everlong'])
+    expect(
+      ids(catalogList(songs, view, hidden, { query: 'pearl', tunings: [] }))
+    ).toEqual(['Alive', 'Black'])
+    expect(
+      ids(catalogList(songs, view, hidden, { query: '', tunings: ['Drop D'] }))
+    ).toEqual(['Everlong'])
+  })
+
+  it('keeps hidden songs when Show hidden is on', () => {
+    const view = {
+      ...DEFAULT_LIST_VIEW,
+      sort: 'title' as const,
+      dir: 'desc' as const,
+      showHidden: true,
+    }
+    expect(
+      ids(catalogList(songs, view, hidden, { query: '', tunings: ['Drop D'] }))
+    ).toEqual(['Hidden', 'Everlong'])
+  })
+})
+
+describe('commitTitle', () => {
+  it('reverts an empty title to the old one', () => {
+    expect(commitTitle('   ', 'Everlong')).toEqual({
+      title: 'Everlong',
+      reverted: true,
+      changed: false,
+    })
+  })
+  it('trims and reports a change', () => {
+    expect(commitTitle('  Monkey Wrench ', 'Everlong')).toEqual({
+      title: 'Monkey Wrench',
+      reverted: false,
+      changed: true,
+    })
+    expect(commitTitle('Everlong', 'Everlong').changed).toBe(false)
   })
 })

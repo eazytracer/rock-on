@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-08
+
+Redesign phase 2.1 · The song page.
+
+### Added
+
+- **Song page is where a song is edited.** Click a fact (title, artist,
+  tuning, key, BPM, length, album, tags, links) to change it; each saves on its
+  own with "saved · Undo".
+- **Back goes where you came from**: Songs, a setlist, a show, a practice or a
+  search, named on the button, with the song selected when you return.
+  ‹ › (J / K on desktop) step through that same list.
+- **Notes edit in place** with Write / Preview and Done (⌘↵). If someone saved
+  the band note while you were writing, choose Keep mine or Show theirs.
+- **"In ‹set›" note**: opened from a setlist, the song page shows that set's
+  note for the song and lets you edit it.
+- Setlist, show and practice rows have an open-song button (or double-click
+  the row).
+
+### Changed
+
+- The desktop Songs pane is a read-only preview with one action, **Open**
+  (or double-click the row), which goes to the song page.
+- The full-screen form is only for **Add song** (`/songs/new`); on desktop it
+  sits beside the sidebar in two columns.
+- Desktop tuning filter is one **Tuning** menu (pick several, pitch order,
+  counts). Phones keep the chips.
+- Icons: a caret means "opens right here". Removed the carets beside the
+  Setlists, Shows and Jam titles, which opened nothing.
+
+### Database
+
+- RPC `set_setlist_item_note(p_setlist_id, p_item_id, p_notes)`.
+- Song edits are version-checked (`stale_version`).
+- `release_notes` 0.9.1.
+
 ## [0.9.0] - 2026-11-07
 
 Redesign phase 2 · Songs.

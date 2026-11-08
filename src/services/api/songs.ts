@@ -68,3 +68,17 @@ export async function copyBandSongsToPersonal(
   if (error) throw toApiError(error)
   return data?.length ?? 0
 }
+
+/** "In ‹setlist›": one item's note, written on its own (docs/redesign/10 · 1.4). */
+export async function setSetlistItemNote(
+  setlistId: string,
+  itemId: string,
+  notes: string
+): Promise<void> {
+  const { error } = await api().rpc('set_setlist_item_note', {
+    p_setlist_id: setlistId,
+    p_item_id: itemId,
+    p_notes: notes,
+  })
+  if (error) throw toApiError(error)
+}

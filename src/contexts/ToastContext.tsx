@@ -10,14 +10,25 @@ import { X, CheckCircle, AlertCircle, Info } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'info'
 
+/** A button in the toast, e.g. "Undo" after a save. */
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
 interface Toast {
   id: string
   message: string
   type: ToastType
+  action?: ToastAction
 }
 
 interface ToastContextType {
-  showToast: (message: string, type?: ToastType) => void
+  showToast: (
+    message: string,
+    type?: ToastType,
+    options?: { action?: ToastAction }
+  ) => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
@@ -38,9 +49,13 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const showToast = useCallback(
-    (message: string, type: ToastType = 'success') => {
+    (
+      message: string,
+      type: ToastType = 'success',
+      options?: { action?: ToastAction }
+    ) => {
       const id = crypto.randomUUID()
-      const newToast: Toast = { id, message, type }
+      const newToast: Toast = { id, message, type, action: options?.action }
 
       setToasts(prev => [...prev, newToast])
 
@@ -89,6 +104,20 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
               {/* Message */}
               <div className="flex-1 text-sm text-ink-1">{toast.message}</div>
+
+              {toast.action && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    removeToast(toast.id)
+                    toast.action!.onClick()
+                  }}
+                  className="flex-shrink-0 -my-1 px-2.5 py-1 rounded-md text-sm font-bold text-accent-ink hover:bg-border-1"
+                  data-testid="toast-action"
+                >
+                  {toast.action.label}
+                </button>
+              )}
 
               {/* Close Button */}
               <button

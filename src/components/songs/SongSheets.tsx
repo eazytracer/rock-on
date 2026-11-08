@@ -5,7 +5,6 @@
 import React from 'react'
 import {
   ExternalLink,
-  Pencil,
   ListPlus,
   CopyPlus,
   Copy,
@@ -44,9 +43,9 @@ export interface SongMenuProps {
   inMySongs?: boolean
   usage: string
   onClose: () => void
-  onOpen: () => void
-  onEdit: () => void
-  onAddToSet: () => void
+  /** Rows and the pane; the song page itself has no Open. */
+  onOpen?: () => void
+  onAddToSet?: () => void
   onCopyToMine?: () => void
   onDuplicate: () => void
   onToggleHidden: () => void
@@ -61,7 +60,6 @@ export const SongMenu: React.FC<SongMenuProps> = ({
   usage,
   onClose,
   onOpen,
-  onEdit,
   onAddToSet,
   onCopyToMine,
   onDuplicate,
@@ -96,24 +94,22 @@ export const SongMenu: React.FC<SongMenuProps> = ({
       data-testid="song-menu"
     >
       <div role="menu" className="divide-y divide-divider md:divide-y-0">
-        <SheetItem
-          icon={<ExternalLink />}
-          label="Open song"
-          onClick={run(onOpen)}
-          data-testid="song-menu-open"
-        />
-        <SheetItem
-          icon={<Pencil />}
-          label="Edit"
-          onClick={run(onEdit)}
-          data-testid="edit-song-button"
-        />
-        <SheetItem
-          icon={<ListPlus />}
-          label="Add to setlist"
-          onClick={run(onAddToSet)}
-          data-testid="add-to-setlist-button"
-        />
+        {onOpen && (
+          <SheetItem
+            icon={<ExternalLink />}
+            label="Open song"
+            onClick={run(onOpen)}
+            data-testid="song-menu-open"
+          />
+        )}
+        {onAddToSet && (
+          <SheetItem
+            icon={<ListPlus />}
+            label="Add to setlist"
+            onClick={run(onAddToSet)}
+            data-testid="add-to-setlist-button"
+          />
+        )}
         {onCopyToMine && (
           <SheetItem
             icon={<CopyPlus />}

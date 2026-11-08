@@ -2150,7 +2150,6 @@ export const SetlistsPage: React.FC = () => {
                 <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
                   Setlists
                 </h1>
-                <ChevronDown size={20} className="text-ink-3" />
               </div>
 
               {/* Band / Personal tab switcher — only in a band context;

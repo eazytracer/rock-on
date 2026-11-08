@@ -505,7 +505,6 @@ export const JamSessionPage: React.FC = () => {
                 Live
               </span>
             )}
-            {!sessionId && <ChevronDown size={20} className="text-ink-3" />}
           </div>
           {!sessionId && (
             <p className="text-ink-4 text-sm">

@@ -6,7 +6,7 @@ import {
   Coffee,
   Layers,
   MoreVertical,
-  Pencil,
+  SquareArrowOutUpRight,
   Trash2,
   FileText,
   Clock,
@@ -51,7 +51,10 @@ interface SongListItemProps {
   item: UISetlistItem
   isEditing: boolean
   onRemove?: () => void
-  onEdit?: () => void // Open song edit modal
+  /** Open the song page (docs/redesign/10 · 1.7): icon, double-click, menu. */
+  onOpenSong?: () => void
+  /** Back from the song page lands with this row marked. */
+  selected?: boolean
   showDragHandle?: boolean
   showLinks?: boolean // Show quick-access link icons
   'data-testid'?: string
@@ -105,7 +108,8 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
   item,
   isEditing,
   onRemove,
-  onEdit,
+  onOpenSong,
+  selected = false,
   showDragHandle = true,
   showLinks = false,
   isDragging = false,
@@ -211,7 +215,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
     // Shared kebab menu content
     const renderKebabMenu = () =>
       isEditing &&
-      (onEdit || onRemove) && (
+      (onOpenSong || onRemove) && (
         <div className="relative">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -228,22 +232,22 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                 onClick={() => setIsMenuOpen(false)}
               />
               <div className="absolute right-0 top-8 z-20 w-40 bg-bg-3 border border-border-1 rounded-lg shadow-xl overflow-hidden">
-                {onEdit && (
+                {onOpenSong && (
                   <button
                     onClick={() => {
                       setIsMenuOpen(false)
-                      onEdit()
+                      onOpenSong()
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
-                    data-testid={`edit-song-${item.position}`}
+                    data-testid={`open-song-${item.position}`}
                   >
-                    <Pencil size={16} />
-                    <span>Edit Song</span>
+                    <SquareArrowOutUpRight size={16} />
+                    <span>Open song</span>
                   </button>
                 )}
                 {onRemove && (
                   <>
-                    {onEdit && <div className="h-px bg-border-1" />}
+                    {onOpenSong && <div className="h-px bg-border-1" />}
                     <button
                       onClick={() => {
                         setIsMenuOpen(false)
@@ -289,11 +293,35 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
       </>
     )
 
+    const openSongButton = onOpenSong && (
+      <button
+        onClick={e => {
+          e.stopPropagation()
+          onOpenSong()
+        }}
+        className="p-1.5 text-ink-4 hover:text-ink-1 rounded transition-colors flex-shrink-0"
+        title="Open song"
+        aria-label={`Open ${song.title}`}
+        data-testid="setlist-row-open-song"
+      >
+        <SquareArrowOutUpRight size={17} />
+      </button>
+    )
+
     const stripeColor = tuningColor(song.tuning ?? 'Standard')
     return (
       <div
+        onDoubleClick={e => {
+          if (!onOpenSong) return
+          if ((e.target as HTMLElement).closest('input, textarea, button, a'))
+            return
+          onOpenSong()
+        }}
         data-testid={testId || `list-item-song-${displayPosition}`}
+        data-selected={selected || undefined}
         className={`group bg-bg-2 rounded-xl border border-l-4 border-border-1 ${
+          selected ? 'ring-2 ring-accent' : ''
+        } ${
           isEditing ? 'hover:border-border-2' : ''
         } ${isDragging ? 'shadow-lg shadow-black/50' : ''} transition-colors`}
         style={{ borderLeftColor: stripeColor }}
@@ -334,6 +362,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                   <FileText size={18} />
                 </button>
               )}
+              {openSongButton}
               {renderKebabMenu()}
             </div>
           </div>
@@ -458,6 +487,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
               </button>
             )}
 
+            {openSongButton}
             {renderKebabMenu()}
           </div>
 

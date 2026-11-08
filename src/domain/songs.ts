@@ -95,15 +95,47 @@ export function sortSongs(
 export function filterSongs(
   songs: Song[],
   query: string,
-  tuning: string | null
+  tunings: readonly string[] = []
 ): Song[] {
   const q = query.trim().toLowerCase()
   return songs.filter(
     s =>
-      (!tuning || (s.guitarTuning || 'Standard') === tuning) &&
+      (!tunings.length || tunings.includes(s.guitarTuning || 'Standard')) &&
       (!q ||
         [s.title, s.artist, s.album].some(f => f?.toLowerCase().includes(q)))
   )
+}
+
+/** The Songs list as shown: hidden filter, search, tunings, then the sort. */
+export function catalogList(
+  songs: Song[],
+  view: ListView,
+  hiddenIds: ReadonlySet<string>,
+  filter: { query: string; tunings: readonly string[] },
+  nextShowAt?: Map<string, number>
+): Song[] {
+  const shown = view.showHidden
+    ? songs
+    : songs.filter(s => !hiddenIds.has(s.id))
+  return sortSongs(
+    filterSongs(shown, filter.query, filter.tunings),
+    view.sort,
+    view.dir,
+    nextShowAt
+  )
+}
+
+/**
+ * Title edited in place: trimmed; empty keeps the old one ("A song needs a
+ * title · kept the old one"). `changed` is false when nothing needs saving.
+ */
+export function commitTitle(
+  input: string,
+  previous: string
+): { title: string; reverted: boolean; changed: boolean } {
+  const title = input.trim()
+  if (!title) return { title: previous, reverted: true, changed: false }
+  return { title, reverted: false, changed: title !== previous }
 }
 
 export type LinkCategory =

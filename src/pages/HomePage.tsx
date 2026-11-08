@@ -166,7 +166,7 @@ export function HomePage() {
         {
           label: 'Add 5 songs',
           done: songs.length >= 5,
-          to: '/songs?add=song',
+          to: '/songs/new',
         },
         {
           label: 'Build a setlist',
@@ -183,12 +183,12 @@ export function HomePage() {
         {
           label: 'Add your first song',
           done: songs.length > 0,
-          to: '/songs?add=song',
+          to: '/songs/new',
         },
         {
           label: 'Add 5 songs',
           done: songs.length >= 5,
-          to: '/songs?add=song',
+          to: '/songs/new',
         },
         {
           label: 'Build a setlist',
@@ -221,7 +221,7 @@ export function HomePage() {
           <span className="hidden md:block">
             <Button
               icon={<Plus size={18} />}
-              onClick={() => navigate('/songs?add=song')}
+              onClick={() => navigate('/songs/new')}
               data-testid="home-add-song"
             >
               Add song
@@ -403,7 +403,7 @@ export function HomePage() {
               <div className="grid grid-cols-2 gap-2.5">
                 {(hasBand
                   ? [
-                      ['Add song', Plus, '/songs?add=song', 'home-action-song'],
+                      ['Add song', Plus, '/songs/new', 'home-action-song'],
                       [
                         'New setlist',
                         ListMusic,
@@ -419,7 +419,7 @@ export function HomePage() {
                       ['Book show', Ticket, '/shows/new', 'home-action-show'],
                     ]
                   : [
-                      ['Add song', Plus, '/songs?add=song', 'home-action-song'],
+                      ['Add song', Plus, '/songs/new', 'home-action-song'],
                       [
                         'New setlist',
                         ListMusic,

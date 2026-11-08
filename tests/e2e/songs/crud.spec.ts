@@ -219,57 +219,30 @@ test.describe('Songs CRUD Operations', () => {
       timeout: 5000,
     })
 
-    // Open the song menu (right-click the row; no ⋯ button in the redesign)
+    // Open the song page (the one place a song is edited) and edit in place
     const row = page.locator('[data-testid^="song-row-"]').first()
     await expect(row).toBeVisible({ timeout: 5000 })
-    await row.click({ button: 'right' })
-    await page.waitForTimeout(300)
+    await row.click()
+    await expect(page.getByTestId('song-view-page')).toBeVisible({
+      timeout: 5000,
+    })
 
-    // Click the edit button
-    const editButton = page.locator('[data-testid="edit-song-button"]').first()
-    await expect(editButton).toBeVisible({ timeout: 5000 })
-    await editButton.click()
-    await page.waitForTimeout(500)
+    await page.getByTestId('song-detail-title').click()
+    await page.getByTestId('song-title-input').fill('Updated Title')
+    await page.getByTestId('song-title-input').press('Enter')
+    await expect(page.getByText('Title saved')).toBeVisible()
 
-    // Edit the title
-    const titleInput = page.locator('input[name="title"]').first()
-    const isEditable = await titleInput.isEditable().catch(() => false)
+    await page.getByTestId('song-fact-bpm').click()
+    await page.getByTestId('song-bpm-input').fill('120')
+    await page.getByTestId('song-bpm-input').press('Enter')
+    await expect(page.getByTestId('song-fact-bpm')).toContainText('120')
 
-    if (isEditable) {
-      await titleInput.clear()
-      await titleInput.fill('Updated Title')
-
-      // Update BPM if field exists
-      const bpmInput = page
-        .locator('input[name="bpm"], input[name="tempo"]')
-        .first()
-      const hasBpm = await bpmInput.isVisible().catch(() => false)
-      if (hasBpm) {
-        await bpmInput.fill('120')
-      }
-
-      // Save changes
-      const saveButton = page
-        .locator('[data-testid="song-submit-button"]')
-        .first()
-      await saveButton.click()
-      await page.waitForTimeout(2000)
-
-      // Verify updated title appears
-      await expect(page.locator('text=Updated Title').first()).toBeVisible({
-        timeout: 5000,
-      })
-
-      // Original title should not be visible
-      const oldTitle = await page
-        .locator('text=Original Title')
-        .first()
-        .isVisible()
-        .catch(() => false)
-      expect(oldTitle).toBe(false)
-    } else {
-      console.log('Note: Song editing may not be fully implemented')
-    }
+    // Back to the list: the new title is there, the old one is gone
+    await page.getByTestId('song-page-back').click()
+    await expect(page.locator('text=Updated Title').first()).toBeVisible({
+      timeout: 5000,
+    })
+    await expect(page.locator('text=Original Title')).toHaveCount(0)
 
     await assertNoConsoleErrors(page, errors)
   })

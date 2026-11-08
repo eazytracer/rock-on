@@ -14,7 +14,6 @@ import {
   generateInitials,
 } from '../components/common/SongListItem'
 import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
-import { EditSongModal } from '../components/songs/EditSongModal'
 import { SongNotesModal } from '../components/songs/SongNotesModal'
 import { MarkdownField } from '../components/notes/MarkdownField'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
@@ -31,6 +30,7 @@ import {
   getPracticeSessionStatus,
 } from '../utils/dateHelpers'
 import { secondsToDuration } from '../utils/formatters'
+import { songHref } from '../utils/songOrigin'
 import { ListMusic, Plus, FileText, Clock, Play } from 'lucide-react'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song as DBSong } from '../models/Song'
@@ -113,9 +113,6 @@ export const PracticeViewPage: React.FC = () => {
   // Available data for song picker
   const [dbSongs, setDbSongs] = useState<DBSong[]>([])
   const [dbSetlists, setDbSetlists] = useState<DBSetlist[]>([])
-
-  // Edit song modal state
-  const [editingSong, setEditingSong] = useState<DBSong | null>(null)
 
   // Song notes modal state
   const [songNotesModal, setSongNotesModal] = useState<{
@@ -685,10 +682,17 @@ export const PracticeViewPage: React.FC = () => {
                               item.song?.title || 'this song'
                             )
                           }
-                          onEdit={() => {
-                            const song = dbSongs.find(s => s.id === item.songId)
-                            if (song) setEditingSong(song)
-                          }}
+                          onOpenSong={
+                            item.songId && !isNewMode
+                              ? () =>
+                                  navigate(
+                                    songHref(item.songId!, {
+                                      kind: 'practice',
+                                      id: practiceId!,
+                                    })
+                                  )
+                              : undefined
+                          }
                           onSaveSessionNotes={async notes =>
                             handleSaveSessionNotes(item.id, notes)
                           }
@@ -724,36 +728,6 @@ export const PracticeViewPage: React.FC = () => {
 
         {/* Confirm Dialog */}
         <ConfirmDialog {...dialogProps} />
-
-        {/* Edit Song Modal */}
-        {editingSong && (
-          <EditSongModal
-            song={editingSong}
-            onClose={() => setEditingSong(null)}
-            onSave={async updatedSong => {
-              try {
-                await repository.updateSong(updatedSong.id!, updatedSong)
-                // Update the song in our local state
-                setDbSongs(prev =>
-                  prev.map(s => (s.id === updatedSong.id ? updatedSong : s))
-                )
-                // Also update the displayed songs list
-                setSongs(prev =>
-                  prev.map(ps =>
-                    ps.songId === updatedSong.id
-                      ? { ...ps, song: dbSongToUISong(updatedSong) }
-                      : ps
-                  )
-                )
-                setEditingSong(null)
-                showToast('Song updated', 'success')
-              } catch (error) {
-                log.error('Error updating song:', error)
-                showToast('Failed to update song', 'error')
-              }
-            }}
-          />
-        )}
 
         {/* Song Notes Modal */}
         {songNotesModal && (

@@ -11,6 +11,8 @@ export interface SheetProps {
   sub?: React.ReactNode
   /** Desktop only: open as a popover at this point. */
   at?: { x: number; y: number } | null
+  /** Popover width in px (default 288). */
+  width?: number
   children: React.ReactNode
   'data-testid'?: string
 }
@@ -20,6 +22,7 @@ export const Sheet: React.FC<SheetProps> = ({
   title,
   sub,
   at,
+  width = 288,
   children,
   'data-testid': testId,
 }) => {
@@ -32,8 +35,9 @@ export const Sheet: React.FC<SheetProps> = ({
   const pop = at && window.innerWidth >= 768
   const style: React.CSSProperties | undefined = pop
     ? {
-        left: Math.min(at.x, window.innerWidth - 300),
-        top: Math.min(at.y, window.innerHeight - 420),
+        left: Math.max(8, Math.min(at.x, window.innerWidth - width - 12)),
+        top: Math.max(8, Math.min(at.y, window.innerHeight - 420)),
+        width,
       }
     : undefined
 
@@ -53,7 +57,7 @@ export const Sheet: React.FC<SheetProps> = ({
         style={style}
         className={
           pop
-            ? 'fixed w-[288px] rounded-2xl bg-bg-2 p-1.5 shadow-float ring-1 ring-border-1'
+            ? 'fixed max-h-[calc(100vh-16px)] overflow-y-auto custom-scrollbar-thin rounded-2xl bg-bg-2 p-1.5 shadow-float ring-1 ring-border-1'
             : 'absolute md:static inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto custom-scrollbar-thin rounded-t-[28px] md:rounded-[24px] bg-bg-2 shadow-sheet md:w-[420px] px-4 pb-[max(16px,env(safe-area-inset-bottom))]'
         }
       >

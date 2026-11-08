@@ -1,6 +1,7 @@
 /**
  * Song row (design/demo/screens/Song Row.html · "Grouped, quieter").
- * No ⋯: tap opens the song, swipe left for Hide / Add to set, press and hold
+ * No ⋯: tap opens the song (desktop pane: click selects, double-click or Enter
+ * opens), swipe left for Hide / Add to set, press and hold
  * (or right-click) for the full menu. Phones get the two-line row; desktop
  * gets a table row with hover actions.
  */
@@ -77,6 +78,8 @@ export interface SongRowProps {
   linked?: boolean
   selected?: boolean
   onOpen: () => void
+  /** Double-click / Enter: open the song page (the pane's click only selects). */
+  onActivate?: () => void
   onMenu: (at: { x: number; y: number } | null) => void
   onHide: () => void
   onAddToSet: () => void
@@ -95,6 +98,7 @@ export const SongRow: React.FC<SongRowProps> = ({
   linked,
   selected,
   onOpen,
+  onActivate = onOpen,
   onMenu,
   onHide,
   onAddToSet,
@@ -164,10 +168,14 @@ export const SongRow: React.FC<SongRowProps> = ({
   const rowProps = {
     role: 'button' as const,
     tabIndex: 0,
+    'data-selected': selected || undefined,
     onClick: handleClick,
+    onDoubleClick: () => {
+      if (onActivate !== onOpen) onActivate()
+    },
     onContextMenu,
     onKeyDown: (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') onOpen()
+      if (e.key === 'Enter') onActivate()
       if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))
         onMenu(null)
     },
