@@ -14,7 +14,7 @@ internet connection only for Google Fonts.
 | `demo/Rock On Desktop.html` | The desktop app at 1024 px and up, fully clickable |
 | `demo/Jam Night.html` | A working jam: host, guest, bar TV and counter iPad. **Open a guest window** syncs across windows; **Simulate the room** fills it with people |
 | `demo/Song Page.html` | **Proposal (Nov 7), not decided:** a song opened as a full page, edited in place, with Back named after where you came from. Answers `docs/redesign/09` |
-| `demo/Setlist Nav.html` | **Proposal (Nov 7), not decided:** three ways to drop the nested setlists column on desktop. Add `?nav=a`, `b`, `c` or `ab` (A plus the name switcher, Eric's pick) to the address; no parameter shows today |
+| `demo/Setlist Nav.html` | Setlist navigation. **Decided (Nov 7): `?nav=ab`**, an index, then the set full width with the name as a switcher. `a`, `b` and `c` are the options that were compared; no parameter shows the old layout |
 | `demo/screens/*.html` | The locked phone screens, one page per area. `Final Pass.html` holds the Nov 7 additions ("FP n" in the guides) |
 | `source/Foundations.html`, `source/Components.html` | Tokens, type, colour, tunings, and the component catalog |
 | `source/index.html` | Index of the source pages |
