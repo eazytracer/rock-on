@@ -13,7 +13,7 @@ import {
   signUpViaUI,
   deleteTestUser,
 } from '../../fixtures/auth'
-import { createBandViaUI } from '../../fixtures/bands'
+import { createBandViaUI, switchContextViaUI } from '../../fixtures/bands'
 import {
   setupConsoleErrorTracking,
   assertNoConsoleErrors,
@@ -160,14 +160,9 @@ test.describe('Jam Session — Match List and Save Flow', () => {
     await page.goto('/setlists')
     await page.waitForURL(/\/setlists/, { timeout: 5000 })
 
-    // The My Setlists tab should be accessible
-    await expect(
-      page.locator('[data-testid="setlists-personal-tab"]')
-    ).toBeVisible({ timeout: 5000 })
-
-    // Clicking it should switch to personal setlists without error
-    await page.locator('[data-testid="setlists-personal-tab"]').click()
-    await page.waitForTimeout(500)
+    // Personal setlists live in the Personal context (no My Setlists tab)
+    await switchContextViaUI(page, 'personal')
+    await page.goto('/setlists')
 
     await expect(page.locator('[data-testid="setlists-page"]')).toBeVisible({
       timeout: 3000,

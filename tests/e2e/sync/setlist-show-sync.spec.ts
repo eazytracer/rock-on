@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
 import {
   createTestUser,
   signUpViaUI,
@@ -7,6 +7,20 @@ import {
 import { createBandViaUI } from '../../fixtures/bands'
 import { getSupabaseAdmin } from '../../fixtures/supabase'
 import { setupConsoleErrorTracking } from '../../helpers/assertions'
+
+/** New setlist (creates it and opens the editor), then rename it in place. */
+async function createSetlistViaUI(page: Page, name: string) {
+  await page.locator('[data-testid="create-setlist-button"]').first().click()
+  await page.waitForURL(/\/setlists\/[0-9a-f-]{36}$/, { timeout: 10000 })
+  await page.locator('[data-testid="setlist-name-display"]').first().click()
+  const nameInput = page.locator('[data-testid="setlist-name-input"]').first()
+  await expect(nameInput).toBeVisible({ timeout: 5000 })
+  await nameInput.fill(name)
+  await nameInput.press('Enter')
+  await expect(
+    page.locator('[data-testid="setlist-name-display"]').first()
+  ).toContainText(name, { timeout: 5000 })
+}
 
 test.describe('Setlist and Show Sync Verification', () => {
   let testUserId: string | undefined
@@ -44,33 +58,7 @@ test.describe('Setlist and Show Sync Verification', () => {
       { timeout: 15000 }
     )
 
-    // Click Add/Create Setlist button
-    const addButton = page
-      .locator('[data-testid="create-setlist-button"]')
-      .first()
-    await expect(addButton).toBeVisible({ timeout: 10000 })
-    await addButton.click()
-    await page.waitForTimeout(500)
-
-    // Fill in the setlist name - the create flow now opens the full-page
-    // setlist editor whose name is an inline-editable field (starts in
-    // display mode), not a modal input.
-    const nameInput = page.locator('[data-testid="setlist-name-input"]').first()
-    const isNameInputVisible = await nameInput.isVisible().catch(() => false)
-    if (!isNameInputVisible) {
-      await page.locator('[data-testid="setlist-name-display"]').first().click()
-      await page.waitForTimeout(200)
-    }
-    await expect(nameInput).toBeVisible({ timeout: 5000 })
-    await nameInput.fill(setlistName)
-
-    // Save the setlist
-    const saveButton = page
-      .locator(
-        'button:has-text("Save"), button:has-text("Create"), button[type="submit"]'
-      )
-      .first()
-    await saveButton.click()
+    await createSetlistViaUI(page, setlistName)
 
     // Wait for sync to complete
     await page.waitForTimeout(3000)
@@ -360,46 +348,21 @@ test.describe('Setlist and Show Sync Verification', () => {
       { timeout: 15000 }
     )
 
-    // Create original setlist
-    const addButton = page
-      .locator('[data-testid="create-setlist-button"]')
-      .first()
-    await expect(addButton).toBeVisible({ timeout: 10000 })
-    await addButton.click()
-    await page.waitForTimeout(500)
+    await createSetlistViaUI(page, originalName)
 
-    // The create flow now opens the full-page setlist editor whose name is
-    // an inline-editable field (starts in display mode), not a modal input.
-    const nameInput = page.locator('[data-testid="setlist-name-input"]').first()
-    const isNameInputVisible = await nameInput.isVisible().catch(() => false)
-    if (!isNameInputVisible) {
-      await page.locator('[data-testid="setlist-name-display"]').first().click()
-      await page.waitForTimeout(200)
-    }
-    await expect(nameInput).toBeVisible({ timeout: 5000 })
-    await nameInput.fill(originalName)
-
-    const saveButton = page
-      .locator('button:has-text("Save"), button[type="submit"]')
-      .first()
-    await saveButton.click()
-    await page.waitForTimeout(2000)
-
-    // Find and click on the setlist to open it
-    const setlistItem = page.locator(`text=${originalName}`).first()
-    await setlistItem.click()
-    await page.waitForTimeout(500)
-
-    // Look for duplicate button
-    const duplicateButton = page
-      .locator(
-        'button:has-text("Duplicate"), button:has-text("Copy"), [data-testid="duplicate-setlist-button"]'
-      )
-      .first()
-
-    if (await duplicateButton.isVisible()) {
-      await duplicateButton.click()
-      await page.waitForTimeout(3000) // Wait for duplicate + sync
+    // Back to the index; duplicate from the card's ⋯
+    await page.goto('/setlists')
+    const card = page.locator('[data-testid^="setlist-card-"]', {
+      hasText: originalName,
+    })
+    await card.locator('[data-testid^="setlist-card-menu-"]').click()
+    {
+      await page.locator('[data-testid="setlist-menu-duplicate"]').click()
+      await expect(
+        page.locator('[data-testid^="setlist-card-"]', {
+          hasText: `${originalName} copy`,
+        })
+      ).toBeVisible({ timeout: 5000 })
 
       // Check for sync errors (specifically source_setlist_id error)
       const syncErrors = errors.filter(
@@ -428,9 +391,7 @@ test.describe('Setlist and Show Sync Verification', () => {
       const { data: duplicates } = await supabase
         .from('setlists')
         .select('*')
-        .or(
-          `name.ilike.%copy%,name.ilike.%duplicate%,source_setlist_id.eq.${originalId}`
-        )
+        .eq('source_setlist_id', originalId)
 
       if (duplicates && duplicates.length > 0) {
         const duplicate = duplicates[0]
@@ -440,8 +401,6 @@ test.describe('Setlist and Show Sync Verification', () => {
         // Verify source_setlist_id points to original
         expect(duplicate.source_setlist_id).toBe(originalId)
       }
-    } else {
-      console.log('Note: Duplicate button not found - skipping duplicate test')
     }
   })
 })

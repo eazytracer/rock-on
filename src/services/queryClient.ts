@@ -55,6 +55,8 @@ export const queryKeys = {
     band: (bandId: string) => ['setlists', 'band', bandId] as const,
     personal: (userId: string) => ['setlists', 'personal', userId] as const,
     detail: (setlistId: string) => ['setlists', 'detail', setlistId] as const,
+    index: (contextType: string, contextId: string) =>
+      ['setlists', 'index', contextType, contextId] as const,
   },
   shows: {
     band: (bandId: string) => ['shows', 'band', bandId] as const,

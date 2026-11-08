@@ -2280,6 +2280,7 @@ export type Database = {
         }
       }
       delete_song: { Args: { p_song_id: string }; Returns: undefined }
+      duplicate_setlist: { Args: { p_setlist_id: string }; Returns: string }
       duplicate_song: {
         Args: { p_song_id: string }
         Returns: {
@@ -2572,6 +2573,20 @@ export type Database = {
       set_setlist_item_note: {
         Args: { p_item_id: string; p_notes: string; p_setlist_id: string }
         Returns: undefined
+      }
+      setlist_index: {
+        Args: { p_context_id: string; p_context_type: string }
+        Returns: {
+          break_minutes: number
+          id: string
+          last_modified: string
+          name: string
+          show_at: string
+          show_id: string
+          show_name: string
+          show_venue: string
+          songs: Json
+        }[]
       }
       song_next_shows: {
         Args: { p_band_id: string }

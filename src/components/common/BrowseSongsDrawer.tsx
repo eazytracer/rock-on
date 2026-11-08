@@ -5,6 +5,7 @@ import { useViewport } from '../../hooks/useResponsive'
 import { Dropdown } from './Dropdown'
 import { Song } from '../../models/Song'
 import { Setlist } from '../../models/Setlist'
+import { generateInitials } from '../../utils/songAvatar'
 
 // Generate consistent avatar color from song title
 const generateAvatarColor = (title: string): string => {
@@ -245,11 +246,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
                       backgroundColor: generateAvatarColor(song.title),
                     }}
                   >
-                    {song.artist
-                      .split(' ')
-                      .map(word => word[0])
-                      .join('')
-                      .substring(0, 2)}
+                    {generateInitials(song.artist || song.title)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

@@ -6,6 +6,7 @@ import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { Setlist } from '../models/Setlist'
 import type { SetlistItem } from '../types'
+import { setlistIndex, duplicateSetlist } from '../services/api/setlists'
 
 /**
  * Hook to fetch setlists for a band.
@@ -34,58 +35,6 @@ export function useSetlists(bandId: string) {
     setlists: query.data ?? EMPTY_ARRAY,
     loading: query.isLoading,
     error: query.error as Error | null,
-  }
-}
-
-/**
- * Hook to create a new setlist.
- * Supports full Setlist structure including items (songs, breaks, sections).
- */
-export function useCreateSetlist() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: async (setlistData: Partial<Setlist>) => {
-      // For setlists with items, use the repository directly.
-      if (setlistData.items && setlistData.items.length > 0) {
-        const newSetlist: Setlist = {
-          id: setlistData.id || crypto.randomUUID(),
-          name: setlistData.name || 'New Setlist',
-          bandId: setlistData.bandId || '',
-          showId: setlistData.showId,
-          items: setlistData.items,
-          totalDuration: setlistData.totalDuration || 0,
-          notes: setlistData.notes || '',
-          status: setlistData.status || 'draft',
-          createdDate: new Date(),
-          lastModified: new Date(),
-        }
-        await repository.addSetlist(newSetlist)
-        return newSetlist.id
-      }
-
-      // For legacy setlists without items, use SetlistService.
-      const newSetlist = await SetlistService.createSetlist({
-        name: setlistData.name || 'New Setlist',
-        bandId: setlistData.bandId || '',
-        showDate: setlistData.showDate
-          ? setlistData.showDate.toISOString()
-          : undefined,
-        venue: setlistData.venue,
-        notes: setlistData.notes,
-      })
-      return newSetlist.id
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['setlists'] })
-    },
-  })
-
-  return {
-    createSetlist: (setlistData: Partial<Setlist>) =>
-      mutation.mutateAsync(setlistData),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
   }
 }
 
@@ -311,4 +260,70 @@ export function usePersonalSetlists(userId: string) {
       await query.refetch()
     }, [query]),
   }
+}
+
+/**
+ * The Setlists index for one context (docs/redesign/10 · 2.2): each set with
+ * its show and songs, from `setlist_index`. Live via `setlists:changed`.
+ */
+export function useSetlistIndex(
+  contextType: 'band' | 'personal',
+  contextId: string
+) {
+  const queryKey = queryKeys.setlists.index(contextType, contextId)
+  const query = useQuery({
+    queryKey,
+    queryFn: () => setlistIndex(contextType, contextId),
+    enabled: !!contextId,
+  })
+
+  useRealtimeInvalidate({
+    events: ['setlists:changed'],
+    bandId: contextType === 'band' ? contextId : undefined,
+    queryKey,
+  })
+
+  return {
+    rows: query.data ?? EMPTY_ARRAY,
+    loading: query.isLoading,
+    error: query.error as Error | null,
+    refetch: query.refetch,
+  }
+}
+
+/** New setlist: an empty set named "New setlist" in the context. Returns its id. */
+export function useNewSetlist() {
+  const queryClient = useQueryClient()
+  return useCallback(
+    async (contextType: 'band' | 'personal', contextId: string) => {
+      const saved = await repository.addSetlist({
+        id: crypto.randomUUID(),
+        name: 'New setlist',
+        bandId: contextType === 'band' ? contextId : undefined,
+        contextType,
+        contextId,
+        items: [],
+        totalDuration: 0,
+        status: 'draft',
+        createdDate: new Date(),
+        lastModified: new Date(),
+      })
+      queryClient.invalidateQueries({ queryKey: ['setlists'] })
+      return saved.id
+    },
+    [queryClient]
+  )
+}
+
+/** Duplicate: a copy, not attached to a show. Returns the copy's id. */
+export function useDuplicateSetlist() {
+  const queryClient = useQueryClient()
+  return useCallback(
+    async (setlistId: string) => {
+      const id = await duplicateSetlist(setlistId)
+      queryClient.invalidateQueries({ queryKey: ['setlists'] })
+      return id
+    },
+    [queryClient]
+  )
 }
