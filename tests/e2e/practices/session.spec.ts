@@ -513,7 +513,7 @@ async function setBandNotesViaEditModal(
   await page.goto('/songs')
   await page.waitForLoadState('networkidle')
 
-  // Open the song (desktop: the side pane) and edit its Band notes in place
+  // Open the song (below 1440 px: its own page) and edit its Band notes
   await page.locator('[data-testid^="song-row-"]').first().click()
   const bandField = page.locator('[data-testid="song-notes-band-field"]')
   await expect(bandField).toBeVisible({ timeout: 5000 })
@@ -521,7 +521,11 @@ async function setBandNotesViaEditModal(
   const textarea = bandField.locator('[data-testid="markdown-textarea"]')
   await expect(textarea).toBeVisible({ timeout: 5000 })
   await textarea.fill(notes)
+  const saved = page.waitForResponse((r: any) =>
+    r.url().includes('/rpc/set_band_note')
+  )
   await bandField.locator('[data-testid="markdown-save"]').click()
+  expect((await saved).ok()).toBe(true)
   await expect(
     bandField.locator('[data-testid="markdown-saved-toast"]')
   ).toBeVisible({ timeout: 5000 })

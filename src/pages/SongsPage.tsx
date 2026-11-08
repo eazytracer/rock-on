@@ -35,6 +35,7 @@ import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { EditSongModal } from '../components/songs/EditSongModal'
 import { SongRow } from '../components/songs/SongRow'
 import { SongDetail } from '../components/songs/SongDetail'
+import { TuningFilter } from '../components/songs/TuningFilter'
 import {
   SongMenu,
   ViewOptionsSheet,
@@ -78,7 +79,7 @@ export const SongsPage: React.FC = () => {
   const bandId = currentBandId ?? ''
   const isBand = !!currentBandId
   const isDesktop = useMediaQuery('(min-width: 768px)')
-  const hasPane = useMediaQuery('(min-width: 1280px)')
+  const hasPane = useMediaQuery('(min-width: 1440px)')
 
   const band = useSongs(bandId)
   const personal = usePersonalSongs(userId)
@@ -119,6 +120,14 @@ export const SongsPage: React.FC = () => {
     [songs, hiddenIds]
   )
   const tunings = useMemo(() => tuningsInUse(songs), [songs])
+  const tuningCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const s of songs) {
+      const t = s.guitarTuning || 'Standard'
+      m.set(t, (m.get(t) ?? 0) + 1)
+    }
+    return m
+  }, [songs])
   const nextShowAt = useMemo(
     () => new Map([...nextShows].map(([id, n]) => [id, n.at])),
     [nextShows]
@@ -371,7 +380,7 @@ export const SongsPage: React.FC = () => {
   return (
     <div
       data-testid="songs-page"
-      className={`md:-mx-7 lg:-mx-8 md:-mt-6 ${hasPane ? 'xl:mr-[372px]' : ''}`}
+      className={`md:-mx-7 lg:-mx-8 md:-mt-6 ${hasPane ? 'min-[1440px]:mr-[440px] 2xl:mr-[520px]' : ''}`}
     >
       <div className="md:px-7 lg:px-8 md:pt-6">
         <PageTitle
@@ -390,8 +399,8 @@ export const SongsPage: React.FC = () => {
           />
         )}
 
-        <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-2.5 mb-4">
-          <label className="relative flex items-center md:w-[260px]">
+        <div className="flex flex-col md:flex-row md:items-center gap-2.5 mb-4">
+          <label className="relative flex items-center md:w-[260px] md:shrink-0">
             <Search size={17} className="absolute left-3.5 text-ink-3" />
             <input
               type="search"
@@ -405,26 +414,14 @@ export const SongsPage: React.FC = () => {
               className="w-full h-11 pl-10 pr-3 rounded-full md:rounded-xl bg-bg-3 text-[15px] text-ink-1 placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </label>
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 md:flex-1">
-            <Chip
-              on={!tuning}
-              onClick={() => setTuning(null)}
-              data-testid="song-tuning-filter-all"
-            >
-              All tunings
-            </Chip>
-            {tunings.map(t => (
-              <Chip
-                key={t}
-                on={tuning === t}
-                onClick={() => setTuning(tuning === t ? null : t)}
-                aria-label={`Only ${t}`}
-                data-testid={`song-tuning-filter-option-${t}`}
-                className="!px-2"
-              >
-                <TuningPill tuning={t} size="sm" />
-              </Chip>
-            ))}
+          <div className="min-w-0 md:flex-1">
+            <TuningFilter
+              tunings={tunings}
+              counts={tuningCounts}
+              value={tuning}
+              onChange={setTuning}
+              fit={isDesktop}
+            />
           </div>
           <div className="flex items-center gap-2">
             <Chip
@@ -457,7 +454,7 @@ export const SongsPage: React.FC = () => {
 
       {hasPane && selected && (
         <aside
-          className="fixed right-0 top-0 h-screen w-[372px] border-l border-border-1 bg-bg-1 overflow-y-auto custom-scrollbar-thin px-6 pt-7"
+          className="fixed right-0 top-0 h-screen w-[440px] 2xl:w-[520px] border-l border-border-1 bg-bg-1 overflow-y-auto custom-scrollbar-thin px-6 pt-7"
           data-testid="song-pane"
         >
           <SongDetail

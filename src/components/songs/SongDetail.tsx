@@ -15,10 +15,12 @@ import {
   ListMusic,
   CalendarDays,
   Mic2,
+  Maximize2,
 } from 'lucide-react'
 import type { Song } from '../../models/Song'
 import { TuningPill } from '../ui'
 import { MarkdownField } from '../notes/MarkdownField'
+import { MarkdownRenderer } from '../notes/MarkdownRenderer'
 import { linkGlyph } from './linkGlyphs'
 import { formatSeconds } from '../../domain/format'
 import { shortTime } from '../../domain/notifications'
@@ -71,6 +73,9 @@ export const SongDetail: React.FC<{
         throw err
       }
     }
+
+  // The pane is too narrow to write in: notes open on the song's own page.
+  const openNotes = () => navigate(`/songs/${song.id}#notes`)
 
   const facts = [
     ['Key', song.key || '—'],
@@ -175,7 +180,19 @@ export const SongDetail: React.FC<{
         </div>
       )}
 
-      <div className={SECTION}>Notes</div>
+      <div className={SECTION} id="notes">
+        Notes
+        {pane && (
+          <button
+            type="button"
+            onClick={openNotes}
+            className="ml-auto flex items-center gap-1 text-accent-ink tracking-[.08em]"
+            data-testid="song-notes-full-screen"
+          >
+            <Maximize2 size={13} /> Full screen
+          </button>
+        )}
+      </div>
       <div className="rounded-[18px] bg-bg-2 shadow-group divide-y divide-divider">
         <div className="p-3.5">
           <p className="flex items-center gap-2 pb-1.5 text-[13.5px]">
@@ -189,14 +206,23 @@ export const SongDetail: React.FC<{
               {isBand ? 'shared · bandmates see edits' : 'only you'}
             </span>
           </p>
-          <MarkdownField
-            value={bandNotes || ''}
-            onSave={save(updateNotes, 'the note')}
-            placeholder={
-              isBand ? 'Add a note the band will see.' : 'Add a note.'
-            }
-            data-testid="song-notes-band-field"
-          />
+          {pane ? (
+            <NotePreview
+              value={bandNotes || ''}
+              placeholder={isBand ? 'None yet. Click to add.' : 'Add a note.'}
+              onOpen={openNotes}
+              data-testid="song-notes-band-preview"
+            />
+          ) : (
+            <MarkdownField
+              value={bandNotes || ''}
+              onSave={save(updateNotes, 'the note')}
+              placeholder={
+                isBand ? 'Add a note the band will see.' : 'Add a note.'
+              }
+              data-testid="song-notes-band-field"
+            />
+          )}
           {isBand && (editorName || entries.length > 0) && (
             <p className="pt-1.5 text-[12px] text-ink-3">
               {editorName && song.notesEditedAt && (
@@ -217,13 +243,22 @@ export const SongDetail: React.FC<{
               <b className="text-ink-1">My notes</b>
               <span className="text-ink-3 text-[12px]">only you</span>
             </p>
-            <MarkdownField
-              value={personalNote?.content || ''}
-              onSave={save(upsertNote, 'your note')}
-              placeholder="None yet. Click to add."
-              tone="info"
-              data-testid="song-notes-personal-field"
-            />
+            {pane ? (
+              <NotePreview
+                value={personalNote?.content || ''}
+                placeholder="None yet. Click to add."
+                onOpen={openNotes}
+                data-testid="song-notes-personal-preview"
+              />
+            ) : (
+              <MarkdownField
+                value={personalNote?.content || ''}
+                onSave={save(upsertNote, 'your note')}
+                placeholder="None yet. Click to add."
+                tone="info"
+                data-testid="song-notes-personal-field"
+              />
+            )}
           </div>
         )}
       </div>
@@ -277,3 +312,30 @@ export const SongDetail: React.FC<{
     </div>
   )
 }
+
+/** Read-only note in the pane: rendered, clipped with a fade; click to edit. */
+const NotePreview: React.FC<{
+  value: string
+  placeholder: string
+  onOpen: () => void
+  'data-testid'?: string
+}> = ({ value, placeholder, onOpen, 'data-testid': testId }) => (
+  <button
+    type="button"
+    onClick={onOpen}
+    title="Open to edit"
+    data-testid={testId}
+    className="group relative block w-full text-left rounded-lg hover:bg-bg-3/60 -mx-1 px-1"
+  >
+    {value.trim() ? (
+      <div className="relative max-h-[168px] overflow-hidden text-[14px]">
+        <MarkdownRenderer content={value} />
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-bg-2 group-hover:from-bg-3/60" />
+      </div>
+    ) : (
+      <span className="block py-1 text-[14px] italic text-ink-4">
+        {placeholder}
+      </span>
+    )}
+  </button>
+)

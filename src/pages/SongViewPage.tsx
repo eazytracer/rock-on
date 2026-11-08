@@ -2,8 +2,8 @@
  * /songs/:songId — the song view on phones (desktop shows it in the Songs
  * pane too). Back, Edit and the song menu on top; the rest is SongDetail.
  */
-import React, { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -48,6 +48,14 @@ export const SongViewPage: React.FC = () => {
   const [usage, setUsage] = useState('')
   const [addToSet, setAddToSet] = useState(false)
 
+  // /songs/:id#notes (from the desktop pane) lands on the notes.
+  const { hash } = useLocation()
+  const ready = !!song
+  useEffect(() => {
+    if (ready && hash === '#notes')
+      document.getElementById('notes')?.scrollIntoView({ block: 'start' })
+  }, [ready, hash])
+
   const back = () =>
     window.history.length > 1 ? navigate(-1) : navigate('/songs')
 
@@ -74,7 +82,7 @@ export const SongViewPage: React.FC = () => {
   }
 
   return (
-    <div data-testid="song-view-page" className="max-w-2xl">
+    <div data-testid="song-view-page" className="max-w-3xl">
       <div className="flex items-center gap-2 mb-4">
         <button
           type="button"

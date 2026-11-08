@@ -44,7 +44,7 @@ async function addSong(page: Page, title: string, artist = 'Test Artist') {
   await page.waitForTimeout(1500)
 }
 
-/** Open the song view by tapping the first row (desktop: the side pane). */
+/** Open the song by tapping the first row (below 1440 px: the song page). */
 async function openSongView(page: Page) {
   await page.locator('[data-testid^="song-row-"]').first().click()
   await expect(
@@ -144,9 +144,8 @@ test.describe('MarkdownField rollout — song notes surfaces', () => {
       bandField.locator('[data-testid="markdown-saved-toast"]')
     ).toBeVisible({ timeout: 3000 })
 
-    // Reload and reopen the song; the rendered markdown shows the saved value.
+    // Reload the song page; the rendered markdown shows the saved value.
     await page.reload()
-    await openSongView(page)
     const reopenedBand = page.locator('[data-testid="song-notes-band-field"]')
     await expect(reopenedBand).toContainText('Pre-show notes', {
       timeout: 5000,

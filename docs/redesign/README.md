@@ -31,6 +31,7 @@ screen in this codebase's own React / Tailwind / repository patterns.
 5. [05-plan.md](05-plan.md) — the build order as PR-sized phases with acceptance checks, sized for this repo's release gate.
 6. [06-open-decisions.md](06-open-decisions.md) — **Events vs Jam**: decided Nov 7, option A (Jam on the Events tables). Background for the Jam phase.
 7. [07-handoff-to-build.md](07-handoff-to-build.md) — the build agent's handoff checklist. Done Nov 7: answers in `design/source/DECISIONS.md`, files in `design/`.
+8. [09-design-review-songs.md](09-design-review-songs.md) — **open**: editing a song vs editing its notes are two disconnected flows; questions for the designer, with screenshots.
 
 ## Rules that apply to every phase
 
