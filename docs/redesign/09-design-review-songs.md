@@ -1,6 +1,6 @@
 # 09 · Design review: editing a song vs editing its notes
 
-**Status: open. Asking the designer to re-look** (Nov 7 2026, after the Phase 2 tidy-up on `redesign/integration`).
+**Status: designer has answered (below), waiting for Eric.** Was: asking the designer to re-look (Nov 7 2026, after the Phase 2 tidy-up on `redesign/integration`).
 Screenshots: `review/songs-notes/`.
 
 ## What prompted it
@@ -62,3 +62,59 @@ page.
 Record it in `design/source/DECISIONS.md` and here, then fold the change into Phase 2 (or the next phase) in
 `05-plan.md`. The data layer doesn't constrain the choice: `set_band_note` and the song update are independent
 calls, so a combined editor can save both.
+
+## Designer's answer (Nov 7 2026) · proposed, Eric decides
+
+Mockup: `design/demo/Song Page.html` (also on the design canvas as "Song page (proposal)"). It's the desktop demo
+with the song page added. The panel at the bottom left opens it from a setlist, Songs, search or a shared link.
+
+**1. One surface: option b.** The song page is where a song is edited, all of it. The title, artist and the four
+facts (tuning, key, BPM, length) edit in place. Tuning and key open their pickers anchored to the fact. Album, tags
+and links sit in a Details column on the right. Notes are the wide left column, edited in place as today. The
+**Edit song overlay goes away for existing songs.** It stays only as **Add song**, because adding needs the title
+first, the Spotify matches and "Also add to My Songs". On desktop, Add song should keep the sidebar too (see 5).
+This is the same model as the show page (edit in place, saves as you go). Jira, Linear and Notion all open an item
+as a page you edit, so people already know it (**Jakob's Law**). It also removes the "two edits that can't reach
+each other" problem instead of cross-linking it (option c just adds a hop).
+
+**2. The pane is a read-only preview.** Its job is to answer "which song is this?" without leaving the list. It
+gets an **Open** button. Its Edit, a click on a note, and "Full screen" (renamed **Open to edit**) all go to the
+page. Double-clicking a row or pressing Enter opens the page too. Below the pane breakpoint, a click opens the page
+(as built). Setlist rows get the same: an open icon on each song row and double-click.
+
+**3. One save model: each field saves itself.** Facts and details save on Enter, on blur, or on a pick, with a
+"‹Field› saved · Undo" toast. Title can't be emptied (it reverts with a toast). Notes keep an explicit **Done**,
+because they're long text (draft, then commit). ⌘↵ is Done and Esc cancels. Every save sends `version`. A conflict
+on a fact shows the latest value with a toast. A conflict on a note keeps your draft and asks "Show his / Keep
+mine" (the mockup shows this on the first Done of Monkey Wrench's band note).
+
+**4. Pane breakpoint.** Keep ≥1440 for the pane. The pane is now read-only, so it can be 400 px (480 at ≥1536).
+Fix the tuning row by not competing for width: on the list header, put the search on its own line above the chips
+when the pane is open, or collapse the chips into one **Tuning** filter chip with a menu (selected tunings show as
+its label). I'd take the menu. It also fixes "All tunings · +4".
+
+**5. Chrome: the sidebar stays everywhere on desktop**, the song page and Add song included. Only stage screens
+(chart reader, practice session, jam host) take the full window. The overlay hiding the sidebar was a leftover of
+the mobile full-screen route.
+
+**Back is named after where you came from**, and ‹ › (J / K) steps through that same list:
+
+| Opened from | Back says | ‹ › steps through | Extra |
+|---|---|---|---|
+| Songs (list or pane) | ← Songs | the list as sorted and filtered | — |
+| A setlist | ← ‹Fall Set› | the set's songs in order | the "In ‹Fall Set›" note layer appears first |
+| Search | ← Search "‹q›" | the results | — |
+| Used in, a show, a practice | ← ‹that item› | that item's songs | the set's note layer when it's a set |
+| A link, or a reload | ← Songs | nothing ("Opened from a link") | — |
+
+Put the origin in the URL so it survives a reload and can be shared: `/songs/:id?from=setlist:<id>` (or
+`from=search:<q>`, `from=show:<id>`). No `from` means Songs. Back is a link to the origin with its selection and
+scroll restored. It's not `history.back()`, so a deep link never leaves the app. Esc goes back when nothing is being
+edited.
+
+**Mobile changes little.** The song view is already a full-screen route with notes edited in place. Make its facts
+tappable the same way (each opens its existing sheet: tuning picker, circle of fifths, number pad), so the
+full-screen Edit form is also only Add song there. The back label follows the same table.
+
+**What this changes in DECISIONS:** "Song editor and song view" (the editor becomes Add song only; the view edits
+in place; one save model). Record it there if Eric agrees, then fold it into Phase 2's follow-up in 05-plan.
