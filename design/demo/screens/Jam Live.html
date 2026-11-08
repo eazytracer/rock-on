@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Jam live v2 (crowd-first)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<link rel="stylesheet" href="../../source/kit/jam.css">
+<style>
+.lh{display:flex;flex-direction:column;flex:1;min-width:0}.lh b{font-size:17px}.lh .r-m{color:var(--mu)}
+.hero{margin:0 12px 12px;padding:16px;border-radius:24px;background:var(--s1);box-shadow:var(--shg)}
+.hero .k{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.12em;color:var(--ty-evt)}
+.hero h4{font-family:var(--r-fd);font-weight:800;font-size:34px;text-transform:uppercase;line-height:.92;margin:6px 0 10px;color:var(--tx)}
+.pp{display:flex;gap:10px;overflow:hidden}
+.pp .p{flex-shrink:0;width:96px;padding:10px 8px;border-radius:18px;background:var(--s2);display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.pp .p .jav{width:44px;height:44px;font-size:16px}
+.pp .p b{font-size:14px}.pp .p small{font-size:11px;color:var(--mu);line-height:1.2}
+.pp .p em{font-style:normal;font-family:var(--r-fm);font-size:11px;color:var(--ty-evt);font-weight:700}
+.cv{display:flex;gap:10px;align-items:center;padding:12px 10px 12px 14px;border-bottom:1px solid var(--div)}.cv:last-child{border:0}
+.cv .g{flex:1;min-width:0}.cv .t{display:flex;align-items:center;gap:8px}.cv .t b{font-size:15.5px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv small{font-size:12.5px;color:var(--mu)}
+.cov{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap}.cov span{font-size:12px;font-weight:700;height:28px;padding:0 9px 0 4px;border-radius:14px;display:inline-flex;align-items:center;gap:5px;background:var(--s3);color:var(--tx)}
+.cov span .jav{width:20px;height:20px;font-size:10px;box-shadow:none;background:var(--bg)!important;color:var(--tx)}
+.cov span.no{background:none;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--tx2);padding:0 9px}
+.cov span.me{background:var(--acc);color:var(--onacc)}.cov span.me .jav{background:rgba(0,0,0,.2)!important;color:var(--onacc)}
+.cv .hb{width:48px;height:48px;border-radius:24px;background:var(--s2);display:grid;place-items:center;flex-shrink:0;color:var(--tx)}.cv .hb svg.i{width:22px;height:22px}
+.cv .hb.on{background:var(--acc);color:var(--onacc)}
+.one{font-family:var(--r-fm);font-size:10px;letter-spacing:.06em;color:var(--warn);margin-top:5px}
+.vs{display:flex;align-items:center;justify-content:center;gap:14px;padding:6px 16px 12px}
+.vs .s{display:flex;flex-direction:column;align-items:center;gap:4px}.vs .s .jav{width:60px;height:60px;font-size:22px}.vs .s b{font-size:15px}.vs .s small{font-size:12px;color:var(--mu)}
+.vs .x{font-family:var(--r-fd);font-weight:800;font-size:46px;color:var(--ty-evt);text-align:center;line-height:.85}.vs .x small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.1em;color:var(--mu);font-weight:500;margin-top:4px}
+.dock2{display:flex;gap:8px}
+.pitch{margin:0 0 10px;padding:14px;border-radius:18px;background:var(--s2)}
+.pitch .t{display:flex;align-items:center;gap:8px}.pitch .t b{flex:1;font-size:17px}
+.pitch .rw{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;border-top:1px solid var(--div)}.pitch .rw:first-of-type{border:0}.pitch .rw small{font-family:var(--r-fm);font-size:10px;color:var(--mu);width:56px}
+.pitch .rw.open{color:var(--mu)}
+.pk{display:flex;gap:10px;padding:12px 10px 12px 14px;border-bottom:1px solid var(--div);align-items:center}.pk:last-child{border:0}
+.pk .rk{width:28px;height:28px;border-radius:14px;background:var(--s3);display:grid;place-items:center;font-family:var(--r-fm);font-size:12px;font-weight:700;flex-shrink:0}
+.pk.top .rk{background:var(--acc);color:var(--onacc)}
+.pk .g{flex:1;min-width:0}.pk b{font-size:15.5px;display:block}.pk small{font-size:12px;color:var(--mu)}
+.pk .r-btn{height:44px;flex-shrink:0}
+.quiet{margin:0 12px 12px;padding:14px 16px;border-radius:20px;background:color-mix(in srgb,var(--warn) 12%,var(--s1));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--warn) 50%,transparent)}
+.quiet .k{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:var(--warn)}.quiet b{display:block;font-size:17px;margin:4px 0 2px}.quiet p{font-size:13.5px;color:var(--tx2);margin-bottom:10px}
+.quiet .r-btn{width:100%}
+.ns{margin:0 12px 10px;padding:12px 14px;border-radius:16px;background:var(--s1);display:flex;align-items:center;gap:10px;box-shadow:var(--shg)}
+.ns .g{flex:1}.ns b{display:block;font-size:15px}.ns small{font-size:12.5px;color:var(--mu)}.ns .r-btn{height:40px}
+.push{position:absolute;left:10px;right:10px;top:54px;z-index:6;background:var(--s2);border-radius:22px;padding:12px 14px;box-shadow:0 14px 40px rgba(0,0,0,.45);display:flex;gap:10px}
+.push .ap{width:36px;height:36px;border-radius:10px;background:#1a1512;display:grid;place-items:center;flex-shrink:0;color:#ff7a1a}.push .ap svg.i{width:20px;height:20px}
+.push .g{flex:1}.push small{font-family:var(--r-fm);font-size:10px;color:var(--mu);letter-spacing:.06em}.push b{display:block;font-size:14.5px;margin:2px 0}.push p{font-size:13px;color:var(--tx2)}
+.push .r-btns{display:flex;gap:6px;margin-top:8px}.push .r-btn{height:38px;font-size:13px}
+.dimmed{filter:brightness(.55)}
+.mk2{display:flex;align-items:center;gap:8px;padding:0 20px 10px;font-size:13px;color:var(--mu)}.mk2 .r-sw{margin-left:auto}
+.shr{display:flex;align-items:center;gap:12px;min-height:68px;padding:0 14px 0 16px;border-bottom:1px solid var(--div);cursor:pointer}.shr:last-child{border:0}.shr .g{flex:1;min-width:0}.shr b{display:block;font-size:15.5px}.shr small{font-size:12.5px;color:var(--mu)}.shr .rec{font-family:var(--r-fm);font-size:9.5px;letter-spacing:.08em;padding:2px 6px;border-radius:6px;background:var(--ty-evt);color:#1a0a2e;margin-left:6px;vertical-align:2px}.shr>svg.i{width:20px;height:20px;color:var(--mu)}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script src="../../source/kit/jam.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,sw,tp,grp,gl,item,sheet,srow,phone,tpl,backbar,title}=R,{ph,page}=Draft,J=Jam;
+const head=(r='')=>`<div class="r-ab">${ib('x')}<div class="lh"><b>Tuesday Open Jam</b><span class="r-m">${J.live()} · LUCKY'S · 23 HERE</span></div>${r||ib('share')}</div>`;
+const PARTS=['Vox','Gtr','Bass','Drums'];
+// songs: [title, artist, tun, {part:[names]} , iKnow]
+const SONGS=[
+ ['Plush','Stone Temple Pilots','std',{Vox:['Dana'],Gtr:['Tom','Eric'],Bass:['Ray'],Drums:[]},1],
+ ['Zombie','The Cranberries','std',{Vox:['Lena'],Gtr:['Eric'],Bass:['Dana'],Drums:['Kai']},1],
+ ['Black','Pearl Jam','std',{Vox:['Eric'],Gtr:['Tom'],Bass:[],Drums:['Kai']},1],
+ ['Creep','Radiohead','std',{Vox:[],Gtr:['Mo'],Bass:[],Drums:['Sam']},0],
+ ['Song 2','Blur','std',{Vox:[],Gtr:[],Bass:['Ray'],Drums:[]},1]];
+const fill=s=>PARTS.filter(p=>s[3][p].length).length;
+const covChips=(s,me)=>`<div class="cov">${PARTS.map(p=>{const w=s[3][p];const m=me&&w.includes(me);return `<span class="${m?'me':w.length?'':'no'}">${w.length?J.av(w[0]):''}${p}${w.length>1?' +'+(w.length-1):''}</span>`}).join('')}</div>`;
+const cvRow=(s,o={})=>{const f=fill(s);return `<div class="cv"><div class="g"><div class="t"><b>${s[0]}</b>${tp(s[2],'sm')}</div><small>${s[1]}${o.common?` · <b style="color:var(--ty-evt)">you both know it</b>`:''}</small>${covChips(s,o.me)}${f===3?`<div class="one">ONE PLAYER AWAY · NEEDS ${PARTS.find(p=>!s[3][p].length).toUpperCase()}</div>`:''}</div><span class="hb ${o.on&&o.on.includes(s[0])?'on':''}">${ic('hand')}</span></div>`};
+const sorted=[...SONGS].sort((a,b)=>fill(b)-fill(a));
+// 0 joining
+let SH=0;const shOpt=[['music','My jam songs','Personal setlist · 58 songs','REC'],['docs','All my songs','Every song in all your contexts · 142'],['people','iPod Shuffle','Band catalog · 42 songs'],['list','Another setlist…','Acoustic Sunday, Fall Set…']];
+const joinScr=()=>`${backbar('Cancel')}<div class="r-body"><div class="r-kick">${J.ty()} · LUCKY'S · LIVE</div><div class="r-d jt">Tuesday Open Jam</div><p class="sm" style="padding:0 20px 12px;margin:0">Pick which songs to share. Others see matches, not your whole list.</p>${gl('Share songs from')}${grp(shOpt.map(([i,t,sub,r],k)=>`<div class="shr" data-sh="${k}">${ic(i)}<div class="g"><b>${t}${r?'<span class="rec">SUGGESTED</span>':''}</b><small>${sub}</small></div><span class="r-radio ${SH===k?'on':''}"></span></div>`).join(''))}${gl('I play')}<div class="inss" style="padding:0 14px">${['Vocals','Guitar','Bass','Drums','Keys','Other'].map((x,i)=>`<span class="${i<2?'on':''}">${x}</span>`).join('')}</div><p class="sm" style="padding:12px 24px">Change either any time from your chip at the top of the jam.</p><div style="height:100px"></div></div><div class="r-dock">${btn('Join jam',{kind:'pri',size:'lg'}).replace('r-btn pri','r-btn pri w')}</div>`;
+const noList=`${joinScr()}${sheet({title:'Make a jam list?',sub:'Songs you\'re happy to noodle on, beyond what your band plays. Stays yours; reuse it at every jam.',body:srow({icon:'plus',label:'Start from all my songs',sub:'Untick what you\'d rather not play'})+srow({icon:'search',label:'Pick songs one by one'}),buttons:btn('Skip, share all',{size:'lg'})+btn('Make it',{kind:'pri',size:'lg'})})}`;
+// 1 guest home
+const gHome=`${head()}<div class="r-body"><div class="hero"><div class="k">FIND SOMEONE TO PLAY WITH</div><h4>8 people here know your songs</h4><div class="pp">${[['Dana','Bass, Vox',8],['Ray','Bass',6],['Kai','Drums',5],['Lena','Vox, Gtr',4]].map(([n,p,c])=>`<div class="p">${J.av(n)}<b>${n}</b><small>${p}</small><em>${c} IN COMMON</em></div>`).join('')}</div></div>
+${gl('Songs the room can cover',{label:'MINE ONLY'})}${grp(sorted.slice(0,4).map(s=>cvRow(s,{me:'Eric',on:['Black']})).join(''))}<div style="height:110px"></div></div><div class="r-dock">${btn('Pitch a song',{kind:'pri',size:'lg',icon:'plus'}).replace('r-btn pri','r-btn pri w')}</div>`;
+const handS=Rock.sheet({title:'Raise your hand · Black',sub:'Pearl Jam · open: Vox, Bass. Pick every part you\'d play.',body:`<div style="display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 6px">${[['Vox',1,1],['Gtr',1,0],['Bass',1,1],['Drums',0,0],['Keys',0,0]].map(([p,mine,on])=>`<span data-hp style="height:48px;padding:0 18px;border-radius:24px;display:flex;align-items:center;gap:6px;font-weight:700;font-size:15px;cursor:pointer;${on?'background:var(--acc);color:var(--onacc)':mine?'background:var(--s2);color:var(--tx)':'background:none;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--tx2)'}">${p}${p==='Gtr'?' <small style="font-weight:500;opacity:.7">· taken</small>':''}</span>`).join('')}</div><div class="r-m r-muted" style="margin:8px 2px 2px">YOUR PARTS ARE FIRST · ANY PART CAN BE PICKED</div>`,buttons:Rock.btn('Cancel',{size:'lg'})+Rock.btn('Raise hand · 2 parts',{kind:'pri',size:'lg',icon:'hand'})});
+// 2 compare with Dana
+const cmp=`${backbar('Tonight')}<div class="r-body"><div class="vs"><div class="s">${J.av('Eric')}<b>You</b><small>Gtr, Vox</small></div><div class="x">8<small>IN COMMON</small></div><div class="s">${J.av('Dana')}<b>Dana</b><small>Bass, Vox</small></div></div>
+<div style="padding:0 14px 10px">${seg(['In common 8','Only you 34','Only Dana 21'],0)}</div>
+${grp(sorted.slice(0,3).map(s=>cvRow(s,{me:'Eric',common:true})).join(''))}<div style="height:110px"></div></div><div class="r-dock dock2">${btn('Say hi',{size:'lg',icon:'hand'})}${btn('Pitch one together',{kind:'pri',size:'lg',icon:'plus'}).replace('r-btn pri','r-btn pri w')}</div>`;
+// 3 pitch sheet
+const pitchS=`${cmp}${sheet({title:'Pitch to the host',sub:'Others who know it can jump on. The host picks from the pitches.',body:`<div class="pitch"><div class="t"><b>Plush</b>${tp('std','sm')}</div><div class="rw"><small>VOX</small>${J.av('Dana',22)} Dana</div><div class="rw"><small>GTR</small>${J.av('Eric',22)} You</div><div class="rw open"><small>BASS</small>Open · Ray knows it</div><div class="rw open"><small>DRUMS</small>Open · 2 drummers here know it</div></div>`,buttons:btn('Cancel',{size:'lg'})+btn('Send pitch',{kind:'pri',size:'lg'})})}`;
+// 4 host board
+const pk=(s,i)=>`<div class="pk ${i===0?'top':''}"><span class="rk">${i+1}</span><div class="g"><b>${s[0]}</b><small>${fill(s)} of 4 parts · ${Object.values(s[3]).flat().length} hands</small>${covChips(s)}</div>${btn(i===0?'Call up':'Call',{kind:i===0?'pri':''})}</div>`;
+const host=`${head(ib('moreh'))}<div class="tabs3">${seg(['Pitches 5','People 23','Played 4'],0)}</div><div class="r-body"><div class="mk2">${ic('list','width:16px;height:16px')}Mark songs as played<span>${sw(false)}</span></div>${gl('Most covered first')}${grp(sorted.map(pk).join(''))}<div style="height:30px"></div></div>`;
+// 5 quiet stage
+const quiet=`${head(ib('moreh'))}<div class="tabs3">${seg(['Pitches 2','People 23','Played 4'],0)}</div><div class="r-body"><div class="quiet"><div class="k">STAGE IS QUIET</div><b>No one's up next</b><p>3 songs are one player away. Ask the room, and people who know them get a nudge.</p>${btn('Nudge the room',{kind:'pri',size:'lg',icon:'bell'})}</div>
+${gl('One player away')}${grp([['Plush','a drummer','Drums',2],['Black','a bassist','Bass',3],['Zombie','a singer','Vox',1]].map(([t,n,p,c])=>`<div class="ns"><div class="g"><b>${t} needs ${n}</b><small>${c} ${p.toLowerCase()} players here know it</small></div>${btn('Ask',{icon:'bell'})}</div>`).join('').replace(/<div class="ns">/g,'<div class="ns" style="margin:0;box-shadow:none;border-bottom:1px solid var(--div);border-radius:0">'))}</div>`;
+// 6 guest nudge
+document.addEventListener('click',e=>{const h=document.querySelector('[data-js]');if(!h||!h.contains(e.target))return;const r=e.target.closest('[data-sh]');if(r){SH=+r.dataset.sh;h.innerHTML=phone(joinScr())}});
+const nudge=`<div class="dimmed" style="display:contents">${gHome}</div><div class="push"><span class="ap">${ic('hand')}</span><div class="g"><small>ROCK ON · LUCKY'S · NOW</small><b>Plush needs a drummer</b><p>You know it. Dana, Eric and Ray are ready.</p><div class="r-btns">${btn('I\'m in',{kind:'pri',icon:'hand'})}${btn('Not now')}</div></div></div>`;
+// 7 web guest
+const web=`<div class="web"><div class="wurl">${ic('lock')}rockon.band/j/LUCK-42</div><div class="wbody"><div class="r-kick" style="padding:0">${J.live()} · LUCKY'S</div><div class="r-d jt" style="padding:4px 0 6px">Tuesday Open Jam</div><div class="me" style="margin:0 0 10px">${ic('user')}<span>You're <b>Frank</b> · Vocals, Harp</span></div>
+<div style="font-size:14px;font-weight:700;margin:4px 0 6px">Know one of these? Raise a hand.</div><div style="margin:0 -18px">${grp(sorted.slice(0,3).map(s=>cvRow(s,{})).join(''))}</div>${btn('Pitch a song',{kind:'pri',size:'lg',icon:'plus'}).replace('r-btn pri','r-btn pri w')}<div class="wsign">With the app, see who knows your songs. <b>Sign up free</b></div></div></div>`;
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Jam live v2 · crowd-first · locked Oct 31 2026 · to test',h:'Get people <span>up</span>.',
+ lede:'Second pass, from your notes. The live jam belongs to the room, not the host. Guests find each other, compare songs, and <b>pitch</b> songs with parts filled. The host picks from pitches ranked by coverage. When the stage goes quiet, the host nudges the people who can fill the gap. Nothing has to be logged: songs that never touch the app are fine.',
+ notes:[['You choose what to share','Joining asks which songs to share: a jam list (suggested), all your songs, a band\'s, or any setlist. Matches come only from that (<b>Tesler\'s Law</b>, privacy by default).'],['Peer to peer first','The guest home leads with people here who know your songs, then songs the room can cover. Tap a person to compare catalogs (<b>Law of Common Region</b>, <b>Goal-Gradient</b>).'],['Coverage rises','Every song shows its parts as chips: filled with who, outlined if open. More signed up = higher on the list. "One player away" gets a yellow line (<b>Von Restorff</b>).'],['A formal raised hand','The hand button is the whole interaction: raise it on a song, or Pitch one with who\'s on what. The host still decides out loud (<b>Hick\'s Law</b>, <b>Tesler\'s Law</b>).'],['Unstick the stage','The host\'s quiet-stage card lists songs one player away. Ask nudges only the people who know that song and play that part. No running order, and marking songs played is optional (<b>Pareto</b>, <b>Postel\'s Law</b>).']],
+ rows:[[`<div class="ph"><div class="cap">0 · Joining · try it</div><div class="capd">Before you're in: which songs to share and what you play. <b>My jam songs</b> is suggested: a personal setlist of what you\'ll happily play, usually more than your band\'s set. Tap to choose.</div><div data-js>${phone(joinScr())}</div></div>`,ph('0b · No jam list yet','If you don\'t have one, a one-time offer to make it, starting from all your songs. Skip shares everything.',noList),ph('1 · Guest · tonight','People who know your songs, with counts. Below, songs the room can cover, sorted by parts filled. Your hand on Black is raised; your parts show orange.',gHome),
+ ph('1b · Raise a hand · pick parts','Tapping a hand asks which parts, because lots of people play more than one. Open parts you play are preselected; tap any to toggle. The host sees every part you offered.',gHome+handS),
+ ph('2 · Compare with Dana','You vs Dana, from the songs each of you chose to share: in common, only you, only Dana. Say hi (a wave, no chat), or Pitch one together.',cmp),
+ ph('3 · Pitch a song','The two of you on your parts, and who else here knows it for the open ones. Send puts it in front of the host and the room.',pitchS),
+ ph('4 · Host · pitches','Ranked by coverage. Call up the top one, or any. Mark as played is off by default: the host doesn\'t have to track the night.',host)],
+ [ph('5 · Host · quiet stage','When nothing\'s pitched or called for a while (or the host taps it), this card appears. Nudge the room, or Ask for one part on one song.',quiet),
+ ph('6 · Guest · nudged','Only people who know Plush and play drums get it. I\'m in raises their hand; the pitch fills.',nudge),
+ ph('7 · Web guest','No catalog, so no compare. Raise a hand on what the room can cover, or pitch a song. The app is offered for the compare feature.',web)]]});
+document.addEventListener('click',e=>{const p=e.target.closest('[data-hp]');if(!p)return;const on=p.style.background.includes('acc');p.style.background=on?'var(--s2)':'var(--acc)';p.style.color=on?'var(--tx)':'var(--onacc)';p.style.boxShadow='none'});
+})();
+</script>
+</body>
+</html>

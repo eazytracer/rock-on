@@ -100,7 +100,7 @@ mono: ['"Martian Mono"', 'ui-monospace', 'monospace'],   // meta, labels, times,
 
 Scale used across the demos: display H1 50 px (mobile) / 46 px (desktop header), H2 36–40, card titles 30–34;
 UI body 16 (never under 13), row titles 15–16, captions 12.5; mono labels 10.5 px, `letter-spacing: .12em`, uppercase.
-For the PWA, self-host the three families once the screens settle (offline at gigs).
+Self-host the three families in production (fewer third-party requests; the native apps bundle them).
 
 ## 6. Shape, space, motion
 
@@ -111,19 +111,21 @@ For the PWA, self-host the three families once the screens settle (offline at gi
 - Press feedback (kit-wide): a single 320 ms accent fade on the pressed control, no `:active` flash on nodes that re-render.
 - Content shorter than the viewport is centred vertically (editors, empty states); lists stay top-aligned.
 
-## 7. Tuning colour spine
+## 7. Tuning colours
 
-Replace "Palette A" in `src/utils/tunings.ts` with the pitch-ordered OKLCH spine from `source/kit/rock.js`
-(`SPINE`, `okhex`, `customTuning`): low tunings are deep magenta, Standard is bright lime, and each tuning has
-a dark and a light value. It skips brand orange and danger red.
+**Decided Nov 7 (DECISIONS → Part A · 1): keep today's Palette A, nudge two hues.** Bands' muscle memory wins over
+the pitch-ordered spine. In `src/utils/tunings.ts` (`CANONICAL_TUNINGS`):
 
-- Port `okhex` (OKLCH → sRGB hex with gamut clipping) and `SPINE` verbatim; map ids:
-  `standard→std`, `half-step-down→half`, `whole-step-down→whole`, `drop-d→dd`, `drop-db→ddb`, `drop-c→dc`,
-  `drop-b→db`, `open-g→og`, `open-d→od`, `dadgad→dad`, plus **C Standard** (`cstd`, the lowest built-in).
-- Pills read the way players say it: `E STD`, `E♭ STD`, `D DROP`, `C STD`; 7-string and 5-string bass add a
-  superscript string count (`B STD⁷`, `A DROP⁷`). Colour **and** name, always.
-- Custom tunings (the `tunings` table already has `color`): default colour = `customTuning(pitches)` from the
-  MIDI sum; the user can override with one of 12 picks.
+- **Drop D** `#f97316` → `#84cc16` (lime). Orange read as the band accent.
+- **Drop C** `#ef4444` → `#d946ef` (fuchsia). Red read as danger.
+- Add **C Standard** (`cstd`, the lowest built-in) at `#8b5cf6` (violet).
+- Add a **light value** per tuning (the Tailwind 700 shade) for `[data-theme='light']`. The full table is in `design/source/DECISIONS.md`; the kit has it as `PALETTE` in `design/source/kit/rock.js`.
+
+The rest:
+
+- `SPINE` still sets the **order** (low to high pitch) of tunings in pickers and filter chips. `okhex` isn't needed in the app.
+- Pills read the way players say it: `E STD`, `E♭ STD`, `D DROP`, `C STD`. 7-string and 5-string bass add a superscript string count (`B STD⁷`, `A DROP⁷`). Always colour **and** name.
+- Custom tunings (the `tunings` table already has `color`): the user picks from 12 swatches. The picker opens on the first swatch not used by a built-in or another custom tuning in that context.
 - The pill: tinted fill `color-mix(in oklch, <tuning> 16%, var(--s1))`, label in the tuning colour, mono 11.5 px bold.
 
 ## 8. Icons

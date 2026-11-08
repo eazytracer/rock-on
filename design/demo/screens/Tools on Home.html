@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Tools on Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<style>
+.tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 12px 12px}
+.tools span{height:84px;border-radius:20px;background:var(--s1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:13.5px;font-weight:700;color:var(--tx);box-shadow:var(--shg)}
+.tools span svg.i{width:26px;height:26px;color:var(--accink);stroke-width:1.9}
+.tools span small{font-family:var(--r-fm);font-size:10px;font-weight:500;color:var(--mu);margin-top:-6px}
+.card{margin:0 12px 10px;background:var(--s1);border-radius:var(--r-md);padding:16px;box-shadow:var(--shg)}
+.card .k{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.12em;color:var(--mu);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.card .k .cd{margin-left:auto;color:var(--accink)}
+.card h4{font-family:var(--r-fd);font-size:30px;font-weight:800;text-transform:uppercase;line-height:.95;margin:8px 0 6px;color:var(--tx)}
+.card .ln{font-size:14px;color:var(--tx2);display:flex;gap:8px;align-items:center;margin-top:4px}.card .ln svg.i{width:15px;height:15px;color:var(--mu)}
+.ok{display:inline-flex;align-items:center;gap:5px;color:var(--ok);font-family:var(--r-fm);font-size:10.5px;letter-spacing:.08em}.ok i{width:7px;height:7px;border-radius:4px;background:currentColor;display:block}
+.qa{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 12px 12px}
+.qa span{height:64px;border-radius:16px;background:var(--s1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--tx2);text-align:center;line-height:1.15;box-shadow:var(--shg)}
+.qa span svg.i{width:18px;height:18px;color:var(--mu)}
+.tt{padding:0 14px 10px}
+.roots{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding:0 14px 8px}
+.roots span,.quals span{height:44px;border-radius:12px;background:var(--s2);display:grid;place-items:center;font-family:var(--r-fm);font-weight:700;font-size:14px;cursor:pointer;color:var(--tx2)}
+.roots span.on,.quals span.on{background:var(--tx);color:var(--bg)}
+.quals{display:flex;gap:6px;padding:0 14px 10px;overflow-x:auto;scrollbar-width:none}.quals span{padding:0 12px;flex-shrink:0;font-size:13px}
+.chc{margin:4px 14px 0;background:var(--s1);border-radius:24px;padding:12px 16px 16px;display:flex;flex-direction:column;align-items:center;box-shadow:var(--shg)}
+.chc b{font-family:var(--r-fm);font-size:34px;color:var(--chord)}
+.dg{width:200px;height:auto;stroke:var(--mu);stroke-width:1.6;fill:none}.dg .dot{fill:var(--acc);stroke:none}.dg .op{stroke:var(--tx);stroke-width:1.8}.dg .mk{fill:var(--mu);stroke:none;font:600 15px 'Atkinson Hyperlegible Next';text-anchor:middle}.dg .fr{fill:var(--tx2);stroke:none;font:500 11px 'Martian Mono'}
+.chc .cf{font-family:var(--r-fm);font-size:13px;letter-spacing:.12em;color:var(--tx2);margin:2px 0 12px}
+.chc .r-btn{width:100%}
+.nod{font-size:13px;color:var(--mu);padding:30px 0}
+.bandc{margin:0 12px 10px;background:var(--s1);border-radius:var(--r-md);padding:16px;box-shadow:var(--shg)}
+.bandc .t{display:flex;align-items:center;gap:12px}.bandc .t i.b{width:48px;height:48px;border-radius:14px;background:var(--acc);color:var(--onacc);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:16px}
+.bandc .t b{display:block;font-size:19px}.bandc .t small{font-size:13px;color:var(--mu)}
+.bandc .row2{display:flex;align-items:center;margin-top:14px;gap:10px}.bandc .row2 .r-btn{margin-left:auto}
+.ver{text-align:center;font-family:var(--r-fm);font-size:10.5px;color:var(--mu);padding:8px 0 20px}
+.r-item .cnt{font-family:var(--r-fm);font-size:11px;background:var(--acc);color:var(--onacc);border-radius:9px;padding:2px 7px;margin-right:4px}
+.mini{display:flex;flex-direction:column;align-items:center;gap:6px;padding:30px 0 10px}
+.mini b{font-family:var(--r-fd);font-weight:800;font-size:120px;line-height:.85;color:#ffd166}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,grp,gl,item,phone,tpl,appbar,backbar,title,nav,T,NOTES:N}=R,{ph,page}=Draft;
+const av=(ini)=>`<span class="av" style="background:var(--s3);color:var(--tx)">${ini}</span>`;
+const TOOLS=`<div class="tools">${[['fork','Tuner','E STD'],['metro','Metronome','124 BPM'],['chordbox','Chords','Lookup']].map(([i,l,s])=>`<span>${ic(i)}${l}<small>${s}</small></span>`).join('')}</div>`;
+const showCard=`<div class="card"><div class="k">Next show<span class="ok"><i></i>CONFIRMED</span><span class="cd">IN 6 DAYS</span></div><h4>Fall Kickoff</h4><div class="ln">${ic('cal')}Sat, Nov 7 · 8:30 PM</div><div class="ln">${ic('home')}The Crocodile</div></div>`;
+const pracCard=`<div class="card"><div class="k">Next practice<span class="cd">IN 4 DAYS</span></div><h4 style="font-size:26px">Thursday run</h4><div class="ln">${ic('clock')}Thu, Nov 5 · 7:00 PM · Mike's Garage</div></div>`;
+const bar=appbar({right:ib('search')+ib('bell',{badge:true})});
+const home=tpl.list({title:'Home',body:showCard+pracCard+gl('Tools')+TOOLS+gl('Quick actions')+`<div class="qa">${[['music','Add song'],['list','New setlist'],['clock','Schedule practice'],['cal','Book show']].map(([i,l])=>`<span>${ic(i)}${l}</span>`).join('')}</div><div style="height:110px"></div>`,nav:0}).replace(appbar({}),bar);
+const homeP=tpl.list({title:'Home',body:gl('Tools')+TOOLS+gl('Recently played')+grp(R.row(R.SONGS.bl,{compact:true,view:{links:false}})+R.row(R.SONGS.ev,{compact:true,view:{links:false}}))+'<div style="height:110px"></div>',nav:0}).replace(appbar({}),appbar({ctxName:'Personal',ctxIni:'E',right:ib('search')+ib('bell')}));
+// chords lookup
+const IDX={};N.forEach((n,i)=>IDX[n]=i);
+const SH={C:'x32010',D:'xx0232',E:'022100',G:'320003',A:'x02220',Am:'x02210',Em:'022000',Dm:'xx0231',E7:'020100',A7:'x02020',D7:'xx0212',G7:'320001',B7:'x21202',C7:'x32310',F:'133211',Bm:'x24432',Fmaj7:'xx3210',Cadd9:'x32033',Dsus4:'xx0233',Asus2:'x02200',Am7:'x02010',Em7:'020000',Dsus2:'xx0230',Esus4:'022200',Cmaj7:'x32000',Gmaj7:'320002',Amaj7:'x02120',Dmaj7:'xx0222',Asus4:'x02230',Dm7:'xx0211'};
+const EQ={'C♯':'D♭','D♭':'C♯','E♭':'D♯','F♯':'G♭','A♭':'G♯','B♭':'A♯'};
+const shapeFor=ch=>{if(SH[ch])return {f:SH[ch].split('').map(x=>x==='x'?-1:+x)};const m=ch.match(/^([A-G][♯♭]?)(.*)$/);const q=m[2],r=IDX[m[1]];const fe=(r-4+12)%12||12,fa=(r-9+12)%12||12;
+ const E={'':[0,2,2,1,0,0],m:[0,2,2,0,0,0],'7':[0,2,0,1,0,0],m7:[0,2,0,0,0,0],maj7:[0,2,1,1,0,0],sus4:[0,2,2,2,0,0]},A={'':[-9,0,2,2,2,0],m:[-9,0,2,2,1,0],'7':[-9,0,2,0,2,0],m7:[-9,0,2,0,1,0],maj7:[-9,0,2,1,2,0],sus4:[-9,0,2,2,3,0],sus2:[-9,0,2,2,0,0]};
+ const ok=(q in E)||(q in A);if(!ok)return null;const useA=(q in A)&&(!(q in E)||fa<fe);const b=useA?fa:fe,p=(useA?A:E)[q];return {f:p.map(x=>x<-1?-1:x+b),barre:b}};
+const diagram=ch=>{const sh=shapeFor(ch);if(!sh)return '<div class="nod">No diagram yet</div>';const f=sh.f,pos=f.filter(x=>x>0);const hi=Math.max(...pos,0),lo=Math.min(...pos);const base=hi<=4?1:lo;
+ const x0=30,y0=30,sw=22,fh=26,X=i=>x0+i*sw,Y=n=>y0+(n-base+.5)*fh;let g='';
+ for(let i=0;i<6;i++)g+=`<line x1="${X(i)}" y1="${y0}" x2="${X(i)}" y2="${y0+5*fh}"/>`;
+ for(let n=0;n<=5;n++)g+=`<line x1="${X(0)}" y1="${y0+n*fh}" x2="${X(5)}" y2="${y0+n*fh}" ${n===0&&base===1?'stroke-width="5"':''}/>`;
+ if(base>1)g+=`<text x="${x0-8}" y="${Y(base)+4}" class="fr" text-anchor="end">${base}fr</text>`;
+ if(sh.barre&&sh.barre>=base){const bi=f.findIndex(x=>x===sh.barre);g+=`<rect x="${X(bi)-8}" y="${Y(sh.barre)-8}" width="${X(5)-X(bi)+16}" height="16" rx="8" class="dot"/>`}
+ f.forEach((v,i)=>{if(v<0)g+=`<text x="${X(i)}" y="${y0-10}" class="mk">×</text>`;else if(v===0)g+=`<circle cx="${X(i)}" cy="${y0-14}" r="5" class="op"/>`;else if(!(sh.barre&&v===sh.barre))g+=`<circle cx="${X(i)}" cy="${Y(v)}" r="8" class="dot"/>`});
+ return `<svg viewBox="0 0 154 170" class="dg">${g}</svg>`};
+const Q=[['','Major'],['m','Minor'],['7','7'],['m7','m7'],['maj7','maj7'],['sus2','sus2'],['sus4','sus4']];
+let CR='G',CQ='';
+const toolsScr=(tab)=>{const ch=CR+CQ;const sh=shapeFor(ch);
+ const body=tab===2?`<div class="roots">${N.map(n=>`<span data-r="${n}" class="${n===CR?'on':''}">${n}</span>`).join('')}</div><div class="quals">${Q.map(([q,l])=>`<span data-q="${q}" class="${q===CQ?'on':''}">${l}</span>`).join('')}</div><div class="chc"><b>${ch}</b>${diagram(ch)}<div class="cf">${sh?sh.f.map(v=>v<0?'x':v).join(' '):''}</div>${btn('Play '+ch,{kind:'pri',size:'lg',icon:'audio'})}</div>`
+ :`<div class="mini"><b>A</b><span class="r-m r-muted">THE LOCKED TUNER · source/Sound Tools</span></div>`;
+ return `${backbar('Home')}<div class="tt">${seg(['Tuner','Metronome','Chords'],tab)}</div><div class="r-body">${body}</div>`};
+const more=`${appbar({right:ib('moon',{attr:'data-thm title="Dark / light"'})+ib('bell',{badge:true})})}${title('More')}<div class="r-body">${gl('Band')}<div class="bandc" style="margin-bottom:0;border-radius:var(--r-md) var(--r-md) 0 0;box-shadow:none"><div class="t"><i class="b">iP</i><div><b>iPod Shuffle</b><small>Owner · 3 members · since Mar 2025</small></div></div></div><div class="r-grp" style="border-radius:0 0 var(--r-md) var(--r-md)">${item({lead:`<div class="avs">${av('E')}${av('M')}${av('S')}</div>`,title:'Members',sub:'Roles, invite, remove',trail:'chev'})+item({lead:ic('star','color:var(--mu)'),title:'Band profile',sub:'Mark, genres, location, links',trail:'chev'})+item({lead:ic('share','color:var(--mu)'),title:'Invite',sub:'Code ROCK-7Q4X',trail:'chev'})}</div>${gl('You')}
+${grp(item({lead:av('E'),title:'Eric Johnson',sub:'Guitar, vocals · Owner',trail:'chev'}))}
+${grp(item({lead:ic('star','color:var(--mu)'),title:'Jam',trail:'chev'})+item({lead:ic('people','color:var(--mu)'),title:'Friends',trail:'chev'}).replace('<span class="tr">','<span class="cnt">2</span><span class="tr">'))}
+${grp(item({lead:ic('gear','color:var(--mu)'),title:'Settings',trail:'chev'})+item({lead:ic('doc','color:var(--mu)'),title:'Help & feedback',trail:'open'})+item({lead:ic('out','color:var(--mu)'),title:'Sign out'}))}<div class="ver">ROCK ON 0.9.4 (212)</div></div>${nav(4)}`;
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Tools on Home · locked Oct 31 2026',h:'Tools at <span>hand</span>.',
+ lede:'Tuner, Metronome and Chords get a row on Home and one Tools screen with three tabs. They still open in context too: retune lines, Tune now in practice, and the chart\'s chord viewer. More loses Events (it\'s a Calendar filter) and Band members (the band card\'s Manage band).',
+ notes:[['One tap from Home','Three big tiles under the next practice, each with a live hint: your current tuning, the last BPM, "Lookup". Tuning up is part of "what\'s next" (<b>Fitts\'s Law</b>, <b>Jakob\'s Law</b>).'],['One Tools screen','Tuner | Metronome | Chords as tabs, so switching mid-setup is one tap. A tile opens its tab. No sixth nav tab (<b>Hick\'s Law</b>).'],['Chords lookup','Pick a root and a type; the same diagram card as the chart viewer, with Play. Common open shapes first, barre shapes worked out for the rest (<b>Law of Similarity</b>).'],['A shorter More','Band card, you, Jam, Friends, then Settings, Help, Sign out. Seven rows down to six, with no duplicates of Calendar or the band card (<b>Occam\'s Razor</b>).']],
+ rows:[[ph('1 · Home · band','Tools sit between the practice card and Quick actions: always visible, never above what\'s next.',home),
+ ph('2 · Home · Personal','For the solo player, Tools lead the page, followed by recently played songs.',homeP,{ctx:'personal'}),
+ `<div class="ph"><div class="cap">3 · Tools · Chords · try it</div><div class="capd">Tap a root and a type. The diagram, fingering and Play update. Same card as the chart's chord viewer.</div><div data-tl>${phone(toolsScr(2))}</div></div>`,
+ ph('4 · More, trimmed','Sun / moon top right switches dark and light (try it). <b>Band</b> section: the band card, Members, Band profile, Invite. Then you, Jam, Friends, Settings.',more)]]});
+document.addEventListener('click',e=>{const h=document.querySelector('[data-tl]');if(!h||!h.contains(e.target))return;const r=e.target.closest('[data-r]'),q=e.target.closest('[data-q]');if(r)CR=r.dataset.r;else if(q)CQ=q.dataset.q;else{const t=e.target.closest('.r-seg span');if(!t)return;const i=[...t.parentNode.children].indexOf(t);h.innerHTML=phone(toolsScr(i));return}h.innerHTML=phone(toolsScr(2))});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-thm]');if(!b)return;const r=b.closest('.r');const l=r.dataset.theme==='light';if(l)delete r.dataset.theme;else r.dataset.theme='light';b.innerHTML=Rock.ic(l?'moon':'sun')});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Band &amp; friends</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<style>
+.mem .r-item{min-height:68px}
+.mem .r-item small{white-space:normal;line-height:1.4}
+.mem .r-item small em{font-style:normal;color:var(--tx2)}
+.hdr{padding:0 20px 14px;font-size:14.5px;color:var(--tx2)}
+.hdr .r-m{display:block;margin-top:6px}
+.inv{padding:14px 16px}
+.inv .k{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:var(--mu)}
+.inv .code{font-family:var(--r-fm);font-size:28px;letter-spacing:.2em;color:var(--tx);margin:4px 0 12px}
+.inv .acts{display:flex;gap:8px}.inv .acts .r-btn{flex:1}
+.lnk2{display:flex;align-items:center;gap:8px;background:var(--s2);border-radius:14px;height:48px;padding:0 6px 0 14px;font-family:var(--r-fm);font-size:12px;color:var(--tx2);margin-bottom:10px}
+.lnk2 span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lnk2 .r-btn{height:36px;font-size:13px}
+.qrw{display:flex;justify-content:center;padding:14px 0 18px}
+.qrw .qr{width:170px;height:170px;border-radius:10px;background-color:#fff;background-image:linear-gradient(45deg,#111 25%,transparent 25%,transparent 75%,#111 75%),linear-gradient(45deg,#111 25%,transparent 25%,transparent 75%,#111 75%);background-size:22px 22px;background-position:0 0,11px 11px;box-shadow:0 0 0 10px #fff;display:grid;place-items:center}
+.qrw .qr i{width:44px;height:44px;border-radius:12px;background:var(--acc);color:var(--onacc);font-style:normal;font-weight:800;display:grid;place-items:center}
+.prev{display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 20px 0;gap:8px}
+.prev i.b{width:84px;height:84px;border-radius:24px;background:var(--acc);color:var(--onacc);font-style:normal;font-weight:900;font-size:30px;display:grid;place-items:center}
+.prev p{font-size:15px;color:var(--tx2);max-width:300px}
+.prev .avs .av{width:40px;height:40px;font-size:14px}
+.solo{margin:0 12px 12px;border-radius:var(--r-md);padding:18px 16px;background:var(--s1);box-shadow:inset 0 0 0 2px var(--acc)}
+.solo b{display:block;font-size:18px}.solo p{font-size:14px;color:var(--tx2);margin:4px 0 12px}
+.solo .acts{display:flex;gap:8px}
+.typed{background:var(--s2);border-radius:14px;padding:12px 14px;font-family:var(--r-fm);font-size:15px;margin:10px 0 4px;box-shadow:inset 0 0 0 2px var(--acc)}
+.fcode{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.fcode .g{flex:1}.fcode .k{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:var(--mu)}
+.fcode .c{font-family:var(--r-fm);font-size:22px;letter-spacing:.16em;margin-top:2px}
+.rq .r-item .ac{display:flex;gap:6px}.rq .r-item .ac .r-btn{height:36px;font-size:13px;padding:0 12px}
+.priv .r-item{min-height:56px}
+.cb{display:flex;flex-direction:column;align-items:center;gap:12px;padding:26px 20px 18px}
+.cb .mk{width:104px;height:104px;border-radius:30px;background:#ff7a1a;color:#1a0c02;display:grid;place-items:center;font-family:var(--r-fd);font-weight:900;font-size:44px;text-transform:uppercase;position:relative}
+.cb .mk .ed{position:absolute;right:-6px;bottom:-6px;width:34px;height:34px;border-radius:17px;background:var(--s3);color:var(--tx);display:grid;place-items:center;box-shadow:0 0 0 3px var(--bg)}.cb .mk .ed svg.i{width:16px;height:16px}
+.cb .nm{width:100%;text-align:center;font-family:var(--r-fd);font-weight:800;font-size:38px;text-transform:uppercase;color:var(--tx);border-bottom:2px solid var(--acc);padding:4px 0 6px;display:flex;justify-content:center;align-items:center}
+.cb small{font-size:12.5px;color:var(--mu)}
+.opt .r-item{min-height:56px}
+.gch{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px}
+.gch span{height:36px;padding:0 12px;border-radius:18px;background:var(--s2);display:flex;align-items:center;font-weight:600;font-size:13.5px}
+.gch span.on{background:var(--tx);color:var(--bg)}
+.gch span.add{background:none;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--mu)}
+.desc{padding:12px 16px;font-size:14.5px;color:var(--mu);min-height:70px}
+.fut{display:flex;align-items:center;gap:12px;padding:12px 16px;opacity:.55}
+.fut .g{flex:1}.fut b{display:block;font-size:15px}.fut small{font-size:12.5px;color:var(--mu)}
+.fut .tg{font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;padding:3px 7px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--line);color:var(--mu)}
+.mp .pv{display:grid;place-items:center;padding:6px 0 14px}
+.mp .pv i{width:88px;height:88px;border-radius:26px;display:grid;place-items:center;font-style:normal;font-size:38px}
+.sw8{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:6px 0 14px}
+.sw8 span{aspect-ratio:1;border-radius:12px}.sw8 span.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--tx)}
+.fnt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.fnt span{height:58px;border-radius:14px;background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:22px;color:var(--tx)}
+.fnt span small{font-family:var(--r-fu);font-size:10.5px;color:var(--mu);font-weight:600}
+.fnt span.on{box-shadow:inset 0 0 0 2px var(--acc)}
+.icg{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:6px}
+.icg span{aspect-ratio:1;border-radius:12px;background:var(--s2);display:grid;place-items:center}.icg span svg.i{width:20px;height:20px}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,sw,grp,gl,item,fld,srow,sheet,dialog,banner,phone,tpl,backbar,title,T}=R,{ph,page}=Draft;
+const av=(ini,k)=>`<span class="av" style="background:${T[k].dark}">${ini}</span>`;
+const role=(r)=>r?`<span class="role ${r==='OWNER'?'own':''}">${r}</span>`:'';
+const mrow=(ini,k,n,r,ins,j,em)=>item({lead:av(ini,k),title:n+role(r),sub:`<em>${ins}</em> · joined ${j}${em?`<br>${em}`:''}`,trail:'moreh'});
+const members=(o={})=>`${backbar('More',ib('moreh'))}<div class="r-body"><div class="r-kick">Band · since Mar 2025</div><div class="r-d" style="font-size:52px;padding:6px 20px 8px">iPod Shuffle</div><div class="hdr">Grunge and 2000s covers around Seattle.<span class="r-m r-muted">3 MEMBERS · <span style="color:var(--accink)">EDIT BAND INFO</span></span></div>
+${gl('Invite')}${grp(`<div class="inv"><div class="k">BAND CODE</div><div class="code">ROCK-7Q4X</div><div class="acts">${btn('Share link',{kind:'pri',icon:'share'})}${btn('QR',{icon:'qr'})}${btn('Copy',{icon:'copy'})}</div></div>`)}
+${gl('Members · 3')}<div class="r-search" style="margin:0 12px 8px">${ic('search')}Search members</div><div class="mem">${grp(mrow('E','std','Eric Johnson','OWNER','Guitar, vocals','Mar 2025','eric@ipodshuffle.band')+mrow('M','half','Mike Chen','ADMIN','Bass','Mar 2025','mike@hey.com')+mrow('S','dd','Sarah Lee','','Drums','Apr 2025','sarah.lee@gmail.com'))}</div>
+${grp(item({lead:ic('out','color:var(--mu)'),title:'Leave band'})+item({lead:ic('trash','color:var(--err,#ff5d5d)'),title:'<span style="color:var(--err,#ff5d5d)">Delete band…</span>'}))}<div style="height:30px"></div></div>${o.overlay||''}`;
+const mMenu=sheet({title:'Sarah Lee',sub:'Drums · Member',body:srow({icon:'edit',label:'Edit instruments'})+srow({icon:'star',label:'Make admin',sub:'Can invite and edit band info'})+srow({icon:'crown',label:'Transfer ownership…',sub:'You become an admin'})+srow({icon:'x',label:'Remove from band…',cls:'dng'})});
+const xfer=`${backbar('iPod Shuffle')}<div class="r-body" style="padding:0 20px"><div class="r-d r-h1" style="margin:10px 0 10px">Transfer<br>ownership</div><p style="font-size:15px;color:var(--tx2)">Sarah becomes the owner of iPod Shuffle. You stay in the band as an admin. Only the owner can delete the band or transfer it again.</p>${grp(item({lead:av('S','dd'),title:'Sarah Lee',sub:'New owner'}))}</div><div class="r-dock">${btn('Transfer to Sarah',{kind:'pri',size:'lg'}).replace('r-btn pri','r-btn pri w')}</div>`;
+const leave=members({overlay:dialog('Leave iPod Shuffle?','Your songs in the band stay with the band. You\'ll lose access to its setlists and calendar. You own this band, so transfer it first.','Cancel','Transfer first','pri')});
+const inviteSheet=sheet({title:'Invite to iPod Shuffle',body:`<div class="lnk2"><span>rockon.band/j/ROCK-7Q4X</span>${btn('Copy',{icon:'copy'})}</div><div class="qrw"><div class="qr"><i>iP</i></div></div>`+srow({icon:'share',label:'Share…',sub:'Messages, WhatsApp, email'})+srow({icon:'refresh',label:'Regenerate code…',sub:'The old link and code stop working',cls:'dng'})});
+const create=tpl.editor({title:'New band',save:'Create',body:`<div class="cb"><div class="mk">iP<span class="ed">${ic('edit')}</span></div><div class="nm">iPod Shuffle<span class="r-caret"></span></div><small>Only the name is needed. Everything below can wait.</small></div>
+${gl('About the band · optional')}<div class="opt">${grp(item({lead:ic('home','color:var(--mu)'),title:'Seattle, WA',sub:'City and state',trail:'chev'}))}${gl('Genres')}${grp('<div class="gch"><span class="on">Grunge</span><span class="on">2000s covers</span><span>Alt rock</span><span>Punk</span><span>Indie</span><span class="add">+ Add</span></div>')}${gl('Description')}${grp('<div class="desc">Grunge and 2000s covers around Seattle…</div>')}</div>
+${gl('Later')}${grp('<div class="fut"><span style="color:var(--mu)">'+ic('eye')+'</span><div class="g"><b>Public profile</b><small>Let venues and players find you · press kit</small></div><span class="tg">COMING</span></div>')}<div style="height:40px"></div>`});
+const markSheet=sheet({title:'Band mark',body:`<div class="mp">${seg(['Initials','Icon','Photo'],0)}<div class="pv" style="margin-top:12px"><i style="background:#ff7a1a;color:#1a0c02;font-family:var(--r-fd);font-weight:900">IP</i></div><div class="r-label" style="margin:0 2px 6px">COLOUR</div><div class="sw8">${["#ff7a1a","#f43f5e","#facc15","#4ade80","#2dd4bf","#38bdf8","#7c86f5","#c084fc"].map((c,i)=>`<span class="${i===0?'on':''}" style="background:${c}"></span>`).join('')}</div><div class="r-label" style="margin:0 2px 6px">LETTERING</div><div class="fnt"><span class="on" style="font-family:var(--r-fd);font-weight:900">IP<small>Poster</small></span><span style="font-family:var(--r-fu);font-weight:700">iP<small>Clean</small></span><span style="font-family:var(--r-fm);font-weight:700;font-size:19px">iP<small>Mono</small></span></div><div class="r-label" style="margin:0 2px 6px">OR AN ICON</div><div class="icg">${['music','star','fork','people','ticket','party'].map(i=>`<span>${ic(i)}</span>`).join('')}</div></div>`,buttons:btn('Cancel',{size:'lg'})+btn('Use this',{kind:'pri',size:'lg'})});
+const join=`${backbar('Get started')}<div class="r-body"><div class="prev"><span class="r-kick" style="padding:0">YOU'RE INVITED TO</span><i class="b">iP</i><div class="r-d r-h1">iPod Shuffle</div><p>Grunge and 2000s covers around Seattle.</p><div class="avs" style="margin-top:6px">${av('E','std')}${av('M','half')}${av('S','dd')}</div><span class="r-m r-muted">ERIC, MIKE, SARAH · 42 SONGS</span></div></div><div class="r-dock" style="flex-direction:column;align-items:stretch;gap:6px">${btn('Join iPod Shuffle',{kind:'pri',size:'xl'}).replace('r-btn pri','r-btn pri w').replace('class="r-btn','style="flex:none" class="r-btn')}${btn('Not now',{kind:'text'}).replace('class="r-btn','style="align-self:center;height:44px" class="r-btn')}</div>`;
+const solo=`${backbar('More',ib('moreh'))}<div class="r-body"><div class="r-kick">Band · created today</div><div class="r-d" style="font-size:52px;padding:6px 20px 14px">Acoustic Duo</div><div class="solo"><b>It's just you so far</b><p>Invite your bandmate to share songs, setlists and the calendar.</p><div class="acts">${btn('Share invite link',{kind:'pri',icon:'share'})}${btn('QR',{icon:'qr'})}</div></div>${gl('Members · 1')}<div class="mem">${grp(mrow('E','std','Eric Johnson','OWNER','Guitar, vocals','today'))}</div></div>`;
+const privRow=open=>grp(`<div class="r-item" data-priv style="cursor:pointer">${ic('lock','color:var(--mu)')}<div class="g"><b>Friends of friends can add you</b><small>Findable by name</small></div><span class="tr">${ic(open?'up':'down','width:18px;height:18px')}</span></div>`+(open?`<div class="r-item"><div class="g"><b>Findable by name</b><small>People can find you in search</small></div>${sw(true)}</div><div class="r-label" style="padding:10px 16px 4px">WHO CAN SEND REQUESTS</div><div style="padding:0 12px 12px">${seg(['Everyone','Friends of friends','Code only'],1)}</div>`:''));
+const friends=(open)=>`${backbar('More')}${title('Friends',4)}<div class="r-body">${grp(`<div class="fcode"><div class="g"><div class="k">YOUR FRIEND CODE</div><div class="c">ERIC-2291</div></div>${ib('qr')}${ib('copy')}</div>`)}${privRow(open)}
+${gl('Requests · 2')}<div class="rq">${grp(item({lead:av('D','whole'),title:'Dana Ruiz',sub:'Bass, vocals · 2 mutual'}).replace('</div></div>',`</div><div class="ac">${btn('Accept',{kind:'pri'})}${btn('Decline')}</div></div>`)+item({lead:av('K','dc'),title:'Kai Moreno',sub:'Drums · met at Birthday Jam'}).replace('</div></div>',`</div><div class="ac">${btn('Accept',{kind:'pri'})}${btn('Decline')}</div></div>`))}</div>
+${gl('Friends · 4')}${grp(item({lead:av('M','half'),title:'Mike Chen',sub:'Bass · iPod Shuffle',trail:'moreh'})+item({lead:av('S','dd'),title:'Sarah Lee',sub:'Drums · iPod Shuffle',trail:'moreh'})+item({lead:av('J','whole'),title:'Jess Park',sub:'Keys',trail:'moreh'})+item({lead:av('T','cstd'),title:'Tom Avery',sub:'Guitar',trail:'moreh'}))}${gl('Sent · 1')}${grp(item({lead:av('L','db'),title:'Lena Ortiz',sub:'Pending · sent Tue',trail:'x'}))}<div style="height:110px"></div></div><span class="r-fab">${btn('Add a friend',{kind:'pri',size:'lg',icon:'plus'})}</span>`;
+const privacy=`${backbar('Friends')}${title('Friend privacy')}<div class="r-body priv">${grp(item({title:'Discoverable by name',sub:'People can find you in search'}).replace('</div></div>','</div>'+sw(true)+'</div>'))}${gl('Who can add you')}${grp(['Everyone','Friends of friends','Code only'].map((l,i)=>item({title:l,sub:['Anyone who finds you','Only people who share a friend','Only with your code or QR'][i]}).replace('</div></div>',`</div><span class="r-radio ${i===1?'on':''}"></span></div>`)).join(''))}</div>`;
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Band &amp; friends · locked Oct 30 2026',h:'The <span>band</span>.',
+ lede:'Band record (future-proof): name, mark {initials | icon | photo, colour, lettering}, city, region, genres[], description, links[], visibility (private now; public profile and press kit later). Create, invite, join, members and roles, leaving and transferring, and Friends, against <span style="font-family:\'Martian Mono\';font-size:13px">band-members.md</span>, <span style="font-family:\'Martian Mono\';font-size:13px">friends.md</span> and workflows 02, 03, 11 and 12. Avatar colours are placeholders from the tuning spine until the avatar rule is set.',
+ notes:[['Name only, then you\'re in','Creating a band asks for one field and drops you on the band, with the invite card on top. No confirmation screen (<b>Doherty Threshold</b>, <b>Tesler\'s Law</b>).'],['Preview before join','A link or code always shows the band, its members and song count first. Join is one button (spec Must not: no join without preview, <b>Mental Model</b>).'],['Roles by permission','Owner first, then admins. Emails only for admins. Each member\'s ⋯ shows only what you\'re allowed to do (<b>Hick\'s Law</b>).'],['Deletes are typed','Deleting a band or account needs typing; transfer is a plain confirm. Leave tells an owner to transfer first instead of failing silently (<b>Error prevention</b>, <b>Postel\'s Law</b>).']],
+ rows:[[ph('1 · Band members','Name, description, count, Edit band info. Invite card with the band code and share. Members with role badges, instruments in their order, joined date; emails shown because you\'re the owner.',members()),
+ ph('2 · Member menu','Owner view for a member: edit instruments, make admin, transfer ownership, remove (last, red).',members({overlay:mMenu})),
+ ph('3 · Invite','Link with Copy, QR placeholder with the band mark, Share, and Regenerate with its warning stated in the row.',members({overlay:inviteSheet})),
+ ph('4 · Transfer ownership','Says exactly what changes for both people. A plain confirm: only deletes need typing.',xfer)],
+ [ph('5 · Create a band','The name is the hero: big and centred, under a live band mark. Location, genres and description are optional and can wait. Public profile is shown as coming so the shape is set now. Create lands you on the band (8) with the invite card on top.',create),
+ ph('6 · Band mark','Initials on one of 8 colours, in one of three letterings; or a simple icon; or upload a photo. The same mark shows in the switcher, notifications and invites (<b>Law of Similarity</b>).',create.replace(/<\/div>$/,'')+markSheet+'</div>'),
+ ph('7 · Join preview','From a link or code: band mark, description, members, song count. <b>Join</b> is the biggest button on screen; Not now is a small text button below it (<b>Fitts\'s Law</b>, <b>Von Restorff</b>).',join),
+ph('8 · Band of one · light','Where Create lands you. Spec: a prominent invite card when you\'re the only member.',solo,{theme:'light'})],
+ [ph('9 · Leave · owner','Leave is for everyone, but an owner is routed to transfer first.',leave),
+ ph('10 · Friends','Your code with QR and copy. Under it, your privacy as a status line (no separate screen). Requests with Accept / Decline inline, then Friends and Sent. Add a friend is the FAB.',friends(false)),
+ ph('11 · Friends · privacy open','Tap the status line to roll it open: the Findable switch and who can send requests. Tap again to close.',friends(true))]]});
+})();
+</script>
+</body>
+</html>

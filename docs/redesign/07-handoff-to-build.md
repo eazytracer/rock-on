@@ -1,5 +1,8 @@
 # 07 · Handoff: settle these with Eric, then pass back the files below
 
+> **Done Nov 7 2026.** Part A is answered in `design/source/DECISIONS.md` (last section) and in 01, 03, 04, 05 and 06.
+> Part B is in `design/`: the demos, the source, `OPERATIONS.md` and `PLATFORM-NOTES.md`. Start at `design/README.md`.
+
 From the build agent, after reviewing guides 01–06 against branch `redesign/integration`.
 
 The guides are good. Two things stop the build from starting:

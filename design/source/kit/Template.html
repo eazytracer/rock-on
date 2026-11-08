@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — New exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- from refresh/: ../source/kit/ · from source/: kit/ -->
+<link rel="stylesheet" href="../source/kit/rock.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{color:#cfc6bd;font-family:"Atkinson Hyperlegible Next",sans-serif}
+a{color:#ff7a1a}a:hover{color:#ffa060}
+.frame{position:absolute}
+.doc{background:#141414;border-radius:28px;padding:30px;font-size:15px;line-height:1.5;text-wrap:pretty}
+.doc b{color:#fff}
+.eb{font-family:"Martian Mono";font-size:11px;letter-spacing:.12em;color:#ff7a1a;text-transform:uppercase}
+.H{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;line-height:.9;color:#f4efe9}
+h1.H{font-size:80px;margin:10px 0 14px}h1 span{color:#ff7a1a}
+.phones{display:flex;gap:56px}
+.ph .cap{font-family:"Martian Mono";font-size:11px;letter-spacing:.1em;color:#5a5149;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+.ph .capd{font-size:13.5px;color:#3d352f;margin-bottom:12px;width:410px;line-height:1.45;min-height:58px}
+.ph .capd b{color:#1a1512}
+</style>
+</head>
+<body>
+<div class="frame doc" style="left:80px;top:60px;width:1696px" data-screen-label="Header">
+<div class="eb">Rock On · Refresh · Feature name</div>
+<h1 class="H">Short <span>headline</span>.</h1>
+<p style="font-size:17px;max-width:1200px;color:#d4d4d4">What this explores, which spec page it serves, and the decision you need from the reader.</p>
+</div>
+<div class="frame phones" style="left:80px;top:420px" id="phones"></div>
+<script src="../source/kit/rock.js"></script>
+<script>
+(()=>{
+const {phone,tpl,grp,row,gl,btn,SONGS:S}=Rock;
+const ph=(lbl,desc,inner,o)=>`<div class="ph" data-screen-label="${lbl}"><div class="cap">${lbl}</div><div class="capd">${desc}</div>${phone(inner,o)}</div>`;
+document.getElementById('phones').innerHTML=[
+ ph('Option A','One line on what\'s different and the law behind it.',tpl.detail({back:'Back',title:'Screen',body:gl('Section')+grp(row(S.mw)+row(S.ev))})),
+ ph('Option B','…',tpl.detail({back:'Back',title:'Screen',body:gl('Section')+grp(row(S.mw,{compact:true})+row(S.ev,{compact:true}))}))
+].join('');
+})();
+</script>
+</body>
+</html>

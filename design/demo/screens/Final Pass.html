@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Final pass (Nov 7)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<style>
+.cal .r-item{min-height:64px}.cal .r-item small{white-space:normal}
+.tyb{display:inline-flex;align-items:center;gap:5px;font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;color:var(--mu);margin-top:3px}
+.tyb svg.i{width:13px;height:13px;stroke-width:2.2}.tyb.show{color:var(--ty-show)}.tyb.prac{color:var(--ty-prac)}.tyb.evt{color:var(--ty-evt)}
+.tyb .cf{color:var(--ok)}.tyb .cx{color:var(--danger)}.past{opacity:.6}.cxl b{text-decoration:line-through;color:var(--mu)}
+.tyo{display:flex;flex-direction:column;gap:8px}
+.tyo .o{display:flex;align-items:center;gap:14px;min-height:64px;padding:0 16px;border-radius:18px;background:var(--s2)}
+.tyo .o .ico{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--s3)}.tyo .o .ico svg.i{width:20px;height:20px}
+.tyo .o .ico.show{color:var(--ty-show)}.tyo .o .ico.prac{color:var(--ty-prac)}.tyo .o .ico.evt{color:var(--ty-evt)}
+.tyo .o b{display:block;font-size:16px}.tyo .o small{font-size:12.5px;color:var(--mu)}
+.chk{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px}
+.chk .bx{width:26px;height:26px;border-radius:8px;box-shadow:inset 0 0 0 2px var(--line);display:grid;place-items:center}
+.chk .g{flex:1}.chk b{display:block;font-size:15px}.chk small{font-size:12.5px;color:var(--mu)}
+.ttl-in{font-family:var(--r-fd);font-weight:800;text-transform:uppercase;font-size:52px;line-height:.9;padding:6px 20px 12px;color:var(--mu2)}
+.ft2{display:grid;grid-template-columns:1fr 1fr}.ft2>*+*{box-shadow:-1px 0 0 var(--div)}
+.sx{display:flex;gap:8px;padding:12px}.sx .r-btn{flex:1}
+.rsvp{display:flex;gap:6px;padding:0 12px 12px}.rsvp span{flex:1;height:44px;border-radius:14px;background:var(--s2);display:grid;place-items:center;font-weight:700;font-size:14px}.rsvp span.on{background:var(--acc);color:var(--onacc)}
+.att{display:flex;gap:16px;padding:12px 16px 14px}.att>div{display:flex;flex-direction:column;gap:6px}.att small{font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;color:var(--mu)}
+.note{padding:0 20px 8px;font-family:var(--r-fm);font-size:10.5px;letter-spacing:.08em;color:var(--mu)}
+.used .r-item{min-height:56px}
+.cta2{padding:0 12px 12px}.cta2 .r-btn{width:100%}
+/* session */
+.sh{display:flex;align-items:center;gap:8px;padding:4px 14px 8px}.sh .c{flex:1;text-align:center;font-family:var(--r-fm);font-size:11px;letter-spacing:.08em;color:var(--mu)}.sh .c b{display:block;font-size:17px;color:var(--tx);font-weight:500;margin-top:2px}
+.bars{display:flex;gap:4px;padding:0 16px 14px}.bars i{flex:1;height:4px;border-radius:2px;background:var(--s3)}.bars i.d{background:var(--mu2)}.bars i.on{background:var(--acc)}
+.st{font-size:46px;padding:0 20px 10px}.sk{padding:0 20px 2px;font-family:var(--r-fm);font-size:11px;color:var(--mu);letter-spacing:.06em;text-transform:uppercase}
+.trow{display:flex;gap:8px;padding:0 14px 12px}.trow .r-btn{flex:1;height:48px}
+.pn{margin:0 12px;padding:12px 14px;border-radius:16px;background:var(--s1);font-size:16px;line-height:1.45;color:var(--tx2)}.pn b{color:var(--tx)}
+.upn{position:absolute;left:12px;right:12px;bottom:128px;background:var(--s2);border-radius:20px;padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:3}
+.upn.chg{box-shadow:inset 0 0 0 1.5px var(--warn)}.upn .g{flex:1}.upn small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.1em;color:var(--mu)}.upn.chg small{color:var(--warn)}
+.upn b{display:block;font-size:16px;margin:2px 0 4px}.upn .r-btn{height:44px;background:var(--warn);color:#1a1300;font-weight:800}.upn .rt{display:flex;gap:6px;align-items:center}.upn .rt svg.i{width:12px;height:12px;color:var(--mu)}
+.pg2{position:absolute;left:0;right:0;bottom:0;padding:12px 14px 24px;display:flex;gap:10px;z-index:3;background:linear-gradient(transparent,var(--bg) 18%)}
+.pg2 .r-pg{height:96px}.pg2 .r-pg small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;padding:0 10px}
+.nsheet{height:62%}.nsheet .who{font-family:var(--r-fm);font-size:11px;letter-spacing:.1em;color:var(--mu);margin:4px 0 8px;display:flex;gap:6px;align-items:center}.nsheet .who svg.i{width:14px;height:14px}
+.nsheet ul{padding-left:1.1em;font-size:18px;line-height:1.45}.nsheet li{margin-bottom:.3em}
+/* setlists */
+.slc{margin:0 12px 10px;background:var(--s1);border-radius:var(--r-md);padding:14px 8px 14px 16px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shg)}
+.slc .g{flex:1;min-width:0}.slc b{display:block;font-size:18px}.slc small{display:block;font-family:var(--r-fm);font-size:11px;color:var(--mu);margin-top:4px}
+.slc .sh2{display:inline-flex;align-items:center;gap:5px;font-family:var(--r-fm);font-size:10.5px;color:var(--ty-show);margin-top:6px}.slc .sh2 svg.i{width:13px;height:13px}
+.slc .r-ib{margin-top:-4px}
+.sortc{display:flex;gap:6px;padding:0 14px 10px}
+/* personal catalog */
+.cpb{margin:0 12px 10px;border-radius:var(--r-md);padding:14px;background:color-mix(in srgb,var(--acc) 14%,var(--s1));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 35%,transparent)}
+.cpb .t{display:flex;gap:10px;align-items:flex-start}.cpb .t svg.i{color:var(--accink);flex-shrink:0;margin-top:1px}.cpb .t .g{flex:1}.cpb b{display:block;font-size:15px}.cpb small{display:block;font-size:12.5px;color:var(--mu);margin-top:2px;line-height:1.4}
+.cpb .a{display:flex;gap:8px;margin-top:12px}.cpb .a .r-btn{flex:1;height:40px}
+.frm{display:inline-block;font-family:var(--r-fm);font-size:9.5px;letter-spacing:.06em;color:var(--accink);background:var(--s2);border-radius:6px;padding:2px 5px;margin-left:6px;vertical-align:2px}
+/* friend add */
+.fres .r-item{min-height:60px}.fres .r-btn{height:36px;font-size:13px;padding:0 14px}
+.fcode{padding:14px 16px;display:flex;align-items:center;gap:12px}.fcode .g{flex:1}.fcode .k{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:var(--mu)}.fcode .c{font-family:var(--r-fm);font-size:22px;letter-spacing:.16em;margin-top:2px}
+.fin{display:flex;align-items:center;gap:8px;height:48px;border-radius:14px;background:var(--s2);padding:0 14px;margin:10px 0;box-shadow:inset 0 0 0 2px var(--acc);font-size:15px}.fin svg.i{width:17px;height:17px;color:var(--mu)}
+/* states */
+.err{margin:0 12px 10px;border-radius:var(--r-md);padding:20px 18px;background:var(--s1);box-shadow:inset 0 0 0 1.5px var(--warn);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.err svg.i{color:var(--warn)}.err b{font-size:17px}.err p{font-size:14px;color:var(--mu);line-height:1.45}
+/* host form */
+.hj .r-fld{min-height:64px}
+.jset .r-item{min-height:62px}
+.hint{padding:6px 24px 10px;font-size:13px;color:var(--mu);line-height:1.45}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,sw,tp,row,grp,gl,item,fld,srow,sheet,dialog,banner,empty,skelRow,phone,tpl,backbar,appbar,title,nav,T,SONGS:S}=R,{ph,page}=Draft;
+const av=(ini,k)=>`<span class="av" style="background:${T[k].dark}">${ini}</span>`;
+const db=(m,d,dw)=>`<div class="db"><small>${m}</small><b>${d}</b><small style="margin-top:2px">${dw}</small></div>`;
+const TY={show:'SHOW',prac:'PRACTICE',evt:'JAM'},TI={show:'ticket',prac:'cal',evt:'party'};
+// one shared fixture for this page: Fall Kickoff Sat Nov 7, Thursday runs Nov 5 / Nov 12, Tuesday jam Nov 3 (see DECISIONS · Fixture)
+const ci=(m,d,dw,t,sub,k,st='',cls='')=>`<div class="${cls}">${item({lead:db(m,d,dw),title:t,sub:sub+`<br><span class="tyb ${k}">${ic(TI[k])}${TY[k]}${st==='cf'?' · <span class="cf">CONFIRMED</span>':st==='cx'?' · <span class="cx">CANCELLED</span>':''}</span>`,trail:'moreh'})}</div>`;
+const UP=[ci('NOV','3','TUE','Tuesday Open Jam',"8:00 PM · Lucky's Tavern",'evt'),ci('NOV','5','THU','Thursday run',"7:00 PM · Mike's Garage",'prac'),ci('NOV','7','SAT','Fall Kickoff','8:30 PM · The Crocodile','show','cf'),ci('NOV','12','THU','Thursday run',"7:00 PM · Mike's Garage",'prac'),ci('NOV','21','SAT','Halloween Bash','9:00 PM · Neumos','show','cx','cxl')];
+const PS=[ci('OCT','29','THU','Thursday run','1:52 played · 5 of 6 songs','prac','','past')];
+const calScr=(f=0,o={})=>{const pick=a=>f===0?a:a.filter(x=>x.includes(['','tyb show','tyb prac','tyb evt'][f]));
+ return tpl.list({title:'Calendar',tools:['All','Shows','Practices','Jams'].map((l,i)=>chip(l,{on:i===f})).join('')+(f===3?chip('Join with a code',{icon:'qr'}):''),
+ body:o.body||`<div class="cal">${gl('Upcoming')}${grp(pick(UP).join(''))}${pick(PS).length?gl('Past')+grp(pick(PS).join('')):''}</div><div style="height:120px"></div>`,fab:['New','New show','New practice','New jam'][f],nav:3,overlay:o.overlay||''})};
+const newPick=sheet({title:'New',body:`<div class="tyo">${[['show','Show','A gig with a venue, set and pay'],['prac','Practice','Time, place and songs to work on'],['evt','Jam','Open stage with guests, lineup and requests']].map(([k,t,s])=>`<div class="o"><span class="ico ${k}">${ic(TI[k])}</span><div><b>${t}</b><small>${s}</small></div></div>`).join('')}</div>`});
+// 4 · new show: the show page, blank, edited in place
+const newShow=tpl.detail({back:'Calendar',right:ib('moreh'),kicker:'Show · new · saves as you go',title:'<span style="color:var(--mu2)">New show</span>',
+ body:grp(`<div class="chk"><span class="bx"></span><div class="g"><b>Confirmed</b><small>Tick when the venue says yes</small></div></div>`)+
+ gl('Where')+grp(fld('Venue','Neumos<span class="r-caret"></span>',{focus:true,req:true})+fld('Address','Street, city',{ph:true}))+
+ gl('When')+grp(fld('Date','Sat, Nov 28',{chev:true})+`<div class="ft2">${fld('Start','8:00 PM',{chev:true})}${fld('Set length','45 min',{chev:true})}</div><div class="ft2">${fld('Load-in','6:30 PM',{chev:true})}${fld('Soundcheck','7:15 PM',{chev:true})}</div>`)+
+ gl('Money and people')+grp(fld('Pay','$0',{ph:true})+fld('Contact','Name · role · phone or email',{ph:true}))+
+ gl('Set')+grp(`<div class="pad" style="padding:12px 16px 0;font-size:13.5px;color:var(--mu)">No set yet. The show gets its own copy, so edits here never change the setlist.</div><div class="sx">${btn('Copy a setlist',{kind:'pri',icon:'copy'})}${btn('New set',{icon:'plus'})}</div>`)+
+ '<div style="height:60px"></div>'});
+// 5 · practice: who's coming (RSVP drawn now, ships after launch)
+const pracRsvp=tpl.detail({back:'Calendar',right:ib('moreh'),kicker:'Practice · upcoming · in 4 days',title:'Thursday run',
+ body:grp(item({lead:ic('cal','color:var(--mu)'),title:'Thu, Nov 5 · 7:00 PM',sub:'2 hours · until 9:00'})+item({lead:ic('home','color:var(--mu)'),title:"Mike's Garage",sub:'412 Alder St'}))+
+ gl("Who's coming")+grp(`<div class="att"><div><small>COMING · 2</small><div class="avs">${av('E','std')}${av('S','dd')}</div></div><div><small>MAYBE · 1</small><div class="avs">${av('M','half')}</div></div><div><small>CAN'T · 0</small></div></div><div class="rsvp"><span class="on">Coming</span><span>Maybe</span><span>Can't</span></div>`)+
+ '<div class="note">SAME ROW AS THE SHOW PAGE · DRAWN NOW, SHIPS AFTER LAUNCH</div>'+gl('Focus',{label:'EDIT',icon:'edit'})+grp('<div style="padding:12px 16px;font-size:14.5px;color:var(--tx2);line-height:1.5">Run the Fall Set openers. Tighten the Monkey Wrench breakdown. New: Aerials.</div>')+gl('Songs · 4',{label:'ADD',icon:'plus'})+grp(['mw','bl','aer','ev'].map((k,i)=>row(S[k],{n:i+1,view:{links:false}})).join(''))+'<div style="height:110px"></div>',
+ cta:btn('Start practice session',{kind:'pri',size:'xl',icon:'play'}).replace('r-btn pri','r-btn pri w')});
+// 6 · song view with "Used in" and the chart entry
+const songUsed=(hasChart)=>tpl.detail({back:'Songs',right:ib('edit')+ib('moreh'),kicker:'Pearl Jam',title:'Black',
+ facts:`<div class="r-facts" style="padding:0 20px 14px">${tp('std','lg')}<div class="f"><small>KEY</small><b>E</b></div><div class="f"><small>BPM</small><b>107</b></div><div class="f"><small>LENGTH</small><b>5:43</b></div></div>`,
+ body:`<div class="cta2">${btn(hasChart?'Chords &amp; lyrics':'Add chords &amp; lyrics',{kind:'pri',size:'lg',icon:hasChart?'chordbox':'plus'})}</div>`+
+ gl('Links')+grp(item({lead:R.lk('tabs'),title:'Tabs',sub:'Ultimate Guitar',trail:'open'})+item({lead:R.lk('audio'),title:'Spotify',sub:'Album version',trail:'open'}))+
+ gl('Notes',{label:'FULL SCREEN',icon:'expand'})+grp(item({lead:ic('people','color:var(--mu)'),title:'Band notes',sub:'None yet · tap to add'})+item({lead:ic('lock','color:var(--mu)'),title:'My notes',sub:'Capo off. Use the Les Paul.'}))+
+ gl('Used in')+`<div class="used">${grp(item({lead:ic('list','color:var(--mu)'),title:'Fall Set',sub:'Song 9 of 9 · Set 2',trail:'chev'})+item({lead:ic('ticket','color:var(--ty-show)'),title:'Fall Kickoff',sub:'Sat, Nov 7 · in the show\'s set copy',trail:'chev'})+item({lead:ic('cal','color:var(--ty-prac)'),title:'Thursday run',sub:'Thu, Nov 5 · song 2 of 4',trail:'chev'}))}</div><div style="height:40px"></div>`});
+// 7 / 8 · practice session: Notes is a button that opens a sheet (no Notes | Chart toggle)
+const sessBase=(over='')=>`<div class="sh">${ib('x')}<div class="c">SONG 2 OF 4<b>0:12:34</b></div>${btn('End')}</div><div class="bars"><i class="d"></i><i class="on"></i><i></i><i></i></div>
+<div class="sk">Pearl Jam</div><div class="r-d st">Black</div><div class="r-facts" style="padding:0 20px 12px">${tp('std','lg')}<div class="f"><small>KEY</small><b>E</b></div><div class="f"><small>BPM</small><b>107</b></div><div class="f"><small>LENGTH</small><b>5:43</b></div></div>
+<div class="trow">${btn('Notes',{icon:'doc'})}${btn('Chart',{icon:'chordbox'})}${btn('Tune',{icon:'fork'})}</div>
+<div class="pn">${ic('list','width:15px;height:15px;color:var(--accink);vertical-align:-2px')} <b>This practice:</b> Mike takes the second verse harmony.</div>
+<div class="upn chg"><div class="g"><small>UP NEXT · TUNING CHANGE</small><b>Aerials</b><div class="rt">${tp('std','sm')}${ic('arrow')}${tp('dc','sm')}</div></div>${btn('Tune now',{icon:'fork'})}</div>
+<div class="pg2"><div class="r-pg bk">${ic('up','transform:rotate(-90deg)')}<small>Monkey Wrench</small></div><div class="r-pg nx">${ic('down','transform:rotate(-90deg)')}<small>Aerials</small></div></div>${over}`;
+const notesSheet=`<div class="r-scrim"></div><div class="r-sheet nsheet"><h3>Notes · Black</h3><div class="who">${ic('people')}BAND NOTES · ERIC</div><ul><li>Try it a half-step lower this week</li><li>Long outro solo, cue with a nod</li><li>Sarah brushes on the verses</li></ul><div class="who" style="margin-top:14px">${ic('lock')}MY NOTES</div><ul><li>Capo off. Use the Les Paul.</li></ul></div>`;
+// 9-12 · setlists list: sort, card ⋯, delete, notes
+const slc=(n,meta,show,o='')=>`<div class="slc"><div class="g"><b>${n}</b><small>${meta}</small>${show?`<span class="sh2">${ic('ticket')}${show}</span>`:''}</div>${ib('moreh')}</div>`;
+const setlists=(o={})=>tpl.list({title:'Setlists',count:3,tools:`<span class="r-chip on">${ic('sort')}Next show ↑</span>`,body:slc('Fall Set','9 SONGS · 50 MIN · 2 RETUNES','Fall Kickoff · Sat, Nov 7')+slc('Birthday Jam','5 SONGS · 18 MIN · 1 RETUNE',"Mike's Garage · Sat, Nov 14")+slc('Acoustic Sunday','3 SONGS · 13 MIN','')+'<div style="height:120px"></div>',fab:'New setlist',nav:2,overlay:o.overlay||''});
+const slMenu=sheet({title:'Birthday Jam',sub:'5 songs · 18 min · attached to a show',body:srow({icon:'open',label:'Open'})+srow({icon:'copy',label:'Duplicate',sub:'A copy, not attached to a show'})+srow({icon:'trash',label:'Delete…',cls:'dng'})});
+const slSort=sheet({title:'Sort setlists',body:srow({icon:'ticket',label:'Next show',sub:'Sets with a show first, soonest on top',trail:ic('check','color:var(--accink)')})+srow({icon:'list',label:'Name'})+srow({icon:'clock',label:'Last updated'})});
+const slDel=dialog('Delete Birthday Jam?',"The setlist goes. Songs stay in the catalog, and the show on Sat, Nov 14 keeps its own copy of the set.",'Keep','Delete');
+const setNotes=`${backbar('Setlists',ib('doc')+ib('moreh'))}<div class="r-ttl"><div class="r-d r-h2">Fall Set</div><small>9 · 50 MIN</small></div><div class="r-body">${R.setlist([{sec:'Set 1'},S.aag,S.mw,S.ev,S.mb],{grip:true,view:{key:true,bpm:false}})}</div>${sheet({title:'Setlist notes',sub:'Markdown · shared with the band',body:`<div style="background:var(--s2);border-radius:14px;padding:12px 14px;font-family:var(--r-fm);font-size:13.5px;line-height:1.6;min-height:150px;box-shadow:inset 0 0 0 2px var(--acc)">**Gear**: backup snare, spare strings<br>- Eric counts in Set 1<br>- Sarah counts in Set 2<span class="r-caret"></span></div>`,buttons:btn('Done',{kind:'pri',size:'lg'})})}`;
+// 13 · Personal songs: band songs not in My Songs
+const pSongs=tpl.list({ctxName:'Personal',ctxIni:'E',title:'My Songs',count:14,search:'Search my songs',tools:`<span class="r-chip">${ic('sort')}Title ↑</span><span class="r-chip">${ic('view')}View</span>`,
+ body:`<div class="cpb"><div class="t">${ic('music')}<div class="g"><b>9 songs in your bands aren't in My Songs</b><small>Copies stay linked to the band and carry a band tag. Your own edits stay yours.</small></div>${ib('x')}</div><div class="a">${btn('Pick some')}${btn('Copy all 9',{kind:'pri'})}</div></div>`+
+ grp(row(Object.assign({},S.aag,{title:'About A Girl<span class="frm">iP</span>'}),{view:{artist:true}})+row(S.bc,{view:{artist:true}})+row(Object.assign({},S.bl,{title:'Black<span class="frm">iP</span>'}),{view:{artist:true}})+row({title:'Hash Pipe',artist:'Weezer',tun:'half',dur:'3:06',key:'E♭',bpm:'124',links:['audio']},{view:{artist:true}}))+'<div style="height:120px"></div>',fab:'Add song',nav:1},);
+// 14 · add a friend
+const addFriend=(()=>{const base=`${backbar('More')}${title('Friends',4)}<div class="r-body">${grp(`<div class="fcode"><div class="g"><div class="k">YOUR FRIEND CODE</div><div class="c">ERIC-2291</div></div>${ib('qr')}${ib('copy')}</div>`)}</div>`;
+ return base+sheet({title:'Add a friend',body:`${seg(['By name','Friend code'],0)}<div class="fin">${ic('search')}da<span class="r-caret"></span></div><div class="fres">${grp(item({lead:av('D','whole'),title:'Dana Ruiz',sub:'Bass, vocals · 2 mutual'}).replace('</div></div>',`</div>${btn('Add',{kind:'pri'})}</div>`)+item({lead:av('D','dc'),title:'Darren Holt',sub:'Guitar · Seattle'}).replace('</div></div>',`</div>${btn('Requested')}</div>`))}</div><div class="r-label" style="margin:12px 4px 6px">NOT FINDABLE? ASK FOR THEIR CODE · OR SHARE YOURS</div>`+srow({icon:'share',label:'Share my code',sub:'rockon.band/f/ERIC-2291'})})})();
+// 15-20 · states
+const songsLoad=tpl.list({title:'Songs',count:'—',search:'Search songs',tools:`<span class="r-chip">${ic('sort')}Title ↑</span><span class="r-chip">${ic('view')}View</span>`,body:grp(Array.from({length:6},skelRow).join('')),fab:'Add song',nav:1});
+const songsEmpty=tpl.list({title:'Songs',count:0,body:empty('music','No songs yet','Add your first song, or paste a list of titles and we\'ll match them.',`<div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px">${btn('Add song',{kind:'pri',size:'lg',icon:'plus'})}${btn('Paste a list',{size:'lg'})}</div>`),nav:1});
+const songsNone=tpl.list({title:'Songs',count:'0 of 42',search:'radiohead<span class="r-caret"></span>',tools:`${chip('C STD',{on:true})}<span class="r-chip">${ic('sort')}Title ↑</span>`,body:empty('search','No matches','Nothing in iPod Shuffle matches "radiohead" in C Standard.',btn('Clear filters',{size:'lg'})),nav:1});
+const calErr=calScr(0,{body:`<div style="height:4px"></div><div class="err">${ic('warn')}<b>Couldn't load the calendar</b><p>Showing nothing rather than something stale. Check the connection and try again.</p>${btn('Retry',{kind:'pri',icon:'refresh'})}</div>`});
+const homeOff=`${appbar()}<div class="r-body">${banner('offline',"You're offline","Showing what's saved on this phone. Changes sync when you're back.",'warn')}<div class="r-ttl"><div class="r-d r-h1">Home</div></div><div class="card"><div class="k">Next show<span class="cd">IN 6 DAYS</span></div><h4>Fall Kickoff</h4><div class="ln">${ic('cal')}Sat, Nov 7 · 8:30 PM</div><div class="ln">${ic('home')}The Crocodile</div></div><div class="card"><div class="k">Next practice<span class="cd">IN 4 DAYS</span></div><h4 style="font-size:28px">Thursday run</h4><div class="ln">${ic('clock')}Thu, Nov 5 · 7:00 – 9:00 PM</div></div>${gl('Upcoming')}${grp(UP.slice(0,2).join(''))}</div>${nav(0)}`;
+const jamEmpty=`${backbar('More')}${title('Jam')}<div class="r-body">${empty('party','No jams yet','Host one in two fields: a name and a time. Lineup, requests and access come after.',`<div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px">${btn('Host a jam',{kind:'pri',size:'lg',icon:'plus'})}${btn('Join with a code',{size:'lg',icon:'qr'})}</div>`)}</div>`;
+// 21-22 · Host a jam: two fields; refinements live on the planned page
+const hostJam=tpl.editor({title:'Host a jam',save:'Create',body:`<div class="hj">${grp(fld('Name','Garage Night<span class="r-caret"></span>',{focus:true,req:true}))}${grp(`<div class="ft2">${fld('Date','Tue, Nov 17',{chev:true})}${fld('Start','8:00 PM',{chev:true})}</div>`+fld('Where','Optional',{ph:true}))}</div><div class="hint">You get a join code and QR straight away. Who can join, song requests, approvals and group sets live on the jam's page, where you come back to tune them.</div>`});
+const jamSettings=`${backbar('Jam',ib('qr')+ib('moreh'))}<div class="r-body"><div class="r-kick">Jam · Tue, Nov 3 · 8 PM · Lucky's</div><div class="r-d" style="font-size:46px;padding:6px 20px 12px">Tuesday Open Jam</div></div>${sheet({title:'Jam settings',body:`<div class="jset">${grp(item({title:'Who can join',sub:'Anyone with the code or QR'}).replace('</div></div>','</div><span class="tr" style="color:var(--accink);font-weight:700;font-size:14px">Code</span></div>')+item({title:'Song requests',sub:'Guests pitch songs with the parts they need'}).replace('</div></div>','</div>'+sw(true)+'</div>')+item({title:'Approve requests myself',sub:'Off: pitches are open straight away'}).replace('</div></div>','</div>'+sw(false)+'</div>')+item({title:'Suggest groups of 3',sub:'"Song 2 of 3". Never blocks a single-song pitch.'}).replace('</div></div>','</div>'+sw(true)+'</div>'))}</div>`,buttons:btn('Done',{kind:'pri',size:'lg'})})}`;
+
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Demo screen · Final pass · Nov 7 2026',h:'Close the <span>gaps</span>.',
+ lede:'Every mobile item from <span style="font-family:\'Martian Mono\';font-size:13px">source/REVIEW-NOV-2.md</span>, drawn on the kit with the recommendation applied, so the mobile and desktop demos do the same jobs the same way. Dates use the one shared fixture (Fall Kickoff Sat Nov 7, Thursday runs Nov 5 and 12, Tuesday jam Nov 3). Each choice is logged in DECISIONS.md with its law.',
+ notes:[['Three types, three names','The Calendar filter reads All · Shows · Practices · Jams, and New offers the same three. "Events" survives only as the umbrella word in the Calendar title, never as a type (<b>Jakob\'s Law</b>, <b>Law of Similarity</b>).'],['A show is filled in, not created','New show opens the show page itself, blank, with Venue focused. It saves as you go, like every other show edit. Practices keep their editor because they\'re made in bulk and duplicated (<b>Mental Model</b>, <b>Tesler\'s Law</b>).'],['Notes beside, never instead','The practice session loses its Notes | Chart toggle. Notes is a button that opens a sheet over the song, the same rule as the chart reader (<b>Law of Common Region</b>, <b>Working Memory</b>).'],['Every list, every state','Loading is a skeleton, empty says what to do, no-matches offers Clear filters, errors keep the old copy and offer Retry, offline is one banner (<b>Visibility of system status</b>, <b>Postel\'s Law</b>).']],
+ rows:[[ph('1 · Calendar · All','Agenda with the renamed filter (<b>Jams</b>) and type labels in their colours. FAB reads "New" on All.',calScr(0)),
+ ph('2 · New on All','One New, three types. On a filter the FAB says "New show / practice / jam" and skips this sheet.',calScr(0,{overlay:newPick})),
+ ph('3 · Calendar · Jams','FAB reads "New jam". Join with a code sits in the toolbar here (spec).',calScr(3)),
+ ph('4 · New show','The show page, blank: Venue focused, the rest optional. Edits save as you go; Confirmed is a tick. No set yet offers Copy a setlist (primary) or New set. Back keeps it as a draft until a venue or name is set.',newShow)],
+ [ph('5 · Practice · who\'s coming','The same RSVP row as the show page: Coming / Maybe / Can\'t with faces. Drawn now on every surface it will appear on; ships after launch.',pracRsvp),
+ ph('6 · Song view · used in','Under the facts: <b>Used in</b> lists setlists, the shows that copied them and planned practices. The primary button reads "Add chords &amp; lyrics" until a chart exists and opens the chart editor route.',songUsed(false)),
+ ph('7 · Session','Notes, Chart and Tune are three plain buttons under the facts. The practice\'s own note for this song shows inline.',sessBase()),
+ ph('8 · Session · notes','Notes open as a 62% sheet over the song; swipe down, × or tap outside closes. The song and Up next stay put underneath.',sessBase(notesSheet))],
+ [ph('9 · Setlists','A sort chip (Next show / Name / Updated) and a visible ⋯ on each card, matching the song row and show page. The FAB is New setlist.',setlists()),
+ ph('10 · Setlist menu','Open, Duplicate (not attached to a show), Delete with confirmation.',setlists({overlay:slMenu})),
+ ph('11 · Delete setlist','Says what goes and what stays: the catalog and the show\'s own copy are untouched.',setlists({overlay:slDel})),
+ ph('12 · Setlist notes','The doc icon in the editor header opens set-level notes as a sheet: Markdown, shared, saves as you type.',setNotes)],
+ [ph('13 · Personal · band songs','In Personal, a dismissable banner offers the band songs you don\'t have yet: Copy all or Pick. Copies carry a small band tag (iP) and stay linked.',pSongs,{ctx:'personal'}),
+ ph('14 · Add a friend','By name (if they\'re findable) or by friend code. Your own code is one tap to share, mirroring the band invite.',addFriend),
+ ph('15 · Songs · loading','Skeleton rows in the real row shape. No spinners on lists.',songsLoad),
+ ph('16 · Songs · empty','Says what to do, with the action.',songsEmpty)],
+ [ph('17 · Songs · no matches','Names the search and filters that hid everything; Clear filters is the action.',songsNone),
+ ph('18 · Calendar · error','Keeps the header and filters, says what failed, offers Retry.',calErr),
+ ph('19 · Home · offline','One banner at the top of the screen; no per-row sync icons (DECISIONS: sync status).',homeOff),
+ ph('20 · Jam · empty','No jams yet: Host a jam or Join with a code.',jamEmpty)],
+ [ph('21 · Host a jam','Two fields to start (name, when), Where optional. Everything else is set on the jam\'s page (<b>Doherty Threshold</b>).',hostJam),
+ ph('22 · Jam settings','From the planned jam\'s ⋯: who can join, song requests, approve myself, group sets. The same four settings on desktop.',jamSettings),
+ ph('23 · Setlists · sort','The sort chip opens three choices; Next show is the default so the set you play soonest is on top.',setlists({overlay:slSort}))]]});
+})();
+</script>
+</body>
+</html>

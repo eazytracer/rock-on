@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Practice &amp; session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{color:#cfc6bd;font-family:"Atkinson Hyperlegible Next",sans-serif}
+a{color:#ff7a1a}a:hover{color:#ffa060}
+.frame{position:absolute}
+.col{display:flex;flex-direction:column;gap:28px;width:1696px}
+.doc{background:#141414;border-radius:28px;padding:30px;font-size:15px;line-height:1.5;text-wrap:pretty}
+.doc b{color:#fff}
+.eb{font-family:"Martian Mono";font-size:11px;letter-spacing:.12em;color:#ff7a1a;text-transform:uppercase}
+.H{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;line-height:.9;color:#f4efe9}
+h1.H{font-size:80px;margin:10px 0 14px}h1 span{color:#ff7a1a}
+.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:26px;margin-top:10px}
+.four h3{color:#fff;font-size:15px;margin-bottom:4px}.four p{font-size:14px}
+.phones{display:flex;gap:56px;align-items:flex-start}
+.ph .cap{font-family:"Martian Mono";font-size:11px;letter-spacing:.1em;color:#5a5149;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+.ph .capd{font-size:13.5px;color:#3d352f;margin-bottom:12px;width:410px;line-height:1.45;min-height:78px}
+.ph .capd b{color:#1a1512}
+/* practice page */
+.stat{display:inline-flex;align-items:center;gap:6px;color:var(--accink)}
+.stat i{width:8px;height:8px;border-radius:4px;background:var(--acc);display:block}
+.when .r-item{min-height:50px}
+.focus{padding:12px 16px 14px;font-size:14.5px;line-height:1.5;color:var(--tx2)}
+.plk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:0 12px 10px 46px}
+.plk span{height:44px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600;color:var(--tx2)}
+.plk span svg.i{width:16px;height:16px;stroke-width:2}
+.plk .tabs{color:#facc15}.plk .audio{color:#1ed760}.plk .video{color:#ff4e45}.plk .video svg.i{fill:currentColor}
+.plk span.off{opacity:.3}
+.pnote{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--tx2);padding:0 12px 12px 46px}
+.pnote svg.i{width:14px;height:14px;color:var(--mu2)}
+/* session */
+.ss{display:flex;flex-direction:column;flex:1;min-height:0;position:relative}
+.sh{display:flex;align-items:center;gap:10px;padding:4px 14px 8px}
+.sh .c{flex:1;text-align:center;font-family:var(--r-fm);font-size:11px;letter-spacing:.08em;color:var(--mu)}
+.sh .c b{display:block;font-size:17px;letter-spacing:.02em;color:var(--tx);font-weight:500;margin-top:2px}
+.bars{display:flex;gap:4px;padding:0 16px 14px}
+.bars i{flex:1;height:4px;border-radius:2px;background:var(--s3)}
+.bars i.d{background:var(--mu2)}.bars i.on{background:var(--acc)}
+.st{font-size:46px;padding:0 20px 10px}
+.sk{padding:0 20px 2px;font-family:var(--r-fm);font-size:11px;color:var(--mu);letter-spacing:.06em;text-transform:uppercase}
+.tabrow{display:flex;gap:8px;padding:0 14px 10px;align-items:center}
+.tabrow .r-seg{flex:1}
+.ntext{padding:0 20px;font-size:var(--nfs,22px);line-height:1.4;color:var(--tx)}
+.ntext ul{padding-left:1.1em}.ntext li{margin-bottom:.3em}
+.ntext .who{font-family:var(--r-fm);font-size:11px;letter-spacing:.1em;color:var(--mu);margin:0 0 8px;display:flex;gap:6px;align-items:center}
+.ntext .who svg.i{width:14px;height:14px}
+.upn{position:absolute;left:12px;right:12px;bottom:128px;z-index:3;background:var(--s2);border-radius:20px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.upn.chg{box-shadow:inset 0 0 0 1.5px var(--warn)}
+.upn .g{flex:1;min-width:0}
+.upn small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.1em;color:var(--mu)}
+.upn.chg small{color:var(--warn)}
+.upn b{display:block;font-size:16px;margin:2px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.upn .rt{display:flex;gap:6px;align-items:center}
+.upn .rt svg.i{width:12px;height:12px;color:var(--mu)}
+.upn .r-btn{height:44px;background:var(--warn);color:#1a1300;font-weight:800}
+.upn .r-btn svg.i{width:17px;height:17px}
+.pg2{position:absolute;left:0;right:0;bottom:0;padding:12px 14px 24px;display:flex;gap:10px;z-index:3;background:linear-gradient(transparent,var(--bg) 18%)}
+.pg2 .r-pg{height:96px}
+.pg2 .r-pg small{max-width:100%;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.pg2 .r-pg.end{background:var(--s3);color:var(--tx)}
+/* tablet */
+.tab{width:1180px;height:820px;border-radius:44px;background:#1b1b1b;padding:14px;box-shadow:0 0 0 1px #333,0 30px 60px rgba(0,0,0,.35)}
+.tab>.r{width:1152px;height:792px;border-radius:32px;overflow:hidden;display:grid;grid-template-columns:420px 1fr;grid-template-rows:auto 1fr auto;position:relative}
+.tab .tb{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:18px 24px 10px}
+.tab .tb .c{font-family:var(--r-fm);font-size:12px;letter-spacing:.08em;color:var(--mu)}
+.tab .tb .c b{color:var(--tx);font-weight:500;font-size:18px;margin-left:8px}
+.tab .lft{padding:6px 24px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.tab .lft .st{font-size:64px;padding:0}
+.tab .lft .r-facts{padding:0}
+.tab .lft .upn{position:static;margin-top:auto}
+.tab .rgt{padding:6px 24px 0 8px;min-height:0;overflow:hidden;position:relative}
+.tab .rgt .ntext{padding:0;--nfs:26px}
+.tab .ft{grid-column:1/3;display:flex;gap:12px;padding:12px 24px 22px}
+.tab .ft .r-pg{height:84px}
+.tab .ft .r-pg.bk{flex:1}.tab .ft .r-pg.nx{flex:2}
+/* wrap-up */
+.wsum{display:flex;gap:16px;padding:0 4px 10px;font-family:var(--r-fm);font-size:12px;color:var(--mu)}
+.wsum b{color:var(--tx);font-weight:500}
+.wl{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 4px;border-bottom:1px solid var(--line);font-weight:600;font-size:15px}
+.wl .ck{width:24px;height:24px;border-radius:12px;background:var(--ok);color:#06140c;display:grid;place-items:center;flex-shrink:0}
+.wl .ck svg.i{width:15px;height:15px;stroke-width:3}
+.wl .ck.no{background:none;box-shadow:inset 0 0 0 2px var(--line)}
+.wl .g{flex:1}.wl small{font-family:var(--r-fm);font-size:11px;color:var(--mu);font-weight:500}
+.notebox{background:var(--s2);border-radius:16px;padding:12px 14px;font-size:15px;min-height:92px;color:var(--tx);margin-top:12px;line-height:1.45}
+.notebox small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;color:var(--mu);margin-bottom:4px}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,step,tp,row,retune,grp,gl,item,srow,sheet,phone,tpl,T}=R;
+const S=R.SONGS;
+const SESS=[
+ {id:'mw',notes:['Breakdown at 2:40: watch Sarah for the cut','Mike takes the second verse harmony','<b>End on the downbeat, all together</b>'],who:'Mike'},
+ {id:'bl',notes:['Try it a half-step lower this week','Eric: long outro solo, cue with a nod','Sarah brushes on the verses'],who:'Eric'},
+ {id:'aer',notes:['Drop C: retune before this one','Intro is 4 bars clean, then the riff','Whisper vocal on the bridge'],who:'Sarah'},
+ {id:'ev',notes:['Run the quiet bridge twice','Drop D again: check tuning after Aerials'],who:'Mike'}];
+const LK=['tabs','audio','video','lyrics'],LN={tabs:'Tabs',audio:'Spotify',video:'YouTube',lyrics:'Lyrics'};
+// practice page
+const pRow=(x,n)=>{const s=S[x.id];return row(s,{n,grip:true,view:{links:false}})+`<div class="plk">${LK.map(l=>`<span class="${l} ${s.links.includes(l)?'':'off'}">${ic(l)}${LN[l]}</span>`).join('')}</div>`+(n===1?`<div class="pnote">${ic('list')}Tighten the breakdown before Nov 7</div>`:'')};
+const pracScr=tpl.detail({back:'Calendar',right:ib('moreh'),kicker:'<span class="stat"><i></i>Upcoming · in 4 days</span>',title:'Thursday run',
+ body:grp(`<div class="when">${item({lead:ic('cal','color:var(--mu)'),title:'Thu, Nov 5 · 7:00 PM',sub:'2 hours · until 9:00'})}${item({lead:ic('home','color:var(--mu)'),title:'Mike\'s Garage',sub:'412 Alder St'})}</div>`)
+ +gl('Focus',{label:'EDIT',icon:'edit'})+grp(`<div class="focus">Run the Fall Set openers. Tighten the Monkey Wrench breakdown. New: Aerials.</div>`)
+ +gl('Songs · 4',{label:'ADD',icon:'plus'})+grp(SESS.map((x,i)=>pRow(x,i+1)).join(''))+'<div style="height:110px"></div>',
+ cta:btn('Start practice session',{kind:'pri',size:'xl',icon:'play',iconSt:'width:20px;height:20px'}).replace('r-btn pri','r-btn pri w')});
+
+// session (interactive)
+let IDX=1,EL=754,FS=22,TAB=0;
+const sess=()=>{const x=SESS[IDX],s=S[x.id],nx=SESS[IDX+1],ns=nx&&S[nx.id],chg=ns&&ns.tun!==s.tun,pv=SESS[IDX-1];
+ const hh=Math.floor(EL/3600),mm=Math.floor(EL%3600/60),ss=EL%60;
+ return `<div class="ss"><div class="sh">${ib('x')}<div class="c">SONG ${IDX+1} OF ${SESS.length}<b data-el>${hh}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}</b></div>${btn('End',{attr:'data-end'})}</div>
+<div class="bars">${SESS.map((_,i)=>`<i class="${i<IDX?'d':i===IDX?'on':''}"></i>`).join('')}</div>
+<div class="sk">${s.artist}</div><div class="r-d st">${s.title}</div>
+<div class="r-facts">${tp(s.tun,'lg')}<div class="f"><small>KEY</small><b>${s.key}</b></div><div class="f"><small>BPM</small><b>${s.bpm||'—'}</b></div><div class="f"><small>LENGTH</small><b>${s.dur}</b></div></div>
+<div class="tabrow">${seg(['Notes','Chart'],TAB,'data-tab')}<div class="r-step"><span data-fs="-" style="font-size:13px">A</span><span data-fs="+" style="font-size:19px">A</span></div></div>
+<div class="ntext" style="--nfs:${FS}px">${TAB===0?`<div class="who">${ic('people')}BAND NOTES · ${x.who.toUpperCase()}</div><ul>${x.notes.map(n=>`<li>${n}</li>`).join('')}</ul>`:`<div class="who">${ic('music')}CHART</div><div style="color:var(--mu);font-size:16px">Opens the paged chart reader from Song Chart, with Prev/Next song added.</div>`}</div>
+${ns?`<div class="upn ${chg?'chg':''}"><div class="g"><small>${chg?'UP NEXT · TUNING CHANGE':'UP NEXT'}</small><b>${ns.title}</b><div class="rt">${chg?`${tp(s.tun,'sm')}${ic('arrow')}${tp(ns.tun,'sm')}`:`${tp(ns.tun,'sm')}<span class="r-m r-muted">${ns.dur}</span>`}</div></div>${chg?btn('Tune now',{icon:'fork'}):''}</div>`:`<div class="upn"><div class="g"><small>LAST SONG</small><b>Then wrap up</b><div class="r-m r-muted">Add notes for next time</div></div></div>`}
+<div class="pg2"><div class="r-pg bk" data-go="-1" style="${pv?'':'opacity:.35'}">${ic('up','transform:rotate(-90deg)')}<small>${pv?S[pv.id].title:'Start'}</small></div><div class="r-pg nx ${ns?'':'end'}" data-go="1">${ic(ns?'down':'check',ns?'transform:rotate(-90deg)':'')}<small>${ns?ns.title:'End practice'}</small></div></div></div>`};
+
+// tablet landscape
+const tabSess=()=>{const x=SESS[1],s=S[x.id],ns=S[SESS[2].id];return `<div class="tab"><div class="r">
+<div class="tb">${ib('x')}<span class="c">SONG 2 OF 4<b>0:12:34</b></span><div class="bars" style="flex:1;padding:0 12px">${SESS.map((_,i)=>`<i class="${i<1?'d':i===1?'on':''}"></i>`).join('')}</div>${seg(['Notes','Chart'],0,'style="width:200px"')}<div class="r-step"><span style="font-size:13px">A</span><span style="font-size:19px">A</span></div>${btn('End')}</div>
+<div class="lft"><div class="sk" style="padding:0">${s.artist}</div><div class="r-d st">${s.title}</div><div class="r-facts">${tp(s.tun,'lg')}<div class="f"><small>KEY</small><b>${s.key}</b></div><div class="f"><small>BPM</small><b>${s.bpm}</b></div><div class="f"><small>LENGTH</small><b>${s.dur}</b></div></div>
+<div class="upn chg"><div class="g"><small>UP NEXT · TUNING CHANGE</small><b>${ns.title}</b><div class="rt">${tp(s.tun,'sm')}${ic('arrow')}${tp(ns.tun,'sm')}</div></div>${btn('Tune now',{icon:'fork'})}</div></div>
+<div class="rgt"><div class="ntext"><div class="who">${ic('people')}BAND NOTES · ERIC</div><ul>${x.notes.map(n=>`<li>${n}</li>`).join('')}</ul><div class="who" style="margin-top:22px">${ic('lock')}MY NOTES</div><ul><li>Capo off. Use the Les Paul.</li></ul></div></div>
+<div class="ft"><div class="r-pg bk">${ic('up','transform:rotate(-90deg)')}<small>MONKEY WRENCH</small></div><div class="r-pg nx">${ic('down','transform:rotate(-90deg)')}<small>AERIALS</small></div></div></div></div>`};
+
+// wrap-up
+const wrap=sheet({title:'Practice done',sub:'Saved to practice history',body:`<div class="wsum"><span><b>1:12:40</b> played</span><span><b>3 of 4</b> songs</span></div>${SESS.map((x,i)=>`<div class="wl"><span class="ck ${i===3?'no':''}">${i===3?'':ic('check')}</span><div class="g">${S[x.id].title}</div><small>${i===3?'skipped':['18 min','22 min','31 min'][i]}</small></div>`).join('')}<div class="notebox"><small>WRAP-UP NOTES · SHARED WITH THE BAND</small>Breakdown is tight now. Aerials needs another run; carry Everlong to next week.<span class="r-caret"></span></div>`,buttons:btn('Back',{size:'lg'})+btn('Save wrap-up',{kind:'pri',size:'lg'})});
+const wrapScr=`<div class="ss">${sess().replace(/<div class="pg2">[\s\S]*$/,'')}</div></div>${wrap}`;
+
+const ph=(lbl,desc,inner,attr='')=>`<div class="ph"><div class="cap">${lbl}</div><div class="capd">${desc}</div><div ${attr}>${phone(inner,{theme:undefined})}</div></div>`;
+const R1=[ph('1 · Practice','Edit in place. Status comes from the time ("Upcoming · in 4 days"), never a field (spec). Focus notes, then songs in the practice row: every link as a labelled button, plus the per-practice song note. <b>Start practice session</b> is docked.',pracScr),
+ ph('2 · Session · try it','<b>Tap Next / Prev</b> (or swipe left and right) to change songs. The buttons name the song they go to. The elapsed timer runs. Notes are default and A / A resize them. Notes | Chart switches to the chart reader.',sess(),'data-ss'),
+ ph('3 · Tuning change ahead','Song 2 is shown, so the Up next card turns yellow: <b>E STD → C DROP</b> with <b>Tune now</b>, which opens the tuner set to Drop C. You see it while you\'re still playing, not after (<b>Zeigarnik</b>).',(()=>{const k=IDX;IDX=1;const h=sess();IDX=k;return h})()),
+ ph('4 · Wrap up','End opens the wrap-up: time played, songs reached (a skipped song is marked), and shared wrap-up notes. Saving files it in <b>Practice history</b> (launch scope).',wrapScr)];
+document.getElementById('mount').outerHTML=`<div class="frame col" style="left:80px;top:60px">
+<div class="doc" data-screen-label="Header"><div class="eb">Rock On · Source · Practice &amp; session · locked Oct 30 2026</div><h1 class="H">Run the <span>practice</span>.</h1>
+<p style="font-size:17px;max-width:1240px;color:#d4d4d4">Built from the kit against <span style="font-family:'Martian Mono';font-size:13px">practice.md</span>, <span style="font-family:'Martian Mono';font-size:13px">practice-session.md</span> and workflow 08. The session is a <b>stage</b> screen: the same big pager as the chart reader, but Back and Next change songs, and each names its destination. Phone 2 works.</p>
+<div class="four">
+<div><h3>Buttons that say where</h3><p>"Next" alone makes you remember the order. "Next · Aerials" doesn't. On the last song it becomes <b>End practice</b> (<b>Working Memory</b>, <b>Peak-End Rule</b>).</p></div>
+<div><h3>Retune before it bites</h3><p>The Up next card is neutral unless the next song changes tuning. Then it's the only yellow on screen, with Tune now one tap away (<b>Von Restorff</b>, <b>Flow</b>).</p></div>
+<div><h3>Stage rules</h3><p>Prev/Next are 96 tall; there are no small controls. The screen stays awake and works offline. Arrows, Home/End, Esc and pedals map to the same actions (spec Must). Text size is remembered.</p></div>
+<div><h3>Ending well</h3><p>The wrap-up is the last thing you see: what you covered and what to carry forward. It feeds Practice history and next week's focus (<b>Peak-End Rule</b>, <b>Zeigarnik</b>).</p></div>
+</div></div>
+<div class="phones" data-screen-label="Practice">${R1.join('')}</div>
+<div data-screen-label="Tablet"><div class="ph"><div class="cap">5 · Tablet landscape (and a rotated phone)</div><div class="capd" style="width:1180px;min-height:0">Song, facts and Up next on the left; notes or chart large on the right; Prev/Next across the bottom. Same controls, more room. TV uses this layout scaled up, and the spec's manual layout cycling lives under ⋯.</div>${tabSess()}</div></div></div>`;
+
+// interactions
+const host=()=>document.querySelector('[data-ss]');
+const re=()=>{host().innerHTML=phone(sess())};
+document.addEventListener('click',e=>{if(!e.target.closest('[data-ss]'))return;
+ const g=e.target.closest('[data-go]');if(g){const d=+g.dataset.go;IDX=Math.max(0,Math.min(SESS.length-1,IDX+d));re();return}
+ const f=e.target.closest('[data-fs]');if(f){FS=Math.max(16,Math.min(34,FS+(f.dataset.fs==='+'?2:-2)));re();return}
+ const t=e.target.closest('[data-tab] span');if(t){TAB=[...t.parentNode.children].indexOf(t);re()}});
+let sx=null;document.addEventListener('pointerdown',e=>{if(e.target.closest('[data-ss] .ntext'))sx=e.clientX});
+document.addEventListener('pointerup',e=>{if(sx==null)return;const dx=e.clientX-sx;sx=null;if(Math.abs(dx)>60){IDX=Math.max(0,Math.min(SESS.length-1,IDX+(dx<0?1:-1)));re()}});
+setInterval(()=>{EL++;const el=document.querySelector('[data-ss] [data-el]');if(el){const hh=Math.floor(EL/3600),mm=Math.floor(EL%3600/60),ss=EL%60;el.textContent=`${hh}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`}},1000);
+})();
+</script>
+</body>
+</html>

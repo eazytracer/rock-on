@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Jam: counter iPad and group sets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<link rel="stylesheet" href="../../source/kit/jam.css">
+<style>
+.tab{width:1180px;height:820px;border-radius:44px;background:#1b1b1b;padding:14px;box-shadow:0 0 0 1px #333,0 30px 60px rgba(0,0,0,.35)}
+.tab>.r{width:1152px;height:792px;border-radius:32px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.kb{display:flex;align-items:center;gap:16px;padding:22px 30px 10px}.kb img{width:44px;height:44px}.kb .nm{font-family:var(--r-fd);font-weight:800;font-size:28px;text-transform:uppercase}.kb .r-m{color:var(--mu)}.kb .ex{margin-left:auto;font-family:var(--r-fm);font-size:11px;color:var(--dim)}
+.kw{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:10px 30px 30px;min-height:0}
+.kw h2{font-family:var(--r-fd);font-weight:900;font-size:96px;text-transform:uppercase;line-height:.86;color:var(--tx)}.kw h2 span{color:var(--acc)}
+.kw p{font-size:20px;color:var(--tx2);margin:14px 0 20px;line-height:1.4}
+.kf{background:var(--s1);border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:var(--shg)}
+.kf .lb{font-family:var(--r-fm);font-size:12px;letter-spacing:.1em;color:var(--mu)}
+.kf .in{height:72px;border-radius:20px;background:var(--s2);display:flex;align-items:center;padding:0 22px;font-size:30px;font-weight:700;box-shadow:inset 0 0 0 2px var(--acc)}
+.kf .ch{display:flex;flex-wrap:wrap;gap:10px}.kf .ch span{height:60px;padding:0 22px;border-radius:30px;background:var(--s2);display:flex;align-items:center;font-size:20px;font-weight:700}.kf .ch span.on{background:var(--tx);color:var(--bg)}
+.kf .r-btn{height:80px;font-size:24px;border-radius:24px;margin-top:auto}
+.kl{display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.kl .r2{display:flex;align-items:center;gap:18px;padding:16px 16px 16px 24px;border-radius:24px;background:var(--s1);box-shadow:var(--shg)}
+.kl .r2 .g{flex:1;min-width:0}.kl .r2 b{display:block;font-size:26px}.kl .r2 small{font-size:16px;color:var(--mu)}
+.kl .r2 .need{font-family:var(--r-fm);font-size:12px;letter-spacing:.06em;color:var(--ty-evt);margin-top:4px}
+.kl .r2 .hb{height:72px;padding:0 26px;border-radius:36px;background:var(--s2);display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;flex-shrink:0}.kl .r2 .hb svg.i{width:26px;height:26px}
+.kl .r2 .hb.on{background:var(--acc);color:var(--onacc)}
+.kl .rq{height:76px;border-radius:24px;box-shadow:inset 0 0 0 2px var(--line);display:flex;align-items:center;justify-content:center;gap:10px;font-size:22px;font-weight:700;color:var(--tx)}
+.kd{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center}
+.kd .ok{width:120px;height:120px;border-radius:60px;background:var(--ok);color:#06140c;display:grid;place-items:center}.kd .ok svg.i{width:60px;height:60px;stroke-width:3}
+.kd h2{font-family:var(--r-fd);font-weight:900;font-size:88px;text-transform:uppercase;line-height:.88}
+.kd p{font-size:22px;color:var(--tx2);max-width:640px;line-height:1.45}
+.kd .cd{font-family:var(--r-fm);font-size:14px;color:var(--mu);letter-spacing:.08em}
+.kd .bar{width:320px;height:6px;border-radius:3px;background:var(--s3);overflow:hidden}.kd .bar i{display:block;height:100%;width:60%;background:var(--acc)}
+.kd .r-btn{height:64px;font-size:20px;padding:0 30px}
+/* sets */
+.st1{margin:0 12px 10px;padding:14px 16px;border-radius:20px;background:var(--s1);box-shadow:var(--shg)}
+.st1 .h{display:flex;align-items:center;gap:10px}.st1 .h b{flex:1;font-size:16px}.st1 .h .r-m{color:var(--mu)}
+.st1 .ppl{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}.st1 .ppl span{height:30px;padding:0 10px 0 4px;border-radius:15px;background:var(--s3);display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700}.st1 .ppl .jav{width:22px;height:22px;font-size:10px;background:var(--bg)!important;color:var(--tx)}
+.st1 .sg{display:flex;flex-direction:column}.st1 .sg div{display:flex;align-items:center;gap:10px;min-height:40px;border-top:1px solid var(--div);font-size:14.5px;font-weight:600}.st1 .sg div span{font-family:var(--r-fm);font-size:11px;color:var(--mu);width:16px}
+.st1 .sg div.add{color:var(--accink)}
+.st1.top{box-shadow:inset 0 0 0 2px var(--acc)}
+.st1 .r-btn{width:100%;margin-top:10px}
+.tg{display:flex;align-items:center;gap:12px;min-height:64px;padding:0 16px;border-bottom:1px solid var(--div)}.tg:last-child{border:0}.tg .g{flex:1}.tg b{display:block;font-size:15px}.tg small{font-size:12.5px;color:var(--mu)}
+.qk{display:flex;gap:6px;padding:10px 14px 14px}.qk span{flex:1;height:44px;border-radius:14px;background:var(--s2);display:grid;place-items:center;font-family:var(--r-fm);font-weight:700;font-size:14px}.qk span.on{background:var(--acc);color:var(--onacc)}
+.stp{display:flex;gap:6px;margin-top:8px}.stp i{flex:1;height:6px;border-radius:3px;background:var(--s3)}.stp i.d{background:var(--mu2)}.stp i.on{background:var(--acc)}
+.tvs{width:960px;height:540px;border-radius:8px;overflow:hidden;background:#0c0b0a;color:#f4efe9;position:relative;padding:34px 40px;box-shadow:0 0 0 8px #1b1b1b}
+.tvs .k{font-family:'Martian Mono';font-size:13px;letter-spacing:.14em;color:#ff9a4d}
+.tvs h2{font-family:'Big Shoulders Display';font-weight:900;font-size:86px;text-transform:uppercase;line-height:.86;margin:8px 0 4px}
+.tvs .of{font-family:'Martian Mono';font-size:15px;color:#a69c92;letter-spacing:.08em}
+.tvs .gp{display:flex;gap:8px;margin:18px 0}.tvs .gp span{height:48px;padding:0 16px 0 8px;border-radius:24px;background:#221f1c;display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700}.tvs .gp i{width:34px;height:34px;border-radius:17px;background:#3a332d;display:grid;place-items:center;font-style:normal;font-weight:800}
+.tvs .sl{display:flex;gap:10px}.tvs .sl div{flex:1;padding:12px 14px;border-radius:16px;background:#161412;font-size:20px;font-weight:700}.tvs .sl div small{display:block;font-family:'Martian Mono';font-size:11px;color:#8a8178;font-weight:500;margin-bottom:4px}.tvs .sl div.on{box-shadow:inset 0 0 0 3px #ff7a1a}.tvs .sl div.dn{opacity:.4}
+.tvs .nx{position:absolute;left:40px;right:40px;bottom:30px;padding-top:14px;border-top:2px solid #221f1c;font-size:20px;color:#cfc6bd}.tvs .nx b{color:#f4efe9}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script src="../../source/kit/jam.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,sw,tp,grp,gl,item,fld,sheet,phone,backbar,title}=R,{ph,page}=Draft,J=Jam;
+const kbar=`<div class="kb"><img src="../../source/kit/horns-bone.png" alt=""><span class="nm">Tuesday Open Jam</span><span class="r-m">${J.live()} · LUCKY'S</span><span class="ex">HOLD 3S TO EXIT</span></div>`;
+const tabF=(inner,lbl,desc)=>`<div class="ph"><div class="cap">${lbl}</div><div class="capd" style="width:1180px;min-height:0">${desc}</div><div class="tab"><div class="r" data-theme="dark">${inner}</div></div></div>`;
+const k1=`${kbar}<div class="kw"><div><h2>Want to <span>play</span>?</h2><p>Put your name down here. No phone, no account. The host sees it straight away.</p><div class="kl">${[['Black','Pearl Jam · Eric, Tom, Kai are in','NEEDS BASS'],['Creep','Radiohead · Mo, Sam are in','NEEDS VOCALS']].map(([t,s,n])=>`<div class="r2"><div class="g"><b>${t}</b><small>${s}</small><div class="need">${n}</div></div></div>`).join('')}</div></div>
+<div class="kf"><span class="lb">YOUR FIRST NAME</span><div class="in">Frank<span class="r-caret"></span></div><span class="lb">YOU PLAY</span><div class="ch">${['Vocals','Guitar','Bass','Drums','Keys','Harmonica','Other'].map((x,i)=>`<span class="${i===0||i===5?'on':''}">${x}</span>`).join('')}</div>${btn('Next',{kind:'pri',size:'lg'})}</div></div>`;
+const k2=`${kbar}<div class="kw" style="grid-template-columns:1.3fr 1fr"><div class="kl"><span class="kf" style="background:none;box-shadow:none;padding:0 0 4px"><span class="lb">FRANK · VOCALS, HARMONICA · RAISE YOUR HAND</span></span>${[['Creep','Radiohead · Mo, Sam are in','NEEDS VOCALS',1],['Plush','Stone Temple Pilots · Dana sings',''],['Mustang Sally','Wilson Pickett · Jess, Sam',''] ].map(([t,s,n,on])=>`<div class="r2"><div class="g"><b>${t}</b><small>${s}</small>${n?`<div class="need">${n}</div>`:''}</div><span class="hb ${on?'on':''}">${ic('hand')}${on?'Hand up':'Raise'}</span></div>`).join('')}<div class="rq">${ic('plus')}Request a different song</div></div>
+<div class="kf"><span class="lb">WITH A GROUP?</span><p style="margin:0;font-size:18px">Tell the host who you're playing with. They'll keep you together.</p><div class="in" style="box-shadow:none;font-size:22px;color:var(--mu);font-weight:500">Names (optional)</div>${btn('Done',{kind:'pri',size:'lg'})}</div></div>`;
+const k3=`${kbar}<div class="kd"><span class="ok">${ic('check')}</span><h2>You're on, Frank.</h2><p>Hand up for <b style="color:var(--tx)">Creep</b> on vocals. Watch the screen, or the host will call your name.</p><div class="bar"><i></i></div><span class="cd">CLEARING FOR THE NEXT PERSON IN 6S</span>${btn('Add another',{})}</div>`;
+// sets
+const hostSet=`${backbar('Jam')}${title('Jam settings')}<div class="r-body">${gl('Groups')}${grp(`<div class="tg"><div class="g"><b>Keep groups together</b><small>Suggest a short set per group, so people aren\'t reshuffled every song</small></div>${sw(true)}</div><div style="padding:0 16px"><span class="r-label">SUGGESTED SET LENGTH</span></div><div class="qk">${['1','2','3','4','5'].map(n=>`<span class="${n==='3'?'on':''}">${n}</span>`).join('')}</div>`)}
+<p class="sm" style="padding:6px 24px">A suggestion, not a rule. Guests can pitch one song or a full set; the host can split or merge sets any time. Off for venues that rotate every song.</p></div>`;
+const gp=(names)=>`<div class="ppl">${names.map(([n,p])=>`<span>${J.av(n)}${n} · ${p}</span>`).join('')}</div>`;
+const pitchSet=`${backbar('Tonight')}${title('Pitch a set')}<div class="r-body"><div class="st1"><div class="h"><b>Dana's group</b><span class="r-m">2 OF 3 SONGS</span></div>${gp([['Dana','Vox, Bass'],['Eric','Gtr'],['Kai','Drums']])}<div class="sg"><div><span>1</span>Plush</div><div><span>2</span>Zombie</div><div class="add"><span>+</span>Add a third · 4 songs you all know</div></div></div><p class="sm" style="padding:0 24px">The venue suggests 3. Send with fewer if you like.</p></div><div class="r-dock">${btn('Send set',{kind:'pri',size:'lg'}).replace('r-btn pri','r-btn pri w')}</div>`;
+const hostPitches=`<div class="r-ab">${ib('x')}<div style="flex:1"><b style="font-size:17px">Tuesday Open Jam</b><div class="r-m r-muted">${J.live()} · 23 HERE</div></div>${ib('moreh')}</div><div class="tabs3">${seg(['Pitches 4','People 23','Played 6'],0)}</div><div class="r-body">
+<div class="st1" style="box-shadow:inset 0 0 0 1.5px var(--line)"><div class="h"><b>On stage · Lena's group</b><span class="r-m">SONG 2 OF 3</span></div><div class="stp"><i class="d"></i><i class="on"></i><i></i></div></div>
+${gl('Up next · sets')}<div class="st1 top"><div class="h"><b>Dana's group</b><span class="r-m">3 SONGS · ALL PARTS</span></div>${gp([['Dana','Vox'],['Eric','Gtr'],['Ray','Bass'],['Kai','Drums']])}${btn('Call up after Lena',{kind:'pri'})}</div>
+<div class="st1"><div class="h"><b>Frank + Sam</b><span class="r-m">1 SONG · NEEDS BASS</span></div>${gp([['Frank','Vox'],['Sam','Drums']])}</div></div>`;
+const tvSet=`<div class="tvs"><div class="k">ON STAGE NOW · LENA'S GROUP</div><h2>Zombie</h2><div class="of">SONG 2 OF 3</div><div class="gp">${['Lena · Vox','Mo · Gtr','Ray · Bass','Sam · Drums'].map(x=>`<span><i>${x[0]}</i>${x}</span>`).join('')}</div><div class="sl"><div class="dn"><small>1</small>Seven Nation Army</div><div class="on"><small>2 · NOW</small>Zombie</div><div><small>3</small>Creep</div></div><div class="nx">Up next: <b>Dana's group</b> · Plush, Black, Everlong</div></div>`;
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Jam: counter iPad and group sets · locked Oct 31 2026 · to test',h:'At the <span>venue</span>.',
+ lede:'Two venue features. A <b>counter iPad</b> in kiosk mode: anyone walks up, types a first name, raises a hand or requests a song, and it clears itself for the next person. And <b>group sets</b>: an optional host setting that suggests groups stay together for 2–5 songs, shown everywhere as "song 2 of 3" without blocking single-song pitches.',
+ notes:[['Kiosk, not an account','The iPad is signed in as the host\'s jam. Guests only type a first name and pick what they play. It resets after each person, so nobody\'s left signed in (<b>Tesler\'s Law</b>, privacy).'],['Big and self-explaining','Two steps, 60–80px targets, one sentence per screen. Hold the logo 3s to exit (host PIN) (<b>Fitts\'s Law</b>, <b>Hick\'s Law</b>).'],['Sets are a nudge','Off by default. When on, Pitch becomes "Pitch a set" with the suggested length as a goal ("2 of 3 songs"), but one song still sends (<b>Goal-Gradient</b>, <b>Postel\'s Law</b>).'],['Shown, not enforced','Host and TV show the group and "song 2 of 3", so the room knows when the next group is up. The host can call anyone at any time (<b>Zeigarnik</b>, <b>Serial Position</b>).']],
+ rows:[[tabF(k1,'1 · Counter iPad · arriving','Left: songs one player away, so people know what\'s needed. Right: first name and what you play.'),tabF(k2,'2 · Counter iPad · raise a hand','Songs that fit what they play, needs first. Raise is the whole action. Optional: who you\'re with, so the host can keep you together.')],
+ [tabF(k3,'3 · Counter iPad · done','Confirms in big type, then clears itself after 10s. Add another for a friend standing behind.')],
+ [ph('4 · Host · groups setting','Keep groups together, with a suggested set length. Off for venues that rotate every song.',hostSet),
+ ph('5 · Guest · pitch a set','With groups on, a pitch is a group and up to 3 songs, with songs you all know suggested. Send with fewer if you like.',pitchSet),
+ ph('6 · Host · pitches as sets','On stage shows the group with song 2 of 3. Up next is grouped by set; a single-song pitch sits alongside.',hostPitches),
+ `<div class="ph"><div class="cap">7 · TV · group on stage</div><div class="capd" style="width:960px;min-height:0">The On stage slide with groups on: who's in the group, its 3 songs with the current one outlined, and the next group.</div>${tvSet}</div>`]]});
+})();
+</script>
+</body>
+</html>

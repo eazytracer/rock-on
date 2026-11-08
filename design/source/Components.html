@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Components</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit/rock.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{color:#cfc6bd;font-family:"Atkinson Hyperlegible Next",sans-serif}
+a{color:#ff7a1a}a:hover{color:#ffa060}
+.frame{position:absolute}
+.col{display:flex;flex-direction:column;gap:28px;width:1696px}
+.col>.band{margin-top:40px}
+.doc{background:#141414;border-radius:28px;padding:30px;font-size:15px;line-height:1.5;text-wrap:pretty}
+.doc p{margin-bottom:10px}.doc b{color:#fff}
+.eb{font-family:"Martian Mono";font-size:11px;letter-spacing:.12em;color:#ff7a1a;text-transform:uppercase}
+.H{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;line-height:.9;color:#f4efe9}
+h1.H{font-size:80px;margin:10px 0 14px}h1 span{color:#ff7a1a}
+h2.H{font-size:40px;margin:6px 0 10px}
+.laws{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px}
+.laws span{font-family:"Martian Mono";font-size:10px;letter-spacing:.06em;color:#f4efe9;background:#232323;border-radius:6px;padding:4px 8px;text-transform:uppercase}
+.recipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;margin-top:10px}
+.recipe div{border-top:2px solid #2a2522;padding-top:12px}
+.recipe i{font-style:normal;font-family:"Martian Mono";font-size:11px;color:#ff7a1a}
+.recipe h3{color:#fff;font-size:15px;margin:4px 0}
+.recipe p{font-size:13.5px;margin:0}
+.band{font-family:"Martian Mono";font-size:12px;letter-spacing:.12em;color:#5a5149;text-transform:uppercase;font-weight:500}
+.band b{font-family:"Big Shoulders Display";font-size:44px;letter-spacing:0;color:#1a1512;display:block;line-height:1;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(2,836px);gap:24px}
+.spec{background:#141414;border-radius:24px;padding:20px 22px 22px;display:flex;flex-direction:column;gap:10px}
+.spec .hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.spec .hd b{color:#fff;font-size:17px}
+.spec .hd code{font-family:"Martian Mono";font-size:11px;color:#ffb070;background:#1d1a17;border-radius:6px;padding:3px 7px}
+.spec .note{font-size:13.5px;color:#cfc6bd;line-height:1.45}
+.spec .note b{color:#fff}
+.panes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pane{border-radius:18px;padding:16px 4px;display:flex;flex-direction:column;gap:10px;min-height:80px;position:relative}
+.pane>.lbl{position:absolute;right:12px;top:8px;font-family:"Martian Mono";font-size:9px;letter-spacing:.1em;color:var(--mu);text-transform:uppercase}
+.pane .rw{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:0 12px}
+.pane .rw.tight{gap:6px}
+.pane .r-grp{margin:0 8px}
+.phones{display:flex;gap:56px;flex-wrap:nowrap}
+.ph .cap{font-family:"Martian Mono";font-size:11px;letter-spacing:.1em;color:#5a5149;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+.ph .capd{font-size:13.5px;color:#3d352f;margin-bottom:12px;width:410px;line-height:1.45;min-height:58px}
+.ph .capd b{color:#1a1512}
+.ph .capd code{font-family:"Martian Mono";font-size:11.5px;color:#b84d00}
+pre{font-family:"Martian Mono";font-size:11.5px;line-height:1.7;color:#d6d6d6;background:#0c0b0a;border-radius:18px;padding:20px;white-space:pre-wrap;margin-top:6px}
+pre b{color:#ff7a1a;font-weight:500}pre i{color:#7d7d7d;font-style:normal}
+ol.check{padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+ol.check b{color:#fff}
+.chart-l{font-size:22px;line-height:1.2;margin-bottom:.45em;display:flex;flex-wrap:wrap}
+.chart-l span{display:inline-flex;flex-direction:column;white-space:pre}
+.chart-l span b{font-family:"Martian Mono";font-weight:700;font-size:.68em;line-height:1.35em;min-height:1.35em;color:var(--chord);padding-right:.35em}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="kit/rock.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,sw,step,tp,dot,lk,notes,meta,grp,gl,item,fld,sec,row,retune,brk,setlist,srow,sheet,dialog,toast,banner,empty,skelRow,phone,tpl,SONGS:S,T}=R;
+const pane=(html,theme)=>`<div class="pane r" ${theme?`data-theme="${theme}"`:''}><span class="lbl">${theme||'dark'}</span>${html}</div>`;
+const spec=(name,call,html,note)=>`<div class="spec"><div class="hd"><b>${name}</b><code>${call}</code></div><div class="panes">${pane(html)}${pane(html,'light')}</div>${note?`<div class="note">${note}</div>`:''}</div>`;
+const rw=(h,c='')=>`<div class="rw ${c}">${h}</div>`;
+
+const PRIM=[
+ spec('Button','Rock.btn(label, {kind, size, icon})',rw(btn('Save',{kind:'pri'})+btn('Edit',{icon:'edit'})+btn('Share',{kind:'out'})+btn('Delete…',{kind:'dng'}))+rw(btn('Add song',{kind:'pri',size:'lg',icon:'plus',iconSt:'width:20px;height:20px'})+btn('Cancel',{kind:'text'})+btn('Songs',{kind:'back',icon:'back'})),
+  'Kinds: <b>pri</b> (accent, at most one per screen), default, <b>out</b>, <b>dng</b>, <b>text</b>, <b>back</b>. Sizes 44 · <b>lg</b> 52 (docked) · <b>xl</b> 60 (hero). Press state scales to .96 in 100ms. <b>Von Restorff</b>, <b>Fitts\'s Law</b>.'),
+ spec('Icon button · Chip · Segmented','Rock.ib · Rock.chip · Rock.seg',rw(ib('bell',{badge:true})+ib('moreh')+ib('x')+chip('Filter',{icon:'filter'})+chip('View',{icon:'view',on:true}))+rw(seg(['Comfortable','Compact'],0,'style="flex:1"')),
+  'Icon buttons are 44 round on surface-2. Chips are 38 tall and outlined; a selected chip inverts. Segmented is for 2–3 options that switch a view in place. <b>Hick\'s Law</b>.'),
+ spec('Switch · Stepper · Radio','Rock.sw · Rock.step(val, label) · .r-radio',rw(sw(true)+sw(false)+step('G','KEY')+step('24','SIZE')+'<span class="r-radio on"></span><span class="r-radio"></span>'),
+  'The switch is accent when on. Steppers are for values you nudge (key, size, octave); the value is mono with a tiny label. Radios are only used inside sheets.'),
+ spec('Tuning pill · dot','Rock.tp(id, size) · Rock.dot(id)',rw(R.SPINE.map(s=>tp(s[0])).join(''),'tight')+rw(tp('dd','sm')+tp('dd')+tp('dd','lg')+'<span style="width:12px"></span>'+dot('cstd')+dot('dc')+dot('half')+dot('std')),
+  'The only place tuning colour appears. The pill always carries the name, and dark and light values swap on their own. <b>sm</b> is for retune lines, default for rows, <b>lg</b> for pickers and headers. The dot is only for spots too small for a pill. <b>Von Restorff</b>, <b>Mental Model</b>.'),
+ spec('Link tile · Notes mark','Rock.lk(type) · Rock.notes(kind)',rw(['tabs','audio','video','lyrics','cloud','link'].map(lk).join(''),'tight')+rw(`<span style="font-weight:600;font-size:16px">Monkey Wrench${notes('band')}</span><span style="font-weight:600;font-size:16px">Black${notes('mine')}</span><span style="font-weight:600;font-size:16px">Aerials${notes('both')}</span>`),
+  'Link tiles are 30 visible with a 44 hit area; only Tabs, Spotify and YouTube are tinted. The notes mark goes straight after a title, in grey only, and appears only when notes exist. <b>Jakob\'s Law</b>, <b>Selective Attention</b>.'),
+ spec('Meta slot · Facts · Totals','Rock.meta(icon, val) · .r-facts · .r-tot',rw(meta('clock','3:51')+meta('key','B')+meta('bpm','174')+meta('bpm',''))+`<div class="r-facts" style="padding:0 12px">${tp('dd')}<div class="f"><small>KEY</small><b>B</b></div><div class="f"><small>BPM</small><b>174</b></div><div class="f"><small>LENGTH</small><b>3:51</b></div></div><div class="r-tot" style="padding:0 12px"><span><b>7</b> songs</span><span><b>38</b> min</span><span><b>4</b> retunes</span><span class="over"><b>52</b> of 45 min</span></div>`,
+  'Mono is used only for data. Meta slots use an icon only where the value is ambiguous (key #, BPM pulse); a missing value shows "—" so the columns hold. Facts sit under a detail title. Totals sit under a list title. <b>Law of Similarity</b>.')
+];
+const PAT=[
+ spec('Group · Item · Label','Rock.grp(...) · Rock.item({}) · Rock.gl(label, act)',gl('Links',{label:'ADD',icon:'plus'})+grp(item({lead:lk('tabs'),title:'Tabs',sub:'Ultimate Guitar',trail:'open'})+item({lead:lk('audio'),title:'Spotify',sub:'The Colour and the Shape',trail:'open'})),
+  'Everything sits on a group: one surface-1 card with dividers, on its own in light theme with a soft shadow. A mono label introduces it, with at most one action on the right. Group by meaning, not by looks. <b>Law of Common Region</b>, <b>Chunking</b>.'),
+ spec('Field','Rock.fld(key, value, {req, ph, focus, chev})',grp(fld('Title','Monkey Wrench',{req:true,focus:true})+fld('Artist','Optional',{ph:true})+`<div class="r-fld"><div class="g"><span class="k">Tuning</span><div style="margin-top:2px">${tp('dd','lg')}</div></div><span class="chev">${ic('chev')}</span></div>`),
+  'A label above the value, inside a group. Only the title is ever marked required. A field that opens a picker gets a chevron and opens a sheet. <b>Postel\'s Law</b>, <b>Parkinson\'s Law</b>.'),
+ spec('Song row','Rock.row(song, {n, grip, view, compact, lift})',grp(row(S.mw,{view:{artist:true}})+row(S.ev,{n:2,grip:true})+row(S.bl,{compact:true})),
+  'Comfortable (2 lines), ordered (grip and number), Compact (1 line, 1 link). Line 2 order is fixed: tuning → time → key → BPM, then links. Details in Song Row.html. <b>Law of Proximity</b>.'),
+ spec('Retune · Break · Section','Rock.retune(a, b, {tune}) · Rock.brk · Rock.sec · Rock.setlist(items)',sec('Openers')+grp(row(S.aag,{n:1,grip:true})+retune('std','dd',{tune:true})+row(S.mw,{n:2,grip:true})+brk('Break · 10 min','Swap to backup kit')),
+  '<b>Rock.setlist()</b> builds sections, breaks and retune lines automatically from a list of songs, so nobody draws a retune by hand. <b>Tesler\'s Law</b>.'),
+ spec('Banner · Toast','Rock.banner(icon, msg, sub, kind) · Rock.toast(msg)',banner('offline','Offline · this show is saved on your phone','Editing needs a connection','warn')+banner('people','3 changes by Mike','Fall Set · just now','info')+`<div style="position:relative;height:56px">${toast('Removed “Black” from Fall Set').replace('class="r-toast"','class="r-toast" style="bottom:6px"')}</div>`,
+  'A banner is for system or bandmate news, sits at the top and is grouped. A toast is for your own action, at the bottom, 4s, with optional Undo. Neither interrupts. <b>Selective Attention</b>.'),
+ spec('Empty · Loading','Rock.empty(icon, title, text, action) · Rock.skelRow()',grp(skelRow()+skelRow())+empty('music','No songs yet','Add your first song, or import a list from your band.',btn('Add song',{kind:'pri',icon:'plus'})).replace('class="r-empty"','class="r-empty" style="padding:14px 24px 4px;gap:8px"'),
+  'Every list has three states. Loading uses skeleton rows the same height as real ones, so nothing jumps. Empty says what to do and offers the button. Error is a banner with Retry. <b>Doherty Threshold</b>, <b>Zeigarnik</b>.')
+];
+
+// templates
+const cat=['aag','aer','aat','bc','ev','mw','bl'].map(k=>row(S[k],{view:{artist:true}})).join('');
+const tools=chip('Filter',{icon:'filter'})+chip('Artist',{icon:'sort'})+chip('View',{icon:'view'});
+const listT=tpl.list({title:'Songs',count:45,search:'Search title, artist, album',tools,body:grp(cat),fab:'Add song'});
+const detailT=tpl.detail({back:'Songs',right:btn('Edit',{icon:'edit'})+ib('moreh'),kicker:'Foo Fighters · The Colour and the Shape',title:'Monkey Wrench',
+ facts:`<div class="r-facts">${tp('dd')}<div class="f"><small>KEY</small><b>B</b></div><div class="f"><small>BPM</small><b>174</b></div><div class="f"><small>LENGTH</small><b>3:51</b></div></div>`,
+ body:grp(item({lead:lk('tabs'),title:'Tabs',sub:'Ultimate Guitar',trail:'open'})+item({lead:lk('audio'),title:'Spotify',sub:'Album version',trail:'open'}))+gl('Notes',{label:'FULL SCREEN',icon:'expand'})+grp(`<div style="padding:12px 16px 14px"><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:14px;font-weight:700">${ic('people','width:16px;height:16px;color:var(--mu)')}Band notes<span class="r-muted" style="font-weight:400;font-size:12px">shared</span></div><div style="font-size:14.5px;line-height:1.5;color:var(--tx2)">Breakdown at 2:40: watch Sarah for the cut.</div></div>`),
+ cta:btn('Chords &amp; lyrics',{kind:'pri',size:'xl',icon:'music',iconSt:'width:22px;height:22px'}).replace('r-btn pri','r-btn pri w')});
+const editT=tpl.editor({title:'Add song',body:grp(fld('Title','Monkey Wrench',{req:true})+fld('Artist','Foo Fighters'))+grp(`<div class="r-fld"><div class="g"><span class="k">Tuning</span><div style="margin-top:2px">${tp('dd','lg')}</div></div><span class="chev">${ic('chev')}</span></div>`+fld('Key','B',{chev:true}))+gl('Links')+grp(item({lead:lk('audio'),title:'Spotify',sub:'open.spotify.com/track/1Ru…',trail:'x'})+`<div class="r-item" style="color:var(--accink);font-weight:700">${ic('plus')}Add link</div>`)});
+const cl=(segs)=>`<div class="chart-l">${segs.map(([c,t])=>`<span><b>${c||'&nbsp;'}</b>${t}</span>`).join('')}</div>`;
+const stageT=tpl.stage({title:'Amazing Grace',meta:tp('std','sm')+'<span>3:40</span>',right:seg(['Chart','Notes'],0,'style="width:150px"'),controls:step('G','KEY')+`<div class="r-step"><span style="font-size:13px">A</span><span style="font-size:19px">A</span></div>`,
+ body:`<div class="r-label" style="margin-bottom:6px">Verse 1</div>`+cl([['G','Amazing '],['G7','grace, how '],['C','sweet the '],['G','sound']])+cl([['','That '],['G','saved a '],['Em','wretch like '],['A7','me']])+cl([['','I '],['G','once was '],['G7','lost, but '],['C','now am '],['G','found']])+cl([['','Was '],['G','blind, but '],['D','now I '],['G','see']])+`<div class="r-label" style="margin:14px 0 6px">Verse 2</div>`+cl([['','\'Twas '],['G','grace that '],['G7','taught my '],['C','heart to '],['G','fear']])});
+const viewSheet=sheet({title:'View options',sub:'Songs list · saved to your account',body:seg(['Comfortable','Compact'])+srow({icon:'user',label:'Artist',trail:sw(true)})+srow({icon:'key',label:'Key',trail:sw(true)})+srow({icon:'bpm',label:'BPM',trail:sw(true)})+srow({icon:'link',label:'Links',sub:'Up to 2 · tap to open',trail:sw(true)})+srow({icon:'eyeoff',label:'Show hidden songs',trail:sw(false)})});
+const menuSheet=sheet({title:'Monkey Wrench',sub:'D DROP · 3:51',body:srow({icon:'open',label:'Open song'})+srow({icon:'addl',label:'Add to setlist'})+srow({icon:'copy',label:'Add to My Songs',aside:'LINKED COPY'})+srow({icon:'eyeoff',label:'Hide',aside:'JUST FOR YOU'})+srow({icon:'trash',label:'Delete…',aside:'Used in Fall Set and 1 show',cls:'dng'})});
+const dlg=dialog('Delete “Monkey Wrench”?','It\'s used in <b>Fall Set</b> and <b>The Crocodile · Nov 1</b>. Those sets will lose it. This can\'t be undone.','Keep','Delete');
+const setT=tpl.detail({back:'Setlists',right:chip('View',{icon:'view'})+ib('moreh'),title:'Fall Set',facts:`<div class="r-tot"><span><b>6</b> songs</span><span><b>35</b> min</span><span><b>3</b> retunes</span><span class="over"><b>52</b> of 45 min</span></div>`,
+ body:setlist([{sec:'Openers'},S.aag,S.mw,S.ev,{brk:'Break · 10 min',note:'Swap to backup kit'},{sec:'Closers'},S.mb,S.bl],{tune:true,view:{bpm:false}}),cta:btn('Start Play-Along',{kind:'pri',size:'lg',icon:'play'}).replace('r-btn pri','r-btn pri w')});
+const emptyT=tpl.list({title:'Setlists',count:0,body:empty('list','No setlists yet','Build one from your songs, or copy one from a past show.',btn('New setlist',{kind:'pri',icon:'plus'})),nav:2});
+const ph=(lbl,call,desc,inner,o)=>`<div class="ph"><div class="cap">${lbl}</div><div class="capd"><code>${call}</code><br>${desc}</div>${phone(inner,o)}</div>`;
+const ROW1=[ph('List · tab root','Rock.tpl.list({title, count, search, tools, body, fab})','Context switcher and bell, display title with count, search, tools chips, grouped list, one accent FAB, pill nav.',listT),
+ ph('Detail · pushed','Rock.tpl.detail({back, kicker, title, facts, body, cta})','Back with the parent\'s name, a kicker, display title, facts, then groups. One primary action docked at the thumb.',detailT),
+ ph('Editor · full-screen route','Rock.tpl.editor({title, body})','Cancel · title · Save. Fields in groups; pickers open sheets. Leaving with changes asks first.',editT),
+ ph('Stage · hands busy','Rock.tpl.stage({title, meta, right, controls, body})','Close, compact header, one row of steppers, big content, the giant Back/Next pager. Screen stays awake.',stageT)];
+const ROW2=[ph('Ordered list','Rock.setlist(items, {tune})','A detail template with an ordered body: grips, numbers, sections, breaks and automatic retune lines with Tune.',setT),
+ ph('Sheet · options','Rock.sheet({title, sub, body}) · Rock.srow()','Picks and settings. Toggle rows apply straight away; nothing needs a Save.',listT.replace('<div class="r-nav"','<div style="display:none"')+viewSheet),
+ ph('Sheet · actions','Rock.srow({icon, label, aside, cls})','Replaces every kebab. The destructive row is last, red, and names what it affects.',listT+menuSheet),
+ ph('Dialog · destructive only','Rock.dialog(title, text, keep, act)','The only modal in the app. It names the consequence, and the safe choice is on the left.',listT+dlg)];
+const ROW3=[ph('Light theme','phone(inner, {theme:"light"})','Same markup, no other changes. Surfaces turn white with soft shadows; accent text darkens to stay readable.',listT,{theme:'light'}),
+ ph('Personal context','phone(inner, {ctx:"personal"})','The accent swaps to indigo everywhere it\'s used. Nothing else changes.',listT.replace('<i>iP</i>iPod Shuffle','<i>ER</i>Personal'),{ctx:'personal'}),
+ ph('Personal · light','{theme:"light", ctx:"personal"}','Both switches together.',detailT,{theme:'light',ctx:'personal'}),
+ ph('Empty state','Rock.empty(...) inside any template','Says what to do and offers the button. Never a blank screen.',emptyT)];
+
+document.getElementById('mount').outerHTML=`<div class="frame col" style="left:80px;top:60px">
+<div class="doc" style="width:1696px" data-screen-label="Header">
+<div class="eb">Rock On · Source · Components</div>
+<h1 class="H">Compose, don't <span>invent</span>.</h1>
+<p style="font-size:17px;max-width:1200px;color:#d4d4d4">Everything we've locked, broken into parts that every new screen is built from. Two files hold it all: <b>kit/rock.css</b> (tokens for dark, light and Personal, plus every component, all <span style="font-family:'Martian Mono';font-size:13px">r-</span> prefixed) and <b>kit/rock.js</b> (a builder for each part and four screen templates). Every specimen below is drawn by the kit, in both themes, so this page can't drift from the code.</p>
+<div class="recipe">
+<div><i>01</i><h3>Start from a template</h3><p>List, Detail, Editor or Stage. Every screen in the app is one of these four (<b>Jakob's Law</b>).</p></div>
+<div><i>02</i><h3>Fill with groups</h3><p>Content goes on surface-1 groups under a mono label. Group by meaning (<b>Common Region</b>).</p></div>
+<div><i>03</i><h3>One accent</h3><p>One primary button per screen. Tuning colour only on tuning. Semantic colour always with an icon and words (<b>Von Restorff</b>).</p></div>
+<div><i>04</i><h3>Overlay by job</h3><p>Fields → route. Picks and actions → sheet. Destructive → dialog. Feedback → toast or banner (<b>Hick's Law</b>).</p></div>
+<div><i>05</i><h3>Check three ways</h3><p>Dark, light, Personal; empty, loading, error; 44 targets and 16 body (<b>Fitts's Law</b>).</p></div>
+</div></div>
+<div class="band" style="">Primitives<b>The smallest parts</b></div>
+<div class="grid" style="">${PRIM.join('')}</div>
+<div class="band" style="">Patterns<b>Parts that combine primitives</b></div>
+<div class="grid" style="">${PAT.join('')}</div>
+<div class="band" style="">Templates<b>Every screen is one of four</b></div>
+<div class="phones" style="" data-screen-label="Templates">${ROW1.join('')}</div>
+<div class="band" style="">Overlays &amp; states<b>Built on the templates</b></div>
+<div class="phones" style="" data-screen-label="Overlays">${ROW2.join('')}</div>
+<div class="band" style="">Themes &amp; context<b>Same markup, two switches</b></div>
+<div class="phones" style="" data-screen-label="Themes">${ROW3.join('')}</div>
+<div class="doc" style="width:1696px;display:grid;grid-template-columns:1fr 1fr;gap:40px" data-screen-label="New component">
+<div><div class="eb">Adding something new</div><h2 class="H">Before it's a component</h2>
+<div class="laws"><span>Occam's Razor</span><span>Law of Similarity</span><span>Tesler's Law</span></div>
+<ol class="check">
+<li><b>Try to compose it first.</b> Most "new" things are a group of existing items. Only add a class when nothing fits.</li>
+<li><b>Tokens only.</b> No hex in a component: use <span style="font-family:'Martian Mono';font-size:12.5px">var(--s1)</span>, <span style="font-family:'Martian Mono';font-size:12.5px">--acc</span>, <span style="font-family:'Martian Mono';font-size:12.5px">--r-x4</span>, <span style="font-family:'Martian Mono';font-size:12.5px">--r-md</span>. Then light theme and Personal work for free.</li>
+<li><b>One job, one look.</b> If it does what an existing part does, it looks the same. If it looks the same, it does the same.</li>
+<li><b>Name the law</b> that justifies it, and the spec line it serves.</li>
+<li><b>Prove it</b> in dark, light and Personal, with empty, loading and error states, at 200% text.</li>
+<li><b>Lock it:</b> add the class to rock.css, the builder to rock.js, a specimen to this page, and a line to DECISIONS.md.</li>
+</ol></div>
+<div><div class="eb">Starter</div><h2 class="H">A new screen in 12 lines</h2>
+<pre><i>&lt;link rel="stylesheet" href="kit/rock.css"&gt;
+&lt;script src="kit/rock.js"&gt;&lt;/script&gt;</i>
+<b>const</b> {phone, tpl, grp, row, gl, item, lk, btn, SONGS} = Rock;
+el.innerHTML = phone(tpl.detail({
+  back: <b>'Setlists'</b>,
+  title: <b>'Fall Set'</b>,
+  body: gl(<b>'Songs'</b>) + grp(row(SONGS.mw) + row(SONGS.ev)),
+  cta: btn(<b>'Start Play-Along'</b>, {kind:<b>'pri'</b>, size:<b>'lg'</b>, icon:<b>'play'</b>})
+}), {theme: <b>'light'</b>});</pre>
+<p style="margin-top:14px;font-size:14px">Copy <b>kit/Template.html</b> to start a new exploration page: it has the canvas, the header card and a phone ready to fill. Explorations go in <span style="font-family:'Martian Mono';font-size:12.5px">refresh/</span>; once locked, they move here.</p>
+</div></div></div>`;
+})();
+</script>
+</body>
+</html>

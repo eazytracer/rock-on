@@ -4,8 +4,10 @@ Applying the locked redesign (Nov 2026) to this app. Written Nov 7 2026 against 
 
 ## Where the design lives
 
-The design is a set of clickable HTML prototypes in the **Rock On design project** (claude.ai, private to Eric:
-https://claude.ai/code/artifact/d9526dd6-6fbe-495b-913c-9c9125fa3396). Everything below refers to files in it.
+The design is a set of clickable HTML prototypes in **[`design/`](../../design/README.md)** in this repo (copied
+from the claude.ai design project on Nov 7 2026). Every page opens from disk with no sign-in. Everything below
+refers to files under `design/`. Part A decisions are in `design/source/DECISIONS.md`; the server contract is
+`design/OPERATIONS.md`; web vs native is `design/PLATFORM-NOTES.md`.
 
 | What                  | File in the design project                                                           | Use it for                                                                             |
 | --------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
@@ -27,14 +29,14 @@ screen in this codebase's own React / Tailwind / repository patterns.
 3. [03-screens.md](03-screens.md) — every route: which design screens it becomes, what changes, which files.
 4. [04-data.md](04-data.md) — what the design needs stored, marked **exists / change / new**, with migration sketches.
 5. [05-plan.md](05-plan.md) — the build order as PR-sized phases with acceptance checks, sized for this repo's release gate.
-6. [06-open-decisions.md](06-open-decisions.md) — **Events vs Jam**, the one thing not decided. Read before touching `/events` or `/jam`.
-7. [07-handoff-to-build.md](07-handoff-to-build.md) — open decisions and the files the build needs back from the design agent.
+6. [06-open-decisions.md](06-open-decisions.md) — **Events vs Jam**: decided Nov 7, option A (Jam on the Events tables). Background for the Jam phase.
+7. [07-handoff-to-build.md](07-handoff-to-build.md) — the build agent's handoff checklist. Done Nov 7: answers in `design/source/DECISIONS.md`, files in `design/`.
 
 ## Rules that apply to every phase
 
 - **Both platforms, same pass.** A screen isn't done until its mobile and desktop layouts both match the demos (PARITY.md lists the few deliberate exceptions).
 - **No capability disappears silently.** If the design drops something the live app does (separate Shows / Practices list pages, the Events casting console), redirect or flag it, and ask before deleting. DECISIONS.md: "any change that removes or hides an existing capability is flagged and asked first."
-- **Every list has three states:** skeleton while loading, empty with its action, error with Retry. One offline banner, no per-row sync icons.
+- **Every list has three states:** skeleton while loading, empty with its action, error with Retry. One offline banner, no per-row sync icons (online-only).
 - **Overlays by job:** full-screen route for forms with many fields; bottom sheet (mobile) / anchored menu or centred dialog (desktop) for picks and actions; dialog only for destructive confirms that name the consequence; toast for your own actions.
 - **Targets:** 44 px minimum, 64 px on stage screens (chart reader, practice session, jam host). Body text 16, never under 13.
 - Repo rules still apply: repository layer only (no direct `db.*` writes), one idempotent migration per release with explicit GRANTs, `useConfirm` / `useToast` instead of native dialogs, testability attributes on every interactive element, version bump + CHANGELOG + `release_notes` row in every prod-bound PR.

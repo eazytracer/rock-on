@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Practice history</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<style>
+.db{width:48px;text-align:center;flex-shrink:0;line-height:1}.db small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.1em;color:var(--mu)}.db b{display:block;font-family:var(--r-fd);font-size:28px;font-weight:800;margin-top:2px;color:var(--tx)}
+.pc{display:flex;gap:12px;padding:12px 14px 12px 12px;align-items:flex-start;border-bottom:1px solid var(--div);cursor:pointer}.pc:last-child{border:0}
+.pc .g{flex:1;min-width:0}.pc b{display:block;font-size:16px}
+.pc .m{font-family:var(--r-fm);font-size:11.5px;color:var(--mu);margin-top:3px}.pc .m em{font-style:normal;color:var(--tx)}
+.pc p{font-size:13.5px;color:var(--tx2);margin-top:6px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pc .sk{color:var(--warn)}
+.pc>svg.i{width:16px;height:16px;color:var(--dim);margin-top:14px}
+.sum{display:flex;gap:18px;padding:0 20px 12px;font-family:var(--r-fm);font-size:12px;color:var(--mu)}.sum b{color:var(--tx);font-weight:500}
+.tt{padding:0 14px 10px}
+.sr{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 14px;border-bottom:1px solid var(--div)}.sr:last-child{border:0}
+.sr .g{flex:1;min-width:0}.sr b{display:block;font-size:15.5px}.sr small{font-size:12.5px;color:var(--mu)}
+.sr .lp{text-align:right;flex-shrink:0;font-family:var(--r-fm);font-size:11px;color:var(--mu);line-height:1.35}.sr .lp b{font-size:13px;color:var(--tx);font-weight:500}
+.sr .lp.old b{color:var(--warn)}
+.sr .lp.never b{color:var(--mu)}
+.rc{padding:6px 20px 14px;display:flex;gap:22px}
+.rc div small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.1em;color:var(--mu)}.rc div b{font-family:var(--r-fd);font-weight:800;font-size:30px;color:var(--tx)}
+.wl{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px;border-bottom:1px solid var(--div);font-weight:600;font-size:15px}.wl:last-child{border:0}
+.wl .ck{width:24px;height:24px;border-radius:12px;background:var(--ok);color:#06140c;display:grid;place-items:center;flex-shrink:0}.wl .ck svg.i{width:15px;height:15px;stroke-width:3}
+.wl .ck.no{background:none;box-shadow:inset 0 0 0 2px var(--line)}
+.wl .g{flex:1}.wl small{font-family:var(--r-fm);font-size:11px;color:var(--mu);font-weight:500}
+.wn{padding:12px 16px;font-size:14.5px;line-height:1.5;color:var(--tx)}
+.wn .who{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.08em;color:var(--mu);margin-bottom:6px}
+.cal .r-item{min-height:64px}
+.cal .r-item small{white-space:normal}
+.tyb{display:inline-flex;align-items:center;gap:5px;font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;margin-top:3px;color:var(--ty-prac)}.tyb svg.i{width:13px;height:13px}
+.past{opacity:.6}
+.hl{margin:0 12px 10px;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--r-md);background:var(--s1);box-shadow:var(--shg);cursor:pointer}
+.hl .g{flex:1}.hl b{display:block;font-size:15.5px}.hl small{font-size:12.5px;color:var(--mu)}
+.hl>svg.i:first-child{width:22px;height:22px;color:var(--ty-prac)}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,tp,grp,gl,item,phone,tpl,backbar,title}=R,{ph,page}=Draft;
+const S=Object.assign({},R.SONGS,{tb:{title:'Them Bones',artist:'Alice In Chains',tun:'cstd',dur:'2:30'},as:{title:'All Star',artist:'Smash Mouth',tun:'std',dur:'3:14'}});
+const db=(m,d,dw)=>`<div class="db"><small>${m}</small><b>${d}</b><small style="margin-top:2px">${dw}</small></div>`;
+// 1 · Calendar Practices filter with History entry
+const ci=(m,d,dw,t,sub,cls='')=>`<div class="${cls}">${item({lead:db(m,d,dw),title:t,sub:sub+`<br><span class="tyb">${ic('cal')}PRACTICE</span>`,trail:'moreh'})}</div>`;
+const calScr=tpl.list({title:'Calendar',tools:['All','Shows','Practices','Jams'].map((l,i)=>chip(l,{on:i===2})).join(''),
+ body:`<div class="cal">${gl('Upcoming')}${grp(ci('NOV','5','THU','Thursday run','7:00 PM · Mike\'s Garage')+ci('NOV','12','THU','Thursday run','7:00 PM · Mike\'s Garage'))}
+<div class="hl">${ic('clock')}<div class="g"><b>Practice history</b><small>12 practices · last on Oct 29</small></div>${ic('chev','width:16px;height:16px;color:var(--dim)')}</div>
+${gl('Past')}${grp(ci('OCT','29','THU','Thursday run','1:52 played · 5 of 6 songs','past')+ci('OCT','22','THU','Thursday run','2:05 played · 6 of 6 songs','past'))}</div><div style="height:120px"></div>`,fab:'New practice',nav:3});
+// 2 · History · Practices
+const pc=(m,d,dw,t,played,cov,sk,note)=>`<div class="pc">${db(m,d,dw)}<div class="g"><b>${t}</b><div class="m"><em>${played}</em> played · <em>${cov}</em> songs${sk?` · <span class="sk">${sk} skipped</span>`:''}</div>${note?`<p>${note}</p>`:''}</div>${ic('chev')}</div>`;
+const histP=`${backbar('Calendar')}${title('Practice history')}<div class="tt">${seg(['Practices','Songs'],0)}</div><div class="r-body"><div class="sum"><span><b>12</b> practices</span><span><b>21h</b> played</span><span>since <b>Aug</b></span></div>
+${gl('October')}${grp(pc('OCT','29','THU','Thursday run','1:52','5 of 6',1,'Breakdown is tight now. Aerials needs another run; carry Everlong to next week.')+pc('OCT','22','THU','Thursday run','2:05','6 of 6',0,'Full Fall Set run-through. Set 2 drags after Black. Try moving it last.')+pc('OCT','15','THU','Thursday run','1:40','4 of 5',1,'Mike out sick. Worked vocals and Them Bones intro.'))}
+${grp(pc('OCT','8','THU','Thursday run','1:58','6 of 6',0,'New: Burn It to the Ground. Drop B is rough; retune before the run.')+pc('OCT','1','THU','Thursday run','2:10','5 of 5',0,''))}<div style="height:30px"></div></div>`;
+// 3 · History · Songs
+const sr=(id,n,last,cls)=>{const s=S[id]||id;return `<div class="sr">${tp(s.tun)}<div class="g"><b>${s.title}</b><small>${s.artist}</small></div><div class="lp ${cls||''}"><b>${last}</b><br>${n}</div></div>`};
+const histS=`${backbar('Calendar')}${title('Practice history')}<div class="tt">${seg(['Practices','Songs'],1)}</div><div style="display:flex;gap:6px;padding:0 14px 10px">${chip('Longest ago',{icon:'sort',on:true})}${chip('In Fall Set',{})}</div><div class="r-body">
+${gl('Fall Set · not practised lately')}${grp(sr('ev','4 times','23 days','old')+sr('bl','5 times','16 days','old'))}
+${gl('Recently practised')}${grp(sr('aer','3 times','2 days')+sr('mw','9 times','2 days')+sr('tb','6 times','2 days'))}
+${gl('Never practised')}${grp(sr({title:'Hash Pipe',artist:'Weezer',tun:'half'},'—','never','never'))}<div style="height:30px"></div></div>`;
+// 4 · Past practice recap
+const W=[['mw','18 min',1],['bl','22 min',1],['aer','31 min',1],['tb','14 min',1],['as','27 min',1],['ev','',0]];
+const SS=S;
+const recap=tpl.detail({back:'History',right:ib('moreh'),kicker:'Practice · Thu, Oct 29 · Mike\'s Garage',title:'Thursday run',
+ facts:`<div class="rc"><div><small>PLAYED</small><b>1:52</b></div><div><small>SONGS</small><b>5 OF 6</b></div><div><small>WHO</small><b>3 OF 3</b></div></div>`,
+ body:gl('Songs covered')+grp(W.map(([id,t,ok])=>`<div class="wl"><span class="ck ${ok?'':'no'}">${ok?ic('check'):''}</span><div class="g">${SS[id].title}</div><small>${ok?t:'skipped'}</small></div>`).join(''))
+ +gl('Wrap-up notes')+grp(`<div class="wn"><div class="who">ERIC · SAVED AT 9:04 PM</div>Breakdown is tight now. Aerials needs another run; carry Everlong to next week.</div>`)
+ +gl('Focus going in')+grp(`<div class="wn" style="color:var(--tx2)">Run the Fall Set openers. Tighten the Monkey Wrench breakdown. New: Aerials.</div>`)+'<div style="height:110px"></div>',
+ cta:btn('Plan next practice from this',{kind:'pri',size:'lg',icon:'plus'}).replace('r-btn pri','r-btn pri w')});
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Practice history · locked Oct 31 2026 · to test with the band',h:'What we <span>played</span>.',
+ lede:'Past practices, songs covered and the wrap-up notes feed, per reconciliation C8. It\'s reached from the Calendar\'s Practices filter, not a new tab. Built from the kit; nothing here is a stat for its own sake. Each number answers "what should we practise next?"',
+ notes:[['Where it lives','A single History card on Calendar → Practices, between Upcoming and Past. Past practices on the calendar still open their recap (<b>Jakob\'s Law</b>, no new nav).'],['Notes are the feed','Each practice shows played time, songs covered, any skipped, and the first two lines of its wrap-up notes. Reading down the list tells the story of the last few weeks (<b>Serial Position</b>).'],['Songs answers "what\'s rusty"','Per song: last practised and how often. Default sort is longest ago, with set songs you haven\'t touched lately flagged in yellow, plus never-practised songs (<b>Von Restorff</b>, <b>Zeigarnik</b>).'],['Close the loop','A recap ends with <b>Plan next practice from this</b>: a new practice with skipped songs and the notes carried in as focus (<b>Goal-Gradient</b>, <b>Peak-End Rule</b>).']],
+ rows:[[ph('1 · Calendar · Practices','The History card appears on the Practices filter only, with a count and the last date. Past practices below dim, as on All.',calScr),
+ ph('2 · History · Practices','Grouped by month. A short summary line, then each practice: date, played time, songs covered, skipped in yellow, and the wrap-up notes.',histP),
+ ph('3 · History · Songs','Tuning pill, title, last practised and count. Sections: set songs not practised lately, recent, never. Filter to a setlist.',histS),
+ ph('4 · Past practice','The saved wrap-up, read-only: played, songs, attendance, each song\'s time or skipped, notes, and the focus it started with.',recap)]]});
+})();
+</script>
+</body>
+</html>

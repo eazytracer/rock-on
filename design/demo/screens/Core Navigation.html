@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Core navigation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<style>
+.wt{margin:0 12px 10px;background:var(--s1);border-radius:var(--r-md);padding:14px 16px 6px;box-shadow:var(--shg)}
+.wt .hd{display:flex;align-items:center;gap:10px}.wt .hd b{flex:1;font-size:16px}.wt .hd .r-ib{width:36px;height:36px;background:none}
+.wt .bar{height:6px;border-radius:3px;background:var(--s3);margin:10px 0 6px;overflow:hidden}.wt .bar i{display:block;height:100%;width:40%;background:var(--acc)}
+.wt .st{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14.5px;font-weight:600;border-top:1px solid var(--div)}
+.wt .st .c{width:22px;height:22px;border-radius:11px;box-shadow:inset 0 0 0 2px var(--line);display:grid;place-items:center}
+.wt .st.d{color:var(--mu)}.wt .st.d span.t{text-decoration:line-through}
+.wt .st.d .c{background:var(--ok);box-shadow:none;color:#06140c}.wt .st .c svg.i{width:13px;height:13px;stroke-width:3}
+.wt .st .go{margin-left:auto;color:var(--accink);font-size:13px}
+.ec{margin:0 12px 10px;border-radius:var(--r-md);padding:16px;box-shadow:inset 0 0 0 1.5px var(--line);display:flex;align-items:center;gap:12px}
+.ec .g{flex:1}.ec b{display:block;font-size:15px}.ec small{font-size:13px;color:var(--mu)}
+.ctxr{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 6px;border-radius:14px}
+.ctxr.on{background:var(--s2)}
+.ctxr i.b{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:14px}
+.ctxr .g{flex:1}.ctxr b{display:block;font-size:16px}.ctxr small{font-size:12.5px;color:var(--mu)}
+.ctxr .ck{color:var(--accink)}.ctxr .ck svg.i{width:20px;height:20px}
+.ctxr .nbd{width:10px;height:10px;border-radius:5px;background:var(--acc);margin-right:4px}
+.ctxr .nb{font-family:var(--r-fm);font-size:10px;background:var(--acc);color:var(--onacc);border-radius:8px;padding:2px 6px}
+.sres .r-gl{padding-top:10px}
+.hl{color:var(--accink);font-weight:700}
+.wn{margin:0 12px 10px;background:var(--s1);border-radius:var(--r-md);padding:14px 16px;box-shadow:var(--shg)}
+.wn .k{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:var(--accink)}
+.wn b{display:block;font-size:16px;margin:4px 0}.wn p{font-size:13.5px;color:var(--tx2);line-height:1.45}
+.nf{display:flex;gap:12px;padding:12px 14px 12px 16px;align-items:flex-start;position:relative}
+.nf .ni{width:36px;height:36px;border-radius:18px;background:var(--s2);display:grid;place-items:center;flex-shrink:0}.nf .ni svg.i{width:17px;height:17px}
+.nf .g{flex:1;min-width:0}.nf b{display:block;font-size:14.5px}.nf p{font-size:13px;color:var(--tx2);line-height:1.4;margin-top:2px}
+.nf .tm{font-family:var(--r-fm);font-size:10.5px;color:var(--mu);white-space:nowrap}
+.nf .ud{position:absolute;left:6px;top:28px;width:7px;height:7px;border-radius:4px;background:var(--acc)}
+.nf .bt{display:inline-block;font-family:var(--r-fm);font-size:10px;letter-spacing:.06em;color:var(--mu);margin-top:4px}
+.bandc{margin:0 12px 10px;background:var(--s1);border-radius:var(--r-md);padding:16px;box-shadow:var(--shg)}
+.bandc .t{display:flex;align-items:center;gap:12px}.bandc .t i.b{width:48px;height:48px;border-radius:14px;background:var(--acc);color:var(--onacc);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:16px}
+.bandc .t b{display:block;font-size:19px}.bandc .t small{font-size:13px;color:var(--mu)}
+.bandc .row2{display:flex;align-items:center;margin-top:14px;gap:10px}.bandc .row2 .r-btn{margin-left:auto}
+.ctxdd{position:absolute;top:104px;left:12px;width:316px;z-index:20;background:var(--s2);border-radius:20px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 1px var(--line);transform-origin:40px 0;animation:ddin .16s ease-out}
+.ctxdd:before{content:"";position:absolute;top:-6px;left:34px;width:12px;height:12px;background:var(--s2);transform:rotate(45deg);box-shadow:-1px -1px 0 var(--line)}
+.ctxdd .ctxr.on{background:var(--s3)}
+.ctxdd .gl2{font-family:var(--r-fm);font-size:10px;letter-spacing:.1em;color:var(--mu);padding:8px 8px 4px}
+.ctxdd .ft{border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
+.ctxdd .ft .ctxr{min-height:48px;font-weight:600;font-size:15px;color:var(--tx2)}
+.ctxdd .ft .ctxr svg.i{width:20px;height:20px;margin:0 10px}
+.ddscrim{position:absolute;inset:0;z-index:19;background:rgba(0,0,0,.35)}
+.ddopen .r-ctx{box-shadow:0 0 0 2px var(--acc);position:relative;z-index:21}.ddopen .r-ctx svg.i{transform:rotate(180deg)}
+@keyframes ddin{from{opacity:0;transform:scale(.96) translateY(-4px)}}
+.card .cxb{margin-left:auto;width:32px;height:32px;margin:-8px -8px -8px auto;border-radius:16px;display:grid;place-items:center;color:var(--mu)}.card .cxb svg.i{width:18px;height:18px}
+.swq{position:absolute;left:24px;right:24px;top:50%;transform:translateY(-50%);z-index:20;background:var(--s2);border-radius:24px;padding:18px;box-shadow:0 16px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:14px}
+.swq .t{display:flex;align-items:center;gap:12px}.swq .t i.b{width:40px;height:40px;border-radius:12px;background:var(--acc);color:var(--onacc);font-style:normal;font-weight:800;font-size:14px;display:grid;place-items:center}
+.swq .t b{font-size:18px}.swq .ac{display:flex;gap:8px}.swq .ac .r-btn{flex:1}
+.swq .rem{font-size:12.5px;color:var(--mu);display:flex;align-items:center;gap:8px}.swq .rem .bx{width:20px;height:20px;border-radius:6px;box-shadow:inset 0 0 0 2px var(--line)}
+.nfp{position:absolute;top:104px;right:12px;width:340px;z-index:20;background:var(--s2);border-radius:20px;box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 1px var(--line);animation:ddin .16s ease-out;transform-origin:310px 0}
+.nfp:before{content:"";position:absolute;top:-6px;right:22px;width:12px;height:12px;background:var(--s2);transform:rotate(45deg);box-shadow:-1px -1px 0 var(--line)}
+.nfp .hd{display:flex;align-items:center;gap:8px;padding:14px 16px 6px}.nfp .hd b{font-size:16px;flex:1}.nfp .hd small{font-family:var(--r-fm);font-size:10.5px;color:var(--accink)}
+.nfp .nf{padding:10px 14px 10px 18px}.nfp .nf .ni{width:32px;height:32px;background:var(--s3)}
+.nfp .nf+.nf{border-top:1px solid var(--line)}
+.nfp .ac{display:flex;gap:8px;padding:8px 12px}.nfp .ac .r-btn{flex:1;height:40px;font-size:13.5px}
+.nfp .all{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;border-top:1px solid var(--line);font-weight:700;font-size:14px;color:var(--accink)}.nfp .all svg.i{width:16px;height:16px}
+.bellon .r-ab .r-ib:last-child{box-shadow:0 0 0 2px var(--acc);position:relative;z-index:21}
+.rn{padding:12px 16px}.rn+.rn{border-top:1px solid var(--div)}
+.rn .k{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.08em;color:var(--mu)}.rn b{display:block;font-size:15px;margin:2px 0}.rn p{font-size:13px;color:var(--tx2);line-height:1.45}
+.nf .ni{position:relative}
+.nf .ni.mk{border-radius:12px;font-weight:800;font-size:13px}
+.bm{position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:10px;display:grid;place-items:center;background:var(--s3);color:var(--tx);box-shadow:0 0 0 2.5px var(--s1)}.bm svg.i{width:11px;height:11px;stroke-width:2.4}
+.nfp .bm{box-shadow:0 0 0 2.5px var(--s2)}
+.ver{text-align:center;font-family:var(--r-fm);font-size:10.5px;color:var(--mu);padding:8px 0 20px}
+.r-item .cnt{font-family:var(--r-fm);font-size:11px;background:var(--acc);color:var(--onacc);border-radius:9px;padding:2px 7px;margin-right:4px}
+.tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 12px 12px}.tools span{height:84px;border-radius:20px;background:var(--s1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:13.5px;font-weight:700;color:var(--tx);box-shadow:var(--shg)}.tools span svg.i{width:26px;height:26px;color:var(--accink);stroke-width:1.9}.tools span small{font-family:var(--r-fm);font-size:10px;font-weight:500;color:var(--mu);margin-top:-6px}
+.sq{all:unset;flex:1;min-width:0;color:var(--tx);font:inherit}.sq::placeholder{color:var(--mu)}
+.sempty{padding:30px 24px;text-align:center;color:var(--mu);font-size:14px}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,tp,row,grp,gl,item,srow,sheet,dialog,phone,tpl,appbar,nav,title,T,SONGS:S}=R,{ph,page}=Draft;
+const av=(ini,k)=>`<span class="av" style="background:${T[k].dark}">${ini}</span>`;
+const bar=appbar({right:ib('search')+ib('bell',{badge:true})});
+const showCard=`<div class="card"><div class="k">Next show<span class="ok"><i></i>CONFIRMED</span><span class="cd">IN 6 DAYS</span></div><h4>Fall Kickoff</h4><div class="ln">${ic('cal')}Sat, Nov 7 · 8:30 PM · load-in 6:30</div><div class="ln">${ic('home')}The Crocodile</div><div class="ln">${ic('list')}Fall Set · 9 songs · 50 min</div><div class="ln" style="font-family:var(--r-fm);font-size:12px;color:var(--mu)">PAY $300</div></div>`;
+const pracCard=`<div class="card"><div class="k">Next practice<span class="cd">IN 4 DAYS</span></div><h4 style="font-size:28px">Thursday run</h4><div class="ln">${ic('clock')}Thu, Nov 5 · 7:00 – 9:00 PM</div><div class="ln">${ic('home')}Mike's Garage</div><div class="ln">${ic('music')}4 songs · Monkey Wrench, Black, Aerials…</div></div>`;
+const jty='<br><span class="r-ty evt" style="margin-top:3px">'+ic('party')+'JAM</span>';
+const evts=grp(item({lead:'<div class="db"><small>NOV</small><b>3</b></div>',title:'Tuesday Open Jam',sub:"Lucky's Tavern · 8 PM"+jty,trail:'chev'})+item({lead:'<div class="db"><small>NOV</small><b>14</b></div>',title:'Birthday Jam',sub:"Mike's Garage · 7 PM"+jty,trail:'chev'})+item({lead:'<div class="db"><small>NOV</small><b>22</b></div>',title:"Sarah's house session",sub:'6 PM · going'+jty,trail:'chev'}));
+const TOOLS=gl('Tools')+'<div class="tools">'+[['fork','Tuner','E STD'],['metro','Metronome','124 BPM'],['chordbox','Chords','Lookup']].map(([i,l,s])=>'<span>'+ic(i)+l+'<small>'+s+'</small></span>').join('')+'</div>';
+const qa=(a)=>`<div class="qa">${a.map(([i,l])=>`<span>${ic(i)}${l}</span>`).join('')}</div>`;
+const home=tpl.list({title:'Home',body:showCard+pracCard+TOOLS+gl('Upcoming events',{label:'VIEW ALL'})+evts+gl('Quick actions')+qa([['music','Add song'],['list','New setlist'],['clock','Schedule practice'],['cal','Book show']])+'<div style="height:110px"></div>',nav:0}).replace(appbar({}),bar);
+const step=(t,d,go)=>`<div class="st ${d?'d':''}"><span class="c">${d?ic('check'):''}</span><span class="t">${t}</span>${go?`<span class="go">${go}</span>`:''}</div>`;
+const walk=`<div class="wt"><div class="hd"><b>Get Acoustic Duo ready</b><span class="r-ib">${ic('x')}</span></div><div class="bar"><i></i></div><span class="r-m r-muted">2 OF 5</span>${step('Create the band',1)}${step('Invite your bandmates',1)}${step('Add 5 songs',0,'Add →')}${step('Build a setlist',0)}${step('Schedule a practice',0)}</div>`;
+const ec=(i,t,s,b)=>`<div class="ec">${ic(i,'width:22px;height:22px;color:var(--mu)')}<div class="g"><b>${t}</b><small>${s}</small></div>${btn(b,{icon:'plus'})}</div>`;
+const adPrac=`<div class="card"><div class="k">Next practice<span class="cd">IN 3 DAYS</span></div><h4 style="font-size:28px">Duo run-through</h4><div class="ln">${ic('clock')}Wed, Nov 4 · 7:00 – 8:30 PM · moved</div><div class="ln">${ic('home')}Dana's place</div></div>`;
+const homeNew=tpl.list({title:'Home',body:walk+ec('cal','No show booked','Add the next gig and its set','Book')+adPrac+TOOLS+gl('Quick actions')+qa([['music','Add song'],['list','New setlist'],['clock','Schedule practice'],['cal','Book show']]),nav:0}).replace(appbar({}),appbar({ctxName:'Acoustic Duo',ctxIni:'AD',right:ib('search')+ib('bell',{badge:true})}));
+const walkP=`<div class="wt"><div class="hd"><b>Get your songs ready</b><span class="r-ib">${ic('x')}</span></div><div class="bar"><i style="width:25%"></i></div><span class="r-m r-muted">1 OF 4</span>${step('Add your first song',1)}${step('Add 5 songs',0,'Add →')}${step('Build a setlist',0)}${step('Open a song as a chart',0)}</div>`;
+const homeP=tpl.list({title:'Home',body:walkP+`<div class="card"><div class="k">Playing with others?<span class="cxb" title="Dismiss">${ic('x')}</span></div><h4 style="font-size:28px">Create or join a band</h4><p style="font-size:14px;color:var(--tx2)">Share songs, setlists and a calendar with your bandmates. Your own songs stay yours. Solo is fine too: dismiss this and it won't come back.</p><div class="acts">${btn('Create a band',{kind:'pri'})}${btn('Join with a code')}</div></div>`+TOOLS+gl('Upcoming events',{label:'VIEW ALL'})+evts+gl('Quick actions')+`<div class="qa" style="grid-template-columns:repeat(3,minmax(0,1fr))">${[['music','Add song'],['star','Host an event'],['people','Find friends']].map(([i,l])=>`<span>${ic(i)}${l}</span>`).join('')}</div>`,nav:0}).replace(appbar({}),appbar({ctxName:'Personal',ctxIni:'E',right:ib('search')+ib('bell')}));
+const cr=(ini,bg,fg,n,s,on,nb)=>`<div class="ctxr ${on?'on':''}"><i class="b" style="background:${bg};color:${fg}">${ini}</i><div class="g"><b>${n}</b><small>${s}</small></div>${nb==='dot'?'<span class="nbd" title="Unread activity"></span>':nb?`<span class="nb">${nb}</span>`:''}${on?`<span class="ck">${ic('check')}</span>`:''}</div>`;
+const sw=`<div class="ddscrim"></div><div class="ctxdd">${cr('E','#7c86f5','#0b0d2b','Personal','My songs, all bands combined',0)}<div class="gl2">BANDS</div>${cr('iP','#ff7a1a','#1a0c02','iPod Shuffle','3 members · Owner',1)}${cr('AD','#2dd4bf','#032b26','Acoustic Duo','2 members · Member',0,'dot')}<div class="ft"><div class="ctxr">${ic('plus')}Create or join a band</div></div></div>`;
+const swScr=home.replace(/<\/div>$/,'')+'';
+const swq=`<div class="ddscrim"></div><div class="swq"><div class="t"><i class="b" style="background:#2dd4bf;color:#032b26">AD</i><b>Switch to Acoustic Duo?</b></div><div class="ac">${btn('Not now',{size:'lg'})}${btn('Switch',{kind:'pri',size:'lg'})}</div></div>`;
+const prompt=dialog('Switch to Acoustic Duo?','This practice belongs to Acoustic Duo. Switching changes your songs, setlists and calendar to that band. You can switch back from the header.<br><br><span style="font-size:12.5px;color:var(--mu)">Shown once. After this it\'s a one-line prompt.</span>','Stay here','Switch','pri');
+const BM={ip:['iP','#ff7a1a','#1a0c02','IPOD SHUFFLE'],ad:['AD','#2dd4bf','#032b26','ACOUSTIC DUO'],me:['E','#7c86f5','#0b0d2b','PERSONAL']};
+const n=(i,t,p,tm,u,b='ip')=>{const m=BM[b];const lead=m?`<span class="ni mk" style="background:${m[1]};color:${m[2]}">${m[0]}<i class="bm">${ic(i)}</i></span>`:`<span class="ni">${ic(i)}</span>`;return `<div class="nf">${u?'<span class="ud"></span>':''}${lead}<div class="g"><b>${t}</b><p>${p}</p></div><span class="tm">${tm}</span></div>`};
+const nfp=`<div class="ddscrim"></div><div class="nfp"><div class="hd"><b>Notifications</b><small>3 NEW</small></div>${n('music','Mike added Hash Pipe','Weezer · E♭ STD','12m',1)+n('people','Sarah is going to Fall Kickoff','2 of 3 going','1h',1)+n('clock','Practice moved','Duo run-through · now Wed, Nov 4 at 7 PM','3h',1,'ad')}<div class="ac">${btn('Mark all read',{icon:'check'})}</div><div class="all">See all notifications${ic('chev')}</div></div>`;
+const nfeed=(tab=0)=>`${R.backbar('Home',`<span class="r-btn text">Mark all read</span>`)}${title('Notifications')}<div style="padding:0 14px 10px">${seg(['Activity','App updates'],tab)}</div><div class="r-body">${tab===0?`${gl('New')}${grp(n('music','Mike added Hash Pipe','Weezer · E♭ STD · added to iPod Shuffle','12m',1)+n('people','Sarah is going to Fall Kickoff','2 of 3 going · Sat, Nov 7','1h',1)+n('clock','Practice moved','Duo run-through is now Wed, Nov 4 at 7 PM','3h',1,'ad'))}${gl('Earlier')}${grp(n('list','Eric edited Fall Set','Moved Black to the end of Set 2','Mon',0)+n('people','Dana sent a friend request','Bass, vocals · 2 mutual','Sun',0,null))}<div class="wn" style="margin-top:6px"><div class="k">WHAT'S NEW · 0.9.4</div><b>Charts and the tuner</b><p>Open any song as a chart, transpose it, and tune up. <span style="color:var(--accink);font-weight:700">Release notes →</span></p></div>`:`${gl('Release notes')}${grp([['0.9.4','OCT 28','Charts and the tuner','Open any song as a chart, transpose it, play a chord, and tune up without leaving the app.'],['0.9.3','OCT 14','Setlist timeline','See when each song starts, in clock time for shows or set time anywhere else.'],['0.9.2','SEP 30','Bands and Personal','Switch between your own songs and each band from the header.']].map(([v,d,t,p])=>`<div class="rn"><div class="k">${v} · ${d}</div><b>${t}</b><p>${p}</p></div>`).join(''))}`}</div>`;
+
+const search=`<div class="r-ab"><div class="r-search" style="flex:1;margin:0;outline:2px solid var(--acc)">${ic('search')}<input class="sq" data-sq value="ever" placeholder="Search iPod Shuffle"></div>${btn('Cancel',{kind:'text'})}</div><div style="display:flex;gap:6px;padding:0 14px 8px;overflow-x:auto" data-sf>${['All','Songs','Setlists','Calendar'].map((l,i)=>chip(l,{on:!i})).join('')}</div><div class="r-body sres" data-sres></div>`;
+const SQ={f:0};const SX=Object.values(S).concat([{title:'Everybody Hurts',artist:'R.E.M.',tun:'std',dur:'5:17',links:[]}]);
+const SETS=[['Fall Set',['aag','mw','ev','mb','wica','bg','bl','aer'],'9 songs'],['Birthday Jam',['bc','aag','bl','tb'],'12 songs'],['Acoustic Sunday',['aag','bl','aat'],'6 songs']];
+const CAL=[['NOV','3','Tuesday Open Jam','evt','party','JAM',"Lucky's · requests: Black, Everlong"],['NOV','5','Thursday run','prac','cal','PRACTICE',"Mike's Garage · Monkey Wrench, Black, Aerials, Everlong"],['NOV','7','Fall Kickoff','show','ticket','SHOW','The Crocodile · Fall Set'],['NOV','14','Birthday Jam','evt','party','JAM',"Mike's Garage · lineup: About A Girl, Black"]];
+const hl=(t,q)=>{if(!q)return t;const i=t.toLowerCase().indexOf(q);return i<0?t:t.slice(0,i)+'<span class="hl">'+t.slice(i,i+q.length)+'</span>'+t.slice(i+q.length)};
+const sres=q=>{q=(q||'').trim().toLowerCase();if(!q)return '<div class="sempty">Search songs, setlists, shows, practices and jams.</div>';const f=SQ.f;let h='',n=0;
+ const ss=SX.filter(s=>(s.title+' '+s.artist).toLowerCase().includes(q));
+ if(f<2&&ss.length){n+=ss.length;h+=gl('Songs · '+ss.length)+grp(ss.map(s=>row(s,{compact:true,view:{links:false}}).replace(s.title,hl(s.title,q))).join(''))}
+ const st=SETS.filter(([nm,ids])=>nm.toLowerCase().includes(q)||ids.some(id=>S[id]&&S[id].title.toLowerCase().includes(q)));
+ if((f===0||f===2)&&st.length){n+=st.length;h+=gl('Setlists · '+st.length)+grp(st.map(([nm,ids,c2])=>{const m=ids.map((id,k)=>[S[id],k]).find(([s])=>s&&s.title.toLowerCase().includes(q));return item({lead:ic('list','color:var(--mu)'),title:hl(nm,q),sub:m?'Has '+hl(m[0].title,q)+' at #'+(m[1]+1)+' · '+c2:c2,trail:'chev'})}).join(''))}
+ const cc=CAL.filter(x=>(x[2]+' '+x[6]).toLowerCase().includes(q));
+ if((f===0||f===3)&&cc.length){n+=cc.length;h+=gl('Calendar · '+cc.length)+grp(cc.map(([m,d,t,ty,i,l,sub])=>item({lead:'<div class="db"><small>'+m+'</small><b>'+d+'</b></div>',title:hl(t,q),sub:'<span class="r-ty '+ty+'">'+ic(i)+l+'</span> · '+hl(sub,q),trail:'chev'})).join(''))}
+ return n?h+'<div class="r-m r-muted" style="padding:10px 24px">Searching iPod Shuffle. <span style="color:var(--accink)">Search all contexts</span></div>':'<div class="sempty">Nothing matches "'+q+'".</div>'};
+setTimeout(()=>{document.querySelectorAll('[data-sres]').forEach(r=>r.innerHTML=sres('ever'))},0);
+document.addEventListener('input',e=>{if(!e.target.matches('[data-sq]'))return;const p=e.target.closest('.r');p.querySelector('[data-sres]').innerHTML=sres(e.target.value)});
+document.addEventListener('click',e=>{const ch=e.target.closest('[data-sf] .r-chip');if(ch){const p=ch.closest('.r');SQ.f=[...ch.parentNode.children].indexOf(ch);ch.parentNode.querySelectorAll('.r-chip').forEach((x,k)=>x.classList.toggle('on',k===SQ.f));p.querySelector('[data-sres]').innerHTML=sres(p.querySelector('[data-sq]').value);return}
+ const cx=e.target.closest('.cxb');if(cx){cx.closest('.card').style.display='none';return}
+ const wx=e.target.closest('.wt .hd .r-ib');if(wx){wx.closest('.wt').style.display='none'}});
+const more=`${appbar({right:ib('bell',{badge:true})})}${title('More')}<div class="r-body"><div class="bandc"><div class="t"><i class="b">iP</i><div><b>iPod Shuffle</b><small>3 members · since Mar 2025</small></div></div><div class="row2"><div class="avs">${av('E','std')}${av('M','half')}${av('S','dd')}</div>${btn('Manage band')}</div></div>
+${grp(item({lead:av('E','std'),title:'Eric Johnson',sub:'Guitar, vocals · Owner',trail:'chev'}))}
+${grp(item({lead:ic('star','color:var(--mu)'),title:'Jam',trail:'chev'})+item({lead:ic('cal','color:var(--mu)'),title:'Events',trail:'chev'})+item({lead:ic('people','color:var(--mu)'),title:'Friends',trail:'chev'}).replace('<span class="tr">','<span class="cnt">2</span><span class="tr">')+item({lead:ic('user','color:var(--mu)'),title:'Band members',trail:'chev'}))}
+${grp(item({lead:ic('gear','color:var(--mu)'),title:'Settings',trail:'chev'})+item({lead:ic('doc','color:var(--mu)'),title:'Help & feedback',trail:'open'})+item({lead:ic('out','color:var(--mu)'),title:'Sign out'}))}<div class="ver">ROCK ON 0.9.4 (212)</div></div>${nav(4)}`;
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Core navigation · locked Oct 30 2026',h:'Find your <span>way</span>.',
+ lede:'Home, the context switcher, global search, More and Notifications, built from the kit against <span style="font-family:\'Martian Mono\';font-size:13px">home.md</span>, <span style="font-family:\'Martian Mono\';font-size:13px">more.md</span>, <span style="font-family:\'Martian Mono\';font-size:13px">notifications.md</span> and the context model. Five tabs: Home, Songs, Setlists, Calendar, More. Songs and Setlists roots are already drawn in Song Row and Setlist Editor.',
+ notes:[['Home answers "what\'s next"','Next show and next practice as big cards with countdowns, then three events, then quick actions. No stats tiles (spec Must not). Every empty card carries its action (<b>Goal-Gradient</b>, no dead ends).'],['Context is one chip','The header chip is the only switcher. Personal uses indigo, a band uses orange, so the whole screen tells you where you are (<b>Law of Similarity</b>, <b>Jakob\'s Law</b>: GitHub-style).'],['Search is global, scoped by default','The search icon on Home searches songs, setlists, calendar and people in the current context, with one tap to widen. Matches are highlighted (<b>Von Restorff</b>).'],['More stays short','Band card, you, four destinations, then settings and sign out. Version comes from the build. Seven rows, grouped in three (<b>Miller\'s Law</b>, <b>Law of Common Region</b>).']],
+ rows:[[ph('1 · Home · band','Show card in the biggest type: name, Confirmed, countdown, date and load-in, venue, set, pay. Practice card, then the Tools row, upcoming jams and Quick actions. Search and the bell sit top right.',home),
+ ph('2 · Home · Acoustic Duo · new band','A newer band. The walkthrough ticks itself off as you go and can be dismissed (×). Missing things are outlined cards with their action; the practice that was just moved shows as a normal card. Tools sit in the same place as every Home.',homeNew),
+ ph('3 · Home · Personal','No show or practice cards in Personal (spec). A Personal walkthrough: first song, 5 songs, a setlist, open a chart. The band card is dismissable for solo players and doesn\'t return; Create or join a band stays in the switcher and More.',homeP,{ctx:'personal'}),
+ ph('4 · Context switcher','Tap the header chip and the list drops from it, pointing back at what you tapped: Personal, then bands with your role and a dot when that band has unread activity. Tap outside to close. Switching re-scopes every tab (<b>Law of Proximity</b>, <b>Mental Model</b>). Desktop uses the same dropdown from the sidebar chip.','<div class="ddopen" style="display:contents">'+home+'</div>'+sw)],
+ [ph('5 · Switch prompt · first time','The first time you open something from another band, the prompt explains what switching does. "Stay here" is the safe default on the left (<b>Tesler\'s Law</b>).',nfeed()+prompt),
+ ph('6 · Switch prompt · after that','One line: band mark and "Switch to Acoustic Duo?". Switch or Not now; tapping outside also dismisses (<b>Hick\'s Law</b>).',nfeed()+swq),
+ ph('7 · Global search · type it','Live: type to search songs, setlists, and shows / practices / jams by name or by a song in their set. Calendar results include shows, practices and jams by name or by a song in their set, lineup or requests. Results grouped by type with counts, current context first, "Search all contexts" at the end. Song results use the compact row so tuning and time line up.',search),
+ ph('8 · More','Band card with avatars and Manage band; your row goes to Profile. Friends shows its request count. Light theme shown.',more,{theme:'light'})],
+ [ph('9 · Notifications popout','The bell opens a dropdown from the bell, like the context switcher. Only unread items, newest first, with one action: <b>Mark all read</b>. That empties the popout ("You\'re all caught up") and clears the badge; nothing is deleted. See all notifications opens the stream (<b>Hick\'s Law</b>, <b>Law of Proximity</b>).','<div class="bellon" style="display:contents">'+home+'</div>'+nfp),
+ ph('10 · All notifications','The big mark is the band: its photo or initials on its colour. The small badge is the type (song, RSVP, practice, setlist). Items not tied to a band, like friend requests, use the plain type icon with no mark. Tapping a band item from another context gives the prompt in 5 or 6. A constant stream: reading removes the dot, and nothing is dismissed or deleted.',nfeed(0)),
+ ph('11 · App updates','The second tab: release notes by version, newest first. App updates never show in the popout, only here.',nfeed(1))]]});
+})();
+</script>
+</body>
+</html>

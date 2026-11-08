@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Song editor &amp; song view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{color:#cfc6bd;font-family:"Atkinson Hyperlegible Next",sans-serif}
+a{color:#ff7a1a}a:hover{color:#ffa060}
+.frame{position:absolute}
+.card{background:#141414;border-radius:28px;padding:30px;font-size:15px;line-height:1.5;text-wrap:pretty}
+.card p{margin-bottom:10px}.card b{color:#fff}
+.eb{font-family:"Martian Mono";font-size:11px;letter-spacing:.12em;color:#ff7a1a;text-transform:uppercase}
+.D{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;line-height:.9;color:#f4efe9}
+h1.D{font-size:80px;margin:10px 0 14px}h1 span{color:#ff7a1a}
+h2.D{font-size:40px;margin:6px 0 10px}
+.law{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px}
+.law span{font-family:"Martian Mono";font-size:10px;letter-spacing:.06em;color:#f4efe9;background:#232323;border-radius:6px;padding:4px 8px;text-transform:uppercase}
+.cap{font-family:"Martian Mono";font-size:11px;letter-spacing:.1em;color:#5a5149;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+.capd{font-size:13.5px;color:#3d352f;margin-bottom:12px;width:410px;line-height:1.45;min-height:78px}
+.capd b{color:#1a1512}
+.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;margin-top:8px}
+.four h3{color:#fff;font-size:15px;margin-bottom:4px}
+.four p{font-size:14px;margin:0}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.phone{width:410px;height:864px;border-radius:58px;background:#1b1b1b;padding:10px;box-shadow:0 0 0 1px #333,0 30px 60px rgba(0,0,0,.35)}
+.scr{width:390px;height:844px;border-radius:48px;overflow:hidden;position:relative;background:#0c0b0a;color:#f4efe9;display:flex;flex-direction:column}
+.sb{height:50px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 34px 8px;font-weight:600;font-size:15px;flex-shrink:0}
+.body{flex:1;overflow:hidden;position:relative;padding-bottom:20px}
+/* editor bar */
+.eab{display:flex;align-items:center;justify-content:space-between;padding:6px 16px 10px;flex-shrink:0}
+.eab .tx{height:44px;padding:0 6px;display:flex;align-items:center;font-weight:600;font-size:16px;color:#cfc6bd}
+.eab h3{font-size:17px;font-weight:700}
+.save{height:44px;padding:0 20px;border-radius:22px;background:#ff7a1a;color:#1a0c02;font-weight:700;font-size:15px;display:grid;place-items:center}
+.save.off{background:#2a2521;color:#6e655d}
+.ab{display:flex;justify-content:space-between;align-items:center;padding:6px 16px;flex-shrink:0}
+.ib{width:44px;height:44px;border-radius:22px;background:#1d1a17;display:grid;place-items:center;color:#f4efe9}
+.back{height:44px;padding:0 14px 0 8px;border-radius:22px;background:#1d1a17;display:flex;align-items:center;gap:4px;font-weight:600;font-size:14px}
+.pill{height:44px;padding:0 18px;border-radius:22px;background:#1d1a17;display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+/* fields */
+.grp{margin:0 12px 10px;background:#151311;border-radius:20px;overflow:hidden}
+.grp>*+*{box-shadow:0 -1px 0 #221f1b}
+.gl{font-family:"Martian Mono";font-size:10.5px;letter-spacing:.12em;color:#a69c92;text-transform:uppercase;padding:8px 24px 8px}
+.fld{min-height:60px;padding:9px 16px;display:flex;align-items:center;gap:12px}
+.fld .k{font-family:"Martian Mono";font-size:10px;letter-spacing:.08em;color:#a69c92;text-transform:uppercase;display:block;margin-bottom:3px}
+.fld .v{font-size:17px;font-weight:600;color:#f4efe9}
+.fld .v.ph{color:#5d554e;font-weight:500}
+.fld .grow{flex:1;min-width:0}
+.fld .chev{color:#6e655d}
+.fld.focus{box-shadow:inset 0 0 0 2px #ff7a1a;border-radius:20px}
+.caret{display:inline-block;width:2px;height:20px;background:#ff7a1a;vertical-align:-4px;margin-left:1px;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+.req{font-family:"Martian Mono";font-size:9.5px;color:#ff7a1a;letter-spacing:.06em;margin-left:6px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr}
+.row3>div{padding:9px 16px;min-height:60px;display:flex;flex-direction:column;justify-content:center}
+.row3>div+div{box-shadow:-1px 0 0 #221f1b}
+.tp{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:14px;background:color-mix(in oklch,var(--c) 16%,#151311);color:var(--c);font-family:"Martian Mono";font-size:12.5px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{height:30px;padding:0 12px;border-radius:15px;background:#1d1a17;display:flex;align-items:center;font-size:13px;font-weight:600}
+.tag.add{background:none;border:1.5px dashed #34302b;color:#a69c92}
+.sw{width:50px;height:30px;border-radius:15px;background:#3a332d;position:relative;flex-shrink:0}
+.sw:after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:12px;background:#f4efe9}
+.sw.on{background:#ff7a1a}.sw.on:after{transform:translateX(20px);background:#1a0c02}
+/* suggestions */
+.sug{margin:-4px 12px 10px;padding:4px 0;border-radius:16px;background:#151311}
+.sug .h{display:flex;align-items:center;gap:8px;padding:8px 16px 4px;font-size:12.5px;color:#a69c92}
+.sug .h svg{width:14px;height:14px;color:#1ed760}
+.sg{display:flex;align-items:center;gap:12px;padding:8px 16px;min-height:52px}
+.sg .art{width:36px;height:36px;border-radius:8px;background:#26221e;flex-shrink:0}
+.sg b{display:block;font-size:15px}.sg small{font-size:12.5px;color:#a69c92}
+.sg .mono{margin-left:auto;font-family:"Martian Mono";font-size:12px;color:#a69c92}
+.manual{padding:10px 16px 12px;font-size:13px;color:#a69c92}
+/* links */
+.lrow{display:flex;align-items:center;gap:12px;padding:8px 10px 8px 16px;min-height:60px}
+.lt{width:30px;height:30px;border-radius:8px;border:1px solid #34302b;display:grid;place-items:center;flex-shrink:0}
+.lt svg{width:16px;height:16px;stroke-width:2}
+.lt.audio{color:#1ed760}.lt.tabs{color:#facc15}.lt.video{color:#ff4e45}.lt.video svg{fill:currentColor;stroke-width:1.4}.lt.lyrics,.lt.link,.lt.cloud{color:#cfc6bd}
+.lrow .grow{flex:1;min-width:0}
+.lrow b{display:block;font-size:15px;font-weight:600}
+.lrow small{display:block;font-size:12.5px;color:#a69c92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.x{width:44px;height:44px;display:grid;place-items:center;color:#8a8178;flex-shrink:0}
+.addl{display:flex;align-items:center;gap:10px;padding:0 16px;min-height:52px;color:#ff7a1a;font-weight:700;font-size:15px}
+.urlin{margin:4px 12px 10px;padding:12px 14px;border-radius:16px;background:#1d1a17;box-shadow:inset 0 0 0 2px #ff7a1a}
+.urlin .u{font-family:"Martian Mono";font-size:12px;color:#f4efe9;word-break:break-all}
+.det{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#cfc6bd}
+.types{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.types span{height:32px;padding:0 11px;border-radius:16px;border:1.5px solid #34302b;font-size:12.5px;font-weight:600;display:flex;align-items:center;color:#cfc6bd}
+.types span.on{background:#f4efe9;color:#0c0b0a;border-color:#f4efe9}
+/* keyboard */
+.kb{position:absolute;left:0;right:0;bottom:0;height:290px;background:#1f1d1b;padding:8px 4px 0;z-index:3;display:flex;flex-direction:column;gap:10px}
+.kb .r{display:flex;gap:6px;justify-content:center}
+.kb .r span{height:44px;flex:0 0 32px;border-radius:6px;background:#3d3a37;display:grid;place-items:center;font-size:17px;color:#f4efe9}
+.kb .r span.w{flex:0 0 44px;background:#2b2927;font-size:12px}
+.kb .r span.sp{flex:1 0 auto;max-width:190px}
+.mdbar{position:absolute;left:0;right:0;bottom:290px;height:48px;background:#26221e;display:flex;align-items:center;gap:4px;padding:0 8px;z-index:3;border-top:1px solid #332d28}
+.mdbar span{width:44px;height:40px;border-radius:10px;display:grid;place-items:center;font-weight:700;color:#f4efe9;font-size:15px}
+.mdbar span.on{background:#3a332d}
+.mdbar .done{margin-left:auto;width:auto;padding:0 14px;color:#ff7a1a}
+/* sheets */
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#26221e;border-radius:28px 28px 0 0;z-index:5;padding:10px 16px 30px;box-shadow:0 -8px 32px rgba(0,0,0,.6)}
+.sheet:before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:#4a433d;margin:0 auto 12px}
+.sheet h3{font-size:18px;color:#f4efe9;padding:0 4px}
+.sheet .sub{font-size:13px;color:#a69c92;margin:2px 4px 10px}
+.trow{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 4px;border-bottom:1px solid #332d28}
+.trow .tw{width:96px;flex-shrink:0}
+.trow .nm{flex:1;font-weight:600;font-size:15px}
+.trow .nm small{display:block;font-family:"Martian Mono";font-size:10.5px;color:#a69c92;font-weight:500;letter-spacing:.03em}
+.trow .ck{width:24px;height:24px;border-radius:12px;border:2px solid #4a433d}
+.trow .ck.on{border-color:#ff7a1a;background:radial-gradient(#ff7a1a 0 5px,transparent 6px)}
+.sbtns{display:flex;gap:8px;margin-top:12px}
+.sbtns span{flex:1;height:48px;border-radius:24px;border:1.5px solid #3a332d;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:14px}
+.cof{display:flex;justify-content:center;margin:4px 0 6px}
+.cof svg{width:318px;height:318px}
+.cof path{cursor:pointer;transition:fill 120ms}
+.cof text{font-family:"Martian Mono";font-weight:700;pointer-events:none}
+.keyread{display:flex;justify-content:space-between;align-items:center;padding:0 4px}
+.keyread b{font-family:"Big Shoulders Display";font-size:38px;font-weight:800}
+.keyread small{font-size:13px;color:#a69c92}
+.seg2{display:flex;background:#1d1a17;border-radius:20px;padding:3px;height:40px}
+.seg2 span{padding:0 14px;border-radius:17px;display:grid;place-items:center;font-weight:600;font-size:13px;color:#a69c92}
+.seg2 span.on{background:#f4efe9;color:#0c0b0a}
+/* song view */
+.sv-eb{padding:2px 20px 0;font-family:"Martian Mono";font-size:11px;color:#a69c92;letter-spacing:.06em}
+.sv-t{padding:6px 20px 12px;font-size:52px}
+.facts{display:flex;align-items:center;gap:16px;padding:0 20px 14px}
+.facts .f{display:flex;flex-direction:column;gap:2px}
+.facts .f small{font-family:"Martian Mono";font-size:9.5px;letter-spacing:.1em;color:#a69c92}
+.facts .f b{font-family:"Martian Mono";font-size:15px;font-weight:500}
+.nc{padding:12px 16px 14px}
+.nc .nh{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.nc .nh b{font-size:14px}
+.nc .nh small{font-size:12px;color:#a69c92}
+.nc .nh .ed{margin-left:auto;width:36px;height:36px;border-radius:18px;display:grid;place-items:center;color:#a69c92;margin-right:-6px}
+.nc .nh svg.i{width:16px;height:16px;color:#a69c92}
+.md{font-size:14.5px;line-height:1.5;color:#e8e0d8}
+.md ul{padding-left:18px;margin:4px 0}
+.md b{color:#f4efe9}
+.md .muted{color:#8a8178;font-size:12.5px;margin-top:6px}
+.nc.item{background:#1a1714}
+.nc.editing{box-shadow:inset 0 0 0 2px #ff7a1a;border-radius:20px}
+.used{display:flex;align-items:center;gap:12px;padding:0 16px;min-height:52px;font-size:15px;font-weight:600}
+.used small{margin-left:auto;font-family:"Martian Mono";font-size:11px;color:#a69c92;font-weight:500}
+/* dialog */
+.dlg{position:absolute;left:24px;right:24px;top:300px;background:#26221e;border-radius:24px;padding:22px 20px 18px;z-index:5;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.dlg h3{font-size:19px;margin-bottom:6px}
+.dlg p{font-size:14.5px;color:#cfc6bd;line-height:1.45}
+.dlg .bt{display:flex;gap:10px;margin-top:18px}
+.dlg .bt span{flex:1;height:48px;border-radius:24px;display:grid;place-items:center;font-weight:700;font-size:15px;background:#3a332d}
+.dlg .bt span.d{background:#cc3333;color:#fff}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="audio" viewBox="0 0 24 24"><path d="M4 10v4M8 6.5v11M12 3.5v17M16 7.5v9M20 10.5v3"/></symbol>
+<symbol id="tabs" viewBox="0 0 24 24"><path d="m17 4 3 3-2.5 2.5-3-3zM15.5 8.5 11 13"/><path d="M11.5 10.5c-1.6-1.3-4.2-.8-4.9 1-.3.8-1 1.1-1.9 1.3-1.8.3-2.3 2.4-1 4l3.5 3.5c1.6 1.3 3.7.8 4-1 .2-.9.5-1.6 1.3-1.9 1.8-.7 2.3-3.3 1-4.9z"/><circle cx="8.5" cy="15.5" r="1.3"/></symbol>
+<symbol id="video" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+<symbol id="lyrics" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+<symbol id="link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+<symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+<symbol id="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+<symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="moreh" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol>
+<symbol id="edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+<symbol id="people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></symbol>
+<symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></symbol>
+<symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+<symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
+<symbol id="check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+<symbol id="open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+<symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="docs" viewBox="0 0 24 24"><path d="M8 3h7l4 4v11H8z"/><path d="M15 3v4h4M5 7v14h10"/></symbol>
+</defs></svg>
+
+<div class="frame card" style="left:80px;top:60px;width:1850px" data-screen-label="Header">
+<div class="eb">Rock On · Source · Song editor &amp; song view</div>
+<h1 class="D">Add it fast, <span>read</span> it on stage.</h1>
+<p style="font-size:17px;max-width:1300px;color:#d4d4d4">Follows <span style="font-family:'Martian Mono';font-size:13px">song-editor.md</span>, <span style="font-family:'Martian Mono';font-size:13px">song-view.md</span> and workflow 04, in the B v2 look (grouped surfaces, tinted tuning pill, hybrid link tiles). The editor is a full-screen route with Cancel on the left and Save on the right, and the title is the only required field. Notes are deliberately <b>not</b> in the editor (spec Must not): they live in the song view and are edited in place.</p>
+<div class="four">
+<div><h3>How notes work</h3><p>The song view shows every layer as its own labelled block. If you opened the song from a setlist, the set's note comes first, then Band notes (shared), then My notes (private, with a lock). The labels and icons match the row's notes mark, so the row tells you what you'll find (<b>Mental Model</b>).</p></div>
+<div><h3>Editing in place</h3><p>Tap the pencil on a block and it becomes a Markdown field with a formatting bar above the keyboard: bold, italic, heading, list and checklist. <b>Done</b> saves. Band-note edits reach bandmates as the usual grouped banner ("Mike edited notes on Monkey Wrench"). You never leave the song (<b>Flow</b>).</p></div>
+<div><h3>Spotify, quietly</h3><p>As you type a title, matches appear under the field. Tap one to fill title, artist, album and duration and add the Spotify link, or keep typing. If the lookup is slow or fails, the list stays empty and nothing you typed is lost (<b>Postel's Law</b>, <b>Tesler's Law</b>).</p></div>
+<div><h3>Pickers that fit a thumb</h3><p>Tuning opens a sheet listing each tuning's colour and name, plus <b>New tuning</b> and <b>Manage</b>. Key uses a Circle of Fifths, majors outside and minors inside; tap any segment (the 4th phone works). Each segment is 40px or more (<b>Fitts's Law</b>, <b>Hick's Law</b>).</p></div>
+</div>
+</div>
+
+<div id="mount"></div>
+
+<script>
+(()=>{
+const okhex=(L,C,h)=>{for(let c=C;c>=0;c-=.005){const a=c*Math.cos(h*Math.PI/180),b=c*Math.sin(h*Math.PI/180);const l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,s=(L-.0894841775*a-1.291485548*b)**3;const lin=[4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.707614701*s];if(lin.every(v=>v>=-.0005&&v<=1.0005))return '#'+lin.map(v=>{v=Math.min(1,Math.max(0,v));v=v<=.0031308?12.92*v:1.055*v**(1/2.4)-.055;return Math.round(v*255).toString(16).padStart(2,'0')}).join('')}return '#888'};
+const RANK=['cstd','db','dc','whole','ddb','od','og','dad','half','dd','std'];
+const TC={};RANK.forEach((k,i)=>{const t=i/(RANK.length-1);TC[k]=okhex(.64+.24*t,.16,345-235*t)});
+const TN={std:['E STD','Standard','E A D G B E'],half:['E♭ STD','Half-step down','E♭ A♭ D♭ G♭ B♭ E♭'],whole:['D STD','Whole-step down','D G C F A D'],dd:['D DROP','Drop D','D A D G B E'],ddb:['D♭ DROP','Drop D♭','D♭ A♭ D♭ G♭ B♭ E♭'],dc:['C DROP','Drop C','C G C F A D'],db:['B DROP','Drop B','B F♯ B E G♯ C♯'],cstd:['C STD','C Standard','C F B♭ E♭ G C'],og:['G OPEN','Open G','D G D G B D'],od:['D OPEN','Open D','D A D F♯ A D'],dad:['DADGAD','DADGAD','D A D G A D']};
+const ic=(id,st='')=>`<svg class="i" style="${st}"><use href="#${id}"/></svg>`;
+const tp=k=>`<span class="tp" style="--c:${TC[k]}">${TN[k][0]}</span>`;
+const SB=`<div class="sb"><span>9:41</span><span>●●● ▮</span></div>`;
+const KB=`<div class="kb">${['qwertyuiop','asdfghjkl','⇧zxcvbnm⌫'].map(r=>`<div class="r">${[...r].map(c=>`<span class="${'⇧⌫'.includes(c)?'w':''}">${c}</span>`).join('')}</div>`).join('')}<div class="r"><span class="w">123</span><span class="w">☺</span><span class="sp">space</span><span class="w" style="flex-basis:84px">return</span></div></div>`;
+const ebar=(title,on)=>`<div class="eab"><span class="tx">Cancel</span><h3>${title}</h3><span class="save ${on?'':'off'}">Save</span></div>`;
+const fld=(k,v,o={})=>`<div class="fld ${o.focus?'focus':''}"><div class="grow"><span class="k">${k}${o.req?'<span class="req">REQUIRED</span>':''}</span><div class="v ${o.ph?'ph':''}">${v}</div></div>${o.chev?`<span class="chev">${ic('chev')}</span>`:''}${o.right||''}</div>`;
+const lrow=(t,lb,url,x=true)=>`<div class="lrow"><span class="lt ${t}">${ic(t)}</span><div class="grow"><b>${lb}</b><small>${url}</small></div>${x?`<span class="x">${ic('x','width:18px;height:18px')}</span>`:''}</div>`;
+const three=(o)=>`<div class="row3"><div><span class="fld" style="padding:0;min-height:0"><span class="k" style="font-family:'Martian Mono';font-size:10px;letter-spacing:.08em;color:#a69c92">KEY</span></span><div style="font-size:17px;font-weight:600;${o.key?'':'color:#5d554e;font-weight:500'}">${o.key||'Pick'}</div></div><div><span class="k" style="font-family:'Martian Mono';font-size:10px;letter-spacing:.08em;color:#a69c92">BPM</span><div style="font-size:17px;font-weight:600;${o.bpm?'':'color:#5d554e;font-weight:500'}">${o.bpm||'—'}</div></div><div><span class="k" style="font-family:'Martian Mono';font-size:10px;letter-spacing:.08em;color:#a69c92">LENGTH</span><div style="font-size:17px;font-weight:600;font-family:'Martian Mono';${o.dur?'':'color:#5d554e;font-weight:500'}">${o.dur||'m:ss'}</div></div></div>`;
+const tuneFld=k=>`<div class="fld"><div class="grow"><span class="k">Tuning</span><div style="margin-top:2px">${k?tp(k):'<span class="v ph">Pick a tuning</span>'}</div></div><span class="chev">${ic('chev')}</span></div>`;
+const filledForm=(o={})=>`<div class="grp">${fld('Title','Monkey Wrench',{req:true})}${fld('Artist','Foo Fighters')}${fld('Album','The Colour and the Shape')}</div>
+<div class="grp">${tuneFld(o.tun||'dd')}${three({key:o.key||'B',bpm:'174',dur:'3:51'})}</div>
+<div class="gl">Links</div><div class="grp">${lrow('audio','Spotify','open.spotify.com/track/1Ru…')}${o.links||''}<div class="addl">${ic('plus')}Add link</div></div>
+<div class="grp"><div class="fld"><div class="grow"><span class="k">Tags</span><div class="tags" style="margin-top:4px"><span class="tag">90s</span><span class="tag">Opener</span><span class="tag add">+ Tag</span></div></div></div></div>
+${o.band===false?'':`<div class="grp"><div class="fld"><div class="grow"><div class="v" style="font-size:15px">Also add to My Songs</div><div style="font-size:12.5px;color:#a69c92">A linked copy that follows the iPod Shuffle version</div></div><span class="sw"></span></div></div>`}`;
+
+// 1 add: typing
+const p1=`<div class="scr">${SB}${ebar('Add song',true)}<div class="body"><div class="grp">${fld('Title','Monkey W<span class="caret"></span>',{req:true,focus:true})}</div>
+<div class="sug"><div class="h">${ic('audio')}From Spotify · tap to fill in</div>
+<div class="sg"><span class="art" style="background:linear-gradient(135deg,#3a2a24,#6a4a3a)"></span><div><b>Monkey Wrench</b><small>Foo Fighters · The Colour and the Shape</small></div><span class="mono">3:51</span></div>
+<div class="sg"><span class="art" style="background:linear-gradient(135deg,#2a2f3a,#4a5a6a)"></span><div><b>Monkey Wrench (Live)</b><small>Foo Fighters · Skin and Bones</small></div><span class="mono">4:12</span></div>
+<div class="manual">Or keep typing. Only the title is required.</div></div>
+<div class="grp">${fld('Artist','Optional',{ph:true})}</div></div>${KB}</div>`;
+// 2 add: filled
+const p2=`<div class="scr">${SB}${ebar('Add song',true)}<div class="body">${filledForm()}</div></div>`;
+// 3 tuning sheet
+const TL=['std','half','whole','dd','ddb','dc','db','cstd','og','dad'];
+const p3=`<div class="scr">${SB}${ebar('Add song',true)}<div class="body">${filledForm()}</div><div class="scrim"></div><div class="sheet"><h3>Tuning</h3><div class="sub">Low string first · sorted by pitch</div>${TL.map(k=>`<div class="trow"><span class="tw">${tp(k)}</span><div class="nm">${TN[k][1]}<small>${TN[k][2]}</small></div><span class="ck ${k==='dd'?'on':''}"></span></div>`).join('')}<div class="sbtns"><span>${ic('plus')}New tuning</span><span>${ic('gear')}Manage</span></div></div></div>`;
+// 4 key circle
+const MAJ=['C','G','D','A','E','B','F♯','D♭','A♭','E♭','B♭','F'],MIN=['Am','Em','Bm','F♯m','C♯m','G♯m','E♭m','B♭m','Fm','Cm','Gm','Dm'];
+let KEY='B';
+function cof(){const cx=159,cy=159,R1=156,R2=104,R3=56;const seg=(r0,r1,i)=>{const a0=(i*30-105)*Math.PI/180,a1=(i*30-75)*Math.PI/180;const p=(r,a)=>`${cx+r*Math.cos(a)} ${cy+r*Math.sin(a)}`;return `M${p(r1,a0)} A${r1} ${r1} 0 0 1 ${p(r1,a1)} L${p(r0,a1)} A${r0} ${r0} 0 0 0 ${p(r0,a0)}Z`};
+ const lab=(r,i)=>{const a=(i*30-90)*Math.PI/180;return [cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+ let s='';MAJ.forEach((k,i)=>{const on=KEY===k;const [x,y]=lab(130,i);s+=`<path d="${seg(R2+2,R1,i)}" fill="${on?'#ff7a1a':'#1d1a17'}" stroke="#26221e" stroke-width="3" data-key="${k}"/><text x="${x}" y="${y+6}" text-anchor="middle" font-size="17" fill="${on?'#1a0c02':'#f4efe9'}">${k}</text>`});
+ MIN.forEach((k,i)=>{const on=KEY===k;const [x,y]=lab(80,i);s+=`<path d="${seg(R3,R2-2,i)}" fill="${on?'#ff7a1a':'#151311'}" stroke="#26221e" stroke-width="3" data-key="${k}"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="11.5" fill="${on?'#1a0c02':'#cfc6bd'}">${k}</text>`});
+ s+=`<circle cx="${cx}" cy="${cy}" r="${R3-4}" fill="#26221e"/><text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="9" fill="#a69c92" letter-spacing="1">MAJOR</text><text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="9" fill="#a69c92" letter-spacing="1">minor ↓</text>`;
+ return `<svg viewBox="0 0 318 318">${s}</svg>`}
+const rel=k=>{const i=MAJ.indexOf(k);if(i>=0)return 'Relative minor '+MIN[i];const j=MIN.indexOf(k);return 'Relative major '+MAJ[j]};
+const p4=()=>`<div class="scr">${SB}${ebar('Add song',true)}<div class="body">${filledForm({key:KEY})}</div><div class="scrim"></div><div class="sheet"><div class="keyread"><div><h3 style="padding:0">Key</h3><small>${rel(KEY)}</small></div><b data-keyread>${KEY}</b></div><div class="cof" data-cof>${cof()}</div><div class="sbtns" style="margin-top:4px"><span>Clear</span><span style="background:#ff7a1a;color:#1a0c02;border-color:#ff7a1a">Done</span></div></div></div>`;
+// 5 links inline add
+const p5=`<div class="scr">${SB}${ebar('Add song',true)}<div class="body"><div class="grp">${fld('Title','Monkey Wrench',{req:true})}</div><div class="gl">Links</div><div class="grp">${lrow('audio','Spotify','open.spotify.com/track/1Ru…')}${lrow('video','YouTube','Official video · youtu.be/ifw…')}</div>
+<div class="urlin"><div style="font-family:'Martian Mono';font-size:10px;letter-spacing:.08em;color:#a69c92;margin-bottom:4px">PASTE A LINK</div><div class="u">https://tabs.ultimate-guitar.com/tab/foo-fighters/monkey-wrench-tabs-82341<span class="caret"></span></div>
+<div class="det"><span class="lt tabs">${ic('tabs')}</span>Detected: <b style="color:#f4efe9">Tabs · Ultimate Guitar</b></div>
+<div class="fld" style="padding:10px 0 0;min-height:0"><div class="grow"><span class="k">Label</span><div class="v" style="font-size:15px">Ultimate Guitar</div></div></div>
+<div class="types">${['Tabs','Audio','Video','Lyrics','Cloud file','Link'].map((t,i)=>`<span class="${i===0?'on':''}">${t}</span>`).join('')}</div>
+<div class="sbtns"><span>Cancel</span><span style="background:#ff7a1a;color:#1a0c02;border-color:#ff7a1a">Add link</span></div></div></div></div>`;
+// 6 song view from setlist
+const p6=`<div class="scr">${SB}<div class="ab"><span class="back">${ic('back')}Fall Set</span><div style="display:flex;gap:8px"><span class="pill">${ic('edit','width:17px;height:17px')}Edit</span><span class="ib">${ic('moreh')}</span></div></div><div class="body">
+<div class="sv-eb">FOO FIGHTERS · THE COLOUR AND THE SHAPE</div><div class="D sv-t">Monkey Wrench</div>
+<div class="facts">${tp('dd')}<div class="f"><small>KEY</small><b>B</b></div><div class="f"><small>BPM</small><b>174</b></div><div class="f"><small>LENGTH</small><b>3:51</b></div></div>
+<div class="grp">${lrow('tabs','Tabs','Ultimate Guitar',false).replace('</div></div>','</div><span class="x">'+ic('open','width:18px;height:18px')+'</span></div>')}${lrow('audio','Spotify','The Colour and the Shape',false).replace('</div></div>','</div><span class="x">'+ic('open','width:18px;height:18px')+'</span></div>')}${lrow('video','YouTube','Official video',false).replace('</div></div>','</div><span class="x">'+ic('open','width:18px;height:18px')+'</span></div>')}</div>
+<div class="gl">Notes</div>
+<div class="grp"><div class="nc item"><div class="nh">${ic('list')}<b>In Fall Set</b><small>this setlist only</small><span class="ed">${ic('edit')}</span></div><div class="md">Segue straight from All Star. <b>No count-in.</b></div></div>
+<div class="nc"><div class="nh">${ic('people')}<b>Band notes</b><small>shared</small><span class="ed">${ic('edit')}</span></div><div class="md"><ul><li>Breakdown at 2:40: watch Sarah for the cut</li><li>Mike takes the second verse harmony</li></ul><div class="muted">Mike · edited 2 days ago</div></div></div>
+<div class="nc"><div class="nh">${ic('lock')}<b>My notes</b><small>only you</small><span class="ed">${ic('edit')}</span></div><div class="md">Capo off. Use the Les Paul.</div></div></div>
+</div></div>`;
+// 7 notes editing
+const p7=`<div class="scr">${SB}<div class="ab"><span class="back">${ic('back')}Fall Set</span><div style="display:flex;gap:8px"><span class="pill">${ic('edit','width:17px;height:17px')}Edit</span><span class="ib">${ic('moreh')}</span></div></div><div class="body">
+<div class="sv-eb">FOO FIGHTERS</div><div class="D sv-t" style="font-size:40px;padding-bottom:10px">Monkey Wrench</div>
+<div class="gl">Notes</div>
+<div class="grp"><div class="nc item"><div class="nh">${ic('list')}<b>In Fall Set</b><small>this setlist only</small></div><div class="md">Segue straight from All Star. <b>No count-in.</b></div></div></div>
+<div class="grp"><div class="nc editing"><div class="nh">${ic('people')}<b>Band notes</b><small>shared · bandmates see edits</small></div><div class="md" style="font-family:'Martian Mono';font-size:12.5px;line-height:1.7">- Breakdown at 2:40: watch Sarah for the cut<br>- Mike takes the second verse harmony<br>- **End on the downbeat, all together**<span class="caret"></span></div></div></div>
+</div><div class="mdbar"><span class="on">B</span><span style="font-style:italic">I</span><span>H</span><span>${ic('list','width:18px;height:18px')}</span><span>${ic('check','width:18px;height:18px')}</span><span class="done">Done</span></div>${KB}</div>`;
+// 8 edit + discard
+const p8=`<div class="scr">${SB}${ebar('Edit song',true)}<div class="body">${filledForm({tun:'half',key:'E♭m',band:false,links:lrow('tabs','Ultimate Guitar','tabs.ultimate-guitar.com/…')+lrow('video','YouTube','Official video')})}</div><div class="scrim"></div><div class="dlg"><h3>Discard changes?</h3><p>You changed <b style="color:#f4efe9">Tuning</b> (Drop D → E♭ Standard) and <b style="color:#f4efe9">Key</b>. These haven't been saved.</p><div class="bt"><span>Keep editing</span><span class="d">Discard</span></div></div></div>`;
+
+const ph=(lbl,desc,scr,attr='')=>`<div style="width:410px"><div class="cap">${lbl}</div><div class="capd">${desc}</div><div class="phone" ${attr}>${scr}</div></div>`;
+const render=()=>{document.getElementById('mount').outerHTML=`<div id="mount">
+<div class="frame" style="left:80px;top:500px;display:flex;gap:70px" data-screen-label="Add song">
+${ph('1 · Add song · typing','The title has focus with the keyboard up. Spotify matches appear underneath, labelled as optional. Save works as soon as there\'s a title.',p1)}
+${ph('2 · Add song · filled','After tapping a match: title, artist, album, length and the Spotify link are filled in. Tuning and key are picked by tap. In a band, the last row is "Also add to My Songs" (spec).',p2)}
+${ph('3 · Tuning picker','A sheet, sorted by pitch like the spine. Each row shows the colour pill, the name and the strings low to high. New tuning opens the custom tuning screen from Foundations §04.',p3)}
+${ph('4 · Key · Circle of Fifths','<b>Tap any segment.</b> Majors are on the outer ring and their relative minors on the inner ring, so related keys sit together (<b>Law of Proximity</b>). Each key takes one tap.',p4(),'data-keyph')}
+</div>
+<div class="frame" style="left:80px;top:1520px;display:flex;gap:70px" data-screen-label="Links, view, notes">
+${ph('5 · Add a link inline','Paste a URL and the type and service are detected (spec list). You can change the type with one tap, and the label is filled in. The link stays inline, with no separate screen.',p5)}
+${ph('6 · Song view · from a setlist','Read-first; it never opens in edit mode. Facts and links come first, so you can open the tab in one tap. Then the three note layers, each labelled with who sees it. The set\'s note leads because you came from the set.',p6)}
+${ph('7 · Editing notes in place','Tap the pencil on Band notes. The block becomes Markdown with a formatting bar, and the label reminds you bandmates will see it. Done saves; there\'s no separate form.',p7)}
+${ph('8 · Edit song · Cancel with changes','The same form as Add, prefilled. Cancel after changes opens an in-app dialog that names what changed (spec). Delete isn\'t here: it lives in the song menu (⋯), behind its own dialog.',p8)}
+</div></div>`};
+render();
+document.addEventListener('click',e=>{const p=e.target.closest('[data-keyph] [data-key]');if(!p)return;KEY=p.dataset.key;document.querySelector('[data-keyph]').innerHTML=p4()});
+})();
+</script>
+</body>
+</html>

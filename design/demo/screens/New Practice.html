@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — New &amp; duplicate practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<link rel="stylesheet" href="../../source/kit/pickers.css">
+<style>
+.pf{display:flex;flex-direction:column;gap:12px;padding:4px 14px 14px}
+.pf label{display:block;font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:var(--mu);text-transform:uppercase;margin:0 2px 6px}
+.pf label em{font-style:normal;color:var(--dim);margin-left:6px}
+.pf input,.pf textarea{all:unset;box-sizing:border-box;display:block;width:100%;min-height:46px;padding:12px 14px;border-radius:12px;background:var(--s1);box-shadow:inset 0 0 0 1px var(--line);font:500 15px var(--r-fu);color:var(--tx)}
+.pf textarea{min-height:76px;line-height:1.45}
+.pf input:focus,.pf textarea:focus{box-shadow:inset 0 0 0 2px var(--acc)}
+.pf input::placeholder,.pf textarea::placeholder{color:var(--mu)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.from{display:flex;gap:10px;align-items:flex-start;margin:0 14px 4px;padding:10px 12px;border-radius:14px;background:var(--s1);font-size:13px;color:var(--tx2);line-height:1.4}.from svg.i{width:16px;height:16px;color:var(--accink);flex-shrink:0;margin-top:1px}.from b{color:var(--tx)}
+.sh{display:flex;align-items:baseline;gap:8px;padding:6px 24px 8px}.sh b{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:var(--mu);text-transform:uppercase}.sh span{font-family:var(--r-fm);font-size:11px;color:var(--mu)}.sh span.over{color:var(--warn)}
+.psr{display:flex;align-items:center;gap:8px;min-height:58px;padding:0 6px 0 14px;border-bottom:1px solid var(--div)}.psr:last-child{border:0}
+.psr .n{width:18px;font-family:var(--r-fm);font-size:11px;color:var(--mu)}
+.psr .g{flex:1;min-width:0}.psr b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.psr small{font-size:12px;color:var(--mu)}
+.psr .du{font-family:var(--r-fm);font-size:11.5px;color:var(--tx2);width:34px;text-align:right}
+.psr .x{width:44px;height:44px;display:grid;place-items:center;color:var(--mu);cursor:pointer}.psr .x svg.i{width:16px;height:16px}
+.addb{margin:10px 12px 0}
+.empty2{padding:18px 16px;font-size:14px;color:var(--mu);text-align:center}
+/* browser */
+.bt{display:flex;gap:6px;padding:0 14px 8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}.bt::-webkit-scrollbar{display:none}.bt .r-chip{flex-shrink:0}
+.bt .rp{width:auto;flex-shrink:0}.bt .rp-f{height:40px;border-radius:20px;padding:0 12px;font-size:13.5px;font-weight:600;gap:6px}
+.bc{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 20px 4px;font-size:13px;color:var(--mu)}.bc b{color:var(--tx)}.bc .r-btn{margin-left:auto;height:34px}
+.aa{display:flex;align-items:center;gap:10px;margin:0 12px 10px;padding:10px 12px 10px 14px;border-radius:16px;background:var(--s1)}.aa .g{flex:1}.aa b{display:block;font-size:14.5px}.aa small{font-family:var(--r-fm);font-size:11px;color:var(--mu)}.aa .r-btn{height:36px}
+.pick{display:flex;align-items:center;cursor:pointer}.pick .r-sr{flex:1;min-width:0;padding-right:8px}
+.pick .ck{width:26px;height:26px;border-radius:13px;box-shadow:inset 0 0 0 2px var(--line);margin-right:14px;flex-shrink:0;display:grid;place-items:center;color:var(--onacc)}
+.pick .ck svg.i{width:16px;height:16px;stroke-width:3;opacity:0}.pick.on .ck{background:var(--acc);box-shadow:none}.pick.on .ck svg.i{opacity:1}
+.srch{display:flex;align-items:center;gap:8px;margin:0 14px 8px;height:46px;padding:0 14px;border-radius:14px;background:var(--s1)}.srch svg.i{width:17px;height:17px;color:var(--mu)}.srch input{all:unset;flex:1;font:500 15px var(--r-fu);color:var(--tx)}.srch input::placeholder{color:var(--mu)}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script src="../../source/kit/pickers.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,tp,grp,gl,row,phone,tpl,backbar,T}=R,{page}=Draft;
+const SONGS=Object.assign({},R.SONGS,{tb:{title:'Them Bones',artist:'Alice In Chains',tun:'cstd',dur:'2:30',key:'D',bpm:'128',links:['tabs']},wica:{title:'When I Come Around',artist:'Green Day',tun:'half',dur:'2:58',key:'G♭',bpm:'98',links:['audio']},bg:{title:'Burn It to the Ground',artist:'Nickelback',tun:'db',dur:'3:32',key:'B',bpm:'132',links:['audio']}});
+const SETS={fall:{name:'Fall Set',ids:['mw','bl','aer','ev','mb','tb','wica','bg']},bday:{name:'Birthday Jam',ids:['aag','bc','bl','aat','ev']}};
+const secs=d=>{const [m,s]=d.split(':').map(Number);return m*60+s};
+const mk=dup=>({dup,title:dup?'Thursday run':'',date:dup?'2026-11-12':'2026-11-05',time:'19:00',dur:dup?150:120,place:"Mike's Garage",focus:dup?'Run the Fall Set openers. Tighten the Monkey Wrench breakdown.':'',songs:dup?['mw','bl','aer','ev']:[],br:false,q:'',tun:'',set:'',art:'',sort:'title'});
+const ST={a:mk(false),b:mk(true),c:Object.assign(mk(true),{br:true,set:'fall'})};
+const mins=st=>Math.round(st.songs.reduce((a,id)=>a+secs(SONGS[id].dur),0)/60);
+const form=(k,st)=>{const m=mins(st);return `${st.dup?`<div class="from">${ic('copy')}<span>Copied from <b>Thursday run · Thu Nov 5</b>. Change anything; the original stays as it was.</span></div>`:''}<div class="pf">
+<div><label>Name <em>optional</em></label><input data-pf="title" value="${st.title}" placeholder="Falls back to the date"></div>
+<div><label>Date</label>${RP.date(k+'-date',st.date)}</div>
+<div class="two"><div><label>Start</label>${RP.time(k+'-time',st.time)}</div><div><label>End</label>${RP.end(k+'-end',st.time,st.dur)}</div></div>
+<div><label>Where</label><input data-pf="place" value="${st.place}"></div>
+<div><label>Focus</label><textarea data-pf="focus" placeholder="What do you want to get out of this one?">${st.focus}</textarea></div></div>
+<div class="sh"><b>Songs · ${st.songs.length}</b><span class="${m>st.dur?'over':''}">${m} of ${st.dur} min</span></div>
+${st.songs.length?grp(st.songs.map((id,i)=>{const s=SONGS[id];return `<div class="psr"><span class="n">${i+1}</span><div class="g"><b>${s.title}</b><small>${s.artist}</small></div>${tp(s.tun,'sm')}<span class="du">${s.dur}</span><span class="x" data-rm="${i}">${ic('x')}</span></div>`}).join('')):`<div class="empty2">No songs yet. Add some, or save and add later.</div>`}
+<div class="addb">${btn('Add songs',{size:'lg',icon:'plus',attr:'data-bopen'}).replace('class="r-btn','class="r-btn w')}</div><div style="height:30px"></div>`};
+const browser=(k,st)=>{const all=Object.keys(SONGS);const inSet=st.set?new Set(SETS[st.set].ids):null;
+ let list=all.filter(id=>{const s=SONGS[id];return (!st.q||(s.title+' '+s.artist).toLowerCase().includes(st.q.toLowerCase()))&&(!st.tun||s.tun===st.tun)&&(!inSet||inSet.has(id))&&(!st.art||s.artist===st.art)});
+ list.sort((a,b)=>st.sort==='artist'?SONGS[a].artist.localeCompare(SONGS[b].artist):st.sort==='tuning'?SONGS[a].tun.localeCompare(SONGS[b].tun):SONGS[a].title.localeCompare(SONGS[b].title));
+ const filt=st.q||st.tun||st.set||st.art;const tuns=[...new Set(all.map(id=>SONGS[id].tun))];const arts=[...new Set(all.map(id=>SONGS[id].artist))].sort();
+ const left=st.set?SETS[st.set].ids.filter(id=>!st.songs.includes(id)):[];
+ return `${backbar('Practice').replace('class="r-btn back','data-bclose class="r-btn back')}<div class="r-ttl"><div class="r-d r-h2">Add songs</div></div>
+<div class="srch">${ic('search')}<input data-bq placeholder="Search title or artist" value="${st.q}"></div>
+<div class="bt">${RP.menu(k+'-set',st.set,[{v:'',l:'All setlists'},...Object.entries(SETS).map(([v,s])=>({v,l:s.name}))],'Setlist')}${RP.menu(k+'-art',st.art,[{v:'',l:'All artists'},...arts.map(a=>({v:a,l:a}))],'Artist')}${RP.menu(k+'-sort',st.sort,[{v:'title',l:'Sort: Title'},{v:'artist',l:'Sort: Artist'},{v:'tuning',l:'Sort: Tuning'}],'Sort')}</div>
+<div class="bt">${chip('All tunings',{on:!st.tun}).replace('<span','<span data-btun=""')}${tuns.map(t=>`<span class="r-chip ${st.tun===t?'on':''}" data-btun="${t}">${tp(t,'sm')}</span>`).join('')}</div>
+<div class="bc">${filt?`<span>Showing <b>${list.length}</b> of ${all.length} songs</span><span class="r-btn text" data-bclr>Clear filters</span>`:`<span>All ${all.length} songs</span>`}</div>
+<div class="r-body">${st.set&&left.length?`<div class="aa">${ic('list','color:var(--mu)')}<div class="g"><b>${SETS[st.set].name}</b><small>${left.length} NOT IN THIS PRACTICE</small></div>${btn('Add all '+left.length,{kind:'pri',attr:'data-baddall'})}</div>`:''}
+${list.length?grp(list.map(id=>`<div class="pick ${st.songs.includes(id)?'on':''}" data-btog="${id}">${row(SONGS[id],{compact:true,view:{links:false,artist:true}})}<span class="ck">${ic('check')}</span></div>`).join('')):`<div class="empty2">No songs match. <span class="r-btn text" data-bclr>Clear filters</span></div>`}<div style="height:100px"></div></div>
+<div class="r-dock">${btn(`Done · ${st.songs.length} song${st.songs.length===1?'':'s'}`,{kind:'pri',size:'lg',attr:'data-bclose'}).replace('r-btn pri','r-btn pri w')}</div>`};
+const scr=k=>{const st=ST[k];return st.br?browser(k,st):tpl.editor({title:st.dup?'Duplicate practice':'New practice',save:'Save',body:form(k,st)})};
+const cell=(k,lbl,desc)=>`<div class="ph"><div class="cap">${lbl}</div><div class="capd">${desc}</div><div data-np="${k}">${phone(scr(k))}</div></div>`;
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Demo screen · New &amp; duplicate practice',h:'Plan a <span>practice</span>.',
+ lede:'Mobile parity with the desktop New practice editor. Same kit pickers (date calendar, Google-Calendar Start / End lists with the duration in brackets), and the same song browser ported from the app: search, setlist, artist, sort, tuning, "Showing X of N", Add all from a setlist, tap to add or remove. Duplicate lands on this same screen, prefilled.',
+ notes:[['One screen for both','New and Duplicate are the same editor. Duplicate fills date (+7 days), time, length, place, focus and songs, and says where it came from (<b>Jakob\'s Law</b>, <b>Tesler\'s Law</b>).'],['Times you can trust','End is a list starting after Start, each with its length in ( ). Any length works: 2½ hours, 4 hours, past midnight (<b>Postel\'s Law</b>).'],['A browser you know','The song picker is the app\'s BrowseSongs, kept: filters stack, the count says what you\'re looking at, and Clear filters is beside it (<b>Jakob\'s Law</b>, <b>Visibility</b>).'],['Time against length','"38 of 150 min" turns yellow when the songs run long, so you plan to the clock (<b>Goal-Gradient</b>).']],
+ rows:[[cell('a','1 · New practice','From Calendar → New → Practice, or Home → Schedule practice. Empty, defaulting to next Thursday 7–9 PM.'),cell('b','2 · Duplicate','From a practice\'s ⋯ or a recap\'s Plan next practice. Prefilled, one week later, 7:00–9:30 PM.'),cell('c','3 · Add songs','Pushed from Add songs. Filtered to Fall Set here: tap rows to add / remove, or Add all.')]]});
+const re=k=>{const h=document.querySelector(`[data-np="${k}"]`);const b=h.querySelector('.r-body'),y=b?b.scrollTop:0;h.innerHTML=phone(scr(k));const nb=h.querySelector('.r-body');if(nb)nb.scrollTop=y};
+document.addEventListener('click',e=>{const h=e.target.closest('[data-np]');if(!h)return;const k=h.dataset.np,st=ST[k],c=s=>e.target.closest(s);let x;
+ if(c('[data-bopen]')){st.br=true;re(k);return}
+ if(c('[data-bclose]')){st.br=false;re(k);return}
+ if(c('[data-bclr]')){Object.assign(st,{q:'',tun:'',set:'',art:''});re(k);return}
+ if(c('[data-baddall]')){SETS[st.set].ids.forEach(id=>{if(!st.songs.includes(id))st.songs.push(id)});re(k);return}
+ if(x=c('[data-btun]')){st.tun=x.dataset.btun;re(k);return}
+ if(x=c('[data-btog]')){const id=x.dataset.btog,i=st.songs.indexOf(id);i<0?st.songs.push(id):st.songs.splice(i,1);re(k);return}
+ if(x=c('[data-rm]')){st.songs.splice(+x.dataset.rm,1);re(k);return}});
+document.addEventListener('input',e=>{const h=e.target.closest('[data-np]');if(!h)return;const k=h.dataset.np,st=ST[k];
+ if(e.target.matches('[data-pf]'))st[e.target.dataset.pf]=e.target.value;
+ if(e.target.matches('[data-bq]')){st.q=e.target.value;const p=e.target.selectionStart;re(k);const q=document.querySelector(`[data-np="${k}"] [data-bq]`);q.focus();q.setSelectionRange(p,p)}});
+window.addEventListener('rp-change',e=>{const {id,value}=e.detail;const [k,f]=id.split('-');const st=ST[k];if(!st)return;
+ if(f==='date')st.date=value;else if(f==='time')st.time=value;else if(f==='end')st.dur=+value;else if(f==='set')st.set=value;else if(f==='art')st.art=value;else if(f==='sort')st.sort=value;re(k)});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Jam: the host on the night</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<link rel="stylesheet" href="../../source/kit/jam.css">
+<style>
+.hh{display:flex;align-items:center;gap:10px;padding:4px 14px 10px}.hh .g{flex:1;min-width:0}.hh b{display:block;font-size:17px}.hh .r-m{color:var(--mu)}
+.onst{margin:0 12px 10px;padding:12px 14px;border-radius:18px;background:var(--s1);display:flex;align-items:center;gap:10px}
+.onst .g{flex:1;min-width:0}.onst small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.1em;color:var(--mu)}.onst b{font-size:15px}
+.nxt{margin:0 12px 10px;padding:16px;border-radius:24px;background:var(--s1);box-shadow:inset 0 0 0 2px var(--acc)}
+.nxt .k{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.12em;color:var(--accink);display:flex;justify-content:space-between}
+.nxt h4{font-family:var(--r-fd);font-weight:800;font-size:36px;text-transform:uppercase;line-height:.92;margin:6px 0 2px;color:var(--tx)}
+.nxt .s{font-size:13.5px;color:var(--tx2)}
+.slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:12px 0}
+.slots div{height:48px;border-radius:14px;background:var(--s2);display:flex;align-items:center;gap:8px;padding:0 10px;font-size:14px;font-weight:700;min-width:0}
+.slots div small{font-family:var(--r-fm);font-size:10px;color:var(--mu);width:40px;font-weight:500}
+.slots div .jav{width:24px;height:24px;font-size:10px;background:var(--bg)!important;color:var(--tx)}
+.slots div.open{background:none;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--mu);cursor:pointer}
+.slots div.open em{font-style:normal;margin-left:auto;font-size:12px;color:var(--accink)}
+.slots div.house{background:color-mix(in srgb,var(--acc) 14%,var(--s2))}
+.go{display:flex;gap:8px}.go .r-btn{height:64px;font-size:18px}.go .sk{width:64px;padding:0;flex-shrink:0}
+.mini{display:flex;flex-direction:column}
+.mi{display:flex;align-items:center;gap:10px;min-height:56px;padding:0 10px 0 14px;border-bottom:1px solid var(--div)}.mi:last-child{border:0}.mi .g{flex:1;min-width:0}.mi b{display:block;font-size:15px}.mi small{font-size:12px;color:var(--mu)}
+.mi .r-btn{height:40px;font-size:13px}
+.qa{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 12px 10px}
+.qa span{height:64px;border-radius:18px;background:var(--s1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12.5px;font-weight:700;box-shadow:var(--shg)}.qa span svg.i{width:20px;height:20px;color:var(--accink)}
+.toast{position:absolute;left:12px;right:12px;bottom:28px;z-index:5;background:var(--tx);color:var(--bg);border-radius:18px;height:56px;padding:0 8px 0 16px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:14.5px}.toast .g{flex:1}.toast .r-btn{background:transparent;color:var(--acc);height:44px}
+.back{margin:0 12px 10px;padding:12px 14px;border-radius:18px;background:color-mix(in srgb,var(--ty-prac) 14%,var(--s1));font-size:13.5px;color:var(--tx2);display:flex;gap:10px;align-items:flex-start}.back svg.i{width:18px;height:18px;color:var(--ty-prac);flex-shrink:0;margin-top:1px}.back b{color:var(--tx)}
+.fs{display:flex;flex-direction:column;gap:8px}
+.fs .o{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 14px;border-radius:16px;background:var(--s2)}.fs .o .g{flex:1}.fs .o b{display:block;font-size:15.5px}.fs .o small{font-size:12.5px;color:var(--mu)}.fs .o .jav{width:34px;height:34px;font-size:13px}
+.fs .o .tag{font-family:var(--r-fm);font-size:9.5px;letter-spacing:.08em;padding:2px 6px;border-radius:6px;background:var(--acc);color:var(--onacc)}
+.fs .lb{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:var(--mu);margin:6px 4px 0}
+.lock{flex:1;display:flex;flex-direction:column;align-items:center;padding-top:50px;background:linear-gradient(#1a1714,#0c0b0a);position:relative}
+.lock .tm{font-family:var(--r-fu);font-size:84px;font-weight:600;color:#f4efe9;line-height:1}.lock .dt{font-size:17px;color:#cfc6bd;margin-top:4px}
+.la{margin:40px 12px 0;width:calc(100% - 24px);border-radius:26px;background:rgba(30,27,24,.92);padding:14px 16px;color:#f4efe9;display:flex;flex-direction:column;gap:10px}
+.la .t{display:flex;align-items:center;gap:8px;font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:#a69c92}.la .t img{width:20px;height:20px}
+.la .row{display:flex;align-items:center;gap:12px}.la .row .g{flex:1;min-width:0}.la .row small{display:block;font-family:var(--r-fm);font-size:10px;color:#a69c92;letter-spacing:.08em}.la .row b{font-size:18px}
+.la .row .r-btn{height:52px;padding:0 20px;font-size:16px;background:#ff7a1a;color:#1a0c02}
+.la .op{font-size:13px;color:#cfc6bd}
+.cu{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 14px;border-radius:16px;background:var(--s2);margin-bottom:6px;cursor:pointer}.cu .g{flex:1;min-width:0}.cu b{display:block;font-size:15.5px}.cu small{font-size:12.5px;color:var(--mu)}.cu .ck{width:28px;height:28px;border-radius:14px;box-shadow:inset 0 0 0 2px var(--line);display:grid;place-items:center;flex-shrink:0;color:#06140c}.cu .ck svg.i{width:16px;height:16px;stroke-width:3;opacity:0}.cu.on .ck{background:var(--ok);box-shadow:none}.cu.on .ck svg.i{opacity:1}.cu.on b{color:var(--mu)}.cu .n{width:18px;font-family:var(--r-fm);font-size:12px;color:var(--mu)}
+.catch{margin:0 12px 10px}.catch .r-btn{width:100%}
+.sq{position:relative;overflow:hidden;border-bottom:1px solid var(--div)}.sq:last-child{border:0}
+.sq .fr{position:relative;z-index:1;background:var(--s1);display:flex;align-items:center;gap:10px;min-height:64px;padding:0 14px;transition:transform 220ms cubic-bezier(.2,.8,.2,1);touch-action:pan-y;cursor:grab}
+.sq.open .fr{transform:translateX(-246px)}.sq.openr .fr{transform:translateX(96px)}
+.sq .nx2{position:absolute;left:0;top:0;bottom:0;width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:800;background:var(--acc);color:var(--onacc);cursor:pointer}.sq .nx2 svg.i{width:20px;height:20px}
+.sq.peek .fr{animation:peek 1.6s ease-in-out 1 .6s}@keyframes peek{0%,100%{transform:none}30%{transform:translateX(-56px)}60%{transform:translateX(40px)}}
+.sq .fr .g{flex:1;min-width:0}.sq .fr b{display:block;font-size:15.5px}.sq .fr small{font-size:12.5px;color:var(--mu)}.sq .fr .n{width:18px;font-family:var(--r-fm);font-size:12px;color:var(--mu)}
+.sq .acts{position:absolute;right:0;top:0;bottom:0;display:flex}
+.sq .acts span{width:82px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:800;cursor:pointer}.sq .acts span svg.i{width:20px;height:20px}
+.sq .acts .pl{background:var(--ok);color:#06140c}.sq .acts .lf{background:var(--s3);color:var(--tx)}.sq .acts .rm{background:var(--danger,#ff5d5d);color:#2a0505}
+.sq.gone{max-height:0!important;border:0;transition:max-height 260ms}
+.sq{max-height:80px}
+.hint2{font-size:12.5px;color:var(--mu);padding:0 24px 8px}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script src="../../source/kit/jam.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,sw,tp,grp,gl,item,fld,sheet,phone,backbar,title}=R,{ph,page}=Draft,J=Jam;
+const hdr=`<div class="r-ab">${ib('x')}<div class="hh" style="padding:0;flex:1"><div class="g"><b>Tuesday Open Jam</b><span class="r-m">${J.live()} · 23 HERE · 9 HANDS</span></div></div>${ib('tv')}${ib('moreh')}</div>`;
+const sl=(p,n,o={})=>`<div class="${n?'':'open'} ${o.house?'house':''}"><small>${p}</small>${n?`${J.av(n)}${n}${o.house?' <span class="r-m" style="color:var(--accink);font-size:10px;margin-left:auto">HOUSE</span>':''}`:`Open<em>${o.cta||'Fill'}</em>`}</div>`;
+const next=(o={})=>`<div class="nxt"><div class="k"><span>UP NEXT · DANA'S GROUP</span><span>3 SONGS</span></div><h4>Plush</h4><div class="s">then Black, Everlong</div><div class="slots">${sl('VOX','Dana')}${sl('GTR','Eric')}${o.bass?sl('BASS','Mike',{house:1}):sl('BASS','',{cta:'Fill'})}${sl('DRUMS','',{cta:'Fill'})}</div><div class="go">${btn(o.bass?'Call them up':'Call up anyway',{kind:'pri',size:'lg',icon:'arrow'}).replace('r-btn pri','r-btn pri w')}<span class="r-btn lg sk">${ic('x')}</span></div></div>`;
+const after=`${gl('After that')}<div class="mini">${grp(`<div class="mi"><div class="g"><b>Frank + Sam</b><small>Creep · needs bass</small></div>${btn('Next instead')}</div><div class="mi"><div class="g"><b>Lena</b><small>Seven Nation Army · solo ok</small></div>${btn('Next instead')}</div>`)}</div>`;
+const main=(o={})=>`${hdr}<div class="r-body"><div class="onst">${ic('music','color:var(--mu)')}<div class="g"><small>ON STAGE</small><b>Lena's group · song 2 of 3</b></div></div>${next(o)}${after}<div class="qa">${[['plus','Walk-up'],['bell','Ask the room'],['list','All pitches']].map(([i,l])=>`<span>${ic(i)}${l}</span>`).join('')}</div><div style="height:30px"></div></div>${o.overlay||''}`;
+const fill=sheet({title:'Drums for Plush',sub:'One tap. Or leave it open and call them up anyway.',body:`<div class="fs"><div class="lb">HANDS UP</div><div class="o">${J.av('Kai')}<div class="g"><b>Kai</b><small>Knows Plush</small></div></div><div class="lb">HOUSE PLAYERS</div><div class="o">${J.av('Sarah')}<div class="g"><b>Sarah</b><small>House drums</small></div><span class="tag">HOUSE</span></div><div class="lb">OR</div><div class="o">${ic('bell','color:var(--accink)')}<div class="g"><b>Ask the room</b><small>Nudges 2 drummers who know it</small></div></div></div>`,buttons:btn('Leave open',{size:'lg'})+btn('Done',{kind:'pri',size:'lg'})});
+const called=`${main({bass:1}).replace(/<div class="onst">[\s\S]*?<\/div><\/div>/,`<div class="onst">${ic('music','color:var(--mu)')}<div class="g"><small>ON STAGE</small><b>Dana's group · Plush</b></div></div>`)}<div class="toast"><span class="g">Dana's group is up</span>${btn('Undo',{kind:'text'})}</div>`;
+const back=`${hdr}<div class="r-body"><div class="onst" style="opacity:.7">${ic('music','color:var(--mu)')}<div class="g"><small>LAST CALLED · 25 MIN AGO</small><b>Lena's group</b></div></div>${next({bass:1})}${after}<div class="back">${ic('people')}<div><b>Playing yourself?</b> Make someone a co-host and they can call groups from their phone or the counter iPad.</div></div></div>`;
+const Q=[['Dana\'s group','Plush, Black, Everlong','all parts'],['Frank + Sam','Creep','needs bass'],['Lena','Seven Nation Army','solo ok'],['Mo\'s group','Zombie, Song 2','needs drums']];let QS=Q.map(()=>'');let OPEN=0,SIDE='l',TOAST='',PEEK=true;
+const qrow=(q,i)=>QS[i]==='x'?'':`<div class="sq ${OPEN===i?(SIDE==='l'?'open':'openr'):''} ${PEEK&&i===1&&OPEN!==1?'peek':''}" data-q="${i}"><span class="nx2" data-a="Next">${ic('up')}Up next</span><div class="acts"><span class="pl" data-a="Played">${ic('check')}Played</span><span class="lf" data-a="Left">${ic('out')}Left</span><span class="rm" data-a="Removed">${ic('x')}Remove</span></div><div class="fr"><span class="n">${i+1}</span><div class="g"><b>${q[0]}</b><small>${q[1]} · ${q[2]}</small></div>${ic('grip','width:18px;height:18px;color:var(--mu2)')}</div></div>`;
+const swipeScr=()=>`${hdr}<div class="r-body"><div class="onst" style="opacity:.7">${ic('music','color:var(--mu)')}<div class="g"><small>LAST CALLED · 25 MIN AGO</small><b>Lena\'s group</b></div></div>${gl('Queue')}<div class="hint2">Swipe right: up next · Swipe left: clear · Hold: all options</div>${grp(Q.map(qrow).join(''))}</div>${TOAST?`<div class="toast"><span class="g">${TOAST}</span>${btn('Undo',{kind:'text'})}</div>`:''}`;
+const walk=`${hdr}<div class="r-body">${next()}</div>${sheet({title:'Walk-up',sub:'Someone at the stage right now.',body:grp(fld('Name','Pete',{focus:true}))+`<div class="r-label" style="margin:12px 4px 6px">PLAYS</div><div class="inss">${['Vocals','Guitar','Bass','Drums','Keys','Other'].map((x,i)=>`<span class="${i===2?'on':''}">${x}</span>`).join('')}</div>`,buttons:btn('Add to next',{size:'lg'})+btn('Call up now',{kind:'pri',size:'lg'})})}`;
+const lock=`<div class="lock"><div class="tm">10:42</div><div class="dt">Tuesday, November 3</div><div class="la"><div class="t"><img src="../../source/kit/horns-bone.png" alt="">ROCK ON · LUCKY'S · LIVE</div><div class="row"><div class="g"><small>UP NEXT</small><b>Dana's group · Plush</b></div><span class="r-btn">Call up</span></div><div class="op">Drums open · 2 hands up</div></div></div>`;
+const holdS=Rock.sheet({title:'Frank + Sam',sub:'Creep · needs bass · #2 in queue',body:`<div class="fs">${[['up','Move up next','Same as swipe right',1],['check','Played','Went up without the app'],['out','Left','Went home'],['people','Edit group','Names and parts'],['x','Remove','Drop the pitch']].map(([i,t,sub,p])=>`<div class="o" style="${p?'box-shadow:inset 0 0 0 2px var(--acc)':''}">${ic(i,'width:20px;height:20px;color:'+(i==='x'?'var(--danger,#ff5d5d)':'var(--accink)'))}<div class="g"><b>${t}</b><small>${sub}</small></div></div>`).join('')}</div>`});
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Jam: the host on the night · locked Oct 31 2026 · to test',h:'Keep it <span>moving</span>.',
+ lede:'The host\'s live screen is one card: <b>who\'s next</b>. One big button calls them up whether every part is filled or not. Open parts are one tap from a hand, a house player, or the room. Nothing has to be logged: calling the next group moves the list on. If the host was busy playing, the list waits where it was: one tap picks it back up, and a swipe clears anyone who already played or left.',
+ notes:[['One decision at a time','Up next is the only card with a button that matters. Everything else (after that, walk-up, ask the room) is secondary and smaller (<b>Hick\'s Law</b>, <b>Fitts\'s Law</b>).'],['Open parts don\'t block','"Call up anyway" works with gaps. Fill is optional: hands up, house players (set once in jam settings), or Ask the room (<b>Tesler\'s Law</b>, <b>Postel\'s Law</b>).'],['No logging','Calling up moves the last group to Played on its own, with Undo. Skip (×) drops a pitch back. Nothing asks "did this happen?" (<b>Doherty Threshold</b>).'],['Swipes need a fallback','Right = up next, left = clear, matching mail apps (<b>Jakob\'s Law</b>). Swipes are invisible, so: a one-time peek, a hint line, and hold for a menu with the same actions (<b>Discoverability</b>). Worth a quick hallway test.'],['Run it from the stage','A lock-screen card shows Up next with Call up, so the host can move on between songs without unlocking (<b>Fitts\'s Law</b>, <b>Flow</b>).']],
+ rows:[[ph('1 · Host · now','On stage is one quiet line. Up next shows the group, its songs and parts; open parts say Fill. Call up anyway is the primary. × skips it. Below: the next couple, with Next instead.',main()),
+ ph('2 · Fill a part','Tap an open part: hands up first, then house players, then Ask the room. Or Leave open.',main({overlay:fill})),
+ ph('3 · Called up','One tap. Dana\'s group is on stage, Lena\'s quietly moves to Played. Undo for a few seconds.',called),
+ ph('4 · Back from playing','The app can\'t know what happened while the host was away, and doesn\'t try. On stage just shows the last group called and how long ago. Up next is still the next pitch, so one tap moves on. Swipe left on any group to mark it Played, Left or Remove.',back)],
+ [`<div class="ph"><div class="cap">4b · Clear the queue · try it</div><div class="capd">Swipe <b>right</b> to move a group up next (orange, the positive action). Swipe <b>left</b> to clear: <b>Played</b>, <b>Left</b>, <b>Remove</b>. Here, tap a row to cycle left → right → closed. Row 2 peeks once to teach the gesture. Hold opens the same actions as a menu, for anyone who never swipes.</div><div data-sw-h>${phone(swipeScr())}</div></div>`,ph('5 · Walk-up','Someone\'s standing at the stage. Name and part, then Call up now or add them to next.',walk),
+ `<div class="ph"><div class="cap">4c · Hold a group</div><div class="capd">The fallback for anyone who never swipes: hold a row for the same actions as a list, plus Edit group. Up next first, because it\'s the common one.</div>${phone(swipeScr().replace(/<div class="toast">[\s\S]*$/,'')+holdS)}</div>`,ph('6 · Lock screen','Up next with Call up, while the phone\'s on the amp. Open parts and hands in one line.',lock)]]});
+const reSw=()=>{document.querySelector('[data-sw-h]').innerHTML=phone(swipeScr())};
+document.addEventListener('click',e=>{const h=document.querySelector('[data-sw-h]');if(!h||!h.contains(e.target))return;const a=e.target.closest('[data-a]');if(a){const i=+a.closest('[data-q]').dataset.q;PEEK=false;if(a.dataset.a==='Next'){const it=Q.splice(i,1)[0],st=QS.splice(i,1)[0];Q.unshift(it);QS.unshift(st);OPEN=-1;TOAST=`${it[0]} · moved up next`;reSw();setTimeout(()=>{TOAST='';reSw()},2600);return}const row=a.closest('.sq');row.classList.add('gone');setTimeout(()=>{QS[i]='x';OPEN=-1;TOAST=`${Q[i][0]} · ${a.dataset.a.toLowerCase()}`;reSw();setTimeout(()=>{TOAST='';reSw()},2600)},260);return}const r=e.target.closest('[data-q]');if(r){const i=+r.dataset.q;PEEK=false;if(OPEN===i&&SIDE==='l'){SIDE='r'}else if(OPEN===i){OPEN=-1}else{OPEN=i;SIDE='l'}reSw()}});
+let sx=null,si=null;document.addEventListener('pointerdown',e=>{const f=e.target.closest('[data-sw-h] .fr');if(f){sx=e.clientX;si=+f.closest('[data-q]').dataset.q}});document.addEventListener('pointerup',e=>{if(sx==null)return;const dx=e.clientX-sx;if(Math.abs(dx)>40){PEEK=false;if(OPEN===si&&((SIDE==='l'&&dx>0)||(SIDE==='r'&&dx<0)))OPEN=-1;else{OPEN=si;SIDE=dx<0?'l':'r'}reSw()}sx=null});
+})();
+</script>
+</body>
+</html>

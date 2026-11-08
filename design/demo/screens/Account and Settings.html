@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Account &amp; settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<style>
+.au{display:flex;flex-direction:column;flex:1;padding:0 20px 28px;gap:10px}
+.au .logo{font-family:var(--r-fd);font-weight:900;font-size:64px;text-transform:uppercase;line-height:.85;margin:40px 0 4px;color:var(--tx)}.au .logo span{color:var(--acc)}
+.logo2{display:flex;align-items:center;gap:14px;margin:44px 0 8px}.logo2 img{width:64px;height:64px;object-fit:contain}.hl-l{display:none}[data-theme=light] .hl-d{display:none}[data-theme=light] .hl-l{display:block}
+.wbm{font-family:var(--r-fd);font-weight:800;text-transform:uppercase;font-size:46px;line-height:1;display:flex;align-items:stretch;gap:.14em;white-space:nowrap;color:var(--tx)}.wbm .nut{width:.12em;background:var(--acc);border-radius:.03em}.wbm .t{position:relative;padding:.02em .06em 0 .04em}.wbm .t:before{content:"";position:absolute;inset:.1em -.04em .08em -.2em;background:repeating-linear-gradient(to bottom,currentColor 0 .018em,transparent .018em .26em);opacity:.28}.wbm .t span{position:relative}.wbm .t em{font-style:normal;color:var(--accink)}
+.au .tag{font-size:15px;color:var(--tx2);margin-bottom:18px}
+.au .r-btn{width:100%}
+.au .or{display:flex;align-items:center;gap:10px;font-family:var(--r-fm);font-size:10.5px;color:var(--mu);margin:6px 0}.au .or:before,.au .or:after{content:"";flex:1;height:1px;background:var(--line)}
+.au .r-grp{margin:0}
+.au .lnk{text-align:center;font-size:14px;color:var(--tx2);margin-top:auto}.au .lnk b{color:var(--accink)}
+.soc{background:#000!important;color:#fff!important;gap:10px}.ggl{background:#fff!important;color:#1f1f1f!important;box-shadow:inset 0 0 0 1px #747775!important;gap:10px}
+.msg{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--err,#ff5d5d) 14%,var(--s1));font-size:13.5px;color:var(--tx)}
+.msg svg.i{width:17px;height:17px;color:var(--err,#ff5d5d);flex-shrink:0;margin-top:1px}
+.mail{width:88px;height:88px;border-radius:44px;background:var(--s2);display:grid;place-items:center;margin:70px auto 18px}.mail svg.i{width:40px;height:40px;color:var(--accink)}
+.gs{display:flex;flex-direction:column;gap:10px}
+.gs .o{display:flex;align-items:center;gap:14px;min-height:76px;padding:0 16px;border-radius:20px;background:var(--s1);box-shadow:var(--shg)}
+.gs .o .ico{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;background:var(--s3);flex-shrink:0}.gs .o .ico svg.i{width:22px;height:22px}
+.gs .o.p .ico{background:var(--acc);color:var(--onacc)}
+.gs .o .g{flex:1}.gs .o b{display:block;font-size:17px}.gs .o small{font-size:13px;color:var(--mu)}
+.gs .o>svg.i{color:var(--mu2);width:18px;height:18px}
+.ap{padding:10px 12px 12px}
+.tun .r-item{min-height:60px}
+.tun .r-item small{font-family:var(--r-fm);font-size:11px}
+.bi{font-family:var(--r-fm);font-size:10px;color:var(--mu);letter-spacing:.06em}
+.pf{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0 18px}
+.pf .av{width:96px;height:96px;border-radius:48px;font-size:34px}
+.pf .r-btn{height:36px;font-size:13px}
+.ins{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px}
+.ins span{height:40px;padding:0 14px;border-radius:20px;background:var(--s2);display:flex;align-items:center;gap:6px;font-weight:600;font-size:14px}
+.ins span.on{background:var(--tx);color:var(--bg)}
+.ins span svg.i{width:14px;height:14px;fill:currentColor}
+.ins span.add{background:none;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--mu)}
+.typed{background:var(--s2);border-radius:14px;padding:12px 14px;font-family:var(--r-fm);font-size:15px;margin:10px 0 4px;box-shadow:inset 0 0 0 2px var(--err,#ff5d5d)}
+.ul{padding-left:18px;font-size:14px;color:var(--tx2);line-height:1.55;margin:6px 0 4px}
+.npre .r-item{min-height:56px}
+.ipk .r-item{min-height:58px}
+.ipk .pr{display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:18px;box-shadow:inset 0 0 0 1.5px var(--line);font-size:13px;font-weight:700;color:var(--mu)}
+.ipk .pr svg.i{width:14px;height:14px}
+.ipk .pr.on{background:var(--acc);color:var(--onacc);box-shadow:none}.ipk .pr.on svg.i{fill:currentColor}
+.ipk .rm{width:36px;height:36px;display:grid;place-items:center;color:var(--mu)}
+.ipk .ins span{cursor:pointer}
+.insrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;font-size:15px;font-weight:600}
+.insrow .st{color:var(--accink);display:inline-flex;align-items:center;gap:4px}.insrow .st svg.i{width:14px;height:14px;fill:currentColor}
+.insrow .c{margin-left:auto;color:var(--mu2)}
+.pg .r-item small{white-space:normal;line-height:1.35}
+.bmute{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px}
+.bmute i.b{width:32px;height:32px;border-radius:10px;font-style:normal;font-weight:800;font-size:12px;display:grid;place-items:center}
+.bmute .g{flex:1}.bmute b{display:block;font-size:15px}.bmute small{font-size:12.5px;color:var(--mu)}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,sw,tp,grp,gl,item,fld,srow,sheet,dialog,banner,phone,tpl,backbar,title,editbar,T,SPINE}=R,{ph,page}=Draft;
+const av=(ini,k)=>`<span class="av" style="background:${T[k].dark}">${ini}</span>`;
+const logo=`<div class="logo2"><img src="../../source/kit/horns-bone.png" alt="" class="hl-d"><img src="../../source/kit/horns-ink.png" alt="" class="hl-l"><div class="wbm"><span class="nut"></span><span class="t"><span>Rock <em>On</em></span></span></div></div><div class="tag">Songs, setlists and shows for your band.</div>`;
+const signin=(err)=>`<div class="au">${logo}<span class="r-btn lg soc"><svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.3 1.3-2.6 1.3-2.7 0 0-2.4-.9-2.4-4M14 5.6c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4"/></svg>Continue with Apple</span><span class="r-btn lg ggl"><svg viewBox="0 0 24 24" style="width:20px;height:20px"><path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.8 3.3-8"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.8A11 11 0 0 0 12 23"/><path fill="#FBBC05" d="M5.8 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.1a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7.1l3.7 2.8C6.7 7.3 9.1 5.4 12 5.4"/></svg>Continue with Google</span><div class="or">OR</div>${err?`<div class="msg">${ic('warn')}<div>That email and password don't match. Check for typos, or reset your password.</div></div>`:''}${grp(fld('Email','eric@ipodshuffle.band')+fld('Password','••••••••••',{right:`<span class="r-ib" style="background:none">${ic('eye')}</span>`,focus:err}))}${btn('Sign in',{kind:'pri',size:'lg'})}<span class="r-btn text" style="align-self:center">Forgot password?</span><div class="lnk">New here? <b>Create an account</b></div></div>`;
+const check=`${backbar('Sign in')}<div class="au" style="text-align:center"><div class="mail">${ic('mail')}</div><div class="r-d r-h2">Check your email</div><p style="font-size:15px;color:var(--tx2)">We sent a link to <b style="color:var(--tx)">eric@ipodshuffle.band</b>. Open it on this phone to finish. The link you came from is saved, and you'll land there after.</p><div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">${btn('Open Mail',{kind:'pri',size:'lg'})}${btn('Resend in 0:42',{size:'lg'})}</div></div>`;
+const forgot=`${backbar('Sign in')}<div class="au"><div class="r-d r-h1" style="margin-top:12px">Reset<br>password</div><p style="font-size:15px;color:var(--tx2);margin-bottom:8px">Enter the email you signed up with. We'll send a link that works for 1 hour.</p>${grp(fld('Email','eric@ipodshuffle.band',{focus:true}))}<div style="margin-top:auto">${btn('Send reset link',{kind:'pri',size:'lg'})}</div></div>`;
+const gs=`<div class="au"><div class="r-d r-h1" style="margin-top:24px">Get<br>started</div><p style="font-size:15px;color:var(--tx2);margin-bottom:10px">Pick one. You can do the others later from the header or More.</p><div class="gs">${[['plus','Create a band','Just a name. Invite people after.',1],['people','Join a band','Use a code or link. You\'ll see the band first.'],['star','Got an event code?','Jump straight into a jam or event.'],['user','Continue solo','Your own songs and setlists.']].map(([i,t,s,p])=>`<div class="o ${p?'p':''}"><span class="ico">${ic(i)}</span><div class="g"><b>${t}</b><small>${s}</small></div>${ic('chev')}</div>`).join('')}</div></div>`;
+const settings=`${backbar('More')}${title('Settings')}<div class="r-body">${grp(item({lead:av('E','std'),title:'Eric Johnson',sub:'Profile · name, photo, instruments',trail:'chev'}))}
+${gl('Appearance')}${grp(`<div class="ap">${seg(['System','Light','Dark'],0)}</div>`)}
+${gl('Account')}${grp(item({title:'Email',sub:'eric@ipodshuffle.band',trail:'chev'})+item({title:'Sign-in methods',sub:'Apple, Google, password',trail:'chev'})+item({title:'Change password',trail:'chev'}))}
+${gl('Music')}${grp(item({lead:ic('fork','color:var(--mu)'),title:'Tunings',sub:'2 custom',trail:'chev'}))}
+${gl('Notifications')}${grp(item({lead:ic('bell','color:var(--mu)'),title:'Push notifications',sub:'Reminders, changes, invites',trail:'chev'}))}
+${gl('About')}${grp(item({title:'What\'s new',sub:'0.9.4 · Charts and the tuner',trail:'chev'})+item({title:'Help & feedback',trail:'open'})+item({title:'Version',sub:'0.9.4 (212)'}))}
+${grp(item({title:'<span style="color:var(--err,#ff5d5d)">Delete account…</span>'}))}<div style="height:30px"></div></div>`;
+const tr=(k,custom)=>item({lead:R.tp(k),title:T[k].name,sub:T[k].strings.map(m=>R.NOTES?R.NOTES[m%12]:m).join(' '),trail:custom?'chev':''}).replace('<div class="g">',`<div class="g">`)+'';
+const tunings=`${backbar('Settings')}${title('Tunings')}<div class="r-body tun">${gl('Custom',{label:'NEW',icon:'plus'})}${grp(item({lead:`<span class="r-tp" style="--cd:#c9a0ff;--cl:#7a3fcf">OPEN G</span>`,title:'Open G',sub:'D G D G B D · Guitar',trail:'chev'})+item({lead:`<span class="r-tp" style="--cd:#ff8fd0;--cl:#b0306f">DADGAD</span>`,title:'DADGAD',sub:'D A D G A D · Guitar',trail:'chev'}))}${gl('Built in')}<div class="r-m r-muted" style="padding:0 24px 8px">Read-only. Colours follow pitch.</div>${grp(['std','half','dd','whole','dc','cstd','db'].filter(k=>T[k]).map(k=>tr(k)).join(''))}</div>`;
+const profile=tpl.editor({title:'Profile',body:`<div class="pf">${av('E','std')}${btn('Change photo',{icon:'edit'})}</div>${grp(fld('Display name','Eric Johnson'))}${gl('Instruments')}${grp(`<div class="insrow"><span>Guitar</span><span style="color:var(--mu)">·</span><span>Vocals</span><span class="c">${ic('chev')}</span></div>`)}<div class="r-m r-muted" style="padding:4px 24px">Shown on rosters, events and jams. Your email isn't shown here or to bandmates.</div>`});
+const pickerBody=()=>`${grp(['Guitar','Vocals'].map(n=>item({lead:`<span style="color:var(--mu2)">${ic('grip')}</span>`,title:n}).replace('</div></div>',`</div><span class="rm">${ic('x')}</span></div>`)).join(''))}${gl('Add')}${grp(`<div class="ins"><span>Bass</span><span>Drums</span><span>Keys</span><span>Harmonica</span><span>Mandolin</span><span>Banjo</span><span>Violin</span><span class="add">+ Other</span></div>`)}<div class="r-m r-muted" style="padding:6px 24px">Drag to reorder. The first shows first where space is short. For jams you pick what you\'ll play each time.</div>`;
+const picker=`${backbar('Profile')}${title('Instruments')}<div class="r-body ipk">${pickerBody()}</div>`;
+const sws=(on)=>sw(on);
+const prow=(t,s,on)=>item({title:t,sub:s}).replace('</div></div>','</div>'+sw(on)+'</div>');
+const pushPage=`${backbar('Settings')}${title('Push notifications')}<div class="r-body npre pg">${grp(prow('Allow push notifications','Off turns everything below off',true))}
+${gl('Reminders')}${grp(prow('Shows','Day before, and 2 hours before load-in',true)+prow('Practices','3 hours before',true)+prow('Events I\'m going to','Day before',true))}
+${gl('Changes to my plans')}${grp(prow('Show or practice changed','Time, place, or cancelled',true)+prow('Set changed close to a show','Edits within 7 days of a show you\'re playing',true))}
+${gl('People')}${grp(prow('Invites','To a band or an event',true)+prow('Friend requests','',true))}
+${gl('Per band')}${grp(`<div class="bmute"><i class="b" style="background:#ff7a1a;color:#1a0c02">iP</i><div class="g"><b>iPod Shuffle</b><small>All of the above</small></div>${sw(true)}</div><div class="bmute"><i class="b" style="background:#2dd4bf;color:#032b26">AD</i><div class="g"><b>Acoustic Duo</b><small>Muted</small></div>${sw(false)}</div>`)}
+${gl('Quiet hours')}${grp(item({title:'11 PM – 8 AM',sub:'Push waits until morning',trail:'chev'}))}<div style="height:30px"></div></div>`;
+const notif=`${backbar('Settings')}${title('Notifications')}<div class="r-body npre">${gl('Push')}${grp(item({title:'Show reminders',sub:'Day before and 2 hours before load-in',trail:''}).replace('</div></div>','</div>'+sw(true)+'</div>')+item({title:'Practice reminders',sub:'3 hours before'}).replace('</div></div>','</div>'+sw(true)+'</div>')+item({title:'Setlist changes',sub:'When someone edits a set you\'re playing'}).replace('</div></div>','</div>'+sw(true)+'</div>')+item({title:'RSVP changes'}).replace('</div></div>','</div>'+sw(false)+'</div>')+item({title:'Friend requests'}).replace('</div></div>','</div>'+sw(true)+'</div>'))}${gl('Quiet hours')}${grp(item({title:'11 PM – 8 AM',sub:'Reminders wait until morning',trail:'chev'}))}<div class="r-m r-muted" style="padding:6px 24px">Future: push isn't built yet. These are the agreed types.</div></div>`;
+const delAcct=`${backbar('Settings')}<div class="r-body" style="padding:0 20px"><div class="r-d r-h1" style="margin:10px 0 10px">Delete<br>account</div><p style="font-size:15px;color:var(--tx2)">This can't be undone. Before it goes:</p><ul class="ul"><li>You own <b style="color:var(--tx)">iPod Shuffle</b>. Transfer it or delete it first.</li><li>Your personal songs and setlists are deleted.</li><li>Songs you added to bands stay with the band.</li></ul>${grp(item({lead:ic('crown','color:var(--warn)'),title:'Transfer iPod Shuffle',sub:'Required · pick a new owner',trail:'chev'}))}<div class="r-label" style="margin:14px 2px 0">Type DELETE to confirm</div><div class="typed">DELET<span class="r-caret"></span></div></div><div class="r-dock">${btn('Delete account',{kind:'dng',size:'lg'}).replace('r-btn dng','r-btn dng w').replace('class="r-btn','style="opacity:.4" class="r-btn')}</div>`;
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Account &amp; settings · locked Oct 30 2026',h:'Get <span>in</span>, set up.',
+ lede:'Sign in, get started, Settings, Tunings, Profile, Notifications preferences and Delete account, against <span style="font-family:\'Martian Mono\';font-size:13px">auth.md</span>, <span style="font-family:\'Martian Mono\';font-size:13px">get-started.md</span>, <span style="font-family:\'Martian Mono\';font-size:13px">settings.md</span>, <span style="font-family:\'Martian Mono\';font-size:13px">profile.md</span> and workflows 01 and 13.',
+ notes:[['Social first','Apple and Google sit above email: one tap for most people. Errors say what to do next, not just "invalid" (<b>Fitts\'s Law</b>, <b>Postel\'s Law</b>).'],['Four paths, one primary','Get started shows the four spec paths as big rows. Create a band is the accent one; the others are equal. Each ends somewhere useful (<b>Hick\'s Law</b>).'],['Settings has no display options','Song display lives on the lists (spec Must not). Appearance is a three-way control right on the page, not a sub-screen (<b>Tesler\'s Law</b>).'],['Destructive = typed','Delete account lists the consequences, blocks on owned bands, and needs DELETE typed. The button stays dimmed until it matches (<b>Error prevention</b>).']],
+ rows:[[ph('1 · Sign in','Apple and Google use their own standard buttons and logos, as the app does today (black Apple, white Google in both themes). Then email and password with show/hide. Forgot password and Create account below.',signin(false)),
+ ph('2 · Wrong password','Inline message above the fields, with what to try. Same pattern for session expired and cancelled social sign-in.',signin(true)),
+ ph('3 · Check your email','After sign up or a reset. Open Mail, and a resend with a visible countdown.',check),
+ ph('4 · Get started','New user, no band, no link. Create a band (name only), Join (code → preview → Join), event code, or Continue solo.',gs)],
+ [ph('5 · Settings','Profile, Appearance (System / Light / Dark inline), Account, Tunings, Notifications, About. Delete account sits alone at the bottom.',settings),
+ ph('6 · Tunings','Custom ones first with New; built-ins read-only below, in pitch order with their colour pills. Tap a custom one to edit (custom tuning screen still to draw).',tunings),
+ ph('7 · Profile · light','Name, photo, and an Instruments row in your order. Tap it for the picker (11). No email here (spec Must not).',profile,{theme:'light'}),
+ ph('8 · Push notifications','Push is a small set: reminders, changes to plans you\'re in, and invites. Everything else stays in the in-app list. A master switch, three groups, a per-band mute, and quiet hours (<b>Hick\'s Law</b>, <b>Tesler\'s Law</b>).',pushPage)],
+ [ph('9 · Delete account','Consequences in plain words, a required transfer step if you own a band, and typed confirmation.',delAcct),
+ ph('10 · Forgot password','One field, one button. The link expiry is stated up front.',forgot),
+ ph('11 · Instrument picker','Your instruments as an ordered list: drag to reorder, × to remove, chips below to add. No primary flag; order does that job (<b>Tesler\'s Law</b>, <b>Occam\'s Razor</b>).',picker)]]});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Jam on the bar TV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+a{color:#ff9a4d}a:hover{color:#ffb878}
+.frame{position:absolute}
+.lbl{font-family:"Martian Mono";font-size:22px;letter-spacing:.1em;color:#5a5149;text-transform:uppercase;margin-bottom:10px}
+.lbl2{font-family:"Atkinson Hyperlegible Next";font-size:24px;color:#3d352f;margin-bottom:18px;max-width:1900px;line-height:1.4}
+.doc{width:1920px;background:#141414;border-radius:40px;padding:56px;color:#cfc6bd;font-family:"Atkinson Hyperlegible Next";font-size:26px;line-height:1.5}
+.doc .eb{font-family:"Martian Mono";font-size:20px;letter-spacing:.12em;color:#ff7a1a;text-transform:uppercase}
+.doc h1{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;font-size:130px;line-height:.9;color:#f4efe9;margin:14px 0 20px}.doc h1 span{color:#ff7a1a}
+.doc .four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:40px;margin-top:20px}.doc h3{color:#fff;font-size:27px;margin-bottom:6px}.doc p{font-size:24px}.doc b{color:#fff}
+.tv{width:1920px;height:1080px;background:#0c0b0a;color:#f4efe9;font-family:"Atkinson Hyperlegible Next";position:relative;overflow:hidden;border-radius:12px;box-shadow:0 0 0 14px #1b1b1b,0 30px 80px rgba(0,0,0,.4)}
+.tv .top{position:absolute;left:80px;right:80px;top:56px;display:flex;align-items:center;gap:26px}
+.tv .lv{display:flex;align-items:center;gap:12px;font-family:"Martian Mono";font-weight:700;font-size:26px;letter-spacing:.12em;color:#ff5d5d}.tv .lv i{width:18px;height:18px;border-radius:9px;background:#ff5d5d;animation:p 1.6s ease-in-out infinite}@keyframes p{50%{opacity:.35}}
+.tv .nm{font-family:"Big Shoulders Display";font-weight:800;font-size:44px;text-transform:uppercase;letter-spacing:.02em}
+.tv .vn{font-family:"Martian Mono";font-size:24px;color:#8a8178;letter-spacing:.08em}
+.tv .dots{margin-left:auto;display:flex;gap:12px}.tv .dots i{width:48px;height:8px;border-radius:4px;background:#2a2522}.tv .dots i.on{background:#ff7a1a}
+.tv .body{position:absolute;left:80px;right:560px;top:170px;bottom:110px}
+.tv .side{position:absolute;right:80px;top:170px;bottom:110px;width:420px;border-radius:40px;background:#161412;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:30px;text-align:center}
+.qr{width:280px;height:280px;border-radius:18px;background-color:#fff;background-image:linear-gradient(45deg,#111 25%,transparent 25%,transparent 75%,#111 75%),linear-gradient(45deg,#111 25%,transparent 25%,transparent 75%,#111 75%);background-size:32px 32px;background-position:0 0,16px 16px;box-shadow:0 0 0 18px #fff;display:grid;place-items:center}
+.qr i{width:74px;height:74px;border-radius:18px;background:#ff7a1a;display:grid;place-items:center}
+.qr i svg{width:42px;height:42px;fill:none;stroke:#1a0c02;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.side b{font-family:"Big Shoulders Display";font-weight:800;font-size:56px;text-transform:uppercase;line-height:.9;margin-top:18px}
+.side p{font-size:26px;color:#cfc6bd;line-height:1.35}
+.side .cd{font-family:"Martian Mono";font-size:24px;color:#8a8178;letter-spacing:.08em}.side .cd em{font-style:normal;color:#f4efe9;letter-spacing:.16em}
+.tv .foot{position:absolute;left:80px;right:80px;bottom:44px;display:flex;align-items:center;gap:18px;font-family:"Martian Mono";font-size:22px;color:#8a8178;letter-spacing:.06em}
+.tv .foot .wm{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:"Big Shoulders Display";font-weight:800;font-size:30px;text-transform:uppercase;color:#f4efe9;letter-spacing:.02em}.tv .foot .wm i{width:6px;height:30px;background:#ff7a1a;border-radius:2px}
+.k{font-family:"Martian Mono";font-size:26px;letter-spacing:.14em;color:#ff9a4d;text-transform:uppercase}
+.k.v{color:#c58bff}
+.now h2{font-family:"Big Shoulders Display";font-weight:900;font-size:190px;line-height:.85;text-transform:uppercase;margin:16px 0 12px}
+.now .ar{font-size:40px;color:#cfc6bd}
+.cast{display:flex;gap:16px;margin-top:40px;flex-wrap:wrap}
+.cast div{height:96px;padding:0 30px 0 14px;border-radius:48px;background:#221f1c;display:flex;align-items:center;gap:16px;font-size:36px;font-weight:700}
+.cast div small{font-family:"Martian Mono";font-size:20px;color:#8a8178;letter-spacing:.08em;font-weight:500}
+.cast div i{width:68px;height:68px;border-radius:34px;background:#3a332d;display:grid;place-items:center;font-style:normal;font-size:30px;font-weight:800}
+.cast div.open{background:none;box-shadow:inset 0 0 0 3px #4a423c;color:#a69c92;padding-left:30px}
+.ups{margin-top:50px;display:flex;flex-direction:column;gap:6px}
+.ups .u{display:flex;align-items:baseline;gap:24px;padding:14px 0;border-top:2px solid #221f1c}
+.ups .u span{font-family:"Martian Mono";font-size:26px;color:#8a8178;width:40px}
+.ups .u b{font-size:46px;flex:1}.ups .u em{font-style:normal;font-size:30px;color:#a69c92}
+.need h2{font-family:"Big Shoulders Display";font-weight:900;font-size:120px;line-height:.88;text-transform:uppercase;margin:16px 0 36px}
+.nl{display:flex;flex-direction:column;gap:18px}
+.nl .r{display:flex;align-items:center;gap:30px;padding:26px 34px;border-radius:32px;background:#161412}
+.nl .r .g{flex:1}.nl .r b{display:block;font-size:52px;line-height:1.05}.nl .r small{font-size:28px;color:#a69c92}
+.nl .r .w{height:84px;padding:0 34px;border-radius:42px;background:#c58bff;color:#1a0a2e;display:flex;align-items:center;gap:12px;font-size:36px;font-weight:800;flex-shrink:0}
+.nl .r .w svg{width:38px;height:38px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.join h2{font-family:"Big Shoulders Display";font-weight:900;font-size:220px;line-height:.82;text-transform:uppercase;margin:16px 0 30px}.join h2 span{color:#ff7a1a}
+.join .st{display:flex;flex-direction:column;gap:24px;margin-top:10px}
+.join .st div{display:flex;align-items:center;gap:26px;font-size:44px;font-weight:700}
+.join .st div i{width:76px;height:76px;border-radius:38px;background:#221f1c;display:grid;place-items:center;font-style:normal;font-family:"Martian Mono";font-size:30px;color:#ff9a4d;flex-shrink:0}
+.join .st small{display:block;font-size:28px;color:#a69c92;font-weight:400}
+.side.lt{background:#f7f3ee;color:#1a1512}.side.lt p{color:#3d352f}.side.lt .cd{color:#6b6158}.side.lt .cd em{color:#1a1512}
+.lock{display:flex;align-items:center;gap:22px;margin-bottom:34px}.lock img{width:96px;height:96px}
+.wb{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;font-size:84px;line-height:1;display:flex;align-items:stretch;gap:.14em;color:#f4efe9}.wb .nut{width:.12em;background:#ff7a1a;border-radius:.03em}.wb .t{position:relative;padding:.02em .06em 0 .04em}.wb .t:before{content:"";position:absolute;inset:.1em -.04em .08em -.2em;background:repeating-linear-gradient(to bottom,currentColor 0 .018em,transparent .018em .26em);opacity:.25}.wb .t em{font-style:normal;color:#ff7a1a;position:relative}
+.join h2{font-size:150px!important;margin:10px 0 26px!important}.join .st{gap:18px!important}.join .st div{font-size:38px!important}
+.app{margin-top:36px;padding:22px 28px;border-radius:28px;background:#161412;font-size:28px;color:#cfc6bd;line-height:1.4}.app b{color:#f4efe9}.app em{font-style:normal;color:#ff9a4d;font-weight:700}
+.slide{position:absolute;inset:0;transition:opacity .6s}.slide.off{opacity:0;pointer-events:none}
+.prog{position:absolute;left:0;bottom:0;height:6px;background:#ff7a1a;width:0}
+.prog.run{animation:pr 9s linear}@keyframes pr{to{width:100%}}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script>
+(()=>{
+const HAND='<svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4a1.5 1.5 0 0 1 3 0v6.5M14 10.5V5.5a1.5 1.5 0 0 1 3 0V13M17 11a1.5 1.5 0 0 1 3 0v3a7 7 0 0 1-7 7h-1.5a6 6 0 0 1-4.6-2.2L3.5 14.8a1.5 1.5 0 0 1 2.3-1.9L8 15"/></svg>';
+const top=(on)=>`<div class="top"><span class="lv"><i></i>LIVE</span><span class="nm">Tuesday Open Jam</span><span class="vn">LUCKY'S TAVERN</span><div class="dots">${[0,1,2].map(i=>`<i class="${i===on?'on':''}"></i>`).join('')}</div></div>`;
+const foot=`<div class="foot">23 HERE · 9 HANDS UP · JOIN AT ROCKON.BAND/J · CODE LUCK-42<span class="wm"><i></i>Rock On</span></div>`;
+const side=(t,p)=>`<div class="side"><div class="qr"><i>${HAND}</i></div><b>${t}</b><p>${p}</p><div class="cd">CODE <em>LUCK-42</em></div></div>`;
+const c=(p,n)=>`<div class="${n?'':'open'}">${n?`<i>${n[0]}</i>`:''}<small>${p}</small>${n||'Open'}</div>`;
+const S1=`${top(0)}<div class="body now"><div class="k">ON STAGE NOW</div><h2>Plush</h2><div class="ar">Stone Temple Pilots</div><div class="cast">${c('VOX','Dana')}${c('GTR','Eric')}${c('BASS','Ray')}${c('DRUMS','Kai')}</div>
+<div class="ups"><div class="k" style="margin-bottom:8px">UP NEXT</div><div class="u"><span>1</span><b>Zombie</b><em>The Cranberries · Lena, Dana, Eric</em></div><div class="u"><span>2</span><b>Black</b><em>Pearl Jam · needs bass</em></div></div></div>${side('Want to play?','Scan to raise your hand or pitch a song.')}${foot}`;
+const S2=`${top(1)}<div class="body need"><div class="k v">LOOKING FOR SOMEONE</div><h2>One player away</h2><div class="nl">${[['Black','Pearl Jam · Eric, Tom, Kai are in','Bass'],['Creep','Radiohead · Mo, Sam are in','Vocals'],['Song 2','Blur · Ray is in','Drums']].map(([t,s,p])=>`<div class="r"><div class="g"><b>${t}</b><small>${s}</small></div><span class="w">${HAND}${p}</span></div>`).join('')}</div></div>${side('Know one?','Scan and raise your hand. Or just tell the host.')}${foot}`;
+const S3=`${top(2)}<div class="body join"><div class="lock"><img src="../../source/kit/horns-bone.png" alt="Rock On"><div class="wb"><span class="nut"></span><span class="t">Rock <em>On</em></span></div></div><div class="k">THE STAGE IS OPEN</div><h2>Come <span>play</span>.</h2><div class="st"><div><i>1</i><span>Scan the code<small>Opens in your phone's browser</small></span></div><div><i>2</i><span>Say what you play<small>A first name is enough</small></span></div><div><i>3</i><span>Raise your hand<small>The host calls you up</small></span></div></div><div class="app"><b>You don't need the app.</b> Want to find people who know your songs? <em>Get Rock On free</em> · iPhone · Android</div></div>${side('Scan to join','No app, no account. Or just tell the host.').replace('<div class="side">','<div class="side lt">')}${foot}`;
+const S=[S1,S2,S3];
+const L=[['TV · rotating · live','Rotates every 9 seconds: On stage, Looking for someone, Come play. The QR is on every slide. Click to advance.'],['1 · On stage now','Shown when the host has called a song up. Huge title, who\'s on each part, then up next. Skipped if nothing is called.'],['2 · Looking for someone','Songs one player away, with the part in violet: the same "looking for" colour as the app. The fastest way to unstick a quiet stage.'],['3 · Come play','For first-timers. Three steps, and the QR on a light panel so it scans from across the room. No app required.']];
+const scale=.5,W=1920*scale,H=1080*scale;
+let h=`<div class="frame" style="left:80px;top:60px;transform:scale(${scale});transform-origin:0 0"><div class="doc" data-screen-label="Header"><div class="eb">Rock On · Source · Jam on the bar TV · locked Oct 31 2026 · to test</div><h1>Up on the <span>big screen</span>.</h1><p style="font-size:30px;max-width:1700px;color:#d4d4d4">A host taps <b>Show on TV</b> in the jam menu and casts or opens a link on the bar's screen. It rotates like bar screens do. It never needs touching and shows nothing private: first names and parts only.</p><div class="four">
+<div><h3>Readable from the bar</h3><p>Titles at 120–220px, body text no smaller than 26px, high contrast on near-black. One idea per slide (<b>Law of Prägnanz</b>, <b>Accessibility</b>).</p></div>
+<div><h3>QR always there</h3><p>The right panel holds the QR and code on every slide, so anyone can join whenever they look up (<b>Law of Common Region</b>, <b>Fitts\'s Law</b> for a phone camera).</p></div>
+<div><h3>Only what\'s true</h3><p>Slides with nothing to show drop out of the rotation: no "On stage" if nothing\'s called, no "Looking for" if every song is covered (<b>Occam\'s Razor</b>).</p></div>
+<div><h3>Paper-friendly</h3><p>"Or just tell the host" on every slide. The screen invites people up; it doesn\'t gate the stage (<b>Postel\'s Law</b>).</p></div></div></div></div>`;
+const pos=[[80,60+ 560],[80+W+60,60+560],[80,60+560+H+130],[80+W+60,60+560+H+130]];
+L.forEach(([a,b],i)=>{const [x,y]=pos[i];h+=`<div class="frame" style="left:${x}px;top:${y}px;transform:scale(${scale});transform-origin:0 0" data-screen-label="${a}"><div class="lbl">${a}</div><div class="lbl2">${b}</div><div class="tv" ${i===0?'data-rot':''}>${i===0?S.map((x,k)=>`<div class="slide ${k?'off':''}">${x}</div>`).join('')+'<div class="prog run"></div>':S[i-1]}</div></div>`});
+document.getElementById('mount').outerHTML=h;
+const tv=document.querySelector('[data-rot]');let k=0;
+const go=()=>{k=(k+1)%3;tv.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('off',i!==k));const p=tv.querySelector('.prog');p.classList.remove('run');void p.offsetWidth;p.classList.add('run')};
+let t=setInterval(go,9000);tv.addEventListener('click',()=>{clearInterval(t);go();t=setInterval(go,9000)});
+})();
+</script>
+</body>
+</html>

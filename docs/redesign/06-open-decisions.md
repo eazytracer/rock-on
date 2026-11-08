@@ -1,7 +1,9 @@
 # 06 · Open decision: Events vs Jam
 
-**Status: not decided.** Eric will settle it in the final design review after trying the jam flow.
-Until then: don't delete, rename or restyle `/events` or the casting code; phases 0–6 don't need it.
+**Status: decided Nov 7 2026 — option A** (`design/source/DECISIONS.md` → Part A · 2). Jam is built on the Events
+tables; casting hides behind a `CASTING` flag with its data kept; the 0.3 jam-session screens retire. Web guests
+write only through a jam-scoped token. Data: 04 → Jams. Operations: `design/OPERATIONS.md` §13. The rest of this
+page is the background that led to the decision.
 
 ## What's in the app today (v0.5.0)
 

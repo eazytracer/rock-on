@@ -14,7 +14,7 @@ Verdicts: **keep** (restyle via tokens only) · **restyle** (markup/classes chan
 | `r-sw` | Switch, 50 × 30 | ad-hoc | **new** `Switch` (role="switch") |
 | `r-radio` | Radio dot | ad-hoc | **new** |
 | `r-step` | − value + stepper | `common/DurationPicker.tsx` | **restyle** |
-| `r-tp` | Tuning pill (tinted, coloured label) | `common/MetaPill.tsx` + tuning colour code in `SongListItem` | **new** `TuningPill` reading the spine (01 §7) |
+| `r-tp` | Tuning pill (tinted, coloured label) | `common/MetaPill.tsx` + tuning colour code in `SongListItem` | **new** `TuningPill` reading the tuning colours (01 §7) |
 | `r-lk` | 30 px outlined link tile, typed glyph | `songs/LinkIcons.tsx` | **restyle**: Tabs yellow, Spotify green soundwave, YouTube red filled play, Lyrics, Cloud, Link; 44 px hit area |
 | `r-nm` | Notes mark (band / mine / both) | `songs/ExpandableSongNotes` shows content | **new** small mark; grey, never accent |
 | `r-ty` | Event-type label (icon + word) | `utils/tokens.ts` `SHOW_TONE` etc. | **replace** with `TypeLabel type="show|practice|jam"` |
@@ -46,7 +46,7 @@ Verdicts: **keep** (restyle via tokens only) · **restyle** (markup/classes chan
 | `r-sheet` bottom sheet (picks, row menus, notes over a stage screen) | `common/SlideOutTray.tsx` | **restyle** into `BottomSheet` (grab handle, 28 px top radius, swipe-down / × / scrim close). Desktop: render as an anchored menu or centred dialog depending on job |
 | `r-dlg` destructive confirm that names the consequence | `common/ConfirmDialog.tsx` + `useConfirm` | **restyle**; add `typedConfirmation` for delete account / delete band |
 | `r-toast` (+ Undo) | `contexts/ToastContext.tsx` | **restyle**: one line, optional Undo; bandmates' changes go in a grouped banner instead (spec C1) |
-| `r-banner` (info / warn / alert) | `sync/OfflineIndicator.tsx`, `SyncStatusIndicator` | **restyle**: one offline / syncing banner at the top of a list; remove per-row `SyncIcon` |
+| `r-banner` (info / warn / alert) | `sync/OfflineIndicator.tsx`, `SyncStatusIndicator` | **restyle**: one offline banner at the top of a list; remove per-row `SyncIcon` |
 | `r-empty` | `common/EmptyState.tsx` | **restyle**: icon tile, title, one-line why, the action |
 | `r-skel` skeleton rows | `common/LoadingSpinner`, `ContentLoadingSpinner` | **new** `SkeletonRow` in the real row shape; lists stop using spinners |
 | error + Retry card | ad-hoc | **new** `RetryCard` |
@@ -65,7 +65,7 @@ Never native date / time inputs or `<select>`.
 | Key picker: circle of fifths (major outside, minor inside) | `songs/CircleOfFifths.tsx` | **keep**, restyle to the demo |
 | Tuning picker sheet sorted by pitch, strings listed, + New tuning, Manage | `tunings/TuningsSection.tsx` | **restyle** |
 
-## Stage components (64 px targets, wake lock, offline)
+## Stage components (64 px targets, wake lock)
 
 | Kit | Here | Verdict |
 |---|---|---|
