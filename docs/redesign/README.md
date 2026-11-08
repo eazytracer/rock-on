@@ -7,15 +7,15 @@ Applying the locked redesign (Nov 2026) to this app. Written Nov 7 2026 against 
 The design is a set of clickable HTML prototypes in the **Rock On design project** (claude.ai, private to Eric:
 https://claude.ai/code/artifact/d9526dd6-6fbe-495b-913c-9c9125fa3396). Everything below refers to files in it.
 
-| What | File in the design project | Use it for |
-|---|---|---|
-| Mobile demo | `demo/Rock On Mobile.html` | Every phone screen, linked, with a checklist down the side |
-| Desktop demo | `demo/Rock On Desktop.html` | The desktop app at ≥1024 px, fully clickable |
-| Working jam | `demo/Jam Night.html` | A real jam you can run: host, guest, bar TV, counter iPad, synced across windows |
-| Locked decisions | `source/DECISIONS.md` | **The source of truth.** Every rule, dated, with its UX law. Wins over everything else |
-| Parity | `source/PARITY.md` | What exists on mobile vs desktop, and the deliberate exceptions |
-| Kit | `source/kit/rock.css`, `rock.js`, `pickers.*`, `Components.html`, `Foundations.html` | Tokens and the component catalog |
-| Data the design needs | `design_handoff_rock_on_refresh/DATA-IMPLICATIONS.md`, `source/CHART-DATA-MODEL.md` | Diffed against this schema in [04-data.md](04-data.md) |
+| What                  | File in the design project                                                           | Use it for                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| Mobile demo           | `demo/Rock On Mobile.html`                                                           | Every phone screen, linked, with a checklist down the side                             |
+| Desktop demo          | `demo/Rock On Desktop.html`                                                          | The desktop app at ≥1024 px, fully clickable                                           |
+| Working jam           | `demo/Jam Night.html`                                                                | A real jam you can run: host, guest, bar TV, counter iPad, synced across windows       |
+| Locked decisions      | `source/DECISIONS.md`                                                                | **The source of truth.** Every rule, dated, with its UX law. Wins over everything else |
+| Parity                | `source/PARITY.md`                                                                   | What exists on mobile vs desktop, and the deliberate exceptions                        |
+| Kit                   | `source/kit/rock.css`, `rock.js`, `pickers.*`, `Components.html`, `Foundations.html` | Tokens and the component catalog                                                       |
+| Data the design needs | `design_handoff_rock_on_refresh/DATA-IMPLICATIONS.md`, `source/CHART-DATA-MODEL.md`  | Diffed against this schema in [04-data.md](04-data.md)                                 |
 
 The prototypes are reference, not code to paste: they use string templates and inline mock data. Rebuild each
 screen in this codebase's own React / Tailwind / repository patterns.
@@ -28,6 +28,7 @@ screen in this codebase's own React / Tailwind / repository patterns.
 4. [04-data.md](04-data.md) — what the design needs stored, marked **exists / change / new**, with migration sketches.
 5. [05-plan.md](05-plan.md) — the build order as PR-sized phases with acceptance checks, sized for this repo's release gate.
 6. [06-open-decisions.md](06-open-decisions.md) — **Events vs Jam**, the one thing not decided. Read before touching `/events` or `/jam`.
+7. [07-handoff-to-build.md](07-handoff-to-build.md) — open decisions and the files the build needs back from the design agent.
 
 ## Rules that apply to every phase
 
