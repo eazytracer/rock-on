@@ -171,7 +171,9 @@ export const SettingsPage: React.FC = () => {
       <div data-testid="settings-page" className="max-w-5xl mx-auto">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-ink-1 mb-2">Settings</h1>
+          <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1 mb-2">
+            Settings
+          </h1>
           <p className="text-ink-3">
             Manage your account and application preferences
           </p>

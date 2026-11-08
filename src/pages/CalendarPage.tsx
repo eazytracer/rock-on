@@ -585,7 +585,9 @@ export function CalendarPage() {
   return (
     <div data-testid="calendar-page" className="max-w-3xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink-1">Calendar</h1>
+        <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
+          Calendar
+        </h1>
         <div className="relative">
           {activeKind ? (
             <button

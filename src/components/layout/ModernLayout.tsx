@@ -1,52 +1,49 @@
 import React from 'react'
 import { Sidebar } from './Sidebar'
 import { MobileHeader } from './MobileHeader'
+import { OfflineBanner } from './OfflineBanner'
 import { BottomNavigation } from '../common/BottomNavigation'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { SwitchPromptProvider } from '../../contexts/SwitchPromptContext'
+import { SearchProvider, useGlobalSearch } from '../search/SearchOverlay'
 
 interface ModernLayoutProps {
   children: React.ReactNode
-  bandName?: string
-  userEmail?: string
-  onSignOut?: () => void
 }
 
-export const ModernLayout: React.FC<ModernLayoutProps> = ({
-  children,
-  bandName: propBandName,
-  userEmail: propUserEmail,
-  onSignOut: propOnSignOut,
-}) => {
-  const location = useLocation()
-  const { user, currentBand, signOut } = useAuth()
+export const ModernLayout: React.FC<ModernLayoutProps> = ({ children }) => (
+  <SwitchPromptProvider>
+    <SearchProvider>
+      <Shell>{children}</Shell>
+    </SearchProvider>
+  </SwitchPromptProvider>
+)
 
-  // Use props if provided, otherwise fall back to auth context
-  const bandName = propBandName ?? currentBand?.name ?? 'Select a Band'
-  const userEmail = propUserEmail ?? user?.email ?? ''
-  const onSignOut = propOnSignOut ?? signOut
+const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation()
+  const { signOut } = useAuth()
+  const { openSearch } = useGlobalSearch()
 
   return (
-    <div className="min-h-screen bg-bg-0">
-      {/* Sidebar - Desktop Only */}
+    <div className="min-h-screen bg-bg-1">
       <div className="hidden md:block">
         <Sidebar
           currentPath={location.pathname}
-          bandName={bandName}
-          userEmail={userEmail}
-          onSignOut={onSignOut}
+          onSignOut={signOut}
+          onSearch={openSearch}
         />
       </div>
 
-      {/* Mobile Header — brand + notifications bell (nav lives in the bottom bar) */}
-      <MobileHeader bandName={bandName} userEmail={userEmail} />
+      <MobileHeader />
 
-      {/* Main Content */}
-      <main className="md:ml-60 min-h-screen pt-16 md:pt-0 pb-20 md:pb-0">
-        <div className="p-6 md:p-8 lg:p-10">{children}</div>
+      <main className="md:ml-[248px] min-h-screen pt-16 md:pt-0 pb-28 md:pb-0">
+        <div className="px-4 py-5 md:px-7 md:py-6 lg:px-8">
+          <OfflineBanner />
+          {children}
+        </div>
       </main>
 
-      {/* Bottom Navigation - Mobile Only */}
       <div className="md:hidden">
         <BottomNavigation />
       </div>

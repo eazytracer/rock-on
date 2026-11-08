@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-07
+
+Redesign phase 1 · Shell and Home.
+
+### Added
+
+- **Global search** (Home on mobile, ⌘K on desktop): songs, setlists, shows,
+  practices and jams, including a show or setlist by a song in it. Current
+  context first, with "Search all contexts".
+- **Context switcher** with band marks, member counts and an unread dot;
+  "Switch to ‹Band›?" when opening something from another context.
+- **Notifications**: bell popout (desktop), a stream page with Activity and App
+  updates; Activity shows what bandmates changed, never your own changes.
+- **Home walkthroughs** for new bands and Personal; one offline banner.
+
+### Changed
+
+- New desktop sidebar (Search, Home · Songs · Setlists · Calendar · Jam, Band,
+  You; footer with you, theme toggle and bell). Shows / Practices / Events are
+  Calendar filters. Sign out moved to the menu under your name.
+- Floating bottom nav; mobile header with the context chip, search and bell.
+- Home: next show and practice cards with countdowns, Upcoming, Quick actions;
+  stats removed. More reorganised. Display titles on the main pages.
+
+### Removed
+
+- Unused `NotificationService`, `models/Notification` and `MobileDrawer`.
+
+### Database
+
+- `user_preferences.notifications_seen_at`; RPCs `list_my_contexts`, `search`,
+  `list_notifications`, `mark_notifications_read` (pgTAP contract tests);
+  `release_notes` row for 0.8.0.
+
 ## [0.7.0] - 2026-11-07
 
 Redesign phase 0 · Foundations. New look across the whole app, a light theme,

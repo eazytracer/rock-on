@@ -147,11 +147,12 @@ test.describe('Band-less user flow (Phase 2)', () => {
       timeout: 5000,
     })
     await expect(page.locator('[data-testid="home-create-band"]')).toBeVisible()
-    // Personal actions present; band-only actions hidden.
+    // Personal actions present (setlists are personal-capable); band-only
+    // actions hidden.
     await expect(page.locator('[data-testid="home-action-song"]')).toBeVisible()
     await expect(
       page.locator('[data-testid="home-action-setlist"]')
-    ).toHaveCount(0)
+    ).toBeVisible()
     await expect(
       page.locator('[data-testid="home-action-practice"]')
     ).toHaveCount(0)

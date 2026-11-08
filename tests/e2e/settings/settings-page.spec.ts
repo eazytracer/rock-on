@@ -69,7 +69,10 @@ test.describe('Settings Page', () => {
       // whose overlay would intercept the logout click and hang the hook.
       // Reload to a neutral page first to unmount any open modal.
       await page.goto('/songs').catch(() => {})
-      // Check if logout button is visible before clicking
+      // Sign out lives in the sidebar account menu
+      await page
+        .click('[data-testid="sidebar-account-button"]', { timeout: 2000 })
+        .catch(() => {})
       const logoutButton = page.locator('[data-testid="logout-button"]')
       const isVisible = await logoutButton
         .isVisible({ timeout: 2000 })

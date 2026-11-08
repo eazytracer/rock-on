@@ -203,7 +203,8 @@ export async function deleteTestUser(userId: string): Promise<void> {
  * Log out the current user via UI
  */
 export async function logoutViaUI(page: Page): Promise<void> {
-  // Click logout button using data-testid
+  // Sign out lives in the account menu at the foot of the sidebar
+  await page.click('[data-testid="sidebar-account-button"]')
   await page.click('[data-testid="logout-button"]')
 
   // Wait for redirect to the auth page. The protected-route guard preserves a

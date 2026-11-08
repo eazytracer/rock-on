@@ -192,7 +192,9 @@ export function EventsPage() {
     <div data-testid="events-page" className="max-w-6xl">
       <BackLink className="mb-4" data-testid="events-back" />
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink-1">Events</h1>
+        <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
+          Events
+        </h1>
         <button
           onClick={() => navigate('/events/new')}
           data-testid="events-new-button"

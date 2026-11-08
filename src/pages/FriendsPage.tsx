@@ -143,7 +143,9 @@ export function FriendsPage() {
   return (
     <div data-testid="friends-page" className="max-w-5xl">
       <BackLink className="mb-4" data-testid="friends-back" />
-      <h1 className="text-2xl font-bold text-ink-1">Friends</h1>
+      <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
+        Friends
+      </h1>
 
       <ContentLoadingSpinner isLoading={loading}>
         <div className="mt-5 flex flex-col gap-6 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">

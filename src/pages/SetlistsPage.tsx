@@ -2147,7 +2147,9 @@ export const SetlistsPage: React.FC = () => {
           <>
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <h1 className="text-2xl font-bold text-ink-1">Setlists</h1>
+                <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
+                  Setlists
+                </h1>
                 <ChevronDown size={20} className="text-ink-3" />
               </div>
 

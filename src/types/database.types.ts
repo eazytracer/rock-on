@@ -1985,6 +1985,7 @@ export type Database = {
           created_date: string
           list_views: Json
           metronome: Json
+          notifications_seen_at: string | null
           push: Json
           theme: string
           timeline: Json
@@ -1997,6 +1998,7 @@ export type Database = {
           created_date?: string
           list_views?: Json
           metronome?: Json
+          notifications_seen_at?: string | null
           push?: Json
           theme?: string
           timeline?: Json
@@ -2009,6 +2011,7 @@ export type Database = {
           created_date?: string
           list_views?: Json
           metronome?: Json
+          notifications_seen_at?: string | null
           push?: Json
           theme?: string
           timeline?: Json
@@ -2123,6 +2126,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _band_activity: {
+        Args: { p_user: string }
+        Returns: {
+          actor_id: string
+          actor_name: string
+          band_id: string
+          created_at: string
+          detail: string
+          id: string
+          object_id: string
+          object_name: string
+          object_type: string
+          verb: string
+        }[]
+      }
       are_event_coparticipants: {
         Args: { p_caller: string; p_other: string }
         Returns: boolean
@@ -2256,6 +2274,39 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      list_my_contexts: {
+        Args: never
+        Returns: {
+          band_id: string
+          has_unread: boolean
+          member_count: number
+          name: string
+          role: string
+        }[]
+      }
+      list_notifications: {
+        Args: { p_before?: string; p_limit?: number }
+        Returns: {
+          actor_id: string
+          actor_name: string
+          band_id: string
+          band_name: string
+          created_at: string
+          detail: string
+          id: string
+          is_read: boolean
+          link: string
+          object_id: string
+          object_name: string
+          object_type: string
+          source: string
+          verb: string
+        }[]
+      }
+      mark_notifications_read: {
+        Args: { p_ids?: string[] }
+        Returns: undefined
+      }
       normalize_text: { Args: { input: string }; Returns: string }
       related_names: {
         Args: { p_ids: string[] }
@@ -2274,6 +2325,27 @@ export type Database = {
           display_name: string
           name: string
           user_id: string
+        }[]
+      }
+      search: {
+        Args: {
+          p_all?: boolean
+          p_band_id?: string
+          p_limit?: number
+          p_query: string
+        }
+        Returns: {
+          band_id: string
+          context_name: string
+          duration: number
+          id: string
+          kind: string
+          matched_song: string
+          song_count: number
+          starts_at: string
+          subtitle: string
+          title: string
+          tuning: string
         }[]
       }
       search_discoverable_users: {

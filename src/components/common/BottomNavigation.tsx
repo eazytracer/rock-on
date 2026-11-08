@@ -1,6 +1,6 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, Disc3, ListMusic, Calendar, LayoutGrid } from 'lucide-react'
+import { Home, Music2, ListMusic, Calendar, MoreHorizontal } from 'lucide-react'
 
 interface NavTab {
   id: string
@@ -28,7 +28,7 @@ const TABS: NavTab[] = [
     id: 'songs',
     label: 'Songs',
     path: '/songs',
-    icon: <Disc3 size={22} />,
+    icon: <Music2 size={22} />,
     match: ['/songs'],
   },
   {
@@ -49,7 +49,7 @@ const TABS: NavTab[] = [
     id: 'more',
     label: 'More',
     path: '/more',
-    icon: <LayoutGrid size={22} />,
+    icon: <MoreHorizontal size={22} />,
     match: [
       '/more',
       '/jam',
@@ -70,7 +70,8 @@ const isTabActive = (tab: NavTab, pathname: string): boolean =>
   )
 
 /**
- * Mobile bottom navigation bar. Router-driven; rendered mobile-only by ModernLayout.
+ * Mobile bottom navigation (`r-nav`): a floating pill of five icons; the
+ * current tab is filled with the accent.
  */
 export const BottomNavigation: React.FC = () => {
   const location = useLocation()
@@ -78,34 +79,29 @@ export const BottomNavigation: React.FC = () => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-bg-1 border-t border-border-1"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="fixed left-1/2 -translate-x-1/2 z-40 h-16 rounded-full bg-bg-3 p-1.5 flex gap-1 shadow-float"
+      style={{ bottom: 'calc(env(safe-area-inset-bottom) + 18px)' }}
       data-testid="bottom-navigation"
     >
-      <div className="flex items-stretch justify-around px-1.5 pt-2 pb-1.5">
-        {TABS.map(tab => {
-          const active = isTabActive(tab, location.pathname)
-          return (
-            <button
-              key={tab.id}
-              onClick={() => navigate(tab.path)}
-              aria-label={tab.label}
-              aria-current={active ? 'page' : undefined}
-              data-testid={`bottom-nav-${tab.id}`}
-              className={`flex flex-1 flex-col items-center gap-1 py-1 min-h-touch rounded-lg transition-colors ${
-                active ? 'text-accent' : 'text-ink-4 hover:text-ink-2'
-              }`}
-            >
-              {tab.icon}
-              <span
-                className={`text-[10.5px] leading-none ${active ? 'font-semibold' : 'font-medium'}`}
-              >
-                {tab.label}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+      {TABS.map(tab => {
+        const active = isTabActive(tab, location.pathname)
+        return (
+          <button
+            key={tab.id}
+            onClick={() => navigate(tab.path)}
+            aria-label={tab.label}
+            aria-current={active ? 'page' : undefined}
+            data-testid={`bottom-nav-${tab.id}`}
+            className={`w-[58px] h-[52px] rounded-full grid place-items-center transition-colors ${
+              active
+                ? 'bg-accent text-on-accent'
+                : 'text-ink-3 hover:text-ink-1'
+            }`}
+          >
+            {tab.icon}
+          </button>
+        )
+      })}
     </nav>
   )
 }

@@ -1,83 +1,69 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { NotificationService } from '../services/NotificationService'
-import type { AppNotification, ReleaseNote } from '../models/Notification'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '../contexts/AuthContext'
+import {
+  listNotifications,
+  listReleaseNotes,
+  markNotificationsRead,
+  type NotificationItem,
+} from '../services/api/notifications'
+import { queryKeys } from '../services/queryClient'
+import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 
 /**
- * Full notification feed + actions (for the Notifications center).
- * Reads are RLS-scoped to the current user by the DB.
+ * Activity stream (bandmates' changes + friend / event notices), newest first.
+ * Bandmates' writes arrive through audit_log realtime, so the feed refreshes
+ * when any band content changes.
  */
-export function useNotifications() {
-  const [notifications, setNotifications] = useState<AppNotification[]>([])
-  const [releaseNotes, setReleaseNotes] = useState<ReleaseNote[]>([])
-  const [loading, setLoading] = useState(true)
+export function useNotificationFeed() {
+  const { user } = useAuth()
+  const userId = user?.id ?? ''
 
-  const refetch = useCallback(async () => {
-    const [items, notes] = await Promise.all([
-      NotificationService.list(),
-      NotificationService.getReleaseNotes(),
-    ])
-    setNotifications(items)
-    setReleaseNotes(notes)
-    setLoading(false)
-  }, [])
+  useRealtimeInvalidate({
+    events: [
+      'songs:changed',
+      'setlists:changed',
+      'shows:changed',
+      'practices:changed',
+    ],
+    queryKey: queryKeys.notifications.feed(userId),
+  })
 
-  useEffect(() => {
-    void refetch()
-  }, [refetch])
-
-  const markRead = useCallback(async (id: string) => {
-    setNotifications(prev =>
-      prev.map(n =>
-        n.id === id && !n.readAt ? { ...n, readAt: new Date() } : n
-      )
-    )
-    await NotificationService.markRead(id)
-  }, [])
-
-  const markAllRead = useCallback(async () => {
-    setNotifications(prev =>
-      prev.map(n => (n.readAt ? n : { ...n, readAt: new Date() }))
-    )
-    await NotificationService.markAllRead()
-  }, [])
-
-  const dismiss = useCallback(async (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
-    await NotificationService.dismiss(id)
-  }, [])
-
-  const unreadCount = notifications.filter(n => !n.readAt).length
-
-  return {
-    notifications,
-    releaseNotes,
-    unreadCount,
-    loading,
-    refetch,
-    markRead,
-    markAllRead,
-    dismiss,
-  }
+  return useQuery({
+    queryKey: queryKeys.notifications.feed(userId),
+    queryFn: () => listNotifications(),
+    enabled: !!userId,
+    staleTime: 30_000,
+  })
 }
 
-/**
- * Lightweight unread count for the header bell. Refetches on route change so the
- * badge stays roughly live without a realtime subscription.
- */
-export function useUnreadCount(): number {
-  const [count, setCount] = useState(0)
-  const location = useLocation()
+export function useReleaseNotes() {
+  return useQuery({
+    queryKey: queryKeys.notifications.releases,
+    queryFn: listReleaseNotes,
+    staleTime: 5 * 60_000,
+  })
+}
 
-  useEffect(() => {
-    let cancelled = false
-    NotificationService.unreadCount().then(c => {
-      if (!cancelled) setCount(c)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [location.pathname])
+/** The bell's dot: anything unread in the stream. */
+export function useHasUnread(): boolean {
+  const { data } = useNotificationFeed()
+  return (data ?? []).some(n => !n.is_read)
+}
 
-  return count
+export function useMarkAllRead() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const key = queryKeys.notifications.feed(user?.id ?? '')
+  return useMutation({
+    mutationFn: () => markNotificationsRead(),
+    onMutate: () => {
+      queryClient.setQueryData<NotificationItem[]>(key, prev =>
+        prev?.map(n => ({ ...n, is_read: true }))
+      )
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: key })
+      void queryClient.invalidateQueries({ queryKey: ['contexts'] })
+    },
+  })
 }

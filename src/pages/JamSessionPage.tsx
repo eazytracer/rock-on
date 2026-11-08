@@ -493,7 +493,9 @@ export const JamSessionPage: React.FC = () => {
             }
           >
             <Radio size={22} className="text-primary" />
-            <h1 className="text-2xl font-bold text-ink-1">Jam Session</h1>
+            <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
+              Jam Session
+            </h1>
             {session?.status === 'active' && (
               <span
                 data-testid="jam-live-badge"

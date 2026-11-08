@@ -1,78 +1,59 @@
+import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Radio,
+  ChevronRight,
   Users,
+  UserPlus,
+  PartyPopper,
   Settings,
   LogOut,
-  PartyPopper,
-  UserPlus,
   HelpCircle,
-  Disc3,
-  ChevronRight,
+  CalendarDays,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useBandMembers } from '../hooks/useBands'
+import { useIncomingRequestCount } from '../hooks/useFriends'
 import { Avatar } from '../components/common/Avatar'
-import { Eyebrow } from '../components/common/Eyebrow'
+import { BandMark, Button, PageTitle } from '../components/ui'
+import { VERSION } from '../config/buildInfo'
 
-const APP_VERSION = '0.3.3'
-
-interface MenuRowProps {
+const Row: React.FC<{
   label: string
-  sub?: string
   icon: LucideIcon
-  iconClass?: string
-  tintClass?: string
   onClick: () => void
-  danger?: boolean
-  last?: boolean
   testid: string
-}
+  badge?: number
+  danger?: boolean
+}> = ({ label, icon: Icon, onClick, testid, badge, danger }) => (
+  <button
+    onClick={onClick}
+    data-testid={testid}
+    className={`w-full flex items-center gap-3.5 min-h-[56px] px-4 text-left border-b border-divider last:border-0 hover:bg-bg-3/60 text-[15.5px] font-semibold ${
+      danger ? 'text-danger' : 'text-ink-1'
+    }`}
+  >
+    <Icon size={20} className={danger ? 'text-danger' : 'text-ink-3'} />
+    <span className="flex-1">{label}</span>
+    {!!badge && (
+      <span className="rounded-lg bg-accent text-on-accent px-1.5 font-mono text-[11px]">
+        {badge}
+      </span>
+    )}
+    {!danger && <ChevronRight size={17} className="text-ink-4" />}
+  </button>
+)
 
-function MenuRow({
-  label,
-  sub,
-  icon: Icon,
-  iconClass = 'text-ink-2',
-  tintClass = 'bg-bg-3',
-  onClick,
-  danger,
-  last,
-  testid,
-}: MenuRowProps) {
-  return (
-    <button
-      onClick={onClick}
-      data-testid={testid}
-      className={`flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-bg-2 ${
-        last ? '' : 'border-b border-border-1'
-      }`}
-    >
-      <span
-        className={`flex h-9 w-9 items-center justify-center rounded-[10px] ${tintClass}`}
-      >
-        <Icon size={17} className={iconClass} />
-      </span>
-      <span className="flex-1 min-w-0">
-        <span
-          className={`block text-sm font-medium ${danger ? 'text-danger' : 'text-ink-1'}`}
-        >
-          {label}
-        </span>
-        {sub && <span className="block text-xs text-ink-4">{sub}</span>}
-      </span>
-      {!danger && <ChevronRight size={17} className="text-ink-5" />}
-    </button>
-  )
-}
+const Group: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="rounded-[20px] bg-bg-2 shadow-group overflow-hidden">
+    {children}
+  </div>
+)
 
 /**
- * More (mobile-redesign-port).
- * The mobile hub for everything outside the 4 primary tabs. Mirrors the design's
- * More screen: band identity card → Account → grouped Features / App sections,
- * with a version footer. Desktop parity lives in the sidebar's "More" group.
+ * More (Core Navigation 8): band card with Manage band, your row (→ profile),
+ * then everything outside the four main tabs.
  */
 export function MorePage() {
   const navigate = useNavigate()
@@ -86,75 +67,50 @@ export function MorePage() {
   } = useAuth()
   const { showToast } = useToast()
   const { members } = useBandMembers(currentBandId ?? '')
+  const friendRequests = useIncomingRequestCount()
 
-  const bandName = currentBand?.name ?? 'Your band'
-  const tagline = currentBand?.description?.trim()
   const youName =
     currentUserProfile?.displayName?.trim() ||
     currentUser?.name?.trim() ||
     currentUser?.email ||
     'You'
-  const roleLabel =
-    currentUserRole === 'admin'
-      ? 'Band admin'
-      : currentUserRole === 'viewer'
-        ? 'Viewer'
-        : 'Member'
+  const youSub = [
+    currentUserProfile?.instruments?.join(', '),
+    currentBandId ? (currentUserRole === 'admin' ? 'Admin' : 'Member') : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <div data-testid="more-page" className="max-w-3xl">
-      <h1 className="text-2xl font-bold text-ink-1">More</h1>
+    <div data-testid="more-page" className="max-w-2xl flex flex-col gap-3">
+      <PageTitle title="More" />
 
-      {/* Band identity — or a create/join CTA when the user has no band */}
-      {!currentBandId ? (
-        <button
-          onClick={() => navigate('/get-started')}
+      {currentBand ? (
+        <div
+          className="rounded-[20px] bg-bg-2 shadow-group p-4"
           data-testid="more-band-card"
-          className="mt-4 w-full rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/15 to-transparent p-4 text-left transition-colors hover:border-accent/60"
         >
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent">
-              <Users size={24} className="text-ink-1" />
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block text-lg font-bold text-ink-1">
-                Create or join a band
-              </span>
-              <span className="block text-xs text-ink-3">
-                Unlock setlists, shows &amp; practices with your bandmates
-              </span>
-            </span>
-            <ChevronRight size={18} className="text-accent" />
+          <div className="flex items-center gap-3.5">
+            <BandMark name={currentBand.name} size={48} />
+            <div className="min-w-0">
+              <p className="text-[18px] font-bold text-ink-1 truncate">
+                {currentBand.name}
+              </p>
+              <p className="text-[13px] text-ink-3">
+                {members.length} member{members.length === 1 ? '' : 's'} · since{' '}
+                {currentBand.createdDate.toLocaleDateString(undefined, {
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </p>
+            </div>
           </div>
-        </button>
-      ) : (
-        <button
-          onClick={() => navigate('/band-members')}
-          data-testid="more-band-card"
-          className="mt-4 w-full rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/15 to-transparent p-4 text-left transition-colors hover:border-accent/60"
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent">
-              <Disc3 size={24} className="text-ink-1" />
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block truncate text-lg font-bold text-ink-1">
-                {bandName}
-              </span>
-              {tagline && (
-                <span className="block truncate text-xs text-ink-3">
-                  {tagline}
-                </span>
-              )}
-            </span>
-            <ChevronRight size={18} className="text-accent" />
-          </div>
-          <div className="mt-3.5 flex items-center gap-2.5 border-t border-accent/40 pt-3.5">
+          <div className="mt-3.5 flex items-center justify-between">
             <span className="flex">
               {members.slice(0, 5).map((m, i) => (
                 <span
                   key={m.membership.id}
-                  className={`rounded-full border-2 border-bg-0 ${i ? '-ml-2' : ''}`}
+                  className={`rounded-full ring-2 ring-bg-2 ${i ? '-ml-2' : ''}`}
                 >
                   <Avatar
                     size="xs"
@@ -163,103 +119,111 @@ export function MorePage() {
                 </span>
               ))}
             </span>
-            <span className="text-xs font-medium text-ink-2">
-              {members.length} {members.length === 1 ? 'member' : 'members'}
-            </span>
-            <span className="ml-auto text-xs font-semibold text-accent">
-              Manage band →
-            </span>
+            <Button
+              onClick={() => navigate('/band-members')}
+              data-testid="more-manage-band"
+            >
+              Manage band
+            </Button>
           </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => navigate('/get-started')}
+          data-testid="more-band-card"
+          className="flex items-center gap-3.5 rounded-[20px] bg-bg-2 shadow-group p-4 text-left"
+        >
+          <span className="grid place-items-center w-12 h-12 rounded-2xl bg-accent-soft text-accent-ink">
+            <Users size={22} />
+          </span>
+          <span className="flex-1">
+            <span className="block text-[16px] font-bold text-ink-1">
+              Create or join a band
+            </span>
+            <span className="block text-[13px] text-ink-3">
+              Share songs, setlists and a calendar.
+            </span>
+          </span>
+          <ChevronRight size={17} className="text-ink-4" />
         </button>
       )}
 
-      {/* Account */}
-      <Eyebrow className="mb-2 ml-0.5 mt-5">Account</Eyebrow>
-      <div className="overflow-hidden rounded-2xl border border-border-1 bg-bg-1">
+      <Group>
         <button
           onClick={() => navigate('/settings')}
           data-testid="more-account"
-          className="flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-bg-2"
+          className="w-full flex items-center gap-3.5 px-4 py-3 text-left hover:bg-bg-3/60"
         >
           <Avatar size="md" label={youName} />
           <span className="flex-1 min-w-0">
-            <span className="block truncate text-[15px] font-semibold text-ink-1">
+            <span className="block truncate text-[15.5px] font-bold text-ink-1">
               {youName}
             </span>
-            <span className="block text-xs text-ink-4">
-              {currentBandId
-                ? `${roleLabel} · in ${bandName}`
-                : 'Personal account'}
-            </span>
+            {youSub && (
+              <span className="block truncate text-[12.5px] text-ink-3">
+                {youSub}
+              </span>
+            )}
           </span>
-          <ChevronRight size={17} className="text-ink-5" />
+          <ChevronRight size={17} className="text-ink-4" />
         </button>
-      </div>
+      </Group>
 
-      {/* Features */}
-      <Eyebrow className="mb-2 ml-0.5 mt-5">Features</Eyebrow>
-      <div className="overflow-hidden rounded-2xl border border-border-1 bg-bg-1">
-        <MenuRow
-          label="Jam Sessions"
-          sub="Play together, live"
-          icon={Radio}
-          iconClass="text-accent"
-          tintClass="bg-accent/15"
+      <Group>
+        <Row
+          label="Jam"
+          icon={PartyPopper}
           onClick={() => navigate('/jam')}
           testid="more-jam"
         />
-        <MenuRow
+        <Row
           label="Events"
-          sub="Host & sign-up lineups"
-          icon={PartyPopper}
+          icon={CalendarDays}
           onClick={() => navigate('/events')}
           testid="more-events"
         />
-        <MenuRow
+        <Row
           label="Friends"
-          sub="Find & connect with musicians"
           icon={UserPlus}
+          badge={friendRequests}
           onClick={() => navigate('/friends')}
           testid="more-friends"
         />
-        <MenuRow
-          label="Band Members"
-          sub={`${members.length} ${members.length === 1 ? 'musician' : 'musicians'}`}
-          icon={Users}
-          onClick={() => navigate('/band-members')}
-          last
-          testid="more-band"
-        />
-      </div>
+        {currentBandId && (
+          <Row
+            label="Band members"
+            icon={Users}
+            onClick={() => navigate('/band-members')}
+            testid="more-band"
+          />
+        )}
+      </Group>
 
-      {/* App */}
-      <Eyebrow className="mb-2 ml-0.5 mt-5">App</Eyebrow>
-      <div className="overflow-hidden rounded-2xl border border-border-1 bg-bg-1">
-        <MenuRow
+      <Group>
+        <Row
           label="Settings"
           icon={Settings}
           onClick={() => navigate('/settings')}
           testid="more-settings"
         />
-        <MenuRow
+        <Row
           label="Help & feedback"
           icon={HelpCircle}
           onClick={() => showToast('Help & feedback is coming soon', 'info')}
           testid="more-help"
         />
-        <MenuRow
+        <Row
           label="Sign out"
           icon={LogOut}
           onClick={signOut}
           danger
-          last
           testid="more-sign-out"
         />
-      </div>
+      </Group>
 
-      <div className="mt-5 text-center font-mono text-[11px] text-ink-5">
-        Rock On · v{APP_VERSION}
-      </div>
+      <p className="mt-2 text-center font-mono text-[11px] text-ink-4">
+        Rock On · v{VERSION}
+      </p>
     </div>
   )
 }

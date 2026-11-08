@@ -266,7 +266,9 @@ export const ShowsPage: React.FC = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-ink-1">Shows</h1>
+              <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
+                Shows
+              </h1>
               <ChevronDown size={20} className="text-ink-3" />
             </div>
 

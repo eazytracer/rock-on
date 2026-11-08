@@ -53,6 +53,7 @@ test.describe('Sign out — recovery under a dead network', () => {
       /* intentionally never resolved */
     })
 
+    await page.click('[data-testid="sidebar-account-button"]')
     await page.click('[data-testid="logout-button"]')
 
     // Local-first sign-out must redirect to /auth without waiting on the network.

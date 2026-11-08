@@ -752,6 +752,31 @@ for band admins/owners. A new column is not readable until added to that GRANT.
 
 ---
 
+### user_preferences (Supabase Only)
+
+**Purpose:** Per-user settings that follow the user across devices (redesign phase 0+). Read and written through
+`src/services/api/preferences.ts`.
+
+| Application | Supabase                                    | Type        | Required | Default   | Description                                                     |
+| ----------- | ------------------------------------------- | ----------- | -------- | --------- | --------------------------------------------------------------- |
+| N/A         | `user_id`                                   | UUID        | Yes      | -         | PK, FK → users (cascade)                                        |
+| `theme`     | `theme`                                     | TEXT        | Yes      | 'system'  | 'system' \| 'light' \| 'dark'                                   |
+| N/A         | `list_views`                                | JSONB       | Yes      | {}        | Per-list density, fields, sort (later phases)                   |
+| N/A         | `timeline`                                  | JSONB       | Yes      | {}        | Timeline mode (later phases)                                    |
+| N/A         | `chart`                                     | JSONB       | Yes      | {}        | Chart text size, chords on/off (later phases)                   |
+| N/A         | `metronome`                                 | JSONB       | Yes      | {}        | Metronome settings (later phases)                               |
+| N/A         | `push`                                      | JSONB       | Yes      | {}        | Push settings (later phases)                                    |
+| N/A         | `notifications_seen_at`                     | TIMESTAMPTZ | No       | -         | Activity before this is read (set by `mark_notifications_read`) |
+| N/A         | `created_date` / `updated_date` / `version` | —           | Yes      | NOW() / 1 | `version` and `updated_date` bump on every update (trigger)     |
+
+**RLS:** own row only (select / insert / update). **Grants:** authenticated, service_role.
+
+**RPCs (phase 1, `20261108120000_redesign_phase_1.sql`):** `list_my_contexts()`, `search(p_query, p_band_id,
+p_all, p_limit)`, `list_notifications(p_before, p_limit)` (activity from `audit_log` + the user's `notifications`
+rows), `mark_notifications_read(p_ids)`. Contract tests: `supabase/tests/029-context-search-notifications.test.sql`.
+
+---
+
 ## Repository Layer Mapping
 
 **Location:**

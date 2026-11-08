@@ -74,4 +74,13 @@ export const queryKeys = {
     personalForUser: (userId: string, bandId: string) =>
       ['notes', 'personal', userId, bandId] as const,
   },
+  notifications: {
+    feed: (userId: string) => ['notifications', 'feed', userId] as const,
+    releases: ['notifications', 'releases'] as const,
+  },
+  contexts: {
+    mine: (userId: string) => ['contexts', userId] as const,
+  },
+  search: (query: string, bandId: string | null, all: boolean) =>
+    ['search', query, bandId, all] as const,
 } as const

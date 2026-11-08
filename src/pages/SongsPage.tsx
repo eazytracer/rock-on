@@ -1466,6 +1466,18 @@ export const SongsPage: React.FC = () => {
     setOpenActionMenuId(null)
   }
 
+  // Deep-link: /songs?song=<id> opens that song (search, notifications).
+  useEffect(() => {
+    const id = searchParams.get('song')
+    const song = id ? songs.find(s => s.id === id) : undefined
+    if (!song) return
+    setSelectedSong(song)
+    setIsEditModalOpen(true)
+    const next = new URLSearchParams(searchParams)
+    next.delete('song')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, songs])
+
   // Handle add to setlist
   const handleAddToSetlist = (song: Song) => {
     setSelectedSong(song)
@@ -1574,7 +1586,9 @@ export const SongsPage: React.FC = () => {
           <>
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <h1 className="text-2xl font-bold text-ink-1">Songs</h1>
+                <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
+                  Songs
+                </h1>
                 <ChevronDown size={20} className="text-ink-3" />
                 {/* Active-catalog context chip */}
                 {currentBand ? (

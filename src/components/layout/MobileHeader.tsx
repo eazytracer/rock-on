@@ -1,52 +1,51 @@
 import React from 'react'
-import { Bell } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Bell, Search } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { ContextSwitcher } from './ContextSwitcher'
-// PHASE 2: Connection status indicator
-import { useSyncStatus } from '../../hooks/useSyncStatus'
-import { useUnreadCount } from '../../hooks/useNotifications'
+import { useHasUnread } from '../../hooks/useNotifications'
+import { useGlobalSearch } from '../search/SearchOverlay'
 
-interface MobileHeaderProps {
-  bandName?: string
-  userEmail?: string
-}
+const roundBtn =
+  'relative w-11 h-11 rounded-full bg-bg-3 grid place-items-center text-ink-1'
 
-export const MobileHeader: React.FC<MobileHeaderProps> = () => {
+/**
+ * Mobile app bar (`r-ab`): the context chip, then search (Home only —
+ * DECISIONS) and the bell with a dot for unread.
+ */
+export const MobileHeader: React.FC = () => {
   const navigate = useNavigate()
-  const unreadCount = useUnreadCount()
-  // PHASE 2: Get sync status — surfaced as a subtle dot on the bell (design row 00 / m-1),
-  // not the old email + "Connected" text block that cluttered a 320px bar.
-  const { isOnline } = useSyncStatus()
+  const { pathname } = useLocation()
+  const hasUnread = useHasUnread()
+  const { openSearch } = useGlobalSearch()
 
   return (
-    <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-bg-1 border-b border-bg-3 z-30 flex items-center px-4">
-      <div className="flex items-center gap-3">
-        <ContextSwitcher variant="mobile" />
-      </div>
-
-      {/* Quiet header (design row 00): brand + bell only. Unread count = info badge;
-          connection = a small danger dot on the bell, shown only when offline. */}
-      <div className="ml-auto flex items-center gap-2">
+    <header
+      className="md:hidden fixed top-0 left-0 right-0 z-30 bg-bg-1/95 backdrop-blur-sm flex items-center justify-between gap-2 px-4 h-16"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
+      <ContextSwitcher variant="mobile" />
+      <div className="flex items-center gap-2">
+        {pathname === '/' && (
+          <button
+            onClick={openSearch}
+            className={roundBtn}
+            aria-label="Search"
+            data-testid="mobile-header-search"
+          >
+            <Search size={20} />
+          </button>
+        )}
         <button
           onClick={() => navigate('/notifications')}
-          className="relative w-10 h-10 flex items-center justify-center rounded-lg text-ink-2 hover:text-ink-1 hover:bg-bg-3 transition-colors"
+          className={roundBtn}
           aria-label="Notifications"
           data-testid="mobile-header-notifications"
         >
           <Bell size={20} />
-          {unreadCount > 0 && (
+          {hasUnread && (
             <span
-              className="absolute top-1 right-1 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-info text-[10px] font-bold text-ink-1"
-              data-testid="notifications-unread-badge"
-            >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-          {!isOnline && (
-            <span
-              className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-danger ring-2 ring-bg-1"
-              aria-label="Offline"
-              data-testid="mobile-header-offline-dot"
+              className="absolute right-[9px] top-[9px] w-[9px] h-[9px] rounded-full bg-accent ring-2 ring-bg-3"
+              data-testid="notifications-unread-dot"
             />
           )}
         </button>
