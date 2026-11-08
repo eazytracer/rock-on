@@ -528,6 +528,7 @@ export class RemoteRepository implements IDataRepository {
       tags: row.tags ?? [],
       showId: row.show_id ?? undefined,
       sourceSetlistId: row.source_setlist_id ?? undefined,
+      copiedAt: row.copied_at ? new Date(row.copied_at) : undefined,
       showDate: undefined, // Not in Supabase
       venue: '', // Not in Supabase
       songs: row.items || [], // Map from items JSONB for backwards compatibility
@@ -660,9 +661,12 @@ export class RemoteRepository implements IDataRepository {
 
     if (session.id !== undefined) result.id = session.id
     if (session.bandId !== undefined) result.band_id = session.bandId
+    if (session.name !== undefined) result.name = session.name || null
     if (session.setlistId !== undefined) result.setlist_id = session.setlistId
     if (session.scheduledDate !== undefined)
       result.scheduled_date = session.scheduledDate
+    if (session.startTime !== undefined) result.start_time = session.startTime
+    if (session.endTime !== undefined) result.end_time = session.endTime
     if (session.duration !== undefined) result.duration = session.duration
     if (session.location !== undefined) result.location = session.location
     if (session.type !== undefined) result.type = session.type
@@ -688,7 +692,10 @@ export class RemoteRepository implements IDataRepository {
       scheduledDate: row.scheduled_date
         ? new Date(row.scheduled_date)
         : new Date(),
+      startTime: row.start_time ? new Date(row.start_time) : undefined,
+      endTime: row.end_time ? new Date(row.end_time) : undefined,
       duration: row.duration ?? 0,
+      name: row.name ?? undefined,
       location: row.location ?? '',
       type: row.type ?? 'rehearsal',
       status: 'scheduled', // Default status for IndexedDB (not in Supabase)
@@ -839,6 +846,7 @@ export class RemoteRepository implements IDataRepository {
       payment: row.payment ?? undefined,
       contacts: row.contacts ?? undefined, // Supabase JSONB returns objects automatically
       status: row.status,
+      confirmed: row.confirmed ?? false,
       notes: row.notes ?? undefined,
       createdDate: new Date(row.created_date),
       updatedDate: new Date(row.updated_date),

@@ -15,6 +15,7 @@ import {
   setupConsoleErrorTracking,
   assertNoConsoleErrors,
 } from '../../helpers/assertions'
+import { attachShowCopy } from '../../helpers/calendarSeed'
 
 type Seed = { userId: string; bandId: string; fall: string; empty: string }
 
@@ -73,14 +74,18 @@ async function setup(page: Page): Promise<Seed> {
     ])
     .select('id, name')
   const fall = sets!.find(s => s.name === 'Fall Set')!.id as string
-  await admin.from('shows').insert({
-    name: 'Next Gig',
-    venue: 'The Crocodile',
-    band_id: bandId,
-    setlist_id: fall,
-    scheduled_date: new Date(Date.now() + 5 * 864e5).toISOString(),
-    created_by: userId,
-  })
+  const { data: show } = await admin
+    .from('shows')
+    .insert({
+      name: 'Next Gig',
+      venue: 'The Crocodile',
+      band_id: bandId,
+      scheduled_date: new Date(Date.now() + 5 * 864e5).toISOString(),
+      created_by: userId,
+    })
+    .select('id')
+    .single()
+  await attachShowCopy(show!.id, fall)
   return {
     userId,
     bandId,
@@ -143,7 +148,7 @@ test.describe('Setlists index', () => {
       await assertNoConsoleErrors(page, errors)
     })
 
-    test('⋯ Duplicate makes an unattached copy; Delete names the show', async ({
+    test('⋯ Duplicate makes an unattached copy; Delete keeps the show copy', async ({
       page,
     }) => {
       seed = await setup(page)
@@ -165,7 +170,7 @@ test.describe('Setlists index', () => {
       await page.getByTestId(`setlist-card-menu-${seed.fall}`).click()
       await page.getByTestId('setlist-menu-delete').click()
       await expect(page.getByTestId('confirm-dialog-message')).toContainText(
-        'The Crocodile'
+        'shows keep their own copy'
       )
       await page.getByTestId('confirm-dialog-confirm').click()
       await expect(page.getByTestId(`setlist-card-${seed.fall}`)).toHaveCount(0)

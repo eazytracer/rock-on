@@ -58,7 +58,6 @@ import {
   TOP,
   addSongsToSetlist,
   insertSetlistItem,
-  setlistIndex,
   moveSetlistItem,
   removeSetlistItem,
   renameSetlist,
@@ -67,6 +66,7 @@ import {
   type InsertItem,
   type ItemPatch,
 } from '../services/api/setlists'
+import { errorText } from '../services/api/errors'
 import {
   deleteSetlistMessage,
   editorRows,
@@ -80,7 +80,10 @@ import {
   showStartMinutes,
   sortSetlistIndex,
   startOffsets,
+  type IndexRow,
 } from '../domain/setlist'
+import { showTitle } from '../domain/calendar'
+import { useShowPage } from '../hooks/useCalendar'
 import { originHref, parseOrigin } from '../utils/songOrigin'
 import { songHref } from '../utils/songOrigin'
 import type { SetlistItem } from '../types'
@@ -112,11 +115,6 @@ const below = (el: HTMLElement, alignRight = false, width = 288): At => {
   const r = el.getBoundingClientRect()
   return { x: alignRight ? r.right - width : r.left, y: r.bottom + 8 }
 }
-
-const errorText = (err: unknown) =>
-  err instanceof Error && err.name === 'ApiError'
-    ? err.message
-    : "That didn't save. Try again."
 
 export const SetlistViewPage: React.FC = () => {
   const { setlistId = 'new' } = useParams<{ setlistId: string }>()
@@ -175,7 +173,26 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
     () => sortSetlistIndex(index, 'nextShow', new Date()),
     [index]
   )
-  const me = index.find(r => r.id === setlistId)
+  // A show's own set copy isn't in the index; its show comes from the show.
+  const isCopy = !!setlist?.showId
+  const { show: copyOf } = useShowPage(setlist?.showId ?? null)
+  const me: IndexRow | undefined =
+    index.find(r => r.id === setlistId) ??
+    (copyOf
+      ? {
+          id: setlistId,
+          name: setlist?.name ?? '',
+          lastModified: '',
+          showId: copyOf.id,
+          showName: showTitle(copyOf.name, copyOf.venue),
+          showVenue: copyOf.venue ?? null,
+          showAt: new Date(copyOf.scheduledDate).toISOString(),
+          showMinutes: copyOf.duration ?? null,
+          showSetTime: null,
+          songs: [],
+          breakMinutes: 0,
+        }
+      : undefined)
   const newSetlist = useNewSetlist()
   const duplicate = useDuplicateSetlist()
   const { deleteSetlist } = useDeleteSetlist()
@@ -452,15 +469,9 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
 
   const handleDelete = async () => {
     setHeaderMenu(false)
-    // The confirm names the show; look it up if the index hasn't loaded yet.
-    const row =
-      me ??
-      (await setlistIndex(ctxType, ctxId)
-        .then(rows => rows.find(r => r.id === setlistId))
-        .catch(() => undefined))
     const ok = await confirm({
       title: `Delete "${setlist.name}"?`,
-      message: deleteSetlistMessage(row ? showLine(row) : null),
+      message: deleteSetlistMessage(isCopy ? show : null),
       confirmLabel: 'Delete',
       variant: 'danger',
     })
@@ -687,7 +698,7 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
       <div className="flex items-center gap-4 mt-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {nameDisplay}
-          {!renaming && switcherButton}
+          {!renaming && !isCopy && switcherButton}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {railButton}
@@ -762,7 +773,7 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
       </p>
       <div className="flex items-center gap-3 mt-1">
         {nameDisplay}
-        {!renaming && switcherButton}
+        {!renaming && !isCopy && switcherButton}
       </div>
       <div className="mt-2">{totalsLine}</div>
     </header>

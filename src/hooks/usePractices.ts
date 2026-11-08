@@ -1,10 +1,9 @@
 import { useState, useCallback, useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { PracticeSessionService } from '../services/PracticeSessionService'
 import { repository } from '../services/data/RepositoryFactory'
 import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
-import type { PracticeSession } from '../models/PracticeSession'
 import { getPracticeEffectiveEnd } from '../utils/dateHelpers'
 import { createLogger } from '../utils/logger'
 
@@ -73,143 +72,6 @@ export function useUpcomingPractices(bandId: string) {
   }, [practices])
 
   return { upcomingPractices, pastPractices, loading, error, refetch }
-}
-
-/**
- * Hook to create a new practice.
- */
-export function useCreatePractice() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: async (practiceData: Partial<PracticeSession>) => {
-      const newPractice = await PracticeSessionService.createSession({
-        bandId: practiceData.bandId || '',
-        type: 'rehearsal',
-        scheduledDate: (practiceData.scheduledDate || new Date()).toISOString(),
-        duration: practiceData.duration || 120,
-        location: practiceData.location,
-        songs: practiceData.songs?.map(s =>
-          typeof s === 'string' ? s : s.songId
-        ),
-        invitees: practiceData.attendees?.map(a =>
-          typeof a === 'string' ? a : a.memberId
-        ),
-        objectives: practiceData.objectives || [],
-        notes: practiceData.notes,
-      })
-      return newPractice.id
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['practices'] })
-    },
-  })
-
-  return {
-    createPractice: (practiceData: Partial<PracticeSession>) =>
-      mutation.mutateAsync(practiceData),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
-  }
-}
-
-/**
- * Hook to duplicate an existing practice as a starting point for a new one.
- */
-export function useDuplicatePractice() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: async ({
-      practiceId,
-      overrides,
-    }: {
-      practiceId: string
-      overrides?: Parameters<typeof PracticeSessionService.duplicateSession>[1]
-    }) => {
-      const newPractice = await PracticeSessionService.duplicateSession(
-        practiceId,
-        overrides
-      )
-      return newPractice.id
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['practices'] })
-    },
-  })
-
-  return {
-    duplicatePractice: (
-      practiceId: string,
-      overrides?: Parameters<typeof PracticeSessionService.duplicateSession>[1]
-    ) => mutation.mutateAsync({ practiceId, overrides }),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
-  }
-}
-
-/**
- * Hook to update a practice.
- */
-export function useUpdatePractice() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: async ({
-      practiceId,
-      updates,
-    }: {
-      practiceId: string
-      updates: Partial<PracticeSession>
-    }) => {
-      await PracticeSessionService.updateSession(practiceId, {
-        scheduledDate: updates.scheduledDate
-          ? new Date(updates.scheduledDate).toISOString()
-          : undefined,
-        duration: updates.duration,
-        location: updates.location,
-        objectives: updates.objectives,
-        notes: updates.notes,
-        wrapupNotes: updates.wrapupNotes,
-        status: updates.status,
-        songs: updates.songs,
-      })
-      return true
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['practices'] })
-    },
-  })
-
-  return {
-    updatePractice: (practiceId: string, updates: Partial<PracticeSession>) =>
-      mutation.mutateAsync({ practiceId, updates }),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
-  }
-}
-
-/**
- * Hook to delete a practice.
- */
-export function useDeletePractice() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: async (practiceId: string) => {
-      await PracticeSessionService.deleteSession(practiceId)
-      return true
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['practices'] })
-    },
-  })
-
-  return {
-    deletePractice: (practiceId: string) => mutation.mutateAsync(practiceId),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
-  }
 }
 
 /**

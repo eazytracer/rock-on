@@ -140,10 +140,9 @@ export const SetlistsPage: React.FC = () => {
   }
 
   const handleDelete = async (row: IndexRow) => {
-    const show = showLine(row)
     const ok = await confirm({
       title: `Delete "${row.name}"?`,
-      message: deleteSetlistMessage(show),
+      message: deleteSetlistMessage(null),
       confirmLabel: 'Delete',
       variant: 'danger',
     })

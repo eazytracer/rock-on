@@ -44,14 +44,19 @@ INSERT INTO public.setlists (id, name, band_id, context_type, context_id, create
    'c8000000-0000-4000-8000-000000000001', 'band', 'c8000000-0000-4000-8000-000000000001',
    current_setting('test.a')::uuid, '[]');
 
--- A past show and an upcoming one use Fall Set; the upcoming one wins.
-INSERT INTO public.shows (name, venue, band_id, setlist_id, scheduled_date, created_by, duration) VALUES
-  ('Old Gig', 'Somewhere', 'c8000000-0000-4000-8000-000000000001',
-   'c8000000-0000-4000-8000-0000000000b1', NOW() - interval '30 days', current_setting('test.a')::uuid, 60),
-  ('Next Gig', 'The Crocodile', 'c8000000-0000-4000-8000-000000000001',
-   'c8000000-0000-4000-8000-0000000000b1', NOW() + interval '5 days', current_setting('test.a')::uuid, 45);
+-- A past show and an upcoming one hold copies of Fall Set; the upcoming one wins.
+INSERT INTO public.shows (id, name, venue, band_id, scheduled_date, created_by, duration) VALUES
+  ('c8000000-0000-4000-8000-0000000000c1', 'Old Gig', 'Somewhere', 'c8000000-0000-4000-8000-000000000001',
+   NOW() - interval '30 days', current_setting('test.a')::uuid, 60),
+  ('c8000000-0000-4000-8000-0000000000c2', 'Next Gig', 'The Crocodile', 'c8000000-0000-4000-8000-000000000001',
+   NOW() + interval '5 days', current_setting('test.a')::uuid, 45);
 
 select tests.authenticate_as('sl-a@test.com');
+
+DO $$ BEGIN
+  PERFORM public.attach_set_to_show('c8000000-0000-4000-8000-0000000000c1', 'c8000000-0000-4000-8000-0000000000b1');
+  PERFORM public.attach_set_to_show('c8000000-0000-4000-8000-0000000000c2', 'c8000000-0000-4000-8000-0000000000b1');
+END $$;
 
 -- ── setlist_index ───────────────────────────────────────────────────────────
 select is((SELECT count(*)::int FROM public.setlist_index('band', 'c8000000-0000-4000-8000-000000000001')),

@@ -147,44 +147,6 @@ export class SetlistService {
     return await repository.addSetlist(newSetlist)
   }
 
-  /**
-   * Fork (copy) an existing setlist for use with a show
-   * Creates a new setlist with all items copied, maintaining a reference to the original
-   * @param sourceSetlistId - ID of the setlist to fork
-   * @param showName - Name of the show (used to name the forked setlist)
-   * @returns The newly created forked setlist
-   */
-  static async forkSetlist(
-    sourceSetlistId: string,
-    showName: string
-  ): Promise<Setlist> {
-    const sourceSetlist = await this.getSetlistById(sourceSetlistId)
-    if (!sourceSetlist) {
-      throw new Error('Source setlist not found')
-    }
-
-    const forkedSetlist: Setlist = {
-      id: crypto.randomUUID(),
-      name: `${sourceSetlist.name} (${showName})`,
-      bandId: sourceSetlist.bandId,
-      sourceSetlistId: sourceSetlistId, // Reference to original
-      showId: undefined, // Will be set when show is created
-      showDate: undefined,
-      venue: undefined,
-      songs: [...(sourceSetlist.songs || [])], // Copy songs array
-      items: JSON.parse(JSON.stringify(sourceSetlist.items)), // Deep copy items
-      totalDuration: sourceSetlist.totalDuration,
-      notes: sourceSetlist.notes
-        ? `Forked from "${sourceSetlist.name}"\n\n${sourceSetlist.notes}`
-        : `Forked from "${sourceSetlist.name}"`,
-      status: 'draft', // New fork starts as draft
-      createdDate: new Date(),
-      lastModified: new Date(),
-    }
-
-    return await repository.addSetlist(forkedSetlist)
-  }
-
   static async getSetlistById(setlistId: string): Promise<Setlist | null> {
     return await repository.getSetlist(setlistId)
   }

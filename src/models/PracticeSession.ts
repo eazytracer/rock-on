@@ -14,6 +14,8 @@ import {
 export interface PracticeSession {
   id: string
   bandId: string
+  /** Optional; the app falls back to the date ("Thursday practice"). */
+  name?: string
   setlistId?: string // Associated setlist ID for practices
   scheduledDate: Date
   startTime?: Date

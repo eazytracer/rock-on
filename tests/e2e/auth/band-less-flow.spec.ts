@@ -187,9 +187,9 @@ test.describe('Band-less user flow (Phase 2)', () => {
     await createBandViaUI(page, `Upgrade Band ${Date.now()}`)
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
-    // The band-only Shows page now renders the real feature (no prompt).
+    // Shows (now the calendar's Shows filter) renders the real feature.
     await page.goto('/shows')
-    await expect(page.locator('[data-testid="shows-page"]')).toBeVisible({
+    await expect(page.locator('[data-testid="calendar-page"]')).toBeVisible({
       timeout: 5000,
     })
     await expect(

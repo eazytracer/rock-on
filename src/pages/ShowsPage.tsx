@@ -180,7 +180,7 @@ export const ShowsPage: React.FC = () => {
       case 'scheduled':
         return shows.filter(show => show.status === 'scheduled')
       case 'confirmed':
-        return shows.filter(show => show.status === 'confirmed')
+        return shows.filter(show => show.confirmed)
       case 'completed':
         return shows.filter(show => show.status === 'completed')
       case 'cancelled':

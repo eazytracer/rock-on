@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-08
+
+Redesign phase 4 · Calendar, shows, practices.
+
+### Added
+
+- **One Calendar** for shows, practices and jams, with filters (All · Shows ·
+  Practices · Jams), Upcoming then Past, and one New button (on All it asks
+  which). Each row has a ⋯ menu: Open, Duplicate, Delete. On desktop the
+  selected show or practice opens in a pane beside the list.
+- **New show is the show page, blank.** It saves as you go; the first field
+  you fill creates the show (next Saturday, 8 PM, 45 minutes until you change
+  them).
+- **Show page edits in place**: name, venue, address (with Directions), date,
+  start, load-in, soundcheck, set length, pay, contacts (call / email) and
+  notes. **Confirmed** is a toggle; **Mark cancelled** strikes the show through
+  with an Undo; ⋯ adds Duplicate (a week later) and Delete.
+- **The show's set is its own copy.** Copy a set from any setlist (or start a
+  new one): the show shows where it came from, its songs and runtime against
+  the set length, and Open set. Editing it never changes the original.
+  **Re-copy** refreshes it from the original, asking first if you changed it.
+- **Practice page**: when and where, focus, the songs with their links
+  (Spotify, YouTube, tabs, lyrics) and a note per song for this practice, the
+  wrap-up once played, and Start session. Practices can have a name.
+- **Practice editor** for New, Edit and Duplicate (a week later, "Copied
+  from"): name, date, start, end (each choice shows the length), location,
+  focus, and songs added from the song browser, which can show just the songs
+  in a setlist.
+- **Practice session, built for the stage**: big Prev / Next buttons that name
+  the song they go to (the last one ends the practice), the song's tuning,
+  key, BPM and length, Notes (band notes and yours) as a side panel on desktop
+  or a sheet on phones with A / A text size, and an Up next card that turns
+  amber before a retune. The screen stays awake. Keys and page-turn pedals:
+  ← → / PgUp PgDn, N for notes.
+- **Wrap-up**: time played, which songs you reached (the rest marked
+  skipped) and notes shared with the band, saved to the practice.
+
+### Changed
+
+- **/shows and /practices open the Calendar** on their filter.
+- Show status is Scheduled / Completed / Cancelled; Confirmed is separate.
+- Deleting a setlist says shows keep their own copy of the set. Deleting a
+  show's copy from the editor names the show that loses it.
+- A show's set opened from the show goes back to the show and has no setlist
+  switcher.
+- Practice sessions start and end are recorded.
+
+### Removed
+
+- The old Shows list and practice builder (and their modals).
+
+### Database
+
+- `shows.confirmed` (backfilled from the old 'confirmed' status),
+  `setlists.copied_at`, `practice_sessions.name`.
+- Existing show sets became show copies; `setlist_index` finds a set's show
+  through its copies and leaves the copies out.
+- RPCs `calendar_agenda`, `create_show`, `update_show`, `set_show_confirmed`,
+  `set_show_cancelled`, `delete_show`, `attach_set_to_show`,
+  `recopy_show_set`, `create_show_set`, `duplicate_show`.
+- `release_notes` 0.11.0.
+
 ## [0.10.0] - 2026-11-08
 
 Redesign phase 3 · Setlists.

@@ -20,6 +20,8 @@ export interface Setlist {
   showDate?: Date
   showId?: string // Version 5: Reference to show (practiceSessions with type='gig')
   sourceSetlistId?: string // Version 6: Reference to original setlist this was forked from
+  /** A show's own set: when it was copied from sourceSetlistId (0.11.0). */
+  copiedAt?: Date
   /** @deprecated Venue is now on show (practiceSessions.venue) */
   venue?: string
   /** @deprecated Use items instead */

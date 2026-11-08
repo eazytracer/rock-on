@@ -339,8 +339,8 @@ test.describe('Persistent Layout', () => {
         { route: '/songs', testId: 'songs-page' },
         { route: '/setlists', testId: 'setlists-page' },
         { route: '/calendar', testId: 'calendar-page' },
-        { route: '/shows', testId: 'shows-page' },
-        // /practices redirects to the calendar agenda (practices filter)
+        // /shows and /practices redirect to the calendar agenda's filters
+        { route: '/shows', testId: 'calendar-page' },
         { route: '/practices', testId: 'calendar-page' },
         { route: '/more', testId: 'more-page' },
         { route: '/notifications', testId: 'notifications-page' },

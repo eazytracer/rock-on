@@ -26,3 +26,7 @@ export function toApiError(error: PostgrestLikeError): ApiError {
   }
   return new ApiError('unknown', error.message)
 }
+
+/** What a toast says when an operation fails: the server's copy, or a retry line. */
+export const errorText = (err: unknown) =>
+  err instanceof ApiError ? err.message : "That didn't save. Try again."

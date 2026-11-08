@@ -143,10 +143,10 @@ export function showLine(row: IndexRow): string | null {
 }
 
 /** The delete confirm's body: what stays, and the show that loses its set. */
-export function deleteSetlistMessage(show: string | null): string {
-  return show
-    ? `Songs stay in your catalog. ${show} will have no set. This can't be undone.`
-    : "Songs stay in your catalog. This can't be undone."
+export function deleteSetlistMessage(copyFor: string | null): string {
+  return copyFor
+    ? `Songs stay in your catalog. ${copyFor} will have no set. This can't be undone.`
+    : 'The setlist goes. Songs stay in the catalog, and shows keep their own copy of the set.'
 }
 
 // ── The editor ────────────────────────────────────────────────────────────

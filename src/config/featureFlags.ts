@@ -65,4 +65,15 @@ export const FEATURE_FLAGS = {
     'SYNC_USE_AUDIT_LOG',
     true // Enabled by default - this is the bugfix
   ),
+
+  /**
+   * Redesign phase 4: the Shows list page is retired into the Calendar
+   * (`/shows` → `/calendar?type=show`). Turn off to bring the old list back.
+   * Override: localStorage.setItem('REDESIGN_CALENDAR', 'false')
+   */
+  REDESIGN_CALENDAR: isEnabled(
+    'VITE_REDESIGN_CALENDAR',
+    'REDESIGN_CALENDAR',
+    true
+  ),
 } as const

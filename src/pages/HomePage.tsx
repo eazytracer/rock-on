@@ -492,7 +492,7 @@ const ShowCard: React.FC<{
     <div className="flex items-center justify-between gap-2">
       <p className={label}>
         Next show
-        {show.status === 'confirmed' && (
+        {show.confirmed && (
           <span className="ml-2 text-success">● Confirmed</span>
         )}
       </p>

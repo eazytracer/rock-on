@@ -565,14 +565,14 @@ BEGIN
     status, notes, created_by, created_date,
     version
   ) VALUES
-    -- Upcoming shows (90+ days in future from Jan 2026)
+    -- Upcoming shows (relative to the day the seed runs)
     (
       v_show_spring_bash,
       v_band_id,
       'Spring Break Bash',
       'The Crocodile',
-      '2026-04-18 21:00:00',
-      90,
+      (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '6 days 20 hours 30 minutes') AT TIME ZONE 'America/Los_Angeles',
+      45,
       'scheduled',
       E'## Event Details\n- **Doors:** 8 PM\n- **Set Time:** 9 PM\n- **Load In:** 6 PM\n\n## Notes\nCollege crowd expected. High energy set. Drink specials running all night.\n\n## Gear Checklist\n- [ ] Extra strings\n- [ ] Backup guitar\n- [ ] Merch table setup',
       v_eric_id,
@@ -584,7 +584,7 @@ BEGIN
       v_band_id,
       'Memorial Day Festival',
       'Marymoor Park Amphitheater',
-      '2026-05-25 16:00:00',
+      (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '20 days 16 hours') AT TIME ZONE 'America/Los_Angeles',
       60,
       'scheduled',
       E'## Event Details\n- **Set Time:** 4 PM (Main Stage)\n- **Load In:** 2 PM\n- **Soundcheck:** 3 PM\n\n## Notes\nOutdoor festival - weather dependent. Bring backup equipment and sun protection.\n\n## Stage Plot\nSubmitted to festival coordinator on 5/1.',
@@ -597,7 +597,7 @@ BEGIN
       v_band_id,
       'Summer Solstice Party',
       'The Showbox',
-      '2026-06-20 20:00:00',
+      (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '34 days 20 hours') AT TIME ZONE 'America/Los_Angeles',
       120,
       'scheduled',
       E'## Event Details\n- **Doors:** 7 PM\n- **VIP Meet & Greet:** 7 PM\n- **Set 1:** 8 PM\n- **Set 2:** 9:30 PM\n- **Load In:** 4 PM\n\n## Notes\nTwo full sets - plan for costume change during break. This is our biggest headlining show of the year!',
@@ -610,7 +610,7 @@ BEGIN
       v_band_id,
       '4th of July Celebration',
       'Gas Works Park',
-      '2026-07-04 19:00:00',
+      (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '48 days 19 hours') AT TIME ZONE 'America/Los_Angeles',
       75,
       'scheduled',
       E'## Event Details\n- **Set Time:** 7 PM\n- **Fireworks:** 10 PM\n\n## Notes\nCity event - expect HUGE crowd (10,000+). Patriotic songs welcome. Finish before fireworks!\n\n## Setlist Notes\nParty Mix set with maybe 1-2 patriotic covers.',
@@ -647,6 +647,23 @@ BEGIN
     )
   ON CONFLICT (id) DO NOTHING;
 
+  -- Each show keeps its own copy of the set it was planned with (0.11.0); the
+  -- original stays in Setlists. Spring Break Bash is confirmed.
+  INSERT INTO public.setlists (
+    name, band_id, context_type, context_id, created_by, notes, tags, items,
+    status, show_id, source_setlist_id, copied_at
+  )
+  SELECT sl.name, sl.band_id, sl.context_type, sl.context_id, sl.created_by,
+         sl.notes, sl.tags, sl.items, sl.status, sl.show_id, sl.id, NOW()
+    FROM public.setlists sl
+   WHERE sl.show_id IS NOT NULL AND sl.copied_at IS NULL;
+  UPDATE public.shows sh SET setlist_id = c.id
+    FROM public.setlists c
+   WHERE c.show_id = sh.id AND c.copied_at IS NOT NULL;
+  UPDATE public.setlists SET show_id = NULL
+   WHERE show_id IS NOT NULL AND copied_at IS NULL;
+  UPDATE public.shows SET confirmed = true WHERE id = v_show_spring_bash;
+
   -- ========================================
   -- 10. PRACTICE SESSIONS (with future dates 90+ days out)
   -- ========================================
@@ -656,12 +673,12 @@ BEGIN
     id, band_id, type, scheduled_date, duration,
     location, notes, created_date, version
   ) VALUES
-    -- Upcoming practices (90+ days in future from Jan 2026)
+    -- Upcoming practices (relative to the day the seed runs)
     (
       gen_random_uuid(),
       v_band_id,
       'rehearsal',
-      '2026-04-04 14:00:00',
+      (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '2 days 19 hours') AT TIME ZONE 'America/Los_Angeles',
       120,
       'Eric''s Garage',
       'Spring Break Prep - Week 1: Focus on party set. Run through high-energy songs. Work on transitions.',
@@ -672,7 +689,7 @@ BEGIN
       gen_random_uuid(),
       v_band_id,
       'rehearsal',
-      '2026-04-11 14:00:00',
+      (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '9 days 19 hours') AT TIME ZONE 'America/Los_Angeles',
       120,
       'Eric''s Garage',
       'Spring Break Prep - Week 2: Full dress rehearsal. Time the set. Practice stage banter.',
@@ -683,7 +700,7 @@ BEGIN
       gen_random_uuid(),
       v_band_id,
       'rehearsal',
-      '2026-05-16 13:00:00',
+      (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '16 days 13 hours') AT TIME ZONE 'America/Los_Angeles',
       180,
       'Rehearsal Space @ MoPop',
       'Festival Prep Session: Rented pro space for festival prep. Work on shortened set. No breaks allowed.',
@@ -694,7 +711,7 @@ BEGIN
       gen_random_uuid(),
       v_band_id,
       'rehearsal',
-      '2026-06-13 12:00:00',
+      (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '30 days 12 hours') AT TIME ZONE 'America/Los_Angeles',
       180,
       'Eric''s Garage',
       'Summer Solstice Full Run: Complete run-through of both sets. Record video for review.',
@@ -705,7 +722,7 @@ BEGIN
       gen_random_uuid(),
       v_band_id,
       'rehearsal',
-      '2026-06-27 15:00:00',
+      (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '44 days 15 hours') AT TIME ZONE 'America/Los_Angeles',
       120,
       'Eric''s Garage',
       '4th of July Special Practice: Add patriotic songs to set. Practice "Born in the USA" and "American Girl".',

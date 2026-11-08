@@ -98,13 +98,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
 
-  // Format display value (e.g., "Friday, January 2")
+  // Format display value, kit style (e.g., "Fri, Jan 2, 2026")
   const formatDisplayDate = useCallback(
     (date: Date): string =>
       date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
+        weekday: 'short',
+        month: 'short',
         day: 'numeric',
+        year: 'numeric',
       }),
     []
   )
@@ -287,7 +288,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             : 'hover:border-border-2 cursor-pointer'
         } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
       >
-        <span className={selectedDate ? 'text-ink-1' : 'text-ink-4'}>
+        <span
+          className={`truncate ${selectedDate ? 'text-ink-1' : 'text-ink-4'}`}
+        >
           {displayValue}
         </span>
         <div className="flex items-center gap-2">

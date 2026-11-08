@@ -1141,6 +1141,7 @@ export type Database = {
           id: string
           last_modified_by: string | null
           location: string | null
+          name: string | null
           notes: string | null
           objectives: string[] | null
           scheduled_date: string
@@ -1162,6 +1163,7 @@ export type Database = {
           id?: string
           last_modified_by?: string | null
           location?: string | null
+          name?: string | null
           notes?: string | null
           objectives?: string[] | null
           scheduled_date: string
@@ -1183,6 +1185,7 @@ export type Database = {
           id?: string
           last_modified_by?: string | null
           location?: string | null
+          name?: string | null
           notes?: string | null
           objectives?: string[] | null
           scheduled_date?: string
@@ -1244,6 +1247,7 @@ export type Database = {
           band_id: string | null
           context_id: string | null
           context_type: string
+          copied_at: string | null
           created_by: string
           created_date: string
           fork_count: number | null
@@ -1265,6 +1269,7 @@ export type Database = {
           band_id?: string | null
           context_id?: string | null
           context_type?: string
+          copied_at?: string | null
           created_by: string
           created_date?: string
           fork_count?: number | null
@@ -1286,6 +1291,7 @@ export type Database = {
           band_id?: string | null
           context_id?: string | null
           context_type?: string
+          copied_at?: string | null
           created_by?: string
           created_date?: string
           fork_count?: number | null
@@ -1351,6 +1357,7 @@ export type Database = {
       shows: {
         Row: {
           band_id: string
+          confirmed: boolean
           contacts: Json | null
           created_by: string
           created_date: string
@@ -1375,6 +1382,7 @@ export type Database = {
         }
         Insert: {
           band_id: string
+          confirmed?: boolean
           contacts?: Json | null
           created_by: string
           created_date?: string
@@ -1399,6 +1407,7 @@ export type Database = {
         }
         Update: {
           band_id?: string
+          confirmed?: boolean
           contacts?: Json | null
           created_by?: string
           created_date?: string
@@ -2205,6 +2214,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _setlist_anchor: {
+        Args: { p_after_item: string; p_items: Json }
+        Returns: number
+      }
       _setlist_item_index: {
         Args: { p_item_id: string; p_items: Json }
         Returns: number
@@ -2215,6 +2228,7 @@ export type Database = {
           band_id: string | null
           context_id: string | null
           context_type: string
+          copied_at: string | null
           created_by: string
           created_date: string
           fork_count: number | null
@@ -2243,6 +2257,44 @@ export type Database = {
         Args: { p_items: Json; p_setlist_id: string }
         Returns: Json
       }
+      _show_apply: {
+        Args: { p_patch: Json; p_show_id: string }
+        Returns: undefined
+      }
+      _show_lock: {
+        Args: { p_show_id: string }
+        Returns: {
+          band_id: string
+          confirmed: boolean
+          contacts: Json | null
+          created_by: string
+          created_date: string
+          duration: number | null
+          end_time: string | null
+          gig_type: string | null
+          id: string
+          last_modified_by: string | null
+          load_in_time: string | null
+          location: string | null
+          name: string
+          notes: string | null
+          payment: number | null
+          scheduled_date: string
+          set_time: string | null
+          setlist_id: string | null
+          soundcheck_time: string | null
+          status: string
+          updated_date: string
+          venue: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'shows'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_songs_to_setlist: {
         Args: {
           p_after_item?: string
@@ -2260,6 +2312,10 @@ export type Database = {
         Args: { p_caller: string; p_song_owner: string }
         Returns: boolean
       }
+      attach_set_to_show: {
+        Args: { p_setlist_id: string; p_show_id: string }
+        Returns: string
+      }
       band_songs_not_in_my_catalog: {
         Args: never
         Returns: {
@@ -2273,6 +2329,23 @@ export type Database = {
         }[]
       }
       builtin_tuning_slug: { Args: { p_label: string }; Returns: string }
+      calendar_agenda: {
+        Args: { p_band_id: string }
+        Returns: {
+          at: string
+          cancelled: boolean
+          confirmed: boolean
+          ended_at: string
+          id: string
+          minutes: number
+          name: string
+          songs_done: number
+          songs_total: number
+          started_at: string
+          type: string
+          venue: string
+        }[]
+      }
       can_access_song: {
         Args: { p_song_id: string; p_user: string }
         Returns: boolean
@@ -2329,8 +2402,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      create_show: {
+        Args: { p_band_id: string; p_patch: Json }
+        Returns: string
+      }
+      create_show_set: { Args: { p_show_id: string }; Returns: string }
+      delete_show: { Args: { p_show_id: string }; Returns: undefined }
       delete_song: { Args: { p_song_id: string }; Returns: undefined }
       duplicate_setlist: { Args: { p_setlist_id: string }; Returns: string }
+      duplicate_show: { Args: { p_show_id: string }; Returns: string }
       duplicate_song: {
         Args: { p_song_id: string }
         Returns: {
@@ -2539,6 +2619,7 @@ export type Database = {
         Returns: undefined
       }
       normalize_text: { Args: { input: string }; Returns: string }
+      recopy_show_set: { Args: { p_show_id: string }; Returns: string }
       related_names: {
         Args: { p_ids: string[] }
         Returns: {
@@ -2651,6 +2732,14 @@ export type Database = {
         Args: { p_notes: string; p_setlist_id: string }
         Returns: undefined
       }
+      set_show_cancelled: {
+        Args: { p_cancelled: boolean; p_show_id: string }
+        Returns: undefined
+      }
+      set_show_confirmed: {
+        Args: { p_confirmed: boolean; p_show_id: string }
+        Returns: undefined
+      }
       setlist_index: {
         Args: { p_context_id: string; p_context_type: string }
         Returns: {
@@ -2688,6 +2777,10 @@ export type Database = {
       }
       update_setlist_item: {
         Args: { p_item_id: string; p_patch: Json; p_setlist_id: string }
+        Returns: undefined
+      }
+      update_show: {
+        Args: { p_patch: Json; p_show_id: string }
         Returns: undefined
       }
       update_user_activity: { Args: never; Returns: undefined }

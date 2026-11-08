@@ -17,6 +17,7 @@ import {
   setupConsoleErrorTracking,
   assertNoConsoleErrors,
 } from '../../helpers/assertions'
+import { attachShowCopy } from '../../helpers/calendarSeed'
 
 type Seed = {
   userId: string
@@ -103,15 +104,19 @@ async function setup(page: Page): Promise<Seed> {
     ])
     .select('id, name')
   const fall = sets!.find(s => s.name === 'Fall Set')!.id as string
-  await admin.from('shows').insert({
-    name: 'Next Gig',
-    venue: 'The Crocodile',
-    band_id: bandId,
-    setlist_id: fall,
-    duration: 6,
-    scheduled_date: new Date(Date.now() + 5 * 864e5).toISOString(),
-    created_by: userId,
-  })
+  const { data: show } = await admin
+    .from('shows')
+    .insert({
+      name: 'Next Gig',
+      venue: 'The Crocodile',
+      band_id: bandId,
+      duration: 6,
+      scheduled_date: new Date(Date.now() + 5 * 864e5).toISOString(),
+      created_by: userId,
+    })
+    .select('id')
+    .single()
+  await attachShowCopy(show!.id, fall)
   return {
     userId,
     bandId,
@@ -353,7 +358,7 @@ test.describe('Setlist editor', () => {
       await expect.poll(() => titles(page)).toEqual(['Black', 'Everlong'])
     })
 
-    test('header ⋯: Rename, Duplicate (no show), Delete names the show', async ({
+    test('header ⋯: Rename, Duplicate (no show), Delete keeps the show copy', async ({
       page,
     }) => {
       seed = await setup(page)
@@ -381,7 +386,7 @@ test.describe('Setlist editor', () => {
       await page.getByTestId('setlist-header-menu').click()
       await page.getByTestId('setlist-menu-delete').click()
       await expect(page.getByTestId('confirm-dialog-message')).toContainText(
-        'The Crocodile'
+        'shows keep their own copy'
       )
       await page.getByTestId('confirm-dialog-confirm').click()
       await expect(page).toHaveURL(/\/setlists$/)

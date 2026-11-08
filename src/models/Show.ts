@@ -19,6 +19,8 @@ export interface Show {
   payment?: number // Payment in cents
   contacts?: ShowContact[]
   status: ShowStatus
+  /** The venue has said yes. Independent of status (0.11.0). */
+  confirmed?: boolean
   notes?: string
   createdDate: Date
   updatedDate: Date
@@ -37,7 +39,7 @@ export interface ShowContact {
   notes?: string
 }
 
-export type ShowStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
+export type ShowStatus = 'scheduled' | 'completed' | 'cancelled'
 
 /**
  * Default values for new shows

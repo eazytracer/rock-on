@@ -137,12 +137,14 @@ describe('showLine', () => {
 })
 
 describe('deleteSetlistMessage', () => {
-  it('names the show that loses its set', () => {
+  it("names the show when deleting a show's own copy", () => {
     expect(deleteSetlistMessage('The Crocodile · Sat, Nov 7')).toContain(
       'The Crocodile · Sat, Nov 7 will have no set'
     )
+  })
+  it('says shows keep their copy when deleting a setlist', () => {
     expect(deleteSetlistMessage(null)).toBe(
-      "Songs stay in your catalog. This can't be undone."
+      'The setlist goes. Songs stay in the catalog, and shows keep their own copy of the set.'
     )
   })
 })

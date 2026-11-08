@@ -43,6 +43,8 @@ export interface SongBrowserProps {
   /** Desktop ×: takes a song back out of the set (no confirm). */
   onRemove: (songId: string) => Promise<boolean>
   onClose: () => void
+  /** List "From my songs" in a band (default). Practices take band songs only. */
+  withMine?: boolean
 }
 
 export const SongBrowser: React.FC<SongBrowserProps> = ({
@@ -57,6 +59,7 @@ export const SongBrowser: React.FC<SongBrowserProps> = ({
   onAdd,
   onRemove,
   onClose,
+  withMine = true,
 }) => {
   const isBand = contextType === 'band'
   const { songs: bandSongs } = useSongs(isBand ? contextId : '')
@@ -77,12 +80,12 @@ export const SongBrowser: React.FC<SongBrowserProps> = ({
   const catalog = isBand ? bandSongs : mySongs
   // Your songs already copied into this band are shown once, as the band's.
   const fromMine = useMemo(() => {
-    if (!isBand) return []
+    if (!isBand || !withMine) return []
     const band = new Set(bandSongs.map(s => s.id))
     return mySongs.filter(
       s => !s.linkedFromSongId || !band.has(s.linkedFromSongId)
     )
-  }, [isBand, bandSongs, mySongs])
+  }, [isBand, withMine, bandSongs, mySongs])
   // A personal song counts as "in the set" when its band copy is.
   const isIn = (s: Song) =>
     inSet.has(s.id!) || (!!s.linkedFromSongId && inSet.has(s.linkedFromSongId))

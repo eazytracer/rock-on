@@ -13,6 +13,7 @@ import { queryClient } from './services/queryClient'
 import { ProtectedLayoutRoute } from './components/layout/ProtectedLayoutRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { AuthCallback } from './pages/auth/AuthCallback'
+import { FEATURE_FLAGS } from './config/featureFlags'
 
 // Lazy load pages for better performance
 const AuthPages = lazy(() =>
@@ -63,6 +64,11 @@ const PracticeSessionPage = lazy(() =>
 const SetlistViewPage = lazy(() =>
   import('./pages/SetlistViewPage').then(module => ({
     default: module.SetlistViewPage,
+  }))
+)
+const PracticeEditorPage = lazy(() =>
+  import('./pages/PracticeEditorPage').then(module => ({
+    default: module.PracticeEditorPage,
   }))
 )
 const ShowViewPage = lazy(() =>
@@ -223,27 +229,31 @@ const AppContent: React.FC = () => {
             <Route path="/setlists" element={<SetlistsPage />} />
             <Route path="/setlists/new" element={<SetlistViewPage />} />
             <Route path="/setlists/:setlistId" element={<SetlistViewPage />} />
-            <Route path="/shows" element={<ShowsPage />} />
+            <Route
+              path="/shows"
+              element={
+                FEATURE_FLAGS.REDESIGN_CALENDAR ? (
+                  <Navigate to="/calendar?type=show" replace />
+                ) : (
+                  <ShowsPage />
+                )
+              }
+            />
             <Route path="/shows/new" element={<ShowViewPage />} />
             <Route path="/shows/:showId" element={<ShowViewPage />} />
-            {/* The standalone practices list was consolidated into the Calendar
-                agenda (calendar consolidation). Redirect the retired /practices
-                route to the canonical filtered calendar for old bookmarks. The
-                /practices/new and /practices/:id detail routes remain live. */}
+            {/* Practices live on the Calendar; detail, editor and session stay. */}
             <Route
               path="/practices"
-              element={<Navigate to="/calendar?filter=practices" replace />}
+              element={<Navigate to="/calendar?type=practice" replace />}
             />
-            <Route path="/practices/new" element={<PracticeViewPage />} />
+            <Route path="/practices/new" element={<PracticeEditorPage />} />
             <Route
               path="/practices/:practiceId"
               element={<PracticeViewPage />}
             />
-            {/* Retired PracticeBuilderPage (D2): /edit now redirects to the
-                canonical inline-edit view for any stale links/bookmarks. */}
             <Route
               path="/practices/:practiceId/edit"
-              element={<Navigate to=".." relative="path" replace />}
+              element={<PracticeEditorPage />}
             />
             <Route
               path="/practices/:practiceId/session"

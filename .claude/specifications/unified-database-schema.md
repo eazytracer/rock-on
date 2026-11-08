@@ -384,33 +384,38 @@ tests: `supabase/tests/031-song-page.test.sql`.
 
 **Fields:**
 
-| Application           | IndexedDB             | Supabase               | Type             | Required | Default | Description                                |
-| --------------------- | --------------------- | ---------------------- | ---------------- | -------- | ------- | ------------------------------------------ |
-| `id`                  | `id`                  | `id`                   | UUID             | Yes      | auto    | Unique identifier                          |
-| `bandId`              | `bandId`              | `band_id`              | UUID             | Yes      | -       | Band ID (FK)                               |
-| `setlistId`           | -                     | `setlist_id`           | UUID             | No       | -       | Associated setlist (Supabase only)         |
-| `scheduledDate`       | `scheduledDate`       | `scheduled_date`       | Date/TIMESTAMPTZ | Yes      | -       | Scheduled date/time                        |
-| `startTime`           | -                     | `start_time`           | Date/TIMESTAMPTZ | No       | -       | Actual start (Supabase only)               |
-| `endTime`             | -                     | `end_time`             | Date/TIMESTAMPTZ | No       | -       | Actual end (Supabase only)                 |
-| `duration`            | `duration`            | `duration`             | number           | Yes      | -       | Duration in minutes                        |
-| `location`            | `location`            | `location`             | string           | No       | -       | Location/venue                             |
-| `type`                | `type`                | `type`                 | enum             | Yes      | -       | Session type                               |
-| `status`              | `status`              | -                      | enum             | Yes      | -       | Session status (IndexedDB only)            |
-| `notes`               | `notes`               | `notes`                | string           | No       | -       | Session notes                              |
-| `wrapupNotes`         | -                     | `wrapup_notes`         | string           | No       | -       | Post-session wrap-up notes (Supabase only) |
-| `objectives`          | `objectives`          | `objectives`           | string[]         | No       | []      | Session goals                              |
-| `completedObjectives` | `completedObjectives` | `completed_objectives` | string[]         | No       | []      | Completed goals                            |
-| `sessionRating`       | -                     | `session_rating`       | number           | No       | -       | Rating 1-5 (Supabase only)                 |
-| `songs`               | `songs`               | `songs`                | object[]/JSONB   | Yes      | []      | Songs list                                 |
-| `attendees`           | `attendees`           | `attendees`            | object[]/JSONB   | Yes      | []      | Attendance                                 |
-| `createdDate`         | -                     | `created_date`         | Date/TIMESTAMPTZ | Yes      | NOW()   | Creation (Supabase only)                   |
-| `version`             | `version`             | `version`              | number           | No       | 1       | Version for conflict detection             |
-| `lastModifiedBy`      | `lastModifiedBy`      | `last_modified_by`     | UUID             | No       | -       | Last modifier user ID                      |
+| Application           | IndexedDB             | Supabase               | Type             | Required | Default | Description                                           |
+| --------------------- | --------------------- | ---------------------- | ---------------- | -------- | ------- | ----------------------------------------------------- |
+| `id`                  | `id`                  | `id`                   | UUID             | Yes      | auto    | Unique identifier                                     |
+| `bandId`              | `bandId`              | `band_id`              | UUID             | Yes      | -       | Band ID (FK)                                          |
+| `name`                | -                     | `name`                 | string           | No       | -       | "Thursday run"; blank → "‹Weekday› practice" (0.11.0) |
+| `setlistId`           | -                     | `setlist_id`           | UUID             | No       | -       | Associated setlist (Supabase only)                    |
+| `scheduledDate`       | `scheduledDate`       | `scheduled_date`       | Date/TIMESTAMPTZ | Yes      | -       | Scheduled date/time                                   |
+| `startTime`           | -                     | `start_time`           | Date/TIMESTAMPTZ | No       | -       | Session started (set once by the session)             |
+| `endTime`             | -                     | `end_time`             | Date/TIMESTAMPTZ | No       | -       | Session ended (saved with the wrap-up)                |
+| `duration`            | `duration`            | `duration`             | number           | Yes      | -       | Duration in minutes                                   |
+| `location`            | `location`            | `location`             | string           | No       | -       | Location/venue                                        |
+| `type`                | `type`                | `type`                 | enum             | Yes      | -       | Session type                                          |
+| `status`              | `status`              | -                      | enum             | Yes      | -       | Session status (IndexedDB only)                       |
+| `notes`               | `notes`               | `notes`                | string           | No       | -       | Session notes                                         |
+| `wrapupNotes`         | -                     | `wrapup_notes`         | string           | No       | -       | Post-session wrap-up notes (Supabase only)            |
+| `objectives`          | `objectives`          | `objectives`           | string[]         | No       | []      | Session goals                                         |
+| `completedObjectives` | `completedObjectives` | `completed_objectives` | string[]         | No       | []      | Completed goals                                       |
+| `sessionRating`       | -                     | `session_rating`       | number           | No       | -       | Rating 1-5 (Supabase only)                            |
+| `songs`               | `songs`               | `songs`                | object[]/JSONB   | Yes      | []      | Songs list                                            |
+| `attendees`           | `attendees`           | `attendees`            | object[]/JSONB   | Yes      | []      | Attendance                                            |
+| `createdDate`         | -                     | `created_date`         | Date/TIMESTAMPTZ | Yes      | NOW()   | Creation (Supabase only)                              |
+| `version`             | `version`             | `version`              | number           | No       | 1       | Version for conflict detection                        |
+| `lastModifiedBy`      | `lastModifiedBy`      | `last_modified_by`     | UUID             | No       | -       | Last modifier user ID                                 |
 
 **Enums:**
 
 - `type` (Supabase): 'rehearsal' | 'writing' | 'recording' | 'audition' | 'lesson' (⚠️ NO 'gig' — use shows table)
 - `status` (IndexedDB only): 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
+
+**Session record (0.11.0):** the practice session writes `start_time` once, then on wrap-up `end_time`,
+`wrapup_notes` (shared with the band) and per song in `songs[]`: `timeSpent` (seconds, accumulated) and `status`
+('completed' if reached, else 'skipped'). The page's upcoming / now / done comes from `scheduled_date` + `duration`.
 
 **⚠️ CRITICAL:** Table name mismatch!
 
@@ -435,30 +440,31 @@ tests: `supabase/tests/031-song-page.test.sql`.
 
 **Fields:**
 
-| Application      | IndexedDB        | Supabase           | Type                | Required | Default    | Description                               |
-| ---------------- | ---------------- | ------------------ | ------------------- | -------- | ---------- | ----------------------------------------- |
-| `id`             | `id`             | `id`               | UUID                | Yes      | auto       | Unique identifier                         |
-| `name`           | `name`           | `name`             | string              | Yes      | -          | Show name (e.g., "Toys 4 Tots Benefit")   |
-| `bandId`         | `bandId`         | `band_id`          | UUID                | Yes      | -          | Band ID (FK)                              |
-| `setlistId`      | `setlistId`      | `setlist_id`       | UUID                | No       | -          | Associated setlist (FK)                   |
-| `scheduledDate`  | `scheduledDate`  | `scheduled_date`   | Date/TIMESTAMPTZ    | Yes      | -          | Show date/time                            |
-| `duration`       | `duration`       | `duration`         | number              | Yes      | 120        | Duration in minutes                       |
-| `venue`          | `venue`          | `venue`            | string              | No       | -          | Venue name (e.g., "The Whiskey Room")     |
-| `location`       | `location`       | `location`         | string              | No       | -          | Full address                              |
-| `gigType`        | `gigType`        | `gig_type`         | string              | No       | -          | Gig type/category                         |
-| `loadInTime`     | `loadInTime`     | `load_in_time`     | string              | No       | -          | Load-in time (e.g., "6:00 PM")            |
-| `soundcheckTime` | `soundcheckTime` | `soundcheck_time`  | string              | No       | -          | Soundcheck time (e.g., "7:00 PM")         |
-| `setTime`        | -                | `set_time`         | string              | No       | -          | Performance start time (Supabase only)    |
-| `endTime`        | -                | `end_time`         | string              | No       | -          | Performance end time (Supabase only)      |
-| `payment`        | `payment`        | `payment`          | number              | No       | -          | Payment in cents (e.g., 50000 = $500.00)  |
-| `contacts`       | `contacts`       | `contacts`         | ShowContact[]/JSONB | No       | []         | Venue contacts (see JSONB handling below) |
-| `status`         | `status`         | `status`           | enum                | Yes      | 'upcoming' | Show status                               |
-| `notes`          | `notes`          | `notes`            | string              | No       | -          | Show notes                                |
-| `createdDate`    | `createdDate`    | `created_date`     | Date/TIMESTAMPTZ    | Yes      | NOW()      | Creation timestamp                        |
-| `updatedDate`    | `updatedDate`    | `updated_date`     | Date/TIMESTAMPTZ    | Yes      | NOW()      | Last modification                         |
-| `createdBy`      | -                | `created_by`       | UUID                | Yes      | -          | Creator user ID (Supabase only)           |
-| `version`        | `version`        | `version`          | number              | No       | 1          | Version for conflict detection            |
-| `lastModifiedBy` | `lastModifiedBy` | `last_modified_by` | UUID                | No       | -          | Last modifier user ID                     |
+| Application      | IndexedDB        | Supabase           | Type                | Required | Default    | Description                                            |
+| ---------------- | ---------------- | ------------------ | ------------------- | -------- | ---------- | ------------------------------------------------------ |
+| `id`             | `id`             | `id`               | UUID                | Yes      | auto       | Unique identifier                                      |
+| `name`           | `name`           | `name`             | string              | Yes      | -          | Show name (e.g., "Toys 4 Tots Benefit")                |
+| `bandId`         | `bandId`         | `band_id`          | UUID                | Yes      | -          | Band ID (FK)                                           |
+| `setlistId`      | `setlistId`      | `setlist_id`       | UUID                | No       | -          | The show's own set copy (FK; see setlists `copied_at`) |
+| `scheduledDate`  | `scheduledDate`  | `scheduled_date`   | Date/TIMESTAMPTZ    | Yes      | -          | Show date/time                                         |
+| `duration`       | `duration`       | `duration`         | number              | Yes      | 120        | Duration in minutes                                    |
+| `venue`          | `venue`          | `venue`            | string              | No       | -          | Venue name (e.g., "The Whiskey Room")                  |
+| `location`       | `location`       | `location`         | string              | No       | -          | Full address                                           |
+| `gigType`        | `gigType`        | `gig_type`         | string              | No       | -          | Gig type/category                                      |
+| `loadInTime`     | `loadInTime`     | `load_in_time`     | string              | No       | -          | Load-in time (e.g., "6:00 PM")                         |
+| `soundcheckTime` | `soundcheckTime` | `soundcheck_time`  | string              | No       | -          | Soundcheck time (e.g., "7:00 PM")                      |
+| `setTime`        | -                | `set_time`         | string              | No       | -          | Performance start time (Supabase only)                 |
+| `endTime`        | -                | `end_time`         | string              | No       | -          | Performance end time (Supabase only)                   |
+| `payment`        | `payment`        | `payment`          | number              | No       | -          | Payment in cents (e.g., 50000 = $500.00)               |
+| `contacts`       | `contacts`       | `contacts`         | ShowContact[]/JSONB | No       | []         | Venue contacts (see JSONB handling below)              |
+| `status`         | `status`         | `status`           | enum                | Yes      | 'upcoming' | Show status                                            |
+| `confirmed`      | -                | `confirmed`        | boolean             | Yes      | false      | The venue said yes (0.11.0; independent of status)     |
+| `notes`          | `notes`          | `notes`            | string              | No       | -          | Show notes                                             |
+| `createdDate`    | `createdDate`    | `created_date`     | Date/TIMESTAMPTZ    | Yes      | NOW()      | Creation timestamp                                     |
+| `updatedDate`    | `updatedDate`    | `updated_date`     | Date/TIMESTAMPTZ    | Yes      | NOW()      | Last modification                                      |
+| `createdBy`      | -                | `created_by`       | UUID                | Yes      | -          | Creator user ID (Supabase only)                        |
+| `version`        | `version`        | `version`          | number              | No       | 1          | Version for conflict detection                         |
+| `lastModifiedBy` | `lastModifiedBy` | `last_modified_by` | UUID                | No       | -          | Last modifier user ID                                  |
 
 **ShowContact Interface:**
 
@@ -475,7 +481,27 @@ tests: `supabase/tests/031-song-page.test.sql`.
 
 **Enums:**
 
-- `status`: 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
+- `status`: 'scheduled' | 'completed' | 'cancelled' (0.11.0: 'confirmed' moved to the `confirmed` column; old
+  rows were backfilled to `scheduled` + `confirmed = true`)
+
+**The set is a copy (0.11.0):** attaching a setlist makes the show its own setlists row (`show_id` = the show,
+`source_setlist_id` = the original, `copied_at`), and `shows.setlist_id` points at that copy. Edits to the copy never
+reach the source; Re-copy replaces the copy's items from the source.
+
+**RPCs (phase 4, `20261118120000_redesign_phase_4.sql`):** SECURITY INVOKER; errors are `MESSAGE = key` + `HINT`.
+
+- `calendar_agenda(p_band_id)`: shows and practices on one list — `type`, `id`, `name`, `venue`, `at`, `minutes`,
+  `cancelled`, `confirmed`, `started_at`, `ended_at`, `songs_total`, `songs_done`.
+- `create_show(p_band_id, p_patch) → uuid` (`scheduledDate` required; blank name; 45 min),
+  `update_show(p_show_id, p_patch)`; patch keys: `name`, `venue`, `location`, `scheduledDate`, `loadInTime`,
+  `soundcheckTime`, `duration` (5–600), `payment` (cents, ≥ 0), `notes`, `contacts` (array); bad values raise `invalid`.
+- `set_show_confirmed(p_show_id, p_confirmed)`, `set_show_cancelled(p_show_id, p_cancelled)` (undo → `scheduled`),
+  `delete_show(p_show_id)` (the show and its copy).
+- `attach_set_to_show(p_show_id, p_setlist_id) → uuid` (the copy; `empty` for an empty setlist; replaces an old copy),
+  `recopy_show_set(p_show_id) → uuid` (keeps the copy id; a deleted source raises "‹name› was deleted. The show keeps
+  its copy."), `create_show_set(p_show_id) → uuid` (an empty "‹show› set"), `duplicate_show(p_show_id) → uuid`
+  (+7 days, not confirmed, a fresh copy from the same source).
+- Contract tests: `supabase/tests/033-calendar-shows.test.sql`.
 
 **Indexes:**
 
@@ -502,31 +528,32 @@ tests: `supabase/tests/031-song-page.test.sql`.
 
 **Fields:**
 
-| Application       | IndexedDB        | Supabase            | Type             | Required | Default | Description                                          |
-| ----------------- | ---------------- | ------------------- | ---------------- | -------- | ------- | ---------------------------------------------------- |
-| `id`              | `id`             | `id`                | UUID             | Yes      | auto    | Unique identifier                                    |
-| `name`            | `name`           | `name`              | string           | Yes      | -       | Setlist name                                         |
-| `bandId`          | `bandId`         | `band_id`           | UUID             | No       | -       | Band ID (FK) — nullable for personal setlists        |
-| `contextType`     | -                | `context_type`      | enum             | Yes      | 'band'  | 'band' or 'personal' (Supabase only)                 |
-| `contextId`       | -                | `context_id`        | string           | No       | -       | userId (personal) or bandId (band) (Supabase only)   |
-| `showId`          | `showId`         | `show_id`           | UUID             | No       | -       | Associated show ID                                   |
-| `showDate`        | `showDate`       | -                   | Date             | No       | -       | Show date (deprecated)                               |
-| `venue`           | `venue`          | -                   | string           | No       | -       | Venue (deprecated)                                   |
-| `songs`           | `songs`          | -                   | object[]         | Yes      | []      | Songs (deprecated — use items)                       |
-| `items`           | `items`          | `items`             | object[]/JSONB   | Yes      | []      | Ordered songs/breaks/sections (both systems)         |
-| `totalDuration`   | `totalDuration`  | -                   | number           | Yes      | calc    | Total duration seconds (IndexedDB only)              |
-| `notes`           | `notes`          | `notes`             | string           | No       | -       | Setlist notes                                        |
-| `status`          | `status`         | `status`            | enum             | Yes      | 'draft' | Setlist status                                       |
-| `tags`            | -                | `tags`              | string[]         | No       | []      | Tags e.g. ['jam'] (Supabase only)                    |
-| `jamSessionId`    | -                | `jam_session_id`    | UUID             | No       | -       | Source jam session FK (Supabase only)                |
-| `forkedFrom`      | -                | `forked_from`       | UUID             | No       | -       | Setlist this was forked from (Supabase only)         |
-| `forkCount`       | -                | `fork_count`        | number           | No       | 0       | Number of times this has been forked (Supabase only) |
-| `sourceSetlistId` | -                | `source_setlist_id` | UUID             | No       | -       | Template/duplication source (Supabase only)          |
-| `createdDate`     | `createdDate`    | `created_date`      | Date/TIMESTAMPTZ | Yes      | NOW()   | Creation date                                        |
-| `lastModified`    | `lastModified`   | `last_modified`     | Date/TIMESTAMPTZ | Yes      | NOW()   | Last modification (**NOT** `updated_date`)           |
-| `createdBy`       | -                | `created_by`        | UUID             | Yes      | -       | Creator user ID (Supabase only)                      |
-| `version`         | `version`        | `version`           | number           | No       | 1       | Version for conflict detection                       |
-| `lastModifiedBy`  | `lastModifiedBy` | `last_modified_by`  | UUID             | No       | -       | Last modifier user ID                                |
+| Application       | IndexedDB        | Supabase            | Type             | Required | Default | Description                                                              |
+| ----------------- | ---------------- | ------------------- | ---------------- | -------- | ------- | ------------------------------------------------------------------------ |
+| `id`              | `id`             | `id`                | UUID             | Yes      | auto    | Unique identifier                                                        |
+| `name`            | `name`           | `name`              | string           | Yes      | -       | Setlist name                                                             |
+| `bandId`          | `bandId`         | `band_id`           | UUID             | No       | -       | Band ID (FK) — nullable for personal setlists                            |
+| `contextType`     | -                | `context_type`      | enum             | Yes      | 'band'  | 'band' or 'personal' (Supabase only)                                     |
+| `contextId`       | -                | `context_id`        | string           | No       | -       | userId (personal) or bandId (band) (Supabase only)                       |
+| `showId`          | `showId`         | `show_id`           | UUID             | No       | -       | Set only on a show's own copy (0.11.0)                                   |
+| `showDate`        | `showDate`       | -                   | Date             | No       | -       | Show date (deprecated)                                                   |
+| `venue`           | `venue`          | -                   | string           | No       | -       | Venue (deprecated)                                                       |
+| `songs`           | `songs`          | -                   | object[]         | Yes      | []      | Songs (deprecated — use items)                                           |
+| `items`           | `items`          | `items`             | object[]/JSONB   | Yes      | []      | Ordered songs/breaks/sections (both systems)                             |
+| `totalDuration`   | `totalDuration`  | -                   | number           | Yes      | calc    | Total duration seconds (IndexedDB only)                                  |
+| `notes`           | `notes`          | `notes`             | string           | No       | -       | Setlist notes                                                            |
+| `status`          | `status`         | `status`            | enum             | Yes      | 'draft' | Setlist status                                                           |
+| `tags`            | -                | `tags`              | string[]         | No       | []      | Tags e.g. ['jam'] (Supabase only)                                        |
+| `jamSessionId`    | -                | `jam_session_id`    | UUID             | No       | -       | Source jam session FK (Supabase only)                                    |
+| `forkedFrom`      | -                | `forked_from`       | UUID             | No       | -       | Setlist this was forked from (Supabase only)                             |
+| `forkCount`       | -                | `fork_count`        | number           | No       | 0       | Number of times this has been forked (Supabase only)                     |
+| `sourceSetlistId` | -                | `source_setlist_id` | UUID             | No       | -       | Template/duplication source (Supabase only)                              |
+| `copiedAt`        | -                | `copied_at`         | Date/TIMESTAMPTZ | No       | -       | When a show's copy was made (0.11.0); edited if `last_modified` is later |
+| `createdDate`     | `createdDate`    | `created_date`      | Date/TIMESTAMPTZ | Yes      | NOW()   | Creation date                                                            |
+| `lastModified`    | `lastModified`   | `last_modified`     | Date/TIMESTAMPTZ | Yes      | NOW()   | Last modification (**NOT** `updated_date`)                               |
+| `createdBy`       | -                | `created_by`        | UUID             | Yes      | -       | Creator user ID (Supabase only)                                          |
+| `version`         | `version`        | `version`           | number           | No       | 1       | Version for conflict detection                                           |
+| `lastModifiedBy`  | `lastModifiedBy` | `last_modified_by`  | UUID             | No       | -       | Last modifier user ID                                                    |
 
 **⚠️ CRITICAL — Timestamp field name:**
 
@@ -552,7 +579,8 @@ tests: `supabase/tests/031-song-page.test.sql`.
 `shows` decides; errors are `MESSAGE = key` + `HINT = user copy`.
 
 - `setlist_index(p_context_type, p_context_id)`: one row per set in a context, with its show (soonest upcoming, else
-  latest past; via `shows.setlist_id` or `setlists.show_id`, cancelled shows skipped: `show_id`, `show_name`,
+  latest past; since 0.11.0 found through the set's show copies, and copies themselves are left out; cancelled
+  shows skipped: `show_id`, `show_name`,
   `show_venue`, `show_at`, `show_minutes` = `shows.duration`, `show_set_time`), `songs` JSONB
   `[{id, title, tuning, seconds}]` in set order, and `break_minutes`.
 - `duplicate_setlist(p_setlist_id) → uuid`: "‹name› copy", same items (fresh item ids), notes and tags,

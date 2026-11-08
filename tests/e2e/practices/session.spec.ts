@@ -1,624 +1,129 @@
 /**
- * E2E Tests: Practice Session Mode
- *
- * Tests the full-screen practice session feature:
- * - Starting a practice session
- * - Navigating through songs
- * - Displaying song metadata (key, tuning, BPM)
- * - Rendering markdown notes
- * - Progress indicators
- * - End practice functionality
+ * The practice session (docs/redesign 03-screens Practice session; FP 7–8,
+ * Practice 2–4): Start from the practice page; Prev / Next name the song they
+ * go to and the last Next ends; keys and pedals (← → / PgUp PgDn), N for
+ * notes (a panel on desktop, a sheet on phones); Up next warns on a tuning
+ * change; the wrap-up saves time played, songs reached and shared notes.
  */
-
 import { test, expect } from '@playwright/test'
-import { signUpViaUI, createTestUser } from '../../fixtures/auth'
-import { createBandViaUI } from '../../fixtures/bands'
+import { deleteTestUser } from '../../fixtures/auth'
+import { getSupabaseAdmin } from '../../fixtures/supabase'
 import {
-  clickButtonReliably,
-  closeBrowseSongsDrawer,
-  clickInDrawer,
-} from '../../helpers/inlineEditable'
+  setupConsoleErrorTracking,
+  assertNoConsoleErrors,
+} from '../../helpers/assertions'
+import { seedCalendar, type CalendarSeed } from '../../helpers/calendarSeed'
 
-test.describe('Practice Session Mode', () => {
-  test.beforeEach(async ({ page }) => {
-    // Create user and band
-    const user = createTestUser()
-    await signUpViaUI(page, user)
-    await createBandViaUI(page, `Practice Session Test ${Date.now()}`)
-    await page.waitForURL(/\/songs/, { timeout: 10000 })
+test.describe('Practice session', () => {
+  let seed: CalendarSeed | undefined
+  test.afterEach(async () => {
+    if (seed) await deleteTestUser(seed.userId)
+    seed = undefined
   })
 
-  test('can start practice session and navigate through songs', async ({
-    page,
-  }) => {
-    // Step 1: Create songs for the practice
-    await createSongWithNotes(page, {
-      title: 'Test Song One',
-      artist: 'Test Artist',
-      key: 'A',
-      tuning: 'Standard',
-      bpm: '120',
-      notes:
-        '**Bold intro** - Start with power chords\n\n- Verse: palm muted\n- Chorus: open strumming',
+  test.describe('desktop', () => {
+    test.use({ viewport: { width: 1280, height: 860 } })
+
+    test('Start, named Prev / Next, keys, and the tuning warning', async ({
+      page,
+    }) => {
+      const errors = setupConsoleErrorTracking(page)
+      seed = await seedCalendar(page)
+      await page.goto(`/practices/${seed.practice}`)
+      await page.getByTestId('practice-start-session').click()
+      await expect(page).toHaveURL(/\/session$/)
+
+      const pos = page.getByTestId('session-position')
+      await expect(pos).toHaveText(/Song 1 of 3/i)
+      await expect(page.getByTestId('session-title')).toHaveText('Black')
+      await expect(page.getByTestId('session-next')).toContainText('Everlong')
+      await expect(page.getByTestId('session-prev')).toBeDisabled()
+      // Black (Standard) → Everlong (Drop D): Up next warns.
+      await expect(page.getByTestId('session-up-next')).toHaveAttribute(
+        'data-retune',
+        'true'
+      )
+      await expect(page.getByTestId('session-tune-now')).toBeVisible()
+
+      await page.getByTestId('session-next').click()
+      await expect(pos).toHaveText(/Song 2 of 3/i)
+      await expect(page.getByTestId('session-prev')).toContainText('Black')
+
+      await page.keyboard.press('PageDown')
+      await expect(pos).toHaveText(/Song 3 of 3/i)
+      await expect(page.getByTestId('session-next')).toContainText(
+        /End practice/i
+      )
+      await page.keyboard.press('ArrowLeft')
+      await expect(pos).toHaveText(/Song 2 of 3/i)
+      await page.keyboard.press('PageUp')
+      await expect(page.getByTestId('session-title')).toHaveText('Black')
+      await assertNoConsoleErrors(page, errors)
     })
 
-    await createSongWithNotes(page, {
-      title: 'Test Song Two',
-      artist: 'Another Artist',
-      key: 'E',
-      tuning: 'Drop D',
-      bpm: '140',
-      notes: 'Watch the _tempo change_ at bridge',
+    test('notes are a side panel that N toggles', async ({ page }) => {
+      seed = await seedCalendar(page)
+      await page.goto(`/practices/${seed.practice}/session`)
+      const panel = page.getByTestId('session-notes-panel')
+      await expect(panel).toBeVisible()
+      await expect(page.getByTestId('session-band-notes')).toContainText(
+        'Count in slow'
+      )
+      await page.keyboard.press('n')
+      await expect(panel).toHaveCount(0)
+      await page.keyboard.press('n')
+      await expect(panel).toBeVisible()
     })
 
-    // Step 2: Create a practice and add songs
-    // Open the practice builder directly (the /practices list was retired)
-    await page.goto('/practices/new')
-    await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
+    test('the wrap-up saves time, songs reached and shared notes', async ({
+      page,
+    }) => {
+      seed = await seedCalendar(page)
+      await page.goto(`/practices/${seed.practice}/session`)
+      await page.getByTestId('session-next').click()
+      await page.getByTestId('session-end').click()
 
-    // The practice view page should load - add songs to it
-    await page.waitForTimeout(1000) // Wait for page to stabilize
+      await expect(page.getByTestId('session-wrapup-summary')).toContainText(
+        '2 of 3 songs'
+      )
+      await expect(page.getByTestId('session-wrapup')).toContainText('skipped')
+      await page
+        .getByTestId('session-wrapup-notes')
+        .fill('Bridge on Everlong still loose')
+      await page.getByTestId('session-wrapup-save').click()
+      await expect(page).toHaveURL(new RegExp(`/practices/${seed.practice}$`))
+      await expect(page.getByTestId('practice-wrapup')).toContainText(
+        'Bridge on Everlong still loose'
+      )
 
-    // Add songs to practice using browse songs drawer
-    const addSongsButton = page
-      .locator('[data-testid="add-songs-button"]')
-      .first()
-    if (await addSongsButton.isVisible({ timeout: 3000 })) {
-      await addSongsButton.click()
-      await page.waitForTimeout(500)
-
-      // Click on songs to add them (use JS click to handle viewport issues)
-      await clickInDrawer(page, 'button:has-text("Test Song One")')
-      await page.waitForTimeout(300)
-
-      await clickInDrawer(page, 'button:has-text("Test Song Two")')
-      await page.waitForTimeout(300)
-    }
-
-    // Close the Browse Songs drawer
-    await closeBrowseSongsDrawer(page)
-
-    // Step 3: Save the practice (click Create Practice button)
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-
-    // Wait for navigation to the saved practice
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // Step 4: Start the practice session
-    const startButton = page.locator('[data-testid="start-practice-button"]')
-    await expect(startButton).toBeVisible({ timeout: 5000 })
-    await startButton.click()
-
-    // Step 4: Verify we're in session mode
-    await page.waitForURL(/\/session/, { timeout: 5000 })
-
-    // Verify session elements are visible
-    await expect(
-      page.locator('[data-testid="session-exit-button"]')
-    ).toBeVisible()
-    await expect(page.locator('[data-testid="session-timer"]')).toBeVisible()
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toBeVisible()
-
-    // Verify first song is displayed
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Test Song One')
-    await expect(
-      page.locator('[data-testid="session-song-artist"]')
-    ).toContainText('Test Artist')
-
-    // Verify metadata cards are visible
-    await expect(page.locator('[data-testid="session-song-key"]')).toBeVisible()
-    await expect(
-      page.locator('[data-testid="session-song-tuning"]')
-    ).toBeVisible()
-    await expect(page.locator('[data-testid="session-song-bpm"]')).toBeVisible()
-
-    // Step 5: Navigate to next song
-    const nextButton = page.locator('[data-testid="session-next-button"]')
-    await expect(nextButton).toBeVisible()
-    await nextButton.click()
-
-    // Verify second song is now displayed
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Test Song Two')
-    await expect(
-      page.locator('[data-testid="session-song-artist"]')
-    ).toContainText('Another Artist')
-
-    // Step 6: Verify End Practice button appears on last song
-    const endButton = page.locator('[data-testid="session-end-button"]')
-    await expect(endButton).toBeVisible()
-
-    // Step 7: End practice and return to practice view
-    await endButton.click()
-    await page.waitForURL(/\/practices\/[^/]+$/, { timeout: 5000 })
-
-    // Verify we're back on the practice view page
-    await expect(page).not.toHaveURL(/\/session/)
+      const admin = await getSupabaseAdmin()
+      const { data } = await admin
+        .from('practice_sessions')
+        .select('start_time, end_time, wrapup_notes, songs')
+        .eq('id', seed.practice)
+        .single()
+      expect(data!.start_time).toBeTruthy()
+      expect(data!.end_time).toBeTruthy()
+      expect(data!.wrapup_notes).toBe('Bridge on Everlong still loose')
+      expect(data!.songs.map((s: { status: string }) => s.status)).toEqual([
+        'completed',
+        'completed',
+        'skipped',
+      ])
+    })
   })
 
-  test('displays markdown notes correctly in practice session', async ({
-    page,
-  }) => {
-    // Create song with rich markdown notes
-    const markdownNotes = `# Song Notes
+  test.describe('phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
-**Important:** Watch the dynamics!
-
-## Sections
-
-1. **Intro** - Clean guitar, fingerpicking
-2. **Verse** - Palm muted rhythm
-3. **Chorus** - Full strumming, accent on 2 and 4
-
-### Tips
-- Use a *light touch* on the intro
-- Build intensity through the verse
-- Let it ring on the final chord
-
-\`\`\`
-Tuning: E A D G B E
-Capo: 2nd fret
-\`\`\`
-`
-
-    await createSongWithNotes(page, {
-      title: 'Markdown Test Song',
-      artist: 'Notes Artist',
-      notes: markdownNotes,
+    test('notes open as a sheet', async ({ page }) => {
+      seed = await seedCalendar(page)
+      await page.goto(`/practices/${seed.practice}/session`)
+      await expect(page.getByTestId('session-notes-panel')).toHaveCount(0)
+      await page.getByTestId('session-notes-toggle').click()
+      const sheet = page.getByTestId('session-notes-sheet')
+      await expect(sheet).toBeVisible()
+      await expect(sheet).toContainText('Count in slow')
     })
-
-    // The Add song form has no band-notes field (notes are edited on the song
-    // page). Set the band notes on the created song so the practice session
-    // has markdown to render.
-    await setBandNotesOnSongPage(page, markdownNotes)
-
-    // Create practice and add the song
-    // Open the practice builder directly (the /practices list was retired)
-    await page.goto('/practices/new')
-    await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
-    await page.waitForTimeout(1000)
-
-    // Add the song
-    const addSongsButton2 = page
-      .locator('[data-testid="add-songs-button"]')
-      .first()
-    if (await addSongsButton2.isVisible({ timeout: 3000 })) {
-      await addSongsButton2.click()
-      await page.waitForTimeout(500)
-
-      // Use JS click to handle viewport issues
-      await clickInDrawer(page, 'button:has-text("Markdown Test Song")')
-      await page.waitForTimeout(300)
-    }
-
-    // Close the Browse Songs drawer
-    await closeBrowseSongsDrawer(page)
-
-    // Save the practice
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // Start practice session
-    const startButton = page.locator('[data-testid="start-practice-button"]')
-    await expect(startButton).toBeVisible({ timeout: 5000 })
-    await startButton.click()
-    await page.waitForURL(/\/session/, { timeout: 5000 })
-
-    // Verify notes section exists
-    const notesSection = page.locator('[data-testid="session-notes"]')
-    await expect(notesSection).toBeVisible()
-
-    // Verify markdown is rendered (look for formatted elements)
-    // Bold text should be in <strong> tags
-    await expect(
-      notesSection.locator('strong:has-text("Important")')
-    ).toBeVisible()
-
-    // Headers should be rendered
-    await expect(
-      notesSection.locator('h2:has-text("Sections"), h3:has-text("Sections")')
-    ).toBeVisible()
-
-    // List items should be visible - use first() to avoid strict mode violation
-    await expect(notesSection.locator('text=Intro').first()).toBeVisible()
-    await expect(notesSection.locator('text=Verse').first()).toBeVisible()
-    await expect(notesSection.locator('text=Chorus').first()).toBeVisible()
-  })
-
-  test('keyboard navigation works in practice session', async ({ page }) => {
-    // Create two songs
-    await createSongWithNotes(page, {
-      title: 'Keyboard Nav Song 1',
-      artist: 'Artist One',
-    })
-
-    await createSongWithNotes(page, {
-      title: 'Keyboard Nav Song 2',
-      artist: 'Artist Two',
-    })
-
-    // Create practice with both songs
-    // Open the practice builder directly (the /practices list was retired)
-    await page.goto('/practices/new')
-    await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
-    await page.waitForTimeout(1000)
-
-    const addSongsButton = page
-      .locator('[data-testid="add-songs-button"]')
-      .first()
-    if (await addSongsButton.isVisible({ timeout: 3000 })) {
-      await addSongsButton.click()
-      await page.waitForTimeout(500)
-
-      // Use JS click to handle viewport issues
-      await clickInDrawer(page, 'button:has-text("Keyboard Nav Song 1")')
-      await page.waitForTimeout(300)
-
-      await clickInDrawer(page, 'button:has-text("Keyboard Nav Song 2")')
-      await page.waitForTimeout(300)
-    }
-
-    // Close the Browse Songs drawer
-    await closeBrowseSongsDrawer(page)
-
-    // Save the practice
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // Start practice
-    const startButton = page.locator('[data-testid="start-practice-button"]')
-    await expect(startButton).toBeVisible({ timeout: 5000 })
-    await startButton.click()
-    await page.waitForURL(/\/session/, { timeout: 5000 })
-
-    // Verify first song
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Keyboard Nav Song 1')
-
-    // Use ArrowRight to go to next song
-    await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(300)
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Keyboard Nav Song 2')
-
-    // Use ArrowLeft to go back
-    await page.keyboard.press('ArrowLeft')
-    await page.waitForTimeout(300)
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Keyboard Nav Song 1')
-
-    // Use End to go to last song
-    await page.keyboard.press('End')
-    await page.waitForTimeout(300)
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Keyboard Nav Song 2')
-
-    // Use Home to go to first song
-    await page.keyboard.press('Home')
-    await page.waitForTimeout(300)
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Keyboard Nav Song 1')
-
-    // Use Escape to exit session
-    await page.keyboard.press('Escape')
-    await page.waitForURL(/\/practices\/[^/]+$/, { timeout: 5000 })
-    await expect(page).not.toHaveURL(/\/session/)
-  })
-
-  test('progress dots show correct position', async ({ page }) => {
-    // Create 4 songs for clear progress visualization
-    for (let i = 1; i <= 4; i++) {
-      await createSongWithNotes(page, {
-        title: `Progress Song ${i}`,
-        artist: `Artist ${i}`,
-      })
-    }
-
-    // Create practice with all songs
-    // Open the practice builder directly (the /practices list was retired)
-    await page.goto('/practices/new')
-    await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
-    await page.waitForTimeout(1000)
-
-    const addSongsButton = page
-      .locator('[data-testid="add-songs-button"]')
-      .first()
-    if (await addSongsButton.isVisible({ timeout: 3000 })) {
-      await addSongsButton.click()
-      await page.waitForTimeout(500)
-
-      // Use JS click to handle viewport issues
-      for (let i = 1; i <= 4; i++) {
-        await clickInDrawer(page, `button:has-text("Progress Song ${i}")`)
-        await page.waitForTimeout(200)
-      }
-    }
-
-    // Wait for UI to stabilize after adding songs
-    await page.waitForTimeout(500)
-
-    // Close the Browse Songs drawer
-    await closeBrowseSongsDrawer(page)
-
-    // Save the practice
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // Start practice
-    const startButton = page.locator('[data-testid="start-practice-button"]')
-    await expect(startButton).toBeVisible({ timeout: 5000 })
-    await startButton.click()
-    await page.waitForURL(/\/session/, { timeout: 5000 })
-
-    // Verify first song and navigate through all
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Progress Song 1')
-
-    // Navigate through songs and verify titles change
-    await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(300)
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Progress Song 2')
-
-    await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(300)
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Progress Song 3')
-
-    await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(300)
-    await expect(
-      page.locator('[data-testid="session-song-title"]')
-    ).toContainText('Progress Song 4')
-
-    // On last song, End Practice button should be visible
-    await expect(
-      page.locator('[data-testid="session-end-button"]')
-    ).toBeVisible()
-  })
-
-  test('timer increments during practice session', async ({ page }) => {
-    // Create a song
-    await createSongWithNotes(page, {
-      title: 'Timer Test Song',
-      artist: 'Timer Artist',
-    })
-
-    // Create practice
-    // Open the practice builder directly (the /practices list was retired)
-    await page.goto('/practices/new')
-    await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
-    await page.waitForTimeout(1000)
-
-    const addSongsButton = page
-      .locator('[data-testid="add-songs-button"]')
-      .first()
-    if (await addSongsButton.isVisible({ timeout: 3000 })) {
-      await addSongsButton.click()
-      await page.waitForTimeout(500)
-
-      // Use JS click to handle viewport issues
-      await clickInDrawer(page, 'button:has-text("Timer Test Song")')
-      await page.waitForTimeout(300)
-    }
-
-    // Close the Browse Songs drawer
-    await closeBrowseSongsDrawer(page)
-
-    // Save the practice
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // Start practice
-    const startButton = page.locator('[data-testid="start-practice-button"]')
-    await expect(startButton).toBeVisible({ timeout: 5000 })
-    await startButton.click()
-    await page.waitForURL(/\/session/, { timeout: 5000 })
-
-    // Get initial timer value
-    const timer = page.locator('[data-testid="session-timer"]')
-    await expect(timer).toBeVisible()
-
-    const initialTime = await timer.textContent()
-
-    // Wait 2 seconds
-    await page.waitForTimeout(2000)
-
-    // Get new timer value
-    const newTime = await timer.textContent()
-
-    // Timer should have incremented
-    expect(newTime).not.toBe(initialTime)
-  })
-
-  test('next song preview shows tuning change warning', async ({ page }) => {
-    // Create songs with different tunings
-    await createSongWithNotes(page, {
-      title: 'Standard Tuning Song',
-      artist: 'Artist A',
-      tuning: 'Standard',
-    })
-
-    await createSongWithNotes(page, {
-      title: 'Drop D Song',
-      artist: 'Artist B',
-      tuning: 'Drop D',
-    })
-
-    // Create practice with both songs
-    // Open the practice builder directly (the /practices list was retired)
-    await page.goto('/practices/new')
-    await page.waitForURL(/\/practices\/new/, { timeout: 5000 })
-    await page.waitForTimeout(1000)
-
-    const addSongsButton = page
-      .locator('[data-testid="add-songs-button"]')
-      .first()
-    if (await addSongsButton.isVisible({ timeout: 3000 })) {
-      await addSongsButton.click()
-      await page.waitForTimeout(500)
-
-      // Use JS click to handle viewport issues
-      await clickInDrawer(page, 'button:has-text("Standard Tuning Song")')
-      await page.waitForTimeout(300)
-
-      await clickInDrawer(page, 'button:has-text("Drop D Song")')
-      await page.waitForTimeout(300)
-    }
-
-    // Close the Browse Songs drawer
-    await closeBrowseSongsDrawer(page)
-
-    // Save the practice
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // Start practice
-    const startButton = page.locator('[data-testid="start-practice-button"]')
-    await expect(startButton).toBeVisible({ timeout: 5000 })
-    await startButton.click()
-    await page.waitForURL(/\/session/, { timeout: 5000 })
-
-    // On first song, verify the "Up next" preview shows the next song's tuning.
-    const nextPreview = page.locator('[data-testid="session-next-preview"]')
-    await expect(nextPreview).toBeVisible()
-
-    // Look for tuning indicator (should show Drop D with warning since it's different)
-    await expect(nextPreview.locator('text=Drop D')).toBeVisible()
   })
 })
-
-/**
- * Sets the band notes on the first song from the song page. The Add song form
- * has no notes field (notes live on the song page), so tests that need
- * rendered notes set them here.
- */
-async function setBandNotesOnSongPage(page: any, notes: string): Promise<void> {
-  await page.goto('/songs')
-  await page.waitForLoadState('networkidle')
-
-  // Open the song (below 1440 px: its own page) and edit its band note
-  await page.locator('[data-testid^="song-row-"]').first().click()
-  await page.locator('[data-testid="song-note-band-edit"]').click()
-  const textarea = page.locator('[data-testid="markdown-textarea"]')
-  await expect(textarea).toBeVisible({ timeout: 5000 })
-  await textarea.fill(notes)
-  const saved = page.waitForResponse((r: any) =>
-    r.url().includes('/rpc/set_band_note')
-  )
-  await page.locator('[data-testid="song-note-done"]').click()
-  expect((await saved).ok()).toBe(true)
-  await expect(textarea).toHaveCount(0)
-}
-
-/**
- * Helper function to create a song with optional notes
- */
-async function createSongWithNotes(
-  page: any,
-  options: {
-    title: string
-    artist: string
-    key?: string
-    tuning?: string
-    bpm?: string
-    notes?: string
-  }
-): Promise<void> {
-  await page.goto('/songs')
-  await page.waitForLoadState('networkidle')
-
-  // Click Add Song button
-  const addButton = page
-    .locator('button:has-text("Add Song"), [data-testid="add-song-button"]')
-    .first()
-  await expect(addButton).toBeVisible({ timeout: 5000 })
-  await addButton.click()
-  await page.waitForTimeout(500)
-
-  // Fill required fields
-  await page.fill('input[name="title"]', options.title)
-  await page.fill('input[name="artist"]', options.artist)
-
-  // Fill optional fields if provided
-  if (options.bpm) {
-    const bpmInput = page
-      .locator('input[name="bpm"], input[name="tempo"]')
-      .first()
-    if (await bpmInput.isVisible().catch(() => false)) {
-      await bpmInput.fill(options.bpm)
-    }
-  }
-
-  // Select key (required field) - default to C if not provided
-  const keyToSelect = options.key || 'C'
-  const keyButton = page
-    .locator('[data-testid="song-key-button"], button:has-text("Select key")')
-    .first()
-  if (await keyButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await keyButton.click()
-    await page.waitForTimeout(300)
-    const keyPicker = page
-      .locator(`[data-testid="key-picker-${keyToSelect}"]`)
-      .first()
-    if (await keyPicker.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await keyPicker.click()
-      await page.waitForTimeout(200)
-      const confirmButton = page
-        .locator('[data-testid="key-picker-confirm"]')
-        .first()
-      if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await confirmButton.click()
-      }
-    }
-    await page.waitForTimeout(300)
-  }
-
-  // Set tuning if provided
-  if (options.tuning) {
-    const tuningSelect = page
-      .locator('select[name="guitarTuning"], [data-testid="tuning-select"]')
-      .first()
-    if (await tuningSelect.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await tuningSelect.selectOption({ label: options.tuning })
-    }
-  }
-
-  // Add notes if provided
-  if (options.notes) {
-    const notesInput = page
-      .locator('textarea[name="notes"], [data-testid="song-notes-input"]')
-      .first()
-    if (await notesInput.isVisible().catch(() => false)) {
-      await notesInput.fill(options.notes)
-    }
-  }
-
-  // Save song - button uses data-testid "song-submit-button"
-  const saveButton = page
-    .locator(
-      '[data-testid="song-submit-button"], button:has-text("Save Changes")'
-    )
-    .first()
-  await expect(saveButton).toBeVisible({ timeout: 3000 })
-  await saveButton.click()
-  await page.waitForTimeout(1500)
-
-  // Wait for song to appear in list
-  await expect(page.locator(`text=${options.title}`).first()).toBeVisible({
-    timeout: 5000,
-  })
-}

@@ -1,6 +1,5 @@
 import { Show, ShowContact, ShowStatus } from '../models/Show'
 import { repository } from './data/RepositoryFactory'
-import { SetlistService } from './SetlistService'
 
 export interface ShowFilters {
   bandId: string
@@ -119,74 +118,6 @@ export class ShowService {
   }
 
   /**
-   * Duplicate an existing show as a starting point for a new one.
-   *
-   * The modal collects the (prefilled, editable) scalar fields as `overrides`
-   * and how to handle the setlist as `setlist`:
-   *   - { mode: 'fork', sourceSetlistId }  → fork that setlist into the new show
-   *     (a unique, owned copy — every show owns its own setlist per product rule).
-   *     Defaults to the source show's setlist; the modal may pick a different one.
-   *   - { mode: 'none' }                    → new show starts with no setlist.
-   *
-   * Contacts are copied with fresh ids (they belong to this show). Per-instance
-   * state resets: status → 'scheduled', fresh id/dates, version/lastModifiedBy
-   * cleared. `overrides.scheduledDate` is required (the modal forces a date).
-   */
-  static async duplicateShow(
-    sourceShowId: string,
-    overrides: {
-      name: string
-      scheduledDate: Date
-      duration?: number
-      venue?: string
-      location?: string
-      loadInTime?: string
-      soundcheckTime?: string
-      payment?: number
-      notes?: string
-    },
-    setlist: { mode: 'fork'; sourceSetlistId: string } | { mode: 'none' } = {
-      mode: 'none',
-    }
-  ): Promise<Show> {
-    const source = await this.getShow(sourceShowId)
-    if (!source) {
-      throw new Error('Show not found')
-    }
-
-    // Create the new show first (without a setlist) so the fork can set the
-    // bidirectional show_id link.
-    const newShow = await this.createShow({
-      bandId: source.bandId,
-      name: overrides.name,
-      scheduledDate: overrides.scheduledDate,
-      duration: overrides.duration ?? source.duration,
-      venue: overrides.venue,
-      location: overrides.location,
-      loadInTime: overrides.loadInTime,
-      soundcheckTime: overrides.soundcheckTime,
-      payment: overrides.payment,
-      notes: overrides.notes,
-      // Copy contacts with fresh ids — they belong to this show.
-      contacts: (source.contacts || []).map(c => ({
-        ...c,
-        id: crypto.randomUUID(),
-      })),
-      status: 'scheduled',
-      // setlist handled below (needs the new show id for the bidirectional link)
-    })
-
-    if (setlist.mode === 'fork') {
-      // Fork the chosen setlist into the new show (owned, unique copy).
-      await this.forkSetlistForShow(newShow.id, setlist.sourceSetlistId)
-      // Return the show with its new setlistId reflected.
-      return (await this.getShow(newShow.id)) as Show
-    }
-
-    return newShow
-  }
-
-  /**
    * Update an existing show
    */
   static async updateShow(
@@ -230,35 +161,6 @@ export class ShowService {
     // This is handled by the database ON DELETE SET NULL constraint
 
     await repository.deleteShow(showId)
-  }
-
-  /**
-   * Fork a setlist for a show
-   * Creates a copy of the specified setlist linked to the show
-   */
-  static async forkSetlistForShow(
-    showId: string,
-    setlistId: string
-  ): Promise<string> {
-    const show = await this.getShow(showId)
-    if (!show) {
-      throw new Error('Show not found')
-    }
-
-    // Fork the setlist (creates a copy)
-    const forkedSetlist = await SetlistService.forkSetlist(setlistId, show.name)
-
-    // Update the show to reference the forked setlist
-    await this.updateShow(showId, {
-      setlistId: forkedSetlist.id,
-    })
-
-    // Update the forked setlist to reference the show (bidirectional link)
-    await SetlistService.updateSetlist(forkedSetlist.id, {
-      showId: showId,
-    })
-
-    return forkedSetlist.id
   }
 
   /**
@@ -390,7 +292,6 @@ export class ShowService {
     if (showData.status) {
       const validStatuses: ShowStatus[] = [
         'scheduled',
-        'confirmed',
         'completed',
         'cancelled',
       ]

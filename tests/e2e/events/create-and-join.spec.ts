@@ -80,9 +80,10 @@ test.describe('Events — create and join', () => {
     await logoutViaUI(page)
     await signUpWithBand(page)
 
-    // B joins by code from the Calendar view's join form (Events filter tab).
+    // B joins by code from the Calendar's Jams filter (Join with a code).
     await page.goto('/calendar')
-    await page.click('[data-testid="calendar-filter-events"]')
+    await page.click('[data-testid="calendar-filter-jam"]')
+    await page.click('[data-testid="calendar-join-code"]')
     await page.fill('[data-testid="events-join-input"]', code)
     await page.click('[data-testid="events-join-button"]')
 
