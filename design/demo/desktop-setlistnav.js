@@ -2,8 +2,9 @@
 // sidebar and the editor. Switching sets is rare, so three ways to give that column back to the editor:
 //   a · Index, then the editor full width with ← Setlists (same pattern as the song page)
 //   b · The editor full width; the setlist name is a switcher (like the context switcher)
+//   ab · a with b's name switcher on top (Eric's pick, Nov 7)
 //   c · The editor full width; the band's setlists sit under Setlists in the sidebar
-// ?nav=a|b|c picks one; with none, the demo is unchanged.
+// ?nav=a|b|c|ab picks one; with none, the demo is unchanged.
 (()=>{const {S,V,app,render,SETS,toast}=DK,{ic,btn}=Rock;
 const SN={mode:new URLSearchParams(location.search).get('nav')||'',open:false,dd:false,menu:false};
 window.SN=SN;
@@ -14,7 +15,7 @@ const sorted=()=>[...SETS].sort((a,b)=>day(a)-day(b)||a.name.localeCompare(b.nam
 const sub=x=>{const t=stats(x);return `${x.show?x.show.split(' · ')[1]+' · ':''}${t.n} songs · ${t.min} min${t.ret?` · ${t.ret} retunes`:''}`};
 const orig=V.setlists;
 // a · the index
-V.setlists=()=>{if(SN.mode!=='a'||SN.open)return orig();
+V.setlists=()=>{if(!/a/.test(SN.mode)||SN.open)return orig();
  const list=sorted(),nx=list.find(x=>x.show);
  return DK.head('iPod Shuffle','Setlists',SETS.length,btn('Next show',{icon:'sort'})+btn('New setlist',{kind:'pri',icon:'plus',attr:'data-slnew'}))+
  `<div class="pane" style="flex:1"><div class="snix">${list.map(x=>{const t=stats(x);return `<div class="sncard ${x===nx?'nx':''}" data-snopen="${x.id}"><div class="top"><small>${x.show?(x===nx?'NEXT SHOW · ':'')+x.show.toUpperCase():'NOT ATTACHED TO A SHOW'}</small><span class="ibx sm" data-a="toast" data-m="Open · Duplicate · Delete">${ic('moreh')}</span></div><b>${x.name}</b><div class="st"><span><em>${t.n}</em>songs</span><span><em>${t.min}</em>min</span><span><em>${t.ret}</em>retunes</span></div><div class="tl">${x.items.filter(i=>typeof i==='string').slice(0,5).map(i=>DK.byId(i).title).join(' · ')}${x.items.length>5?' …':''}</div></div>`}).join('')}
@@ -22,13 +23,13 @@ V.setlists=()=>{if(SN.mode!=='a'||SN.open)return orig();
 // header ⋯ for the set itself (Rename, Duplicate, Delete moved here from the list column)
 const setMenu=()=>`<span class="dkw"><span class="r-ib" data-snmenu title="Setlist actions">${ic('moreh')}</span>${SN.menu?`<div class="dkm" style="right:0;min-width:200px"><div class="o" data-slren>${ic('edit')}Rename</div><div class="o" data-sldup="${S.set}">${ic('copy')}Duplicate</div><div class="o dng" data-sldel="${S.set}">${ic('trash')}Delete…</div></div>`:''}</span>`;
 const dec=()=>{document.body.dataset.snmode=SN.mode;if(!SN.mode)return;
- if(S.v==='setlists'&&!(SN.mode==='a'&&!SN.open)){
+ if(S.v==='setlists'&&!(/a/.test(SN.mode)&&!SN.open)){
   app.querySelector('.sl3>.lft')?.remove();app.querySelector('.slsw')?.remove();
   const act=app.querySelector('.hd .act');if(act&&!act.querySelector('[data-snmenu]'))act.insertAdjacentHTML('beforeend',setMenu());
   const kick=app.querySelector('.hd .ttl small'),h1=app.querySelector('.hd .ttl h1'),set=SETS.find(x=>x.id===S.set);
-  if(SN.mode==='a'&&kick)kick.outerHTML=`<div class="snback"><span class="r-btn sm" data-snidx>${ic('back')}Setlists</span><small>${set.show||'Not attached to a show'}</small></div>`;
-  if(SN.mode==='b'&&h1&&!S.slren){h1.classList.add('snh1');h1.insertAdjacentHTML('beforeend',`<span class="sncar" data-sndd title="Switch setlist">${ic('down')}</span>`);
-   if(SN.dd){const list=sorted();h1.parentNode.style.position='relative';h1.insertAdjacentHTML('afterend',`<div class="sndd"><div class="mg">Setlists · ${SETS.length}<span>NEXT SHOW FIRST</span></div>${list.map(x=>`<div class="o ${x.id===S.set?'on':''}" data-snpick="${x.id}"><div><b>${x.name}</b><small>${sub(x)}</small></div>${x.id===S.set?ic('check'):''}</div>`).join('')}<div class="sep"></div><div class="o" data-slnew>${ic('plus')}<b>New setlist</b></div></div>`)}}}
+  if(/a/.test(SN.mode)&&kick)kick.outerHTML=`<div class="snback"><span class="r-btn sm" data-snidx>${ic('back')}Setlists</span><small>${set.show||'Not attached to a show'}</small></div>`;
+  if(/b/.test(SN.mode)&&h1&&!S.slren){h1.classList.add('snh1');h1.insertAdjacentHTML('beforeend',`<span class="sncar" data-sndd title="Switch setlist">${ic('down')}</span>`);
+   if(SN.dd){const list=sorted();h1.parentNode.style.position='relative';h1.insertAdjacentHTML('afterend',`<div class="sndd"><div class="mg">Setlists · ${SETS.length}<span>NEXT SHOW FIRST</span></div>${list.map(x=>`<div class="o ${x.id===S.set?'on':''}" data-snpick="${x.id}"><div><b>${x.name}</b><small>${sub(x)}</small></div>${x.id===S.set?ic('check'):''}</div>`).join('')}<div class="sep"></div>${SN.mode==='ab'?`<div class="o" data-snidx>${ic('list')}<b>All setlists</b></div>`:''}<div class="o" data-slnew>${ic('plus')}<b>New setlist</b></div></div>`)}}}
  if(SN.mode==='c'){const ni=app.querySelector('.sb .ni[data-v="setlists"]');if(ni&&!app.querySelector('.snsub')){const list=sorted();
   ni.insertAdjacentHTML('afterend',`<div class="snsub">${list.map(x=>`<div class="si ${S.v==='setlists'&&x.id===S.set?'on':''}" data-set="${x.id}"><span>${x.name}</span>${x.show?`<small>${x.show.split(' · ')[1]}</small>`:''}</div>`).join('')}<div class="si add" data-slnew>${ic('plus')}New setlist</div></div>`)}}};
 new MutationObserver(dec).observe(app,{childList:true});
@@ -39,14 +40,14 @@ app.addEventListener('click',e=>{const c=s=>e.target.closest(s);let x;if(!SN.mod
  if(c('[data-sndd]')){SN.dd=!SN.dd;render();e.stopImmediatePropagation();return}
  if(x=c('[data-snpick]')){S.set=x.dataset.snpick;S.slsel=null;SN.dd=false;render();e.stopImmediatePropagation();return}
  if(x=c('[data-snopen]')){if(c('[data-a]'))return;S.set=x.dataset.snopen;SN.open=true;S.slsel=null;S.v='setlists';render();e.stopImmediatePropagation();return}
- if(c('[data-snidx]')){SN.open=false;S.v='setlists';render();e.stopImmediatePropagation();return}
- if(SN.mode==='a'&&c('.sb .ni[data-v="setlists"]')){SN.open=false;SN.menu=false}
+ if(c('[data-snidx]')){SN.open=false;SN.dd=false;S.v='setlists';render();e.stopImmediatePropagation();return}
+ if(/a/.test(SN.mode)&&c('.sb .ni[data-v="setlists"]')){SN.open=false;SN.menu=false}
  if(c('[data-slnew]'))SN.open=true;
  if(c('[data-set]'))SN.open=true;
  if(c('[data-sldup],[data-sldel],[data-slren]'))SN.menu=false},true);
 // the Setlists heading keeps its accent while a set from the sub-list is open (mode c)
 const st=document.createElement('style');st.textContent=`
-body[data-snmode="a"] .sl3,body[data-snmode="a"] .sl3.lib,body[data-snmode="b"] .sl3,body[data-snmode="c"] .sl3{grid-template-columns:minmax(0,1fr)}
+body[data-snmode="ab"] .sl3,body[data-snmode="a"] .sl3,body[data-snmode="a"] .sl3.lib,body[data-snmode="b"] .sl3,body[data-snmode="c"] .sl3{grid-template-columns:minmax(0,1fr)}
 body[data-snmode] .sl3.lib{grid-template-columns:minmax(0,1fr) 340px}
 body[data-snmode] .sl3:has(.slnp){grid-template-columns:minmax(0,1fr) 340px}
 .snix{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:6px 28px 40px}
