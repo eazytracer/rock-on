@@ -117,7 +117,7 @@ export function CastAssignSheet({
                       {a.memberName ?? 'Member'}
                     </span>
                     {a.memberId === currentUserId && (
-                      <span className="flex-shrink-0 rounded-full bg-info px-2 py-0.5 text-[10px] font-semibold text-white">
+                      <span className="flex-shrink-0 rounded-full bg-info px-2 py-0.5 text-[10px] font-semibold text-ink-1">
                         You
                       </span>
                     )}
@@ -153,7 +153,7 @@ export function CastAssignSheet({
                     <button
                       onClick={() => void onAcceptHand(h)}
                       data-testid={`cast-sheet-hand-cast-${h.userId}`}
-                      className="inline-flex items-center gap-1 rounded-full bg-info px-2 py-1 text-[11px] font-semibold text-white hover:brightness-110"
+                      className="inline-flex items-center gap-1 rounded-full bg-info px-2 py-1 text-[11px] font-semibold text-ink-1 hover:brightness-110"
                     >
                       <Check size={12} /> Cast
                     </button>
@@ -185,7 +185,7 @@ export function CastAssignSheet({
                       {p.name}
                     </span>
                     {p.id === currentUserId && (
-                      <span className="ml-auto flex-shrink-0 rounded-full bg-info px-2 py-0.5 text-[10px] font-semibold text-white">
+                      <span className="ml-auto flex-shrink-0 rounded-full bg-info px-2 py-0.5 text-[10px] font-semibold text-ink-1">
                         You
                       </span>
                     )}

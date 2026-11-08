@@ -25,17 +25,17 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         components={{
           // Headings
           h1: ({ children }) => (
-            <h1 className="text-2xl font-bold text-white mb-4 mt-6">
+            <h1 className="text-2xl font-bold text-ink-1 mb-4 mt-6">
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-xl font-bold text-white mb-3 mt-5">
+            <h2 className="text-xl font-bold text-ink-1 mb-3 mt-5">
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-lg font-semibold text-white mb-2 mt-4">
+            <h3 className="text-lg font-semibold text-ink-1 mb-2 mt-4">
               {children}
             </h3>
           ),
@@ -90,7 +90,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           ),
           // Strong/Bold
           strong: ({ children }) => (
-            <strong className="font-bold text-white">{children}</strong>
+            <strong className="font-bold text-ink-1">{children}</strong>
           ),
           // Emphasis/Italic
           em: ({ children }) => (

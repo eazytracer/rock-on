@@ -211,7 +211,7 @@ export function SongCastPanel({
                         {c.memberName ?? personName(c.memberId)}
                       </span>
                       {isMe && (
-                        <span className="rounded-full bg-info px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        <span className="rounded-full bg-info px-1.5 py-0.5 text-[10px] font-semibold text-ink-1">
                           You
                         </span>
                       )}

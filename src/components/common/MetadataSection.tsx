@@ -24,7 +24,7 @@ export const MetadataSection: React.FC<MetadataSectionProps> = ({
       className={`bg-bg-1 border border-border-1 rounded-lg p-4 sm:p-6 ${className}`}
     >
       {title && (
-        <h2 className="text-lg font-semibold text-white mb-4">{title}</h2>
+        <h2 className="text-lg font-semibold text-ink-1 mb-4">{title}</h2>
       )}
       <div className={`grid ${gridCols[columns]} gap-4 sm:gap-6`}>
         {children}

@@ -103,7 +103,7 @@ export const ScheduleMetaRow: React.FC<ScheduleMetaRowProps> = ({
               data-testid={testId ? `${testId}-date` : undefined}
             />
           ) : (
-            <span className="text-white">{dateLabel || date}</span>
+            <span className="text-ink-1">{dateLabel || date}</span>
           )}
         </div>
       )}
@@ -124,7 +124,7 @@ export const ScheduleMetaRow: React.FC<ScheduleMetaRowProps> = ({
               data-testid={testId ? `${testId}-time` : undefined}
             />
           ) : (
-            <span className="text-white">{timeLabel || time}</span>
+            <span className="text-ink-1">{timeLabel || time}</span>
           )}
           {hasEndTime && (
             <>
@@ -139,7 +139,7 @@ export const ScheduleMetaRow: React.FC<ScheduleMetaRowProps> = ({
                   data-testid={testId ? `${testId}-end-time` : undefined}
                 />
               ) : (
-                <span className="text-white">{endTimeLabel || endTime}</span>
+                <span className="text-ink-1">{endTimeLabel || endTime}</span>
               )}
             </>
           )}
@@ -164,7 +164,7 @@ export const ScheduleMetaRow: React.FC<ScheduleMetaRowProps> = ({
                 }
               />
             ) : (
-              <span className="text-white">{locationDisplay}</span>
+              <span className="text-ink-1">{locationDisplay}</span>
             )}
           </div>
         </>
@@ -186,7 +186,7 @@ export const ScheduleMetaRow: React.FC<ScheduleMetaRowProps> = ({
                 data-testid={testId ? `${testId}-duration` : undefined}
               />
             ) : (
-              <span className="text-white">
+              <span className="text-ink-1">
                 {durationLabel || `${duration} min`}
               </span>
             )}

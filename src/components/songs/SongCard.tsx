@@ -134,9 +134,9 @@ export const SongCard: React.FC<SongCardProps> = ({
           <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate">
             {song.title}
           </h3>
-          <p className="text-sm text-gray-600 mb-3 truncate">{song.artist}</p>
+          <p className="text-sm text-ink-4 mb-3 truncate">{song.artist}</p>
 
-          <div className="flex items-center gap-4 text-sm text-gray-500">
+          <div className="flex items-center gap-4 text-sm text-ink-4">
             <div className="flex items-center gap-1">
               <svg
                 className="h-4 w-4"
@@ -179,7 +179,7 @@ export const SongCard: React.FC<SongCardProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={handleEdit}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors touch-manipulation rounded-lg hover:bg-gray-100"
+              className="p-2 text-ink-3 hover:text-ink-4 transition-colors touch-manipulation rounded-lg hover:bg-gray-100"
               aria-label="Edit song"
               data-testid="edit-song-button"
             >
@@ -199,7 +199,7 @@ export const SongCard: React.FC<SongCardProps> = ({
             </button>
             <button
               onClick={handleDelete}
-              className="p-2 text-gray-400 hover:text-red-600 transition-colors touch-manipulation rounded-lg hover:bg-red-50"
+              className="p-2 text-ink-3 hover:text-red-600 transition-colors touch-manipulation rounded-lg hover:bg-red-50"
               aria-label="Delete song"
               data-testid="delete-song-button"
             >

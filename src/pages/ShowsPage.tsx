@@ -44,8 +44,6 @@ import {
 } from '../utils/dateHelpers'
 import type { Setlist } from '../models/Setlist'
 // PHASE 2: Sync status visualization
-import { SyncIcon } from '../components/sync/SyncIcon'
-import { useItemStatus } from '../hooks/useItemSyncStatus'
 
 // ============================================
 // TYPES - UPDATED FOR DATABASE INTEGRATION
@@ -268,7 +266,7 @@ export const ShowsPage: React.FC = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-white">Shows</h1>
+              <h1 className="text-2xl font-bold text-ink-1">Shows</h1>
               <ChevronDown size={20} className="text-ink-3" />
             </div>
 
@@ -277,7 +275,7 @@ export const ShowsPage: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                 >
                   <FilterIcon size={20} />
                   <span className="capitalize">{filter}</span>
@@ -305,7 +303,7 @@ export const ShowsPage: React.FC = () => {
                         className={`w-full text-left px-4 py-2 text-sm transition-colors capitalize ${
                           filter === filterOption
                             ? 'bg-accent/10 text-accent'
-                            : 'text-white hover:bg-bg-4'
+                            : 'text-ink-1 hover:bg-bg-4'
                         }`}
                       >
                         {filterOption}
@@ -318,7 +316,7 @@ export const ShowsPage: React.FC = () => {
               <button
                 onClick={() => navigate('/shows/new')}
                 data-testid="create-show-button"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
               >
                 <Plus size={20} />
                 <span>Schedule Show</span>
@@ -335,7 +333,7 @@ export const ShowsPage: React.FC = () => {
                 <div className="text-xs font-semibold text-accent uppercase tracking-wider mb-1">
                   Next Show
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-1">
+                <h2 className="text-2xl font-bold text-ink-1 mb-1">
                   {nextShow.name || 'Untitled Show'}
                 </h2>
                 <div className="text-lg text-accent font-semibold">
@@ -346,7 +344,7 @@ export const ShowsPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 text-white">
+              <div className="flex items-center gap-3 text-ink-1">
                 <Calendar size={20} className="text-accent" />
                 <div>
                   <div className="text-sm font-medium">
@@ -359,7 +357,7 @@ export const ShowsPage: React.FC = () => {
               </div>
 
               {nextShow.venue && (
-                <div className="flex items-center gap-3 text-white">
+                <div className="flex items-center gap-3 text-ink-1">
                   <MapPin size={20} className="text-accent" />
                   <div>
                     <div className="text-sm font-medium">{nextShow.venue}</div>
@@ -373,7 +371,7 @@ export const ShowsPage: React.FC = () => {
               )}
 
               {nextShow.setlistId && setlistsData[nextShow.setlistId] && (
-                <div className="flex items-center gap-3 text-white">
+                <div className="flex items-center gap-3 text-ink-1">
                   <Music size={20} className="text-accent" />
                   <div>
                     <div className="text-sm font-medium">
@@ -392,7 +390,7 @@ export const ShowsPage: React.FC = () => {
               )}
 
               {nextShow.payment !== undefined && nextShow.payment > 0 && (
-                <div className="flex items-center gap-3 text-white">
+                <div className="flex items-center gap-3 text-ink-1">
                   <DollarSign size={20} className="text-accent" />
                   <div>
                     <div className="text-sm font-medium">
@@ -459,7 +457,6 @@ const ShowCard: React.FC<{
   getDaysUntilShow: (date: Date | string) => string
 }> = ({ show, setlist, onClick, onEdit, onDelete, getDaysUntilShow }) => {
   // PHASE 2: Get sync status for this show
-  const syncStatus = useItemStatus(show.id)
 
   const [isActionsOpen, setIsActionsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -541,7 +538,7 @@ const ShowCard: React.FC<{
                 className={`text-lg font-bold mb-1 ${
                   show.status === 'cancelled'
                     ? 'line-through text-ink-4'
-                    : 'text-white'
+                    : 'text-ink-1'
                 }`}
               >
                 {show.name}
@@ -549,12 +546,6 @@ const ShowCard: React.FC<{
               {isUpcoming && (
                 <div className="flex items-center gap-2 text-sm text-accent font-medium">
                   <span>{getDaysUntilShow(show.scheduledDate)}</span>
-                  <SyncIcon status={syncStatus} size="sm" />
-                </div>
-              )}
-              {!isUpcoming && (
-                <div className="flex items-center gap-2">
-                  <SyncIcon status={syncStatus} size="sm" />
                 </div>
               )}
             </div>
@@ -579,7 +570,7 @@ const ShowCard: React.FC<{
                         setIsActionsOpen(false)
                       }}
                       data-testid={`edit-show-${show.id}`}
-                      className="w-full text-left px-4 py-2 text-sm text-white hover:bg-bg-4 transition-colors flex items-center gap-2"
+                      className="w-full text-left px-4 py-2 text-sm text-ink-1 hover:bg-bg-4 transition-colors flex items-center gap-2"
                     >
                       <Edit2 size={16} />
                       Edit Show
@@ -602,7 +593,7 @@ const ShowCard: React.FC<{
           </div>
 
           {/* Time - Prominent */}
-          <div className="flex items-center gap-2 text-white font-medium mb-3">
+          <div className="flex items-center gap-2 text-ink-1 font-medium mb-3">
             <Clock size={16} className="text-accent" />
             <span>{formatTime12Hour(show.scheduledDate)}</span>
           </div>
@@ -690,7 +681,7 @@ const ShowCard: React.FC<{
           {isExpanded && setlist && (
             <div className="mt-4 pt-4 border-t border-border-1">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-white">
+                <h4 className="text-sm font-semibold text-ink-1">
                   Setlist Songs
                 </h4>
                 <div className="text-xs text-ink-3">
@@ -715,13 +706,13 @@ const SetlistSongMiniCard: React.FC<{ song: SetlistSong }> = ({ song }) => {
   return (
     <div className="flex items-center gap-3 p-3 bg-bg-1 rounded-lg border border-border-1 hover:border-border-2 transition-colors">
       {/* Position Number */}
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-border-1 flex items-center justify-center text-white text-sm font-semibold">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-border-1 flex items-center justify-center text-ink-1 text-sm font-semibold">
         {song.position}
       </div>
 
       {/* Song Info */}
       <div className="flex-1 min-w-0">
-        <div className="text-white font-medium text-sm truncate">
+        <div className="text-ink-1 font-medium text-sm truncate">
           {song.title}
         </div>
         <div className="text-ink-3 text-xs truncate">{song.artist}</div>
@@ -878,7 +869,7 @@ export const ScheduleShowModal: React.FC<{
       >
         {/* Modal Header */}
         <div className="sticky top-0 bg-bg-2 border-b border-border-1 p-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-xl font-bold text-ink-1">
             {show ? 'Edit Show' : 'Schedule Show'}
           </h2>
           <button
@@ -898,7 +889,7 @@ export const ScheduleShowModal: React.FC<{
             </h3>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm font-medium text-ink-1 mb-2">
                 Show/Event Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -911,7 +902,7 @@ export const ScheduleShowModal: React.FC<{
                 onChange={e =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 placeholder="e.g., Toys 4 Tots Benefit"
               />
             </div>
@@ -944,7 +935,7 @@ export const ScheduleShowModal: React.FC<{
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm font-medium text-ink-1 mb-2">
                 Status
               </label>
               <select
@@ -955,7 +946,7 @@ export const ScheduleShowModal: React.FC<{
                     status: e.target.value as Show['status'],
                   })
                 }
-                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               >
                 <option value="scheduled">Scheduled</option>
                 <option value="confirmed">Confirmed</option>
@@ -972,7 +963,7 @@ export const ScheduleShowModal: React.FC<{
             </h3>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm font-medium text-ink-1 mb-2">
                 Venue Name
               </label>
               <input
@@ -984,13 +975,13 @@ export const ScheduleShowModal: React.FC<{
                 onChange={e =>
                   setFormData({ ...formData, venue: e.target.value })
                 }
-                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 placeholder="e.g., The Whiskey Room"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm font-medium text-ink-1 mb-2">
                 Location/Address
               </label>
               <input
@@ -1002,7 +993,7 @@ export const ScheduleShowModal: React.FC<{
                 onChange={e =>
                   setFormData({ ...formData, location: e.target.value })
                 }
-                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 placeholder="Full address"
               />
             </div>
@@ -1040,7 +1031,7 @@ export const ScheduleShowModal: React.FC<{
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-ink-1 mb-2">
                   Duration (min)
                 </label>
                 <input
@@ -1049,14 +1040,14 @@ export const ScheduleShowModal: React.FC<{
                   onChange={e =>
                     setFormData({ ...formData, duration: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                   placeholder="90"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm font-medium text-ink-1 mb-2">
                 Setlist
               </label>
               <select
@@ -1067,7 +1058,7 @@ export const ScheduleShowModal: React.FC<{
                 onChange={e =>
                   setFormData({ ...formData, setlistId: e.target.value })
                 }
-                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               >
                 <option value="">No setlist assigned</option>
                 {availableSetlists.map(setlist => (
@@ -1098,7 +1089,7 @@ export const ScheduleShowModal: React.FC<{
             </h3>
 
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm font-medium text-ink-1 mb-2">
                 Amount ($)
               </label>
               <input
@@ -1107,7 +1098,7 @@ export const ScheduleShowModal: React.FC<{
                 onChange={e =>
                   setFormData({ ...formData, paymentAmount: e.target.value })
                 }
-                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 placeholder="0"
                 step="0.01"
               />
@@ -1156,14 +1147,14 @@ export const ScheduleShowModal: React.FC<{
                     type="text"
                     value={contact.name}
                     onChange={e => updateContact(index, 'name', e.target.value)}
-                    className="px-3 py-2 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:border-accent focus:outline-none"
+                    className="px-3 py-2 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-4 focus:border-accent focus:outline-none"
                     placeholder="Name"
                   />
                   <input
                     type="text"
                     value={contact.role || ''}
                     onChange={e => updateContact(index, 'role', e.target.value)}
-                    className="px-3 py-2 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:border-accent focus:outline-none"
+                    className="px-3 py-2 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-4 focus:border-accent focus:outline-none"
                     placeholder="Role (e.g., Venue Manager)"
                   />
                   <input
@@ -1172,7 +1163,7 @@ export const ScheduleShowModal: React.FC<{
                     onChange={e =>
                       updateContact(index, 'phone', e.target.value)
                     }
-                    className="px-3 py-2 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:border-accent focus:outline-none"
+                    className="px-3 py-2 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-4 focus:border-accent focus:outline-none"
                     placeholder="Phone"
                   />
                   <input
@@ -1181,7 +1172,7 @@ export const ScheduleShowModal: React.FC<{
                     onChange={e =>
                       updateContact(index, 'email', e.target.value)
                     }
-                    className="px-3 py-2 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:border-accent focus:outline-none"
+                    className="px-3 py-2 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-4 focus:border-accent focus:outline-none"
                     placeholder="Email"
                   />
                 </div>
@@ -1204,7 +1195,7 @@ export const ScheduleShowModal: React.FC<{
                 setFormData({ ...formData, notes: e.target.value })
               }
               rows={4}
-              className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
+              className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
               placeholder="Any additional details, special requirements, or reminders..."
             />
           </div>
@@ -1215,14 +1206,14 @@ export const ScheduleShowModal: React.FC<{
               type="button"
               onClick={onClose}
               data-testid="cancel-show-button"
-              className="px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+              className="px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               data-testid="save-show-button"
-              className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+              className="px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
             >
               {show ? 'Save Changes' : 'Schedule Show'}
             </button>
@@ -1252,10 +1243,10 @@ const DeleteConfirmationModal: React.FC<{
             <AlertCircle size={24} className="text-danger" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-white mb-2">Delete Show?</h3>
+            <h3 className="text-lg font-bold text-ink-1 mb-2">Delete Show?</h3>
             <p className="text-sm text-ink-3">
               Are you sure you want to delete "
-              <span className="text-white font-medium">
+              <span className="text-ink-1 font-medium">
                 {show.name || 'this show'}
               </span>
               "? This action cannot be undone.
@@ -1273,7 +1264,7 @@ const DeleteConfirmationModal: React.FC<{
           <button
             onClick={onCancel}
             data-testid="cancel-delete-show"
-            className="px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+            className="px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
           >
             Cancel
           </button>
@@ -1300,7 +1291,7 @@ const EmptyState: React.FC<{ onSchedule: () => void }> = ({ onSchedule }) => {
       <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-4">
         <Calendar size={32} className="text-accent" />
       </div>
-      <h3 className="text-xl font-bold text-white mb-2">No shows scheduled</h3>
+      <h3 className="text-xl font-bold text-ink-1 mb-2">No shows scheduled</h3>
       <p className="text-ink-3 text-sm mb-6 text-center max-w-md">
         Schedule your first show to get started and keep track of your upcoming
         performances
@@ -1308,7 +1299,7 @@ const EmptyState: React.FC<{ onSchedule: () => void }> = ({ onSchedule }) => {
       <button
         onClick={onSchedule}
         data-testid="create-show-button"
-        className="flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-white font-medium hover:bg-accent-deep transition-colors"
+        className="flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-on-accent font-medium hover:bg-accent-deep transition-colors"
       >
         <Plus size={20} />
         Schedule Show

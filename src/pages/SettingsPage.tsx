@@ -5,6 +5,8 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../hooks/useConfirm'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { TuningsSection } from '../components/tunings/TuningsSection'
+import { Segmented } from '../components/ui'
+import { useTheme } from '../contexts/ThemeContext'
 import {
   User,
   Mail,
@@ -15,6 +17,7 @@ import {
   Code,
   Database,
   Info,
+  SunMoon,
 } from 'lucide-react'
 import { isDev } from '../config/environment'
 import { queryClient } from '../services/queryClient'
@@ -45,6 +48,7 @@ import { VERSION_DISPLAY, BUILD_ID } from '../config/buildInfo'
  */
 export const SettingsPage: React.FC = () => {
   const { user, signOut } = useAuth()
+  const { theme, setTheme } = useTheme()
   const { showToast } = useToast()
   const { confirm, dialogProps } = useConfirm()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -112,6 +116,7 @@ export const SettingsPage: React.FC = () => {
   // Desktop left-nav sections (scroll-spy jump list). Mobile stacks them all.
   const navSections = [
     { id: 'settings-account', label: 'Account' },
+    { id: 'settings-appearance', label: 'Appearance' },
     { id: 'settings-tunings', label: 'Tunings' },
     { id: 'settings-privacy', label: 'Data & Privacy' },
     { id: 'settings-app-info', label: 'App Info' },
@@ -154,7 +159,7 @@ export const SettingsPage: React.FC = () => {
       <ContentLoadingSpinner isLoading={false}>
         <div data-testid="settings-page" className="max-w-4xl mx-auto">
           <div className="text-center py-12">
-            <p className="text-gray-400">Please sign in to view settings</p>
+            <p className="text-ink-3">Please sign in to view settings</p>
           </div>
         </div>
       </ContentLoadingSpinner>
@@ -166,8 +171,8 @@ export const SettingsPage: React.FC = () => {
       <div data-testid="settings-page" className="max-w-5xl mx-auto">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-          <p className="text-gray-400">
+          <h1 className="text-3xl font-bold text-ink-1 mb-2">Settings</h1>
+          <p className="text-ink-3">
             Manage your account and application preferences
           </p>
         </div>
@@ -211,19 +216,19 @@ export const SettingsPage: React.FC = () => {
                 <div className="p-2 bg-info/10 rounded-lg">
                   <User className="w-5 h-5 text-blue-400" />
                 </div>
-                <h2 className="text-xl font-semibold text-white">Account</h2>
+                <h2 className="text-xl font-semibold text-ink-1">Account</h2>
               </div>
 
               <div className="space-y-4">
                 {/* Email */}
                 <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <Mail className="w-5 h-5 text-ink-3 mt-0.5" />
                   <div className="flex-1">
-                    <label className="text-sm text-gray-400 block mb-1">
+                    <label className="text-sm text-ink-3 block mb-1">
                       Email
                     </label>
                     <p
-                      className="text-white font-medium"
+                      className="text-ink-1 font-medium"
                       data-testid="account-email"
                     >
                       {user.email}
@@ -233,13 +238,13 @@ export const SettingsPage: React.FC = () => {
 
                 {/* Name */}
                 <div className="flex items-start gap-3">
-                  <User className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <User className="w-5 h-5 text-ink-3 mt-0.5" />
                   <div className="flex-1">
-                    <label className="text-sm text-gray-400 block mb-1">
+                    <label className="text-sm text-ink-3 block mb-1">
                       Name
                     </label>
                     <p
-                      className="text-white font-medium"
+                      className="text-ink-1 font-medium"
                       data-testid="account-name"
                     >
                       {user.name}
@@ -249,13 +254,13 @@ export const SettingsPage: React.FC = () => {
 
                 {/* User ID */}
                 <div className="flex items-start gap-3">
-                  <Key className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <Key className="w-5 h-5 text-ink-3 mt-0.5" />
                   <div className="flex-1">
-                    <label className="text-sm text-gray-400 block mb-1">
+                    <label className="text-sm text-ink-3 block mb-1">
                       User ID
                     </label>
                     <p
-                      className="text-gray-400 text-sm font-mono"
+                      className="text-ink-3 text-sm font-mono"
                       data-testid="account-user-id"
                     >
                       {user.id}
@@ -263,6 +268,35 @@ export const SettingsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </section>
+
+            {/* Appearance */}
+            <section
+              id="settings-appearance"
+              className="scroll-mt-4 bg-surface-elevated rounded-lg border border-border-1 p-6"
+              data-testid="appearance-section"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-accent/10 rounded-lg">
+                  <SunMoon className="w-5 h-5 text-accent-ink" />
+                </div>
+                <h2 className="text-xl font-semibold text-ink-1">Appearance</h2>
+              </div>
+              <Segmented
+                label="Theme"
+                data-testid="theme-segmented"
+                value={theme}
+                onChange={setTheme}
+                options={[
+                  { value: 'system', label: 'System' },
+                  { value: 'light', label: 'Light' },
+                  { value: 'dark', label: 'Dark' },
+                ]}
+              />
+              <p className="mt-3 text-sm text-ink-3">
+                System follows your device. Stage screens stay easy to read
+                either way.
+              </p>
             </section>
 
             {/* Tunings Section (fork #2) */}
@@ -279,7 +313,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="p-2 bg-red-500/10 rounded-lg">
                   <AlertTriangle className="w-5 h-5 text-red-400" />
                 </div>
-                <h2 className="text-xl font-semibold text-white">
+                <h2 className="text-xl font-semibold text-ink-1">
                   Data &amp; Privacy
                 </h2>
               </div>
@@ -289,10 +323,10 @@ export const SettingsPage: React.FC = () => {
                   <div className="flex items-start gap-3 mb-4">
                     <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <h3 className="text-white font-semibold mb-1">
+                      <h3 className="text-ink-1 font-semibold mb-1">
                         Delete Account
                       </h3>
-                      <p className="text-sm text-gray-400 mb-4">
+                      <p className="text-sm text-ink-3 mb-4">
                         Permanently delete your account and all associated data.
                         This action cannot be undone.
                       </p>
@@ -320,27 +354,25 @@ export const SettingsPage: React.FC = () => {
                 <div className="p-2 bg-info/10 rounded-lg">
                   <Info className="w-5 h-5 text-blue-400" />
                 </div>
-                <h2 className="text-xl font-semibold text-white">App Info</h2>
+                <h2 className="text-xl font-semibold text-ink-1">App Info</h2>
               </div>
 
               <div className="space-y-4">
                 {/* Version Info */}
                 <div className="flex items-start gap-3">
-                  <Code className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <Code className="w-5 h-5 text-ink-3 mt-0.5" />
                   <div className="flex-1">
-                    <label className="text-sm text-gray-400 block mb-1">
+                    <label className="text-sm text-ink-3 block mb-1">
                       Version
                     </label>
                     <p
-                      className="text-white font-mono text-sm"
+                      className="text-ink-1 font-mono text-sm"
                       data-testid="version-info"
                     >
                       {VERSION_DISPLAY}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Build: {BUILD_ID}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-4 mt-1">Build: {BUILD_ID}</p>
+                    <p className="text-xs text-ink-4 mt-1">
                       If your app is outdated, try refreshing or clearing
                       browser cache.
                     </p>
@@ -360,7 +392,7 @@ export const SettingsPage: React.FC = () => {
                   <div className="p-2 bg-green-500/10 rounded-lg">
                     <Code className="w-5 h-5 text-green-400" />
                   </div>
-                  <h2 className="text-xl font-semibold text-white">
+                  <h2 className="text-xl font-semibold text-ink-1">
                     Developer
                   </h2>
                   <span className="ml-auto px-2 py-1 bg-green-500/10 text-green-400 text-xs font-medium rounded">
@@ -371,18 +403,18 @@ export const SettingsPage: React.FC = () => {
                 <div className="space-y-4">
                   {/* Clear Local Data */}
                   <div className="flex items-start gap-3">
-                    <Database className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <Database className="w-5 h-5 text-ink-3 mt-0.5" />
                     <div className="flex-1">
-                      <label className="text-sm text-gray-400 block mb-1">
+                      <label className="text-sm text-ink-3 block mb-1">
                         Local Database
                       </label>
-                      <p className="text-sm text-gray-400 mb-3">
+                      <p className="text-sm text-ink-3 mb-3">
                         Clear cached data from this browser. This will log you
                         out; your data is reloaded from the cloud on next login.
                       </p>
                       <button
                         onClick={handleClearLocalData}
-                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-ink-1 rounded-lg font-medium transition-colors flex items-center gap-2"
                         data-testid="clear-local-data-button"
                       >
                         <Database className="w-4 h-4" />
@@ -405,13 +437,13 @@ export const SettingsPage: React.FC = () => {
         >
           <div className="bg-surface-elevated border border-white/10 rounded-lg max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white">Delete Account</h3>
+              <h3 className="text-xl font-bold text-ink-1">Delete Account</h3>
               <button
                 onClick={() => {
                   setShowDeleteModal(false)
                   setDeleteConfirmation('')
                 }}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-ink-3 hover:text-ink-1 transition-colors"
                 disabled={isDeleting}
               >
                 <X className="w-5 h-5" />
@@ -422,12 +454,12 @@ export const SettingsPage: React.FC = () => {
               <div className="flex items-start gap-3 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-gray-300">
-                  <p className="font-semibold text-white mb-1">Warning</p>
+                  <p className="font-semibold text-ink-1 mb-1">Warning</p>
                   <p>
                     This will permanently delete your account and all associated
                     data:
                   </p>
-                  <ul className="list-disc list-inside mt-2 space-y-1 text-gray-400">
+                  <ul className="list-disc list-inside mt-2 space-y-1 text-ink-3">
                     <li>All bands you created</li>
                     <li>All songs, setlists, and practices</li>
                     <li>All band memberships</li>
@@ -438,15 +470,15 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
 
-              <label className="block text-sm text-gray-400 mb-2">
-                Type <span className="font-mono text-white">DELETE</span> to
+              <label className="block text-sm text-ink-3 mb-2">
+                Type <span className="font-mono text-ink-1">DELETE</span> to
                 confirm:
               </label>
               <input
                 type="text"
                 value={deleteConfirmation}
                 onChange={e => setDeleteConfirmation(e.target.value)}
-                className="w-full px-4 py-2 bg-surface border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-4 py-2 bg-surface border border-white/10 rounded-lg text-ink-1 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="DELETE"
                 disabled={isDeleting}
                 autoFocus
@@ -460,7 +492,7 @@ export const SettingsPage: React.FC = () => {
                   setShowDeleteModal(false)
                   setDeleteConfirmation('')
                 }}
-                className="flex-1 px-4 py-2 bg-surface border border-white/10 text-white rounded-lg font-medium hover:bg-surface-elevated transition-colors"
+                className="flex-1 px-4 py-2 bg-surface border border-white/10 text-ink-1 rounded-lg font-medium hover:bg-surface-elevated transition-colors"
                 disabled={isDeleting}
                 data-testid="delete-account-cancel-button"
               >

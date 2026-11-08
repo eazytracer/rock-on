@@ -287,7 +287,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             : 'hover:border-border-2 cursor-pointer'
         } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
       >
-        <span className={selectedDate ? 'text-white' : 'text-ink-4'}>
+        <span className={selectedDate ? 'text-ink-1' : 'text-ink-4'}>
           {displayValue}
         </span>
         <div className="flex items-center gap-2">
@@ -317,7 +317,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             }}
             placeholder="Type a date (e.g. March or 1/15)"
             data-testid={dataTestId ? `${dataTestId}-type-input` : undefined}
-            className="w-full h-9 px-3 mb-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            className="w-full h-9 px-3 mb-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
           />
 
           {/* Month/Year header */}
@@ -325,19 +325,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={() => navigateMonth(-1)}
-              className="p-1 text-ink-3 hover:text-white hover:bg-bg-4 rounded transition-colors"
+              className="p-1 text-ink-3 hover:text-ink-1 hover:bg-bg-4 rounded transition-colors"
               data-testid={`${dataTestId}-prev-month`}
               aria-label="Previous month"
             >
               <ChevronLeft size={20} />
             </button>
-            <span className="text-white font-medium">
+            <span className="text-ink-1 font-medium">
               {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
             </span>
             <button
               type="button"
               onClick={() => navigateMonth(1)}
-              className="p-1 text-ink-3 hover:text-white hover:bg-bg-4 rounded transition-colors"
+              className="p-1 text-ink-3 hover:text-ink-1 hover:bg-bg-4 rounded transition-colors"
               data-testid={`${dataTestId}-next-month`}
               aria-label="Next month"
             >
@@ -377,10 +377,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                     dateDisabled
                       ? 'text-ink-5 cursor-not-allowed'
                       : selected
-                        ? 'bg-accent text-white font-medium'
+                        ? 'bg-accent text-on-accent font-medium'
                         : today
-                          ? 'bg-[#2563eb] text-white'
-                          : 'text-ink-3 hover:bg-bg-4 hover:text-white'
+                          ? 'bg-accent text-on-accent'
+                          : 'text-ink-3 hover:bg-bg-4 hover:text-on-accent'
                   }`}
                 >
                   {date.getDate()}

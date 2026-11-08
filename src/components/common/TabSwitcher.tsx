@@ -39,8 +39,8 @@ export function TabSwitcher<T extends string = string>({
   const tabBase = `flex items-center gap-1.5 rounded-md font-medium transition-colors ${
     isSm ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-xs'
   }`
-  const tabActive = 'bg-accent text-white'
-  const tabInactive = 'text-ink-3 hover:text-white'
+  const tabActive = 'bg-accent text-on-accent'
+  const tabInactive = 'text-ink-3 hover:text-ink-1'
 
   return (
     <div

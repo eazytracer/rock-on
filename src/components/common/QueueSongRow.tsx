@@ -106,7 +106,7 @@ export function QueueSongRow({
 
       {/* Song info */}
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate">{song.title}</p>
+        <p className="text-ink-1 text-sm font-medium truncate">{song.title}</p>
         {song.artist && (
           <p className="text-ink-4 text-xs truncate">{song.artist}</p>
         )}

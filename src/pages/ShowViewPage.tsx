@@ -78,7 +78,7 @@ const ContactCard: React.FC<{
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <div className="text-white font-medium">{contact.name}</div>
+          <div className="text-ink-1 font-medium">{contact.name}</div>
           {contact.role && (
             <>
               <span className="text-ink-5">•</span>
@@ -141,7 +141,7 @@ const EditableContactCard: React.FC<{
           onChange={e => onChange({ ...contact, name: e.target.value })}
           onBlur={onBlur}
           placeholder="Name *"
-          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
           autoFocus
         />
         <input
@@ -150,7 +150,7 @@ const EditableContactCard: React.FC<{
           onChange={e => onChange({ ...contact, role: e.target.value })}
           onBlur={onBlur}
           placeholder="Role (e.g., Venue Manager)"
-          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
         />
         <input
           type="tel"
@@ -158,7 +158,7 @@ const EditableContactCard: React.FC<{
           onChange={e => onChange({ ...contact, phone: e.target.value })}
           onBlur={onBlur}
           placeholder="Phone"
-          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
         />
         <input
           type="email"
@@ -166,7 +166,7 @@ const EditableContactCard: React.FC<{
           onChange={e => onChange({ ...contact, email: e.target.value })}
           onBlur={onBlur}
           placeholder="Email"
-          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+          className="px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
         />
       </div>
       <div className="flex justify-end mt-2">
@@ -597,14 +597,14 @@ export const ShowViewPage: React.FC = () => {
           {isNewMode && (
             <div className="bg-bg-1 border border-accent rounded-lg p-4 flex items-center justify-between">
               <div>
-                <p className="text-white font-medium">Creating new show</p>
+                <p className="text-ink-1 font-medium">Creating new show</p>
                 <p className="text-sm text-ink-4">
                   Click any field above to edit, then save when ready
                 </p>
               </div>
               <button
                 onClick={createShow}
-                className="px-4 py-2 bg-accent hover:bg-accent-deep text-white font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-accent hover:bg-accent-deep text-on-accent font-medium rounded-lg transition-colors"
                 data-testid="create-show-button"
               >
                 Create Show
@@ -772,7 +772,7 @@ export const ShowViewPage: React.FC = () => {
                   <button
                     onClick={() => navigate(`/setlists/${setlist.id}`)}
                     data-testid="edit-setlist-button"
-                    className="px-3 py-1.5 text-sm bg-bg-2 border border-border-1 text-white rounded-lg hover:bg-bg-4 hover:border-border-2 transition-colors"
+                    className="px-3 py-1.5 text-sm bg-bg-2 border border-border-1 text-ink-1 rounded-lg hover:bg-bg-4 hover:border-border-2 transition-colors"
                   >
                     Edit Setlist
                   </button>
@@ -815,7 +815,7 @@ export const ShowViewPage: React.FC = () => {
                 <div className="flex items-center gap-3 mb-4 p-4 bg-bg-1 rounded-lg border border-border-1">
                   <Music size={20} className="text-accent" />
                   <div className="flex-1">
-                    <div className="text-white font-medium">{setlist.name}</div>
+                    <div className="text-ink-1 font-medium">{setlist.name}</div>
                     {setlist.notes && (
                       <div className="text-xs text-ink-3 mt-1">
                         {setlist.notes}
@@ -824,7 +824,7 @@ export const ShowViewPage: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleSetlistChange('')}
-                    className="text-xs text-ink-4 hover:text-white transition-colors"
+                    className="text-xs text-ink-4 hover:text-ink-1 transition-colors"
                     data-testid="remove-setlist-button"
                   >
                     Remove

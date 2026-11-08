@@ -139,7 +139,7 @@ const MatchItem: React.FC<MatchItemProps> = ({
 
       {/* Song info */}
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate">
+        <p className="text-ink-1 text-sm font-medium truncate">
           {match.displayTitle}
         </p>
         <p className="text-ink-4 text-xs truncate">{match.displayArtist}</p>

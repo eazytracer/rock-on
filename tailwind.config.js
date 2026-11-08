@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -33,6 +30,14 @@ export default {
         info: 'rgb(var(--info-rgb) / <alpha-value>)',
         success: 'rgb(var(--success-rgb) / <alpha-value>)',
         warn: 'rgb(var(--warn-rgb) / <alpha-value>)',
+        divider: 'rgb(var(--divider-rgb) / <alpha-value>)',
+        'on-accent': 'rgb(var(--on-accent-rgb) / <alpha-value>)',
+        'accent-ink': 'rgb(var(--accent-ink-rgb) / <alpha-value>)',
+        chord: 'rgb(var(--chord-rgb) / <alpha-value>)',
+        'danger-fill': 'rgb(var(--danger-fill-rgb) / <alpha-value>)',
+        'type-show': 'rgb(var(--type-show-rgb) / <alpha-value>)',
+        'type-practice': 'rgb(var(--type-practice-rgb) / <alpha-value>)',
+        'type-jam': 'rgb(var(--type-jam-rgb) / <alpha-value>)',
 
         // Legacy brand aliases — point at the unified accent / token surfaces so the
         // ~65 arbitrary-hex files migrate cleanly and the two oranges collapse to one.
@@ -67,18 +72,27 @@ export default {
           3: '#eab308',
           4: '#22c55e',
           5: '#10b981',
-        }
+        },
+      },
+      boxShadow: {
+        float: 'var(--shadow-float)',
+        sheet: 'var(--shadow-sheet)',
+        group: 'var(--shadow-group)',
+      },
+      transitionTimingFunction: {
+        rock: 'cubic-bezier(.2,0,0,1)',
       },
       spacing: {
-        'touch': '44px', // iOS minimum touch target
+        touch: '44px', // iOS minimum touch target
         'touch-lg': '56px', // Comfortable touch target
       },
       screens: {
-        'xs': '320px',
+        xs: '320px',
       },
       fontFamily: {
-        sans: ['Geist', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        display: ['"Big Shoulders Display"', 'sans-serif'],
+        sans: ['"Atkinson Hyperlegible Next"', 'system-ui', 'sans-serif'],
+        mono: ['"Martian Mono"', 'ui-monospace', 'monospace'],
       },
       keyframes: {
         'slide-down': {
@@ -93,14 +107,17 @@ export default {
           '0%': { width: '100%' },
           '100%': { width: '0%' },
         },
+        skeleton: {
+          to: { backgroundPosition: '-200% 0' },
+        },
       },
       animation: {
         'slide-down': 'slide-down 0.3s ease-out',
         'slide-in-right': 'slide-in-right 0.3s ease-out',
         'toast-progress': 'toast-progress 4s linear',
+        skeleton: 'skeleton 1.4s linear infinite',
       },
     },
   },
   plugins: [],
 }
-

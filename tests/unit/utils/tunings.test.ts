@@ -60,13 +60,13 @@ describe('canonicalTuningId', () => {
 
 describe('tuningColor', () => {
   it('returns the Palette A color for built-ins', () => {
-    expect(tuningColor('Standard')).toBe('#60a5fa')
-    expect(tuningColor('Drop D')).toBe('#f97316')
+    expect(tuningColor('Standard')).toBe('var(--tuning-standard)')
+    expect(tuningColor('Drop D')).toBe('var(--tuning-drop-d)')
   })
 
   it('resolves legacy Eb/D labels to the correct built-in color (not neutral)', () => {
-    expect(tuningColor('Eb Standard')).toBe('#14b8a6') // half-step-down
-    expect(tuningColor('D Standard')).toBe('#0ea5e9') // whole-step-down
+    expect(tuningColor('Eb Standard')).toBe('var(--tuning-half-step-down)') // half-step-down
+    expect(tuningColor('D Standard')).toBe('var(--tuning-whole-step-down)') // whole-step-down
   })
 
   it('returns the neutral fallback for genuinely custom tunings', () => {
@@ -100,10 +100,10 @@ describe('CANONICAL_TUNINGS registry', () => {
 })
 
 describe('BUILTIN_TUNINGS (mirrors the DB seed)', () => {
-  it('has the 17 seeded built-ins with unique slugs', () => {
-    expect(BUILTIN_TUNINGS).toHaveLength(17)
+  it('has the 18 seeded built-ins with unique slugs', () => {
+    expect(BUILTIN_TUNINGS).toHaveLength(18)
     const slugs = BUILTIN_TUNINGS.map(t => t.slug)
-    expect(new Set(slugs).size).toBe(17)
+    expect(new Set(slugs).size).toBe(18)
   })
 
   it('every pitch array length equals its string count (DB CHECK parity)', () => {

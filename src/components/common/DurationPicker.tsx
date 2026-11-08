@@ -125,9 +125,9 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 flex items-center justify-between"
+        className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 flex items-center justify-between"
       >
-        <span className={value === 0 ? 'text-ink-4' : 'text-white'}>
+        <span className={value === 0 ? 'text-ink-4' : 'text-ink-1'}>
           <Clock size={16} className="inline mr-2" />
           {formatDuration(value)}
         </span>
@@ -146,8 +146,8 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
               onClick={() => setViewMode('duration')}
               className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
                 viewMode === 'duration'
-                  ? 'bg-accent text-white'
-                  : 'text-ink-3 hover:bg-bg-4 hover:text-white'
+                  ? 'bg-accent text-on-accent'
+                  : 'text-ink-3 hover:bg-bg-4 hover:text-on-accent'
               }`}
             >
               Duration
@@ -157,8 +157,8 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
               onClick={() => setViewMode('time-range')}
               className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
                 viewMode === 'time-range'
-                  ? 'bg-accent text-white'
-                  : 'text-ink-3 hover:bg-bg-4 hover:text-white'
+                  ? 'bg-accent text-on-accent'
+                  : 'text-ink-3 hover:bg-bg-4 hover:text-on-accent'
               }`}
             >
               Time Range
@@ -176,8 +176,8 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
                     onClick={() => handlePresetSelect(preset.value)}
                     className={`px-3 py-2 rounded text-sm transition-colors ${
                       value === preset.value
-                        ? 'bg-accent text-white'
-                        : 'text-ink-3 hover:bg-bg-4 hover:text-white'
+                        ? 'bg-accent text-on-accent'
+                        : 'text-ink-3 hover:bg-bg-4 hover:text-on-accent'
                     }`}
                   >
                     {preset.label}
@@ -197,13 +197,13 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
                     onChange={handleCustomDuration}
                     onKeyDown={e => e.key === 'Enter' && applyCustomDuration()}
                     placeholder="e.g., 75"
-                    className="flex-1 px-3 py-2 bg-bg-1 border border-border-1 rounded text-white text-sm focus:border-accent focus:outline-none"
+                    className="flex-1 px-3 py-2 bg-bg-1 border border-border-1 rounded text-ink-1 text-sm focus:border-accent focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={applyCustomDuration}
                     disabled={!customDuration}
-                    className="px-4 py-2 bg-accent text-white text-sm rounded hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    className="px-4 py-2 bg-accent text-on-accent text-sm rounded hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                   >
                     Apply
                   </button>
@@ -234,7 +234,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
                 <div className="pt-3 border-t border-border-1 text-center">
                   <div className="text-sm text-ink-3">
                     Duration:{' '}
-                    <span className="text-white font-medium">
+                    <span className="text-ink-1 font-medium">
                       {formatDuration(value)}
                     </span>
                   </div>
@@ -245,7 +245,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
                 type="button"
                 onClick={() => setIsOpen(false)}
                 disabled={!startTime || !endTime}
-                className="w-full px-4 py-2 bg-accent text-white text-sm rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                className="w-full px-4 py-2 bg-accent text-on-accent text-sm rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
               >
                 Done
               </button>

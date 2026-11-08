@@ -602,7 +602,7 @@ export const SetlistViewPage: React.FC = () => {
           {isNewMode && (
             <div className="bg-bg-1 border border-accent rounded-lg p-4 flex items-center justify-between">
               <div>
-                <p className="text-white font-medium">Creating new setlist</p>
+                <p className="text-ink-1 font-medium">Creating new setlist</p>
                 <p className="text-sm text-ink-4">
                   Click any field above to edit, then save when ready
                 </p>
@@ -611,7 +611,7 @@ export const SetlistViewPage: React.FC = () => {
                 type="submit"
                 onClick={createSetlist}
                 disabled={saving}
-                className="px-4 py-2 bg-accent hover:bg-accent-deep text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-accent hover:bg-accent-deep text-on-accent font-medium rounded-lg transition-colors disabled:opacity-50"
                 data-testid="create-setlist-button"
               >
                 {saving ? 'Creating...' : 'Create Setlist'}
@@ -656,7 +656,7 @@ export const SetlistViewPage: React.FC = () => {
                   <label className="block text-sm text-ink-4 mb-0.5">
                     Songs
                   </label>
-                  <span className="text-white text-sm">{songCount} songs</span>
+                  <span className="text-ink-1 text-sm">{songCount} songs</span>
                 </div>
               </div>
 
@@ -669,7 +669,7 @@ export const SetlistViewPage: React.FC = () => {
                   <label className="block text-sm text-ink-4 mb-0.5">
                     Duration
                   </label>
-                  <span className="text-white text-sm">
+                  <span className="text-ink-1 text-sm">
                     {formatTotalDuration(totalDuration)}
                   </span>
                 </div>
@@ -690,7 +690,7 @@ export const SetlistViewPage: React.FC = () => {
           {/* Divider and Items Header */}
           <div className="border-t border-border-1 pt-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-ink-1">
                 Setlist Items ({items.length})
               </h2>
               <AddItemDropdown
@@ -804,7 +804,7 @@ export const SetlistViewPage: React.FC = () => {
         {showSectionInput && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-bg-2 rounded-lg border border-border-1 p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold text-white mb-4">
+              <h3 className="text-lg font-semibold text-ink-1 mb-4">
                 Add Section
               </h3>
               <input
@@ -812,7 +812,7 @@ export const SetlistViewPage: React.FC = () => {
                 value={sectionTitle}
                 onChange={e => setSectionTitle(e.target.value)}
                 placeholder="Enter section title..."
-                className="w-full px-4 py-3 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-5 focus:border-accent focus:outline-none mb-4"
+                className="w-full px-4 py-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 placeholder-ink-5 focus:border-accent focus:outline-none mb-4"
                 autoFocus
                 onKeyDown={e => {
                   if (e.key === 'Enter' && sectionTitle.trim()) {
@@ -829,14 +829,14 @@ export const SetlistViewPage: React.FC = () => {
                     setShowSectionInput(false)
                     setSectionTitle('')
                   }}
-                  className="px-4 py-2 text-ink-3 hover:text-white transition-colors"
+                  className="px-4 py-2 text-ink-3 hover:text-ink-1 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => addSection(sectionTitle)}
                   disabled={!sectionTitle.trim()}
-                  className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add Section
                 </button>

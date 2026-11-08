@@ -8,27 +8,57 @@
    by src/utils/tokens.ts for JS-computed inline styles. A re-skin
    is a one-file edit here.
    ───────────────────────────────────────────────────────────── */
+/* Redesign (Nov 2026): warm palette from design/source/kit/rock.css. Dark is the
+   default; <html data-theme="light"> and <html data-ctx="personal"> override the
+   channels below (ThemeContext sets both). */
 :root {
+  color-scheme: dark;
   /* Raw RGB channels — power Tailwind's <alpha-value> opacity modifier
      (see tailwind.config.js: rgb(var(--x-rgb) / <alpha-value>)). */
-  --bg-0-rgb: 10 10 10;
-  --bg-1-rgb: 18 18 18;
-  --bg-2-rgb: 26 26 26;
-  --bg-3-rgb: 31 31 31;
-  --bg-4-rgb: 37 37 37;
-  --border-1-rgb: 42 42 42;
-  --border-2-rgb: 58 58 58;
-  --ink-1-rgb: 255 255 255;
-  --ink-2-rgb: 200 200 200;
-  --ink-3-rgb: 160 160 160;
-  --ink-4-rgb: 112 112 112;
-  --ink-5-rgb: 80 80 80;
-  --ink-6-rgb: 58 58 58;
-  --accent-rgb: 255 122 26; /* #ff7a1a — unified; replaces #FE4401 and #f17827 */
-  --info-rgb: 90 169 255;
+  --bg-0-rgb: 8 7 6; /* deeper than page: stage, TV */
+  --bg-1-rgb: 12 11 10; /* kit --bg   page */
+  --bg-2-rgb: 21 19 17; /* kit --s1   card / group */
+  --bg-3-rgb: 29 26 23; /* kit --s2   control fill, chips */
+  --bg-4-rgb: 38 34 30; /* kit --s3   raised fill, sheets */
+  --border-1-rgb: 42 37 34; /* kit --line */
+  --border-2-rgb: 58 52 47; /* stronger border */
+  --divider-rgb: 34 31 27; /* kit --div  row dividers */
+  --ink-1-rgb: 244 239 233; /* kit --tx */
+  --ink-2-rgb: 207 198 189; /* kit --tx2 */
+  --ink-3-rgb: 166 156 146; /* kit --mu */
+  --ink-4-rgb: 138 129 120; /* kit --mu2 */
+  --ink-5-rgb: 110 101 93; /* kit --dim */
+  --ink-6-rgb: 74 67 61;
+  --accent-rgb: 255 122 26; /* #ff7a1a band accent */
+  --on-accent-rgb: 26 12 2; /* text on accent */
+  --accent-ink-rgb: 255 122 26; /* accent used as text / icon */
+  --chord-rgb: 255 176 112;
+  --info-rgb: 108 184 255;
   --success-rgb: 62 201 134;
-  --warn-rgb: 255 182 72;
+  --warn-rgb: 255 209 102;
   --danger-rgb: 255 93 93;
+  --danger-fill-rgb: 204 51 51; /* destructive button fill */
+  --type-show-rgb: 255 154 77;
+  --type-practice-rgb: 108 184 255;
+  --type-jam-rgb: 197 139 255;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.55);
+  --shadow-sheet: 0 -8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-group: none;
+
+  /* Tuning colours (DECISIONS Part A · 1). Light values override below. */
+  --tuning-standard: #60a5fa;
+  --tuning-half-step-down: #14b8a6;
+  --tuning-whole-step-down: #0ea5e9;
+  --tuning-drop-d: #84cc16;
+  --tuning-drop-db: #f59e0b;
+  --tuning-drop-c: #d946ef;
+  --tuning-drop-b: #a855f7;
+  --tuning-open-g: #eab308;
+  --tuning-open-d: #ec4899;
+  --tuning-dadgad: #10b981;
+  --tuning-c-standard: #8b5cf6;
+  --tuning-unknown: #6b7280;
 
   /* Ready-to-use color values for direct CSS / JS inline styles. */
   --bg-0: rgb(var(--bg-0-rgb));
@@ -62,11 +92,76 @@
   --success-soft: rgb(var(--success-rgb) / 0.12);
   --warn-soft: rgb(var(--warn-rgb) / 0.14);
   --danger-soft: rgb(var(--danger-rgb) / 0.12);
+  --divider: rgb(var(--divider-rgb));
+  --on-accent: rgb(var(--on-accent-rgb));
+  --accent-ink: rgb(var(--accent-ink-rgb));
+  --chord: rgb(var(--chord-rgb));
+  --danger-fill: rgb(var(--danger-fill-rgb));
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg-0-rgb: 239 233 226;
+  --bg-1-rgb: 247 243 238;
+  --bg-2-rgb: 255 253 250;
+  --bg-3-rgb: 235 228 220;
+  --bg-4-rgb: 255 255 255;
+  --border-1-rgb: 221 212 202;
+  --border-2-rgb: 201 189 176;
+  --divider-rgb: 236 230 222;
+  --ink-1-rgb: 26 21 18;
+  --ink-2-rgb: 61 53 47;
+  --ink-3-rgb: 107 97 88;
+  --ink-4-rgb: 122 111 101;
+  --ink-5-rgb: 163 151 136;
+  --ink-6-rgb: 194 182 168;
+  --accent-ink-rgb: 184 77 0;
+  --chord-rgb: 184 77 0;
+  --info-rgb: 31 95 174;
+  --success-rgb: 28 128 80;
+  --warn-rgb: 154 98 0;
+  --danger-rgb: 204 51 51;
+  --type-show-rgb: 184 77 0;
+  --type-practice-rgb: 31 95 174;
+  --type-jam-rgb: 122 60 192;
+  --scrim: rgba(30, 20, 10, 0.35);
+  --shadow-float: 0 6px 20px rgba(60, 40, 20, 0.14);
+  --shadow-sheet: 0 -6px 24px rgba(60, 40, 20, 0.16);
+  --shadow-group: 0 1px 2px rgba(60, 40, 20, 0.08),
+    0 4px 14px rgba(60, 40, 20, 0.06);
+
+  --tuning-standard: #1d4ed8;
+  --tuning-half-step-down: #0f766e;
+  --tuning-whole-step-down: #0369a1;
+  --tuning-drop-d: #4d7c0f;
+  --tuning-drop-db: #b45309;
+  --tuning-drop-c: #a21caf;
+  --tuning-drop-b: #7e22ce;
+  --tuning-open-g: #a16207;
+  --tuning-open-d: #be185d;
+  --tuning-dadgad: #047857;
+  --tuning-c-standard: #6d28d9;
+  --tuning-unknown: #4b5563;
+}
+
+/* Personal context swaps the accent to indigo. */
+:root[data-ctx='personal'] {
+  --accent-rgb: 124 134 245;
+  --on-accent-rgb: 11 13 43;
+  --accent-ink-rgb: 154 162 255;
+}
+:root[data-theme='light'][data-ctx='personal'] {
+  --accent-ink-rgb: 63 73 201;
 }
 
 @layer base {
   html {
-    font-family: Geist, Inter, system-ui, sans-serif;
+    font-family: 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  }
+
+  body {
+    background: rgb(var(--bg-1-rgb));
+    color: rgb(var(--ink-1-rgb));
   }
 
   body {
@@ -127,7 +222,7 @@
   /* Custom Scrollbar Styles - Dark Theme */
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #3a3a3a #1a1a1a;
+    scrollbar-color: rgb(var(--border-2-rgb)) rgb(var(--bg-2-rgb));
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -136,24 +231,24 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #1a1a1a;
+    background: rgb(var(--bg-2-rgb));
     border-radius: 4px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #3a3a3a;
+    background: rgb(var(--border-2-rgb));
     border-radius: 4px;
-    border: 2px solid #1a1a1a;
+    border: 2px solid rgb(var(--bg-2-rgb));
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #4a4a4a;
+    background: rgb(var(--ink-6-rgb));
   }
 
   /* Thin variant for modals and dropdowns */
   .custom-scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #2a2a2a #121212;
+    scrollbar-color: rgb(var(--border-1-rgb)) rgb(var(--bg-1-rgb));
   }
 
   .custom-scrollbar-thin::-webkit-scrollbar {
@@ -162,17 +257,17 @@
   }
 
   .custom-scrollbar-thin::-webkit-scrollbar-track {
-    background: #121212;
+    background: rgb(var(--bg-1-rgb));
     border-radius: 3px;
   }
 
   .custom-scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #2a2a2a;
+    background: rgb(var(--border-1-rgb));
     border-radius: 3px;
   }
 
   .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #3a3a3a;
+    background: rgb(var(--border-2-rgb));
   }
 
   /* Fully hidden scrollbar — for horizontally scrollable strips (e.g. a tab
@@ -194,5 +289,5 @@
 input[type='date'],
 input[type='time'],
 input[type='datetime-local'] {
-  color-scheme: dark;
+  color-scheme: inherit;
 }

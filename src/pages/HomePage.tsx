@@ -180,7 +180,7 @@ export function HomePage() {
                   data-testid="home-create-band"
                   className="flex items-center gap-3 rounded-2xl border border-accent/30 bg-accent-soft p-4 text-left transition-colors hover:border-accent/60"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-on-accent">
                     <Users size={20} />
                   </span>
                   <span className="flex-1">

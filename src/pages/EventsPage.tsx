@@ -196,7 +196,7 @@ export function EventsPage() {
         <button
           onClick={() => navigate('/events/new')}
           data-testid="events-new-button"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent"
         >
           <Plus size={16} /> Host
         </button>

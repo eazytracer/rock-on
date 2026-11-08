@@ -155,7 +155,7 @@ describe('LineupCard', () => {
 
   it('displays the per-song tuning (canonical label) + key when present (6g)', () => {
     renderCard({ item: { ...ITEM, tuning: 'Drop D', key: 'Am' } })
-    expect(screen.getByTestId('lineup-tuning-li1')).toHaveTextContent('Drop D')
+    expect(screen.getByTestId('lineup-tuning-li1')).toHaveTextContent('D DROP')
     expect(screen.getByTestId('lineup-key-li1')).toHaveTextContent('Am')
   })
 

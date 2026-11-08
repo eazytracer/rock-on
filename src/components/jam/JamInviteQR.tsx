@@ -31,7 +31,7 @@ export const JamInviteQR: React.FC<JamInviteQRProps> = ({
             className="flex items-center justify-center bg-gray-200 rounded"
             style={{ width: size, height: size }}
           >
-            <span className="text-gray-500 text-sm">Loading QR...</span>
+            <span className="text-ink-4 text-sm">Loading QR...</span>
           </div>
         }
       >

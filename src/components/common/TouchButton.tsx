@@ -28,7 +28,7 @@ export const TouchButton: React.FC<TouchButtonProps> = ({
 
   const variantClasses = {
     primary: [
-      'bg-energy-orange text-white',
+      'bg-energy-orange text-on-accent',
       'hover:bg-energy-orange/90 focus:ring-energy-orange',
       'active:bg-energy-orange/80',
     ],
@@ -38,7 +38,7 @@ export const TouchButton: React.FC<TouchButtonProps> = ({
       'active:bg-steel-gray/80',
     ],
     danger: [
-      'bg-amp-red text-white',
+      'bg-amp-red text-ink-1',
       'hover:bg-amp-red/90 focus:ring-amp-red',
       'active:bg-amp-red/80',
     ],

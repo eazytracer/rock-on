@@ -282,7 +282,7 @@ export function EventCastGrid({
         // Your own raised hand — info-blue with a ring ("your cells get the blue ring").
         <span
           data-testid={`cast-cell-mine-${item.id}-${role.key}`}
-          className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-info text-white ring-2 ring-info/40 lg:h-8 lg:min-w-8"
+          className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-info text-ink-1 ring-2 ring-info/40 lg:h-8 lg:min-w-8"
         >
           <Hand size={12} />
         </span>

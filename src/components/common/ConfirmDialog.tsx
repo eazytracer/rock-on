@@ -82,7 +82,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             )}
             <div className="flex-1">
               <h3
-                className="text-white font-semibold text-lg mb-2"
+                className="text-ink-1 font-semibold text-lg mb-2"
                 data-testid="confirm-dialog-title"
               >
                 {title}
@@ -100,7 +100,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <button
               onClick={onClose}
               disabled={isLoading}
-              className="px-4 py-2 text-ink-3 text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-ink-3 text-sm font-medium hover:text-ink-1 transition-colors disabled:opacity-50"
               data-testid="confirm-dialog-cancel"
             >
               {cancelLabel}
@@ -108,7 +108,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <button
               onClick={handleConfirm}
               disabled={isLoading}
-              className={`flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${config.buttonColor}`}
+              className={`flex items-center gap-2 px-4 py-2 text-ink-1 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${config.buttonColor}`}
               data-testid="confirm-dialog-confirm"
             >
               {isLoading && <Loader2 size={16} className="animate-spin" />}

@@ -271,7 +271,7 @@ export function useLongPressProgress(
   const getProgressStyle = useCallback(() => {
     const { progress } = longPress.longPressState
     return {
-      background: `conic-gradient(#3b82f6 ${progress * 360}deg, #e5e7eb 0deg)`,
+      background: `conic-gradient(var(--accent) ${progress * 360}deg, var(--bg-3) 0deg)`,
       opacity: longPress.longPressState.isLongPressing ? 1 : 0,
       transition: 'opacity 0.2s ease-in-out',
     }

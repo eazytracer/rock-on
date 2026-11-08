@@ -65,10 +65,10 @@ export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
             contextType === 'band' ? 'bg-accent' : 'bg-info'
           } rounded-lg flex items-center justify-center flex-shrink-0`}
         >
-          <span className={`text-white font-bold ${logoText}`}>R</span>
+          <span className={`text-ink-1 font-bold ${logoText}`}>R</span>
         </div>
         <h1
-          className="text-white font-semibold text-base leading-tight truncate min-w-0"
+          className="text-ink-1 font-semibold text-base leading-tight truncate min-w-0"
           data-testid="sidebar-band-name"
         >
           {contextName}
@@ -128,7 +128,7 @@ export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
               navigate('/get-started')
             }}
             data-testid="context-switcher-create-band"
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-ink-3 hover:bg-bg-3 hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-ink-3 hover:bg-bg-3 hover:text-ink-1 transition-colors"
           >
             <Plus size={18} className="flex-shrink-0" />
             <span className="flex-1 text-left truncate">

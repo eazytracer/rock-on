@@ -591,7 +591,7 @@ export function CalendarPage() {
             <button
               onClick={() => navigate(activeKind.to)}
               data-testid="calendar-new-button"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent"
             >
               <Plus size={16} /> New {activeKind.singular}
             </button>
@@ -601,7 +601,7 @@ export function CalendarPage() {
                 onClick={() => setNewMenuOpen(o => !o)}
                 data-testid="calendar-new-button"
                 aria-expanded={newMenuOpen}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent"
               >
                 <Plus size={16} /> New
               </button>

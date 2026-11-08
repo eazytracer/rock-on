@@ -43,7 +43,7 @@ export const JamWatcherList: React.FC<JamWatcherListProps> = ({ watchers }) => {
                 aria-hidden
                 className="inline-block h-1.5 w-1.5 rounded-full bg-primary/70"
               />
-              <span className={hasName ? 'text-white' : 'text-ink-4 italic'}>
+              <span className={hasName ? 'text-ink-1' : 'text-ink-4 italic'}>
                 {label}
               </span>
             </li>

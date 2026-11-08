@@ -114,7 +114,7 @@ export const InlineStatusBadge: React.FC<InlineStatusBadgeProps> = ({
         className={`
           flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border
           transition-all cursor-pointer
-          ${currentOption?.color || 'text-gray-400 bg-gray-400/10 border-gray-400/20'}
+          ${currentOption?.color || 'text-ink-3 bg-gray-400/10 border-gray-400/20'}
           ${!disabled && !isSaving ? 'hover:ring-2 hover:ring-offset-1 hover:ring-offset-bg-0' : ''}
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
@@ -160,7 +160,7 @@ export const InlineStatusBadge: React.FC<InlineStatusBadgeProps> = ({
                     <OptionIcon size={14} />
                   </span>
                 )}
-                <span className="text-white">{option.label}</span>
+                <span className="text-ink-1">{option.label}</span>
                 {isSelected && (
                   <span className="ml-auto text-accent text-xs">Current</span>
                 )}
@@ -180,7 +180,7 @@ export const SHOW_STATUS_OPTIONS: StatusOption[] = [
     value: 'scheduled',
     label: 'Scheduled',
     color:
-      'text-gray-400 bg-gray-400/10 border-gray-400/20 hover:ring-gray-400/50',
+      'text-ink-3 bg-gray-400/10 border-gray-400/20 hover:ring-gray-400/50',
   },
   {
     value: 'confirmed',
@@ -205,7 +205,7 @@ export const SETLIST_STATUS_OPTIONS: StatusOption[] = [
     value: 'draft',
     label: 'Draft',
     color:
-      'text-gray-400 bg-gray-400/10 border-gray-400/20 hover:ring-gray-400/50',
+      'text-ink-3 bg-gray-400/10 border-gray-400/20 hover:ring-gray-400/50',
   },
   {
     value: 'active',

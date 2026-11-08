@@ -499,7 +499,7 @@ export function FriendsPage() {
                 onClick={handleAdd}
                 disabled={sending || !code.trim()}
                 data-testid="friends-add-button"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent disabled:opacity-50"
               >
                 <UserPlus size={16} /> Send
               </button>

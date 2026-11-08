@@ -81,7 +81,7 @@ function ActionButton({
   const styles =
     variant === 'primary'
       ? `${base} bg-accent/10 text-accent hover:bg-accent/20`
-      : `${base} text-ink-3 hover:text-white hover:bg-border-1`
+      : `${base} text-ink-3 hover:text-ink-1 hover:bg-border-1`
 
   return (
     <button

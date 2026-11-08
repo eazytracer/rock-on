@@ -546,7 +546,7 @@ export const PracticeViewPage: React.FC = () => {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
             <button
               onClick={() => navigate(`/practices/${practiceId}/session`)}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-accent to-accent-deep hover:from-accent-hot hover:to-accent-deep text-white font-semibold rounded-xl transition-all shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30"
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-accent to-accent-deep hover:from-accent-hot hover:to-accent-deep text-ink-1 font-semibold rounded-xl transition-all shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30"
               data-testid="start-practice-button"
             >
               <Play size={24} fill="currentColor" />
@@ -561,14 +561,14 @@ export const PracticeViewPage: React.FC = () => {
           {isNewMode && (
             <div className="bg-bg-1 border border-accent rounded-lg p-4 flex items-center justify-between">
               <div>
-                <p className="text-white font-medium">Creating new practice</p>
+                <p className="text-ink-1 font-medium">Creating new practice</p>
                 <p className="text-sm text-ink-4">
                   Click any field above to edit, then save when ready
                 </p>
               </div>
               <button
                 onClick={createPracticeHandler}
-                className="px-4 py-2 bg-accent hover:bg-accent-deep text-white font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-accent hover:bg-accent-deep text-on-accent font-medium rounded-lg transition-colors"
                 data-testid="create-practice-button"
               >
                 Create Practice
@@ -622,13 +622,13 @@ export const PracticeViewPage: React.FC = () => {
           {/* Divider and Songs Section - Full width, no container */}
           <div className="border-t border-border-1 pt-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-ink-1">
                 Songs ({songs.length})
               </h2>
               <button
                 onClick={() => setIsDrawerOpen(true)}
                 data-testid="add-songs-button"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
               >
                 <Plus size={18} />
                 <span>Add Songs</span>
@@ -646,7 +646,7 @@ export const PracticeViewPage: React.FC = () => {
                 </p>
                 <button
                   onClick={() => setIsDrawerOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
                 >
                   <Plus size={18} />
                   <span>Add Songs</span>

@@ -118,7 +118,7 @@ describe('EventCastGrid', () => {
       lineup: [{ ...LINEUP[0], tuning: 'Drop D', key: 'Am' }],
     })
     expect(screen.getByTestId('cast-grid-tuning-li1')).toHaveTextContent(
-      'Drop D'
+      'D DROP'
     )
     expect(screen.getByTestId('cast-grid-key-li1')).toHaveTextContent('Am')
   })

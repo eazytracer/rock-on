@@ -52,7 +52,7 @@ export function Avatar({
 
   return (
     <div
-      className={`flex-shrink-0 ${rounded} flex items-center justify-center font-semibold text-white uppercase overflow-hidden ${AVATAR_SIZE_CLASSES[size]} ${className}`}
+      className={`flex-shrink-0 ${rounded} flex items-center justify-center font-semibold text-ink-1 uppercase overflow-hidden ${AVATAR_SIZE_CLASSES[size]} ${className}`}
       style={
         photo
           ? {

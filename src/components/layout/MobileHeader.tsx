@@ -36,7 +36,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = () => {
           <Bell size={20} />
           {unreadCount > 0 && (
             <span
-              className="absolute top-1 right-1 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-info text-[10px] font-bold text-white"
+              className="absolute top-1 right-1 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-info text-[10px] font-bold text-ink-1"
               data-testid="notifications-unread-badge"
             >
               {unreadCount > 9 ? '9+' : unreadCount}

@@ -519,7 +519,7 @@ export const BandMembersPage: React.FC = () => {
       <div data-testid="band-members-page">
         {!band && (
           <div className="flex items-center justify-center h-64">
-            <div className="text-white text-lg">Band not found</div>
+            <div className="text-ink-1 text-lg">Band not found</div>
           </div>
         )}
         {band && (
@@ -529,7 +529,7 @@ export const BandMembersPage: React.FC = () => {
               <BackLink className="mb-4" />
               <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <h1 className="text-3xl font-bold text-white">{band.name}</h1>
+                  <h1 className="text-3xl font-bold text-ink-1">{band.name}</h1>
                 </div>
 
                 {canEditBand && (
@@ -540,7 +540,7 @@ export const BandMembersPage: React.FC = () => {
                       setShowEditBandModal(true)
                     }}
                     data-testid="edit-band-info-button"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                   >
                     <Edit size={16} />
                     <span>Edit Band Info</span>
@@ -555,7 +555,7 @@ export const BandMembersPage: React.FC = () => {
                     <div className="text-ink-4 text-xs uppercase tracking-wider mb-1">
                       Members
                     </div>
-                    <div className="text-white text-lg font-semibold">
+                    <div className="text-ink-1 text-lg font-semibold">
                       {memberCount}
                     </div>
                   </div>
@@ -563,7 +563,7 @@ export const BandMembersPage: React.FC = () => {
                     <div className="text-ink-4 text-xs uppercase tracking-wider mb-1">
                       Created
                     </div>
-                    <div className="text-white text-lg font-semibold">
+                    <div className="text-ink-1 text-lg font-semibold">
                       {band.createdDate.toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -576,7 +576,7 @@ export const BandMembersPage: React.FC = () => {
                       <div className="text-ink-4 text-xs uppercase tracking-wider mb-1">
                         Description
                       </div>
-                      <div className="text-white text-sm">
+                      <div className="text-ink-1 text-sm">
                         {band.description}
                       </div>
                     </div>
@@ -587,7 +587,7 @@ export const BandMembersPage: React.FC = () => {
               {/* Invite Code Section (Admin/Owner Only) */}
               {canInviteMembers && (
                 <div className="bg-bg-2 rounded-xl p-6 border border-border-1 mb-6">
-                  <h2 className="text-white font-semibold mb-4">
+                  <h2 className="text-ink-1 font-semibold mb-4">
                     Invite Members
                   </h2>
                   <div className="flex items-center gap-4 flex-wrap">
@@ -596,7 +596,7 @@ export const BandMembersPage: React.FC = () => {
                         Invite Code
                       </div>
                       <div
-                        className="text-white text-2xl font-mono font-bold"
+                        className="text-ink-1 text-2xl font-mono font-bold"
                         data-testid="invite-code"
                         id="band-invite-code"
                       >
@@ -607,7 +607,7 @@ export const BandMembersPage: React.FC = () => {
                       <button
                         onClick={handleCopyInviteCode}
                         data-testid="copy-invite-code-button"
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
                       >
                         <Copy size={16} />
                         <span>{copiedCode ? 'Copied!' : 'Copy'}</span>
@@ -616,7 +616,7 @@ export const BandMembersPage: React.FC = () => {
                         'share' in navigator && (
                           <button
                             onClick={handleShareInviteCode}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                           >
                             <Share2 size={16} />
                             <span>Share</span>
@@ -625,7 +625,7 @@ export const BandMembersPage: React.FC = () => {
                       <button
                         onClick={() => setShowRegenerateCodeDialog(true)}
                         data-testid="regenerate-invite-code-button"
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-3 text-sm font-medium hover:bg-bg-3 hover:text-white transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-3 text-sm font-medium hover:bg-bg-3 hover:text-ink-1 transition-colors"
                       >
                         <RefreshCw size={16} />
                         <span>Regenerate</span>
@@ -649,7 +649,7 @@ export const BandMembersPage: React.FC = () => {
                   placeholder="Search members..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full h-10 pl-11 pr-4 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  className="w-full h-10 pl-11 pr-4 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
               </div>
             </div>
@@ -688,7 +688,7 @@ export const BandMembersPage: React.FC = () => {
                       />
                       <div className="flex-1">
                         <div
-                          className="text-white font-semibold text-sm cursor-pointer hover:text-accent transition-colors"
+                          className="text-ink-1 font-semibold text-sm cursor-pointer hover:text-accent transition-colors"
                           onClick={() => openMemberDetail(member)}
                         >
                           {member.name}
@@ -752,7 +752,7 @@ export const BandMembersPage: React.FC = () => {
                               )
                             }
                             data-testid={`member-actions-${member.userId}`}
-                            className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-white transition-colors"
+                            className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-ink-1 transition-colors"
                           >
                             <MoreVertical size={16} />
                           </button>
@@ -766,7 +766,7 @@ export const BandMembersPage: React.FC = () => {
                               <div className="absolute right-0 top-full mt-1 w-48 bg-bg-2 border border-border-1 rounded-lg shadow-xl z-50 py-1">
                                 <button
                                   onClick={() => openEditInstruments(member)}
-                                  className="w-full px-4 py-2 text-left text-white text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
+                                  className="w-full px-4 py-2 text-left text-ink-1 text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
                                 >
                                   <Music2 size={16} />
                                   Edit Instruments
@@ -776,7 +776,7 @@ export const BandMembersPage: React.FC = () => {
                                   member.role === 'member' && (
                                     <button
                                       onClick={() => handleMakeAdmin(member)}
-                                      className="w-full px-4 py-2 text-left text-white text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
+                                      className="w-full px-4 py-2 text-left text-ink-1 text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
                                     >
                                       <UserPlus size={16} />
                                       Make Admin
@@ -787,7 +787,7 @@ export const BandMembersPage: React.FC = () => {
                                   member.role === 'admin' && (
                                     <button
                                       onClick={() => handleRemoveAdmin(member)}
-                                      className="w-full px-4 py-2 text-left text-white text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
+                                      className="w-full px-4 py-2 text-left text-ink-1 text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
                                     >
                                       <UserMinus size={16} />
                                       Remove Admin
@@ -800,7 +800,7 @@ export const BandMembersPage: React.FC = () => {
                                       onClick={() =>
                                         openTransferOwnership(member)
                                       }
-                                      className="w-full px-4 py-2 text-left text-white text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
+                                      className="w-full px-4 py-2 text-left text-ink-1 text-sm hover:bg-border-1 transition-colors flex items-center gap-2"
                                     >
                                       <Crown size={16} />
                                       Transfer Ownership
@@ -847,7 +847,7 @@ export const BandMembersPage: React.FC = () => {
                     />
                     <div className="flex-1 min-w-0">
                       <div
-                        className="text-white font-semibold text-sm cursor-pointer hover:text-accent transition-colors"
+                        className="text-ink-1 font-semibold text-sm cursor-pointer hover:text-accent transition-colors"
                         onClick={() => openMemberDetail(member)}
                       >
                         {member.name}
@@ -868,7 +868,7 @@ export const BandMembersPage: React.FC = () => {
                             openMenuId === member.userId ? null : member.userId
                           )
                         }
-                        className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-white transition-colors flex-shrink-0"
+                        className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-ink-1 transition-colors flex-shrink-0"
                       >
                         <MoreVertical size={16} />
                       </button>
@@ -912,12 +912,12 @@ export const BandMembersPage: React.FC = () => {
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
                 <div className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-md">
                   <div className="flex items-center justify-between p-6 border-b border-border-1">
-                    <h2 className="text-white text-xl font-semibold">
+                    <h2 className="text-ink-1 text-xl font-semibold">
                       Edit Band Info
                     </h2>
                     <button
                       onClick={() => setShowEditBandModal(false)}
-                      className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-white transition-colors"
+                      className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-ink-1 transition-colors"
                     >
                       <X size={20} />
                     </button>
@@ -925,7 +925,7 @@ export const BandMembersPage: React.FC = () => {
 
                   <div className="p-6 space-y-4">
                     <div>
-                      <label className="block text-white text-sm font-medium mb-2">
+                      <label className="block text-ink-1 text-sm font-medium mb-2">
                         Band Name <span className="text-danger">*</span>
                       </label>
                       <input
@@ -935,13 +935,13 @@ export const BandMembersPage: React.FC = () => {
                         data-testid="edit-band-name-input"
                         value={editBandName}
                         onChange={e => setEditBandName(e.target.value)}
-                        className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                        className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                         autoFocus
                       />
                     </div>
 
                     <div>
-                      <label className="block text-white text-sm font-medium mb-2">
+                      <label className="block text-ink-1 text-sm font-medium mb-2">
                         Description
                       </label>
                       <textarea
@@ -951,7 +951,7 @@ export const BandMembersPage: React.FC = () => {
                         value={editBandDescription}
                         onChange={e => setEditBandDescription(e.target.value)}
                         rows={3}
-                        className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
+                        className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
                         placeholder="Tell us about your band..."
                       />
                     </div>
@@ -960,7 +960,7 @@ export const BandMembersPage: React.FC = () => {
                   <div className="flex gap-3 p-6 border-t border-border-1">
                     <button
                       onClick={() => setShowEditBandModal(false)}
-                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                     >
                       Cancel
                     </button>
@@ -968,7 +968,7 @@ export const BandMembersPage: React.FC = () => {
                       onClick={handleSaveBandInfo}
                       data-testid="save-band-info-button"
                       disabled={!editBandName.trim()}
-                      className="flex-1 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Save Changes
                     </button>
@@ -981,7 +981,7 @@ export const BandMembersPage: React.FC = () => {
             {showRegenerateCodeDialog && (
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
                 <div className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-md p-6">
-                  <h2 className="text-white text-xl font-semibold mb-4">
+                  <h2 className="text-ink-1 text-xl font-semibold mb-4">
                     Regenerate Invite Code?
                   </h2>
                   <p className="text-ink-3 text-sm mb-6">
@@ -992,13 +992,13 @@ export const BandMembersPage: React.FC = () => {
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowRegenerateCodeDialog(false)}
-                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleRegenerateCode}
-                      className="flex-1 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                      className="flex-1 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
                     >
                       Regenerate
                     </button>
@@ -1012,12 +1012,12 @@ export const BandMembersPage: React.FC = () => {
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
                 <div className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-md">
                   <div className="flex items-center justify-between p-6 border-b border-border-1">
-                    <h2 className="text-white text-xl font-semibold">
+                    <h2 className="text-ink-1 text-xl font-semibold">
                       Member Details
                     </h2>
                     <button
                       onClick={() => setShowMemberDetailModal(false)}
-                      className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-white transition-colors"
+                      className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-ink-1 transition-colors"
                     >
                       <X size={20} />
                     </button>
@@ -1032,7 +1032,7 @@ export const BandMembersPage: React.FC = () => {
                         className="!w-16 !h-16 !text-xl"
                       />
                       <div>
-                        <div className="text-white text-xl font-semibold">
+                        <div className="text-ink-1 text-xl font-semibold">
                           {selectedMember.name}
                         </div>
                         {selectedMember.email && (
@@ -1047,14 +1047,14 @@ export const BandMembersPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <div className="text-white font-medium mb-3">
+                      <div className="text-ink-1 font-medium mb-3">
                         Instruments
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {selectedMember.instruments.map((inst, idx) => (
                           <span
                             key={idx}
-                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-border-1 text-white text-sm"
+                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-border-1 text-ink-1 text-sm"
                           >
                             {inst.isPrimary && (
                               <span className="text-accent">★</span>
@@ -1070,7 +1070,7 @@ export const BandMembersPage: React.FC = () => {
                         <div className="text-ink-4 text-xs uppercase tracking-wider mb-1">
                           Joined
                         </div>
-                        <div className="text-white text-sm">
+                        <div className="text-ink-1 text-sm">
                           {selectedMember.joinedDate.toLocaleDateString(
                             'en-US',
                             {
@@ -1085,7 +1085,7 @@ export const BandMembersPage: React.FC = () => {
                         <div className="text-ink-4 text-xs uppercase tracking-wider mb-1">
                           Status
                         </div>
-                        <div className="text-white text-sm capitalize">
+                        <div className="text-ink-1 text-sm capitalize">
                           {selectedMember.status}
                         </div>
                       </div>
@@ -1100,14 +1100,14 @@ export const BandMembersPage: React.FC = () => {
                           setShowMemberDetailModal(false)
                           openEditInstruments(selectedMember)
                         }}
-                        className="flex-1 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                        className="flex-1 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
                       >
                         Edit Instruments
                       </button>
                     )}
                     <button
                       onClick={() => setShowMemberDetailModal(false)}
-                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                     >
                       Close
                     </button>
@@ -1121,7 +1121,7 @@ export const BandMembersPage: React.FC = () => {
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
                 <div className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-2xl max-h-[90vh] flex flex-col">
                   <div className="flex items-center justify-between p-6 border-b border-border-1 flex-shrink-0">
-                    <h2 className="text-white text-xl font-semibold">
+                    <h2 className="text-ink-1 text-xl font-semibold">
                       Edit Instruments
                     </h2>
                     <button
@@ -1130,7 +1130,7 @@ export const BandMembersPage: React.FC = () => {
                         setShowCustomInstrumentInput(false)
                         setCustomInstrumentName('')
                       }}
-                      className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-white transition-colors"
+                      className="p-2 rounded-lg text-ink-3 hover:bg-border-1 hover:text-ink-1 transition-colors"
                     >
                       <X size={20} />
                     </button>
@@ -1139,7 +1139,7 @@ export const BandMembersPage: React.FC = () => {
                   <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar-thin flex-1">
                     <div className="text-ink-3 text-sm">
                       Select instruments for{' '}
-                      <span className="text-white font-medium">
+                      <span className="text-ink-1 font-medium">
                         {selectedMember.name}
                       </span>
                     </div>
@@ -1161,7 +1161,7 @@ export const BandMembersPage: React.FC = () => {
 
                     {/* Instrument Selection Buttons */}
                     <div>
-                      <div className="text-white font-medium mb-3">
+                      <div className="text-ink-1 font-medium mb-3">
                         Available Instruments
                       </div>
                       <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
@@ -1175,8 +1175,8 @@ export const BandMembersPage: React.FC = () => {
                               onClick={() => handleToggleInstrument(preset)}
                               className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                                 isSelected
-                                  ? 'bg-accent text-white'
-                                  : 'bg-border-1 text-ink-3 hover:bg-border-2 hover:text-white'
+                                  ? 'bg-accent text-on-accent'
+                                  : 'bg-border-1 text-ink-3 hover:bg-border-2 hover:text-on-accent'
                               }`}
                             >
                               {preset}
@@ -1196,7 +1196,7 @@ export const BandMembersPage: React.FC = () => {
                       {/* Custom Instrument Input */}
                       {showCustomInstrumentInput && (
                         <div className="mt-4 p-4 bg-bg-1 rounded-lg border border-border-1">
-                          <label className="block text-white text-sm font-medium mb-2">
+                          <label className="block text-ink-1 text-sm font-medium mb-2">
                             Custom Instrument Name
                           </label>
                           <input
@@ -1213,19 +1213,19 @@ export const BandMembersPage: React.FC = () => {
                               }
                             }}
                             placeholder="Enter instrument name..."
-                            className="w-full px-4 py-2 bg-bg-2 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 mb-3"
+                            className="w-full px-4 py-2 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 mb-3"
                             autoFocus
                           />
                           <div className="flex gap-2">
                             <button
                               onClick={handleAddCustomInstrument}
-                              className="flex-1 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                              className="flex-1 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
                             >
                               Add Instrument
                             </button>
                             <button
                               onClick={handleCancelCustomInstrument}
-                              className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                              className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                             >
                               Cancel
                             </button>
@@ -1237,7 +1237,7 @@ export const BandMembersPage: React.FC = () => {
                     {/* Selected Instruments List */}
                     {editInstruments.length > 0 && (
                       <div>
-                        <div className="text-white font-medium mb-3">
+                        <div className="text-ink-1 font-medium mb-3">
                           Selected Instruments ({editInstruments.length})
                         </div>
                         <div className="space-y-2">
@@ -1262,7 +1262,7 @@ export const BandMembersPage: React.FC = () => {
                                 >
                                   <span className="text-lg">★</span>
                                 </button>
-                                <span className="text-white font-medium">
+                                <span className="text-ink-1 font-medium">
                                   {inst.name}
                                 </span>
                                 {inst.isPrimary && (
@@ -1304,13 +1304,13 @@ export const BandMembersPage: React.FC = () => {
                         setShowCustomInstrumentInput(false)
                         setCustomInstrumentName('')
                       }}
-                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveInstruments}
-                      className="flex-1 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                      className="flex-1 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
                     >
                       Save Changes
                     </button>
@@ -1327,25 +1327,25 @@ export const BandMembersPage: React.FC = () => {
                     <div className="p-3 rounded-full bg-danger/10">
                       <AlertTriangle size={24} className="text-danger" />
                     </div>
-                    <h2 className="text-white text-xl font-semibold">
+                    <h2 className="text-ink-1 text-xl font-semibold">
                       Remove Member?
                     </h2>
                   </div>
 
                   <p className="text-ink-3 text-sm mb-6">
                     Remove{' '}
-                    <span className="text-white font-medium">
+                    <span className="text-ink-1 font-medium">
                       {selectedMember.name}
                     </span>{' '}
                     from{' '}
-                    <span className="text-white font-medium">{band.name}</span>?
+                    <span className="text-ink-1 font-medium">{band.name}</span>?
                     They will lose access to all band content.
                   </p>
 
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowRemoveMemberDialog(false)}
-                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                     >
                       Cancel
                     </button>
@@ -1369,7 +1369,7 @@ export const BandMembersPage: React.FC = () => {
                     <div className="p-3 rounded-full bg-accent/10">
                       <Crown size={24} className="text-accent" />
                     </div>
-                    <h2 className="text-white text-xl font-semibold">
+                    <h2 className="text-ink-1 text-xl font-semibold">
                       Transfer Ownership
                     </h2>
                   </div>
@@ -1377,11 +1377,11 @@ export const BandMembersPage: React.FC = () => {
                   <div className="space-y-4 mb-6">
                     <p className="text-ink-3 text-sm">
                       Transfer ownership of{' '}
-                      <span className="text-white font-medium">
+                      <span className="text-ink-1 font-medium">
                         {band.name}
                       </span>{' '}
                       to{' '}
-                      <span className="text-white font-medium">
+                      <span className="text-ink-1 font-medium">
                         {selectedMember.name}
                       </span>
                       ?
@@ -1395,7 +1395,7 @@ export const BandMembersPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-white text-sm font-medium mb-2">
+                      <label className="block text-ink-1 text-sm font-medium mb-2">
                         Type{' '}
                         <span className="font-mono text-accent">TRANSFER</span>{' '}
                         to confirm
@@ -1404,7 +1404,7 @@ export const BandMembersPage: React.FC = () => {
                         type="text"
                         value={transferConfirmText}
                         onChange={e => setTransferConfirmText(e.target.value)}
-                        className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                        className="w-full px-4 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                         placeholder="TRANSFER"
                       />
                     </div>
@@ -1416,14 +1416,14 @@ export const BandMembersPage: React.FC = () => {
                         setShowTransferOwnershipDialog(false)
                         setTransferConfirmText('')
                       }}
-                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                      className="flex-1 px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleTransferOwnership}
                       disabled={transferConfirmText !== 'TRANSFER'}
-                      className="flex-1 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Transfer Ownership
                     </button>

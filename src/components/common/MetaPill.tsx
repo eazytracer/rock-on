@@ -17,6 +17,7 @@
 import React from 'react'
 import { Music, Activity, Clock, Guitar } from 'lucide-react'
 import { tuningColor, tuningLabel } from '../../utils/tunings'
+import { TuningPill as KitTuningPill } from '../ui/TuningPill'
 
 export interface MetaPillProps {
   icon: React.ReactNode
@@ -54,10 +55,15 @@ export const MetaPill: React.FC<MetaPillProps> = ({
   const padY = size === 'sm' ? 'py-0.5' : 'py-1'
   const txt = size === 'sm' ? 'text-[11px]' : 'text-xs'
 
-  const bg = hasAccent ? `${accentColor}22` : '#1a1a1a'
-  const border = hasAccent ? `${accentColor}66` : '#2a2a2a'
-  const iconColor = hasAccent ? accentColor! : '#707070'
-  const valueColor = hasAccent ? accentColor! : '#ffffff'
+  // accentColor may be a CSS variable (tuning colours), so tint with color-mix.
+  const bg = hasAccent
+    ? `color-mix(in srgb, ${accentColor} 16%, var(--bg-2))`
+    : 'var(--bg-3)'
+  const border = hasAccent
+    ? `color-mix(in srgb, ${accentColor} 40%, transparent)`
+    : 'var(--border-1)'
+  const iconColor = hasAccent ? accentColor! : 'var(--ink-4)'
+  const valueColor = hasAccent ? accentColor! : 'var(--ink-1)'
 
   const showCaption = size !== 'sm'
 
@@ -90,7 +96,7 @@ export const MetaPill: React.FC<MetaPillProps> = ({
     >
       <span
         className="text-[9px] uppercase tracking-wider px-1"
-        style={{ color: hasAccent ? accentColor : '#707070' }}
+        style={{ color: hasAccent ? accentColor : 'var(--ink-4)' }}
       >
         {label}
       </span>
@@ -180,17 +186,13 @@ export const TuningTag: React.FC<{
   tuning: string | null | undefined
   className?: string
   'data-testid'?: string
-}> = ({ tuning, className, 'data-testid': testId }) => {
-  const color = tuningColor(tuning)
-  return (
-    <span
-      className={`inline-flex min-w-0 items-center gap-1.5 text-xs font-medium ${className ?? ''}`}
-      style={{ color }}
-      title={`Tuning: ${tuningLabel(tuning)}`}
-      data-testid={testId}
-    >
-      <Guitar size={14} className="flex-shrink-0" />
-      <span className="truncate">{tuningLabel(tuning)}</span>
-    </span>
-  )
-}
+}> = ({ tuning, className, 'data-testid': testId }) => (
+  // Redesign: rows use the kit tuning pill (colour + short name).
+  <span
+    className={`inline-flex min-w-0 ${className ?? ''}`}
+    title={`Tuning: ${tuningLabel(tuning)}`}
+    data-testid={testId}
+  >
+    <KitTuningPill tuning={tuning} size="sm" />
+  </span>
+)

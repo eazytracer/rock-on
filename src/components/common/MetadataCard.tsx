@@ -46,7 +46,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = ({
     >
       {/* Header with title and edit controls */}
       <div className="flex items-center justify-between mb-4">
-        {title && <h2 className="text-lg font-semibold text-white">{title}</h2>}
+        {title && <h2 className="text-lg font-semibold text-ink-1">{title}</h2>}
         {!title && <div />}
 
         {isEditing ? (
@@ -54,7 +54,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = ({
             <button
               onClick={onCancel}
               disabled={isSaving}
-              className="p-2 text-ink-3 hover:text-white hover:bg-bg-4 rounded-lg transition-colors disabled:opacity-50"
+              className="p-2 text-ink-3 hover:text-ink-1 hover:bg-bg-4 rounded-lg transition-colors disabled:opacity-50"
               data-testid="metadata-cancel-button"
               title="Cancel"
             >
@@ -63,7 +63,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = ({
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 px-3 py-1.5 bg-accent hover:bg-accent-deep text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 bg-accent hover:bg-accent-deep text-on-accent text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
               data-testid="metadata-save-button"
             >
               {isSaving ? (

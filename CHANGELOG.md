@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-07
+
+Redesign phase 0 · Foundations. New look across the whole app, a light theme,
+and the API conventions the web and Flutter apps will share
+(`docs/redesign/08-api-conventions.md`).
+
+### Added
+
+- **Light theme.** Settings → Appearance: System / Light / Dark, saved per user
+  and applied before first paint.
+- **Personal context accent.** The accent turns indigo in Personal.
+- **C Standard** built-in tuning (violet).
+- **Kit primitives** in `src/components/ui/` (Button, IconButton, Chip, Switch,
+  Segmented, TuningPill, TypeLabel, Group/ListRow, skeleton/retry/empty states).
+- **Typed API layer** `src/services/api/` (generated `database.types.ts`,
+  `ApiError` keys) and `just types`.
+
+### Changed
+
+- Warm palette, new fonts (Big Shoulders Display, Atkinson Hyperlegible Next,
+  Martian Mono); hard-coded colours replaced with theme tokens.
+- Tuning colours are theme-aware; Drop D → lime, Drop C → fuchsia. Tuning tags
+  show short labels (E STD, D DROP).
+
+### Removed
+
+- Sync / offline indicators (the app is online-only).
+
+### Fixed
+
+- Other users' emails are hidden from non-admins; jams need the code to find or
+  join.
+- Band members and setlist songs load in batches.
+
+### Database
+
+- `user_preferences` table (own-row RLS, explicit grants, version trigger).
+- Tuning colour updates, C Standard seed, `builtin_tuning_slug` recognises
+  "C Standard"; `release_notes` row for 0.7.0.
+
 ## [0.6.1] - 2026-09-19
 
 Calendar item duplication. Any show or practice can be cloned from its calendar

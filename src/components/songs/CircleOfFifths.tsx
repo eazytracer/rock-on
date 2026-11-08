@@ -103,10 +103,10 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
       return 'var(--accent)' // App's primary orange accent - confirmed selection
     }
     if (isPreview) {
-      return '#ff9447' // Lighter orange for preview/pending selection
+      return 'var(--accent-hot)' // lighter accent for preview/pending selection
     }
     if (isHovered) {
-      return '#ff9447' // Lighter orange on hover
+      return 'var(--accent-hot)' // lighter accent on hover
     }
 
     // Subtle gradient around the circle with muted tones
@@ -138,7 +138,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
                 <path
                   d={createSlicePath(index, isHovered, isClicked)}
                   fill={getSliceColor(keyWithMode, index, isHovered)}
-                  stroke="#2a2a2a"
+                  stroke="var(--border-1)"
                   strokeWidth="2"
                   className="cursor-pointer transition-all duration-200"
                   style={{
@@ -174,8 +174,8 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
                   fill={
                     (isSelected && previewKey === keyWithMode) ||
                     previewKey === keyWithMode
-                      ? '#ffffff'
-                      : '#e0e0e0'
+                      ? 'var(--ink-1)'
+                      : 'var(--ink-2)'
                   }
                   fontSize={
                     isHovered
@@ -199,7 +199,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
             cx="0"
             cy="0"
             r={centerRadius}
-            fill="#1a1a1a"
+            fill="var(--bg-2)"
             stroke="var(--accent)"
             strokeWidth="3"
             className="cursor-pointer transition-all duration-200 hover:fill-bg-4"
@@ -225,7 +225,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
           {previewKey ? (
             <div className="text-sm text-ink-3">
               Selected Key:{' '}
-              <span className="font-bold text-white text-lg">{previewKey}</span>
+              <span className="font-bold text-ink-1 text-lg">{previewKey}</span>
             </div>
           ) : (
             <div className="text-xs text-ink-4">Click a key to select</div>
@@ -236,7 +236,7 @@ const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
           <button
             data-testid="key-picker-confirm"
             onClick={() => onKeySelect(previewKey)}
-            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-accent hover:bg-accent-deep text-white text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-accent hover:bg-accent-deep text-on-accent text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
           >
             <Check size={18} />
             <span>Confirm</span>

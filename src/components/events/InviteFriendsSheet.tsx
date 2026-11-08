@@ -124,7 +124,7 @@ export function InviteFriendsSheet({
                     <span
                       className={`flex h-5 w-5 items-center justify-center rounded-full border ${
                         isSel
-                          ? 'border-accent bg-accent text-white'
+                          ? 'border-accent bg-accent text-on-accent'
                           : 'border-border-2 text-transparent'
                       }`}
                     >
@@ -141,7 +141,7 @@ export function InviteFriendsSheet({
               onClick={() => void submit()}
               disabled={selected.size === 0 || inviting}
               data-testid="invite-friends-submit"
-              className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+              className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent disabled:opacity-40"
             >
               {selected.size === 0
                 ? 'Invite'

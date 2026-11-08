@@ -89,7 +89,7 @@ export function KebabMenu({
           // Comfortable finger target on touch devices without bloating dense
           // desktop rows.
           '[@media(pointer:coarse)]:min-h-[40px] [@media(pointer:coarse)]:min-w-[40px]',
-          'text-ink-4 hover:text-white hover:bg-border-1',
+          'text-ink-4 hover:text-ink-1 hover:bg-border-1',
           disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer',
         ].join(' ')}
         aria-label="More options"

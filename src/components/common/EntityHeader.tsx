@@ -154,7 +154,7 @@ export const EntityHeader: React.FC<EntityHeaderProps> = ({
                   data-testid={`${testId}-name`}
                 />
               ) : (
-                <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
+                <h1 className="text-xl sm:text-2xl font-bold text-ink-1 truncate">
                   {title}
                 </h1>
               )}

@@ -35,7 +35,7 @@ export const ViewPageHeader: React.FC<ViewPageHeaderProps> = ({
             {/* Back button - hidden on mobile, shown on desktop */}
             <button
               onClick={() => navigate(backPath)}
-              className="hidden md:flex p-2 text-ink-3 hover:text-white hover:bg-bg-4 rounded-lg transition-colors"
+              className="hidden md:flex p-2 text-ink-3 hover:text-ink-1 hover:bg-bg-4 rounded-lg transition-colors"
               data-testid="view-back-button"
             >
               <ArrowLeft size={20} />
@@ -43,7 +43,7 @@ export const ViewPageHeader: React.FC<ViewPageHeaderProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1
-                  className="text-lg sm:text-xl font-bold text-white truncate"
+                  className="text-lg sm:text-xl font-bold text-ink-1 truncate"
                   data-testid="view-page-title"
                 >
                   {title}

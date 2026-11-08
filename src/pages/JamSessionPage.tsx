@@ -493,7 +493,7 @@ export const JamSessionPage: React.FC = () => {
             }
           >
             <Radio size={22} className="text-primary" />
-            <h1 className="text-2xl font-bold text-white">Jam Session</h1>
+            <h1 className="text-2xl font-bold text-ink-1">Jam Session</h1>
             {session?.status === 'active' && (
               <span
                 data-testid="jam-live-badge"
@@ -551,7 +551,7 @@ export const JamSessionPage: React.FC = () => {
                             className="text-amber-400 flex-shrink-0"
                           />
                           <div>
-                            <p className="text-white text-sm font-medium">
+                            <p className="text-ink-1 text-sm font-medium">
                               {s.name ?? `Jam ${s.shortCode}`}
                             </p>
                             <p className="text-ink-3 text-xs mt-0.5">
@@ -576,7 +576,7 @@ export const JamSessionPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-bg-2 border border-border-1 rounded-xl p-6">
-                <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
+                <h2 className="text-ink-1 font-semibold mb-4 flex items-center gap-2">
                   <Plus size={18} className="text-amber-400" />
                   Host a Jam
                 </h2>
@@ -589,7 +589,7 @@ export const JamSessionPage: React.FC = () => {
                     placeholder="Session name (optional)"
                     value={sessionName}
                     onChange={e => setSessionName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-border-1 border border-border-2 text-white text-sm placeholder-ink-4 focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 rounded-lg bg-border-1 border border-border-2 text-ink-1 text-sm placeholder-ink-4 focus:outline-none focus:border-amber-500"
                   />
                   <div>
                     <label
@@ -646,7 +646,7 @@ export const JamSessionPage: React.FC = () => {
               </div>
 
               <div className="bg-bg-2 border border-border-1 rounded-xl p-6">
-                <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
+                <h2 className="text-ink-1 font-semibold mb-4 flex items-center gap-2">
                   <LogIn size={18} className="text-blue-400" />
                   Join a Jam
                 </h2>
@@ -660,7 +660,7 @@ export const JamSessionPage: React.FC = () => {
                     value={joinCode}
                     onChange={e => setJoinCode(e.target.value.toUpperCase())}
                     maxLength={6}
-                    className="w-full px-3 py-2 rounded-lg bg-border-1 border border-border-2 text-white text-sm placeholder-ink-4 focus:outline-none focus:border-blue-500 font-mono tracking-widest text-center uppercase"
+                    className="w-full px-3 py-2 rounded-lg bg-border-1 border border-border-2 text-ink-1 text-sm placeholder-ink-4 focus:outline-none focus:border-blue-500 font-mono tracking-widest text-center uppercase"
                   />
                   <button
                     data-testid="jam-join-button"
@@ -709,7 +709,7 @@ export const JamSessionPage: React.FC = () => {
                     data-testid="jam-participants-toggle"
                   >
                     <span className="text-ink-3 text-sm">
-                      <span className="text-white font-medium">
+                      <span className="text-ink-1 font-medium">
                         {participants.filter(p => p.status === 'active').length}
                       </span>{' '}
                       participant
@@ -720,7 +720,7 @@ export const JamSessionPage: React.FC = () => {
                       {watchers.length > 0 && (
                         <>
                           {' · '}
-                          <span className="text-white font-medium">
+                          <span className="text-ink-1 font-medium">
                             {watchers.length}
                           </span>{' '}
                           watching
@@ -982,7 +982,7 @@ export const JamSessionPage: React.FC = () => {
             <p className="text-ink-4">Session not found or has expired.</p>
             <button
               onClick={() => navigate('/jam')}
-              className="mt-4 px-4 py-2 rounded-lg bg-border-1 text-white text-sm hover:bg-border-2 transition-colors"
+              className="mt-4 px-4 py-2 rounded-lg bg-border-1 text-ink-1 text-sm hover:bg-border-2 transition-colors"
             >
               Start a new jam
             </button>
@@ -1028,7 +1028,7 @@ export const JamSessionPage: React.FC = () => {
                     <XCircle size={20} className="text-red-500" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold text-lg mb-2">
+                    <h3 className="text-ink-1 font-semibold text-lg mb-2">
                       End this jam session?
                     </h3>
                     <p className="text-ink-3 text-sm">
@@ -1043,7 +1043,7 @@ export const JamSessionPage: React.FC = () => {
                   <button
                     onClick={() => setIsEndDialogOpen(false)}
                     disabled={isEnding}
-                    className="px-4 py-2 text-ink-3 text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-ink-3 text-sm font-medium hover:text-ink-1 transition-colors disabled:opacity-50"
                     data-testid="jam-end-dialog-cancel"
                   >
                     Cancel
@@ -1060,7 +1060,7 @@ export const JamSessionPage: React.FC = () => {
                     <button
                       onClick={() => void handleSaveAndEnd()}
                       disabled={isEnding}
-                      className="flex items-center justify-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg bg-primary hover:bg-accent-deep transition-colors disabled:opacity-50"
+                      className="flex items-center justify-center gap-2 px-4 py-2 text-on-accent text-sm font-medium rounded-lg bg-primary hover:bg-accent-deep transition-colors disabled:opacity-50"
                       data-testid="jam-end-dialog-save-and-end"
                     >
                       {isEnding ? 'Saving…' : 'Save & End'}

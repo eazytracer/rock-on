@@ -104,7 +104,7 @@ const LinkIconButton: React.FC<{
         text-ink-3
         hover:bg-border-2
         hover:border-ink-5
-        hover:text-white
+        hover:text-ink-1
         active:bg-border-2
         transition-all duration-150
         cursor-pointer
@@ -183,7 +183,7 @@ export const LinkIcons: React.FC<LinkIconsProps> = ({
               text-ink-4
               hover:bg-border-2
               hover:border-ink-5
-              hover:text-white
+              hover:text-ink-1
               active:bg-border-2
               transition-all duration-150
               cursor-pointer

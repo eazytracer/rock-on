@@ -96,7 +96,7 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border-1">
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-white">Song Notes</h2>
+            <h2 className="text-lg font-semibold text-ink-1">Song Notes</h2>
             <p className="text-sm text-ink-4 truncate">{songTitle}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -125,11 +125,11 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
                     </p>
                     <p>
                       <code className="text-accent">**bold**</code> -{' '}
-                      <strong className="text-white">bold</strong>
+                      <strong className="text-ink-1">bold</strong>
                     </p>
                     <p>
                       <code className="text-accent">*italic*</code> -{' '}
-                      <em className="text-white">italic</em>
+                      <em className="text-ink-1">italic</em>
                     </p>
                     <p>
                       <code className="text-accent">- item</code> - Bullet list
@@ -140,7 +140,7 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
                     </p>
                     <p>
                       <code className="text-accent">`code`</code> -{' '}
-                      <code className="text-white bg-bg-2 px-1 rounded">
+                      <code className="text-ink-1 bg-bg-2 px-1 rounded">
                         code
                       </code>
                     </p>
@@ -150,7 +150,7 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-ink-4 hover:text-white rounded-lg transition-colors"
+              className="p-2 text-ink-4 hover:text-ink-1 rounded-lg transition-colors"
               data-testid="song-notes-modal-close"
               aria-label="Close"
             >
@@ -216,7 +216,7 @@ export const SongNotesModal: React.FC<SongNotesModalProps> = ({
         <div className="flex items-center justify-end gap-3 p-4 border-t border-border-1">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-accent hover:bg-accent-deep text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-accent hover:bg-accent-deep text-on-accent text-sm font-medium rounded-lg transition-colors"
             data-testid="song-notes-modal-done"
           >
             Done

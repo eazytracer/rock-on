@@ -239,7 +239,7 @@ export function LineupCard({
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                       action.variant === 'danger'
                         ? 'text-danger hover:bg-danger/10'
-                        : 'text-ink-3 hover:bg-bg-3 hover:text-white'
+                        : 'text-ink-3 hover:bg-bg-3 hover:text-ink-1'
                     }`}
                   >
                     {Icon && <Icon size={15} />}

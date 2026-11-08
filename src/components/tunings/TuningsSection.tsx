@@ -32,7 +32,7 @@ function TuningRow({
         aria-hidden
       />
       <span className="flex-1 min-w-0">
-        <span className="block truncate text-sm font-medium text-white">
+        <span className="block truncate text-sm font-medium text-ink-1">
           {tuning.name}
         </span>
         <span className="block truncate font-mono text-xs text-ink-4">
@@ -97,7 +97,7 @@ export function TuningsSection() {
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Guitar size={22} className="text-accent" />
-          <h2 className="text-xl font-semibold text-white">Tunings</h2>
+          <h2 className="text-xl font-semibold text-ink-1">Tunings</h2>
         </div>
         <button
           onClick={() => setCreating(true)}

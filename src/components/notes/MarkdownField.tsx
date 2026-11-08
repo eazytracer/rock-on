@@ -175,8 +175,8 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
               onClick={() => setMode('edit')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                 mode === 'edit'
-                  ? `${toneActiveBg} text-white`
-                  : 'text-ink-3 hover:text-white'
+                  ? `${toneActiveBg} text-on-accent`
+                  : 'text-ink-3 hover:text-ink-1'
               }`}
               data-testid="markdown-mode-edit"
             >
@@ -187,8 +187,8 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
               onClick={() => setMode('preview')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                 mode === 'preview'
-                  ? `${toneActiveBg} text-white`
-                  : 'text-ink-3 hover:text-white'
+                  ? `${toneActiveBg} text-on-accent`
+                  : 'text-ink-3 hover:text-ink-1'
               }`}
               data-testid="markdown-mode-preview"
             >
@@ -227,7 +227,7 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
               rows={10}
               placeholder="Markdown supported — ##, **, lists, > blockquote..."
               data-testid="markdown-textarea"
-              className={`w-full p-3 bg-bg-0 border border-border-1 rounded text-white text-sm font-mono resize-y ${toneFocusBorder} focus:outline-none`}
+              className={`w-full p-3 bg-bg-0 border border-border-1 rounded text-ink-1 text-sm font-mono resize-y ${toneFocusBorder} focus:outline-none`}
             />
           ) : (
             <div className="min-h-[120px] p-3 bg-bg-0 border border-border-1 rounded">
@@ -269,12 +269,12 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
       {confirmDiscard && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-bg-2 rounded-xl border border-border-1 w-full max-w-sm p-5">
-            <h3 className="text-white font-semibold mb-2">Discard changes?</h3>
+            <h3 className="text-ink-1 font-semibold mb-2">Discard changes?</h3>
             <p className="text-ink-3 text-sm mb-4">Your edits will be lost.</p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setConfirmDiscard(false)}
-                className="px-3 py-2 text-ink-3 hover:text-white text-sm"
+                className="px-3 py-2 text-ink-3 hover:text-ink-1 text-sm"
                 data-testid="markdown-keep-editing"
               >
                 Keep editing

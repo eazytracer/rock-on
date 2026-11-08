@@ -327,7 +327,7 @@ export function DuplicateModal({
             onClick={handleSubmit}
             disabled={missingRequired || submitting}
             data-testid="duplicate-submit"
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-40"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-opacity disabled:opacity-40"
           >
             {submitting ? 'Creating…' : 'Create'}
           </button>

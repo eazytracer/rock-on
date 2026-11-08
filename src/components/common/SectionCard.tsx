@@ -5,7 +5,7 @@
  *
  * Replaces the hand-rolled:
  *   <div className="bg-bg-1 border border-border-1 rounded-lg p-4 sm:p-6">
- *     <h2 className="text-lg font-semibold text-white mb-4">Title</h2>
+ *     <h2 className="text-lg font-semibold text-ink-1 mb-4">Title</h2>
  *     {...}
  *   </div>
  *
@@ -45,7 +45,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
       {(title || actions) && (
         <div className="flex items-center justify-between gap-3 mb-4">
           {title && (
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
+            <h2 className="text-lg font-semibold text-ink-1">{title}</h2>
           )}
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>

@@ -1380,7 +1380,7 @@ export function EventDetailContent({
                     onClick={submitAddSong}
                     disabled={addingSong || !addTitle.trim()}
                     data-testid="event-add-song-submit"
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent disabled:opacity-50"
                   >
                     {editingItemId ? (
                       <>
@@ -1409,13 +1409,13 @@ export function EventDetailContent({
                   onClick={e => e.stopPropagation()}
                 >
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-white sm:text-lg">
+                    <h3 className="text-base font-semibold text-ink-1 sm:text-lg">
                       Select Key
                     </h3>
                     <button
                       onClick={() => setShowKeyPicker(false)}
                       aria-label="Close"
-                      className="p-1 text-ink-4 transition-colors hover:text-white"
+                      className="p-1 text-ink-4 transition-colors hover:text-ink-1"
                     >
                       <X size={20} />
                     </button>

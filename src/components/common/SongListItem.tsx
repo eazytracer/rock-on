@@ -215,7 +215,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
         <div className="relative">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-1.5 text-ink-4 hover:text-white rounded transition-colors"
+            className="p-1.5 text-ink-4 hover:text-ink-1 rounded transition-colors"
             data-testid={`song-actions-menu-${item.position}`}
           >
             <MoreVertical size={18} />
@@ -234,7 +234,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
                       setIsMenuOpen(false)
                       onEdit()
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-white text-sm hover:bg-border-1 transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
                     data-testid={`edit-song-${item.position}`}
                   >
                     <Pencil size={16} />
@@ -307,14 +307,14 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
             </div>
 
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-ink-1 font-semibold text-sm uppercase flex-shrink-0"
               style={{ backgroundColor: song.avatarColor }}
             >
               {song.initials}
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="text-white font-semibold text-sm">
+              <div className="text-ink-1 font-semibold text-sm">
                 {song.title}
               </div>
               <div className="text-ink-3 text-xs">{song.artist}</div>
@@ -402,7 +402,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
             </div>
 
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-ink-1 font-semibold text-sm uppercase flex-shrink-0"
               style={{ backgroundColor: song.avatarColor }}
             >
               {song.initials}
@@ -410,7 +410,7 @@ export const SongListItem: React.FC<InternalSongListItemProps> = ({
 
             {/* Title/Artist - takes available space */}
             <div className="flex-1 min-w-[200px]">
-              <div className="text-white font-semibold text-sm truncate">
+              <div className="text-ink-1 font-semibold text-sm truncate">
                 {song.title}
               </div>
               <div className="text-ink-3 text-xs truncate">{song.artist}</div>

@@ -265,7 +265,7 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
         } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
       >
         <span className="flex items-center gap-2">
-          <span className={value ? 'text-white' : 'text-ink-4'}>
+          <span className={value ? 'text-ink-1' : 'text-ink-4'}>
             {value || placeholder}
           </span>
         </span>
@@ -292,7 +292,7 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
               onKeyDown={handleKeyDown}
               placeholder="Type a time (e.g. 8 or 2:20pm)"
               data-testid={dataTestId ? `${dataTestId}-type-input` : undefined}
-              className="w-full h-8 px-2 bg-bg-1 border border-border-1 rounded text-white text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+              className="w-full h-8 px-2 bg-bg-1 border border-border-1 rounded text-ink-1 text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
             />
           </div>
 
@@ -322,10 +322,10 @@ export const TimePickerDropdown: React.FC<TimePickerDropdownProps> = ({
                     }
                     className={`w-full h-9 px-4 text-left text-sm transition-colors ${
                       isSelected
-                        ? 'bg-accent text-white font-medium'
+                        ? 'bg-accent text-on-accent font-medium'
                         : isHighlighted
-                          ? 'bg-bg-4 text-white'
-                          : 'text-ink-3 hover:bg-bg-4 hover:text-white'
+                          ? 'bg-bg-4 text-on-accent'
+                          : 'text-ink-3 hover:bg-bg-4 hover:text-on-accent'
                     }`}
                   >
                     {slot.label}

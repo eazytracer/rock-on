@@ -21,25 +21,86 @@
 export interface TuningEntry {
   id: string
   label: string
+  /** A CSS colour: `var(--tuning-…)` for built-ins, a hex for custom tunings. */
   color: string
+  /** Dark-theme hex, built-ins only. */
+  hex?: string
 }
 
 /**
- * Built-in canonical tunings — Palette A.
- * Array order IS the canonical display order (Standard, Eb, Drop D, Drop Db,
- * then the rest) — see `tuningOrderIndex` used by the song-form picker.
+ * Built-in canonical tunings. Colours are CSS variables (`--tuning-<id>` in
+ * src/index.css) so the light theme can swap in its darker shades; `hex` is the
+ * dark-theme value for places that need a literal (DB seeds, tests).
+ * Colours per design/source/DECISIONS.md, Part A · 1 (Nov 2026).
+ * Array order IS the canonical display order — see `tuningOrderIndex`.
  */
 export const CANONICAL_TUNINGS: readonly TuningEntry[] = [
-  { id: 'standard', label: 'Standard', color: '#60a5fa' },
-  { id: 'half-step-down', label: 'Half-step down', color: '#14b8a6' },
-  { id: 'drop-d', label: 'Drop D', color: '#f97316' },
-  { id: 'drop-db', label: 'Drop Db', color: '#f59e0b' },
-  { id: 'drop-c', label: 'Drop C', color: '#ef4444' },
-  { id: 'drop-b', label: 'Drop B', color: '#a855f7' },
-  { id: 'whole-step-down', label: 'Whole-step down', color: '#0ea5e9' },
-  { id: 'open-g', label: 'Open G', color: '#eab308' },
-  { id: 'open-d', label: 'Open D', color: '#ec4899' },
-  { id: 'dadgad', label: 'DADGAD', color: '#10b981' },
+  {
+    id: 'standard',
+    label: 'Standard',
+    color: 'var(--tuning-standard)',
+    hex: '#60a5fa',
+  },
+  {
+    id: 'half-step-down',
+    label: 'Half-step down',
+    color: 'var(--tuning-half-step-down)',
+    hex: '#14b8a6',
+  },
+  {
+    id: 'drop-d',
+    label: 'Drop D',
+    color: 'var(--tuning-drop-d)',
+    hex: '#84cc16',
+  },
+  {
+    id: 'drop-db',
+    label: 'Drop Db',
+    color: 'var(--tuning-drop-db)',
+    hex: '#f59e0b',
+  },
+  {
+    id: 'drop-c',
+    label: 'Drop C',
+    color: 'var(--tuning-drop-c)',
+    hex: '#d946ef',
+  },
+  {
+    id: 'drop-b',
+    label: 'Drop B',
+    color: 'var(--tuning-drop-b)',
+    hex: '#a855f7',
+  },
+  {
+    id: 'whole-step-down',
+    label: 'Whole-step down',
+    color: 'var(--tuning-whole-step-down)',
+    hex: '#0ea5e9',
+  },
+  {
+    id: 'c-standard',
+    label: 'C Standard',
+    color: 'var(--tuning-c-standard)',
+    hex: '#8b5cf6',
+  },
+  {
+    id: 'open-g',
+    label: 'Open G',
+    color: 'var(--tuning-open-g)',
+    hex: '#eab308',
+  },
+  {
+    id: 'open-d',
+    label: 'Open D',
+    color: 'var(--tuning-open-d)',
+    hex: '#ec4899',
+  },
+  {
+    id: 'dadgad',
+    label: 'DADGAD',
+    color: 'var(--tuning-dadgad)',
+    hex: '#10b981',
+  },
 ] as const
 
 /**
@@ -54,7 +115,7 @@ export function tuningOrderIndex(slug: string | null | undefined): number {
 }
 
 /** Fallback color for custom / unrecognized tunings. */
-export const FALLBACK_TUNING_COLOR = '#6b7280'
+export const FALLBACK_TUNING_COLOR = 'var(--tuning-unknown)'
 
 /**
  * Normalize a free-text tuning string so legacy label drift all resolves
@@ -87,6 +148,7 @@ export function canonicalTuningId(input: string | undefined | null): string {
     return 'drop-db'
   if (dashed === 'drop-c') return 'drop-c'
   if (dashed === 'drop-b') return 'drop-b'
+  if (['c-standard', 'c-std'].includes(dashed)) return 'c-standard'
 
   // ½-step down is commonly labelled "Eb Standard" / "Eb".
   if (
@@ -190,7 +252,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'guitar',
     stringCount: 6,
     pitches: [38, 45, 50, 55, 59, 64],
-    color: '#f97316',
+    color: '#84cc16',
   },
   {
     slug: 'drop-db',
@@ -222,7 +284,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'guitar',
     stringCount: 6,
     pitches: [36, 43, 48, 53, 57, 62],
-    color: '#ef4444',
+    color: '#d946ef',
   },
   {
     slug: 'drop-b',
@@ -255,6 +317,14 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     stringCount: 6,
     pitches: [38, 45, 50, 55, 57, 62],
     color: '#10b981',
+  },
+  {
+    slug: 'c-standard',
+    name: 'C Standard',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [36, 41, 46, 51, 55, 60],
+    color: '#8b5cf6',
   },
   // Guitar (extended range)
   {
@@ -334,4 +404,25 @@ export function midiToNoteName(midi: number): string {
   ]
   const octave = Math.floor(midi / 12) - 1
   return `${names[((midi % 12) + 12) % 12]}${octave}`
+}
+
+/** Pill labels, the way players say them (design/source/kit/rock.js SPINE). */
+const SHORT_LABELS: Record<string, string> = {
+  standard: 'E STD',
+  'half-step-down': 'E♭ STD',
+  'whole-step-down': 'D STD',
+  'drop-d': 'D DROP',
+  'drop-db': 'D♭ DROP',
+  'drop-c': 'C DROP',
+  'drop-b': 'B DROP',
+  'c-standard': 'C STD',
+  'open-g': 'G OPEN',
+  'open-d': 'D OPEN',
+  dadgad: 'DADGAD',
+}
+
+/** Short pill label: "E STD", "D DROP"; custom tunings show their name. */
+export function tuningShortLabel(tuning: string | undefined | null): string {
+  const id = canonicalTuningId(tuning)
+  return SHORT_LABELS[id] ?? (tuning ?? 'Standard').toUpperCase()
 }

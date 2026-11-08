@@ -54,7 +54,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     'placeholder-gray-500',
     'transition-all duration-200',
     'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-    'disabled:bg-gray-50 disabled:text-gray-500',
+    'disabled:bg-gray-50 disabled:text-ink-4',
   ]
 
   const focusClasses = isFocused
@@ -75,7 +75,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
         {loading ? (
           <svg
-            className="animate-spin h-5 w-5 text-gray-400"
+            className="animate-spin h-5 w-5 text-ink-3"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -96,7 +96,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </svg>
         ) : (
           <svg
-            className="h-5 w-5 text-gray-400"
+            className="h-5 w-5 text-ink-3"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -138,7 +138,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           aria-label="Clear search"
         >
           <svg
-            className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            className="h-5 w-5 text-ink-3 hover:text-ink-4 transition-colors duration-200"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"

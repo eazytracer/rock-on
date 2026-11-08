@@ -114,7 +114,7 @@ export function MorePage() {
         >
           <div className="flex items-center gap-3">
             <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent">
-              <Users size={24} className="text-white" />
+              <Users size={24} className="text-ink-1" />
             </span>
             <span className="flex-1 min-w-0">
               <span className="block text-lg font-bold text-ink-1">
@@ -135,7 +135,7 @@ export function MorePage() {
         >
           <div className="flex items-center gap-3">
             <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-accent">
-              <Disc3 size={24} className="text-white" />
+              <Disc3 size={24} className="text-ink-1" />
             </span>
             <span className="flex-1 min-w-0">
               <span className="block truncate text-lg font-bold text-ink-1">

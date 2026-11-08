@@ -44,6 +44,10 @@ up:
 down:
     supabase stop
 
+# Regenerate DB types for the API layer (run after every migration)
+types:
+    supabase gen types typescript --local --schema public > src/types/database.types.ts
+
 # Supabase status + local URLs
 status:
     supabase status

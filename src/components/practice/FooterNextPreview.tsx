@@ -54,7 +54,7 @@ export const FooterNextPreview: React.FC<FooterNextPreviewProps> = ({
         </span>
       )}
       <span
-        className={`${compact ? 'text-[11px]' : 'text-xs'} text-white font-medium truncate min-w-0`}
+        className={`${compact ? 'text-[11px]' : 'text-xs'} text-ink-1 font-medium truncate min-w-0`}
       >
         {nextSong.title}
       </span>

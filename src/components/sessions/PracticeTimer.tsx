@@ -129,7 +129,7 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
         <div className="text-6xl sm:text-7xl md:text-8xl font-mono font-bold text-gray-900 mb-4 tracking-tight">
           {formatTime(time)}
         </div>
-        <div className="text-lg text-gray-600">
+        <div className="text-lg text-ink-4">
           {isRunning ? 'Recording...' : time > 0 ? 'Paused' : 'Ready to start'}
         </div>
       </div>
@@ -281,7 +281,7 @@ export const PracticeTimer: React.FC<PracticeTimerProps> = ({
                   <span className="font-mono text-sm text-gray-700">
                     {formatTime(lap.time)}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-ink-4">
                     {lap.timestamp.toLocaleTimeString()}
                   </span>
                 </div>

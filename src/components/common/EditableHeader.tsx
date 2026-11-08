@@ -50,14 +50,14 @@ export const EditableHeader: React.FC<EditableHeaderProps> = ({
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
             <button
               onClick={handleBack}
-              className="p-2 text-ink-3 hover:text-white hover:bg-bg-4 rounded-lg transition-colors flex-shrink-0"
+              className="p-2 text-ink-3 hover:text-ink-1 hover:bg-bg-4 rounded-lg transition-colors flex-shrink-0"
               data-testid="header-back-button"
             >
               <ArrowLeft size={20} />
             </button>
             <div className="min-w-0">
               <h1
-                className="text-lg sm:text-xl font-bold text-white truncate"
+                className="text-lg sm:text-xl font-bold text-ink-1 truncate"
                 data-testid="header-title"
               >
                 {title}
@@ -78,7 +78,7 @@ export const EditableHeader: React.FC<EditableHeaderProps> = ({
                 <button
                   onClick={onCancel}
                   disabled={isSaving}
-                  className="sm:hidden p-2 rounded-lg border border-border-1 bg-transparent text-white hover:bg-bg-3 transition-colors disabled:opacity-50"
+                  className="sm:hidden p-2 rounded-lg border border-border-1 bg-transparent text-ink-1 hover:bg-bg-3 transition-colors disabled:opacity-50"
                   data-testid="header-cancel-button"
                   title={cancelLabel}
                 >
@@ -87,7 +87,7 @@ export const EditableHeader: React.FC<EditableHeaderProps> = ({
                 <button
                   onClick={onSave}
                   disabled={isSaving}
-                  className="sm:hidden p-2 rounded-lg bg-accent text-white hover:bg-accent-deep transition-colors disabled:opacity-50"
+                  className="sm:hidden p-2 rounded-lg bg-accent text-on-accent hover:bg-accent-deep transition-colors disabled:opacity-50"
                   data-testid="header-save-button"
                   title={saveLabel}
                 >
@@ -102,7 +102,7 @@ export const EditableHeader: React.FC<EditableHeaderProps> = ({
                 <button
                   onClick={onCancel}
                   disabled={isSaving}
-                  className="hidden sm:block px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors disabled:opacity-50"
+                  className="hidden sm:block px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors disabled:opacity-50"
                   data-testid="header-cancel-button"
                 >
                   {cancelLabel}
@@ -110,7 +110,7 @@ export const EditableHeader: React.FC<EditableHeaderProps> = ({
                 <button
                   onClick={onSave}
                   disabled={isSaving}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors disabled:opacity-50"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors disabled:opacity-50"
                   data-testid="header-save-button"
                 >
                   {isSaving && <Loader2 size={16} className="animate-spin" />}
@@ -120,7 +120,7 @@ export const EditableHeader: React.FC<EditableHeaderProps> = ({
             ) : (
               <button
                 onClick={onEdit}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-accent hover:bg-accent-deep text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-accent hover:bg-accent-deep text-on-accent text-sm font-medium rounded-lg transition-colors"
                 data-testid="header-edit-button"
               >
                 <Edit size={16} />

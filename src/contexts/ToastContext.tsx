@@ -88,12 +88,12 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
               </div>
 
               {/* Message */}
-              <div className="flex-1 text-sm text-white">{toast.message}</div>
+              <div className="flex-1 text-sm text-ink-1">{toast.message}</div>
 
               {/* Close Button */}
               <button
                 onClick={() => removeToast(toast.id)}
-                className="flex-shrink-0 p-1 text-ink-4 hover:text-white transition-colors rounded hover:bg-border-1"
+                className="flex-shrink-0 p-1 text-ink-4 hover:text-ink-1 transition-colors rounded hover:bg-border-1"
                 aria-label="Close notification"
               >
                 <X size={16} />

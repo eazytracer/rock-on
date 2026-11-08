@@ -132,8 +132,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         text-sm font-medium transition-colors duration-200
         ${
           isActive(item.path)
-            ? 'bg-bg-4 text-white'
-            : 'text-ink-3 hover:bg-bg-3 hover:text-white'
+            ? 'bg-bg-4 text-ink-1'
+            : 'text-ink-3 hover:bg-bg-3 hover:text-ink-1'
         }
       `}
     >
@@ -142,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </span>
       <span className="flex-1 text-left">{item.label}</span>
       {item.badge && (
-        <span className="bg-info text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+        <span className="bg-info text-ink-1 text-xs font-semibold px-2 py-0.5 rounded-full">
           {item.badge > 9 ? '9+' : item.badge}
         </span>
       )}
@@ -210,8 +210,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               data-testid={`${child.label.toLowerCase()}-link`}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
                 isChildActive(child)
-                  ? 'bg-bg-4 text-white'
-                  : 'text-ink-3 hover:bg-bg-3 hover:text-white'
+                  ? 'bg-bg-4 text-ink-1'
+                  : 'text-ink-3 hover:bg-bg-3 hover:text-ink-1'
               }`}
             >
               <span className={isChildActive(child) ? 'text-accent' : ''}>
@@ -219,7 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </span>
               <span className="flex-1 text-left">{child.label}</span>
               {child.badge && (
-                <span className="bg-info text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                <span className="bg-info text-ink-1 text-xs font-semibold px-2 py-0.5 rounded-full">
                   {child.badge > 9 ? '9+' : child.badge}
                 </span>
               )}
@@ -241,8 +241,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           data-testid="notifications-link"
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
             isActive('/notifications')
-              ? 'bg-bg-4 text-white'
-              : 'text-ink-3 hover:bg-bg-3 hover:text-white'
+              ? 'bg-bg-4 text-ink-1'
+              : 'text-ink-3 hover:bg-bg-3 hover:text-ink-1'
           }`}
         >
           <span className="relative">
@@ -251,7 +251,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={isActive('/notifications') ? 'text-accent' : ''}
             />
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 flex items-center justify-center rounded-full bg-info text-[9px] font-bold text-white">
+              <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 flex items-center justify-center rounded-full bg-info text-[9px] font-bold text-ink-1">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -261,7 +261,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={() => handleNavigation('/settings')}
           data-testid="settings-link"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-3 hover:bg-bg-3 hover:text-white transition-colors duration-200"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-3 hover:bg-bg-3 hover:text-ink-1 transition-colors duration-200"
         >
           <Settings size={20} />
           <span>Settings</span>
@@ -269,7 +269,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={onSignOut}
           data-testid="logout-button"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-3 hover:bg-bg-3 hover:text-white transition-colors duration-200"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-3 hover:bg-bg-3 hover:text-ink-1 transition-colors duration-200"
         >
           <LogOut size={20} />
           <span>Sign Out</span>

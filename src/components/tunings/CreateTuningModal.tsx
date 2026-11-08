@@ -18,17 +18,20 @@ const NOTE_OPTIONS: DropdownOption[] = Array.from(
   (_, i) => 24 + i
 ).map(midi => ({ value: String(midi), label: midiToNoteName(midi) }))
 
-// Colour swatches (built-in tuning palette) + a neutral "none".
+// Colour swatches: the 11 built-in tuning hues + rose (DECISIONS Part A · 1).
 const SWATCHES = [
   '#60a5fa',
-  '#f97316',
-  '#ef4444',
-  '#a855f7',
   '#14b8a6',
   '#0ea5e9',
+  '#84cc16',
+  '#f59e0b',
+  '#d946ef',
+  '#a855f7',
+  '#8b5cf6',
   '#eab308',
   '#ec4899',
   '#10b981',
+  '#f43f5e',
 ]
 
 /** Sensible starting pitches for an instrument + string count, from the standards. */
@@ -275,7 +278,7 @@ export function CreateTuningModal({
                 color === sw ? 'ring-2 ring-white/80' : ''
               }`}
             >
-              {color === sw && <Check size={12} className="text-white" />}
+              {color === sw && <Check size={12} className="text-ink-1" />}
             </button>
           ))}
         </div>
@@ -291,7 +294,7 @@ export function CreateTuningModal({
             onClick={save}
             disabled={saving || !name.trim()}
             data-testid="create-tuning-save"
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent disabled:opacity-50"
           >
             Create tuning
           </button>

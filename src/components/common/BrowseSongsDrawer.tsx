@@ -160,7 +160,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
               placeholder="Search songs..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+              className="w-full h-10 pl-10 pr-4 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               data-testid="browse-songs-search-input"
             />
           </div>
@@ -209,7 +209,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
             onAddAllFromSetlist && (
               <button
                 onClick={handleAddAllFromSetlist}
-                className="w-full h-10 px-4 bg-accent hover:bg-accent-deep text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full h-10 px-4 bg-accent hover:bg-accent-deep text-on-accent text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                 data-testid="browse-songs-add-all-button"
               >
                 <List size={18} />
@@ -240,7 +240,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
                   className="w-full flex items-center gap-3 p-3 bg-bg-2 border border-border-1 rounded-lg hover:border-accent hover:bg-bg-3 transition-colors text-left group"
                 >
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm uppercase flex-shrink-0"
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-ink-1 font-semibold text-sm uppercase flex-shrink-0"
                     style={{
                       backgroundColor: generateAvatarColor(song.title),
                     }}
@@ -253,7 +253,7 @@ export const BrowseSongsDrawer: React.FC<BrowseSongsDrawerProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <div className="text-white text-sm font-semibold truncate">
+                      <div className="text-ink-1 text-sm font-semibold truncate">
                         {song.title}
                       </div>
                       {song.contextType === 'personal' && (

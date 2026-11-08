@@ -218,7 +218,7 @@ export const SongList: React.FC<SongListProps> = ({
           />
 
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-gray-600">Sort by:</span>
+            <span className="text-ink-4">Sort by:</span>
             <div className="flex flex-wrap gap-1">
               {[
                 { key: 'title', label: 'Title' },
@@ -252,7 +252,7 @@ export const SongList: React.FC<SongListProps> = ({
       {filteredAndSortedSongs.length === 0 ? (
         <div className="text-center py-12">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-ink-3"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -267,7 +267,7 @@ export const SongList: React.FC<SongListProps> = ({
           <h3 className="mt-2 text-sm font-medium text-gray-900">
             No songs found
           </h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-ink-4">
             {searchQuery
               ? `No songs match "${searchQuery}"`
               : 'Get started by adding your first song.'}
@@ -275,7 +275,7 @@ export const SongList: React.FC<SongListProps> = ({
         </div>
       ) : (
         <>
-          <div className="mb-4 text-sm text-gray-600">
+          <div className="mb-4 text-sm text-ink-4">
             Showing {filteredAndSortedSongs.length} of {songs.length} songs
           </div>
 

@@ -289,9 +289,9 @@ export const JamViewPage: React.FC = () => {
       <header className="border-b border-border-1 px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent-deep rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">R</span>
+            <span className="text-ink-1 font-bold text-sm">R</span>
           </div>
-          <span className="text-white font-semibold">Rock On</span>
+          <span className="text-ink-1 font-semibold">Rock On</span>
         </div>
       </header>
 
@@ -332,13 +332,13 @@ export const JamViewPage: React.FC = () => {
                     · updated {formatAgo(lastUpdatedAt, nowTick)}
                   </span>
                 </div>
-                <h1 className="text-3xl font-bold text-white mb-2">
+                <h1 className="text-3xl font-bold text-ink-1 mb-2">
                   {payload.sessionName}
                 </h1>
                 <div className="flex items-center gap-4 text-ink-4 text-sm flex-wrap">
                   <span>
                     Hosted by{' '}
-                    <strong className="text-white">
+                    <strong className="text-ink-1">
                       {payload.hostDisplayName}
                     </strong>
                   </span>
@@ -376,7 +376,7 @@ export const JamViewPage: React.FC = () => {
                   data-testid="jam-view-name-entry"
                   className="bg-bg-2 border border-border-1 rounded-2xl p-8"
                 >
-                  <h2 className="text-white font-semibold text-lg mb-2">
+                  <h2 className="text-ink-1 font-semibold text-lg mb-2">
                     Let the host know you're here
                   </h2>
                   <p className="text-ink-3 text-sm mb-5">
@@ -401,12 +401,12 @@ export const JamViewPage: React.FC = () => {
                       value={nameDraft}
                       onChange={e => setNameDraft(e.target.value)}
                       maxLength={40}
-                      className="flex-1 px-4 py-2 rounded-lg bg-bg-0 border border-border-1 text-white text-sm placeholder:text-ink-4 focus:border-primary focus:outline-none"
+                      className="flex-1 px-4 py-2 rounded-lg bg-bg-0 border border-border-1 text-ink-1 text-sm placeholder:text-ink-4 focus:border-primary focus:outline-none"
                     />
                     <button
                       data-testid="jam-view-name-submit"
                       type="submit"
-                      className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-accent-deep transition-colors"
+                      className="px-4 py-2 rounded-lg bg-primary text-on-accent text-sm font-semibold hover:bg-accent-deep transition-colors"
                     >
                       Join as watcher
                     </button>
@@ -436,11 +436,11 @@ export const JamViewPage: React.FC = () => {
                         value={nameDraft}
                         onChange={e => setNameDraft(e.target.value)}
                         maxLength={40}
-                        className="flex-1 px-3 py-1.5 rounded-md bg-bg-0 border border-border-1 text-white text-sm focus:border-primary focus:outline-none"
+                        className="flex-1 px-3 py-1.5 rounded-md bg-bg-0 border border-border-1 text-ink-1 text-sm focus:border-primary focus:outline-none"
                       />
                       <button
                         type="submit"
-                        className="px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:bg-accent-deep transition-colors"
+                        className="px-3 py-1.5 rounded-md bg-primary text-on-accent text-xs font-semibold hover:bg-accent-deep transition-colors"
                       >
                         Save
                       </button>
@@ -450,7 +450,7 @@ export const JamViewPage: React.FC = () => {
                           setIsEditingName(false)
                           setNameDraft('')
                         }}
-                        className="px-3 py-1.5 rounded-md text-ink-3 text-xs hover:text-white transition-colors"
+                        className="px-3 py-1.5 rounded-md text-ink-3 text-xs hover:text-ink-1 transition-colors"
                       >
                         Cancel
                       </button>
@@ -462,7 +462,7 @@ export const JamViewPage: React.FC = () => {
                     >
                       <span>
                         Watching as{' '}
-                        <strong className="text-white">
+                        <strong className="text-ink-1">
                           {viewerName.trim().length > 0
                             ? viewerName
                             : 'anonymous'}
@@ -523,7 +523,7 @@ export const JamViewPage: React.FC = () => {
                               {idx + 1}.
                             </span>
                             <div className="min-w-0 flex-1">
-                              <p className="text-white text-sm font-medium truncate">
+                              <p className="text-ink-1 text-sm font-medium truncate">
                                 {item.displayTitle}
                               </p>
                               <p className="text-ink-4 text-xs truncate">
@@ -538,7 +538,7 @@ export const JamViewPage: React.FC = () => {
 
                   {/* CTA */}
                   <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-8 text-center">
-                    <h3 className="text-white font-bold text-xl mb-2">
+                    <h3 className="text-ink-1 font-bold text-xl mb-2">
                       Want to join this jam?
                     </h3>
                     <p className="text-ink-3 text-sm mb-6">
@@ -548,7 +548,7 @@ export const JamViewPage: React.FC = () => {
                     <button
                       data-testid="jam-view-signup-cta"
                       onClick={handleSignUp}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-accent-deep transition-colors"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-on-accent font-semibold text-sm hover:bg-accent-deep transition-colors"
                     >
                       Sign up free
                       <ArrowRight size={16} />

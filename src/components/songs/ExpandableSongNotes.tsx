@@ -143,20 +143,20 @@ export const ExpandableSongNotes: React.FC<ExpandableSongNotesProps> = ({
                   value={personalContent}
                   onChange={e => setPersonalContent(e.target.value)}
                   placeholder="Add your personal notes about this song..."
-                  className="w-full h-24 px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-info focus:outline-none focus:ring-1 focus:ring-info/20 resize-none"
+                  className="w-full h-24 px-3 py-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-info focus:outline-none focus:ring-1 focus:ring-info/20 resize-none"
                   data-testid={`song-personal-notes-input-${songId}`}
                 />
                 <div className="flex items-center gap-2 justify-end">
                   <button
                     onClick={handleCancelEdit}
-                    className="px-3 py-1.5 text-xs text-ink-3 hover:text-white transition-colors"
+                    className="px-3 py-1.5 text-xs text-ink-3 hover:text-ink-1 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSavePersonal}
                     disabled={isSaving}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-info text-white text-xs font-medium rounded-lg hover:bg-info/85 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-info text-ink-1 text-xs font-medium rounded-lg hover:bg-info/85 transition-colors disabled:opacity-50"
                     data-testid={`song-personal-notes-save-${songId}`}
                   >
                     {isSaving ? (

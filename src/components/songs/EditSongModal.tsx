@@ -540,7 +540,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           onClick={() => setIconDropdownOpen(!iconDropdownOpen)}
           data-testid={testId}
           title="Select icon type"
-          className="w-11 h-11 bg-bg-1 border border-border-1 rounded-md text-white flex items-center justify-center hover:border-border-2 focus:border-accent focus:outline-none transition-colors"
+          className="w-11 h-11 bg-bg-1 border border-border-1 rounded-md text-ink-1 flex items-center justify-center hover:border-border-2 focus:border-accent focus:outline-none transition-colors"
         >
           {getLinkIcon(value)}
         </button>
@@ -692,7 +692,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-border-1">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-white font-medium">Songs</span>
+            <span className="text-ink-1 font-medium">Songs</span>
             <span className="text-ink-4">&gt;</span>
             <span className="text-ink-3">
               {isAddMode ? 'New Song' : 'Edit Song'}
@@ -701,7 +701,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           <button
             type="button"
             onClick={handleClose}
-            className="p-1 text-ink-4 hover:text-white transition-colors"
+            className="p-1 text-ink-4 hover:text-ink-1 transition-colors"
             data-testid="edit-song-modal-close"
             aria-label="Close"
           >
@@ -762,7 +762,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                   setFormData({ ...formData, title: e.target.value })
                 }
                 placeholder="Enter song title"
-                className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 required
               />
             </div>
@@ -786,7 +786,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     setFormData({ ...formData, artist: e.target.value })
                   }
                   placeholder="Enter artist name"
-                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                   required
                 />
               </div>
@@ -808,7 +808,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     setFormData({ ...formData, album: e.target.value })
                   }
                   placeholder="Enter album name"
-                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
               </div>
             </div>
@@ -885,11 +885,11 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                   id="song-key"
                   data-testid="song-key-button"
                   onClick={() => setShowCircleOfFifths(true)}
-                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm flex items-center justify-between hover:border-accent transition-colors group"
+                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm flex items-center justify-between hover:border-accent transition-colors group"
                 >
                   <span
                     className={
-                      formData.key ? 'text-white font-medium' : 'text-ink-5'
+                      formData.key ? 'text-ink-1 font-medium' : 'text-ink-5'
                     }
                   >
                     {formData.key || 'Optional'}
@@ -922,7 +922,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     })
                   }
                   placeholder="120"
-                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
               </div>
 
@@ -946,7 +946,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     }
                     placeholder="0"
                     maxLength={2}
-                    className="w-full h-11 px-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    className="w-full h-11 px-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                   />
                   <span className="flex items-center text-ink-5">:</span>
                   <input
@@ -963,7 +963,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     }
                     placeholder="00"
                     maxLength={2}
-                    className="w-full h-11 px-2 bg-bg-1 border border-border-1 rounded-lg text-white text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    className="w-full h-11 px-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                   />
                 </div>
               </div>
@@ -987,7 +987,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                   setFormData({ ...formData, tags: e.target.value })
                 }
                 placeholder="Rock, Cover, 90s"
-                className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
             </div>
 
@@ -1011,7 +1011,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     className="mt-0.5 w-4 h-4 accent-accent cursor-pointer"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white font-medium">
+                    <div className="text-sm text-ink-1 font-medium">
                       Also save to my personal catalog
                     </div>
                     <div className="text-xs text-ink-4 mt-0.5">
@@ -1072,7 +1072,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                           maxLength={URL_MAX_LENGTH}
                           autoFocus
                           data-testid="link-url-input-edit"
-                          className={`w-full h-11 px-3 bg-bg-1 border rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20 ${
+                          className={`w-full h-11 px-3 bg-bg-1 border rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20 ${
                             getUrlError(linkUrl)
                               ? 'border-red-500/50 focus:border-red-500'
                               : 'border-border-1 focus:border-accent'
@@ -1099,7 +1099,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                             placeholder="Label (e.g., Live Recording, Chord Chart)"
                             maxLength={LABEL_MAX_LENGTH}
                             data-testid="link-label-input-edit"
-                            className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-md text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+                            className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-md text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
                           />
                           {linkName.length >= LABEL_MAX_LENGTH - 10 && (
                             <p
@@ -1159,7 +1159,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-white text-sm hover:text-accent transition-colors truncate block"
+                        className="text-ink-1 text-sm hover:text-accent transition-colors truncate block"
                       >
                         {link.name || getLinkPresetName(link.icon)}
                       </a>
@@ -1173,7 +1173,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleEditLink(link)}
-                        className="p-1.5 text-ink-4 hover:text-white hover:bg-border-1 rounded transition-colors"
+                        className="p-1.5 text-ink-4 hover:text-ink-1 hover:bg-border-1 rounded transition-colors"
                         title="Edit link"
                       >
                         <Edit size={14} />
@@ -1222,7 +1222,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                           maxLength={URL_MAX_LENGTH}
                           autoFocus
                           data-testid="link-url-input"
-                          className={`w-full h-11 px-3 bg-bg-1 border rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20 ${
+                          className={`w-full h-11 px-3 bg-bg-1 border rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:outline-none focus:ring-2 focus:ring-accent/20 ${
                             getUrlError(linkUrl)
                               ? 'border-red-500/50 focus:border-red-500'
                               : 'border-border-1 focus:border-accent'
@@ -1249,7 +1249,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                             placeholder="Label (e.g., Live Recording, Chord Chart)"
                             maxLength={LABEL_MAX_LENGTH}
                             data-testid="link-label-input"
-                            className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-md text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+                            className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-md text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
                           />
                           {linkName.length >= LABEL_MAX_LENGTH - 10 && (
                             <p
@@ -1300,14 +1300,14 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="px-6 py-2.5 text-ink-3 text-sm font-medium hover:text-white transition-colors"
+              className="px-6 py-2.5 text-ink-3 text-sm font-medium hover:text-ink-1 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               data-testid="song-submit-button"
-              className="px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-deep transition-colors"
+              className="px-6 py-2.5 bg-accent text-on-accent text-sm font-medium rounded-lg hover:bg-accent-deep transition-colors"
             >
               Save Changes
             </button>
@@ -1327,12 +1327,12 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-semibold text-white">
+              <h3 className="text-base sm:text-lg font-semibold text-ink-1">
                 Select Key
               </h3>
               <button
                 onClick={() => setShowCircleOfFifths(false)}
-                className="p-1 text-ink-4 hover:text-white transition-colors"
+                className="p-1 text-ink-4 hover:text-ink-1 transition-colors"
               >
                 <X size={20} />
               </button>

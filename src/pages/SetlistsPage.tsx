@@ -64,8 +64,6 @@ import {
   usePersonalSetlists,
 } from '../hooks/useSetlists'
 // PHASE 2: Sync status visualization
-import { SyncIcon } from '../components/sync/SyncIcon'
-import { useItemStatus } from '../hooks/useItemSyncStatus'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('SetlistsPage')
@@ -289,7 +287,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
                   breakDuration: parseInt(e.target.value) || 0,
                 })
               }
-              className="w-16 h-8 px-2 bg-bg-2 border border-border-1 rounded text-white text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none"
+              className="w-16 h-8 px-2 bg-bg-2 border border-border-1 rounded text-ink-1 text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none"
             />
             <span className="text-xs text-ink-4">min</span>
           </div>
@@ -311,7 +309,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
             onChange={e =>
               onUpdateItem(item.id, { breakNotes: e.target.value })
             }
-            className="w-full h-8 px-3 bg-bg-2 border border-border-1 rounded text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+            className="w-full h-8 px-3 bg-bg-2 border border-border-1 rounded text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
           />
         </div>
 
@@ -338,7 +336,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
             onChange={e =>
               onUpdateItem(item.id, { breakNotes: e.target.value })
             }
-            className="flex-1 h-8 px-3 bg-bg-2 border border-border-1 rounded text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+            className="flex-1 h-8 px-3 bg-bg-2 border border-border-1 rounded text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
           />
 
           <input
@@ -350,7 +348,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
                 breakDuration: parseInt(e.target.value) || 0,
               })
             }
-            className="w-20 h-8 px-3 bg-bg-2 border border-border-1 rounded text-white text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none"
+            className="w-20 h-8 px-3 bg-bg-2 border border-border-1 rounded text-ink-1 text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none"
           />
           <span className="text-xs text-ink-4">min</span>
 
@@ -433,7 +431,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
           </div>
 
           <div
-            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm uppercase flex-shrink-0"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-ink-1 font-semibold text-xs sm:text-sm uppercase flex-shrink-0"
             style={{ backgroundColor: song.avatarColor }}
           >
             {song.initials}
@@ -441,7 +439,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
 
           {/* Mobile: Title/Artist + Duration stacked */}
           <div className="flex-1 min-w-0 sm:hidden">
-            <div className="text-white text-sm font-semibold truncate">
+            <div className="text-ink-1 text-sm font-semibold truncate">
               {song.title}
             </div>
             <div className="flex items-center gap-2 text-xs text-ink-4">
@@ -455,7 +453,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
 
           {/* Desktop: Full layout */}
           <div className="hidden sm:block flex-1 min-w-[200px]">
-            <div className="text-white text-sm font-semibold truncate">
+            <div className="text-ink-1 text-sm font-semibold truncate">
               {song.title}
             </div>
             <div className="text-ink-4 text-xs truncate">{song.artist}</div>
@@ -502,7 +500,7 @@ const SortableSetlistItem: React.FC<SortableSetlistItemProps> = ({
               onChange={e => onUpdateItem(item.id, { notes: e.target.value })}
               onBlur={() => setIsEditingNotes(false)}
               placeholder="Add notes for this song..."
-              className="w-full px-3 py-2 bg-bg-1 border border-border-1 rounded text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none resize-none"
+              className="w-full px-3 py-2 bg-bg-1 border border-border-1 rounded text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none resize-none"
               rows={2}
               autoFocus
             />
@@ -547,7 +545,6 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
   onNavigateToShow,
 }) => {
   // PHASE 2: Get sync status for this setlist
-  const syncStatus = useItemStatus(setlist.id)
 
   const [showActions, setShowActions] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -573,13 +570,13 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-accent text-white'
+        return 'bg-accent text-on-accent'
       case 'draft':
-        return 'bg-ink-5 text-white'
+        return 'bg-ink-5 text-ink-1'
       case 'archived':
         return 'bg-bg-3 text-ink-3'
       default:
-        return 'bg-ink-5 text-white'
+        return 'bg-ink-5 text-ink-1'
     }
   }
 
@@ -599,7 +596,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
         <div className="flex-1 min-w-0">
           <h3
             data-testid="setlist-name"
-            className="text-lg font-bold text-white mb-1 truncate"
+            className="text-lg font-bold text-ink-1 mb-1 truncate"
           >
             {setlist.name}
           </h3>
@@ -609,7 +606,6 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
             >
               {setlist.status.charAt(0).toUpperCase() + setlist.status.slice(1)}
             </span>
-            <SyncIcon status={syncStatus} size="sm" />
           </div>
         </div>
 
@@ -635,7 +631,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
                     setShowActions(false)
                   }}
                   data-testid={`edit-setlist-${setlist.id}`}
-                  className="w-full px-3 py-2 text-left text-sm text-white hover:bg-border-1 transition-colors flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm text-ink-1 hover:bg-border-1 transition-colors flex items-center gap-2"
                 >
                   <Edit2 size={14} />
                   Edit
@@ -646,7 +642,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
                     setShowActions(false)
                   }}
                   data-testid={`duplicate-setlist-${setlist.id}`}
-                  className="w-full px-3 py-2 text-left text-sm text-white hover:bg-border-1 transition-colors flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm text-ink-1 hover:bg-border-1 transition-colors flex items-center gap-2"
                 >
                   <Copy size={14} />
                   Duplicate
@@ -658,7 +654,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
                       setShowActions(false)
                     }}
                     data-testid={`archive-setlist-${setlist.id}`}
-                    className="w-full px-3 py-2 text-left text-sm text-white hover:bg-border-1 transition-colors flex items-center gap-2"
+                    className="w-full px-3 py-2 text-left text-sm text-ink-1 hover:bg-border-1 transition-colors flex items-center gap-2"
                   >
                     <Archive size={14} />
                     Archive
@@ -682,7 +678,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
       </div>
 
       {/* Duration */}
-      <div className="flex items-center gap-2 text-white font-medium mb-2 flex-shrink-0">
+      <div className="flex items-center gap-2 text-ink-1 font-medium mb-2 flex-shrink-0">
         <Clock size={16} className="text-accent" />
         <span data-testid={`setlist-duration-${setlist.id}`}>
           {totalDuration}
@@ -752,7 +748,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
             className="bg-bg-2 rounded-xl border border-border-1 p-6 max-w-md w-full"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="text-white font-semibold text-lg mb-2">
+            <h3 className="text-ink-1 font-semibold text-lg mb-2">
               Delete Setlist?
             </h3>
             <p className="text-ink-3 text-sm mb-6">
@@ -763,7 +759,7 @@ const SetlistCard: React.FC<SetlistCardProps> = ({
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 data-testid="cancel-delete-setlist"
-                className="px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+                className="px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
               >
                 Cancel
               </button>
@@ -1051,7 +1047,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <button
               onClick={onBack}
-              className="p-1.5 sm:p-2 text-ink-4 hover:text-white transition-colors rounded-lg hover:bg-bg-2 flex-shrink-0"
+              className="p-1.5 sm:p-2 text-ink-4 hover:text-ink-1 transition-colors rounded-lg hover:bg-bg-2 flex-shrink-0"
             >
               <ArrowLeft size={18} className="sm:hidden" />
               <ArrowLeft size={20} className="hidden sm:block" />
@@ -1071,7 +1067,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
                 onChange={e =>
                   setEditedSetlist({ ...editedSetlist, name: e.target.value })
                 }
-                className="text-base sm:text-xl font-bold text-white bg-transparent border-0 outline-none focus:ring-0 p-0 w-full"
+                className="text-base sm:text-xl font-bold text-ink-1 bg-transparent border-0 outline-none focus:ring-0 p-0 w-full"
               />
             </div>
           </div>
@@ -1080,14 +1076,14 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
             {/* Mobile: Icon buttons */}
             <button
               onClick={onBack}
-              className="sm:hidden p-2 rounded-lg border border-border-1 bg-transparent text-white hover:bg-bg-3 transition-colors"
+              className="sm:hidden p-2 rounded-lg border border-border-1 bg-transparent text-ink-1 hover:bg-bg-3 transition-colors"
               title="Cancel"
             >
               <X size={18} />
             </button>
             <button
               onClick={handleSave}
-              className="sm:hidden p-2 rounded-lg bg-accent text-white hover:bg-accent-deep transition-colors"
+              className="sm:hidden p-2 rounded-lg bg-accent text-on-accent hover:bg-accent-deep transition-colors"
               title="Save"
             >
               <Check size={18} />
@@ -1097,14 +1093,14 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
             <button
               onClick={onBack}
               data-testid="cancel-setlist-button"
-              className="hidden sm:block px-4 py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors"
+              className="hidden sm:block px-4 py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               data-testid="save-setlist-button"
-              className="hidden sm:block px-6 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+              className="hidden sm:block px-6 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
             >
               Save Setlist
             </button>
@@ -1112,7 +1108,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
             {/* Mobile: Details toggle */}
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className="sm:hidden p-2 rounded-lg border border-border-1 bg-transparent text-white hover:bg-bg-3 transition-colors"
+              className="sm:hidden p-2 rounded-lg border border-border-1 bg-transparent text-ink-1 hover:bg-bg-3 transition-colors"
               title={showDetails ? 'Hide Details' : 'Show Details'}
             >
               <ChevronDown
@@ -1206,7 +1202,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
                   setEditedSetlist({ ...editedSetlist, notes: e.target.value })
                 }
                 placeholder="Add notes..."
-                className="w-full h-9 px-2.5 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
+                className="w-full h-9 px-2.5 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none"
               />
             </div>
           </div>
@@ -1275,7 +1271,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
                   setEditedSetlist({ ...editedSetlist, notes: e.target.value })
                 }
                 placeholder="Add notes..."
-                className="w-full h-10 px-3 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full h-10 px-3 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
             </div>
 
@@ -1304,14 +1300,14 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-white font-semibold text-lg">
+              <h3 className="text-ink-1 font-semibold text-lg">
                 Setlist Items
               </h3>
               <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
                 <div className="relative w-full sm:w-auto">
                   <button
                     onClick={() => setShowAddMenu(!showAddMenu)}
-                    className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 rounded-lg border border-border-1 bg-transparent text-white text-sm font-medium hover:bg-bg-3 transition-colors w-full sm:w-auto"
+                    className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 rounded-lg border border-border-1 bg-transparent text-ink-1 text-sm font-medium hover:bg-bg-3 transition-colors w-full sm:w-auto"
                   >
                     <Plus size={18} />
                     <span>Add Item</span>
@@ -1329,21 +1325,21 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
                             setIsDrawerOpen(true)
                             setShowAddMenu(false)
                           }}
-                          className="w-full px-3 py-2 text-left text-sm text-white hover:bg-border-1 transition-colors flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm text-ink-1 hover:bg-border-1 transition-colors flex items-center gap-2"
                         >
                           <Music2 size={14} />
                           Add Song
                         </button>
                         <button
                           onClick={addBreakToSetlist}
-                          className="w-full px-3 py-2 text-left text-sm text-white hover:bg-border-1 transition-colors flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm text-ink-1 hover:bg-border-1 transition-colors flex items-center gap-2"
                         >
                           <Coffee size={14} />
                           Add Break
                         </button>
                         <button
                           onClick={addSectionToSetlist}
-                          className="w-full px-3 py-2 text-left text-sm text-white hover:bg-border-1 transition-colors flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm text-ink-1 hover:bg-border-1 transition-colors flex items-center gap-2"
                         >
                           <Layers size={14} />
                           Add Section
@@ -1355,7 +1351,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
 
                 <button
                   onClick={() => setIsDrawerOpen(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors w-full sm:w-auto"
+                  className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors w-full sm:w-auto"
                 >
                   <Plus size={18} />
                   <span>Add Songs</span>
@@ -1384,7 +1380,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
                           <button
                             key={practice.id}
                             onClick={() => handleAddToPractice(practice.id)}
-                            className="w-full px-3 py-2 text-left text-sm text-white hover:bg-border-1 transition-colors"
+                            className="w-full px-3 py-2 text-left text-sm text-ink-1 hover:bg-border-1 transition-colors"
                           >
                             <div className="font-medium">{practice.name}</div>
                             <div className="text-xs text-ink-4">
@@ -1408,7 +1404,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
                 </p>
                 <button
                   onClick={() => setIsDrawerOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
                 >
                   <Plus size={18} />
                   <span>Add Songs</span>
@@ -1464,7 +1460,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
       {showSectionInput && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-bg-2 rounded-lg border border-border-1 p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-white mb-4">
+            <h3 className="text-lg font-semibold text-ink-1 mb-4">
               Add Section
             </h3>
             <input
@@ -1472,7 +1468,7 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
               value={sectionTitle}
               onChange={e => setSectionTitle(e.target.value)}
               placeholder="Enter section title..."
-              className="w-full px-4 py-3 bg-bg-1 border border-border-1 rounded-lg text-white placeholder-ink-5 focus:border-accent focus:outline-none mb-4"
+              className="w-full px-4 py-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 placeholder-ink-5 focus:border-accent focus:outline-none mb-4"
               autoFocus
               onKeyDown={e => {
                 if (e.key === 'Enter' && sectionTitle.trim()) {
@@ -1489,14 +1485,14 @@ const SetlistEditorPage: React.FC<SetlistEditorPageProps> = ({
                   setShowSectionInput(false)
                   setSectionTitle('')
                 }}
-                className="px-4 py-2 text-ink-3 hover:text-white transition-colors"
+                className="px-4 py-2 text-ink-3 hover:text-ink-1 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleAddSection(sectionTitle)}
                 disabled={!sectionTitle.trim()}
-                className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add Section
               </button>
@@ -2139,7 +2135,7 @@ export const SetlistsPage: React.FC = () => {
               <p className="text-danger text-sm mb-4">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                className="px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
               >
                 Retry
               </button>
@@ -2151,7 +2147,7 @@ export const SetlistsPage: React.FC = () => {
           <>
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <h1 className="text-2xl font-bold text-white">Setlists</h1>
+                <h1 className="text-2xl font-bold text-ink-1">Setlists</h1>
                 <ChevronDown size={20} className="text-ink-3" />
               </div>
 
@@ -2164,8 +2160,8 @@ export const SetlistsPage: React.FC = () => {
                     onClick={() => setActiveTab('band')}
                     className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                       activeTab === 'band'
-                        ? 'bg-accent text-white'
-                        : 'text-ink-3 hover:text-white'
+                        ? 'bg-accent text-on-accent'
+                        : 'text-ink-3 hover:text-on-accent'
                     }`}
                   >
                     Band Setlists
@@ -2175,8 +2171,8 @@ export const SetlistsPage: React.FC = () => {
                     onClick={() => setActiveTab('personal')}
                     className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                       activeTab === 'personal'
-                        ? 'bg-accent text-white'
-                        : 'text-ink-3 hover:text-white'
+                        ? 'bg-accent text-on-accent'
+                        : 'text-ink-3 hover:text-on-accent'
                     }`}
                   >
                     My Setlists
@@ -2219,7 +2215,7 @@ export const SetlistsPage: React.FC = () => {
                       placeholder="Search setlists"
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full h-10 pl-11 pr-4 bg-bg-2 border border-border-1 rounded-lg text-white text-sm placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                      className="w-full h-10 pl-11 pr-4 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                     />
                   </div>
                 </div>
@@ -2227,7 +2223,7 @@ export const SetlistsPage: React.FC = () => {
                 <button
                   onClick={() => void handleCreateNew()}
                   data-testid="create-setlist-button"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
                 >
                   <Plus size={20} />
                   <span>
@@ -2245,7 +2241,7 @@ export const SetlistsPage: React.FC = () => {
                 className="flex flex-col items-center justify-center py-20"
               >
                 <ListMusic size={64} className="text-border-1 mb-4" />
-                <h3 className="text-white font-semibold text-lg mb-2">
+                <h3 className="text-ink-1 font-semibold text-lg mb-2">
                   No setlists yet
                 </h3>
                 <p className="text-ink-4 text-sm mb-6">
@@ -2254,7 +2250,7 @@ export const SetlistsPage: React.FC = () => {
                 <button
                   onClick={() => void handleCreateNew()}
                   data-testid="create-setlist-button"
-                  className="flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
                 >
                   <Plus size={20} />
                   <span>

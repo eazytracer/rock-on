@@ -48,7 +48,7 @@ export const JamParticipantList: React.FC<JamParticipantListProps> = ({
             />
 
             {/* Display name */}
-            <span className="text-white text-sm flex-1">{displayName}</span>
+            <span className="text-ink-1 text-sm flex-1">{displayName}</span>
 
             {/* Host badge */}
             {isHost && (

@@ -234,7 +234,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
 
   // Base input styles
   const baseInputClass =
-    'w-full px-2 py-1 bg-bg-1 border border-accent rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/30'
+    'w-full px-2 py-1 bg-bg-1 border border-accent rounded text-ink-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30'
 
   // Render edit input based on type
   const renderEditInput = () => {
@@ -249,7 +249,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             placeholder={placeholder}
-            className={`w-full px-2 py-1 bg-bg-1 border border-accent rounded text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-accent/30 ${valueClassName}`}
+            className={`w-full px-2 py-1 bg-bg-1 border border-accent rounded text-ink-1 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-accent/30 ${valueClassName}`}
             name={name}
             id={id}
             data-testid={testId ? `${testId}-input` : undefined}
@@ -363,7 +363,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
               placeholder="Minutes"
               min={0}
               max={1440}
-              className="w-24 px-2 py-1 bg-bg-1 border border-accent rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+              className="w-24 px-2 py-1 bg-bg-1 border border-accent rounded text-ink-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
               name={name}
               id={id}
               data-testid={testId ? `${testId}-input` : undefined}
@@ -398,10 +398,10 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
     const hover = 'hover:bg-bg-2'
 
     if (type === 'title') {
-      return `${base} ${hover} text-xl font-bold text-white ${valueClassName}`
+      return `${base} ${hover} text-xl font-bold text-ink-1 ${valueClassName}`
     }
 
-    return `${base} ${hover} text-sm text-white ${valueClassName}`
+    return `${base} ${hover} text-sm text-ink-1 ${valueClassName}`
   }
 
   return (

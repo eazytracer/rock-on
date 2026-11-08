@@ -7,9 +7,9 @@ import {
 } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './services/queryClient'
-import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
 import { ProtectedLayoutRoute } from './components/layout/ProtectedLayoutRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { AuthCallback } from './pages/auth/AuthCallback'
@@ -171,7 +171,7 @@ const AppContent: React.FC = () => {
           the visible "blue banner" at the top of every page while sync
           was in flight. */}
       {syncing && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-bg-2 border-b border-border-1 text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-bg-2 border-b border-border-1 text-ink-1 px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
           <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
           <span className="text-ink-3">Syncing your data from cloud...</span>
         </div>
@@ -253,11 +253,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <AuthProvider>
-          <ToastProvider>
-            <ItemSyncStatusProvider>
+          <ThemeProvider>
+            <ToastProvider>
               <AppContent />
-            </ItemSyncStatusProvider>
-          </ToastProvider>
+            </ToastProvider>
+          </ThemeProvider>
         </AuthProvider>
       </Router>
     </QueryClientProvider>

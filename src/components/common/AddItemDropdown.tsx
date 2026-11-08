@@ -142,8 +142,8 @@ export const AddItemDropdown: React.FC<AddItemDropdownProps> = ({
           disabled
             ? 'bg-bg-2 text-ink-5 cursor-not-allowed'
             : isOpen
-              ? 'bg-accent text-white'
-              : 'bg-bg-2 border border-border-1 text-white hover:bg-bg-4 hover:border-border-2'
+              ? 'bg-accent text-on-accent'
+              : 'bg-bg-2 border border-border-1 text-on-accent hover:bg-bg-4 hover:border-border-2'
         }`}
       >
         <Plus size={18} />
@@ -181,7 +181,7 @@ export const AddItemDropdown: React.FC<AddItemDropdownProps> = ({
               </span>
               <div>
                 <div
-                  className={`text-sm font-medium ${highlightedIndex === index ? 'text-white' : 'text-ink-3'}`}
+                  className={`text-sm font-medium ${highlightedIndex === index ? 'text-ink-1' : 'text-ink-3'}`}
                 >
                   {option.label}
                 </div>

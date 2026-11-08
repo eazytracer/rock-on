@@ -102,7 +102,7 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
             right edge — even with long session names like "Friday
             Night Jam at the Garage". */}
         <div className="flex-1 min-w-0">
-          <p className="text-white text-sm sm:text-base font-semibold truncate">
+          <p className="text-ink-1 text-sm sm:text-base font-semibold truncate">
             {session.name || 'Jam Session'}
           </p>
           <div className="flex items-center gap-1.5 text-ink-4 text-xs mt-0.5">
@@ -153,7 +153,7 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
                 ? undefined
                 : 'Share link unavailable on this device — recreate the session from this device to share'
             }
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-border-1 text-white text-sm font-medium hover:bg-border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-border-1 text-ink-1 text-sm font-medium hover:bg-border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             aria-expanded={isShareOpen}
             aria-haspopup="menu"
           >
@@ -217,7 +217,7 @@ export const JamSessionCard: React.FC<JamSessionCardProps> = ({
             type="button"
             data-testid="jam-hide-qr-button"
             onClick={() => setShowQR(false)}
-            className="text-ink-3 text-xs hover:text-white transition-colors px-3 py-1"
+            className="text-ink-3 text-xs hover:text-ink-1 transition-colors px-3 py-1"
           >
             Hide QR
           </button>
