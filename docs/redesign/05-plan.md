@@ -61,14 +61,24 @@ Guide: 03 → Songs; 04 → Songs. Design: Song Row, Song Editor and View, Song 
 - Loading / empty / no-matches / error states.
 - Accept: Songs section of the mobile checklist; desktop table sorts and filters the same as mobile.
 
+## Phase 2.1 · Song page (0.9.1)
+
+Brief: [10](10-song-page-and-setlist-nav.md) Part 1 and Part 3. Design: `design/demo/Song Page.html`, `review/song-page/`.
+
+- `/songs/:id?from=` is the one place a song is edited: facts and details in place (per-field save + Undo), notes in place with Done and the conflict prompt, Back and ‹ › from the origin.
+- `EditSongModal` becomes Add song only; desktop Add song keeps the sidebar. The pane becomes read-only with Open; rows open on double-click / Enter; one Tuning filter chip on desktop.
+- Setlist song rows get an open icon. Icon rule audit (caret / swap / chevron).
+- Accept: 10 → 1.8.
+
 ## Phase 3 · Setlists (0.10.0)
 
 Guide: 03 → Setlists. Design: Setlist Editor 1–9, FP 9–12, 23; desktop Setlists.
 
 - List: sort, ⋯ (Duplicate / Delete with the precise confirm), New setlist with empty state.
 - Editor: saves as you go, totals, retune lines + Tune (links to the tuner once phase 5 lands), drag + hold Move sheet, Add menu (mobile) / insert-after-selection (desktop), break + section inline edit, set notes, song browser, timeline rail.
+- **Navigation (10 → Part 2):** `/setlists` is an index of cards; `/setlists/:id` is the editor full width with ← Setlists (or the origin); the name is a switcher (caret dropdown on desktop, ⇄ bottom sheet on phones) ending with All setlists / New setlist; Rename / Duplicate / Delete move to the header ⋯. No setlist column beside the editor.
 - Setlist statuses go (archived sets become ordinary sets). ("Open on stage" was never in the live app: nothing to remove.)
-- Accept: Setlists section of the checklist; desktop insert-after-selection.
+- Accept: Setlists section of the checklist; desktop insert-after-selection; 10 → 2.4.
 
 ## Phase 4 · Calendar, shows, practices (0.11.0)
 

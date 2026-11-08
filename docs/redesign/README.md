@@ -31,7 +31,9 @@ screen in this codebase's own React / Tailwind / repository patterns.
 5. [05-plan.md](05-plan.md) — the build order as PR-sized phases with acceptance checks, sized for this repo's release gate.
 6. [06-open-decisions.md](06-open-decisions.md) — **Events vs Jam**: decided Nov 7, option A (Jam on the Events tables). Background for the Jam phase.
 7. [07-handoff-to-build.md](07-handoff-to-build.md) — the build agent's handoff checklist. Done Nov 7: answers in `design/source/DECISIONS.md`, files in `design/`.
-8. [09-design-review-songs.md](09-design-review-songs.md) — **open**: editing a song vs editing its notes are two disconnected flows; questions for the designer, with screenshots.
+8. [08-api-conventions.md](08-api-conventions.md) — how operations are exposed to web and Flutter.
+9. [09-design-review-songs.md](09-design-review-songs.md) — the song editing review (decided, see 10).
+10. [10-song-page-and-setlist-nav.md](10-song-page-and-setlist-nav.md) — **build brief:** the song page (0.9.1) and setlist navigation (Phase 3), plus the caret / swap icon rule.
 
 ## Rules that apply to every phase
 

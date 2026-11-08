@@ -13,7 +13,7 @@ internet connection only for Google Fonts.
 | `demo/Rock On Mobile.html` | Every phone screen, linked, with a checklist down the side that jumps to each one |
 | `demo/Rock On Desktop.html` | The desktop app at 1024 px and up, fully clickable |
 | `demo/Jam Night.html` | A working jam: host, guest, bar TV and counter iPad. **Open a guest window** syncs across windows; **Simulate the room** fills it with people |
-| `demo/Song Page.html` | **Proposal (Nov 7), not decided:** a song opened as a full page, edited in place, with Back named after where you came from. Answers `docs/redesign/09` |
+| `demo/Song Page.html` | **Decided (Nov 8):** a song opened as a full page, edited in place, with Back named after where you came from. Build brief: `docs/redesign/10` |
 | `demo/Setlist Nav.html` | Setlist navigation. **Decided (Nov 7): `?nav=ab`**, an index, then the set full width with the name as a switcher. `a`, `b` and `c` are the options that were compared; no parameter shows the old layout |
 | `demo/screens/*.html` | The locked phone screens, one page per area. `Final Pass.html` holds the Nov 7 additions ("FP n" in the guides) |
 | `source/Foundations.html`, `source/Components.html` | Tokens, type, colour, tunings, and the component catalog |

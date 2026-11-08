@@ -1,6 +1,6 @@
 # 09 · Design review: editing a song vs editing its notes
 
-**Status: designer has answered (below), waiting for Eric.** Was: asking the designer to re-look (Nov 7 2026, after the Phase 2 tidy-up on `redesign/integration`).
+**Status: decided Nov 8 2026. Build from [10-song-page-and-setlist-nav.md](10-song-page-and-setlist-nav.md).** Was: asking the designer to re-look (Nov 7 2026, after the Phase 2 tidy-up on `redesign/integration`).
 Screenshots: `review/songs-notes/`.
 
 ## What prompted it
