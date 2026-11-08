@@ -529,7 +529,7 @@ export const SongsPage: React.FC = () => {
         <AddToSetlistSheet
           song={addToSet}
           onClose={() => setAddToSet(null)}
-          onNewSetlist={() => navigate('/setlists/new')}
+          onNewSetlist={() => navigate(`/setlists/new?song=${addToSet.id}`)}
         />
       )}
 

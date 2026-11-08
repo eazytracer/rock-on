@@ -198,7 +198,9 @@ test.describe('Setlists index', () => {
       seed = await setup(page)
       await page.goto('/setlists')
       const fall = page.getByTestId(`setlist-card-${seed.fall}`)
-      await expect(fall).toContainText('2 songs · 10 min · 1 retune')
+      await expect(fall.getByTestId('setlist-runtime')).toHaveText('10 min')
+      await expect(fall).toContainText('2 songs')
+      await expect(fall).toContainText('1 retune')
       await expect(fall).toContainText('The Crocodile')
 
       await page.getByTestId('setlists-search-toggle').tap()

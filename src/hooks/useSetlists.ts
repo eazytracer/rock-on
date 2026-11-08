@@ -1,11 +1,17 @@
-import { useCallback } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useMemo } from 'react'
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { SetlistService } from '../services/SetlistService'
 import { repository } from '../services/data/RepositoryFactory'
 import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { Setlist } from '../models/Setlist'
 import type { SetlistItem } from '../types'
+import type { Song } from '../models/Song'
 import { setlistIndex, duplicateSetlist } from '../services/api/setlists'
 
 /**
@@ -326,4 +332,94 @@ export function useDuplicateSetlist() {
     },
     [queryClient]
   )
+}
+
+/**
+ * The setlist editor's data (docs/redesign/10 · 2.3): the set, the songs in
+ * it, and `run`, which applies an edit locally first (when given `local`),
+ * calls the server, rolls back on failure and refetches. Live via
+ * `setlists:changed` / `songs:changed`.
+ */
+export function useSetlistEditor(setlistId: string) {
+  const queryClient = useQueryClient()
+  const key = queryKeys.setlists.detail(setlistId)
+  const query = useQuery({
+    queryKey: key,
+    queryFn: () => repository.getSetlist(setlistId),
+    enabled: !!setlistId,
+  })
+  const setlist = query.data ?? null
+  const bandId =
+    setlist?.contextType === 'band'
+      ? (setlist.contextId ?? setlist.bandId)
+      : undefined
+
+  useRealtimeInvalidate({
+    events: ['setlists:changed'],
+    bandId,
+    queryKey: key,
+  })
+
+  const songIds = useMemo(
+    () =>
+      [
+        ...new Set(
+          (setlist?.items ?? []).flatMap(i =>
+            i.type === 'song' && i.songId ? [i.songId] : []
+          )
+        ),
+      ].sort(),
+    [setlist?.items]
+  )
+  const songsKey = ['songs', 'byIds', ...songIds]
+  const songsQuery = useQuery({
+    queryKey: songsKey,
+    queryFn: () => repository.getSongsByIds(songIds),
+    enabled: songIds.length > 0,
+    placeholderData: keepPreviousData,
+  })
+  useRealtimeInvalidate({
+    events: ['songs:changed'],
+    bandId,
+    queryKey: ['songs', 'byIds'],
+  })
+  const songsById = useMemo(
+    () => new Map<string, Song>((songsQuery.data ?? []).map(s => [s.id!, s])),
+    [songsQuery.data]
+  )
+
+  const run = useCallback(
+    async <T>(
+      op: () => Promise<T>,
+      local?: (items: SetlistItem[]) => SetlistItem[]
+    ): Promise<T> => {
+      let prev: Setlist | null | undefined
+      if (local) {
+        await queryClient.cancelQueries({ queryKey: key })
+        prev = queryClient.getQueryData<Setlist | null>(key)
+        queryClient.setQueryData<Setlist | null>(key, s =>
+          s ? { ...s, items: local(s.items ?? []) } : s
+        )
+      }
+      try {
+        return await op()
+      } catch (err) {
+        if (prev !== undefined) queryClient.setQueryData(key, prev)
+        throw err
+      } finally {
+        await queryClient.invalidateQueries({ queryKey: ['setlists'] })
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, setlistId]
+  )
+
+  return {
+    setlist,
+    songsById,
+    loading: query.isLoading,
+    error: query.error as Error | null,
+    refetch: query.refetch,
+    run,
+  }
 }

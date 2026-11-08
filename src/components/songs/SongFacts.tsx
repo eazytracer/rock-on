@@ -21,7 +21,7 @@ import {
   showKey,
 } from '../../domain/format'
 import { commitTitle } from '../../domain/songs'
-import { tuningColor, tuningOrderIndex } from '../../utils/tunings'
+import { pitchNames, tuningColor, tuningOrderIndex } from '../../utils/tunings'
 
 export type SaveField = (label: string, fields: Partial<Song>) => Promise<void>
 
@@ -254,7 +254,7 @@ const TuningList: React.FC<{
               {t.name}
             </span>
             <span className="hidden md:inline font-mono text-[11px] text-ink-3">
-              {t.pitches.join(',')}
+              {pitchNames(t.pitches)}
             </span>
             {on && <Check size={16} className="text-accent shrink-0" />}
           </button>

@@ -7,6 +7,7 @@ import {
   FALLBACK_TUNING_COLOR,
   BUILTIN_TUNINGS,
   midiToNoteName,
+  pitchNames,
 } from '../../../src/utils/tunings'
 
 describe('canonicalTuningId', () => {
@@ -134,5 +135,12 @@ describe('midiToNoteName', () => {
     // midi 39 = a half-step below the standard low E2 (40) → Eb2.
     expect(midiToNoteName(39)).toBe('Eb2')
     expect(midiToNoteName(51)).toBe('Eb3')
+  })
+})
+
+describe('pitchNames', () => {
+  it('names the strings without octaves', () => {
+    expect(pitchNames([38, 45, 50, 55, 59, 64])).toBe('D A D G B E')
+    expect(pitchNames([39, 44, 49, 54, 58, 63])).toBe('Eb Ab Db Gb Bb Eb')
   })
 })

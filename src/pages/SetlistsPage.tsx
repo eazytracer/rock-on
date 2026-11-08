@@ -43,6 +43,7 @@ import {
 } from '../components/ui'
 import {
   SETLIST_SORT_LABELS,
+  deleteSetlistMessage,
   indexTotals,
   nextShowSetId,
   previewTitles,
@@ -51,6 +52,7 @@ import {
   type IndexRow,
   type SetlistSort,
 } from '../domain/setlist'
+import { SetlistStats } from '../components/setlists/SetlistStats'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('SetlistsPage')
@@ -62,31 +64,21 @@ const anchorBelow = (el: HTMLElement): At => {
   return { x: r.left, y: r.bottom + 8 }
 }
 
-/** "8 songs · 47 min · 5 retunes" with the numbers set off. */
-const Totals: React.FC<{ row: IndexRow; className?: string }> = ({
+/** A row's numbers, runtime first (the shared stat line, small). */
+const Stats: React.FC<{ row: IndexRow; className?: string }> = ({
   row,
-  className = '',
+  className,
 }) => {
   const t = indexTotals(row)
-  const part = (n: number, unit: string) => (
-    <span>
-      <span className="text-ink-1 font-semibold">{n}</span>{' '}
-      <span className="text-ink-3">{unit}</span>
-    </span>
-  )
   return (
-    <span className={`flex flex-wrap gap-x-3 font-mono ${className}`}>
-      {part(t.songs, t.songs === 1 ? 'song' : 'songs')}
-      {part(t.minutes, 'min')}
-      {part(t.retunes, t.retunes === 1 ? 'retune' : 'retunes')}
-    </span>
+    <SetlistStats
+      size="sm"
+      songs={t.songs}
+      minutes={t.minutes}
+      retunes={t.retunes}
+      className={className}
+    />
   )
-}
-
-/** "9 songs · 50 min · 4 retunes" as one line (phone rows). */
-const totalsText = (row: IndexRow) => {
-  const t = indexTotals(row)
-  return `${t.songs} ${t.songs === 1 ? 'song' : 'songs'} · ${t.minutes} min · ${t.retunes} ${t.retunes === 1 ? 'retune' : 'retunes'}`
 }
 
 export const SetlistsPage: React.FC = () => {
@@ -151,9 +143,7 @@ export const SetlistsPage: React.FC = () => {
     const show = showLine(row)
     const ok = await confirm({
       title: `Delete "${row.name}"?`,
-      message: show
-        ? `Songs stay in your catalog. ${show} will have no set. This can't be undone.`
-        : "Songs stay in your catalog. This can't be undone.",
+      message: deleteSetlistMessage(show),
       confirmLabel: 'Delete',
       variant: 'danger',
     })
@@ -448,7 +438,7 @@ const SetlistCard: React.FC<{
       <h2 className="mt-2.5 font-display font-extrabold uppercase leading-[.95] text-[30px] text-ink-1 break-words">
         {row.name}
       </h2>
-      <Totals row={row} className="mt-1.5 text-[13px]" />
+      <Stats row={row} className="mt-2" />
       <p className="mt-3 text-[14px] text-ink-2 truncate">
         {preview || <span className="text-ink-4 italic">No songs yet</span>}
       </p>
@@ -514,9 +504,7 @@ const SetlistListRow: React.FC<{
         <span className="block text-[17px] font-bold text-ink-1 truncate">
           {row.name}
         </span>
-        <span className="block mt-0.5 text-[13px] text-ink-3 truncate">
-          {totalsText(row)}
-        </span>
+        <Stats row={row} className="mt-1" />
       </span>
       <span className="shrink-0 text-right max-w-[45%]">
         {date ? (

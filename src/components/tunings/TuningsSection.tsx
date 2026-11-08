@@ -5,14 +5,9 @@ import { useConfirm } from '../../hooks/useConfirm'
 import { ConfirmDialog } from '../common/ConfirmDialog'
 import { useToast } from '../../contexts/ToastContext'
 import { TuningService } from '../../services/TuningService'
-import { midiToNoteName } from '../../utils/tunings'
+import { pitchNames } from '../../utils/tunings'
 import { CreateTuningModal } from './CreateTuningModal'
 import type { Tuning } from '../../models/Tuning'
-
-/** MIDI pitches → note string with the octave dropped, e.g. "E A D G B E". */
-function noteString(pitches: number[]): string {
-  return pitches.map(p => midiToNoteName(p).replace(/\d+$/, '')).join(' ')
-}
 
 function TuningRow({
   tuning,
@@ -36,7 +31,7 @@ function TuningRow({
           {tuning.name}
         </span>
         <span className="block truncate font-mono text-xs text-ink-4">
-          {noteString(tuning.pitches)}
+          {pitchNames(tuning.pitches)}
         </span>
       </span>
       {tuning.isBuiltin ? (

@@ -545,8 +545,28 @@ tests: `supabase/tests/031-song-page.test.sql`.
 
 **Enums:**
 
-- `status`: 'draft' | 'active' | 'archived'
+- `status`: 'draft' | 'active' | 'archived' (no longer shown or edited since 0.10.0; every set is an ordinary set)
 - `contextType` (Supabase): 'band' | 'personal'
+
+**RPCs (phase 3, `20261111120000_redesign_phase_3.sql`):** all SECURITY INVOKER, so RLS on `setlists` / `songs` /
+`shows` decides; errors are `MESSAGE = key` + `HINT = user copy`.
+
+- `setlist_index(p_context_type, p_context_id)`: one row per set in a context, with its show (soonest upcoming, else
+  latest past; via `shows.setlist_id` or `setlists.show_id`, cancelled shows skipped: `show_id`, `show_name`,
+  `show_venue`, `show_at`, `show_minutes` = `shows.duration`, `show_set_time`), `songs` JSONB
+  `[{id, title, tuning, seconds}]` in set order, and `break_minutes`.
+- `duplicate_setlist(p_setlist_id) → uuid`: "‹name› copy", same items (fresh item ids), notes and tags,
+  `source_setlist_id` set, not attached to a show.
+- Editor ops, each under a row lock that rewrites only the item named (positions renumbered 1..n):
+  `rename_setlist(p_setlist_id, p_name)` (1–80, `invalid`), `set_setlist_notes(p_setlist_id, p_notes)`,
+  `add_songs_to_setlist(p_setlist_id, p_song_ids, p_after_item) → text[]` (in a band set, a personal song is copied
+  into the band once and linked via the personal song's `linked_from_song_id`; `duplicate` if already in the set),
+  `insert_setlist_item(p_setlist_id, p_type, p_after_item, p_minutes, p_note, p_label) → text` (break 5–60 min,
+  default 15; section label 1–40), `update_setlist_item(p_setlist_id, p_item_id, p_patch)` (`breakDuration`,
+  `breakNotes`, `sectionTitle`, `notes`; keys that don't fit the item's type are ignored),
+  `move_setlist_item(p_setlist_id, p_item_id, p_to)` (0-based, clamped), `remove_setlist_item(p_setlist_id, p_item_id)`.
+  `p_after_item`: NULL = at the end, `''` = at the top. A missing item raises `not_found`.
+- Contract tests: `supabase/tests/032-setlists.test.sql`.
 
 **Indexes:**
 

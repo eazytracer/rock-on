@@ -2157,6 +2157,10 @@ export type Database = {
           verb: string
         }[]
       }
+      _jsonb_insert_at: {
+        Args: { p_at: number; p_items: Json; p_new: Json }
+        Returns: Json
+      }
       _require_song: {
         Args: { p_song_id: string }
         Returns: {
@@ -2200,6 +2204,52 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      _setlist_item_index: {
+        Args: { p_item_id: string; p_items: Json }
+        Returns: number
+      }
+      _setlist_lock: {
+        Args: { p_setlist_id: string }
+        Returns: {
+          band_id: string | null
+          context_id: string | null
+          context_type: string
+          created_by: string
+          created_date: string
+          fork_count: number | null
+          forked_from: string | null
+          id: string
+          items: Json | null
+          jam_session_id: string | null
+          last_modified: string
+          last_modified_by: string | null
+          name: string
+          notes: string | null
+          show_id: string | null
+          source_setlist_id: string | null
+          status: string | null
+          tags: string[] | null
+          version: number
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'setlists'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _setlist_save_items: {
+        Args: { p_items: Json; p_setlist_id: string }
+        Returns: Json
+      }
+      add_songs_to_setlist: {
+        Args: {
+          p_after_item?: string
+          p_setlist_id: string
+          p_song_ids: string[]
+        }
+        Returns: string[]
       }
       are_event_coparticipants: {
         Args: { p_caller: string; p_other: string }
@@ -2386,6 +2436,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      insert_setlist_item: {
+        Args: {
+          p_after_item?: string
+          p_label?: string
+          p_minutes?: number
+          p_note?: string
+          p_setlist_id: string
+          p_type: string
+        }
+        Returns: string
+      }
       is_band_admin: {
         Args: { p_band_id: string; p_user_id: string }
         Returns: boolean
@@ -2473,6 +2534,10 @@ export type Database = {
         Args: { p_ids?: string[] }
         Returns: undefined
       }
+      move_setlist_item: {
+        Args: { p_item_id: string; p_setlist_id: string; p_to: number }
+        Returns: undefined
+      }
       normalize_text: { Args: { input: string }; Returns: string }
       related_names: {
         Args: { p_ids: string[] }
@@ -2480,6 +2545,14 @@ export type Database = {
           name: string
           user_id: string
         }[]
+      }
+      remove_setlist_item: {
+        Args: { p_item_id: string; p_setlist_id: string }
+        Returns: undefined
+      }
+      rename_setlist: {
+        Args: { p_name: string; p_setlist_id: string }
+        Returns: undefined
       }
       replace_jam_matches: {
         Args: { p_matches: Json; p_session_id: string }
@@ -2574,6 +2647,10 @@ export type Database = {
         Args: { p_item_id: string; p_notes: string; p_setlist_id: string }
         Returns: undefined
       }
+      set_setlist_notes: {
+        Args: { p_notes: string; p_setlist_id: string }
+        Returns: undefined
+      }
       setlist_index: {
         Args: { p_context_id: string; p_context_type: string }
         Returns: {
@@ -2583,7 +2660,9 @@ export type Database = {
           name: string
           show_at: string
           show_id: string
+          show_minutes: number
           show_name: string
+          show_set_time: string
           show_venue: string
           songs: Json
         }[]
@@ -2606,6 +2685,10 @@ export type Database = {
           position: number
           starts_at: string
         }[]
+      }
+      update_setlist_item: {
+        Args: { p_item_id: string; p_patch: Json; p_setlist_id: string }
+        Returns: undefined
       }
       update_user_activity: { Args: never; Returns: undefined }
       user_belongs_to_band: {

@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-08
+
+Redesign phase 3 · Setlists.
+
+### Added
+
+- **Setlists index**: cards on desktop (show line, runtime · songs · retunes,
+  the first five songs), a list on phones. The next show's set comes first, with an
+  accent outline. Sort by Next show, Name or Updated; search on phones by set
+  name or song title. ⋯ (or hold a row) for Open, Duplicate and Delete.
+- **The editor opens full width** with ← Setlists (or the show / search you
+  came from) and the show line. The set's name is a switcher: a caret dropdown
+  on desktop, a ⇄ sheet on phones, next show first, ending with All setlists
+  and New setlist.
+- **Header ⋯**: Rename, Duplicate (not attached to a show), Delete.
+- **Totals** update as you edit, runtime first: a clock and the minutes
+  (breaks included) in orange, "47 of 45 min" in warning colour when the set
+  runs over the show slot, then songs and retunes, each with its own icon.
+- **Retune lines** between songs whose tunings differ. Tune links to the tuner
+  once it ships.
+- **Breaks and sections** edit in place. On desktop, + Break and + Section go
+  in after the selected row. On phones, one **Add** button offers Songs,
+  Break or Section label; breaks default to 15 minutes, and "Goes after"
+  defaults to the row you last touched.
+- **Song browser**: a pane beside the set on desktop (+ adds after the
+  selected row), a screen on phones (pick several, then Add). Search, a filter
+  for the songs in another setlist, tuning chips by most used, songs already
+  in the set marked (on desktop with × to take an accidental add straight back
+  out), and **From my songs** in a band (copied into the band when
+  added).
+- **Row menu** (hold on phones; ⋯ or right-click on desktop): Up, Down, To top,
+  After…, Note for this set, Open song, Remove from set.
+- **Drag to reorder** by the grip, with the mouse, touch or keyboard.
+- **Timeline rail**: the clock button shows each row's start time in a gutter.
+  Hold it (or right-click) to choose Set time (from the top) or Clock (from the
+  show's start; needs a show). Opened from a show, it starts in clock time.
+- **Set notes** in Markdown from the header, shown at the top in two lines.
+- New setlist from a song's "Add to setlist" sheet starts with that song.
+
+### Changed
+
+- **Everything saves as you go**: no Save button. Setlist statuses are gone;
+  archived sets are ordinary sets.
+- No setlist column beside the editor; Rename / Duplicate / Delete moved to
+  the editor's header ⋯.
+- Personal and band sets are no longer tabs: Setlists shows the current
+  context's sets, like Songs.
+- Deleting a set says which show loses it (show copies of sets arrive with
+  the Calendar update).
+
+### Fixed
+
+- The song picker no longer crashes on a song without an artist.
+- The song page's tuning picker shows note names (D A D G B E), not numbers.
+
+### Database
+
+- RPCs `setlist_index`, `duplicate_setlist`, `rename_setlist`,
+  `set_setlist_notes`, `add_songs_to_setlist`, `insert_setlist_item`,
+  `update_setlist_item`, `move_setlist_item`, `remove_setlist_item`. Each
+  editor op locks the row and changes only the item named, so two members
+  editing at once don't overwrite each other.
+- `release_notes` 0.10.0.
+
 ## [0.9.1] - 2026-11-08
 
 Redesign phase 2.1 · The song page.

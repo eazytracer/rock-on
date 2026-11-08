@@ -406,6 +406,11 @@ export function midiToNoteName(midi: number): string {
   return `${names[((midi % 12) + 12) % 12]}${octave}`
 }
 
+/** MIDI pitches → note names with the octave dropped, e.g. "E A D G B E". */
+export function pitchNames(pitches: number[]): string {
+  return pitches.map(p => midiToNoteName(p).replace(/\d+$/, '')).join(' ')
+}
+
 /** Pill labels, the way players say them (design/source/kit/rock.js SPINE). */
 const SHORT_LABELS: Record<string, string> = {
   standard: 'E STD',
