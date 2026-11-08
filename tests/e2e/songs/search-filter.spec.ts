@@ -201,9 +201,7 @@ test.describe('Song Search and Filtering', () => {
     await page.locator('button:has-text("Save")').first().click()
     await page.waitForTimeout(1500)
 
-    // Open the Filters panel, then filter by Drop D
-    await page.locator('[data-testid="song-filter-toggle-button"]').click()
-    await page.locator('[data-testid="song-tuning-filter-trigger"]').click()
+    // Tap the Drop D tuning chip
     await page
       .locator('[data-testid="song-tuning-filter-option-Drop D"]')
       .click()
@@ -224,7 +222,7 @@ test.describe('Song Search and Filtering', () => {
     await assertNoConsoleErrors(page, errors)
   })
 
-  test('user can sort songs via the sort dropdown', async ({ page }) => {
+  test('user can sort songs via the sort sheet', async ({ page }) => {
     const errors = setupConsoleErrorTracking(page)
     const user = createTestUser()
 
@@ -245,17 +243,13 @@ test.describe('Song Search and Filtering', () => {
       await page.waitForTimeout(1500)
     }
 
-    // Exercise the migrated sort Dropdown with a deterministic ordering:
-    // Title (Z-A) must reorder Third → Second → First (reverse-alphabetical),
-    // proving the C0 Dropdown drives the sort. (We deliberately assert on
-    // title order, not "recently added" — createdDate for songs added in the
-    // same session is subject to sync-timestamp propagation and is a separate
-    // concern from this select→Dropdown migration.)
+    // Sort sheet: choosing the current field (Title) flips its direction, so
+    // Title Z-A must reorder Third → Second → First.
     const sortTrigger = page.locator('[data-testid="song-sort-trigger"]')
     await expect(sortTrigger).toBeVisible({ timeout: 5000 })
     await sortTrigger.click()
-    await page.locator('[data-testid="song-sort-option-title-desc"]').click()
-    await expect(sortTrigger).toContainText('Title (Z-A)')
+    await page.locator('[data-testid="song-sort-option-title"]').click()
+    await expect(sortTrigger).toContainText('Title')
     await page.waitForTimeout(500)
 
     const rowTexts = await page

@@ -45,7 +45,12 @@ export const queryKeys = {
     band: (bandId: string) => ['songs', 'band', bandId] as const,
     personal: (userId: string) => ['songs', 'personal', userId] as const,
     detail: (songId: string) => ['songs', 'detail', songId] as const,
+    usage: (songId: string) => ['songs', 'usage', songId] as const,
+    nextShows: (bandId: string) => ['songs', 'nextShows', bandId] as const,
+    notInCatalog: (userId: string) =>
+      ['songs', 'notInCatalog', userId] as const,
   },
+  listViews: (userId: string) => ['listViews', userId] as const,
   setlists: {
     band: (bandId: string) => ['setlists', 'band', bandId] as const,
     personal: (userId: string) => ['setlists', 'personal', userId] as const,

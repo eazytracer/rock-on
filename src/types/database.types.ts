@@ -1781,6 +1781,7 @@ export type Database = {
       }
       songs: {
         Row: {
+          album: string | null
           artist: string | null
           chords_url: string | null
           confidence_level: number | null
@@ -1801,6 +1802,8 @@ export type Database = {
           normalized_artist: string | null
           normalized_title: string | null
           notes: string | null
+          notes_edited_at: string | null
+          notes_edited_by: string | null
           recording_url: string | null
           reference_links: Json | null
           song_group_id: string | null
@@ -1813,6 +1816,7 @@ export type Database = {
           visibility: string | null
         }
         Insert: {
+          album?: string | null
           artist?: string | null
           chords_url?: string | null
           confidence_level?: number | null
@@ -1833,6 +1837,8 @@ export type Database = {
           normalized_artist?: string | null
           normalized_title?: string | null
           notes?: string | null
+          notes_edited_at?: string | null
+          notes_edited_by?: string | null
           recording_url?: string | null
           reference_links?: Json | null
           song_group_id?: string | null
@@ -1845,6 +1851,7 @@ export type Database = {
           visibility?: string | null
         }
         Update: {
+          album?: string | null
           artist?: string | null
           chords_url?: string | null
           confidence_level?: number | null
@@ -1865,6 +1872,8 @@ export type Database = {
           normalized_artist?: string | null
           normalized_title?: string | null
           notes?: string | null
+          notes_edited_at?: string | null
+          notes_edited_by?: string | null
           recording_url?: string | null
           reference_links?: Json | null
           song_group_id?: string | null
@@ -1896,6 +1905,13 @@ export type Database = {
             columns: ['linked_from_song_id']
             isOneToOne: false
             referencedRelation: 'songs'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'songs_notes_edited_by_fkey'
+            columns: ['notes_edited_by']
+            isOneToOne: false
+            referencedRelation: 'users'
             referencedColumns: ['id']
           },
           {
@@ -2141,6 +2157,50 @@ export type Database = {
           verb: string
         }[]
       }
+      _require_song: {
+        Args: { p_song_id: string }
+        Returns: {
+          album: string | null
+          artist: string | null
+          chords_url: string | null
+          confidence_level: number | null
+          context_id: string
+          context_type: string
+          created_by: string
+          created_date: string
+          difficulty: number | null
+          duration: number | null
+          genre: string | null
+          guitar_tuning: string | null
+          id: string
+          key: string | null
+          last_modified_by: string | null
+          last_practiced: string | null
+          linked_from_song_id: string | null
+          lyrics_url: string | null
+          normalized_artist: string | null
+          normalized_title: string | null
+          notes: string | null
+          notes_edited_at: string | null
+          notes_edited_by: string | null
+          recording_url: string | null
+          reference_links: Json | null
+          song_group_id: string | null
+          tempo: number | null
+          time_signature: string | null
+          title: string
+          tuning_id: string | null
+          updated_date: string | null
+          version: number
+          visibility: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'songs'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       are_event_coparticipants: {
         Args: { p_caller: string; p_other: string }
         Returns: boolean
@@ -2150,7 +2210,23 @@ export type Database = {
         Args: { p_caller: string; p_song_owner: string }
         Returns: boolean
       }
+      band_songs_not_in_my_catalog: {
+        Args: never
+        Returns: {
+          artist: string
+          band_id: string
+          band_name: string
+          duration: number
+          guitar_tuning: string
+          id: string
+          title: string
+        }[]
+      }
       builtin_tuning_slug: { Args: { p_label: string }; Returns: string }
+      can_access_song: {
+        Args: { p_song_id: string; p_user: string }
+        Returns: boolean
+      }
       casting_event_ctx_ok: {
         Args: { p_band: string; p_ctx: string; p_slot: string; p_song: string }
         Returns: boolean
@@ -2158,6 +2234,95 @@ export type Database = {
       casting_setlist_ctx_ok: {
         Args: { p_band: string; p_ctx: string; p_song: string }
         Returns: boolean
+      }
+      copy_band_songs_to_personal: {
+        Args: { p_song_ids?: string[] }
+        Returns: {
+          album: string | null
+          artist: string | null
+          chords_url: string | null
+          confidence_level: number | null
+          context_id: string
+          context_type: string
+          created_by: string
+          created_date: string
+          difficulty: number | null
+          duration: number | null
+          genre: string | null
+          guitar_tuning: string | null
+          id: string
+          key: string | null
+          last_modified_by: string | null
+          last_practiced: string | null
+          linked_from_song_id: string | null
+          lyrics_url: string | null
+          normalized_artist: string | null
+          normalized_title: string | null
+          notes: string | null
+          notes_edited_at: string | null
+          notes_edited_by: string | null
+          recording_url: string | null
+          reference_links: Json | null
+          song_group_id: string | null
+          tempo: number | null
+          time_signature: string | null
+          title: string
+          tuning_id: string | null
+          updated_date: string | null
+          version: number
+          visibility: string | null
+        }[]
+        SetofOptions: {
+          from: '*'
+          to: 'songs'
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      delete_song: { Args: { p_song_id: string }; Returns: undefined }
+      duplicate_song: {
+        Args: { p_song_id: string }
+        Returns: {
+          album: string | null
+          artist: string | null
+          chords_url: string | null
+          confidence_level: number | null
+          context_id: string
+          context_type: string
+          created_by: string
+          created_date: string
+          difficulty: number | null
+          duration: number | null
+          genre: string | null
+          guitar_tuning: string | null
+          id: string
+          key: string | null
+          last_modified_by: string | null
+          last_practiced: string | null
+          linked_from_song_id: string | null
+          lyrics_url: string | null
+          normalized_artist: string | null
+          normalized_title: string | null
+          notes: string | null
+          notes_edited_at: string | null
+          notes_edited_by: string | null
+          recording_url: string | null
+          reference_links: Json | null
+          song_group_id: string | null
+          tempo: number | null
+          time_signature: string | null
+          title: string
+          tuning_id: string | null
+          updated_date: string | null
+          version: number
+          visibility: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'songs'
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       ensure_friend_code: { Args: never; Returns: string }
       event_allows_suggestions: { Args: { p_event: string }; Returns: boolean }
@@ -2356,6 +2521,73 @@ export type Database = {
         }[]
       }
       seed_band_roles: { Args: { p_band: string }; Returns: undefined }
+      set_band_note: {
+        Args: {
+          p_expected_version?: number
+          p_notes: string
+          p_song_id: string
+        }
+        Returns: {
+          album: string | null
+          artist: string | null
+          chords_url: string | null
+          confidence_level: number | null
+          context_id: string
+          context_type: string
+          created_by: string
+          created_date: string
+          difficulty: number | null
+          duration: number | null
+          genre: string | null
+          guitar_tuning: string | null
+          id: string
+          key: string | null
+          last_modified_by: string | null
+          last_practiced: string | null
+          linked_from_song_id: string | null
+          lyrics_url: string | null
+          normalized_artist: string | null
+          normalized_title: string | null
+          notes: string | null
+          notes_edited_at: string | null
+          notes_edited_by: string | null
+          recording_url: string | null
+          reference_links: Json | null
+          song_group_id: string | null
+          tempo: number | null
+          time_signature: string | null
+          title: string
+          tuning_id: string | null
+          updated_date: string | null
+          version: number
+          visibility: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'songs'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      song_next_shows: {
+        Args: { p_band_id: string }
+        Returns: {
+          show_id: string
+          show_name: string
+          song_id: string
+          starts_at: string
+        }[]
+      }
+      song_usage: {
+        Args: { p_song_id: string }
+        Returns: {
+          id: string
+          kind: string
+          name: string
+          position: number
+          starts_at: string
+        }[]
+      }
       update_user_activity: { Args: never; Returns: undefined }
       user_belongs_to_band: {
         Args: { check_band_id: string; check_user_id: string }

@@ -149,8 +149,8 @@ export class RemoteRepository implements IDataRepository {
 
   private mapSongToSupabase(song: Partial<Song>): Record<string, any> {
     // Note: Only include fields that exist in Supabase schema
-    // Fields like album, lyrics, chords, tags, structure
-    // are IndexedDB-only and should NOT be sent to Supabase
+    // Fields like lyrics, chords, tags, structure are client-only
+    // and should NOT be sent to Supabase
     // Only include fields that are actually present in the update
     // to avoid wiping out existing data with undefined values
     const result: Record<string, any> = {}
@@ -158,7 +158,7 @@ export class RemoteRepository implements IDataRepository {
     if (song.id !== undefined) result.id = song.id
     if (song.title !== undefined) result.title = song.title
     if (song.artist !== undefined) result.artist = song.artist
-    // album: IndexedDB only - do NOT send to Supabase
+    if (song.album !== undefined) result.album = song.album || null
     if (song.duration !== undefined) result.duration = song.duration
     if (song.key !== undefined) result.key = song.key
     if (song.bpm !== undefined) result.tempo = song.bpm // bpm (IndexedDB) -> tempo (Supabase)
@@ -188,13 +188,13 @@ export class RemoteRepository implements IDataRepository {
   }
 
   private mapSongFromSupabase(row: any): Song {
-    // Note: Supabase doesn't store album, lyrics, chords, tags, structure
-    // These fields are IndexedDB-only and will be empty when reading from Supabase
+    // Note: Supabase doesn't store lyrics, chords, tags, structure
+    // These fields are client-only and will be empty when reading from Supabase
     return {
       id: row.id,
       title: row.title,
       artist: row.artist,
-      album: '', // IndexedDB only - not in Supabase
+      album: row.album ?? '',
       duration: row.duration ?? 0,
       key: row.key,
       bpm: row.tempo ?? 0, // tempo (Supabase) -> bpm (IndexedDB)
@@ -225,6 +225,11 @@ export class RemoteRepository implements IDataRepository {
       songGroupId: row.song_group_id,
       linkedFromSongId: row.linked_from_song_id ?? undefined,
       lastModifiedBy: row.last_modified_by ?? undefined,
+      version: row.version ?? undefined,
+      notesEditedBy: row.notes_edited_by ?? undefined,
+      notesEditedAt: row.notes_edited_at
+        ? new Date(row.notes_edited_at)
+        : undefined,
     }
   }
 

@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { repository } from '../services/data/RepositoryFactory'
 import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
+import { setBandNote } from '../services/api/songs'
 import type { SongPersonalNoteInput } from '../models/SongPersonalNote'
 import type { SongNoteEntry, SongNoteEntryInput } from '../models/SongNoteEntry'
 
@@ -22,7 +23,7 @@ export function useBandNotes(songId: string) {
 
   const mutation = useMutation({
     mutationFn: async (newNotes: string) => {
-      await repository.updateSong(songId, { notes: newNotes })
+      await setBandNote(songId, newNotes)
       return newNotes
     },
     onSuccess: newNotes => {

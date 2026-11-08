@@ -1,2426 +1,666 @@
-import React, { useState, useMemo, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
-import { Dropdown } from '../components/common/Dropdown'
-import { useToast } from '../contexts/ToastContext'
-import { useAuth } from '../contexts/AuthContext'
+/**
+ * Songs (redesign phase 2 · design/demo/screens/Song Row.html, Final Pass
+ * 13–17, desktop.js Songs). One catalog per context: the band's songs, or My
+ * Songs in Personal. Tap a row to open it (desktop: the pane), hold or
+ * right-click for the menu, swipe left for Hide / Add to set.
+ */
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  ChevronDown,
   Plus,
   Search,
-  Clock,
-  Music,
-  Guitar,
-  Activity,
-  Calendar,
-  MoreVertical,
-  Filter,
+  SlidersHorizontal,
+  ArrowUpDown,
+  Music2,
+  SearchX,
   X,
   Copy,
-  ListPlus,
-  Trash2,
-  Edit,
-  ExternalLink,
-  FileText,
-  UserPlus,
-  Link2,
-  EyeOff,
-  Eye,
-  GitFork,
 } from 'lucide-react'
-// DATABASE INTEGRATION: Import database hooks and utilities
-import {
-  useSongs,
-  usePersonalSongs,
-  useCreateSong,
-  useUpdateSong,
-  useDeleteSong,
-} from '../hooks/useSongs'
-import {
-  secondsToDuration,
-  durationToSeconds,
-  formatBpm,
-  parseBpm,
-} from '../utils/formatters'
-// Tuning color spine — canonical Palette A (same source as SongListItem / setlist detail)
-import { tuningColor } from '../utils/tunings'
-import { repository } from '../services/data/RepositoryFactory'
-// DBSong type imported but not currently used directly
-// PHASE 2: Sync status visualization
-// Song notes modal
-import { SongNotesModal } from '../components/songs/SongNotesModal'
-import { useBulkPersonalNotePresence } from '../hooks/useNotes'
-// Catalog provenance — resolves "from ‹band›" for forked personal songs
-import { useSongSources } from '../hooks/useSongSources'
-// Per-user hide/re-add for the song catalog
+import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { useSongs, usePersonalSongs, useDeleteSong } from '../hooks/useSongs'
 import { useHiddenSongs } from '../hooks/useHiddenSongs'
-// Link icons for quick access to external resources
-import { LinkIcons } from '../components/songs/LinkIcons'
-import type { ReferenceLink } from '../types'
-// Shared song edit modal with Spotify search and URL auto-detection
-import { EditSongModal } from '../components/songs/EditSongModal'
-import type { Song as ModelSong } from '../models/Song'
-// Confirmation dialog (replaces window.confirm)
-import { ConfirmDialog } from '../components/common/ConfirmDialog'
-import { TuningTag } from '../components/common/MetaPill'
+import { useBulkPersonalNotePresence } from '../hooks/useNotes'
+import { useMediaQuery } from '../hooks/useResponsive'
+import {
+  useListView,
+  useSongNextShows,
+  useNotInMyCatalog,
+  useCopyToPersonal,
+  useDuplicateSong,
+  useSaveSong,
+} from '../hooks/useSongCatalog'
 import { useConfirm } from '../hooks/useConfirm'
-import { SongLinkingService } from '../services/SongLinkingService'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { EditSongModal } from '../components/songs/EditSongModal'
+import { SongRow } from '../components/songs/SongRow'
+import { SongDetail } from '../components/songs/SongDetail'
+import {
+  SongMenu,
+  ViewOptionsSheet,
+  SortSheet,
+  SortIcon,
+  AddToSetlistSheet,
+} from '../components/songs/SongSheets'
+import {
+  Button,
+  Chip,
+  Empty,
+  PageTitle,
+  RetryCard,
+  Sheet,
+  SkeletonRow,
+  TuningPill,
+} from '../components/ui'
+import type { Song } from '../models/Song'
+import {
+  SORT_LABELS,
+  filterSongs,
+  noteMark,
+  sortSongs,
+  tuningsInUse,
+  usageSummary,
+} from '../domain/songs'
+import { songUsage } from '../services/api/songs'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('SongsPage')
 
-interface SongLink {
-  id: string
-  type: 'spotify' | 'youtube' | 'ultimate-guitar' | 'other'
-  name: string
-  url: string
-}
-
-// Convert SongLink array to ReferenceLink array for LinkIcons component
-const songLinksToReferenceLinks = (links?: SongLink[]): ReferenceLink[] => {
-  if (!links) return []
-  return links.map(link => ({
-    icon: link.type === 'ultimate-guitar' ? 'tabs' : link.type,
-    url: link.url,
-    description: link.name,
-  }))
-}
-
-// Convert ReferenceLink array to SongLink array for UI display
-const referenceLinksToSongLinks = (
-  links?: ReferenceLink[]
-): SongLink[] | undefined => {
-  if (!links || links.length === 0) return undefined
-  return links.map((link, index) => ({
-    id: `link-${index}`,
-    type: link.icon as SongLink['type'],
-    name: link.description || link.icon,
-    url: link.url,
-  }))
-}
-
-// DATABASE INTEGRATION: Extended Song interface for display
-interface Song {
-  id: string
-  title: string
-  artist: string
-  album?: string
-  duration: string // Display format: "3:14"
-  key: string
-  tuning: string
-  bpm: string // Display format: "104 bpm"
-  tempo: string
-  tags: string[]
-  nextShow?: {
-    name: string
-    date: string
-  }
-  initials: string
-  avatarColor: string
-  notes?: string
-  referenceLinks?: SongLink[]
-  createdDate: string
-  createdBy: string
-  difficulty?: number
-  confidenceLevel?: number
-}
-
-// DATABASE INTEGRATION: Mock data removed - now loading from database
-
-// Comprehensive mock data with varied songs (REMOVED - using database)
-/*
-const mockSongs: Song[] = [
-  {
-    id: '1',
-    title: 'All Star',
-    artist: 'Smash Mouth',
-    album: 'Astro Lounge',
-    duration: '3:14',
-    key: 'F#',
-    tuning: 'Standard',
-    bpm: '104',
-    tempo: 'moderate',
-    tags: ['Rock', 'Cover', '90s'],
-    nextShow: { name: 'Toys 4 Tots', date: 'Dec 8th, 2025' },
-    initials: 'AS',
-    avatarColor: '#3b82f6',
-    notes: 'Fun crowd pleaser. Start with palm muted power chords.',
-    referenceLinks: [
-      { id: '1', type: 'youtube', name: 'YouTube Tutorial', url: 'https://youtube.com/watch1' },
-      { id: '2', type: 'spotify', name: 'Spotify Track', url: 'https://spotify.com/track1' }
-    ],
-    createdDate: '2024-11-15',
-    createdBy: 'Eric'
-  },
-  {
-    id: '2',
-    title: 'Man in the Box',
-    artist: 'Alice In Chains',
-    album: 'Facelift',
-    duration: '4:47',
-    key: 'Ebm',
-    tuning: 'Half-step down',
-    bpm: '108',
-    tempo: 'moderate',
-    tags: ['Grunge', 'Cover', '90s'],
-    nextShow: { name: 'Toys 4 Tots', date: 'Dec 8th, 2025' },
-    initials: 'MB',
-    avatarColor: '#8b5cf6',
-    notes: 'Heavy riff. Watch the wah-wah pedal timing.',
-    referenceLinks: [
-      { id: '1', type: 'ultimate-guitar', name: 'Tab', url: 'https://ultimate-guitar.com/tab1' }
-    ],
-    createdDate: '2024-11-10',
-    createdBy: 'Mike'
-  },
-  {
-    id: '3',
-    title: 'No Rain',
-    artist: 'Blind Melon',
-    album: 'Blind Melon',
-    duration: '3:33',
-    key: 'E',
-    tuning: 'Standard',
-    bpm: '150',
-    tempo: 'upbeat',
-    tags: ['Alternative', 'Cover', '90s'],
-    nextShow: { name: 'Toys 4 Tots', date: 'Dec 8th, 2025' },
-    initials: 'NR',
-    avatarColor: '#ec4899',
-    notes: 'Upbeat feel-good song. Great sing-along.',
-    createdDate: '2024-11-08',
-    createdBy: 'Sarah'
-  },
-  {
-    id: '4',
-    title: 'Monkey Wrench',
-    artist: 'Foo Fighters',
-    album: 'The Colour and the Shape',
-    duration: '3:51',
-    key: 'B',
-    tuning: 'Drop D',
-    bpm: '175',
-    tempo: 'fast',
-    tags: ['Rock', 'Cover', 'High Energy'],
-    nextShow: { name: 'Toys 4 Tots', date: 'Dec 8th, 2025' },
-    initials: 'MW',
-    avatarColor: '#f59e0b',
-    notes: 'Fast and aggressive. Watch the tempo in the bridge.',
-    createdDate: '2024-11-05',
-    createdBy: 'Eric'
-  },
-  {
-    id: '5',
-    title: 'Black Hole Sun',
-    artist: 'Soundgarden',
-    album: 'Superunknown',
-    duration: '5:18',
-    key: 'G',
-    tuning: 'Drop D',
-    bpm: '104',
-    tempo: 'moderate',
-    tags: ['Grunge', 'Cover', '90s'],
-    initials: 'BH',
-    avatarColor: '#14b8a6',
-    notes: 'Atmospheric and moody. Focus on dynamics.',
-    createdDate: '2024-10-28',
-    createdBy: 'Mike'
-  },
-  {
-    id: '6',
-    title: 'Everlong',
-    artist: 'Foo Fighters',
-    album: 'The Colour and the Shape',
-    duration: '4:10',
-    key: 'D',
-    tuning: 'Drop D',
-    bpm: '158',
-    tempo: 'fast',
-    tags: ['Rock', 'Cover', 'Fan Favorite'],
-    initials: 'EV',
-    avatarColor: '#f43f5e',
-    notes: 'High energy throughout. Great closer.',
-    createdDate: '2024-10-25',
-    createdBy: 'Sarah'
-  },
-  {
-    id: '7',
-    title: 'Plush',
-    artist: 'Stone Temple Pilots',
-    album: 'Core',
-    duration: '5:13',
-    key: 'G',
-    tuning: 'Half-step down',
-    bpm: '78',
-    tempo: 'slow',
-    tags: ['Grunge', 'Cover', 'Ballad'],
-    initials: 'PL',
-    avatarColor: '#a855f7',
-    notes: 'Slow burn. Watch the wah pedal on the lead.',
-    createdDate: '2024-10-20',
-    createdBy: 'Eric'
-  },
-  {
-    id: '8',
-    title: 'Come As You Are',
-    artist: 'Nirvana',
-    album: 'Nevermind',
-    duration: '3:39',
-    key: 'Em',
-    tuning: 'Standard',
-    bpm: '120',
-    tempo: 'moderate',
-    tags: ['Grunge', 'Cover', '90s', 'Classic'],
-    nextShow: { name: 'New Year\'s Eve Bash', date: 'Dec 31st, 2025' },
-    initials: 'CA',
-    avatarColor: '#06b6d4',
-    notes: 'Iconic riff. Use chorus pedal for authentic sound.',
-    createdDate: '2024-10-18',
-    createdBy: 'Mike'
-  },
-  {
-    id: '9',
-    title: 'Learn to Fly',
-    artist: 'Foo Fighters',
-    album: 'There Is Nothing Left to Lose',
-    duration: '3:55',
-    key: 'B',
-    tuning: 'Standard',
-    bpm: '137',
-    tempo: 'moderate',
-    tags: ['Rock', 'Cover', 'Upbeat'],
-    nextShow: { name: 'New Year\'s Eve Bash', date: 'Dec 31st, 2025' },
-    initials: 'LF',
-    avatarColor: '#84cc16',
-    notes: 'Melodic and sing-along friendly.',
-    createdDate: '2024-10-15',
-    createdBy: 'Sarah'
-  },
-  {
-    id: '10',
-    title: 'Interstate Love Song',
-    artist: 'Stone Temple Pilots',
-    album: 'Purple',
-    duration: '3:14',
-    key: 'E',
-    tuning: 'Standard',
-    bpm: '102',
-    tempo: 'moderate',
-    tags: ['Rock', 'Cover', '90s'],
-    initials: 'IL',
-    avatarColor: '#eab308',
-    notes: 'Groovy bassline. Let it breathe.',
-    createdDate: '2024-10-12',
-    createdBy: 'Eric'
-  },
-  {
-    id: '11',
-    title: 'The Pretender',
-    artist: 'Foo Fighters',
-    album: 'Echoes, Silence, Patience & Grace',
-    duration: '4:29',
-    key: 'Am',
-    tuning: 'Drop D',
-    bpm: '174',
-    tempo: 'fast',
-    tags: ['Rock', 'Cover', 'High Energy'],
-    nextShow: { name: 'New Year\'s Eve Bash', date: 'Dec 31st, 2025' },
-    initials: 'TP',
-    avatarColor: '#f97316',
-    notes: 'Build from quiet to explosive. Crowd favorite.',
-    createdDate: '2024-10-08',
-    createdBy: 'Mike'
-  },
-  {
-    id: '12',
-    title: 'Would?',
-    artist: 'Alice In Chains',
-    album: 'Dirt',
-    duration: '3:28',
-    key: 'D',
-    tuning: 'Drop D',
-    bpm: '110',
-    tempo: 'moderate',
-    tags: ['Grunge', 'Cover', 'Heavy'],
-    initials: 'WO',
-    avatarColor: '#6366f1',
-    notes: 'Heavy and dark. Focus on the harmony vocals.',
-    createdDate: '2024-10-05',
-    createdBy: 'Sarah'
-  },
-  {
-    id: '13',
-    title: 'Smells Like Teen Spirit',
-    artist: 'Nirvana',
-    album: 'Nevermind',
-    duration: '5:01',
-    key: 'F',
-    tuning: 'Standard',
-    bpm: '117',
-    tempo: 'moderate',
-    tags: ['Grunge', 'Cover', '90s', 'Classic'],
-    nextShow: { name: 'New Year\'s Eve Bash', date: 'Dec 31st, 2025' },
-    initials: 'ST',
-    avatarColor: '#ef4444',
-    notes: 'The ultimate grunge anthem. Everyone knows this one.',
-    createdDate: '2024-10-01',
-    createdBy: 'Eric'
-  },
-  {
-    id: '14',
-    title: 'Even Flow',
-    artist: 'Pearl Jam',
-    album: 'Ten',
-    duration: '4:53',
-    key: 'D',
-    tuning: 'Standard',
-    bpm: '147',
-    tempo: 'fast',
-    tags: ['Grunge', 'Cover', '90s'],
-    initials: 'EF',
-    avatarColor: '#10b981',
-    notes: 'Driving rhythm. Watch for the tempo changes.',
-    createdDate: '2024-09-28',
-    createdBy: 'Mike'
-  },
-  {
-    id: '15',
-    title: 'Alive',
-    artist: 'Pearl Jam',
-    album: 'Ten',
-    duration: '5:41',
-    key: 'A',
-    tuning: 'Standard',
-    bpm: '76',
-    tempo: 'moderate',
-    tags: ['Grunge', 'Cover', 'Ballad', 'Epic'],
-    initials: 'AL',
-    avatarColor: '#8b5cf6',
-    notes: 'Epic guitar solo. Great for showing off.',
-    createdDate: '2024-09-25',
-    createdBy: 'Sarah'
-  },
-  {
-    id: '16',
-    title: 'Scar Tissue',
-    artist: 'Red Hot Chili Peppers',
-    album: 'Californication',
-    duration: '3:37',
-    key: 'F',
-    tuning: 'Standard',
-    bpm: '92',
-    tempo: 'slow',
-    tags: ['Alternative', 'Cover', 'Laid Back'],
-    initials: 'SC',
-    avatarColor: '#f59e0b',
-    notes: 'Laid back groove. Focus on the feel, not speed.',
-    createdDate: '2024-09-20',
-    createdBy: 'Eric'
-  },
-  {
-    id: '17',
-    title: 'Under the Bridge',
-    artist: 'Red Hot Chili Peppers',
-    album: 'Blood Sugar Sex Magik',
-    duration: '4:24',
-    key: 'D',
-    tuning: 'Standard',
-    bpm: '70',
-    tempo: 'slow',
-    tags: ['Alternative', 'Cover', 'Ballad'],
-    initials: 'UB',
-    avatarColor: '#ec4899',
-    notes: 'Beautiful and melodic. Great vocal showcase.',
-    createdDate: '2024-09-15',
-    createdBy: 'Mike'
-  },
-  {
-    id: '18',
-    title: 'Say It Ain\'t So',
-    artist: 'Weezer',
-    album: 'Weezer (Blue Album)',
-    duration: '4:18',
-    key: 'C#m',
-    tuning: 'Half-step down',
-    bpm: '76',
-    tempo: 'moderate',
-    tags: ['Alternative', 'Cover', '90s'],
-    initials: 'SI',
-    avatarColor: '#3b82f6',
-    notes: 'Emotional build. Watch dynamics.',
-    createdDate: '2024-09-10',
-    createdBy: 'Sarah'
-  },
-  {
-    id: '19',
-    title: 'Times Like These',
-    artist: 'Foo Fighters',
-    album: 'One by One',
-    duration: '4:26',
-    key: 'D',
-    tuning: 'Drop D',
-    bpm: '147',
-    tempo: 'moderate',
-    tags: ['Rock', 'Cover', 'Uplifting'],
-    initials: 'TL',
-    avatarColor: '#14b8a6',
-    notes: 'Uplifting and anthemic. Great sing-along.',
-    createdDate: '2024-09-05',
-    createdBy: 'Eric'
-  },
-  {
-    id: '20',
-    title: 'Vasoline',
-    artist: 'Stone Temple Pilots',
-    album: 'Purple',
-    duration: '2:56',
-    key: 'E',
-    tuning: 'Drop D',
-    bpm: '127',
-    tempo: 'moderate',
-    tags: ['Grunge', 'Cover', '90s'],
-    initials: 'VA',
-    avatarColor: '#a855f7',
-    notes: 'Short and punchy. High energy throughout.',
-    createdDate: '2024-09-01',
-    createdBy: 'Mike'
-  }
-]
-*/
-
-// Sort options
-type SortOption =
-  | 'title-asc'
-  | 'title-desc'
-  | 'artist-asc'
-  | 'artist-desc'
-  | 'date-added-desc'
-  | 'date-added-asc'
-  | 'show-asc'
-
-// PHASE 2: Song row component with sync status
-interface SongRowProps {
-  song: Song
-  onEdit: (song: Song) => void
-  onDelete: (song: Song) => void
-  onDuplicate: (song: Song) => void
-  onAddToSetlist: (song: Song) => void
-  onOpenNotes: (song: Song) => void
-  /** When defined, shows "Copy to My Songs" in the kebab menu (band tab only) */
-  onCopyToPersonal?: (song: Song) => void
-  /** Whether this song has already been copied to the personal catalog */
-  alreadyCopied?: boolean
-  /** Show a small chain icon next to the title to signal that this song is
-   *  linked across catalogs (a band song with a personal mirror, or a
-   *  personal song that was forked from a band song). */
-  linked?: boolean
-  /** Hover-tooltip / aria-label for the linked icon. */
-  linkedLabel?: string
-  /** Whether a personal note exists for this song (current user + context). */
-  hasPersonalNote?: boolean
-  /** Name of the band this personal song was forked from (personal tab only). */
-  sourceBandName?: string
-  /** Hide the song (removes it from the default view) or re-add it, depending on `hideMode`. */
-  onHide: (song: Song) => void
-  /** 'hide' when viewing the default (visible) list, 'readd' when viewing the hidden list. */
-  hideMode: 'hide' | 'readd'
-  openActionMenuId: string | null
-  setOpenActionMenuId: (id: string | null) => void
-}
-
-/** Which note(s) exist for a song, for the notes-button 4-state indicator. */
-type SongNoteState = 'none' | 'personal' | 'band' | 'both'
-
-function getSongNoteState(
-  song: Song,
-  hasPersonalNote: boolean | undefined
-): SongNoteState {
-  const hasBandNote = !!song.notes?.trim()
-  if (hasBandNote && hasPersonalNote) return 'both'
-  if (hasBandNote) return 'band'
-  if (hasPersonalNote) return 'personal'
-  return 'none'
-}
-
-/** Tailwind text-color class for the notes button, by note state. */
-const NOTE_STATE_COLOR_CLASS: Record<SongNoteState, string> = {
-  none: 'text-ink-4',
-  personal: 'text-info',
-  band: 'text-accent',
-  both: '', // rendered with a gradient icon fill instead, see FileText color prop
-}
-
-const SongRow: React.FC<SongRowProps> = ({
-  song,
-  onEdit,
-  onDelete,
-  onDuplicate,
-  onAddToSetlist,
-  onOpenNotes,
-  onCopyToPersonal,
-  alreadyCopied,
-  linked,
-  linkedLabel,
-  hasPersonalNote,
-  sourceBandName,
-  onHide,
-  hideMode,
-  openActionMenuId,
-  setOpenActionMenuId,
-}) => {
-  // PHASE 2: Get sync status for this specific song
-  const stripeColor = tuningColor(song.tuning ?? 'Standard')
-  const noteState = getSongNoteState(song, hasPersonalNote)
-
-  return (
-    <div
-      data-testid={`song-row-${song.id}`}
-      className="bg-bg-2 rounded-xl hover:bg-bg-4 transition-colors group border-l-[3px]"
-      style={{ borderLeftColor: stripeColor }}
-    >
-      <div className="flex items-center gap-4 p-4">
-        {/* Song Info */}
-        <div className="flex items-center gap-3 flex-1 min-w-[220px] cursor-pointer">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-ink-1 font-semibold text-sm uppercase flex-shrink-0"
-            style={{ backgroundColor: song.avatarColor }}
-          >
-            {song.initials}
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <div className="text-ink-1 font-semibold text-sm truncate">
-                {song.title}
-              </div>
-              {linked && (
-                <span
-                  className="text-accent flex-shrink-0"
-                  title={linkedLabel || 'Linked across catalogs'}
-                  aria-label={linkedLabel || 'Linked across catalogs'}
-                  data-testid="song-linked-indicator"
-                >
-                  <Link2 size={12} />
-                </span>
-              )}
-            </div>
-            <div className="text-ink-3 text-xs truncate">{song.artist}</div>
-            {sourceBandName && (
-              <div
-                className="flex items-center gap-1 text-ink-4 text-xs truncate mt-0.5"
-                data-testid="song-source-tag"
-              >
-                <GitFork size={11} className="flex-shrink-0" />
-                <span className="truncate">from {sourceBandName}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Link Icons */}
-        <div className="w-[100px] flex-shrink-0">
-          <LinkIcons
-            links={songLinksToReferenceLinks(song.referenceLinks)}
-            size="sm"
-            maxVisible={2}
-          />
-        </div>
-
-        {/* Duration */}
-        <div className="w-[90px] text-ink-3 text-sm">{song.duration}</div>
-
-        {/* Key */}
-        <div className="w-[60px] text-ink-3 text-sm">{song.key || '—'}</div>
-
-        {/* Tuning */}
-        <div className="w-[130px]">
-          <TuningTag tuning={song.tuning} className="text-sm" />
-        </div>
-
-        {/* BPM */}
-        <div className="w-[80px] text-ink-3 text-sm">{song.bpm}</div>
-
-        {/* Next Show */}
-        <div className="w-[180px]">
-          {song.nextShow ? (
-            <>
-              <div className="text-ink-1 text-sm">{song.nextShow.name}</div>
-              <div className="text-ink-3 text-xs">{song.nextShow.date}</div>
-            </>
-          ) : (
-            <div className="text-ink-4 text-sm">No shows scheduled</div>
-          )}
-        </div>
-
-        {/* Notes Button */}
-        <button
-          onClick={() => onOpenNotes(song)}
-          className={`p-1.5 ${NOTE_STATE_COLOR_CLASS[noteState]} hover:text-accent transition-colors`}
-          title="Song Notes"
-          data-testid="song-notes-button"
-          data-note-state={noteState}
-        >
-          <FileText
-            size={18}
-            color={
-              noteState === 'both' ? 'url(#song-notes-gradient)' : undefined
-            }
-          />
-        </button>
-
-        {/* Actions Menu */}
-        <div className="w-[40px] relative">
-          <button
-            onClick={() =>
-              setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
-            }
-            className="p-1 text-ink-4 hover:text-ink-1 transition-colors"
-            data-testid="song-actions-menu-button"
-          >
-            <MoreVertical size={20} />
-          </button>
-
-          {openActionMenuId === song.id && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setOpenActionMenuId(null)}
-              />
-              <div className="absolute right-0 top-8 z-20 w-48 bg-bg-3 border border-border-1 rounded-lg shadow-xl overflow-hidden">
-                <button
-                  onClick={() => onEdit(song)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
-                  data-testid="edit-song-button"
-                >
-                  <Edit size={16} />
-                  <span>Edit Song</span>
-                </button>
-                <button
-                  onClick={() => onAddToSetlist(song)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
-                  data-testid="add-to-setlist-button"
-                >
-                  <ListPlus size={16} />
-                  <span>Add to Setlist</span>
-                </button>
-                {onCopyToPersonal && (
-                  <button
-                    onClick={() => !alreadyCopied && onCopyToPersonal(song)}
-                    disabled={alreadyCopied}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-                      alreadyCopied
-                        ? 'text-ink-4 cursor-default'
-                        : 'text-ink-1 hover:bg-border-1'
-                    }`}
-                    data-testid="copy-to-personal-button"
-                  >
-                    <UserPlus size={16} />
-                    <span>
-                      {alreadyCopied
-                        ? 'Already in My Songs'
-                        : 'Copy to My Songs'}
-                    </span>
-                  </button>
-                )}
-                <button
-                  onClick={() => onDuplicate(song)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
-                  data-testid="duplicate-song-button"
-                >
-                  <Copy size={16} />
-                  <span>Duplicate Song</span>
-                </button>
-                <button
-                  onClick={() => onHide(song)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
-                  data-testid={
-                    hideMode === 'hide'
-                      ? 'song-hide-button'
-                      : 'song-readd-button'
-                  }
-                >
-                  {hideMode === 'hide' ? (
-                    <EyeOff size={16} />
-                  ) : (
-                    <Eye size={16} />
-                  )}
-                  <span>{hideMode === 'hide' ? 'Hide' : 'Re-add'}</span>
-                </button>
-                <div className="h-px bg-border-1" />
-                <button
-                  onClick={() => onDelete(song)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-danger text-sm hover:bg-border-1 transition-colors"
-                  data-testid="delete-song-button"
-                >
-                  <Trash2 size={16} />
-                  <span>Delete Song</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// PHASE 2: Mobile song card component with sync status
-const SongCard: React.FC<SongRowProps> = ({
-  song,
-  onEdit,
-  onDelete,
-  onDuplicate,
-  onAddToSetlist,
-  onOpenNotes,
-  onCopyToPersonal,
-  alreadyCopied,
-  linked,
-  linkedLabel,
-  hasPersonalNote,
-  sourceBandName,
-  onHide,
-  hideMode,
-  openActionMenuId,
-  setOpenActionMenuId,
-}) => {
-  // PHASE 2: Get sync status for this specific song
-  const stripeColor = tuningColor(song.tuning ?? 'Standard')
-  const noteState = getSongNoteState(song, hasPersonalNote)
-
-  return (
-    <div
-      className="bg-bg-2 rounded-xl p-4 border border-border-1 border-l-[3px]"
-      style={{ borderLeftColor: stripeColor }}
-    >
-      {/* Song Info */}
-      <div className="flex items-start gap-3 mb-3">
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-ink-1 font-semibold text-sm uppercase flex-shrink-0"
-          style={{ backgroundColor: song.avatarColor }}
-        >
-          {song.initials}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <div className="text-ink-1 font-semibold text-sm truncate">
-              {song.title}
-            </div>
-            {linked && (
-              <span
-                className="text-accent flex-shrink-0"
-                title={linkedLabel || 'Linked across catalogs'}
-                aria-label={linkedLabel || 'Linked across catalogs'}
-                data-testid="song-linked-indicator"
-              >
-                <Link2 size={12} />
-              </span>
-            )}
-          </div>
-          <div className="text-ink-3 text-xs">{song.artist}</div>
-          {sourceBandName && (
-            <div
-              className="flex items-center gap-1 text-ink-4 text-xs truncate mt-0.5"
-              data-testid="song-source-tag"
-            >
-              <GitFork size={11} className="flex-shrink-0" />
-              <span className="truncate">from {sourceBandName}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Notes Button */}
-        <button
-          onClick={() => onOpenNotes(song)}
-          className={`p-1.5 ${NOTE_STATE_COLOR_CLASS[noteState]} hover:text-accent transition-colors`}
-          title="Song Notes"
-          data-testid="song-notes-button"
-          data-note-state={noteState}
-        >
-          <FileText
-            size={18}
-            color={
-              noteState === 'both' ? 'url(#song-notes-gradient)' : undefined
-            }
-          />
-        </button>
-
-        {/* Kebab Menu */}
-        <button
-          onClick={() =>
-            setOpenActionMenuId(openActionMenuId === song.id ? null : song.id)
-          }
-          className="p-1 text-ink-4 hover:text-ink-1 transition-colors"
-        >
-          <MoreVertical size={20} />
-        </button>
-
-        {/* Mobile Actions Menu */}
-        {openActionMenuId === song.id && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setOpenActionMenuId(null)}
-            />
-            <div className="absolute right-4 z-20 w-48 bg-bg-3 border border-border-1 rounded-lg shadow-xl overflow-hidden">
-              <button
-                onClick={() => onEdit(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
-              >
-                <Edit size={16} />
-                <span>Edit Song</span>
-              </button>
-              <button
-                onClick={() => onAddToSetlist(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
-              >
-                <ListPlus size={16} />
-                <span>Add to Setlist</span>
-              </button>
-              {onCopyToPersonal && (
-                <button
-                  onClick={() => !alreadyCopied && onCopyToPersonal(song)}
-                  disabled={alreadyCopied}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-                    alreadyCopied
-                      ? 'text-ink-4 cursor-default'
-                      : 'text-ink-1 hover:bg-border-1'
-                  }`}
-                  data-testid="copy-to-personal-button"
-                >
-                  <UserPlus size={16} />
-                  <span>
-                    {alreadyCopied ? 'Already in My Songs' : 'Copy to My Songs'}
-                  </span>
-                </button>
-              )}
-              <button
-                onClick={() => onDuplicate(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
-              >
-                <Copy size={16} />
-                <span>Duplicate Song</span>
-              </button>
-              <button
-                onClick={() => onHide(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-ink-1 text-sm hover:bg-border-1 transition-colors"
-                data-testid={
-                  hideMode === 'hide' ? 'song-hide-button' : 'song-readd-button'
-                }
-              >
-                {hideMode === 'hide' ? <EyeOff size={16} /> : <Eye size={16} />}
-                <span>{hideMode === 'hide' ? 'Hide' : 'Re-add'}</span>
-              </button>
-              <div className="h-px bg-border-1" />
-              <button
-                onClick={() => onDelete(song)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-danger text-sm hover:bg-border-1 transition-colors"
-              >
-                <Trash2 size={16} />
-                <span>Delete Song</span>
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Metadata Grid - 2 columns on wider mobile, 1 column on very small */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 mb-3">
-        <div className="flex items-center gap-2 text-ink-3 text-xs">
-          <Clock size={16} className="flex-shrink-0" />
-          <span>{song.duration}</span>
-        </div>
-        <div className="flex items-center gap-2 text-ink-3 text-xs">
-          <Music size={16} className="flex-shrink-0" />
-          <span>{song.key || '—'}</span>
-        </div>
-        <TuningTag tuning={song.tuning} />
-        <div className="flex items-center gap-2 text-ink-3 text-xs">
-          <Activity size={16} className="flex-shrink-0" />
-          <span className="whitespace-nowrap">{song.bpm}</span>
-        </div>
-      </div>
-
-      {/* Tags */}
-      {song.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {song.tags.map(tag => (
-            <span
-              key={tag}
-              className="px-2 py-0.5 bg-border-1 text-ink-3 text-xs rounded"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Link Icons - Quick access to external resources */}
-      {song.referenceLinks && song.referenceLinks.length > 0 && (
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-ink-4 text-xs">Links:</span>
-          <LinkIcons
-            links={songLinksToReferenceLinks(song.referenceLinks)}
-            size="sm"
-            maxVisible={8}
-          />
-        </div>
-      )}
-
-      {/* Next Show */}
-      {song.nextShow && (
-        <div className="flex items-center gap-2 pt-3 border-t border-border-1 text-xs">
-          <Calendar size={16} className="text-ink-4 flex-shrink-0" />
-          <span className="text-ink-1 truncate">{song.nextShow.name}</span>
-          <span className="text-ink-3 whitespace-nowrap">
-            {song.nextShow.date}
-          </span>
-        </div>
-      )}
-      {!song.nextShow && (
-        <div className="flex items-center gap-2 pt-3 border-t border-border-1 text-xs">
-          <Calendar size={16} className="text-ink-4 flex-shrink-0" />
-          <span className="text-ink-4">No shows scheduled</span>
-        </div>
-      )}
-    </div>
-  )
-}
+type Editing = { song?: Song } | null
+type MenuState = { song: Song; at: { x: number; y: number } | null } | null
 
 export const SongsPage: React.FC = () => {
-  const { showToast } = useToast()
-  const { currentBand } = useAuth()
-
-  // DATABASE INTEGRATION: Get currentBandId from localStorage
-  const currentBandId = localStorage.getItem('currentBandId') || ''
-  const currentUserId = localStorage.getItem('currentUserId') || ''
-
-  // Tab state: 'band' = band songs, 'personal' = user's personal catalog.
-  // In a personal context (no band) there is only the personal catalog, so
-  // default to it (the band tab is hidden below).
-  const [activeTab, setActiveTab] = useState<'band' | 'personal'>(
-    currentBandId ? 'band' : 'personal'
-  )
-  const isPersonalTab = activeTab === 'personal'
-
-  // DATABASE INTEGRATION: Use database hooks instead of mock state
-  const {
-    songs: dbBandSongs,
-    loading: bandLoading,
-    error: bandError,
-    refetch: bandRefetch,
-  } = useSongs(currentBandId)
-  const {
-    songs: dbPersonalSongs,
-    loading: personalLoading,
-    error: personalError,
-    refetch: personalRefetch,
-  } = usePersonalSongs(currentUserId)
-
-  // Determine which songs/loading/error/refetch to use based on active tab
-  const dbSongs = isPersonalTab ? dbPersonalSongs : dbBandSongs
-  const loading = isPersonalTab ? personalLoading : bandLoading
-  const error = isPersonalTab ? personalError : bandError
-  const refetch = isPersonalTab ? personalRefetch : bandRefetch
-
-  const { createSong } = useCreateSong()
-  const { updateSong } = useUpdateSong()
-  const { deleteSong, checkSongInSetlists } = useDeleteSong()
-  const { confirm, dialogProps } = useConfirm()
-  const { hiddenIds, hide, unhide } = useHiddenSongs()
-
-  // Catalog provenance — personalSongId -> source band name, for songs
-  // forked from a band song (personal tab only; empty map elsewhere).
-  const sourceBandNameById = useSongSources(dbPersonalSongs)
-
-  // Context values for song creation/edit based on active tab
-  const songContextType = isPersonalTab ? 'personal' : 'band'
-  const songContextId = isPersonalTab ? currentUserId : currentBandId
-  const songVisibility = isPersonalTab ? 'personal' : 'band'
-
-  // Display songs with transformed data
-  const [songs, setSongs] = useState<Song[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedTuning, setSelectedTuning] = useState<string>('')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [selectedShow, setSelectedShow] = useState<string>('')
-  // Source filter (personal tab only) — '' = all, '__original__' = no
-  // resolved band source, or a band name to match.
-  const [selectedSource, setSelectedSource] = useState<string>('')
-  const [sortBy, setSortBy] = useState<SortOption>('title-asc')
-  // When true, the list shows ONLY hidden songs (with a "Re-add" action)
-  // instead of excluding them (with a "Hide" action).
-  const [showHidden, setShowHidden] = useState(false)
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  // Deep-link: /songs?add=… opens the Add-song modal (e.g. Home "Add song"),
-  // then clears the param so a refresh doesn't reopen it.
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  useEffect(() => {
-    if (searchParams.get('add')) {
-      setIsAddModalOpen(true)
-      const next = new URLSearchParams(searchParams)
-      next.delete('add')
-      setSearchParams(next, { replace: true })
-    }
-  }, [searchParams, setSearchParams])
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isSetlistMenuOpen, setIsSetlistMenuOpen] = useState(false)
-  const [selectedSong, setSelectedSong] = useState<Song | null>(null)
-  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
-  // Song notes modal state
-  const [songNotesModal, setSongNotesModal] = useState<{
-    songId: string
-    songTitle: string
-  } | null>(null)
-  // State for tracking songs in setlists - reserved for future feature
+  const { showToast } = useToast()
+  const { currentBand, currentBandId, currentUser } = useAuth()
+  const userId = currentUser?.id ?? ''
+  const bandId = currentBandId ?? ''
+  const isBand = !!currentBandId
+  const isDesktop = useMediaQuery('(min-width: 768px)')
+  const hasPane = useMediaQuery('(min-width: 1280px)')
 
-  // DATABASE INTEGRATION: Transform database songs to display format and calculate "Next Show"
-  useEffect(() => {
-    // Handle empty case synchronously to avoid race condition
-    if (!dbSongs || dbSongs.length === 0) {
-      setSongs([])
-      return
-    }
+  const band = useSongs(bandId)
+  const personal = usePersonalSongs(userId)
+  const { songs, loading, error, refetch } = isBand ? band : personal
 
-    const transformSongs = async () => {
-      try {
-        const transformedSongs = await Promise.all(
-          dbSongs.map(async dbSong => {
-            // DATABASE INTEGRATION: Calculate "Next Show" for each song
-            let nextShow: { name: string; date: string } | undefined
+  const [view, setView] = useListView(
+    userId,
+    `songs:${currentBandId ?? 'personal'}`
+  )
+  const nextShows = useSongNextShows(bandId)
+  const { hiddenIds, hide, unhide } = useHiddenSongs()
+  const { deleteSong } = useDeleteSong()
+  const duplicate = useDuplicateSong()
+  const copyToMine = useCopyToPersonal()
+  const saveSong = useSaveSong(currentBandId, userId)
+  const { confirm, dialogProps } = useConfirm()
 
-            try {
-              // Find setlists containing this song (within the song's context)
-              const contextSetlists =
-                dbSong.contextType === 'personal'
-                  ? await repository.getPersonalSetlists(dbSong.contextId)
-                  : await repository.getSetlists(dbSong.contextId)
-              const setlists = contextSetlists.filter(setlist =>
-                setlist.items?.some(
-                  item => item.type === 'song' && item.songId === dbSong.id
-                )
-              )
+  const [query, setQuery] = useState('')
+  const [tuning, setTuning] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Editing>(null)
+  const [menu, setMenu] = useState<MenuState>(null)
+  const [menuUsage, setMenuUsage] = useState('')
+  const [sheet, setSheet] = useState<'view' | 'sort' | 'pick' | null>(null)
+  const [addToSet, setAddToSet] = useState<Song | null>(null)
 
-              if (setlists.length > 0) {
-                // For each setlist, check if it has a linked show
-                for (const setlist of setlists) {
-                  if (setlist.showId) {
-                    // Load the show from dedicated shows table
-                    const show = await repository.getShow(setlist.showId)
-
-                    if (show && show.scheduledDate) {
-                      const showDate = new Date(show.scheduledDate)
-                      const now = new Date()
-
-                      // Only consider upcoming shows
-                      if (showDate >= now) {
-                        // Use the nearest upcoming show
-                        if (!nextShow) {
-                          nextShow = {
-                            name: show.name || 'Upcoming Show',
-                            date: showDate.toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            }),
-                          }
-                        } else {
-                          const currentNextDate = new Date(nextShow.date)
-                          if (showDate < currentNextDate) {
-                            nextShow = {
-                              name: show.name || 'Upcoming Show',
-                              date: showDate.toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              }),
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            } catch (err) {
-              log.error('Error calculating next show for song:', dbSong.id, err)
-            }
-
-            // DATABASE INTEGRATION: Transform database format to display format
-            // Generate initials from title
-            const initials = dbSong.title
-              .split(' ')
-              .slice(0, 2)
-              .map(word => word[0])
-              .join('')
-              .toUpperCase()
-
-            // Random color (consistent for each song by using ID)
-            const colors = [
-              '#3b82f6',
-              '#8b5cf6',
-              '#ec4899',
-              '#f59e0b',
-              '#14b8a6',
-              '#ef4444',
-              '#10b981',
-              '#a855f7',
-            ]
-            const colorIndex =
-              parseInt(dbSong.id.replace(/\D/g, '').slice(0, 8), 10) %
-              colors.length
-            const avatarColor = colors[colorIndex]
-
-            // Determine tempo from BPM
-            const tempo =
-              dbSong.bpm > 140 ? 'fast' : dbSong.bpm < 90 ? 'slow' : 'moderate'
-
-            return {
-              id: dbSong.id,
-              title: dbSong.title,
-              artist: dbSong.artist,
-              album: dbSong.album,
-              duration: secondsToDuration(dbSong.duration), // Convert seconds to "3:14"
-              key: dbSong.key,
-              tuning: dbSong.guitarTuning || 'Standard',
-              bpm: formatBpm(dbSong.bpm), // Convert 104 to "104 bpm"
-              tempo,
-              tags: dbSong.tags || [],
-              nextShow,
-              initials,
-              avatarColor,
-              notes: dbSong.notes,
-              referenceLinks: referenceLinksToSongLinks(dbSong.referenceLinks),
-              createdDate: new Date(dbSong.createdDate)
-                .toISOString()
-                .split('T')[0],
-              createdBy: dbSong.createdBy,
-              difficulty: dbSong.difficulty,
-              confidenceLevel: dbSong.confidenceLevel,
-            } as Song
-          })
-        )
-
-        setSongs(transformedSongs)
-      } catch (err) {
-        log.error('Error transforming songs:', err)
-      }
-    }
-
-    transformSongs()
-  }, [dbSongs])
-
-  // Extract unique tunings, tags, and shows for filters
-  const availableTunings = useMemo(() => {
-    return Array.from(new Set(songs.map(s => s.tuning))).sort()
-  }, [songs])
-
-  const availableTags = useMemo(() => {
-    return Array.from(new Set(songs.flatMap(s => s.tags))).sort()
-  }, [songs])
-
-  const availableShows = useMemo(() => {
-    return Array.from(
-      new Set(songs.filter(s => s.nextShow).map(s => s.nextShow!.name))
-    ).sort()
-  }, [songs])
-
-  // Distinct source band names present in the personal catalog (for the
-  // Source filter options). Empty on the band tab.
-  const availableSources = useMemo(
-    () => Array.from(new Set(sourceBandNameById.values())).sort(),
-    [sourceBandNameById]
+  // Band songs already copied to My Songs (for the menu and the link mark).
+  const copiedIds = useMemo(
+    () =>
+      new Set(
+        personal.songs.map(s => s.linkedFromSongId).filter(Boolean) as string[]
+      ),
+    [personal.songs]
   )
 
-  // Filter and sort songs
-  const filteredAndSortedSongs = useMemo(() => {
-    let filtered = songs
-
-    // Hidden filter — exclude hidden songs by default; when the "show
-    // hidden" toggle is active, show ONLY hidden songs instead.
-    filtered = showHidden
-      ? filtered.filter(song => hiddenIds.has(song.id))
-      : filtered.filter(song => !hiddenIds.has(song.id))
-
-    // Apply search
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        song =>
-          song.title.toLowerCase().includes(query) ||
-          song.artist.toLowerCase().includes(query) ||
-          song.album?.toLowerCase().includes(query)
-      )
-    }
-
-    // Apply tuning filter
-    if (selectedTuning) {
-      filtered = filtered.filter(song => song.tuning === selectedTuning)
-    }
-
-    // Apply tags filter
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter(song =>
-        selectedTags.some(tag => song.tags.includes(tag))
-      )
-    }
-
-    // Apply show filter
-    if (selectedShow) {
-      filtered = filtered.filter(song => song.nextShow?.name === selectedShow)
-    }
-
-    // Apply source (provenance) filter — personal tab only.
-    if (isPersonalTab && selectedSource) {
-      filtered =
-        selectedSource === '__original__'
-          ? filtered.filter(song => !sourceBandNameById.has(song.id))
-          : filtered.filter(
-              song => sourceBandNameById.get(song.id) === selectedSource
-            )
-    }
-
-    // Apply sorting
-    filtered = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'title-asc':
-          return a.title.localeCompare(b.title)
-        case 'title-desc':
-          return b.title.localeCompare(a.title)
-        case 'artist-asc':
-          return a.artist.localeCompare(b.artist)
-        case 'artist-desc':
-          return b.artist.localeCompare(a.artist)
-        case 'date-added-desc':
-          return (
-            new Date(b.createdDate).getTime() -
-            new Date(a.createdDate).getTime()
-          )
-        case 'date-added-asc':
-          return (
-            new Date(a.createdDate).getTime() -
-            new Date(b.createdDate).getTime()
-          )
-        case 'show-asc':
-          if (!a.nextShow && !b.nextShow) return 0
-          if (!a.nextShow) return 1
-          if (!b.nextShow) return -1
-          return a.nextShow.name.localeCompare(b.nextShow.name)
-        default:
-          return 0
-      }
-    })
-
-    return filtered
-  }, [
-    songs,
-    hiddenIds,
-    showHidden,
-    searchQuery,
-    selectedTuning,
-    selectedTags,
-    selectedShow,
-    isPersonalTab,
-    selectedSource,
-    sourceBandNameById,
-    sortBy,
-  ])
-
-  // Hidden songs present in the current catalog (band or personal tab),
-  // for the "Hidden (N)" toggle label. Counted from the unfiltered `songs`
-  // list so it reflects the whole catalog, not the current search/filter.
-  const hiddenCountInCatalog = useMemo(
-    () => songs.filter(song => hiddenIds.has(song.id)).length,
+  const hiddenCount = useMemo(
+    () => songs.filter(s => hiddenIds.has(s.id)).length,
     [songs, hiddenIds]
   )
-
-  // Personal-note presence for the notes-button 4-state indicator (grey/info/accent/gradient)
-  const visibleSongIds = useMemo(
-    () => filteredAndSortedSongs.map(song => song.id),
-    [filteredAndSortedSongs]
-  )
-  const personalNotePresence = useBulkPersonalNotePresence(
-    visibleSongIds,
-    currentUserId,
-    currentBandId
+  const tunings = useMemo(() => tuningsInUse(songs), [songs])
+  const nextShowAt = useMemo(
+    () => new Map([...nextShows].map(([id, n]) => [id, n.at])),
+    [nextShows]
   )
 
-  // Count active filters
-  const activeFilterCount = [
-    selectedTuning,
-    ...selectedTags,
-    selectedShow,
-    isPersonalTab ? selectedSource : '',
-  ].filter(Boolean).length
+  const visible = useMemo(() => {
+    const shown = view.showHidden
+      ? songs
+      : songs.filter(s => !hiddenIds.has(s.id))
+    return sortSongs(
+      filterSongs(shown, query, tuning),
+      view.sort,
+      view.dir,
+      nextShowAt
+    )
+  }, [songs, hiddenIds, view, query, tuning, nextShowAt])
 
-  // Clear all filters
-  const clearAllFilters = () => {
-    setSelectedTuning('')
-    setSelectedTags([])
-    setSelectedShow('')
-    setSelectedSource('')
-  }
+  const myNotes = useBulkPersonalNotePresence(
+    useMemo(() => visible.map(s => s.id), [visible]),
+    userId,
+    bandId
+  )
 
-  // DATABASE INTEGRATION: Handle duplicate song
-  const handleDuplicate = async (song: Song) => {
-    try {
-      // Convert display formats back to database formats
-      const duration = durationToSeconds(song.duration)
-      const bpm = parseBpm(song.bpm)
+  const selected = hasPane
+    ? (songs.find(s => s.id === selectedId) ?? visible[0] ?? null)
+    : null
 
-      await createSong({
-        title: `${song.title} (Copy)`,
-        artist: song.artist,
-        album: song.album,
-        duration,
-        key: song.key,
-        bpm,
-        difficulty: (song.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
-        guitarTuning: song.tuning,
-        structure: [],
-        chords: [],
-        tags: song.tags || [],
-        notes: song.notes,
-        referenceLinks:
-          song.referenceLinks?.map(link => ({
-            icon: link.type === 'ultimate-guitar' ? 'tabs' : link.type,
-            url: link.url,
-            description: link.name,
-          })) || [],
-        contextType: songContextType,
-        contextId: songContextId,
-        createdBy: currentUserId,
-        visibility: songVisibility,
-        confidenceLevel: song.confidenceLevel || 1,
-      })
-
-      // Refetch songs to update UI
-      await refetch()
-
-      // Show success toast
-      showToast(`Successfully duplicated "${song.title}"`, 'success')
-    } catch (err) {
-      log.error('Error duplicating song:', err)
-      showToast('Failed to duplicate song. Please try again.', 'error')
-    }
-    setOpenActionMenuId(null)
-  }
-
-  // DATABASE INTEGRATION: Handle delete song
-  const handleDelete = async (song: Song) => {
-    try {
-      // Check if song is in any setlists
-      const setlists = await checkSongInSetlists(song.id)
-
-      let confirmed: boolean
-      if (setlists.length > 0) {
-        const setlistNames = setlists.map(s => s.name).join(', ')
-        confirmed = await confirm({
-          title: 'Delete Song',
-          message: `This song is in ${setlists.length} setlist(s): ${setlistNames}.\n\nDeleting will remove it from all setlists. Continue?`,
-          confirmLabel: 'Delete',
-          variant: 'danger',
-        })
-      } else {
-        confirmed = await confirm({
-          title: 'Delete Song',
-          message: `Are you sure you want to delete "${song.title}" by ${song.artist}?\n\nThis action cannot be undone.`,
-          confirmLabel: 'Delete',
-          variant: 'danger',
-        })
-      }
-
-      if (!confirmed) {
-        setOpenActionMenuId(null)
-        return
-      }
-
-      // Delete the song (hook handles setlist cleanup)
-      await deleteSong(song.id)
-
-      // Refetch songs to update UI
-      await refetch()
-
-      // Show success toast
-      showToast(`Successfully deleted "${song.title}"`, 'success')
-    } catch (err) {
-      log.error('Error deleting song:', err)
-      showToast('Failed to delete song. Please try again.', 'error')
-    }
-    setOpenActionMenuId(null)
-  }
-
-  // Legacy method for delete dialog (now unused but kept for compatibility)
-  const confirmDelete = async () => {
-    if (selectedSong) {
-      await handleDelete(selectedSong)
-      setIsDeleteDialogOpen(false)
-      setSelectedSong(null)
-    }
-  }
-
-  // Handle edit song
-  const handleEdit = (song: Song) => {
-    setSelectedSong(song)
-    setIsEditModalOpen(true)
-    setOpenActionMenuId(null)
-  }
-
-  // Deep-link: /songs?song=<id> opens that song (search, notifications).
+  // /songs?song=<id> (search, notifications) opens that song.
   useEffect(() => {
     const id = searchParams.get('song')
-    const song = id ? songs.find(s => s.id === id) : undefined
-    if (!song) return
-    setSelectedSong(song)
-    setIsEditModalOpen(true)
+    if (!id) return
     const next = new URLSearchParams(searchParams)
     next.delete('song')
     setSearchParams(next, { replace: true })
-  }, [searchParams, setSearchParams, songs])
+    if (hasPane) setSelectedId(id)
+    else navigate(`/songs/${id}`)
+  }, [searchParams, setSearchParams, hasPane, navigate])
 
-  // Handle add to setlist
-  const handleAddToSetlist = (song: Song) => {
-    setSelectedSong(song)
-    setIsSetlistMenuOpen(true)
-    setOpenActionMenuId(null)
-  }
+  const open = (song: Song) =>
+    hasPane ? setSelectedId(song.id) : navigate(`/songs/${song.id}`)
 
-  // IDs of band songs that have already been copied to the personal catalog
-  // (derived from linkedFromSongId on personal songs)
-  const copiedBandSongIds = useMemo(() => {
-    return new Set(
-      dbPersonalSongs
-        .map(s => s.linkedFromSongId)
-        .filter((id): id is string => !!id)
-    )
-  }, [dbPersonalSongs])
+  const openMenu = useCallback(
+    (song: Song, at: { x: number; y: number } | null) => {
+      setMenu({ song, at })
+      setMenuUsage('')
+      songUsage(song.id)
+        .then(u => setMenuUsage(usageSummary(u)))
+        .catch(() => setMenuUsage(''))
+    },
+    []
+  )
 
-  // IDs of personal songs that are linked to a band song (i.e. were
-  // forked from one). Used to show the chain-icon indicator on the
-  // personal tab.
-  const linkedPersonalSongIds = useMemo(() => {
-    return new Set(
-      dbPersonalSongs.filter(s => !!s.linkedFromSongId).map(s => s.id)
-    )
-  }, [dbPersonalSongs])
-
-  // Resolve the linked-status set + tooltip label for the active tab.
-  const linkedSongIds = isPersonalTab
-    ? linkedPersonalSongIds
-    : copiedBandSongIds
-  const linkedTooltip = isPersonalTab
-    ? 'Linked to a band song'
-    : 'Mirrored to your personal catalog'
-
-  // Copy a band song to the personal catalog
-  const handleCopyToPersonal = async (song: Song) => {
-    setOpenActionMenuId(null)
-    try {
-      await SongLinkingService.copyBandSongToPersonal(song.id, currentUserId)
-      await personalRefetch()
-      showToast(`"${song.title}" added to My Songs`, 'success')
-    } catch (err) {
-      showToast(`Failed to copy song: ${(err as Error).message}`, 'error')
-    }
-  }
-
-  // Hide a song from the default view, or re-add a previously hidden one —
-  // which action fires depends on which list is currently showing.
-  const handleToggleHidden = async (song: Song) => {
-    setOpenActionMenuId(null)
-    if (showHidden) {
+  const toggleHidden = async (song: Song) => {
+    if (hiddenIds.has(song.id)) {
       await unhide(song.id)
-      showToast(`"${song.title}" added back to your catalog`, 'success')
+      showToast(`"${song.title}" is back in your list`, 'success')
     } else {
       await hide(song.id)
-      showToast('Hidden from your catalog', 'success')
+      showToast(
+        'Hidden. Turn on Show hidden songs under View to see it.',
+        'success'
+      )
     }
   }
 
-  // Toggle tag selection
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+  const handleDelete = async (song: Song) => {
+    let summary = ''
+    try {
+      summary = usageSummary(await songUsage(song.id))
+    } catch (err) {
+      log.error('song_usage failed', err)
+    }
+    const ok = await confirm({
+      title: `Delete "${song.title}"?`,
+      message: summary
+        ? `${summary}. It comes out of those setlists. This can't be undone.`
+        : "This can't be undone.",
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (!ok) return
+    try {
+      await deleteSong(song.id)
+      if (selectedId === song.id) setSelectedId(null)
+      showToast(`Deleted "${song.title}"`, 'success')
+    } catch (err) {
+      log.error('Error deleting song', err)
+      showToast("Couldn't delete it. Try again.", 'error')
+    }
+  }
+
+  const handleDuplicate = async (song: Song) => {
+    try {
+      const id = await duplicate(song.id)
+      showToast(`Duplicated "${song.title}"`, 'success')
+      if (hasPane) setSelectedId(id)
+    } catch (err) {
+      log.error('Error duplicating song', err)
+      showToast("Couldn't duplicate it. Try again.", 'error')
+    }
+  }
+
+  const handleCopyToMine = async (ids: string[] | null) => {
+    try {
+      const n = await copyToMine(ids)
+      showToast(
+        n === 1 ? 'Added 1 song to My Songs' : `Added ${n} songs to My Songs`,
+        'success'
+      )
+    } catch (err) {
+      log.error('Copy to My Songs failed', err)
+      showToast("Couldn't copy them. Try again.", 'error')
+    }
+  }
+
+  const rowProps = (song: Song) => ({
+    song,
+    view,
+    layout: (isDesktop ? 'table' : 'list') as 'table' | 'list',
+    mark: noteMark(!!song.notes?.trim(), myNotes.has(song.id)),
+    nextShow: nextShows.get(song.id)?.name,
+    hidden: hiddenIds.has(song.id),
+    linked: isBand ? copiedIds.has(song.id) : !!song.linkedFromSongId,
+    selected: selected?.id === song.id,
+    onOpen: () => open(song),
+    onMenu: (at: { x: number; y: number } | null) => openMenu(song, at),
+    onHide: () => toggleHidden(song),
+    onAddToSet: () => setAddToSet(song),
+  })
+
+  const addButton = (
+    <Button
+      variant="primary"
+      onClick={() => setEditing({})}
+      data-testid="add-song-button"
+      className={
+        isDesktop ? '' : 'fixed right-4 bottom-[104px] z-30 shadow-float'
+      }
+    >
+      <Plus size={18} /> Add song
+    </Button>
+  )
+
+  const sortLabel = (
+    <>
+      {SORT_LABELS[view.sort]}
+      {(view.sort === 'title' ||
+        view.sort === 'artist' ||
+        view.sort === 'nextShow') && <SortIcon dir={view.dir} />}
+    </>
+  )
+
+  const list = () => {
+    if (loading)
+      return (
+        <div className="rounded-[20px] bg-bg-2 shadow-group md:rounded-none md:bg-transparent md:shadow-none">
+          {Array.from({ length: 6 }, (_, i) => (
+            <SkeletonRow key={i} />
+          ))}
+        </div>
+      )
+    if (error)
+      return (
+        <RetryCard
+          message="Couldn't load your songs."
+          onRetry={() => void refetch()}
+        />
+      )
+    if (songs.length === 0)
+      return (
+        <Empty
+          icon={<Music2 size={28} />}
+          title="No songs yet"
+          why={
+            isBand
+              ? 'Add the songs your band plays. Only the title is required.'
+              : 'Songs you add here are just for you.'
+          }
+          action={
+            <Button variant="primary" onClick={() => setEditing({})}>
+              <Plus size={18} /> Add song
+            </Button>
+          }
+          data-testid="songs-empty"
+        />
+      )
+    if (visible.length === 0)
+      return (
+        <Empty
+          icon={<SearchX size={28} />}
+          title="No matches"
+          why={
+            query ? `Nothing matches "${query}".` : 'No songs in that tuning.'
+          }
+          action={
+            <Button
+              onClick={() => {
+                setQuery('')
+                setTuning(null)
+              }}
+            >
+              Clear
+            </Button>
+          }
+          data-testid="songs-no-matches"
+        />
+      )
+    if (isDesktop)
+      return (
+        <div role="table" aria-label="Songs" data-testid="songs-table">
+          <div className="grid grid-cols-[minmax(0,1fr)_96px_52px_52px_64px_92px_72px] gap-2 pl-7 pr-4 h-10 items-center border-b border-divider font-mono text-[10.5px] tracking-[.14em] uppercase text-ink-3">
+            <button
+              type="button"
+              className="flex items-center gap-1 text-left uppercase whitespace-nowrap"
+              onClick={() =>
+                setView(
+                  view.sort === 'title'
+                    ? { dir: view.dir === 'asc' ? 'desc' : 'asc' }
+                    : { sort: 'title', dir: 'asc' }
+                )
+              }
+            >
+              Title{view.artist && ' · Artist'}
+              {view.sort === 'title' && <SortIcon dir={view.dir} />}
+            </button>
+            <span>Tuning</span>
+            <span>{view.key && 'Key'}</span>
+            <span>{view.bpm && 'BPM'}</span>
+            <span>Length</span>
+            <span>{view.links && 'Links'}</span>
+            <span />
+          </div>
+          {visible.map(s => (
+            <SongRow key={s.id} {...rowProps(s)} />
+          ))}
+        </div>
+      )
+    return (
+      <div
+        className="rounded-[20px] bg-bg-2 shadow-group overflow-hidden"
+        data-testid="songs-list"
+      >
+        {visible.map(s => (
+          <SongRow key={s.id} {...rowProps(s)} />
+        ))}
+      </div>
     )
   }
 
   return (
-    <ContentLoadingSpinner isLoading={loading}>
-      <div data-testid="songs-page" className="max-w-6xl mx-auto">
-        {/* Gradient def for the notes-button icon when both a band and a
-            personal note exist (see NOTE_STATE_COLOR_CLASS / getSongNoteState) */}
-        <svg
-          width="0"
-          height="0"
-          style={{ position: 'absolute' }}
-          aria-hidden="true"
-        >
-          <defs>
-            <linearGradient
-              id="song-notes-gradient"
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="100%"
+    <div
+      data-testid="songs-page"
+      className={`md:-mx-7 lg:-mx-8 md:-mt-6 ${hasPane ? 'xl:mr-[372px]' : ''}`}
+    >
+      <div className="md:px-7 lg:px-8 md:pt-6">
+        <PageTitle
+          title="Songs"
+          eyebrow={isBand ? currentBand?.name : 'My Songs'}
+          count={songs.length}
+          actions={isDesktop ? addButton : undefined}
+          testId="songs-title"
+        />
+
+        {!isBand && (
+          <PersonalBanner
+            userId={userId}
+            onCopyAll={() => handleCopyToMine(null)}
+            onPick={() => setSheet('pick')}
+          />
+        )}
+
+        <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-2.5 mb-4">
+          <label className="relative flex items-center md:w-[260px]">
+            <Search size={17} className="absolute left-3.5 text-ink-3" />
+            <input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search title, artist, album"
+              aria-label="Search songs"
+              name="songSearch"
+              id="song-search"
+              data-testid="song-search"
+              className="w-full h-11 pl-10 pr-3 rounded-full md:rounded-xl bg-bg-3 text-[15px] text-ink-1 placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </label>
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 md:flex-1">
+            <Chip
+              on={!tuning}
+              onClick={() => setTuning(null)}
+              data-testid="song-tuning-filter-all"
             >
-              <stop offset="0%" style={{ stopColor: 'rgb(var(--info-rgb))' }} />
-              <stop
-                offset="100%"
-                style={{ stopColor: 'rgb(var(--accent-rgb))' }}
-              />
-            </linearGradient>
-          </defs>
-        </svg>
-
-        {/* DATABASE INTEGRATION: Show error state */}
-        {error && (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-red-500">
-              Error loading songs: {error.message}
-            </div>
-          </div>
-        )}
-
-        {/* Page Header */}
-        {!loading && !error && (
-          <>
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
-                <h1 className="font-display font-extrabold uppercase leading-[.9] text-[46px] md:text-[50px] text-ink-1">
-                  Songs
-                </h1>
-                <ChevronDown size={20} className="text-ink-3" />
-                {/* Active-catalog context chip */}
-                {currentBand ? (
-                  <span
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-accent/10 text-accent border border-accent/20"
-                    data-testid="songs-context-chip"
-                  >
-                    {currentBand.name}
-                  </span>
-                ) : (
-                  <span
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-info/10 text-info border border-info/20"
-                    data-testid="songs-context-chip"
-                  >
-                    Personal
-                  </span>
-                )}
-                {/* DATABASE INTEGRATION: Show song count */}
-                <span className="text-sm text-ink-3 ml-2">
-                  ({songs.length} songs)
-                </span>
-              </div>
-
-              {/* Band / Personal tab switcher — only in a band context;
-                  personal context has a single (personal) catalog. */}
-              {currentBandId && (
-                <div className="flex gap-1 mb-2 bg-bg-2 rounded-lg p-1 w-fit">
-                  <button
-                    data-testid="songs-band-tab"
-                    onClick={() => setActiveTab('band')}
-                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      activeTab === 'band'
-                        ? 'bg-accent text-on-accent'
-                        : 'text-ink-3 hover:text-on-accent'
-                    }`}
-                  >
-                    Band Songs
-                  </button>
-                  <button
-                    data-testid="songs-personal-tab"
-                    onClick={() => setActiveTab('personal')}
-                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      activeTab === 'personal'
-                        ? 'bg-info text-ink-1'
-                        : 'text-ink-3 hover:text-ink-1'
-                    }`}
-                  >
-                    My Songs
-                  </button>
-                </div>
-              )}
-              {/* Tab explainer — clarifies the difference between catalogs
-                  for users who haven't built a mental model yet. */}
-              <p
-                className="text-xs text-ink-4 mb-6"
-                data-testid="songs-tab-explainer"
+              All tunings
+            </Chip>
+            {tunings.map(t => (
+              <Chip
+                key={t}
+                on={tuning === t}
+                onClick={() => setTuning(tuning === t ? null : t)}
+                aria-label={`Only ${t}`}
+                data-testid={`song-tuning-filter-option-${t}`}
+                className="!px-2"
               >
-                {isPersonalTab
-                  ? 'Visible only to you. For solo practice notes or songs you carry between bands.'
-                  : 'Shared with your band. Used in setlists, shows, and practices.'}
-              </p>
-
-              {/* Action Bar */}
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <button
-                  onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                  data-testid="song-filter-toggle-button"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    activeFilterCount > 0
-                      ? 'border-accent bg-accent/10 text-accent'
-                      : 'border-border-1 bg-transparent text-ink-1 hover:bg-bg-3'
-                  }`}
-                >
-                  <Filter size={20} />
-                  <span>Filter</span>
-                  {activeFilterCount > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 bg-accent text-on-accent text-xs rounded-full">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Hidden songs toggle — only shown when there's something
-                    to show (or while actively viewing the hidden list, so
-                    the control doesn't vanish out from under the user). */}
-                {(hiddenCountInCatalog > 0 || showHidden) && (
-                  <button
-                    onClick={() => setShowHidden(prev => !prev)}
-                    data-testid="songs-show-hidden-toggle"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                      showHidden
-                        ? 'border-accent bg-accent/10 text-accent'
-                        : 'border-border-1 bg-transparent text-ink-1 hover:bg-bg-3'
-                    }`}
-                  >
-                    <EyeOff size={20} />
-                    <span>Hidden ({hiddenCountInCatalog})</span>
-                  </button>
-                )}
-
-                <div className="flex items-center gap-3 flex-1 max-w-md">
-                  <div className="relative flex-1">
-                    <Search
-                      size={20}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-4"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Search songs, artists, albums..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full h-10 pl-11 pr-10 bg-bg-2 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-4 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-4 hover:text-ink-1"
-                      >
-                        <X size={16} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {/* Sort Dropdown */}
-                  <div className="w-44">
-                    <Dropdown
-                      data-testid="song-sort"
-                      value={sortBy}
-                      onChange={v => setSortBy(v as SortOption)}
-                      groups={[
-                        {
-                          options: [
-                            { value: 'title-asc', label: 'Title (A-Z)' },
-                            { value: 'title-desc', label: 'Title (Z-A)' },
-                            { value: 'artist-asc', label: 'Artist (A-Z)' },
-                            { value: 'artist-desc', label: 'Artist (Z-A)' },
-                            {
-                              value: 'date-added-desc',
-                              label: 'Recently Added',
-                            },
-                            { value: 'date-added-asc', label: 'Oldest First' },
-                            { value: 'show-asc', label: 'By Show' },
-                          ],
-                        },
-                      ]}
-                    />
-                  </div>
-
-                  <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
-                    data-testid="add-song-button"
-                  >
-                    <Plus size={20} />
-                    <span>Add Song</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Filter Panel */}
-              {isFilterPanelOpen && (
-                <div className="mt-4 p-4 bg-bg-2 border border-border-1 rounded-xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-ink-1">
-                      Filters
-                    </h3>
-                    {activeFilterCount > 0 && (
-                      <button
-                        onClick={clearAllFilters}
-                        className="text-xs text-accent hover:text-accent-deep transition-colors"
-                      >
-                        Clear All
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Tuning Filter */}
-                    <div>
-                      <label className="block text-xs text-ink-3 mb-2">
-                        Guitar Tuning
-                      </label>
-                      <Dropdown
-                        data-testid="song-tuning-filter"
-                        value={selectedTuning}
-                        onChange={setSelectedTuning}
-                        groups={[
-                          {
-                            options: [
-                              { value: '', label: 'All Tunings' },
-                              ...availableTunings.map(tuning => ({
-                                value: tuning,
-                                label: tuning,
-                              })),
-                            ],
-                          },
-                        ]}
-                      />
-                    </div>
-
-                    {/* Show Filter */}
-                    <div>
-                      <label className="block text-xs text-ink-3 mb-2">
-                        Upcoming Show
-                      </label>
-                      <Dropdown
-                        data-testid="song-show-filter"
-                        value={selectedShow}
-                        onChange={setSelectedShow}
-                        groups={[
-                          {
-                            options: [
-                              { value: '', label: 'All Shows' },
-                              ...availableShows.map(show => ({
-                                value: show,
-                                label: show,
-                              })),
-                            ],
-                          },
-                        ]}
-                      />
-                    </div>
-
-                    {/* Source Filter (personal tab only — catalog provenance) */}
-                    {isPersonalTab && (
-                      <div>
-                        <label className="block text-xs text-ink-3 mb-2">
-                          Source
-                        </label>
-                        <Dropdown
-                          data-testid="song-source-filter"
-                          value={selectedSource}
-                          onChange={setSelectedSource}
-                          groups={[
-                            {
-                              options: [
-                                { value: '', label: 'All sources' },
-                                {
-                                  value: '__original__',
-                                  label: 'Original (not from a band)',
-                                },
-                                ...availableSources.map(name => ({
-                                  value: name,
-                                  label: `from ${name}`,
-                                })),
-                              ],
-                            },
-                          ]}
-                        />
-                      </div>
-                    )}
-
-                    {/* Tags Filter */}
-                    <div>
-                      <label className="block text-xs text-ink-3 mb-2">
-                        Tags
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {availableTags.map(tag => (
-                          <button
-                            key={tag}
-                            onClick={() => toggleTag(tag)}
-                            className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                              selectedTags.includes(tag)
-                                ? 'bg-accent text-on-accent'
-                                : 'bg-border-1 text-ink-3 hover:bg-border-2'
-                            }`}
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Active Filters Display */}
-                  {activeFilterCount > 0 && (
-                    <div className="mt-4 pt-4 border-t border-border-1">
-                      <div className="flex flex-wrap gap-2">
-                        {selectedTuning && (
-                          <div className="flex items-center gap-1 px-3 py-1 bg-border-1 text-ink-1 text-xs rounded-lg">
-                            <span>{selectedTuning}</span>
-                            <button
-                              onClick={() => setSelectedTuning('')}
-                              className="text-ink-3 hover:text-ink-1"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        )}
-                        {selectedTags.map(tag => (
-                          <div
-                            key={tag}
-                            className="flex items-center gap-1 px-3 py-1 bg-border-1 text-ink-1 text-xs rounded-lg"
-                          >
-                            <span>{tag}</span>
-                            <button
-                              onClick={() => toggleTag(tag)}
-                              className="text-ink-3 hover:text-ink-1"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                        {selectedShow && (
-                          <div className="flex items-center gap-1 px-3 py-1 bg-border-1 text-ink-1 text-xs rounded-lg">
-                            <span>{selectedShow}</span>
-                            <button
-                              onClick={() => setSelectedShow('')}
-                              className="text-ink-3 hover:text-ink-1"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <TuningPill tuning={t} size="sm" />
+              </Chip>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <Chip
+              icon={<ArrowUpDown size={15} />}
+              onClick={() => setSheet('sort')}
+              data-testid="song-sort-trigger"
+            >
+              {sortLabel}
+            </Chip>
+            <Chip
+              icon={<SlidersHorizontal size={15} />}
+              on={view.showHidden}
+              onClick={() => setSheet('view')}
+              data-testid="songs-view-button"
+            >
+              View
+              {hiddenCount > 0 && (
+                <span className="font-mono text-[11.5px] opacity-70">
+                  {hiddenCount} hidden
+                </span>
               )}
-            </div>
-
-            {/* Empty State */}
-            {filteredAndSortedSongs.length === 0 &&
-              !searchQuery &&
-              activeFilterCount === 0 && (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <div className="w-16 h-16 mb-4 rounded-full bg-bg-2 flex items-center justify-center">
-                    <Music size={32} className="text-ink-4" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-ink-1 mb-2">
-                    No songs yet
-                  </h3>
-                  <p className="text-sm text-ink-3 mb-6">
-                    Add your first song to get started
-                  </p>
-                  <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-on-accent text-sm font-medium hover:bg-accent-deep transition-colors"
-                    data-testid="add-song-button"
-                  >
-                    <Plus size={20} />
-                    <span>Add Song</span>
-                  </button>
-                </div>
-              )}
-
-            {/* No Results State */}
-            {filteredAndSortedSongs.length === 0 &&
-              (searchQuery || activeFilterCount > 0) && (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <div className="w-16 h-16 mb-4 rounded-full bg-bg-2 flex items-center justify-center">
-                    <Search size={32} className="text-ink-4" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-ink-1 mb-2">
-                    No results found
-                  </h3>
-                  <p className="text-sm text-ink-3 mb-6">
-                    Try adjusting your search or filters
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSearchQuery('')
-                      clearAllFilters()
-                    }}
-                    className="text-sm text-accent hover:text-accent-deep transition-colors"
-                  >
-                    Clear all filters
-                  </button>
-                </div>
-              )}
-
-            {/* Desktop Table View */}
-            {filteredAndSortedSongs.length > 0 && (
-              <div className="hidden xl:block">
-                {/* Table Header */}
-                <div className="flex items-center gap-4 px-4 pb-3 mb-2 border-b border-border-1">
-                  {/* Sync Icon placeholder - matches SongRow sync icon */}
-                  <div className="flex-shrink-0 w-[20px]"></div>
-                  <div className="flex-1 min-w-[220px] text-xs font-semibold text-ink-4 uppercase tracking-wider">
-                    Song
-                  </div>
-                  <div className="w-[100px] flex-shrink-0 flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
-                    <ExternalLink size={16} />
-                  </div>
-                  <div className="w-[90px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
-                    <Clock size={16} />
-                  </div>
-                  <div className="w-[60px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
-                    <Music size={16} />
-                  </div>
-                  <div className="w-[130px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
-                    <Guitar size={16} />
-                  </div>
-                  <div className="w-[80px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
-                    <Activity size={16} />
-                  </div>
-                  <div className="w-[180px] flex items-center gap-2 text-xs font-semibold text-ink-4 uppercase tracking-wider">
-                    <Calendar size={16} />
-                  </div>
-                  {/* Notes button placeholder */}
-                  <div className="w-[30px]"></div>
-                  {/* Kebab menu placeholder */}
-                  <div className="w-[40px]"></div>
-                </div>
-
-                {/* Table Rows - PHASE 2: Using SongRow component with sync status */}
-                <div className="space-y-2">
-                  {filteredAndSortedSongs.map(song => (
-                    <SongRow
-                      key={song.id}
-                      song={song}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onDuplicate={handleDuplicate}
-                      onAddToSetlist={handleAddToSetlist}
-                      onOpenNotes={s =>
-                        setSongNotesModal({ songId: s.id, songTitle: s.title })
-                      }
-                      onCopyToPersonal={
-                        !isPersonalTab ? handleCopyToPersonal : undefined
-                      }
-                      alreadyCopied={
-                        !isPersonalTab && copiedBandSongIds.has(song.id)
-                      }
-                      linked={linkedSongIds.has(song.id)}
-                      linkedLabel={linkedTooltip}
-                      hasPersonalNote={personalNotePresence.has(song.id)}
-                      sourceBandName={
-                        isPersonalTab
-                          ? sourceBandNameById.get(song.id)
-                          : undefined
-                      }
-                      onHide={handleToggleHidden}
-                      hideMode={showHidden ? 'readd' : 'hide'}
-                      openActionMenuId={openActionMenuId}
-                      setOpenActionMenuId={setOpenActionMenuId}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Mobile Card View - PHASE 2: Using SongCard component with sync status */}
-            {filteredAndSortedSongs.length > 0 && (
-              <div className="xl:hidden space-y-3 min-w-[280px]">
-                {filteredAndSortedSongs.map(song => (
-                  <SongCard
-                    key={song.id}
-                    song={song}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDuplicate={handleDuplicate}
-                    onAddToSetlist={handleAddToSetlist}
-                    onOpenNotes={s =>
-                      setSongNotesModal({ songId: s.id, songTitle: s.title })
-                    }
-                    onCopyToPersonal={
-                      !isPersonalTab ? handleCopyToPersonal : undefined
-                    }
-                    alreadyCopied={
-                      !isPersonalTab && copiedBandSongIds.has(song.id)
-                    }
-                    linked={linkedSongIds.has(song.id)}
-                    linkedLabel={linkedTooltip}
-                    hasPersonalNote={personalNotePresence.has(song.id)}
-                    sourceBandName={
-                      isPersonalTab
-                        ? sourceBandNameById.get(song.id)
-                        : undefined
-                    }
-                    onHide={handleToggleHidden}
-                    hideMode={showHidden ? 'readd' : 'hide'}
-                    openActionMenuId={openActionMenuId}
-                    setOpenActionMenuId={setOpenActionMenuId}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* DATABASE INTEGRATION: Add Song Modal with database operations */}
-        {isAddModalOpen && (
-          <EditSongModal
-            mode="add"
-            // Only offer the "also save to personal" path when we're
-            // adding a band song. Adding a personal song already lives in
-            // the personal catalog by definition.
-            showAlsoSaveToPersonal={!isPersonalTab}
-            onClose={() => setIsAddModalOpen(false)}
-            onSave={async (newSong: ModelSong, options) => {
-              try {
-                // EditSongModal returns model format (duration in seconds, bpm as number)
-                const newSongId = await createSong({
-                  title: newSong.title,
-                  artist: newSong.artist,
-                  album: newSong.album,
-                  duration: newSong.duration,
-                  key: newSong.key,
-                  bpm: newSong.bpm,
-                  difficulty: (newSong.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
-                  guitarTuning: newSong.guitarTuning,
-                  structure: [],
-                  chords: [],
-                  tags: newSong.tags || [],
-                  notes: newSong.notes,
-                  referenceLinks: newSong.referenceLinks || [],
-                  contextType: songContextType,
-                  contextId: songContextId,
-                  createdBy: currentUserId,
-                  visibility: songVisibility,
-                  confidenceLevel: newSong.confidenceLevel || 1,
-                })
-
-                // Mirror to personal catalog when the user opted in.
-                // copyBandSongToPersonal reads the just-created song back
-                // from Supabase, which createSong has already written to by
-                // the time it resolves.
-                let mirroredToPersonal = false
-                if (options?.alsoSaveToPersonal && !isPersonalTab) {
-                  try {
-                    await SongLinkingService.copyBandSongToPersonal(
-                      newSongId,
-                      currentUserId
-                    )
-                    await personalRefetch()
-                    mirroredToPersonal = true
-                  } catch (mirrorErr) {
-                    log.error(
-                      'Failed to mirror to personal catalog:',
-                      mirrorErr
-                    )
-                    showToast(
-                      `Added "${newSong.title}" to band, but failed to copy to your personal catalog.`,
-                      'error'
-                    )
-                  }
-                }
-
-                // Refetch songs to update UI
-                await refetch()
-
-                showToast(
-                  mirroredToPersonal
-                    ? `Added "${newSong.title}" to band and your personal catalog`
-                    : `Successfully added "${newSong.title}"`,
-                  'success'
-                )
-                setIsAddModalOpen(false)
-              } catch (err) {
-                log.error('Error creating song:', err)
-                showToast('Failed to create song. Please try again.', 'error')
-              }
-            }}
-          />
-        )}
-
-        {/* DATABASE INTEGRATION: Edit Song Modal with database operations */}
-        {isEditModalOpen && selectedSong && (
-          <EditSongModal
-            mode="edit"
-            song={{
-              // Convert display Song to ModelSong format
-              id: selectedSong.id,
-              title: selectedSong.title,
-              artist: selectedSong.artist,
-              album: selectedSong.album,
-              duration: durationToSeconds(selectedSong.duration),
-              key: selectedSong.key,
-              bpm: parseBpm(selectedSong.bpm),
-              difficulty: (selectedSong.difficulty || 1) as 1 | 2 | 3 | 4 | 5,
-              guitarTuning: selectedSong.tuning,
-              structure: [],
-              chords: [],
-              tags: selectedSong.tags || [],
-              notes: selectedSong.notes,
-              referenceLinks: songLinksToReferenceLinks(
-                selectedSong.referenceLinks
-              ),
-              createdDate: new Date(selectedSong.createdDate),
-              confidenceLevel: selectedSong.confidenceLevel || 1,
-              contextType: songContextType,
-              contextId: songContextId,
-              createdBy: selectedSong.createdBy,
-              visibility: songVisibility,
-            }}
-            onClose={() => {
-              setIsEditModalOpen(false)
-              setSelectedSong(null)
-            }}
-            onSave={async (updatedSong: ModelSong) => {
-              try {
-                // EditSongModal returns model format (duration in seconds, bpm as number)
-                await updateSong(updatedSong.id, {
-                  title: updatedSong.title,
-                  artist: updatedSong.artist,
-                  album: updatedSong.album,
-                  duration: updatedSong.duration,
-                  key: updatedSong.key,
-                  bpm: updatedSong.bpm,
-                  difficulty: (updatedSong.difficulty || 1) as
-                    | 1
-                    | 2
-                    | 3
-                    | 4
-                    | 5,
-                  guitarTuning: updatedSong.guitarTuning,
-                  tags: updatedSong.tags || [],
-                  notes: updatedSong.notes,
-                  referenceLinks: updatedSong.referenceLinks || [],
-                  confidenceLevel: updatedSong.confidenceLevel || 1,
-                })
-
-                // Refetch songs to update UI
-                await refetch()
-
-                showToast(
-                  `Successfully updated "${updatedSong.title}"`,
-                  'success'
-                )
-                setIsEditModalOpen(false)
-                setSelectedSong(null)
-              } catch (err) {
-                log.error('Error updating song:', err)
-                showToast('Failed to update song. Please try again.', 'error')
-              }
-            }}
-          />
-        )}
-
-        {/* Delete Confirmation Dialog */}
-        {isDeleteDialogOpen && selectedSong && (
-          <DeleteConfirmationDialog
-            song={selectedSong}
-            onConfirm={confirmDelete}
-            onCancel={() => {
-              setIsDeleteDialogOpen(false)
-              setSelectedSong(null)
-            }}
-          />
-        )}
-
-        {/* Add to Setlist Menu */}
-        {isSetlistMenuOpen && selectedSong && (
-          <AddToSetlistMenu
-            song={selectedSong}
-            onClose={() => {
-              setIsSetlistMenuOpen(false)
-              setSelectedSong(null)
-            }}
-          />
-        )}
+            </Chip>
+          </div>
+        </div>
       </div>
 
-      {/* Song Notes Modal */}
-      {songNotesModal && (
-        <SongNotesModal
-          isOpen={true}
-          songId={songNotesModal.songId}
-          songTitle={songNotesModal.songTitle}
-          userId={currentUserId}
-          bandId={currentBandId}
-          onClose={() => setSongNotesModal(null)}
+      {list()}
+
+      {!isDesktop && songs.length > 0 && addButton}
+
+      {hasPane && selected && (
+        <aside
+          className="fixed right-0 top-0 h-screen w-[372px] border-l border-border-1 bg-bg-1 overflow-y-auto custom-scrollbar-thin px-6 pt-7"
+          data-testid="song-pane"
+        >
+          <SongDetail
+            key={selected.id}
+            song={selected}
+            userId={userId}
+            pane
+            onEdit={() => setEditing({ song: selected })}
+          />
+        </aside>
+      )}
+
+      {editing && (
+        <EditSongModal
+          song={editing.song}
+          mode={editing.song ? 'edit' : 'add'}
+          showAlsoSaveToPersonal={isBand}
+          onClose={() => setEditing(null)}
+          onSave={async (song, options) => {
+            try {
+              const id = await saveSong(
+                song,
+                !editing.song,
+                options?.alsoSaveToPersonal
+              )
+              showToast(
+                editing.song
+                  ? `Saved "${song.title}"`
+                  : options?.alsoSaveToPersonal
+                    ? `Added "${song.title}" to the band and My Songs`
+                    : `Added "${song.title}"`,
+                'success'
+              )
+              setEditing(null)
+              if (hasPane) setSelectedId(id)
+            } catch (err) {
+              log.error('Error saving song', err)
+              showToast("Couldn't save the song. Try again.", 'error')
+              throw err
+            }
+          }}
         />
       )}
 
-      {/* Delete confirmation dialog */}
+      {menu && (
+        <SongMenu
+          song={menu.song}
+          at={menu.at}
+          hidden={hiddenIds.has(menu.song.id)}
+          inMySongs={copiedIds.has(menu.song.id)}
+          usage={menuUsage}
+          onClose={() => setMenu(null)}
+          onOpen={() => navigate(`/songs/${menu.song.id}`)}
+          onEdit={() => setEditing({ song: menu.song })}
+          onAddToSet={() => setAddToSet(menu.song)}
+          onCopyToMine={
+            isBand ? () => handleCopyToMine([menu.song.id]) : undefined
+          }
+          onDuplicate={() => handleDuplicate(menu.song)}
+          onToggleHidden={() => toggleHidden(menu.song)}
+          onDelete={() => handleDelete(menu.song)}
+        />
+      )}
+
+      {sheet === 'view' && (
+        <ViewOptionsSheet
+          view={view}
+          hiddenCount={hiddenCount}
+          onChange={setView}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet === 'sort' && (
+        <SortSheet
+          view={view}
+          canNextShow={isBand}
+          onChange={changes => {
+            setView(changes)
+            setSheet(null)
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet === 'pick' && (
+        <PickSongsSheet
+          userId={userId}
+          onCopy={ids => handleCopyToMine(ids)}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {addToSet && (
+        <AddToSetlistSheet
+          song={addToSet}
+          onClose={() => setAddToSet(null)}
+          onNewSetlist={() => navigate('/setlists/new')}
+        />
+      )}
+
       <ConfirmDialog {...dialogProps} />
-    </ContentLoadingSpinner>
-  )
-}
-
-// Old AddEditSongModal removed - now using shared EditSongModal from components/songs/EditSongModal.tsx
-// (The shared component includes Spotify search and URL auto-detection)
-
-// Delete Confirmation Dialog
-interface DeleteConfirmationDialogProps {
-  song: Song
-  onConfirm: () => void
-  onCancel: () => void
-}
-
-const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
-  song,
-  onConfirm,
-  onCancel,
-}) => {
-  return (
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onCancel}
-    >
-      <div
-        className="bg-bg-2 rounded-2xl border border-border-1 w-full max-w-md p-6"
-        onClick={e => e.stopPropagation()}
-        data-testid="delete-song-dialog"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
-            <Trash2 size={20} className="text-danger" />
-          </div>
-          <h3
-            className="text-lg font-semibold text-ink-1"
-            data-testid="delete-song-dialog-title"
-          >
-            Delete Song?
-          </h3>
-        </div>
-
-        <p className="text-sm text-ink-3 mb-6">
-          Are you sure you want to delete{' '}
-          <strong className="text-ink-1">"{song.title}"</strong> by{' '}
-          {song.artist}? This action cannot be undone.
-        </p>
-
-        {song.nextShow && (
-          <div className="p-3 bg-accent/10 border border-accent/20 rounded-lg mb-6">
-            <p className="text-xs text-accent">
-              This song is scheduled for <strong>{song.nextShow.name}</strong>.
-              It will be removed from that show.
-            </p>
-          </div>
-        )}
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 px-4 py-2.5 bg-border-1 text-ink-1 text-sm font-medium rounded-lg hover:bg-border-2 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 px-4 py-2.5 bg-danger text-white text-sm font-medium rounded-lg hover:bg-danger-deep transition-colors"
-            data-testid="confirm-delete-song-button"
-          >
-            Delete Song
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
 
-// Add to Setlist Menu
-interface AddToSetlistMenuProps {
-  song: Song
+/** Personal: "N songs in your bands aren't in My Songs · Copy all · Pick some". */
+const PersonalBanner: React.FC<{
+  userId: string
+  onCopyAll: () => void
+  onPick: () => void
+}> = ({ userId, onCopyAll, onPick }) => {
+  const gaps = useNotInMyCatalog(userId, true)
+  const [dismissed, setDismissed] = useState(false)
+  if (!gaps.length || dismissed) return null
+  return (
+    <div
+      className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[18px] bg-info/10 px-4 py-3"
+      data-testid="songs-personal-banner"
+    >
+      <Copy size={18} className="text-info shrink-0" />
+      <p className="flex-1 min-w-[180px] text-[14px] text-ink-1">
+        <b>{gaps.length}</b> song{gaps.length === 1 ? '' : 's'} in your bands
+        {gaps.length === 1 ? " isn't" : " aren't"} in My Songs
+      </p>
+      <Button size="md" onClick={onCopyAll} data-testid="songs-copy-all">
+        Copy all
+      </Button>
+      <Button
+        size="md"
+        variant="text"
+        onClick={onPick}
+        data-testid="songs-pick-some"
+      >
+        Pick some
+      </Button>
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss"
+        className="text-ink-3 hover:text-ink-1"
+      >
+        <X size={17} />
+      </button>
+    </div>
+  )
+}
+
+const PickSongsSheet: React.FC<{
+  userId: string
+  onCopy: (ids: string[]) => void
   onClose: () => void
-}
-
-const AddToSetlistMenu: React.FC<AddToSetlistMenuProps> = ({
-  song,
-  onClose,
-}) => {
-  const { showToast } = useToast()
-
-  // Mock setlists
-  const mockSetlists = [
-    { id: '1', name: 'Toys 4 Tots', songCount: 15, hasSong: false },
-    { id: '2', name: "New Year's Eve Bash", songCount: 18, hasSong: true },
-    { id: '3', name: 'Summer Festival', songCount: 12, hasSong: false },
-  ]
-
-  const handleAddToSetlist = (setlistName: string) => {
-    showToast(`Added "${song.title}" to ${setlistName}`, 'success')
-    onClose()
-  }
-
+}> = ({ userId, onCopy, onClose }) => {
+  const gaps = useNotInMyCatalog(userId, true)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const toggle = (id: string) =>
+    setPicked(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   return (
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
+    <Sheet
+      onClose={onClose}
+      title="Copy to My Songs"
+      sub="Linked copies that follow the band's version"
+      data-testid="songs-pick-sheet"
     >
-      <div
-        className="bg-bg-2 rounded-2xl border border-border-1 w-full max-w-md"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border-1">
-          <h3 className="text-lg font-semibold text-ink-1">Add to Setlist</h3>
-          <button
-            onClick={onClose}
-            className="p-1 text-ink-4 hover:text-ink-1 transition-colors"
+      <div className="max-h-[52vh] overflow-y-auto custom-scrollbar-thin divide-y divide-divider">
+        {gaps.map(g => (
+          <label
+            key={g.id}
+            className="flex items-center gap-3 min-h-[52px] px-1 cursor-pointer"
           >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Setlist List */}
-        <div className="p-2">
-          {mockSetlists.map(setlist => (
-            <button
-              key={setlist.id}
-              onClick={() => handleAddToSetlist(setlist.name)}
-              className="w-full flex items-center justify-between p-4 rounded-lg hover:bg-bg-4 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-border-1 flex items-center justify-center">
-                  <ListPlus size={20} className="text-ink-3" />
-                </div>
-                <div className="text-left">
-                  <div className="text-ink-1 text-sm font-medium">
-                    {setlist.name}
-                  </div>
-                  <div className="text-ink-3 text-xs">
-                    {setlist.songCount} songs
-                  </div>
-                </div>
-              </div>
-              {setlist.hasSong && (
-                <div className="text-accent text-xs">Already added</div>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Create New Setlist */}
-        <div className="p-4 border-t border-border-1">
-          <button
-            onClick={() =>
-              showToast('Create new setlist functionality coming soon', 'info')
-            }
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-on-accent text-sm font-medium rounded-lg hover:bg-accent-deep transition-colors"
-          >
-            <Plus size={20} />
-            <span>Create New Setlist</span>
-          </button>
-        </div>
+            <input
+              type="checkbox"
+              checked={picked.has(g.id!)}
+              onChange={() => toggle(g.id!)}
+              className="w-5 h-5 accent-[rgb(var(--accent-rgb))]"
+              data-testid={`songs-pick-${g.id}`}
+            />
+            <span className="flex-1 min-w-0">
+              <span className="block truncate text-[15px] font-bold text-ink-1">
+                {g.title}
+              </span>
+              <span className="block truncate text-[12.5px] text-ink-3">
+                {[g.artist, g.band_name].filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            <TuningPill tuning={g.guitar_tuning} size="sm" />
+          </label>
+        ))}
       </div>
-    </div>
+      <Button
+        variant="primary"
+        className="mt-3 mb-1 w-full"
+        disabled={!picked.size}
+        onClick={() => {
+          onCopy([...picked])
+          onClose()
+        }}
+        data-testid="songs-pick-copy"
+      >
+        Copy {picked.size || ''} to My Songs
+      </Button>
+    </Sheet>
   )
 }

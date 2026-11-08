@@ -502,9 +502,9 @@ Capo: 2nd fret
 })
 
 /**
- * Sets the band notes on the most recently created song via the Edit Song
- * modal. The Add Song modal intentionally omits a notes field (band notes are
- * added post-creation), so tests that need rendered notes must set them here.
+ * Sets the band notes on the first song via the song view. The song editor
+ * has no notes field (notes live in the song view), so tests that need
+ * rendered notes set them here.
  */
 async function setBandNotesViaEditModal(
   page: any,
@@ -513,23 +513,18 @@ async function setBandNotesViaEditModal(
   await page.goto('/songs')
   await page.waitForLoadState('networkidle')
 
-  // Open the song's actions menu → Edit
-  await page.locator('[data-testid="song-actions-menu-button"]').first().click()
-  await page.locator('[data-testid="edit-song-button"]').first().click()
-
-  // Enter edit mode on the Band Notes markdown field and type the notes
-  await page
-    .locator('[data-testid="markdown-field-edit-button"]')
-    .first()
-    .click()
-  const textarea = page.locator('[data-testid="markdown-textarea"]')
+  // Open the song (desktop: the side pane) and edit its Band notes in place
+  await page.locator('[data-testid^="song-row-"]').first().click()
+  const bandField = page.locator('[data-testid="song-notes-band-field"]')
+  await expect(bandField).toBeVisible({ timeout: 5000 })
+  await bandField.locator('[data-testid="markdown-field-edit-button"]').click()
+  const textarea = bandField.locator('[data-testid="markdown-textarea"]')
   await expect(textarea).toBeVisible({ timeout: 5000 })
   await textarea.fill(notes)
-  await page.locator('[data-testid="markdown-save"]').click()
-
-  // Persist the song
-  await page.locator('[data-testid="song-submit-button"]').click()
-  await page.waitForTimeout(1500)
+  await bandField.locator('[data-testid="markdown-save"]').click()
+  await expect(
+    bandField.locator('[data-testid="markdown-saved-toast"]')
+  ).toBeVisible({ timeout: 5000 })
 }
 
 /**

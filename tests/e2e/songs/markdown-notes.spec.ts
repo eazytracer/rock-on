@@ -3,13 +3,8 @@
  * across every surface that edits markdown-typed notes.
  *
  * Covers:
- * - SongNotesModal (band notes + personal notes) — new in this rollout
- * - EditSongModal (band notes, edit mode) — already shipped, sanity check
- * - Markdown helper popover stays accessible
- *
- * The v0.3.x UI unification PR introduced MarkdownField for these
- * surfaces; this suite asserts the migration is complete (the original
- * rollout missed SongNotesModal) and prevents regressions.
+ * - Song view (band notes + my notes), opened by tapping a song row
+ * - The song editor carries no notes field (redesign: notes live in the view)
  */
 import { test, expect, Page } from '@playwright/test'
 import {
@@ -49,18 +44,21 @@ async function addSong(page: Page, title: string, artist = 'Test Artist') {
   await page.waitForTimeout(1500)
 }
 
-/** Open the per-song notes modal by clicking the FileText icon on the row. */
-async function openSongNotesModal(page: Page) {
-  await page.locator('[data-testid="song-notes-button"]').first().click()
-  await expect(page.locator('[data-testid="song-notes-modal"]')).toBeVisible({
-    timeout: 5000,
-  })
+/** Open the song view by tapping the first row (desktop: the side pane). */
+async function openSongView(page: Page) {
+  await page.locator('[data-testid^="song-row-"]').first().click()
+  await expect(
+    page.locator('[data-testid="song-notes-band-field"]')
+  ).toBeVisible({ timeout: 5000 })
 }
 
-/** Open the kebab menu on the first song row and click "Edit Song". */
-async function openEditSongModal(page: Page) {
-  await page.locator('[data-testid="song-actions-menu-button"]').first().click()
-  await page.locator('[data-testid="edit-song-button"]').first().click()
+/** Right-click the first song row and choose Edit. */
+async function openEditSong(page: Page) {
+  await page
+    .locator('[data-testid^="song-row-"]')
+    .first()
+    .click({ button: 'right' })
+  await page.locator('[data-testid="edit-song-button"]').click()
   await page.waitForTimeout(400)
 }
 
@@ -78,7 +76,7 @@ test.describe('MarkdownField rollout — song notes surfaces', () => {
     }
   })
 
-  test('SongNotesModal renders MarkdownField for both band and personal notes', async ({
+  test('Song view renders MarkdownField for both band and personal notes', async ({
     page,
   }) => {
     const errors = setupConsoleErrorTracking(page)
@@ -88,7 +86,7 @@ test.describe('MarkdownField rollout — song notes surfaces', () => {
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
     await addSong(page, 'Markdown Test Song')
-    await openSongNotesModal(page)
+    await openSongView(page)
 
     // Both MarkdownField instances render with the new dedicated test ids.
     await expect(
@@ -106,51 +104,10 @@ test.describe('MarkdownField rollout — song notes surfaces', () => {
       page.locator('[data-testid="song-notes-personal-textarea"]')
     ).toHaveCount(0)
 
-    // Modal is now a "Done" button (not a Save button — fields autosave).
-    await expect(
-      page.locator('[data-testid="song-notes-modal-done"]')
-    ).toBeVisible()
-    await expect(
-      page.locator('[data-testid="song-notes-modal-save"]')
-    ).toHaveCount(0)
-
     await assertNoConsoleErrors(page, errors)
   })
 
-  test('SongNotesModal markdown helper popover remains accessible', async ({
-    page,
-  }) => {
-    const user = createTestUser()
-    await signUpViaUI(page, user)
-    await createBandViaUI(page, `Helper Popover Test ${Date.now()}`)
-    await page.waitForURL(/\/songs/, { timeout: 10000 })
-
-    await addSong(page, 'Helper Test Song')
-    await openSongNotesModal(page)
-
-    // Popover starts closed.
-    await expect(
-      page.locator('[data-testid="song-notes-modal-help-popover"]')
-    ).toHaveCount(0)
-
-    // Click HelpCircle → popover opens with cheat-sheet content.
-    await page.locator('[data-testid="song-notes-modal-help"]').click()
-    const popover = page.locator(
-      '[data-testid="song-notes-modal-help-popover"]'
-    )
-    await expect(popover).toBeVisible({ timeout: 3000 })
-    await expect(popover).toContainText('Markdown Formatting')
-    await expect(popover).toContainText('Heading')
-    await expect(popover).toContainText('bold')
-
-    // Toggling closes again.
-    await page.locator('[data-testid="song-notes-modal-help"]').click()
-    await expect(
-      page.locator('[data-testid="song-notes-modal-help-popover"]')
-    ).toHaveCount(0)
-  })
-
-  test('SongNotesModal: typing in band notes and clicking out auto-saves', async ({
+  test('Song view: typing in band notes and saving persists', async ({
     page,
   }) => {
     const errors = setupConsoleErrorTracking(page)
@@ -160,7 +117,7 @@ test.describe('MarkdownField rollout — song notes surfaces', () => {
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
     await addSong(page, 'Autosave Song')
-    await openSongNotesModal(page)
+    await openSongView(page)
 
     // Click the pencil icon inside the band-notes field to enter edit mode.
     const bandField = page.locator('[data-testid="song-notes-band-field"]')
@@ -176,18 +133,20 @@ test.describe('MarkdownField rollout — song notes surfaces', () => {
 
     // Click the explicit save check icon (more reliable than click-out
     // detection in headless modes).
+    const saved = page.waitForResponse(r =>
+      r.url().includes('/rpc/set_band_note')
+    )
     await bandField.locator('[data-testid="markdown-save"]').click()
+    expect((await saved).ok()).toBe(true)
 
     // Toast confirms the save.
     await expect(
       bandField.locator('[data-testid="markdown-saved-toast"]')
     ).toBeVisible({ timeout: 3000 })
 
-    // Reopen the modal and verify the value persisted via the rendered
-    // markdown in the idle state.
-    await page.locator('[data-testid="song-notes-modal-done"]').click()
-    await page.waitForTimeout(300)
-    await openSongNotesModal(page)
+    // Reload and reopen the song; the rendered markdown shows the saved value.
+    await page.reload()
+    await openSongView(page)
     const reopenedBand = page.locator('[data-testid="song-notes-band-field"]')
     await expect(reopenedBand).toContainText('Pre-show notes', {
       timeout: 5000,
@@ -197,32 +156,24 @@ test.describe('MarkdownField rollout — song notes surfaces', () => {
     await assertNoConsoleErrors(page, errors)
   })
 
-  test('EditSongModal renders MarkdownField for band notes in edit mode', async ({
-    page,
-  }) => {
-    const errors = setupConsoleErrorTracking(page)
+  test('Song editor has no notes field in edit mode', async ({ page }) => {
     const user = createTestUser()
     await signUpViaUI(page, user)
-    await createBandViaUI(page, `EditModal Markdown Test ${Date.now()}`)
+    await createBandViaUI(page, `Edit Notes Test ${Date.now()}`)
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
     await addSong(page, 'Edit Modal Song')
-    await openEditSongModal(page)
+    await openEditSong(page)
 
-    // The band-notes MarkdownField is present in edit mode.
-    const notesField = page.locator('[data-testid="song-notes-field"]')
-    await expect(notesField).toBeVisible({ timeout: 5000 })
-
-    // Idle state — pencil edit affordance available on hover/focus.
-    await notesField.hover()
-    await expect(
-      notesField.locator('[data-testid="markdown-field-edit-button"]')
-    ).toBeVisible({ timeout: 3000 })
-
-    await assertNoConsoleErrors(page, errors)
+    await expect(page.locator('[data-testid="song-title-input"]')).toHaveValue(
+      'Edit Modal Song'
+    )
+    await expect(page.locator('[data-testid="song-notes-field"]')).toHaveCount(
+      0
+    )
   })
 
-  test('EditSongModal in add mode does NOT render the band-notes MarkdownField', async ({
+  test('Song editor in add mode does NOT render a notes field', async ({
     page,
   }) => {
     const user = createTestUser()

@@ -25,6 +25,11 @@ const BandMembersPage = lazy(() =>
     default: module.BandMembersPage,
   }))
 )
+const SongViewPage = lazy(() =>
+  import('./pages/SongViewPage').then(module => ({
+    default: module.SongViewPage,
+  }))
+)
 const SongsPage = lazy(() =>
   import('./pages/SongsPage').then(module => ({
     default: module.SongsPage,
@@ -208,6 +213,7 @@ const AppContent: React.FC = () => {
             <Route path="/events/new" element={<EventCreatePage />} />
             <Route path="/events/:eventId" element={<EventDetailPage />} />
             <Route path="/songs" element={<SongsPage />} />
+            <Route path="/songs/:songId" element={<SongViewPage />} />
             <Route path="/setlists" element={<SetlistsPage />} />
             <Route path="/setlists/new" element={<SetlistViewPage />} />
             <Route path="/setlists/:setlistId" element={<SetlistViewPage />} />

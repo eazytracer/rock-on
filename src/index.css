@@ -245,6 +245,14 @@
     background: rgb(var(--ink-6-rgb));
   }
 
+  /* Horizontal chip rows: scroll by swipe, no bar */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Thin variant for modals and dropdowns */
   .custom-scrollbar-thin {
     scrollbar-width: thin;

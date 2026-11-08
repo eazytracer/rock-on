@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-07
+
+Redesign phase 2 · Songs.
+
+### Added
+
+- **Song view** (`/songs/:id`; a side pane on wide desktops): facts, links,
+  the band's note with who edited it last and the practice-log count, your own
+  notes, and Used in (setlists with position, shows, upcoming practices).
+- **View options** per list, saved to your account: Comfortable / Compact, and
+  which of Artist, Key, BPM, Links and Next show appear. Show hidden songs.
+- **Sort** by Title, Artist, Newest, Oldest or Next show, either direction.
+- **Tuning chips** filter the list to one tuning.
+- **Song menu** on press-and-hold or right-click: Open, Edit, Add to setlist,
+  Add to My Songs, Duplicate, Hide, Delete (names where the song is used).
+  Swipe left on phones for Hide / Add to set; hover actions on desktop.
+- **Personal banner**: "N songs in your bands aren't in My Songs · Copy all ·
+  Pick some".
+- Add to setlist now lists your real setlists (it was a placeholder).
+
+### Changed
+
+- New song row: tuning pill, length, key, BPM and up to two link tiles; a grey
+  notes mark after the title. No ⋯ button. Desktop shows a table.
+- Song editor is full screen with Cancel / Save. Only the title is required.
+  Spotify matches appear under the title while adding. Notes moved out of the
+  form into the song view. Cancel names what you changed.
+- My Songs is the Personal context: the Band Songs / My Songs tabs are gone;
+  use the context switcher.
+
+### Fixed
+
+- Album is saved (it was silently dropped).
+- The list no longer looks up next shows one song at a time.
+
+### Database
+
+- `songs.album`, `songs.notes_edited_by`, `songs.notes_edited_at`.
+- RPCs `song_usage`, `song_next_shows`, `set_band_note`, `duplicate_song`,
+  `delete_song` (one transaction, removes the song from its setlists),
+  `band_songs_not_in_my_catalog`, `copy_band_songs_to_personal`.
+- `release_notes` 0.9.0.
+
 ## [0.8.0] - 2026-11-07
 
 Redesign phase 1 · Shell and Home.

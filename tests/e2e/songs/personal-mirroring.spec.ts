@@ -1,15 +1,17 @@
 /**
  * E2E tests for personal-catalog mirroring features.
  *
+ * My Songs is the Personal context (redesign: the Band / My Songs tabs became
+ * the context switcher).
+ *
  * Covers:
- * - Tab explainer text under the Band Songs / My Songs switcher
- * - "Also save to my personal catalog" checkbox in EditSongModal add mode
- *   (band tab only — personal songs already live in the personal catalog)
+ * - Personal banner: "N songs in your bands aren't in My Songs · Copy all"
+ * - "Also add to My Songs" in the song editor's add mode (band only)
  * - Chain-icon indicator on linked songs (band side after mirror,
  *   personal side after copy-to-personal)
  *
- * Underlying data flow goes through SongLinkingService.copyBandSongToPersonal,
- * which links the two records via linkedFromSongId.
+ * Copies go through the copy_band_songs_to_personal RPC, which links the two
+ * records via linked_from_song_id.
  */
 import { test, expect, Page } from '@playwright/test'
 import {
@@ -17,7 +19,7 @@ import {
   signUpViaUI,
   deleteTestUser,
 } from '../../fixtures/auth'
-import { createBandViaUI } from '../../fixtures/bands'
+import { createBandViaUI, switchContextViaUI } from '../../fixtures/bands'
 import {
   setupConsoleErrorTracking,
   assertNoConsoleErrors,
@@ -27,18 +29,11 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function switchToPersonalTab(page: Page) {
-  const tab = page.locator('[data-testid="songs-personal-tab"]')
-  await expect(tab).toBeVisible({ timeout: 5000 })
-  await tab.click()
-  await page.waitForTimeout(300)
-}
-
-async function switchToBandTab(page: Page) {
-  const tab = page.locator('[data-testid="songs-band-tab"]')
-  await expect(tab).toBeVisible({ timeout: 5000 })
-  await tab.click()
-  await page.waitForTimeout(300)
+async function switchToPersonal(page: Page) {
+  await switchContextViaUI(page, 'personal')
+  await expect(page.locator('[data-testid="songs-title"]')).toContainText(
+    'My Songs'
+  )
 }
 
 /**
@@ -95,7 +90,7 @@ async function addBandSong(
 // Tests
 // ---------------------------------------------------------------------------
 
-test.describe('Tab explainer caption', () => {
+test.describe('Personal banner', () => {
   let testUserId: string | undefined
 
   test.afterEach(async () => {
@@ -105,27 +100,26 @@ test.describe('Tab explainer caption', () => {
     }
   })
 
-  test('explainer text changes when switching between Band Songs and My Songs', async ({
-    page,
-  }) => {
+  test('Copy all brings band songs into My Songs', async ({ page }) => {
     const user = createTestUser()
     await signUpViaUI(page, user)
-    await createBandViaUI(page, `Explainer Test ${Date.now()}`)
+    await createBandViaUI(page, `Banner Test ${Date.now()}`)
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
-    const explainer = page.locator('[data-testid="songs-tab-explainer"]')
-    await expect(explainer).toBeVisible({ timeout: 5000 })
+    await addBandSong(page, 'Banner Song One')
+    await addBandSong(page, 'Banner Song Two')
 
-    // Default = Band tab.
-    await expect(explainer).toContainText(/shared with your band/i)
+    await switchToPersonal(page)
+    const banner = page.locator('[data-testid="songs-personal-banner"]')
+    await expect(banner).toContainText(
+      "2 songs in your bands aren't in My Songs"
+    )
 
-    // Switch to personal — caption updates.
-    await switchToPersonalTab(page)
-    await expect(explainer).toContainText(/visible only to you/i)
-
-    // Back to band — original caption returns.
-    await switchToBandTab(page)
-    await expect(explainer).toContainText(/shared with your band/i)
+    await page.locator('[data-testid="songs-copy-all"]').click()
+    await expect(banner).toHaveCount(0, { timeout: 5000 })
+    await expect(
+      page.locator('[data-testid^="song-row-"]', { hasText: 'Banner Song' })
+    ).toHaveCount(2)
   })
 })
 
@@ -139,7 +133,7 @@ test.describe('Also save to my personal catalog (add mode)', () => {
     }
   })
 
-  test('checkbox is shown in band-tab add mode but hidden in personal-tab add mode', async ({
+  test('checkbox is shown when adding a band song but not a personal one', async ({
     page,
   }) => {
     const user = createTestUser()
@@ -167,7 +161,7 @@ test.describe('Also save to my personal catalog (add mode)', () => {
     )
 
     // Switch to personal tab and reopen — checkbox must NOT be present.
-    await switchToPersonalTab(page)
+    await switchToPersonal(page)
     await page.locator('[data-testid="add-song-button"]').first().click()
     await expect(page.locator('[data-testid="song-title-input"]')).toBeVisible({
       timeout: 5000,
@@ -198,7 +192,7 @@ test.describe('Also save to my personal catalog (add mode)', () => {
     })
 
     // Switch to personal tab — the mirrored copy should be there.
-    await switchToPersonalTab(page)
+    await switchToPersonal(page)
     await expect(page.locator(`text=${songTitle}`).first()).toBeVisible({
       timeout: 5000,
     })
@@ -226,7 +220,7 @@ test.describe('Also save to my personal catalog (add mode)', () => {
     })
 
     // Personal tab does not.
-    await switchToPersonalTab(page)
+    await switchToPersonal(page)
     await expect(page.locator(`text=${songTitle}`)).toHaveCount(0)
   })
 })
@@ -249,9 +243,6 @@ test.describe('Chain-icon indicator on linked songs', () => {
     await createBandViaUI(page, `Chain Icon Test ${Date.now()}`)
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
-    // Use :visible to scope counts to the active responsive view —
-    // SongRow (desktop) and SongCard (mobile) both render in the DOM
-    // with CSS display rules, so a raw count would always double.
     const visibleLinkIcons = page.locator(
       '[data-testid="song-linked-indicator"]:visible'
     )
@@ -273,11 +264,11 @@ test.describe('Chain-icon indicator on linked songs', () => {
     await expect(visibleLinkIcons).toHaveCount(1, { timeout: 5000 })
 
     // Switch to personal tab — the personal copy also gets the chain icon.
-    await switchToPersonalTab(page)
+    await switchToPersonal(page)
     await expect(visibleLinkIcons).toHaveCount(1, { timeout: 5000 })
   })
 
-  test('chain icon appears after using "Copy to My Songs" from the band kebab menu', async ({
+  test('chain icon appears after "Add to My Songs" from the song menu', async ({
     page,
   }) => {
     const user = createTestUser()
@@ -298,11 +289,11 @@ test.describe('Chain-icon indicator on linked songs', () => {
     // Initially no chain icon.
     await expect(visibleLinkIcons).toHaveCount(0)
 
-    // Open kebab menu, click "Copy to My Songs".
+    // Right-click the row, choose "Add to My Songs".
     await page
-      .locator('[data-testid="song-actions-menu-button"]')
+      .locator('[data-testid^="song-row-"]')
       .first()
-      .click()
+      .click({ button: 'right' })
     await page
       .locator('[data-testid="copy-to-personal-button"]')
       .first()

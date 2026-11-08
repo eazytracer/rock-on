@@ -271,7 +271,6 @@ for band admins/owners. A new column is not readable until added to that GRANT.
 | `id`               | `id`               | `id`                  | UUID             | Yes      | auto       | Unique identifier                                                     |
 | `title`            | `title`            | `title`               | string           | Yes      | -          | Song title                                                            |
 | `artist`           | `artist`           | `artist`              | string           | Yes      | -          | Artist name                                                           |
-| `album`            | `album`            | -                     | string           | No       | -          | Album name (IndexedDB only)                                           |
 | `duration`         | `duration`         | `duration`            | number           | Yes      | -          | Duration in seconds                                                   |
 | `key`              | `key`              | `key`                 | string           | Yes      | -          | Musical key                                                           |
 | `bpm`              | `bpm`              | `tempo`               | number           | Yes      | 120        | Beats per minute                                                      |
@@ -302,6 +301,14 @@ for band admins/owners. A new column is not readable until added to that GRANT.
 | `normalizedArtist` | -                  | `normalized_artist`   | string           | No       | computed   | Normalized artist for jam matching (Supabase generated column)        |
 | `version`          | `version`          | `version`             | number           | No       | 1          | Version for conflict detection                                        |
 | `lastModifiedBy`   | `lastModifiedBy`   | `last_modified_by`    | UUID             | No       | -          | Last modifier user ID                                                 |
+| `album`            | `album`            | `album`               | string           | No       | -          | Album (phase 2; was client-only before)                               |
+| `notesEditedBy`    | `notesEditedBy`    | `notes_edited_by`     | UUID             | No       | -          | Last editor of the band note (set by `set_band_note`)                 |
+| `notesEditedAt`    | `notesEditedAt`    | `notes_edited_at`     | Date             | No       | -          | When the band note was last edited                                    |
+
+**RPCs (phase 2, `20261109120000_redesign_phase_2.sql`):** `song_usage(p_song_id)`, `song_next_shows(p_band_id)`,
+`set_band_note(p_song_id, p_notes, p_expected_version)`, `duplicate_song(p_song_id)`, `delete_song(p_song_id)`,
+`band_songs_not_in_my_catalog()`, `copy_band_songs_to_personal(p_song_ids)`. Contract tests:
+`supabase/tests/030-songs.test.sql`. Per-list view settings live in `user_preferences.list_views` keyed `songs:<contextId>`.
 
 **CRITICAL Naming Differences:**
 

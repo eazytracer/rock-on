@@ -13,16 +13,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
   X,
-  Music,
   Plus,
   Edit,
   Music2,
   Play,
   Guitar,
   ExternalLink,
-  Search,
-  ChevronDown,
-  ChevronUp,
   FileText,
   HardDrive,
   Cloud,
@@ -30,7 +26,8 @@ import {
   Check,
 } from 'lucide-react'
 import CircleOfFifths from './CircleOfFifths'
-import { SpotifySearch } from './SpotifySearch'
+import { formatSeconds } from '../../domain/format'
+import { useSpotifySearch } from '../../hooks/useSpotifySearch'
 import type { Song } from '../../models/Song'
 import type { ReferenceLink } from '../../types'
 import type { SpotifyTrack } from '../../services/spotify/SpotifyService'
@@ -49,7 +46,6 @@ import { useNavigate } from 'react-router-dom'
 import { Settings2 } from 'lucide-react'
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges'
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog'
-import { MarkdownField } from '../notes/MarkdownField'
 
 // Extended link type for UI that includes id and name
 interface UILink extends ReferenceLink {
@@ -76,6 +72,14 @@ export interface EditSongModalProps {
    */
   showAlsoSaveToPersonal?: boolean
 }
+
+const CARD = 'rounded-[18px] bg-bg-2 shadow-group'
+const FIELD = 'px-4 py-2.5'
+const LABEL =
+  'block font-mono text-[10.5px] tracking-[.14em] uppercase text-ink-3'
+const INPUT_BARE =
+  'bg-transparent text-[16.5px] font-bold text-ink-1 placeholder-ink-4 focus:outline-none'
+const INPUT = `w-full ${INPUT_BARE}`
 
 // Helper to convert seconds to mm:ss
 const secondsToMinSec = (seconds: number): { min: string; sec: string } => {
@@ -112,6 +116,63 @@ const getLinkPresetName = (type: string): string => {
     default:
       return ''
   }
+}
+
+const FIELD_NAMES: [keyof ChangeForm, string][] = [
+  ['title', 'Title'],
+  ['artist', 'Artist'],
+  ['album', 'Album'],
+  ['tuning', 'Tuning'],
+  ['key', 'Key'],
+  ['bpm', 'BPM'],
+  ['durationMin', 'Length'],
+  ['durationSec', 'Length'],
+  ['tags', 'Tags'],
+]
+
+interface ChangeForm {
+  title: string
+  artist: string
+  album: string
+  tuning: string
+  key: string
+  bpm: string
+  durationMin: string
+  durationSec: string
+  tags: string
+}
+
+/** "You changed Tuning and Key. These haven't been saved." */
+function changedFieldsMessage(
+  song: Song | undefined,
+  form: ChangeForm,
+  links: UILink[]
+): string {
+  const { min, sec } = secondsToMinSec(song?.duration || 0)
+  const before: ChangeForm = {
+    title: song?.title || '',
+    artist: song?.artist || '',
+    album: song?.album || '',
+    tuning: song?.guitarTuning || 'Standard',
+    key: song?.key || '',
+    bpm: song?.bpm ? String(song.bpm) : '',
+    durationMin: min,
+    durationSec: sec,
+    tags: song?.tags?.join(', ') || '',
+  }
+  const names = [
+    ...new Set(
+      FIELD_NAMES.filter(([k]) => before[k] !== form[k]).map(([, n]) => n)
+    ),
+  ]
+  const linksBefore = (song?.referenceLinks ?? []).map(l => l.url).join()
+  if (linksBefore !== links.map(l => l.url).join()) names.push('Links')
+  if (!names.length) return "Your changes haven't been saved."
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  return `You changed ${list}. These haven't been saved.`
 }
 
 export const EditSongModal: React.FC<EditSongModalProps> = ({
@@ -206,8 +267,13 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   // Circle of Fifths visibility state
   const [showCircleOfFifths, setShowCircleOfFifths] = useState(false)
 
-  // Spotify search visibility state
-  const [showSpotifySearch, setShowSpotifySearch] = useState(false)
+  // Spotify matches under the title while adding (up to 3).
+  const spotify = useSpotifySearch({ limit: 3 })
+  const [spotifyPicked, setSpotifyPicked] = useState(false)
+  const setSpotifyQuery = spotify.setQuery
+  useEffect(() => {
+    if (isAddMode && !spotifyPicked) setSpotifyQuery(formData.title)
+  }, [isAddMode, spotifyPicked, formData.title, setSpotifyQuery])
 
   // Handle Spotify track selection - auto-fill form fields
   const handleSpotifySelect = (track: SpotifyTrack) => {
@@ -245,8 +311,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
       setLinks(prev => [...prev, spotifyLink])
     }
 
-    // Collapse search after selection
-    setShowSpotifySearch(false)
+    setSpotifyPicked(true)
   }
 
   // Link management state
@@ -582,9 +647,8 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   // unsaved-changes dialog's "Save" path. Throws on validation failure so
   // the dialog stays open.
   const doSave = async (): Promise<void> => {
-    // Key is optional — users adding a song quickly (e.g. from an event) shouldn't
-    // have to look it up first. Only title + artist are required.
-    if (!formData.title || !formData.artist) {
+    // Only the title is required (Song Editor: "Only the title is required").
+    if (!formData.title.trim()) {
       throw new Error('Required fields missing')
     }
 
@@ -660,6 +724,8 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
   const { dialogProps, requestClose } = useUnsavedChanges({
     isDirty,
     onSave: doSave,
+    title: 'Discard changes?',
+    message: changedFieldsMessage(song, formData, links),
   })
 
   // Close handler for backdrop / X / Cancel. Pops the blocking dialog if
@@ -680,77 +746,48 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     }
   }
 
+  const showMatches =
+    isAddMode &&
+    !spotifyPicked &&
+    formData.title.trim().length >= 3 &&
+    (spotify.results.length > 0 || spotify.isLoading)
+
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={handleClose}
+      className="fixed inset-0 z-50 bg-bg-1 overflow-y-auto custom-scrollbar"
+      data-testid="edit-song-screen"
     >
-      <div
-        className="bg-bg-2 rounded-2xl border border-border-1 w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar-thin"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border-1">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-ink-1 font-medium">Songs</span>
-            <span className="text-ink-4">&gt;</span>
-            <span className="text-ink-3">
-              {isAddMode ? 'New Song' : 'Edit Song'}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-1 text-ink-4 hover:text-ink-1 transition-colors"
-            data-testid="edit-song-modal-close"
-            aria-label="Close"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <form onSubmit={handleSubmit} className="p-6">
-          {/* Spotify Search Section */}
-          <div className="mb-6">
+      <form onSubmit={handleSubmit} className="min-h-full">
+        <header className="sticky top-0 z-10 bg-bg-1/95 backdrop-blur">
+          <div className="max-w-xl mx-auto grid grid-cols-[1fr_auto_1fr] items-center h-16 px-4">
             <button
               type="button"
-              onClick={() => setShowSpotifySearch(!showSpotifySearch)}
-              className="flex items-center gap-2 text-sm text-[#1DB954] hover:text-[#1ed760] transition-colors"
-              data-testid="toggle-spotify-search"
+              onClick={handleClose}
+              className="justify-self-start text-[16px] font-semibold text-ink-2 hover:text-ink-1"
+              data-testid="edit-song-modal-close"
             >
-              <Search size={16} />
-              <span>Search Spotify to auto-fill</span>
-              {showSpotifySearch ? (
-                <ChevronUp size={16} />
-              ) : (
-                <ChevronDown size={16} />
-              )}
+              Cancel
             </button>
-
-            {showSpotifySearch && (
-              <div className="mt-3">
-                <SpotifySearch
-                  onSelect={handleSpotifySelect}
-                  placeholder="Search for a song on Spotify..."
-                  autoFocus
-                />
-                <p className="mt-2 text-xs text-ink-4">
-                  Select a track to auto-fill title, artist, album, duration,
-                  and add Spotify link
-                </p>
-              </div>
-            )}
+            <h2 className="text-[17px] font-bold text-ink-1">
+              {isAddMode ? 'Add song' : 'Edit song'}
+            </h2>
+            <button
+              type="submit"
+              data-testid="song-submit-button"
+              className="justify-self-end h-10 px-5 rounded-full bg-accent text-on-accent text-[15px] font-bold hover:bg-accent-deep"
+            >
+              Save
+            </button>
           </div>
+        </header>
 
-          <div className="space-y-4">
-            {/* Title — full width */}
-            <div>
-              <label
-                htmlFor="song-title"
-                className="block text-sm text-ink-3 mb-2"
-              >
-                Title <span className="text-danger">*</span>
+        <div className="max-w-xl mx-auto px-4 pb-16 space-y-3">
+          <div className={CARD}>
+            <div
+              className={`${FIELD} rounded-[18px] focus-within:ring-2 focus-within:ring-accent`}
+            >
+              <label htmlFor="song-title" className={LABEL}>
+                Title <span className="text-accent">Required</span>
               </label>
               <input
                 type="text"
@@ -761,156 +798,174 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                 onChange={e =>
                   setFormData({ ...formData, title: e.target.value })
                 }
-                placeholder="Enter song title"
-                className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                placeholder="Song title"
+                autoFocus={isAddMode}
+                autoComplete="off"
+                className={INPUT}
                 required
               />
             </div>
+          </div>
 
-            {/* Artist + Album — 2-up on tablet+, stacked on mobile */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="song-artist"
-                  className="block text-sm text-ink-3 mb-2"
+          {showMatches && (
+            <div className={`${CARD} p-3`} data-testid="spotify-matches">
+              <p className="flex items-center gap-2 px-1 pb-2 text-[12.5px] text-ink-3">
+                <span className="text-[#1DB954]">●</span> From Spotify · tap to
+                fill in
+              </p>
+              {spotify.results.map(track => (
+                <button
+                  key={track.id}
+                  type="button"
+                  onClick={() => handleSpotifySelect(track)}
+                  data-testid="spotify-match"
+                  className="w-full flex items-center gap-3 p-1.5 rounded-xl text-left hover:bg-bg-3"
                 >
-                  Artist <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="artist"
-                  id="song-artist"
-                  data-testid="song-artist-input"
-                  value={formData.artist}
-                  onChange={e =>
-                    setFormData({ ...formData, artist: e.target.value })
-                  }
-                  placeholder="Enter artist name"
-                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                  required
-                />
-              </div>
+                  {track.albumArt ? (
+                    <img
+                      src={track.albumArt}
+                      alt=""
+                      className="w-10 h-10 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="w-10 h-10 rounded-lg bg-bg-4" />
+                  )}
+                  <span className="flex-1 min-w-0">
+                    <span className="block truncate text-[15px] font-bold text-ink-1">
+                      {track.name}
+                    </span>
+                    <span className="block truncate text-[12.5px] text-ink-3">
+                      {track.artist} · {track.album}
+                    </span>
+                  </span>
+                  <span className="font-mono text-[13px] text-ink-2">
+                    {formatSeconds(
+                      SpotifyService.durationToSeconds(track.durationMs)
+                    )}
+                  </span>
+                </button>
+              ))}
+              <p className="px-1 pt-2 text-[12.5px] text-ink-3">
+                Or keep typing. Only the title is required.
+              </p>
+            </div>
+          )}
 
-              <div>
-                <label
-                  htmlFor="song-album"
-                  className="block text-sm text-ink-3 mb-2"
-                >
-                  Album
-                </label>
-                <input
-                  type="text"
-                  name="album"
-                  id="song-album"
-                  data-testid="song-album-input"
-                  value={formData.album}
-                  onChange={e =>
-                    setFormData({ ...formData, album: e.target.value })
-                  }
-                  placeholder="Enter album name"
-                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+          <div className={`${CARD} divide-y divide-divider`}>
+            <div className={FIELD}>
+              <label htmlFor="song-artist" className={LABEL}>
+                Artist
+              </label>
+              <input
+                type="text"
+                name="artist"
+                id="song-artist"
+                data-testid="song-artist-input"
+                value={formData.artist}
+                onChange={e =>
+                  setFormData({ ...formData, artist: e.target.value })
+                }
+                placeholder="Optional"
+                className={INPUT}
+              />
+            </div>
+            <div className={FIELD}>
+              <label htmlFor="song-album" className={LABEL}>
+                Album
+              </label>
+              <input
+                type="text"
+                name="album"
+                id="song-album"
+                data-testid="song-album-input"
+                value={formData.album}
+                onChange={e =>
+                  setFormData({ ...formData, album: e.target.value })
+                }
+                placeholder="Optional"
+                className={INPUT}
+              />
+            </div>
+          </div>
+
+          <div className={`${CARD} divide-y divide-divider`}>
+            <div className={FIELD}>
+              <label htmlFor="song-tuning" className={LABEL}>
+                Tuning
+              </label>
+              <div data-testid="song-tuning-select">
+                <Dropdown
+                  data-testid="song-tuning"
+                  value={formData.tuningId}
+                  onChange={handleTuningChange}
+                  groups={tuningGroups}
+                  placeholder="Choose a tuning"
+                  footerActions={[
+                    {
+                      label: 'New tuning',
+                      icon: <Plus size={15} />,
+                      onClick: () => setCreatingTuning(true),
+                    },
+                    {
+                      label: 'Manage tunings',
+                      icon: <Settings2 size={15} />,
+                      onClick: () => navigate('/settings'),
+                    },
+                  ]}
+                  renderTriggerLabel={opt => {
+                    // Selected DB tuning → its dot + name. Legacy song with only
+                    // a guitarTuning label (id not yet resolved) → show that label.
+                    const color = opt
+                      ? opt.color
+                      : formData.tuning
+                        ? tuningColor(formData.tuning)
+                        : undefined
+                    const label = opt
+                      ? opt.label
+                      : formData.tuning
+                        ? tuningLabel(formData.tuning)
+                        : null
+                    if (!label)
+                      return (
+                        <span className="text-ink-4 truncate">
+                          Choose a tuning
+                        </span>
+                      )
+                    return (
+                      <>
+                        {color && (
+                          <span
+                            className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: color }}
+                          />
+                        )}
+                        <span className="truncate">{label}</span>
+                      </>
+                    )
+                  }}
                 />
               </div>
             </div>
-
-            {/* Tuning + Key + BPM + Duration — 4-up on tablet+, 2x2 on mobile */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Guitar Tuning */}
-              <div>
-                <label
-                  htmlFor="song-tuning"
-                  className="block text-sm text-ink-3 mb-2"
-                >
-                  Tuning
-                </label>
-                <div data-testid="song-tuning-select">
-                  <Dropdown
-                    data-testid="song-tuning"
-                    value={formData.tuningId}
-                    onChange={handleTuningChange}
-                    groups={tuningGroups}
-                    placeholder="Choose a tuning"
-                    footerActions={[
-                      {
-                        label: 'New tuning',
-                        icon: <Plus size={15} />,
-                        onClick: () => setCreatingTuning(true),
-                      },
-                      {
-                        label: 'Manage tunings',
-                        icon: <Settings2 size={15} />,
-                        onClick: () => navigate('/settings'),
-                      },
-                    ]}
-                    renderTriggerLabel={opt => {
-                      // Selected DB tuning → its dot + name. Legacy song with only
-                      // a guitarTuning label (id not yet resolved) → show that label.
-                      const color = opt
-                        ? opt.color
-                        : formData.tuning
-                          ? tuningColor(formData.tuning)
-                          : undefined
-                      const label = opt
-                        ? opt.label
-                        : formData.tuning
-                          ? tuningLabel(formData.tuning)
-                          : null
-                      if (!label)
-                        return (
-                          <span className="text-ink-4 truncate">
-                            Choose a tuning
-                          </span>
-                        )
-                      return (
-                        <>
-                          {color && (
-                            <span
-                              className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: color }}
-                            />
-                          )}
-                          <span className="truncate">{label}</span>
-                        </>
-                      )
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Key */}
-              <div>
-                <label className="block text-sm text-ink-3 mb-2">Key</label>
+            <div className="grid grid-cols-3 divide-x divide-divider">
+              <div className={FIELD}>
+                <span className={LABEL}>Key</span>
                 <button
                   type="button"
                   id="song-key"
                   data-testid="song-key-button"
                   onClick={() => setShowCircleOfFifths(true)}
-                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm flex items-center justify-between hover:border-accent transition-colors group"
+                  className={`${INPUT} text-left font-mono ${formData.key ? '' : 'text-ink-4'}`}
                 >
-                  <span
-                    className={
-                      formData.key ? 'text-ink-1 font-medium' : 'text-ink-5'
-                    }
-                  >
-                    {formData.key || 'Optional'}
-                  </span>
-                  <Music
-                    size={18}
-                    className="text-ink-4 group-hover:text-accent transition-colors flex-shrink-0"
-                  />
+                  {formData.key || 'Optional'}
                 </button>
               </div>
-
-              {/* BPM */}
-              <div>
-                <label
-                  htmlFor="song-bpm"
-                  className="block text-sm text-ink-3 mb-2"
-                >
+              <div className={FIELD}>
+                <label htmlFor="song-bpm" className={LABEL}>
                   BPM
                 </label>
                 <input
                   type="text"
+                  inputMode="numeric"
                   name="bpm"
                   id="song-bpm"
                   data-testid="song-bpm-input"
@@ -921,21 +976,19 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                       bpm: e.target.value.replace(/\D/g, ''),
                     })
                   }
-                  placeholder="120"
-                  className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  placeholder="—"
+                  className={`${INPUT} font-mono`}
                 />
               </div>
-
-              {/* Duration */}
-              <div>
-                <label className="block text-sm text-ink-3 mb-2">
-                  Duration
-                </label>
-                <div className="flex gap-1">
+              <div className={FIELD}>
+                <span className={LABEL}>Length</span>
+                <div className="flex items-center font-mono">
                   <input
                     type="text"
+                    inputMode="numeric"
                     name="durationMinutes"
                     id="song-duration-minutes"
+                    aria-label="Minutes"
                     data-testid="song-duration-minutes-input"
                     value={formData.durationMin}
                     onChange={e =>
@@ -946,13 +999,15 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     }
                     placeholder="0"
                     maxLength={2}
-                    className="w-full h-11 px-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    className={`${INPUT_BARE} w-[2.2ch] text-right`}
                   />
-                  <span className="flex items-center text-ink-5">:</span>
+                  <span className="text-ink-3 font-semibold">:</span>
                   <input
                     type="text"
+                    inputMode="numeric"
                     name="durationSeconds"
                     id="song-duration-seconds"
+                    aria-label="Seconds"
                     data-testid="song-duration-seconds-input"
                     value={formData.durationSec}
                     onChange={e =>
@@ -963,87 +1018,18 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     }
                     placeholder="00"
                     maxLength={2}
-                    className="w-full h-11 px-2 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm text-center placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    className={`${INPUT_BARE} w-[2.6ch]`}
                   />
                 </div>
               </div>
             </div>
-
-            {/* Tags — full width */}
-            <div>
-              <label
-                htmlFor="song-tags"
-                className="block text-sm text-ink-3 mb-2"
-              >
-                Tags (comma-separated)
-              </label>
-              <input
-                type="text"
-                name="tags"
-                id="song-tags"
-                data-testid="song-tags-input"
-                value={formData.tags}
-                onChange={e =>
-                  setFormData({ ...formData, tags: e.target.value })
-                }
-                placeholder="Rock, Cover, 90s"
-                className="w-full h-11 px-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-              />
-            </div>
-
-            {/* "Also save to my personal catalog" — add mode only, when
-                we're adding a band song. Solves the "right column real
-                estate" problem and surfaces the linked-catalog feature
-                at the moment a user is most likely to want it. */}
-            {showPersonalCheckbox && (
-              <div>
-                <label
-                  htmlFor="song-also-save-personal"
-                  className="flex items-start gap-3 p-3 bg-bg-1 border border-border-1 rounded-lg hover:border-border-2 transition-colors cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    name="alsoSaveToPersonal"
-                    id="song-also-save-personal"
-                    data-testid="song-also-save-personal-checkbox"
-                    checked={alsoSaveToPersonal}
-                    onChange={e => setAlsoSaveToPersonal(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-accent cursor-pointer"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-ink-1 font-medium">
-                      Also save to my personal catalog
-                    </div>
-                    <div className="text-xs text-ink-4 mt-0.5">
-                      Keep a private linked copy you can annotate separately.
-                    </div>
-                  </div>
-                </label>
-              </div>
-            )}
-
-            {/* Band Notes — edit mode only. On add, users create the song
-                first then add notes from the song detail view. */}
-            {!isAddMode && (
-              <div>
-                <label className="block text-sm text-ink-3 mb-2">
-                  Band Notes
-                </label>
-                <MarkdownField
-                  value={formData.notes}
-                  onSave={notes => setFormData({ ...formData, notes })}
-                  placeholder="Add notes about the song..."
-                  data-testid="song-notes-field"
-                />
-              </div>
-            )}
           </div>
 
-          {/* Reference Links - Full Width Section with Inline Editing */}
-          <div className="mt-6 pt-6 border-t border-border-1">
-            <label className="block text-sm text-ink-3 mb-3">
-              Reference Links
-            </label>
+          {/* Reference Links - inline editing */}
+          <div>
+            <p className="px-1 pt-3 pb-2 font-mono text-[11px] tracking-[.14em] uppercase text-ink-3">
+              Links
+            </p>
 
             {/* Inline Link Rows */}
             <div className="space-y-2">
@@ -1295,25 +1281,52 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             </div>
           </div>
 
-          {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-border-1">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-6 py-2.5 text-ink-3 text-sm font-medium hover:text-ink-1 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              data-testid="song-submit-button"
-              className="px-6 py-2.5 bg-accent text-on-accent text-sm font-medium rounded-lg hover:bg-accent-deep transition-colors"
-            >
-              Save Changes
-            </button>
+          <div className={CARD}>
+            <div className={FIELD}>
+              <label htmlFor="song-tags" className={LABEL}>
+                Tags
+              </label>
+              <input
+                type="text"
+                name="tags"
+                id="song-tags"
+                data-testid="song-tags-input"
+                value={formData.tags}
+                onChange={e =>
+                  setFormData({ ...formData, tags: e.target.value })
+                }
+                placeholder="90s, Opener"
+                className={INPUT}
+              />
+            </div>
           </div>
-        </form>
-      </div>
+
+          {showPersonalCheckbox && (
+            <label
+              htmlFor="song-also-save-personal"
+              className={`${CARD} flex items-center gap-3 px-4 py-3.5 cursor-pointer`}
+            >
+              <span className="flex-1 min-w-0">
+                <span className="block text-[15.5px] font-bold text-ink-1">
+                  Also add to My Songs
+                </span>
+                <span className="block text-[12.5px] text-ink-3">
+                  A linked copy that follows the band's version
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                name="alsoSaveToPersonal"
+                id="song-also-save-personal"
+                data-testid="song-also-save-personal-checkbox"
+                checked={alsoSaveToPersonal}
+                onChange={e => setAlsoSaveToPersonal(e.target.checked)}
+                className="w-5 h-5 accent-[rgb(var(--accent-rgb))] cursor-pointer"
+              />
+            </label>
+          )}
+        </div>
+      </form>
 
       {/* Circle of Fifths Modal */}
       {showCircleOfFifths && (

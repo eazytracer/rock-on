@@ -5,23 +5,7 @@ import { repository } from '../services/data/RepositoryFactory'
 import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { Song } from '../models/Song'
-import type { Setlist } from '../models/Setlist'
-
-/**
- * Fetch the setlists (of the song's own context) that contain a given song.
- * A band song can only appear in that band's setlists; a personal song only in
- * the user's personal setlists — so we scope the lookup by the song's context
- * instead of scanning every setlist.
- */
-async function getSetlistsContainingSong(song: Song): Promise<Setlist[]> {
-  const setlists =
-    song.contextType === 'personal'
-      ? await repository.getPersonalSetlists(song.contextId)
-      : await repository.getSetlists(song.contextId)
-  return setlists.filter(setlist =>
-    setlist.items?.some(item => item.type === 'song' && item.songId === song.id)
-  )
-}
+import { deleteSong as deleteSongApi } from '../services/api/songs'
 
 /**
  * Hook to fetch songs for a band.
@@ -167,47 +151,46 @@ export function useUpdateSong() {
 }
 
 /**
- * Hook to delete a song. Removes the song from any setlists in its context
- * first (through the repository so the change syncs), then deletes the song.
+ * Hook to delete a song. The `delete_song` RPC removes it from setlists in its
+ * context and deletes it in one transaction.
  */
 export function useDeleteSong() {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
     mutationFn: async (songId: string) => {
-      const song = await repository.getSong(songId)
-      if (song) {
-        // Remove the song from any setlists that reference it.
-        const setlists = await getSetlistsContainingSong(song)
-        for (const setlist of setlists) {
-          const updatedItems = (setlist.items || []).filter(
-            item => !(item.type === 'song' && item.songId === songId)
-          )
-          updatedItems.forEach((item, index) => {
-            item.position = index + 1
-          })
-          await repository.updateSetlist(setlist.id!, { items: updatedItems })
-        }
-      }
-
-      await repository.deleteSong(songId)
+      await deleteSongApi(songId)
       return songId
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['songs'] })
+    onMutate: songId => {
+      // Drop it from every song list right away, so nothing (the desktop pane)
+      // keeps showing — and refetching — a song that's about to be gone.
+      queryClient.setQueriesData<Song[]>(
+        {
+          predicate: q =>
+            q.queryKey[0] === 'songs' &&
+            (q.queryKey[1] === 'band' || q.queryKey[1] === 'personal'),
+        },
+        old => old?.filter(s => s.id !== songId)
+      )
+    },
+    onSettled: (_data, _err, songId) => {
+      // The deleted song's own queries (usage, detail) would 404 if refetched.
+      const isDeleted = (key: readonly unknown[]) => key.includes(songId)
+      queryClient.removeQueries({
+        queryKey: ['songs'],
+        predicate: q => isDeleted(q.queryKey),
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['songs'],
+        predicate: q => !isDeleted(q.queryKey),
+      })
       queryClient.invalidateQueries({ queryKey: ['setlists'] })
     },
   })
 
-  const checkSongInSetlists = useCallback(async (songId: string) => {
-    const song = await repository.getSong(songId)
-    if (!song) return []
-    return getSetlistsContainingSong(song)
-  }, [])
-
   return {
     deleteSong: (songId: string) => mutation.mutateAsync(songId),
-    checkSongInSetlists,
     loading: mutation.isPending,
     error: mutation.error as Error | null,
   }

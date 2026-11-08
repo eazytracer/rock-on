@@ -219,12 +219,10 @@ test.describe('Songs CRUD Operations', () => {
       timeout: 5000,
     })
 
-    // Open the actions menu
-    const actionsButton = page
-      .locator('[data-testid="song-actions-menu-button"]')
-      .first()
-    await expect(actionsButton).toBeVisible({ timeout: 5000 })
-    await actionsButton.click()
+    // Open the song menu (right-click the row; no ⋯ button in the redesign)
+    const row = page.locator('[data-testid^="song-row-"]').first()
+    await expect(row).toBeVisible({ timeout: 5000 })
+    await row.click({ button: 'right' })
     await page.waitForTimeout(300)
 
     // Click the edit button
@@ -316,12 +314,10 @@ test.describe('Songs CRUD Operations', () => {
       timeout: 5000,
     })
 
-    // Click the action menu on the song
-    const actionMenuButton = page
-      .locator('[data-testid="song-actions-menu-button"]')
-      .first()
-    await expect(actionMenuButton).toBeVisible({ timeout: 5000 })
-    await actionMenuButton.click()
+    // Open the song menu (right-click the row)
+    const songRow = page.locator('[data-testid^="song-row-"]').first()
+    await expect(songRow).toBeVisible({ timeout: 5000 })
+    await songRow.click({ button: 'right' })
     await page.waitForTimeout(300)
 
     // Click delete button in action menu
@@ -329,7 +325,7 @@ test.describe('Songs CRUD Operations', () => {
     await expect(deleteButton).toBeVisible({ timeout: 2000 })
     await deleteButton.click()
 
-    // The delete flow uses the shared ConfirmDialog. A setlist-membership check
+    // The delete flow uses the shared ConfirmDialog. A usage check (song_usage)
     // runs first, so give the dialog a little time to appear.
     const confirmDialog = page.locator('[data-testid="confirm-dialog"]')
     await expect(confirmDialog).toBeVisible({ timeout: 5000 })
@@ -337,7 +333,7 @@ test.describe('Songs CRUD Operations', () => {
     // Verify dialog content
     await expect(
       page.locator('[data-testid="confirm-dialog-title"]')
-    ).toHaveText('Delete Song')
+    ).toHaveText('Delete "Song To Delete"?')
 
     // Click confirm to delete
     const confirmButton = page.locator('[data-testid="confirm-dialog-confirm"]')
@@ -345,18 +341,13 @@ test.describe('Songs CRUD Operations', () => {
     await page.waitForTimeout(2000)
 
     // Verify success toast appeared (this contains the song title, so check first)
-    await expect(page.locator('text=Successfully deleted').first()).toBeVisible(
-      { timeout: 3000 }
-    )
+    await expect(
+      page.locator('text=Deleted "Song To Delete"').first()
+    ).toBeVisible({ timeout: 3000 })
     console.log('✓ Delete success toast appeared')
 
     // Wait for toast to potentially fade and page to update
     await page.waitForTimeout(1000)
-
-    // Verify song count shows 0 (since we only created one song)
-    const songCount = page.locator('text=(0 songs)')
-    await expect(songCount).toBeVisible({ timeout: 5000 })
-    console.log('✓ Song count shows 0 after deletion')
 
     // Verify empty state is shown
     const emptyState = page.locator('text=No songs yet')
@@ -471,34 +462,15 @@ test.describe('Songs CRUD Operations', () => {
     await saveButton.click()
     await page.waitForTimeout(1000)
 
-    // Should show validation error or prevent submission
-    // The exact behavior depends on implementation
+    // An empty title can't be saved: the editor stays open
+    await expect(page.locator('input[name="title"]')).toBeVisible()
 
-    // Fill title but not artist
+    // Title is the only required field (redesign): title alone saves
     await page.fill('input[name="title"]', 'Test Song')
     await saveButton.click()
-    await page.waitForTimeout(1000)
-
-    // Should still show error if artist is required
-
-    // Fill all required fields
-    await page.fill('input[name="artist"]', 'Test Artist')
-
-    // Select key using the Circle of Fifths picker
-    const keyButton = page.locator('[data-testid="song-key-button"]').first()
-    await keyButton.click()
-    await page.waitForTimeout(300)
-    const keyPicker = page.locator('[data-testid="key-picker-F"]').first()
-    await keyPicker.click()
-    await page.waitForTimeout(300)
-    const confirmButton = page
-      .locator('[data-testid="key-picker-confirm"]')
-      .first()
-    await confirmButton.click()
-    await page.waitForTimeout(300)
-
-    await saveButton.click()
-    await page.waitForTimeout(2000)
+    await expect(page.locator('input[name="title"]')).toHaveCount(0, {
+      timeout: 5000,
+    })
 
     // Should now succeed
     const songVisible = await page

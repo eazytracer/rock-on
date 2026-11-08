@@ -196,7 +196,13 @@ export function setupConsoleErrorTracking(page: Page): string[] {
       const isNonCritical = NON_CRITICAL_WARNINGS.some(warning =>
         text.includes(warning)
       )
-      if (!isNonCritical) {
+      // The song editor looks titles up on Spotify as you type. Local and CI
+      // stacks have no Spotify credentials, so that call fails (500) by design;
+      // the editor hides the matches and saving still works.
+      const isSpotifyLookup = msg
+        .location()
+        .url.includes('/functions/v1/spotify-search')
+      if (!isNonCritical && !isSpotifyLookup) {
         errors.push(text)
       }
     }
