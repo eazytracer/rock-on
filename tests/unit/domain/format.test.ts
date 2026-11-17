@@ -16,6 +16,7 @@ describe('formatSeconds', () => {
   it('is empty for missing values', () => {
     expect(formatSeconds(null)).toBe('')
     expect(formatSeconds(undefined)).toBe('')
+    expect(formatSeconds(0)).toBe('')
   })
 })
 

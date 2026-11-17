@@ -3,9 +3,9 @@
  * stage screen. Big Prev / Next name the song they go to; on the last song Next
  * becomes End practice. Notes is a button: a sheet on phones, a side panel from
  * tablet up. The Up next card turns warn when the tuning changes. The screen
- * stays awake; ← → / PgUp PgDn (pedals) change songs, N opens notes.
- * Ending shows the wrap-up (time played, songs reached, skipped marked) and
- * saves it with shared wrap-up notes.
+ * stays awake; ← → / PgUp PgDn (pedals) change songs, N opens notes, S skips
+ * the song. Ending shows the wrap-up (time played, songs played, skipped
+ * marked; tap a song to change it) and saves it with shared wrap-up notes.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -28,8 +28,7 @@ import { ForkIcon } from '../components/setlists/SetlistStats'
 import { Button, Sheet, TuningPill } from '../components/ui'
 import { repository } from '../services/data/RepositoryFactory'
 import { hoursMinutes, practiceTitle } from '../domain/calendar'
-import { songLength } from '../domain/setlist'
-import { showKey } from '../domain/format'
+import { formatSeconds, showKey } from '../domain/format'
 import { canonicalTuningId } from '../utils/tunings'
 import type { Song } from '../models/Song'
 import type { SessionSong } from '../types'
@@ -135,9 +134,10 @@ export const PracticeSessionPage: React.FC = () => {
       return 1
     }
   })
-  // Seconds spent per song and which songs were reached.
+  // Seconds spent per song, and which songs were played (reached and not
+  // skipped).
   const spent = useRef<number[]>([])
-  const reached = useRef<Set<number>>(new Set([0]))
+  const [played, setPlayed] = useState<Set<number>>(() => new Set([0]))
   const songStart = useRef(Date.now())
   const startedAt = useRef(new Date())
 
@@ -189,7 +189,7 @@ export const PracticeSessionPage: React.FC = () => {
       spent.current[index] =
         (spent.current[index] ?? 0) + (Date.now() - songStart.current) / 1000
       songStart.current = Date.now()
-      reached.current.add(to)
+      setPlayed(p => new Set(p).add(to))
       setIndex(to)
     },
     [count, index]
@@ -201,6 +201,23 @@ export const PracticeSessionPage: React.FC = () => {
     songStart.current = Date.now()
     setEnding(true)
   }, [index])
+
+  const togglePlayed = useCallback(
+    (i: number, on: boolean) =>
+      setPlayed(p => {
+        const n = new Set(p)
+        if (on) n.add(i)
+        else n.delete(i)
+        return n
+      }),
+    []
+  )
+
+  const skip = useCallback(() => {
+    togglePlayed(index, false)
+    if (index === count - 1) end()
+    else go(index + 1)
+  }, [go, end, togglePlayed, index, count])
 
   const exit = () => navigate(`/practices/${practiceId}`)
 
@@ -217,11 +234,13 @@ export const PracticeSessionPage: React.FC = () => {
         go(index - 1)
       } else if (e.key === 'n' || e.key === 'N') {
         setNotesOpen(o => !o)
+      } else if (e.key === 's' || e.key === 'S') {
+        skip()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [go, end, index, count, ending])
+  }, [go, end, skip, index, count, ending])
 
   const saveWrapUp = async () => {
     if (!practice || saving) return
@@ -232,7 +251,7 @@ export const PracticeSessionPage: React.FC = () => {
       return {
         ...ps,
         timeSpent: Math.round((ps.timeSpent ?? 0) + (spent.current[i] ?? 0)),
-        status: reached.current.has(i) ? 'completed' : 'skipped',
+        status: played.has(i) ? 'completed' : 'skipped',
       }
     })
     try {
@@ -295,7 +314,7 @@ export const PracticeSessionPage: React.FC = () => {
       {[
         ['Key', cur.song.key ? showKey(cur.song.key) : '—'],
         ['BPM', cur.song.bpm ? String(cur.song.bpm) : '—'],
-        ['Length', songLength(cur.song.duration)],
+        ['Length', formatSeconds(cur.song.duration)],
       ].map(([k, v]) => (
         <span key={k} className="flex flex-col">
           <small className="text-[10px] uppercase tracking-[.12em] text-ink-3">
@@ -446,6 +465,14 @@ export const PracticeSessionPage: React.FC = () => {
       >
         Tune
       </Button>
+      <Button
+        size="md"
+        onClick={skip}
+        title="Skip this song (S)"
+        data-testid="session-skip"
+      >
+        Skip
+      </Button>
       {wide && <span className="ml-auto">{sizeControl}</span>}
     </div>
   )
@@ -472,7 +499,7 @@ export const PracticeSessionPage: React.FC = () => {
   const reachedList = items.map((x, i) => ({
     title: x.song.title,
     min: Math.round((spent.current[i] ?? 0) / 60),
-    hit: reached.current.has(i),
+    hit: played.has(i),
   }))
 
   return shell(
@@ -507,11 +534,7 @@ export const PracticeSessionPage: React.FC = () => {
           <span
             key={i}
             className={`h-1 flex-1 rounded-full ${
-              i === index
-                ? 'bg-accent'
-                : reached.current.has(i)
-                  ? 'bg-ink-3'
-                  : 'bg-bg-3'
+              i === index ? 'bg-accent' : played.has(i) ? 'bg-ink-3' : 'bg-bg-3'
             }`}
           />
         ))}
@@ -601,7 +624,14 @@ export const PracticeSessionPage: React.FC = () => {
             </p>
             <div className="max-h-[32vh] overflow-y-auto custom-scrollbar-thin -mx-1 mb-3">
               {reachedList.map((r, i) => (
-                <div key={i} className="flex items-center gap-3 px-1 py-1.5">
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => togglePlayed(i, !r.hit)}
+                  aria-pressed={r.hit}
+                  className="w-full flex items-center gap-3 px-1 py-1.5 rounded-lg text-left active:bg-bg-3"
+                  data-testid={`session-wrapup-song-${i}`}
+                >
                   <span
                     className={`grid place-items-center w-6 h-6 rounded-full shrink-0 ${
                       r.hit ? 'bg-success text-white' : 'bg-bg-3'
@@ -617,7 +647,7 @@ export const PracticeSessionPage: React.FC = () => {
                   <span className="font-mono text-[12px] text-ink-3">
                     {r.hit ? `${r.min} min` : 'skipped'}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
             <label

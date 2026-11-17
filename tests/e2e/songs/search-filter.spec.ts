@@ -245,13 +245,17 @@ test.describe('Song Search and Filtering', () => {
       await page.waitForTimeout(1500)
     }
 
-    // Sort sheet: choosing the current field (Title) flips its direction, so
-    // Title Z-A must reorder Third → Second → First.
+    // Sort by Title, then the direction toggle reverses it: Title Z–A must
+    // reorder Third → Second → First.
     const sortTrigger = page.locator('[data-testid="song-sort-trigger"]')
     await expect(sortTrigger).toBeVisible({ timeout: 5000 })
     await sortTrigger.click()
     await page.locator('[data-testid="song-sort-option-title"]').click()
     await expect(sortTrigger).toContainText('Title')
+    const sortDir = page.getByTestId('song-sort-trigger-dir')
+    await expect(sortDir).toHaveText('A–Z')
+    await sortDir.click()
+    await expect(sortDir).toHaveText('Z–A')
     await page.waitForTimeout(500)
 
     const rowTexts = await page

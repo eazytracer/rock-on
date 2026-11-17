@@ -111,6 +111,46 @@ test.describe('Practice session', () => {
         'skipped',
       ])
     })
+
+    test('Skip marks the song skipped, and the wrap-up can change it', async ({
+      page,
+    }) => {
+      seed = await seedCalendar(page)
+      await page.goto(`/practices/${seed.practice}/session`)
+      await page.getByTestId('session-skip').click()
+      await expect(page.getByTestId('session-title')).toHaveText('Everlong')
+      await page.keyboard.press('s')
+      await expect(page.getByTestId('session-title')).toHaveText('Breed')
+      // Skip on the last song ends the practice.
+      await page.getByTestId('session-skip').click()
+
+      const summary = page.getByTestId('session-wrapup-summary')
+      await expect(summary).toContainText('0 of 3 songs')
+      // Tap to change: Black was played after all; Breed toggles back off.
+      await page.getByTestId('session-wrapup-song-0').click()
+      await page.getByTestId('session-wrapup-song-2').click()
+      await expect(summary).toContainText('2 of 3 songs')
+      await page.getByTestId('session-wrapup-song-2').click()
+      await expect(summary).toContainText('1 of 3 songs')
+      await expect(page.getByTestId('session-wrapup-song-2')).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      )
+      await page.getByTestId('session-wrapup-save').click()
+      await expect(page).toHaveURL(new RegExp(`/practices/${seed.practice}$`))
+
+      const admin = await getSupabaseAdmin()
+      const { data } = await admin
+        .from('practice_sessions')
+        .select('songs')
+        .eq('id', seed.practice)
+        .single()
+      expect(data!.songs.map((s: { status: string }) => s.status)).toEqual([
+        'completed',
+        'skipped',
+        'skipped',
+      ])
+    })
   })
 
   test.describe('phone', () => {

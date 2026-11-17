@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useParams,
 } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
@@ -64,11 +65,6 @@ const PracticeSessionPage = lazy(() =>
 const SetlistViewPage = lazy(() =>
   import('./pages/SetlistViewPage').then(module => ({
     default: module.SetlistViewPage,
-  }))
-)
-const PracticeEditorPage = lazy(() =>
-  import('./pages/PracticeEditorPage').then(module => ({
-    default: module.PracticeEditorPage,
   }))
 )
 const ShowViewPage = lazy(() =>
@@ -133,6 +129,12 @@ const DevUIPreviewPage = lazy(() =>
     default: module.DevUIPreviewPage,
   }))
 )
+
+/** The practice page edits in place; the old editor URL lands there. */
+const PracticeEditRedirect: React.FC = () => {
+  const { practiceId } = useParams<{ practiceId: string }>()
+  return <Navigate to={`/practices/${practiceId}`} replace />
+}
 
 const AppContent: React.FC = () => {
   const { syncing, realtimeManager } = useAuth()
@@ -241,19 +243,20 @@ const AppContent: React.FC = () => {
             />
             <Route path="/shows/new" element={<ShowViewPage />} />
             <Route path="/shows/:showId" element={<ShowViewPage />} />
-            {/* Practices live on the Calendar; detail, editor and session stay. */}
+            {/* Practices live on the Calendar; the page (new, edit in place)
+                and the session stay. */}
             <Route
               path="/practices"
               element={<Navigate to="/calendar?type=practice" replace />}
             />
-            <Route path="/practices/new" element={<PracticeEditorPage />} />
+            <Route path="/practices/new" element={<PracticeViewPage />} />
             <Route
               path="/practices/:practiceId"
               element={<PracticeViewPage />}
             />
             <Route
               path="/practices/:practiceId/edit"
-              element={<PracticeEditorPage />}
+              element={<PracticeEditRedirect />}
             />
             <Route
               path="/practices/:practiceId/session"

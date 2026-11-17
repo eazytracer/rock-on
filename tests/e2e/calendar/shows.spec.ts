@@ -1,8 +1,9 @@
 /**
  * Calendar and the show page (docs/redesign 03-screens Calendar, Show; FP 4–6):
  * the agenda's filters and redirects, New show as the blank page that saves as
- * you go, Confirmed, Cancelled with Undo, the set as a copy (edits never reach
- * the source), Re-copy, and delete.
+ * you go, the desktop pane (Open, double-click, Enter), Confirmed, Cancelled
+ * with Undo, the set as a copy (edits never reach the source), Re-copy, and
+ * delete.
  */
 import { test, expect, Page } from '@playwright/test'
 import { deleteTestUser } from '../../fixtures/auth'
@@ -62,6 +63,93 @@ test.describe('Calendar and shows', () => {
     await expect(practice).toBeVisible()
     await expect(show).toHaveCount(0)
     await assertNoConsoleErrors(page, errors)
+  })
+
+  test('the pane previews; Open, double-click and Enter open the full page', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    await page.goto('/calendar')
+    const pane = page.getByTestId('calendar-detail-pane')
+    const show = page.getByTestId(`calendar-item-show-${seed.show}`)
+    const practice = page.getByTestId(`calendar-item-practice-${seed.practice}`)
+
+    // Practice pane: Start is in view without scrolling the pane.
+    await practice.click()
+    await expect(pane.getByTestId('practice-name-input')).toHaveValue(
+      'Thursday run'
+    )
+    await expect(pane.getByTestId('practice-start-session')).toBeInViewport()
+    await pane.getByTestId('practice-pane-open').click()
+    await expect(page).toHaveURL(new RegExp(`/practices/${seed.practice}$`))
+
+    await page.goto('/calendar')
+    await show.click()
+    await pane.getByTestId('show-pane-open').click()
+    await expect(page).toHaveURL(new RegExp(`/shows/${seed.show}$`))
+
+    await page.goto('/calendar')
+    await show.dblclick()
+    await expect(page).toHaveURL(new RegExp(`/shows/${seed.show}$`))
+
+    // Enter selects a row; Enter again on the selected row opens it.
+    // (The practice, first upcoming, is selected by default; use the show.)
+    await page.goto('/calendar')
+    await show.focus()
+    await page.keyboard.press('Enter')
+    await expect(show).toHaveAttribute('data-selected', 'true')
+    await expect(page).toHaveURL(/\/calendar/)
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(new RegExp(`/shows/${seed.show}$`))
+  })
+
+  test('‹ Calendar returns to the filter and selection you left', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    const show = page.getByTestId(`calendar-item-show-${seed.show}`)
+    const practice = page.getByTestId(`calendar-item-practice-${seed.practice}`)
+
+    // From All, a show's back button lands on All (not Shows).
+    await page.goto('/calendar')
+    await show.dblclick()
+    await page.getByTestId('show-back').click()
+    await expect(page).toHaveURL(/\/calendar(\?|$)/)
+    await expect(page.getByTestId('calendar-filter-all')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    await expect(practice).toBeVisible()
+
+    // A filter and selection come back too.
+    await page.getByTestId('calendar-filter-practice').click()
+    await practice.dblclick()
+    await page.getByTestId('practice-back').click()
+    await expect(page).toHaveURL(/type=practice/)
+    await expect(practice).toHaveAttribute('data-selected', 'true')
+  })
+
+  test('narrower windows: no pane, and the type column shrinks to icons', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    const admin = await getSupabaseAdmin()
+    await admin.from('shows').update({ confirmed: true }).eq('id', seed.show)
+    await page.setViewportSize({ width: 820, height: 900 })
+    await page.goto('/calendar')
+    const show = page.getByTestId(`calendar-item-show-${seed.show}`)
+    await expect(show.getByTestId('calendar-item-type-compact')).toBeVisible()
+    await expect(show.getByTestId('calendar-item-type')).toBeHidden()
+    await expect(show.getByLabel('Confirmed')).toBeVisible()
+    await expect(page.getByTestId('calendar-detail-pane')).toHaveCount(0)
+
+    // Wider, but still too narrow for the pane: a click opens the page.
+    await page.setViewportSize({ width: 1100, height: 900 })
+    await expect(show.getByTestId('calendar-item-type')).toContainText(
+      'Confirmed'
+    )
+    await show.click()
+    await expect(page).toHaveURL(new RegExp(`/shows/${seed.show}$`))
   })
 
   test('the show date reads the day it was set (no off-by-one)', async ({

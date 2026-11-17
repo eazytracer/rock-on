@@ -20,8 +20,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useSwitchPrompt } from '../../contexts/SwitchPromptContext'
 import { useSearch } from '../../hooks/useSearch'
 import type { SearchHit } from '../../services/api/search'
-import { formatSeconds, splitMatch } from '../../domain/format'
-import { TuningPill } from '../ui/TuningPill'
+import { splitMatch } from '../../domain/format'
+import { SongLine } from '../songs/SongLine'
 import { TypeLabel } from '../ui/TypeLabel'
 import { Chip } from '../ui/Chip'
 import { songHref } from '../../utils/songOrigin'
@@ -201,7 +201,10 @@ export const SearchOverlay: React.FC<{
         className="h-full md:h-auto md:max-h-[72vh] w-full md:w-[640px] flex flex-col bg-bg-1 md:bg-bg-2 md:rounded-[22px] md:shadow-float md:ring-1 md:ring-border-1 overflow-hidden"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <form onSubmit={onSubmit} className="flex items-center gap-2 p-3">
+        <form
+          onSubmit={onSubmit}
+          className="shrink-0 flex items-center gap-2 p-3"
+        >
           <label
             htmlFor="global-search-input"
             className="flex-1 flex items-center gap-2.5 h-12 px-4 rounded-full bg-bg-3 ring-2 ring-accent"
@@ -241,7 +244,7 @@ export const SearchOverlay: React.FC<{
         </form>
 
         {query.trim() && (
-          <div className="flex gap-2 px-3 pb-2 overflow-x-auto scrollbar-none">
+          <div className="shrink-0 flex gap-2 px-3 pb-2 overflow-x-auto scrollbar-none">
             {(
               [
                 ['all', 'All'],
@@ -319,22 +322,18 @@ const HitBody: React.FC<{
   const ctx = showContext ? h.context_name : null
   if (h.kind === 'song') {
     return (
-      <>
-        <span className="flex-1 min-w-0">
-          <span className="block truncate text-[15px] font-bold text-ink-1">
-            <Highlight text={h.title} query={query} />
-          </span>
-          {(h.subtitle || ctx) && (
-            <span className="block truncate text-[12.5px] text-ink-3">
-              {[h.subtitle, ctx].filter(Boolean).join(' · ')}
-            </span>
-          )}
-        </span>
-        {h.tuning && <TuningPill tuning={h.tuning} size="sm" />}
-        <span className="w-11 text-right font-mono text-[13px] text-ink-2">
-          {formatSeconds(h.duration)}
-        </span>
-      </>
+      <SongLine
+        song={{
+          title: h.title,
+          artist: [h.subtitle, ctx].filter(Boolean).join(' · '),
+          tuning: h.tuning,
+          seconds: h.duration ?? 0,
+        }}
+        fields={{ artist: true }}
+        density="compact"
+        name={<Highlight text={h.title} query={query} />}
+        className="flex-1 min-w-0 py-0"
+      />
     )
   }
   if (h.kind === 'setlist') {

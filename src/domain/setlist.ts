@@ -2,6 +2,8 @@
  * Setlist display maths (no I/O; ports to Dart line for line).
  */
 import { canonicalTuningId } from '../utils/tunings'
+import { defaultDir, type SortDir, type SortKind } from './sort'
+import type { SongLineData } from './songs'
 
 interface ItemLike {
   type: 'song' | 'break' | 'section'
@@ -60,6 +62,12 @@ export const SETLIST_SORT_LABELS: Record<SetlistSort, string> = {
   updated: 'Updated',
 }
 
+export const SETLIST_SORT_KINDS: Record<SetlistSort, SortKind> = {
+  nextShow: 'upcoming',
+  name: 'text',
+  updated: 'date',
+}
+
 /** Retunes: adjacent songs whose tunings differ ("Drop D" ≡ "drop-d"). */
 export function retuneCount(tunings: (string | null | undefined)[]): number {
   let n = 0
@@ -100,23 +108,28 @@ export function hasUpcomingShow(row: IndexRow, now: Date): boolean {
 }
 
 /**
- * Next show: sets with an upcoming show, soonest first, then the rest by
- * name. Name: A → Z. Updated: most recent first.
+ * Next show: sets with an upcoming show, soonest first (asc), then the rest by
+ * name either way. Name: A → Z (asc). Updated: most recent first (desc).
  */
 export function sortSetlistIndex(
   rows: IndexRow[],
   sort: SetlistSort,
-  now: Date
+  now: Date,
+  dir: SortDir = defaultDir(SETLIST_SORT_KINDS[sort])
 ): IndexRow[] {
+  const flip = dir === 'desc' ? -1 : 1
   const byName = (a: IndexRow, b: IndexRow) => a.name.localeCompare(b.name)
   const out = [...rows]
-  if (sort === 'name') return out.sort(byName)
+  if (sort === 'name') return out.sort((a, b) => flip * byName(a, b))
   if (sort === 'updated')
-    return out.sort((a, b) => b.lastModified.localeCompare(a.lastModified))
+    return out.sort(
+      (a, b) => flip * a.lastModified.localeCompare(b.lastModified)
+    )
   return out.sort((a, b) => {
     const ua = hasUpcomingShow(a, now)
     const ub = hasUpcomingShow(b, now)
-    if (ua && ub) return a.showAt!.localeCompare(b.showAt!) || byName(a, b)
+    if (ua && ub)
+      return flip * a.showAt!.localeCompare(b.showAt!) || byName(a, b)
     if (ua !== ub) return ua ? -1 : 1
     return byName(a, b)
   })
@@ -151,15 +164,6 @@ export function deleteSetlistMessage(copyFor: string | null): string {
 
 // ── The editor ────────────────────────────────────────────────────────────
 
-/** What a song row needs to draw (from the catalog). */
-export interface RowSong {
-  title: string
-  artist?: string | null
-  tuning?: string | null
-  key?: string | null
-  seconds: number
-}
-
 export interface EditorItem {
   id: string
   type: 'song' | 'break' | 'section'
@@ -174,7 +178,7 @@ export type EditorRow<I extends EditorItem = EditorItem> =
   | {
       kind: 'song'
       item: I
-      song: RowSong | null
+      song: SongLineData | null
       /** 1-based; breaks and sections don't take a number. */
       number: number
       /** The tuning to change from, when the previous song's differs. */
@@ -189,7 +193,7 @@ export type EditorRow<I extends EditorItem = EditorItem> =
  */
 export function editorRows<I extends EditorItem>(
   items: I[],
-  songOf: (songId: string) => RowSong | undefined
+  songOf: (songId: string) => SongLineData | undefined
 ): EditorRow<I>[] {
   let n = 0
   let prev: string | null | undefined
@@ -321,10 +325,4 @@ export function railLabel(
   const total = startMinutes + Math.floor(offsetSeconds / 60)
   const h = Math.floor(total / 60) % 24
   return `${h % 12 || 12}:${String(total % 60).padStart(2, '0')}`
-}
-
-/** "3:14" from seconds; "" for none. */
-export function songLength(seconds: number | null | undefined): string {
-  if (!seconds) return ''
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }

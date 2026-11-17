@@ -19,6 +19,25 @@ Run each phase through the repo's loop: `/research` → plan in `.hermes/plans/`
 > `design/OPERATIONS.md` for the phase's areas, and the phase's design screens (listed below) before planning. Follow this repo's CLAUDE.md. Ask before removing any
 > existing capability.
 
+## Status (Nov 16 2026)
+
+All on `redesign/integration`; nothing past 0.5.0 has merged to `main` or been released yet. Phases 0–4 bumped their own
+versions on the branch. **From Phase 5 on (decided Nov 16): no per-phase versions.** The redesign ships as one package, so
+new work goes under CHANGELOG `[Unreleased]` and gets one number when the whole redesign is finalized. The version numbers
+in the headings below are historical.
+
+| Phase                                      | State                                                                                                                   |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 0 · Foundations (0.7.0)                    | Built                                                                                                                   |
+| 1 · Shell and Home (0.8.0)                 | Built                                                                                                                   |
+| 2 · Songs (0.9.0), 2.1 · Song page (0.9.1) | Built                                                                                                                   |
+| 3 · Setlists (0.10.0)                      | Built                                                                                                                   |
+| 4 · Calendar, shows, practices (0.11.0)    | Built (`007e6cb`), plus the follow-ups listed under Phase 4 (uncommitted at the time of writing)                        |
+| **5 · Tools and chart (0.12.0)**           | **Next.** Build brief: [12-tools-and-chart.md](12-tools-and-chart.md) (Nov 16; slices 5a–5g, decisions answered Nov 16) |
+| 6 · Account, band, friends (0.13.0)        | Not started                                                                                                             |
+| 7 · Jam (0.14.0)                           | Not started. Build brief: [11-jam.md](11-jam.md) (Nov 16; its open questions are unanswered)                            |
+| 8 · RSVP                                   | Post-launch                                                                                                             |
+
 Feature flags: add `REDESIGN_<AREA>` flags to `src/config/featureFlags.ts` only where a phase **removes** an old
 flow (the Shows / Practices list pages, the old song modal), so the old path can come back without a revert.
 Pure restyles ship unflagged.
@@ -43,7 +62,7 @@ Guides: 01, 02 (primitives + overlays). Design: `source/Foundations.html`, `sour
 Guide: 03 → Shell, Home. Design: Core Navigation 1–11, Tools on Home 1–2 and 4, FP 19; desktop Home, sidebar.
 
 - Context switcher dropdown + switch prompt; desktop sidebar IA; bottom nav restyle; More reorganised.
-- Home (band / new band / Personal), walkthroughs, Quick actions; Tools row hidden behind `REDESIGN_TOOLS` until phase 5.
+- Home (band / new band / Personal), walkthroughs, Quick actions; Tools row deferred to phase 5 (never built in phase 1; no `REDESIGN_TOOLS` flag).
 - Notifications popout + stream; App updates tab.
 - Global search (Home on mobile, ⌘K on desktop), scoped + "All contexts".
 - One offline banner (edits blocked while offline).
@@ -87,13 +106,23 @@ Guide: 03 → Calendar; 04 → Calendar. Design: FP 1–5, 7–8, 18, Calendar a
 - Agenda with All · Shows · Practices · Jams, one New (type picker on All), row menu, empty / error.
 - Redirect `/shows` and `/practices` lists to filtered Calendar (flag `REDESIGN_CALENDAR`). `/events` moves in phase 7.
 - New show = blank show page; show page edit-in-place, Confirmed / Cancelled + Undo, set **copy** with Re-copy, no-set state, delete.
-- Practice page; New / Duplicate editor with kit pickers (Start + End lists) and the filtered song browser.
+- Practice page; New / Duplicate editor with kit pickers (Start + End lists) and the filtered song browser. **Built differently (Nov 2026):** no separate editor; the practice page edits in place like a setlist (name, date, start, end, where, focus save as you go; songs drag by the grip, × out, per-practice note). New practice is the page blank; Duplicate makes the copy a week later; `/:id/edit` redirects. Full width on desktop with Add songs top right.
 - Practice session (stage): named Prev / Next, Notes as sheet / panel, Up next + Tune now, wake lock, keyboard + pedal, wrap-up notes saved. Desktop full-window layout.
 - Practice history is **deferred** (Part A · 8). Keep recording session data.
 - Migration: `setlists.copied_at`; `shows.confirmed` + backfill from `status='confirmed'` (04).
 - Accept: Calendar section of the checklist; a show's set edits never change the source setlist (unit test).
 
+**Follow-ups folded into 0.11.0** (cross-cutting, from reviewing the built phases together):
+
+- **One song row** (`components/songs/SongLine.tsx`) for Songs, setlists, a show's set, practices, Add songs and search: same fields in the same order and style, two lines when narrow, fixed columns from 560 px (container query). Each list adds its controls in slots (grip + number, ×, ⋯, notes). Setlist songs share one surface per section; rows get a visible ×. `SongList`, `SongCard`, `LinkIcons` deleted.
+- **One Add songs picker** (`components/setlists/SongBrowser.tsx`) for setlists and practices: a drawer over the right edge on desktop, full screen on phones, × / Done / Esc. Tap toggles a song in or out at once (check = in); the added row scrolls into view and flashes; setlist filter with Add all; tuning chips wrap. Every song list ends with a "+ Add songs" row.
+- **Add to…** (Songs page row, swipe and menu): setlists and the band's upcoming practices, each a check toggle.
+- Sort control (field + direction) shared; calendar pane Open / double-click / Enter; back-filter memory; practice session Skip and wrap-up toggle.
+- Still open: the show page is capped at 720 px on desktop (its content is shared with the calendar pane); the practice page was widened, the show page not yet.
+
 ## Phase 5 · Tools and chart (0.12.0)
+
+Brief: [12-tools-and-chart.md](12-tools-and-chart.md). Note: Phase 1's Home Tools row was never built; the brief folds it into 5c. No `REDESIGN_TOOLS` flag (decision 1): each slice replaces its "Soon" buttons as it lands.
 
 Guide: 03 → Chart and tools; 04 → charts, tunings. Design: Song Chart, Sound Tools, Metronome, Custom Tuning, Tools on Home 3; desktop Tuner, Metronome, Chords, Chart, chart editor, custom tuning.
 
@@ -101,7 +130,7 @@ Guide: 03 → Chart and tools; 04 → charts, tunings. Design: Song Chart, Sound
 - In-app synth: Karplus-Strong pluck for strings and chords, soft sine for notes (see `demo/desktop-tools.js` for a reference implementation).
 - Chart reader (continuous scroll, Back / Next, pedal, transpose, size, chords on / off, chord viewer, starting note, notes sheet) and chart editor (paste / ChordPro, lyrics and chords modes).
 - Custom tuning neck editor; C Standard + extended-range built-ins.
-- Turn on `REDESIGN_TOOLS` (Home Tools row, retune-line Tune buttons, practice Tune now).
+- Replace the "Soon" placeholders as each tool lands (Home Tools row, retune-line Tune buttons, practice Tune now).
 - Migration: `song_charts`; tuning seeds; unique index on custom tunings.
 - Accept: Chart and tools section of the checklist; metronome drift under 1 ms over 5 minutes in a Playwright audio-clock test.
 
@@ -110,7 +139,7 @@ Guide: 03 → Chart and tools; 04 → charts, tunings. Design: Song Chart, Sound
 Guide: 03 → Account…; 04 → Bands. Design: Account and Settings, Band and Friends, Band Identity, FP 14; desktop sign-in, Settings, Band, Friends.
 
 - Auth screens (Apple / Google, wrong-password, forgot, check email, Get started's four paths).
-- Settings (Appearance, Tunings, Profile with ordered instruments, Push preferences, Account incl. change password and typed delete, About).
+- Settings (Appearance, Tunings, Music (metronome sound, accent, flash; moved from Phase 5, no count-in), Profile with ordered instruments, Push preferences, Account incl. change password and typed delete, About).
 - Band: invite with Regenerate, member menus by permission, owner role + transfer, create band (one field), band mark picker, join preview, leave (owner routed to transfer).
 - Friends: privacy roll-open, Add a friend by name or code.
 - Migration: `bands.mark` + profile fields; `'owner'` role backfilled from the `permissions` flag (04), unique owner index, transfer function; instruments reordered with the old primary first; `band_preview_by_code` RPC; `user_profiles.personal_color`.
@@ -118,7 +147,7 @@ Guide: 03 → Account…; 04 → Bands. Design: Account and Settings, Band and F
 
 ## Phase 7 · Jam (0.14.0)
 
-Guide: 03 → Jam; 04 → Jams; `design/OPERATIONS.md` §13. Design: Jam Plan, Jam Live, Jam Host, Jam TV, Jam Venue, FP 20–22; desktop Jam; `demo/Jam Night.html` for the end-to-end flow.
+Brief: [11-jam.md](11-jam.md) (slices 7a–7d, open questions). Guide: 03 → Jam; 04 → Jams; `design/OPERATIONS.md` §13. Design: Jam Plan, Jam Live, Jam Host, Jam TV, Jam Venue, FP 20–22; desktop Jam; `demo/Jam Night.html` for the end-to-end flow.
 Decided: option A, on the Events tables (Part A · 2).
 
 - Migration: `live` status, `group_size`, `joining_locked`, nullable `user_id` + `guest_name` / `via` / `is_house` / `parts` on participants, `event_guest_tokens`, lineup `state` + `parts_needed`, hands by participant, `shared_contexts`.
@@ -134,4 +163,4 @@ Decided: option A, on the Events tables (Part A · 2).
 
 ## Not in scope
 
-Month view (deferred until calendar sync), practice history (Part A · 8), offline reading (native apps decide, `design/PLATFORM-NOTES.md`), band history / restore, public band profile, push delivery.
+Month view (deferred until calendar sync), practice-session count-in (punted Nov 16), using `songs.time_signature` in the metronome (later), "copy the band's latest chart" onto a My Songs copy (later), mobile-only workarounds like metronome wake lock and the iOS silent switch (left to the Flutter app), practice history (Part A · 8), offline reading (native apps decide, `design/PLATFORM-NOTES.md`), band history / restore, public band profile, push delivery.

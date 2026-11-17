@@ -13,6 +13,7 @@ import {
   FileText,
   ListMusic,
   Mail,
+  Maximize2,
   MoreHorizontal,
   Phone,
   Plus,
@@ -29,7 +30,9 @@ import { ConfirmDialog } from '../common/ConfirmDialog'
 import { DatePicker } from '../common/DatePicker'
 import { TimePickerDropdown } from '../common/TimePickerDropdown'
 import { MarkdownRenderer } from '../notes/MarkdownRenderer'
-import { Button, Sheet, SheetItem, TuningPill, TypeLabel } from '../ui'
+import { Button, Sheet, SheetItem, TypeLabel } from '../ui'
+import { LineNumber, SongLine } from '../songs/SongLine'
+import { toSongLine } from '../../domain/songs'
 import { NotesSheet } from '../setlists/SetlistSheets'
 import { errorText } from '../../services/api/errors'
 import {
@@ -55,12 +58,7 @@ import {
   parsePay,
   showTitle,
 } from '../../domain/calendar'
-import {
-  editorRows,
-  editorTotals,
-  indexTotals,
-  songLength,
-} from '../../domain/setlist'
+import { editorRows, editorTotals, indexTotals } from '../../domain/setlist'
 import {
   formatDateForInput,
   formatTime12Hour,
@@ -281,17 +279,16 @@ const ShowSet: React.FC<{
   onRecopy: (edited: boolean) => void
   onAdd: () => void
   onNew: () => void
+  onOpenSong: (songId: string) => void
   /** Phone page: Open set docks above the tab bar. */
   docked: boolean
-}> = ({ show, onOpen, onRecopy, onAdd, onNew, docked }) => {
+}> = ({ show, onOpen, onRecopy, onAdd, onNew, onOpenSong, docked }) => {
   const { setlist, songsById, loading } = useSetlistEditor(show.setlistId ?? '')
   const rows = useMemo(
     () =>
       editorRows(setlist?.items ?? [], id => {
         const s = songsById.get(id)
-        return s
-          ? { title: s.title, tuning: s.guitarTuning, seconds: s.duration || 0 }
-          : undefined
+        return s ? toSongLine(s) : undefined
       }),
     [setlist?.items, songsById]
   )
@@ -370,23 +367,21 @@ const ShowSet: React.FC<{
         </div>
         {rows.map(r =>
           r.kind === 'song' ? (
-            <div
+            <button
               key={r.item.id}
-              className="flex items-center gap-3 px-4 py-2.5"
+              type="button"
+              disabled={!r.song}
+              onClick={() => r.item.songId && onOpenSong(r.item.songId)}
+              className="block w-full text-left hover:bg-bg-3/40"
+              data-testid={`show-set-song-${r.item.id}`}
             >
-              <span className="w-5 font-mono text-[12px] text-ink-3 text-right">
-                {r.number}
-              </span>
-              <span className="flex-1 min-w-0 truncate text-[15px] font-semibold text-ink-1">
-                {r.song?.title ?? 'Song'}
-              </span>
-              {r.song?.tuning && (
-                <TuningPill tuning={r.song.tuning} size="sm" />
-              )}
-              <span className="font-mono text-[12.5px] text-ink-2 w-10 text-right">
-                {songLength(r.song?.seconds)}
-              </span>
-            </div>
+              <SongLine
+                song={r.song}
+                density="compact"
+                lead={<LineNumber n={r.number} />}
+                titleTestId="show-set-song-title"
+              />
+            </button>
           ) : r.kind === 'break' ? (
             <div
               key={r.item.id}
@@ -680,6 +675,16 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
             } ${cancelled ? 'line-through decoration-[3px] text-ink-3' : ''}`}
           />
         </div>
+        {!page && !isNew && (
+          <button
+            type="button"
+            onClick={() => navigate(`/shows/${show.id}`)}
+            className="shrink-0 h-10 px-3.5 rounded-full bg-bg-3 text-ink-1 font-semibold flex items-center gap-1.5 hover:bg-bg-4"
+            data-testid="show-pane-open"
+          >
+            <Maximize2 size={15} /> Open
+          </button>
+        )}
         {!isNew && (
           <button
             type="button"
@@ -991,6 +996,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
         onRecopy={recopy}
         onAdd={() => (isNew ? void ensureSaved() : setSheet('copy'))}
         onNew={newSet}
+        onOpenSong={id => navigate(`/songs/${id}`)}
         docked={page}
       />
 

@@ -30,9 +30,11 @@ import {
   ListMusic,
   MoreHorizontal,
   SquareArrowOutUpRight,
+  X,
 } from 'lucide-react'
 import type { SetlistItem } from '../../types'
-import { BREAK_MINUTES, songLength, type EditorRow } from '../../domain/setlist'
+import { BREAK_MINUTES, type EditorRow } from '../../domain/setlist'
+import { LineNumber, SongLine } from '../songs/SongLine'
 import { TuningPill } from '../ui'
 import { ForkIcon } from './SetlistStats'
 
@@ -59,6 +61,8 @@ export interface SetlistRowsProps {
     }
   ) => void
   onMove: (id: string, to: number) => void
+  /** The row's ×: removes it (the page confirms). */
+  onRemove: (id: string) => void
 }
 
 export const SetlistRows: React.FC<SetlistRowsProps> = props => {
@@ -84,7 +88,7 @@ export const SetlistRows: React.FC<SetlistRowsProps> = props => {
         items={rows.map(r => r.item.id)}
         strategy={verticalListSortingStrategy}
       >
-        <ol className="flex flex-col gap-1.5" data-testid="setlist-rows">
+        <ol className="flex flex-col" data-testid="setlist-rows">
           {rows.map((r, i) => (
             <SortableRow
               key={r.item.id}
@@ -92,6 +96,8 @@ export const SetlistRows: React.FC<SetlistRowsProps> = props => {
               row={r}
               time={props.rail?.[i] ?? null}
               railOn={!!props.rail}
+              afterSong={rows[i - 1]?.kind === 'song'}
+              beforeSong={rows[i + 1]?.kind === 'song'}
             />
           ))}
         </ol>
@@ -100,12 +106,24 @@ export const SetlistRows: React.FC<SetlistRowsProps> = props => {
   )
 }
 
+/**
+ * Songs in a run share one surface, divided by 1 px (like every song list);
+ * breaks and sections sit between runs.
+ */
 const SortableRow: React.FC<
-  SetlistRowsProps & { row: Row; time: string | null; railOn: boolean }
+  SetlistRowsProps & {
+    row: Row
+    time: string | null
+    railOn: boolean
+    afterSong: boolean
+    beforeSong: boolean
+  }
 > = ({
   row,
   time,
   railOn,
+  afterSong,
+  beforeSong,
   desktop,
   selectedId,
   editingId,
@@ -114,8 +132,13 @@ const SortableRow: React.FC<
   onMenu,
   onEdit,
   onSaveItem,
+  onRemove,
 }) => {
   const id = row.item.id
+  const retuneFrom = row.kind === 'song' && row.song ? row.retuneFrom : null
+  const retune = retuneFrom !== null
+  const top = afterSong ? 'border-t border-divider' : 'rounded-t-[20px]'
+  const round = `${retune ? '' : top} ${beforeSong ? '' : 'rounded-b-[20px]'}`
   const {
     attributes,
     listeners,
@@ -200,7 +223,7 @@ const SortableRow: React.FC<
       <div
         {...common}
         data-testid={`setlist-section-${id}`}
-        className={`group flex items-center gap-2 min-h-[40px] pr-2 rounded-xl ${selected ? 'bg-bg-2 ring-2 ring-accent' : ''}`}
+        className={`group flex items-center gap-2 min-h-[40px] mt-3 pr-2 rounded-xl ${selected ? 'bg-bg-2 ring-2 ring-accent' : ''}`}
       >
         {grip}
         {editing ? (
@@ -234,7 +257,7 @@ const SortableRow: React.FC<
       <div
         {...common}
         data-testid={`setlist-break-${id}`}
-        className={`group rounded-2xl ring-1 ring-inset ${selected ? 'ring-2 ring-accent' : 'ring-border-1'}`}
+        className={`group my-1.5 rounded-2xl ring-1 ring-inset ${selected ? 'ring-2 ring-accent' : 'ring-border-1'}`}
       >
         <div className="flex items-center gap-2 min-h-[48px] pr-2">
           {grip}
@@ -273,6 +296,9 @@ const SortableRow: React.FC<
   } else {
     const song = row.song
     const open = () => row.item.songId && onOpenSong(row.item.songId)
+    const reveal = selected
+      ? ''
+      : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
     body = (
       <div
         {...common}
@@ -281,36 +307,33 @@ const SortableRow: React.FC<
           open()
         }}
         data-testid={`setlist-song-${id}`}
-        className={`group rounded-2xl bg-bg-2 ${selected ? 'ring-2 ring-accent' : ''}`}
+        data-song-id={row.item.songId}
+        className={`group bg-bg-2 ${round} ${selected ? 'ring-2 ring-inset ring-accent' : ''}`}
       >
-        <div className="flex items-center gap-2 min-h-[56px] pr-2">
-          {grip}
-          <span className="w-5 text-right font-mono text-[12.5px] text-ink-3 shrink-0">
-            {row.number}
-          </span>
-          {desktop ? (
+        <SongLine
+          song={song}
+          className="pl-0 pr-2"
+          titleTestId="setlist-song-title"
+          lead={
             <>
-              <span className="flex-1 min-w-0 py-2 flex items-baseline gap-2">
-                <span
-                  className="truncate text-[15.5px] font-bold text-ink-1"
-                  data-testid="setlist-song-title"
-                >
-                  {song?.title ?? 'Song removed from catalog'}
-                </span>
-                {song?.artist && (
-                  <span className="truncate text-[13px] text-ink-3">
-                    {song.artist}
-                  </span>
-                )}
-              </span>
-              {song && <TuningPill tuning={song.tuning} />}
-              <span className="w-12 text-center font-mono text-[13px] text-ink-2">
-                {song?.key ?? ''}
-              </span>
-              <span className="w-11 text-right font-mono text-[13px] text-ink-2">
-                {songLength(song?.seconds)}
-              </span>
-              {song && (
+              {grip}
+              <LineNumber n={row.number} />
+            </>
+          }
+          sub={
+            row.item.notes && (
+              <p
+                className="flex items-center gap-2 text-[13px] text-ink-2"
+                data-testid="setlist-song-note"
+              >
+                <ListMusic size={14} className="text-ink-4 shrink-0" />
+                <span className="truncate">{row.item.notes}</span>
+              </p>
+            )
+          }
+          trail={
+            <>
+              {desktop && song && (
                 <button
                   type="button"
                   onClick={e => {
@@ -319,52 +342,29 @@ const SortableRow: React.FC<
                   }}
                   aria-label={`Open ${song.title}`}
                   title="Open song"
-                  className="w-8 h-8 shrink-0 grid place-items-center rounded-full text-ink-3 hover:bg-bg-4 hover:text-ink-1"
+                  className={`w-8 h-8 shrink-0 grid place-items-center rounded-full text-ink-3 hover:bg-bg-4 hover:text-ink-1 ${reveal}`}
                   data-testid="setlist-row-open-song"
                 >
                   <SquareArrowOutUpRight size={16} />
                 </button>
               )}
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation()
+                  onRemove(id)
+                }}
+                aria-label={`Remove ${song?.title ?? 'song'}`}
+                title="Remove from set"
+                className={`w-8 h-8 shrink-0 grid place-items-center rounded-full text-ink-3 hover:bg-bg-4 hover:text-danger ${desktop ? reveal : ''}`}
+                data-testid="setlist-row-remove-x"
+              >
+                <X size={17} />
+              </button>
               {menuButton}
             </>
-          ) : (
-            // Phone (m2): the title, then tuning · length · key.
-            <span className="flex-1 min-w-0 py-2.5">
-              <span
-                className="block truncate text-[16px] font-bold text-ink-1"
-                data-testid="setlist-song-title"
-              >
-                {song?.title ?? 'Song removed from catalog'}
-              </span>
-              {song && (
-                <span className="flex items-center gap-3 mt-1.5 font-mono text-[13px] text-ink-2">
-                  <TuningPill tuning={song.tuning} size="sm" />
-                  {song.seconds > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Clock size={13} className="text-ink-4" />
-                      {songLength(song.seconds)}
-                    </span>
-                  )}
-                  {song.key && (
-                    <span>
-                      <span className="text-ink-4"># </span>
-                      {song.key}
-                    </span>
-                  )}
-                </span>
-              )}
-            </span>
-          )}
-        </div>
-        {row.item.notes && (
-          <p
-            className="flex items-center gap-2 pl-[60px] pr-4 pb-2.5 -mt-1 text-[13px] text-ink-2"
-            data-testid="setlist-song-note"
-          >
-            <ListMusic size={14} className="text-ink-4 shrink-0" />
-            <span className="truncate">{row.item.notes}</span>
-          </p>
-        )}
+          }
+        />
       </div>
     )
   }
@@ -379,9 +379,11 @@ const SortableRow: React.FC<
         opacity: isDragging ? 0.85 : undefined,
       }}
     >
-      {row.kind === 'song' && row.retuneFrom !== null && row.song && (
+      {row.kind === 'song' && retuneFrom !== null && (
         <Gutter on={railOn}>
-          <RetuneLine from={row.retuneFrom} to={row.song.tuning} />
+          <div className={`bg-bg-2 ${top}`}>
+            <RetuneLine from={retuneFrom} to={row.song?.tuning} />
+          </div>
         </Gutter>
       )}
       <Gutter on={railOn} time={row.kind === 'section' ? '' : time}>
@@ -421,7 +423,7 @@ const RetuneLine: React.FC<{ from: string; to?: string | null }> = ({
   to,
 }) => (
   <div
-    className="flex items-center gap-2 pl-3 md:pl-10 pt-0.5 pb-1.5"
+    className="flex items-center gap-2 pl-3 md:pl-10 pt-2 pb-0.5"
     data-testid="setlist-retune"
   >
     <span className="font-mono text-[11px] tracking-[.12em] text-warn">

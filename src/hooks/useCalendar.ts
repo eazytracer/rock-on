@@ -8,11 +8,34 @@ import { repository } from '../services/data/RepositoryFactory'
 import { queryKeys } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import { calendarAgenda } from '../services/api/calendar'
+import { freshPracticeSong, weekLater } from '../domain/calendar'
 import type { Show } from '../models/Show'
 import type { PracticeSession } from '../models/PracticeSession'
 import type { Song } from '../models/Song'
 
 const NO_ROWS: never[] = []
+
+const LAST_KEY = 'calendar:last'
+
+/** Remembers the agenda's query (filter, selection) for "‹ Calendar". */
+export function rememberCalendar(search: string) {
+  try {
+    sessionStorage.setItem(LAST_KEY, search)
+  } catch {
+    /* convenience only */
+  }
+}
+
+/** Where "‹ Calendar" goes: the agenda as last seen, else `fallback`. */
+export function calendarBackTo(fallback: string) {
+  try {
+    const last = sessionStorage.getItem(LAST_KEY)
+    if (last !== null) return `/calendar${last}`
+  } catch {
+    /* convenience only */
+  }
+  return fallback
+}
 
 /** The band's shows and practices for the agenda (jams come from useEvents). */
 export function useAgenda(bandId: string) {
@@ -150,4 +173,48 @@ export function usePracticePage(practiceId: string | null) {
     error: query.error as Error | null,
     save,
   }
+}
+
+/** A new practice in the band (the blank practice page's first save). */
+export async function createPractice(
+  bandId: string,
+  userId: string | undefined,
+  fields: Partial<PracticeSession>
+): Promise<string> {
+  const saved = await repository.addPracticeSession({
+    id: crypto.randomUUID(),
+    bandId,
+    type: 'rehearsal',
+    status: 'scheduled',
+    duration: 120,
+    songs: [],
+    objectives: [],
+    completedObjectives: [],
+    attendees: [],
+    createdDate: new Date(),
+    lastModifiedBy: userId,
+    ...fields,
+  } as PracticeSession)
+  return saved.id
+}
+
+/**
+ * Duplicate: the same name, place, focus and songs (fresh, notes kept) a week
+ * later. Returns the new practice's id.
+ */
+export async function duplicatePractice(
+  practiceId: string,
+  userId: string | undefined
+): Promise<string> {
+  const p = await repository.getPracticeSession(practiceId)
+  if (!p) throw new Error('That practice was deleted.')
+  return createPractice(p.bandId, userId, {
+    name: p.name,
+    scheduledDate: weekLater(new Date(p.scheduledDate)),
+    duration: p.duration,
+    location: p.location,
+    notes: p.notes,
+    type: p.type,
+    songs: p.songs.map(s => freshPracticeSong(s.songId, s.notes)),
+  })
 }

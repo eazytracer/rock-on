@@ -6,7 +6,7 @@
  * Desktop: ← Setlists and the show line, the name (click to rename) with a
  * caret switcher, then Timeline · Notes · + Break · + Section · Add songs · ⋯.
  * Break and Section go in after the selected row and open in place. Add songs
- * opens the song browser beside the set.
+ * (or the "+ Add songs" row under the set) opens the song drawer.
  * Phone: the name (tap) or ⇄ opens the switcher sheet; one Add at the thumb
  * (Songs / Break / Section); hold a row for Move / note / Open / Remove.
  * `/setlists/new` makes an empty set in the current context and opens it.
@@ -26,7 +26,6 @@ import {
   Pencil,
   Plus,
   Trash2,
-  X,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -38,13 +37,14 @@ import {
   useSetlistIndex,
 } from '../hooks/useSetlists'
 import { useMediaQuery } from '../hooks/useResponsive'
+import { toSongLine } from '../domain/songs'
 import { useConfirm } from '../hooks/useConfirm'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
 import { MarkdownRenderer } from '../components/notes/MarkdownRenderer'
 import { Button, Empty, RetryCard, Sheet, SheetItem } from '../components/ui'
 import { SetlistRows } from '../components/setlists/SetlistRows'
-import { SongBrowser } from '../components/setlists/SongBrowser'
+import { AddSongsRow, SongBrowser } from '../components/setlists/SongBrowser'
 import { SetlistStats } from '../components/setlists/SetlistStats'
 import {
   AddMenuSheet,
@@ -223,15 +223,7 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
     () =>
       editorRows(items, id => {
         const s = songsById.get(id)
-        return s
-          ? {
-              title: s.title,
-              artist: s.artist,
-              tuning: s.guitarTuning,
-              key: s.key,
-              seconds: s.duration || 0,
-            }
-          : undefined
+        return s ? toSongLine(s) : undefined
       }),
     [items, songsById]
   )
@@ -343,14 +335,10 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
     )
     if (!added) return false
     setSelected(added[added.length - 1] ?? null)
-    showToast(
-      ids.length === 1 ? 'Added 1 song' : `Added ${ids.length} songs`,
-      'success'
-    )
     return true
   }
 
-  // The browser's ×: an accidental add comes straight back out, no confirm.
+  // Unticking in the drawer: the song comes straight back out, no confirm.
   const removeSong = async (songId: string) => {
     const it = items.find(i => i.songId === songId)
     if (!it) return false
@@ -364,11 +352,6 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
       )
       return true
     })
-    if (done)
-      showToast(
-        `Removed "${songsById.get(songId)?.title ?? 'song'}"`,
-        'success'
-      )
     return !!done
   }
 
@@ -671,9 +654,17 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
       onEdit={setEditing}
       onSaveItem={(id, patch) => void saveItem(id, patch)}
       onMove={move}
+      onRemove={id => void remove(id)}
     />
   ) : (
     empty
+  )
+  const addRow = rows.length > 0 && (
+    <AddSongsRow
+      onClick={() => setBrowsing(true)}
+      className="mt-3"
+      data-testid="setlist-add-songs-row"
+    />
   )
 
   // ── Layout ───────────────────────────────────────────────────────────────
@@ -720,28 +711,16 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
             () => insertInPlace('section'),
             'setlist-add-section'
           )}
-          {browsing ? (
-            <Button
-              size="md"
-              icon={<X size={17} />}
-              onClick={() => setBrowsing(false)}
-              className="h-11"
-              data-testid="setlist-hide-songs"
-            >
-              Hide songs
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="md"
-              icon={<Plus size={17} />}
-              onClick={() => setBrowsing(true)}
-              className="h-11"
-              data-testid="setlist-add-songs"
-            >
-              Add songs
-            </Button>
-          )}
+          <Button
+            variant="primary"
+            size="md"
+            icon={<Plus size={17} />}
+            onClick={() => setBrowsing(true)}
+            className="h-11"
+            data-testid="setlist-add-songs"
+          >
+            Add songs
+          </Button>
           {menuButton}
         </div>
       </div>
@@ -788,39 +767,22 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
       {header}
 
       {desktop ? (
-        <div className={browsing ? 'flex gap-5 items-start' : ''}>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-4 py-3.5 mb-3 border-b border-divider">
-              {totalsLine}
-              <span className="ml-auto font-mono text-[11.5px] tracking-[.14em] uppercase text-ink-3">
-                {browsing
-                  ? 'Drag rows · add songs from the right'
-                  : 'Click a row to select · drag to reorder'}
-              </span>
-            </div>
-            {notesCard}
-            <div className={setlist.notes ? 'mt-4' : ''}>{list}</div>
+        <>
+          <div className="flex items-center gap-4 py-3.5 mb-3 border-b border-divider">
+            {totalsLine}
+            <span className="ml-auto font-mono text-[11.5px] tracking-[.14em] uppercase text-ink-3">
+              Click a row to select · drag to reorder
+            </span>
           </div>
-          {browsing && (
-            <SongBrowser
-              mode="pane"
-              setName={setlist.name}
-              contextType={ctxType}
-              contextId={ctxId}
-              userId={currentUser?.id ?? ''}
-              catalogName={catalogName}
-              inSet={inSet}
-              otherSets={sets.filter(s => s.id !== setlistId)}
-              onAdd={addSongs}
-              onRemove={removeSong}
-              onClose={() => setBrowsing(false)}
-            />
-          )}
-        </div>
+          {notesCard}
+          <div className={setlist.notes ? 'mt-4' : ''}>{list}</div>
+          {addRow}
+        </>
       ) : (
         <>
           {notesCard}
           <div className="mt-5">{list}</div>
+          {addRow}
           {rows.length > 0 && (
             <div className="fixed inset-x-4 bottom-[104px] z-30">
               <Button
@@ -836,22 +798,21 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
               </Button>
             </div>
           )}
-          {browsing && (
-            <SongBrowser
-              mode="screen"
-              setName={setlist.name}
-              contextType={ctxType}
-              contextId={ctxId}
-              userId={currentUser?.id ?? ''}
-              catalogName={catalogName}
-              inSet={inSet}
-              otherSets={sets.filter(s => s.id !== setlistId)}
-              onAdd={addSongs}
-              onRemove={removeSong}
-              onClose={() => navigate(-1)}
-            />
-          )}
         </>
+      )}
+      {browsing && (
+        <SongBrowser
+          setName={setlist.name}
+          contextType={ctxType}
+          contextId={ctxId}
+          userId={currentUser?.id ?? ''}
+          catalogName={catalogName}
+          inSet={inSet}
+          otherSets={sets.filter(s => s.id !== setlistId)}
+          onAdd={addSongs}
+          onRemove={removeSong}
+          onClose={() => (desktop ? setBrowsing(false) : navigate(-1))}
+        />
       )}
 
       {/* ── Sheets ── */}

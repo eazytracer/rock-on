@@ -7,12 +7,13 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { ShowDetail } from '../components/calendar/ShowDetail'
+import { calendarBackTo } from '../hooks/useCalendar'
 
 export const ShowViewPage: React.FC = () => {
   const { showId } = useParams<{ showId: string }>()
   const navigate = useNavigate()
   const { currentBandId } = useAuth()
-  const back = () => navigate('/calendar?type=show')
+  const back = () => navigate(calendarBackTo('/calendar?type=show'))
 
   return (
     <div data-testid="show-view-page" className="max-w-[720px] pb-44 md:pb-10">

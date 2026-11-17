@@ -234,6 +234,33 @@ test.describe('Setlist editor', () => {
         .toEqual(['Black', 'Breed', 'Mine', 'Everlong'])
     })
 
+    test('Add songs: tap a ticked song to take it out; Esc and Done close', async ({
+      page,
+    }) => {
+      seed = await setup(page)
+      await page.goto(`/setlists/${seed.fall}`)
+      await page.getByTestId('setlist-add-songs-row').click()
+      const browser = page.getByTestId('song-browser')
+      await browser.getByTestId(`browser-song-${seed.songs.Creep}`).click()
+      await expect
+        .poll(() => titles(page))
+        .toEqual(['Black', 'Everlong', 'Creep'])
+      await expect(
+        browser.getByTestId(`browser-song-${seed.songs.Creep}`)
+      ).toHaveAttribute('data-in-set', 'true')
+      await browser.getByTestId(`browser-song-${seed.songs.Creep}`).click()
+      await expect.poll(() => titles(page)).toEqual(['Black', 'Everlong'])
+      await expect(
+        browser.getByTestId(`browser-song-${seed.songs.Creep}`)
+      ).not.toHaveAttribute('data-in-set', 'true')
+      await page.keyboard.press('Escape')
+      await expect(browser).toHaveCount(0)
+      await page.getByTestId('setlist-add-songs').click()
+      await page.getByTestId('browser-done').click()
+      await expect(browser).toHaveCount(0)
+      await expect(page).not.toHaveURL(/add=1/)
+    })
+
     test('the browser filters by another setlist', async ({ page }) => {
       seed = await setup(page)
       await page.goto(`/setlists/${seed.other}`)
@@ -253,8 +280,11 @@ test.describe('Setlist editor', () => {
       await expect(
         browser.getByTestId(`browser-song-${seed.songs.Everlong}`)
       ).toBeVisible()
-      await browser.getByTestId(`browser-song-${seed.songs.Everlong}`).click()
-      await expect.poll(() => titles(page)).toEqual(['Everlong'])
+      await browser.getByTestId('browser-add-all').click()
+      await expect
+        .poll(async () => (await titles(page)).sort())
+        .toEqual(['Black', 'Everlong'])
+      await expect(browser.getByTestId('browser-add-all')).toHaveCount(0)
 
       await browser.getByTestId('browser-setlist-filter').click()
       await page.getByTestId('browser-setlist-option-any').click()
@@ -444,11 +474,14 @@ test.describe('Setlist editor', () => {
       await page.getByTestId('setlist-add').tap()
       await page.getByTestId('setlist-addmenu-songs').tap()
       await page.getByTestId(`browser-song-${seed.songs.Breed}`).tap()
+      await expect(
+        page.getByTestId(`browser-song-${seed.songs.Breed}`)
+      ).toHaveAttribute('data-in-set', 'true')
       await page.getByTestId(`browser-song-${seed.songs.Creep}`).tap()
-      await expect(page.getByTestId('browser-add-picked')).toHaveText(
-        /Add 2 songs/
+      await expect(page.getByTestId('browser-added-count')).toHaveText(
+        '2 added'
       )
-      await page.getByTestId('browser-add-picked').tap()
+      await page.getByTestId('browser-done').tap()
       await expect(page.getByTestId('song-browser')).toHaveCount(0)
       await expect
         .poll(() => titles(page))

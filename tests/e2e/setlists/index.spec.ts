@@ -141,6 +141,15 @@ test.describe('Setlists index', () => {
         'data-testid',
         `setlist-card-${seed.empty}`
       )
+      // The direction toggle names the order and reverses it.
+      const dir = page.getByTestId('setlists-sort-dir')
+      await expect(dir).toHaveText('A–Z')
+      await dir.click()
+      await expect(dir).toHaveText('Z–A')
+      await expect(cards.first()).not.toHaveAttribute(
+        'data-testid',
+        `setlist-card-${seed.empty}`
+      )
 
       // A card opens the set full width.
       await page.getByTestId(`setlist-card-${seed.fall}`).click()

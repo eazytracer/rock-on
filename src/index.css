@@ -127,8 +127,8 @@
   --scrim: rgba(30, 20, 10, 0.35);
   --shadow-float: 0 6px 20px rgba(60, 40, 20, 0.14);
   --shadow-sheet: 0 -6px 24px rgba(60, 40, 20, 0.16);
-  --shadow-group: 0 1px 2px rgba(60, 40, 20, 0.08),
-    0 4px 14px rgba(60, 40, 20, 0.06);
+  --shadow-group:
+    0 1px 2px rgba(60, 40, 20, 0.08), 0 4px 14px rgba(60, 40, 20, 0.06);
 
   --tuning-standard: #1d4ed8;
   --tuning-half-step-down: #0f766e;
@@ -243,6 +243,165 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--ink-6-rgb));
+  }
+
+  /* SongLine (components/songs/SongLine.tsx): two lines when narrow; one
+     line of fixed columns once the row's own box is 560px wide. */
+  .song-line {
+    container-type: inline-size;
+  }
+  .song-line__grid {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    /* the meta line runs under the trail: phones need the width */
+    grid-template-areas: 'lead title trail' 'lead meta meta' 'lead sub sub';
+    align-items: center;
+  }
+  .song-line--comfortable {
+    @apply py-3;
+  }
+  .song-line--compact {
+    @apply py-2.5;
+  }
+  .song-line__lead {
+    grid-area: lead;
+    align-self: stretch;
+    @apply flex items-center gap-1.5 mr-2.5 -my-3;
+  }
+  .song-line__title {
+    grid-area: title;
+    @apply flex items-center gap-1.5 min-w-0 text-[15.5px];
+  }
+  .song-line__name {
+    @apply truncate font-bold text-ink-1;
+    flex: none;
+    max-width: 100%;
+  }
+  /* the artist gives way before the title does */
+  .song-line__artist {
+    @apply min-w-0 truncate font-semibold text-ink-3;
+  }
+  .song-line__artist::before {
+    content: '· ';
+  }
+  .song-line__marks {
+    @apply flex items-center gap-1.5 shrink-0;
+  }
+  .song-line__meta {
+    grid-area: meta;
+    @apply flex items-center gap-3 mt-2 font-mono text-[13.5px] font-semibold text-ink-1;
+  }
+  .song-line__links {
+    @apply flex items-center gap-2.5 ml-auto;
+  }
+  .song-line__trail {
+    grid-area: trail;
+    @apply flex items-center gap-1 ml-2;
+  }
+  .song-line__sub {
+    grid-area: sub;
+    @apply min-w-0 mt-1.5;
+  }
+  .song-line__cell {
+    @apply flex items-center gap-1;
+  }
+  .song-line__cell.song-line__empty {
+    display: none;
+  }
+  /* Add songs: the desktop drawer, the phone screen, a just-added row. */
+  .drawer-in {
+    animation: drawer-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sheet-in {
+    animation: sheet-in 0.2s ease-out;
+  }
+  .row-flash {
+    animation: row-flash 1.6s ease-out;
+  }
+  @keyframes drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes sheet-in {
+    from {
+      transform: translateY(24px);
+      opacity: 0;
+    }
+  }
+  @keyframes row-flash {
+    from {
+      box-shadow: inset 0 0 0 999px
+        color-mix(in srgb, var(--accent) 24%, transparent);
+    }
+    to {
+      box-shadow: inset 0 0 0 999px transparent;
+    }
+  }
+
+  /* Compact, narrow: one line, tuning and length beside the title. */
+  .song-line--compact .song-line__grid {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: 'lead title meta trail' 'lead sub sub sub';
+  }
+  .song-line--compact .song-line__meta {
+    @apply mt-0 ml-2 text-[13px];
+  }
+  .song-line--compact
+    :is(.song-line__key, .song-line__bpm, .song-line__links, .song-line__icon) {
+    display: none;
+  }
+
+  @container (min-width: 560px) {
+    .song-line .song-line__grid {
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      grid-template-areas: 'lead title meta trail' 'lead sub sub sub';
+    }
+    .song-line .song-line__meta {
+      @apply mt-0 ml-2 gap-2 text-[13.5px] font-normal text-ink-2;
+    }
+    .song-line .song-line__icon {
+      display: none;
+    }
+    .song-line :is(.song-line__key, .song-line__bpm, .song-line__empty) {
+      display: flex;
+    }
+    .song-line .song-line__tuning {
+      width: 96px;
+    }
+    .song-line :is(.song-line__key, .song-line__bpm) {
+      width: 52px;
+    }
+    .song-line .song-line__len {
+      width: 64px;
+    }
+    .song-line .song-line__links {
+      display: flex;
+      width: 92px;
+      @apply ml-0 pl-[7px];
+    }
+    /* Comfortable: the artist goes under the title. */
+    .song-line--comfortable .song-line__title {
+      display: grid;
+      grid-template-columns: minmax(0, max-content) 1fr;
+      grid-template-areas: 'name marks' 'artist artist';
+      column-gap: 6px;
+      @apply text-[15px];
+    }
+    .song-line--comfortable .song-line__name {
+      grid-area: name;
+      @apply leading-snug;
+    }
+    .song-line--comfortable .song-line__marks {
+      grid-area: marks;
+    }
+    .song-line--comfortable .song-line__artist {
+      grid-area: artist;
+      @apply font-normal text-[12.5px] leading-snug;
+    }
+    .song-line--comfortable .song-line__artist::before {
+      content: none;
+    }
   }
 
   /* Horizontal chip rows: scroll by swipe, no bar */

@@ -118,64 +118,6 @@ export function useDeleteSetlist() {
 }
 
 /**
- * Hook to add an item to a setlist.
- */
-export function useAddSetlistItem() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: async ({
-      setlistId,
-      item,
-    }: {
-      setlistId: string
-      item: Omit<SetlistItem, 'id' | 'position'>
-    }) => {
-      // Only handle song items for now (SetlistService works with songs).
-      if (item.type === 'song' && item.songId) {
-        const updatedSetlist = await SetlistService.addSongToSetlist(
-          setlistId,
-          {
-            songId: item.songId,
-            keyChange: item.notes, // Map notes to keyChange if needed
-          }
-        )
-        const newSong = (updatedSetlist.songs || [])[
-          (updatedSetlist.songs || []).length - 1
-        ]
-        if (newSong) {
-          const newItem: SetlistItem = {
-            id: crypto.randomUUID(),
-            type: 'song',
-            songId: newSong.songId,
-            position: newSong.order,
-            notes: item.notes,
-          }
-          return newItem
-        }
-      }
-
-      // For non-song items, return a placeholder.
-      return {
-        ...item,
-        id: crypto.randomUUID(),
-        position: 1,
-      } as SetlistItem
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['setlists'] })
-    },
-  })
-
-  return {
-    addItem: (setlistId: string, item: Omit<SetlistItem, 'id' | 'position'>) =>
-      mutation.mutateAsync({ setlistId, item }),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
-  }
-}
-
-/**
  * Hook to remove an item from a setlist.
  */
 export function useRemoveSetlistItem() {

@@ -2,13 +2,14 @@
  * Calendar (FP 1–3, 10, 18; desktop Calendar): one agenda of shows, practices
  * and jams. Filters All · Shows · Practices · Jams (`?type=`); one New whose
  * label follows the filter (on All it asks which type). Upcoming, then Past
- * dimmed; cancelled rows are struck through. On desktop the selected row opens
- * beside the list.
+ * dimmed; cancelled rows are struck through. On a wide window the selected
+ * row opens in a pane beside the list; narrower, rows open the full page.
  */
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CalendarDays,
+  Check,
   ChevronRight,
   Copy,
   ExternalLink,
@@ -24,7 +25,11 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../hooks/useConfirm'
 import { useMediaQuery } from '../hooks/useResponsive'
-import { useAgenda } from '../hooks/useCalendar'
+import {
+  duplicatePractice,
+  rememberCalendar,
+  useAgenda,
+} from '../hooks/useCalendar'
 import { useEvents } from '../hooks/useEvents'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { JoinEventForm } from '../components/events/JoinEventForm'
@@ -102,15 +107,23 @@ const NEW_ROUTE = {
   jam: '/events/new',
 }
 
-/** One agenda row: date block, title, time · place, type (+ confirmed / cancelled). */
+/**
+ * One agenda row: date block, title, time · place, type (+ confirmed /
+ * cancelled). With the pane, a click previews; a double-click, or Enter on
+ * the selected row, opens the full page. When the row is too narrow for the
+ * type column, it shrinks to the type icon (+ a check for confirmed) before
+ * the title gives way.
+ */
 const Row: React.FC<{
   row: AgendaRow
   past: boolean
   selected: boolean
   desktop: boolean
+  paned: boolean
   onOpen: () => void
+  onOpenPage: () => void
   onMenu: (at: At) => void
-}> = ({ row, past, selected, desktop, onOpen, onMenu }) => {
+}> = ({ row, past, selected, desktop, paned, onOpen, onOpenPage, onMenu }) => {
   const mon = row.at
     .toLocaleDateString('en-US', { month: 'short' })
     .toUpperCase()
@@ -127,10 +140,12 @@ const Row: React.FC<{
       role="button"
       tabIndex={0}
       onClick={onOpen}
+      onDoubleClick={paned ? onOpenPage : undefined}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onOpen()
+          if (selected && e.key === 'Enter') onOpenPage()
+          else onOpen()
         }
       }}
       onContextMenu={e => {
@@ -142,7 +157,7 @@ const Row: React.FC<{
       data-selected={selected || undefined}
       data-cancelled={row.cancelled || undefined}
       data-past={past || undefined}
-      className={`group flex items-center gap-3.5 w-full px-3 py-2.5 text-left cursor-pointer rounded-2xl ${
+      className={`group flex items-center gap-3.5 w-full [container-type:inline-size] px-3 py-2.5 text-left cursor-pointer rounded-2xl ${
         selected
           ? 'bg-accent/15 shadow-[inset_3px_0_0_rgb(var(--accent-rgb))]'
           : 'hover:bg-bg-2'
@@ -174,10 +189,32 @@ const Row: React.FC<{
         )}
       </span>
       {desktop && (
-        <span className="flex items-center gap-1.5 w-[190px] shrink-0 font-mono text-[10.5px] font-medium uppercase tracking-[.12em]">
-          <TypeLabel type={row.type} />
-          {status && <>· {status}</>}
-        </span>
+        <>
+          <span
+            className="hidden [@container(min-width:560px)]:flex items-center gap-1.5 w-[190px] shrink-0 font-mono text-[10.5px] font-medium uppercase tracking-[.12em]"
+            data-testid="calendar-item-type"
+          >
+            <TypeLabel type={row.type} />
+            {status && <>· {status}</>}
+          </span>
+          <span
+            className="flex [@container(min-width:560px)]:hidden items-center gap-1.5 shrink-0"
+            data-testid="calendar-item-type-compact"
+          >
+            <TypeLabel type={row.type} iconOnly />
+            {/* Reserved so the type icons stay in one column. */}
+            <span className="w-[15px]">
+              {row.confirmed && !row.cancelled && (
+                <Check
+                  size={15}
+                  strokeWidth={2.5}
+                  className="text-success"
+                  aria-label="Confirmed"
+                />
+              )}
+            </span>
+          </span>
+        </>
       )}
       {row.type !== 'jam' ? (
         <button
@@ -207,12 +244,18 @@ export function CalendarPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { confirm, dialogProps } = useConfirm()
-  const { currentBand, currentBandId } = useAuth()
+  const { currentBand, currentBandId, currentUser } = useAuth()
   const bandId = currentBandId ?? ''
   const desktop = useMediaQuery('(min-width: 768px)')
+  // The preview pane needs room beside a readable list.
+  const paned = useMediaQuery('(min-width: 1200px)')
   const [params, setParams] = useSearchParams()
   const filter = readFilter(params)
   const selectedParam = params.get('selected')
+  useEffect(() => {
+    const q = params.toString()
+    rememberCalendar(q ? `?${q}` : '')
+  }, [params])
 
   const { rows, loading, error, refetch } = useAgenda(bandId)
   const { events, loading: jamsLoading, refetch: refetchJams } = useEvents()
@@ -247,14 +290,14 @@ export function CalendarPage() {
         null)
 
   const open = (row: AgendaRow) => {
-    if (desktop && row.type !== 'jam') setQuery({ selected: row.id })
+    if (paned && row.type !== 'jam') setQuery({ selected: row.id })
     else navigate(row.to)
   }
 
   const create = (type: AgendaFilter) => {
     setNewAt(false)
     if (type === 'all') return
-    if (type === 'show' && desktop) setQuery({ selected: 'new-show' })
+    if (type === 'show' && paned) setQuery({ selected: 'new-show' })
     else navigate(NEW_ROUTE[type])
   }
 
@@ -265,11 +308,14 @@ export function CalendarPage() {
 
   const duplicate = async (row: AgendaRow) => {
     setMenu(null)
-    if (row.type === 'practice') {
-      navigate(`/practices/new?from=${row.id}`)
-      return
-    }
     try {
+      if (row.type === 'practice') {
+        const id = await duplicatePractice(row.id, currentUser?.id)
+        showToast(`Duplicated ${row.title}, a week later`, 'success')
+        void refetch()
+        open({ ...row, id, to: `/practices/${id}` })
+        return
+      }
       const id = await duplicateShow(row.id)
       showToast(`Duplicated ${row.title}, a week later`, 'success')
       void refetch()
@@ -407,10 +453,12 @@ export function CalendarPage() {
                 row={row}
                 past={isPast}
                 desktop={desktop}
+                paned={paned}
                 selected={
-                  desktop && selected !== 'new-show' && selected?.id === row.id
+                  paned && selected !== 'new-show' && selected?.id === row.id
                 }
                 onOpen={() => open(row)}
+                onOpenPage={() => navigate(row.to)}
                 onMenu={at => setMenu({ row, at })}
               />
             ))}
@@ -455,8 +503,11 @@ export function CalendarPage() {
         <PracticeDetail
           key={selected.id}
           practiceId={selected.id}
+          bandId={bandId}
           variant="pane"
+          onCreated={() => {}}
           onGone={() => setQuery({ selected: null })}
+          onAddSongs={id => id && navigate(`/practices/${id}?add=1`)}
         />
       )
     return null
@@ -505,7 +556,7 @@ export function CalendarPage() {
         actions={desktop ? newButton : undefined}
       />
       {chips}
-      {desktop ? (
+      {paned ? (
         <div className="flex gap-6 items-start">
           <div className="flex-1 min-w-0">{list()}</div>
           <aside

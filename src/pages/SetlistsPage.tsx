@@ -8,7 +8,6 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ArrowUpDown,
   Check,
   Copy,
   ListMusic,
@@ -40,8 +39,10 @@ import {
   Sheet,
   SheetItem,
   SkeletonRow,
+  SortControl,
 } from '../components/ui'
 import {
+  SETLIST_SORT_KINDS,
   SETLIST_SORT_LABELS,
   deleteSetlistMessage,
   indexTotals,
@@ -52,6 +53,7 @@ import {
   type IndexRow,
   type SetlistSort,
 } from '../domain/setlist'
+import { defaultDir, flipDir, type SortDir } from '../domain/sort'
 import { SetlistStats } from '../components/setlists/SetlistStats'
 import { createLogger } from '../utils/logger'
 
@@ -100,6 +102,7 @@ export const SetlistsPage: React.FC = () => {
   const { confirm, dialogProps } = useConfirm()
 
   const [sort, setSort] = useState<SetlistSort>('nextShow')
+  const [dir, setDir] = useState<SortDir>('asc')
   const [sortAt, setSortAt] = useState<At | false>(false)
   const [menu, setMenu] = useState<{ row: IndexRow; at: At } | null>(null)
   const [searching, setSearching] = useState(false)
@@ -109,14 +112,14 @@ export const SetlistsPage: React.FC = () => {
   const nextId = useMemo(() => nextShowSetId(rows, now), [rows, now])
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const sorted = sortSetlistIndex(rows, sort, now)
+    const sorted = sortSetlistIndex(rows, sort, now, dir)
     if (!q) return sorted
     return sorted.filter(
       r =>
         r.name.toLowerCase().includes(q) ||
         r.songs.some(s => s.title.toLowerCase().includes(q))
     )
-  }, [rows, sort, now, query])
+  }, [rows, sort, dir, now, query])
 
   const open = (id: string) => navigate(`/setlists/${id}`)
 
@@ -170,17 +173,14 @@ export const SetlistsPage: React.FC = () => {
   )
 
   const sortChip = (
-    <Chip
-      onClick={e =>
-        setSortAt(
-          isDesktop ? anchorBelow(e.currentTarget as HTMLElement) : null
-        )
-      }
-      aria-haspopup="menu"
-      data-testid="setlists-sort"
-    >
-      <ArrowUpDown size={15} /> {SETLIST_SORT_LABELS[sort]}
-    </Chip>
+    <SortControl
+      label={SETLIST_SORT_LABELS[sort]}
+      kind={SETLIST_SORT_KINDS[sort]}
+      dir={dir}
+      onPick={e => setSortAt(isDesktop ? anchorBelow(e.currentTarget) : null)}
+      onFlip={() => setDir(flipDir(dir))}
+      testId="setlists-sort"
+    />
   )
 
   const list = () => {
@@ -346,7 +346,10 @@ export const SetlistsPage: React.FC = () => {
                 }
                 label={SETLIST_SORT_LABELS[s]}
                 onClick={() => {
-                  setSort(s)
+                  if (s !== sort) {
+                    setSort(s)
+                    setDir(defaultDir(SETLIST_SORT_KINDS[s]))
+                  }
                   setSortAt(false)
                 }}
                 data-testid={`setlist-sort-option-${s}`}

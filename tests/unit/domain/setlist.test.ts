@@ -16,11 +16,10 @@ import {
   startOffsets,
   showStartMinutes,
   railLabel,
-  songLength,
   type IndexRow,
   type EditorItem,
-  type RowSong,
 } from '../../../src/domain/setlist'
+import type { SongLineData } from '../../../src/domain/songs'
 
 describe('setlistStats', () => {
   it('counts songs and adds song and break lengths', () => {
@@ -118,6 +117,13 @@ describe('sortSetlistIndex', () => {
     ])
     expect(sortSetlistIndex(rows, 'updated', now)[0].id).toBe('z')
   })
+  it('each sort reverses; sets without an upcoming show stay last', () => {
+    expect(
+      sortSetlistIndex(rows, 'nextShow', now, 'desc').map(r => r.id)
+    ).toEqual(['late', 'soon', 'past', 'z'])
+    expect(sortSetlistIndex(rows, 'name', now, 'desc')[0].id).toBe('z')
+    expect(sortSetlistIndex(rows, 'updated', now, 'asc').at(-1)!.id).toBe('z')
+  })
   it('no upcoming show → no next-show set', () => {
     expect(nextShowSetId([rows[0], rows[3]], now)).toBeNull()
   })
@@ -149,7 +155,7 @@ describe('deleteSetlistMessage', () => {
   })
 })
 
-const songs: Record<string, RowSong> = {
+const songs: Record<string, SongLineData> = {
   a: { title: 'About A Girl', tuning: 'Standard', seconds: 168 },
   b: { title: 'Monkey Wrench', tuning: 'Drop D', seconds: 231 },
   c: { id: 'everlong', title: 'Everlong', tuning: 'drop-d', seconds: 250 },
@@ -252,9 +258,5 @@ describe('timeline', () => {
     expect(railLabel(3790, null)).toBe('1:03:10')
     expect(railLabel(0, 20 * 60 + 30)).toBe('8:30')
     expect(railLabel(1549, 23 * 60 + 50)).toBe('12:15')
-  })
-  it('songLength', () => {
-    expect(songLength(250)).toBe('4:10')
-    expect(songLength(0)).toBe('')
   })
 })

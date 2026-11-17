@@ -16,7 +16,13 @@ Redesign phase 4 · Calendar, shows, practices.
 - **One Calendar** for shows, practices and jams, with filters (All · Shows ·
   Practices · Jams), Upcoming then Past, and one New button (on All it asks
   which). Each row has a ⋯ menu: Open, Duplicate, Delete. On desktop the
-  selected show or practice opens in a pane beside the list.
+  selected show or practice previews in a pane beside the list; **Open** in
+  the pane, a double-click, or Enter on the selected row opens the full page,
+  and a practice's pane starts with Start practice session. **‹ Calendar**
+  from a show or practice returns to the filter and selection you left. The
+  pane appears from 1200 px wide (narrower, rows open the page), and when a
+  row runs short of room its type column shrinks to the type icon and a check
+  for Confirmed before the title is cut.
 - **New show is the show page, blank.** It saves as you go; the first field
   you fill creates the show (next Saturday, 8 PM, 45 minutes until you change
   them).
@@ -28,31 +34,60 @@ Redesign phase 4 · Calendar, shows, practices.
   new one): the show shows where it came from, its songs and runtime against
   the set length, and Open set. Editing it never changes the original.
   **Re-copy** refreshes it from the original, asking first if you changed it.
-- **Practice page**: when and where, focus, the songs with their links
-  (Spotify, YouTube, tabs, lyrics) and a note per song for this practice, the
-  wrap-up once played, and Start session. Practices can have a name.
-- **Practice editor** for New, Edit and Duplicate (a week later, "Copied
-  from"): name, date, start, end (each choice shows the length), location,
-  focus, and songs added from the song browser, which can show just the songs
-  in a setlist.
+- **The practice page edits in place**, like a setlist with a few more
+  fields: name, date, start, end (each choice shows the length), where and
+  focus save as you go; songs come from the song browser (which can show just
+  the songs in a setlist), drag by the grip (mouse, touch or keyboard) and ×
+  out, each with its links (Spotify, YouTube, tabs, lyrics) and a note for
+  this practice. Then the wrap-up once played, and Start session. **New
+  practice** is the page blank (the first change creates it); **Duplicate**
+  makes the same practice a week later and opens it. Practices can have a
+  name.
 - **Practice session, built for the stage**: big Prev / Next buttons that name
   the song they go to (the last one ends the practice), the song's tuning,
   key, BPM and length, Notes (band notes and yours) as a side panel on desktop
   or a sheet on phones with A / A text size, and an Up next card that turns
   amber before a retune. The screen stays awake. Keys and page-turn pedals:
-  ← → / PgUp PgDn, N for notes.
-- **Wrap-up**: time played, which songs you reached (the rest marked
-  skipped) and notes shared with the band, saved to the practice.
+  ← → / PgUp PgDn, N for notes. Skip (or S) marks the song skipped and moves
+  on.
+- **Wrap-up**: time played, which songs you played (the rest marked
+  skipped; tap a song to change it) and notes shared with the band, saved to
+  the practice.
 
 ### Changed
 
 - **/shows and /practices open the Calendar** on their filter.
+- **One song row everywhere** (Songs, setlists, a show's set, practices, Add
+  songs, search): title · artist, then tuning, length, key, BPM and links in
+  the same order and style. Two lines when narrow, one line of fixed columns
+  when wide. A setlist's songs share one surface per section; rows get a ×;
+  a show's set rows open the song; keys read F♯ / E♭ everywhere.
+- **One Add songs picker** for setlists and practices: a drawer over the
+  right edge on desktop, full screen on phones, with × / Done / Esc to close.
+  Tap a song to put it in or take it out (the check shows it's in); the song
+  scrolls into view in the list and flashes. Filter by a setlist, then "Add
+  all"; tuning chips wrap. Every song list ends with "+ Add songs". On Songs,
+  "Add to…" ticks setlists and the band's upcoming practices.
+- The practice page uses the full width on desktop, like the setlist editor:
+  When and where on one row, songs in table columns, Add songs top right.
 - Show status is Scheduled / Completed / Cancelled; Confirmed is separate.
 - Deleting a setlist says shows keep their own copy of the set. Deleting a
   show's copy from the editor names the show that loses it.
 - A show's set opened from the show goes back to the show and has no setlist
   switcher.
 - Practice sessions start and end are recorded.
+- **Sort is a field plus a direction.** Songs and Setlists pick what to sort
+  by, and a separate toggle beside it reverses the order and says which way it
+  runs (A–Z / Z–A, Newest / Oldest, Soonest / Latest). Songs' Newest and Oldest
+  become Date added; saved views move over.
+
+### Fixed
+
+- Global search: the filter chips no longer get squeezed off by a long list
+  of results.
+- Songs at medium widths: the toolbar (search, Tuning, Sort, View) no longer
+  runs off the right edge, and between 768 and 1024 px the songs show as the
+  card list instead of a table whose title column was crushed.
 
 ### Removed
 

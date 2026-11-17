@@ -4,10 +4,11 @@
  */
 import type { Song } from '../models/Song'
 import type { ReferenceLink } from '../types'
+import type { SortDir, SortKind } from './sort'
+export type { SortDir } from './sort'
 
 export type Density = 'comfortable' | 'compact'
-export type SortField = 'title' | 'artist' | 'newest' | 'oldest' | 'nextShow'
-export type SortDir = 'asc' | 'desc'
+export type SortField = 'title' | 'artist' | 'added' | 'nextShow'
 
 export interface ListView {
   density: Density
@@ -43,23 +44,35 @@ export function readListView(stored: unknown): ListView {
     if (typeof v[k] === typeof out[k])
       (out as Record<string, unknown>)[k] = v[k]
   }
+  // Newest / Oldest were fields; they are now Date added with a direction.
+  if (v.sort === 'newest' || v.sort === 'oldest') {
+    out.sort = 'added'
+    out.dir = v.sort === 'newest' ? 'desc' : 'asc'
+  }
+  if (!(out.sort in SORT_LABELS)) out.sort = DEFAULT_LIST_VIEW.sort
   return out
 }
 
 export const SORT_LABELS: Record<SortField, string> = {
   title: 'Title',
   artist: 'Artist',
-  newest: 'Newest',
-  oldest: 'Oldest',
+  added: 'Date added',
   nextShow: 'Next show',
+}
+
+export const SORT_KINDS: Record<SortField, SortKind> = {
+  title: 'text',
+  artist: 'text',
+  added: 'date',
+  nextShow: 'upcoming',
 }
 
 const byText = (a = '', b = '') =>
   a.localeCompare(b, undefined, { sensitivity: 'base' })
 
 /**
- * Orders songs. Newest/Oldest have a fixed direction; for Next show, songs not
- * in an upcoming show go last either way.
+ * Orders songs by field and direction (Date added asc = oldest first); for
+ * Next show, songs not in an upcoming show go last either way.
  */
 export function sortSongs(
   songs: Song[],
@@ -73,10 +86,8 @@ export function sortSongs(
     switch (field) {
       case 'artist':
         return flip * byText(a.artist, b.artist) || byText(a.title, b.title)
-      case 'newest':
-        return time(b) - time(a)
-      case 'oldest':
-        return time(a) - time(b)
+      case 'added':
+        return flip * (time(a) - time(b)) || byText(a.title, b.title)
       case 'nextShow': {
         const x = nextShowAt.get(a.id)
         const y = nextShowAt.get(b.id)
@@ -163,6 +174,30 @@ export function linkCategory(link: Pick<ReferenceLink, 'icon'>): LinkCategory {
       return 'cloud'
     default:
       return 'link'
+  }
+}
+
+/** What a song row draws, wherever songs are listed (SongLine). */
+export interface SongLineData {
+  title: string
+  artist?: string | null
+  tuning?: string | null
+  key?: string | null
+  bpm?: number | null
+  /** Length in seconds; 0 when unknown. */
+  seconds: number
+  links?: ReferenceLink[]
+}
+
+export function toSongLine(s: Song): SongLineData {
+  return {
+    title: s.title,
+    artist: s.artist,
+    tuning: s.guitarTuning,
+    key: s.key,
+    bpm: s.bpm,
+    seconds: s.duration || 0,
+    links: s.referenceLinks ?? [],
   }
 }
 

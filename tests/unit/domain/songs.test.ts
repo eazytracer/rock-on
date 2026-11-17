@@ -30,6 +30,17 @@ describe('readListView', () => {
     expect(v.bpm).toBe(DEFAULT_LIST_VIEW.bpm)
     expect(readListView(null)).toEqual(DEFAULT_LIST_VIEW)
   })
+  it('moves the old Newest / Oldest sorts to Date added with a direction', () => {
+    expect(readListView({ sort: 'newest', dir: 'asc' })).toMatchObject({
+      sort: 'added',
+      dir: 'desc',
+    })
+    expect(readListView({ sort: 'oldest' })).toMatchObject({
+      sort: 'added',
+      dir: 'asc',
+    })
+    expect(readListView({ sort: 'bogus' }).sort).toBe('title')
+  })
 })
 
 describe('sortSongs', () => {
@@ -47,9 +58,9 @@ describe('sortSongs', () => {
   it('artist, then title', () => {
     expect(ids(sortSongs(songs, 'artist', 'asc'))).toBe('acb')
   })
-  it('newest and oldest', () => {
-    expect(ids(sortSongs(songs, 'newest', 'asc'))).toBe('bca')
-    expect(ids(sortSongs(songs, 'oldest', 'asc'))).toBe('acb')
+  it('date added both ways', () => {
+    expect(ids(sortSongs(songs, 'added', 'desc'))).toBe('bca')
+    expect(ids(sortSongs(songs, 'added', 'asc'))).toBe('acb')
   })
   it('next show puts unscheduled songs last', () => {
     const at = new Map([

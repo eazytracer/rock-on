@@ -3,9 +3,9 @@
  * line — docs/redesign/08-api-conventions.md).
  */
 
-/** 258 → "4:18" */
+/** 258 → "4:18"; "" for none (0 means unknown). */
 export function formatSeconds(seconds: number | null | undefined): string {
-  if (seconds == null || seconds < 0) return ''
+  if (!seconds || seconds < 0) return ''
   const m = Math.floor(seconds / 60)
   const s = Math.floor(seconds % 60)
   return `${m}:${String(s).padStart(2, '0')}`

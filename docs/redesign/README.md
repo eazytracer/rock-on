@@ -34,6 +34,8 @@ screen in this codebase's own React / Tailwind / repository patterns.
 8. [08-api-conventions.md](08-api-conventions.md) — how operations are exposed to web and Flutter.
 9. [09-design-review-songs.md](09-design-review-songs.md) — the song editing review (decided, see 10).
 10. [10-song-page-and-setlist-nav.md](10-song-page-and-setlist-nav.md) — **build brief:** the song page (0.9.1) and setlist navigation (Phase 3), plus the caret / swap icon rule.
+11. [11-jam.md](11-jam.md) — **build brief (draft, Nov 16):** Phase 7 Jam, slices 7a–7d and open questions. Not next: the plan order stands (Phase 5 next).
+12. [12-tools-and-chart.md](12-tools-and-chart.md) — **build brief (draft, Nov 16):** Phase 5 Tools and chart, slices 5a–5g and open questions.
 
 ## Rules that apply to every phase
 

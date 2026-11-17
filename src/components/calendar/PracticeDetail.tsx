@@ -1,99 +1,152 @@
 /**
- * The practice (Practice 1, FP 5). Status comes from the time, never a field.
- * Focus edits in place; songs show every link as a labelled button and the
- * note for this practice. Start practice session is docked. Used full page
- * (`/practices/:id`) and in the desktop calendar's detail pane.
+ * The practice (Practice 1, FP 5), edited in place like a setlist with a few
+ * more fields: name, date, start, end, where and focus save as you go, and the
+ * songs drag by the grip, × out, and each takes a note for this practice. New
+ * practice is this page blank: the first change creates it. Status comes from
+ * the time, never a field. Start practice session is docked. Used full page
+ * (`/practices/:id`, `/practices/new`) and in the desktop calendar's pane.
  */
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import {
-  CalendarDays,
-  Clock,
   Copy,
-  Hash,
-  Home,
+  Maximize2,
   MoreHorizontal,
   Pencil,
-  Play,
   Plus,
-  StickyNote,
+  Play,
   Trash2,
-  Activity,
 } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../hooks/useConfirm'
-import { usePracticePage } from '../../hooks/useCalendar'
+import {
+  createPractice,
+  duplicatePractice,
+  usePracticePage,
+} from '../../hooks/useCalendar'
 import { ConfirmDialog } from '../common/ConfirmDialog'
+import { DatePicker } from '../common/DatePicker'
+import { TimePickerDropdown } from '../common/TimePickerDropdown'
 import { MarkdownRenderer } from '../notes/MarkdownRenderer'
-import { Button, Sheet, SheetItem, TuningPill, TypeLabel } from '../ui'
+import { Button, Sheet, SheetItem, TypeLabel } from '../ui'
 import { NotesSheet } from '../setlists/SetlistSheets'
-import { linkGlyph } from '../songs/linkGlyphs'
+import { EndPicker } from './EndPicker'
+import { PracticeSongRows } from './PracticeSongRows'
+import { AddSongsRow } from '../setlists/SongBrowser'
 import { repository } from '../../services/data/RepositoryFactory'
 import { errorText } from '../../services/api/errors'
 import {
   countdown,
+  defaultPracticeDate,
   hoursMinutes,
   practiceStatus,
   practiceTitle,
-  untilLine,
 } from '../../domain/calendar'
-import { songLength } from '../../domain/setlist'
-import { showKey } from '../../domain/format'
-import type { ReferenceLink } from '../../types'
+import {
+  formatDateForInput,
+  formatTime12Hour,
+  parseDateInputAsLocal,
+  parseTime12Hour,
+} from '../../utils/dateHelpers'
+import type { PracticeSession } from '../../models/PracticeSession'
 import { createLogger } from '../../utils/logger'
 
 const log = createLogger('PracticeDetail')
 
+const label =
+  'block font-mono text-[10.5px] font-medium uppercase tracking-[.12em] text-ink-3 mb-1.5'
+const input =
+  'w-full h-11 px-3.5 rounded-xl bg-bg-3 text-[15px] text-ink-1 placeholder:text-ink-4 outline-none focus:shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))]'
 const groupLabel =
   'flex items-center px-3 pt-4 pb-2 font-mono text-[10.5px] font-medium uppercase tracking-[.12em] text-ink-3'
 const card = 'rounded-[20px] bg-bg-2 shadow-group'
 
-const LINK_NAMES: Record<string, string> = {
-  spotify: 'Spotify',
-  youtube: 'YouTube',
-  tabs: 'Tabs',
-  lyrics: 'Lyrics',
-  soundcloud: 'SoundCloud',
-  drive: 'Drive',
-  dropbox: 'Dropbox',
-}
-
-/** One link as a labelled tile (glyph above the service name). */
-const LinkTile: React.FC<{ link: ReferenceLink }> = ({ link }) => {
-  const g = linkGlyph(link)
-  return (
-    <a
-      href={link.url}
-      target="_blank"
-      rel="noreferrer"
-      onClick={e => e.stopPropagation()}
-      className="flex flex-col items-center justify-center gap-0.5 min-w-[60px] h-11 px-2 rounded-xl bg-bg-3 text-[10.5px] font-semibold text-ink-2 [&_svg]:w-4 [&_svg]:h-4"
-      data-testid={`practice-link-${link.icon}`}
-    >
-      <span className={g.tone}>{g.icon}</span>
-      {LINK_NAMES[link.icon] ?? (link.description || g.name)}
-    </a>
-  )
-}
-
-export const PracticeDetail: React.FC<{
-  practiceId: string
+export interface PracticeDetailProps {
+  /** null = a new, blank practice. */
+  practiceId: string | null
+  bandId: string
   variant: 'page' | 'pane'
+  /** The blank practice was saved for the first time. */
+  onCreated: (practiceId: string) => void
+  /** Deleted: leave the page / clear the pane. */
   onGone: () => void
-}> = ({ practiceId, variant, onGone }) => {
+  /** Open the song browser (the page shows it; the pane opens the page). */
+  onAddSongs: (practiceId: string | null) => void
+}
+
+export const PracticeDetail: React.FC<PracticeDetailProps> = ({
+  practiceId,
+  bandId,
+  variant,
+  onCreated,
+  onGone,
+  onAddSongs,
+}) => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { currentUser } = useAuth()
   const { showToast } = useToast()
   const { confirm, dialogProps } = useConfirm()
-  const { practice, songsById, loading, error, save } =
-    usePracticePage(practiceId)
+  const {
+    practice: saved,
+    songsById,
+    loading,
+    error,
+    save: update,
+  } = usePracticePage(practiceId)
   const [sheet, setSheet] = useState<
     null | 'menu' | 'focus' | { note: number }
   >(null)
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null)
+  const [creating, setCreating] = useState(false)
   const now = useMemo(() => new Date(), [])
+  const draftDate = useMemo(() => defaultPracticeDate(now), [now])
 
-  if (loading) return <div className="h-64" data-testid="practice-loading" />
-  if (error || !practice)
+  // A blank practice reads like one with defaults until it's saved.
+  const practice: PracticeSession =
+    saved ??
+    ({
+      id: '',
+      bandId,
+      name: '',
+      scheduledDate: draftDate,
+      duration: 120,
+      location: '',
+      notes: '',
+      songs: [],
+    } as unknown as PracticeSession)
+  const isNew = !practiceId
+
+  const fail = (what: string) => (err: unknown) => {
+    log.error(what, err)
+    showToast(errorText(err), 'error')
+  }
+
+  /** Save fields; the first save of a blank practice creates it. */
+  const save = async (patch: Partial<PracticeSession>) => {
+    if (!isNew) return update(patch).catch(fail('Save practice failed'))
+    if (creating) return
+    setCreating(true)
+    try {
+      const id = await createPractice(bandId, currentUser?.id, {
+        scheduledDate: draftDate,
+        ...patch,
+      })
+      void queryClient.invalidateQueries({ queryKey: ['practices'] })
+      void queryClient.invalidateQueries({ queryKey: ['calendar'] })
+      onCreated(id)
+    } catch (err) {
+      fail('Create practice failed')(err)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  if (!isNew && loading)
+    return <div className="h-64" data-testid="practice-loading" />
+  if (!isNew && (error || !saved))
     return (
       <div className="py-16 text-center" data-testid="practice-missing">
         <b className="block text-lg text-ink-1 mb-1">
@@ -105,7 +158,7 @@ export const PracticeDetail: React.FC<{
     )
 
   const at = new Date(practice.scheduledDate)
-  const minutes = practice.duration || 0
+  const minutes = practice.duration || 120
   const status = practiceStatus(at, minutes, now)
   const title = practiceTitle(practice.name, at)
   const page = variant === 'page'
@@ -116,13 +169,18 @@ export const PracticeDetail: React.FC<{
         60000
       : null
   const reached = practice.songs.filter(s => s.status === 'completed').length
+  const total = Math.round(
+    practice.songs.reduce(
+      (t, ps) => t + (songsById.get(ps.songId)?.duration ?? 0),
+      0
+    ) / 60
+  )
+  const over = total > minutes
 
-  const fail = (what: string) => (err: unknown) => {
-    log.error(what, err)
-    showToast(errorText(err), 'error')
-  }
-
-  const edit = (q = '') => navigate(`/practices/${practice.id}/edit${q}`)
+  const setWhen = (dateStr: string, time: string) =>
+    void save({
+      scheduledDate: parseTime12Hour(time, parseDateInputAsLocal(dateStr)),
+    })
 
   const remove = async () => {
     setSheet(null)
@@ -137,6 +195,7 @@ export const PracticeDetail: React.FC<{
     if (!ok) return
     try {
       await repository.deletePracticeSession(practice.id)
+      void queryClient.invalidateQueries({ queryKey: ['calendar'] })
       showToast(`Deleted ${title}`, 'success')
       onGone()
     } catch (err) {
@@ -144,99 +203,128 @@ export const PracticeDetail: React.FC<{
     }
   }
 
+  const duplicate = async () => {
+    setSheet(null)
+    try {
+      const id = await duplicatePractice(practice.id, currentUser?.id)
+      void queryClient.invalidateQueries({ queryKey: ['calendar'] })
+      showToast(`Duplicated ${title}, a week later`, 'success')
+      navigate(`/practices/${id}`)
+    } catch (err) {
+      fail('Duplicate practice failed')(err)
+    }
+  }
+
   const saveNote = (i: number, notes: string) =>
     void save({
       songs: practice.songs.map((s, j) => (j === i ? { ...s, notes } : s)),
-    }).catch(fail('Save note failed'))
+    })
 
-  const kicker =
-    status === 'done'
+  const kicker = isNew
+    ? 'New · saves as you go'
+    : status === 'done'
       ? `Done · ${countdown(at, now).replace('Tonight', 'today')}`
       : status === 'now'
         ? 'Now'
         : `Upcoming · ${countdown(at, now).replace('Tonight', 'today')}`
 
+  // Full page: docked above the tab bar on phones, after the songs from
+  // tablet up. Pane: under the title, so it's in view without scrolling.
+  const startButton = !isNew && status !== 'done' && (
+    <div
+      className={
+        page ? 'fixed inset-x-4 bottom-[104px] z-30 md:static md:mt-6' : 'mt-4'
+      }
+    >
+      <Button
+        variant="primary"
+        size="lg"
+        fullWidth
+        icon={<Play size={18} className="fill-current" />}
+        onClick={() => navigate(`/practices/${practice.id}/session`)}
+        disabled={practice.songs.length === 0}
+        className="shadow-float md:shadow-none"
+        data-testid="practice-start-session"
+      >
+        Start practice session
+      </Button>
+    </div>
+  )
+
   return (
     <div
       data-testid="practice-detail"
-      data-practice-id={practice.id}
-      data-status={status}
+      data-practice-id={practice.id || undefined}
+      data-status={isNew ? 'new' : status}
     >
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <p className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[.12em] mb-1.5">
-            {status === 'done' ? (
-              <TypeLabel type="practice" />
+            {status === 'done' || isNew ? (
+              <>
+                <TypeLabel type="practice" />
+                <span className="text-ink-3">·</span>
+              </>
             ) : (
               <span className="w-1.5 h-1.5 rounded-full bg-accent" />
             )}
             <span
-              className={status === 'done' ? 'text-ink-3' : 'text-accent-ink'}
+              className={
+                status === 'done' || isNew ? 'text-ink-3' : 'text-accent-ink'
+              }
               data-testid="practice-kicker"
             >
               {kicker}
             </span>
           </p>
-          <h1
-            className={`font-display font-extrabold uppercase leading-[.95] text-ink-1 ${
-              page ? 'text-[44px] md:text-[50px]' : 'text-[34px]'
-            }`}
-            data-testid="practice-title"
-          >
-            {title}
-          </h1>
+          <NameInput
+            name={practice.name ?? ''}
+            fallback={practiceTitle(null, at)}
+            big={page}
+            onCommit={name => void save({ name })}
+          />
         </div>
-        <button
-          type="button"
-          aria-label="Practice menu"
-          onClick={e => {
-            const r = e.currentTarget.getBoundingClientRect()
-            setMenuAt({ x: r.right - 288, y: r.bottom + 8 })
-            setSheet('menu')
-          }}
-          className="grid place-items-center w-10 h-10 rounded-full bg-bg-2 text-ink-2 shrink-0"
-          data-testid="practice-menu"
-        >
-          <MoreHorizontal size={18} />
-        </button>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => edit()}
-        className={
-          card +
-          ' block w-full mt-4 divide-y divide-divider text-left overflow-hidden'
-        }
-        data-testid="practice-when"
-      >
-        <span className="flex items-center gap-3 px-4 py-3">
-          <CalendarDays size={18} className="text-ink-3 shrink-0" />
-          <span>
-            <b className="block text-[15px] text-ink-1">
-              {at.toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-              })}{' '}
-              ·{' '}
-              {at.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-              })}
-            </b>
-            <small className="block text-[12.5px] text-ink-3">
-              {untilLine(at, minutes)}
-            </small>
-          </span>
-        </span>
-        {practice.location && (
-          <span className="flex items-center gap-3 px-4 py-3">
-            <Home size={18} className="text-ink-3 shrink-0" />
-            <b className="text-[15px] text-ink-1">{practice.location}</b>
+        {!page && !isNew && (
+          <button
+            type="button"
+            onClick={() => navigate(`/practices/${practice.id}`)}
+            className="shrink-0 h-10 px-3.5 rounded-full bg-bg-3 text-ink-1 font-semibold flex items-center gap-1.5 hover:bg-bg-4"
+            data-testid="practice-pane-open"
+          >
+            <Maximize2 size={15} /> Open
+          </button>
+        )}
+        {page && (
+          <span className="hidden md:block shrink-0">
+            <Button
+              variant="primary"
+              size="md"
+              icon={<Plus size={17} />}
+              onClick={() => onAddSongs(practice.id || null)}
+              className="h-11"
+              data-testid="practice-header-add-songs"
+            >
+              Add songs
+            </Button>
           </span>
         )}
-      </button>
+        {!isNew && (
+          <button
+            type="button"
+            aria-label="Practice menu"
+            onClick={e => {
+              const r = e.currentTarget.getBoundingClientRect()
+              setMenuAt({ x: r.right - 288, y: r.bottom + 8 })
+              setSheet('menu')
+            }}
+            className="grid place-items-center w-10 h-10 rounded-full bg-bg-2 text-ink-2 shrink-0"
+            data-testid="practice-menu"
+          >
+            <MoreHorizontal size={18} />
+          </button>
+        )}
+      </div>
+      {!page && startButton}
 
       {played !== null && (
         <>
@@ -254,6 +342,50 @@ export const PracticeDetail: React.FC<{
           </div>
         </>
       )}
+
+      <p className={groupLabel}>When and where</p>
+      <div
+        className={`${card} p-4 grid grid-cols-2 gap-3 ${page ? 'xl:grid-cols-4' : ''}`}
+        data-testid="practice-when"
+      >
+        <div>
+          <span className={label}>Date</span>
+          <DatePicker
+            value={formatDateForInput(at)}
+            onChange={d => d && setWhen(d, formatTime12Hour(at))}
+            name="practiceDate"
+            id="practice-date"
+            data-testid="practice-date-input"
+          />
+        </div>
+        <div>
+          <span className={label}>Start</span>
+          <TimePickerDropdown
+            value={formatTime12Hour(at)}
+            onChange={t => setWhen(formatDateForInput(at), t)}
+            name="practiceStart"
+            id="practice-start"
+            data-testid="practice-start-input"
+          />
+        </div>
+        <div>
+          <span className={label}>End</span>
+          <EndPicker
+            start={at}
+            minutes={minutes}
+            onChange={m => void save({ duration: m })}
+            className={input}
+          />
+        </div>
+        <TextField
+          id="practice-location"
+          name="practiceLocation"
+          label="Where"
+          value={practice.location ?? ''}
+          placeholder="Mike's Garage"
+          onCommit={location => void save({ location })}
+        />
+      </div>
 
       <p className={groupLabel}>
         Focus
@@ -286,132 +418,32 @@ export const PracticeDetail: React.FC<{
 
       <p className={groupLabel}>
         Songs · {practice.songs.length}
-        <button
-          type="button"
-          onClick={() => edit('?add=1')}
-          className="ml-auto text-accent-ink tracking-[.06em]"
-          data-testid="practice-add-songs"
-        >
-          + Add
-        </button>
-      </p>
-      {practice.songs.length === 0 ? (
-        <div
-          className={card + ' px-4 py-5 text-center'}
-          data-testid="practice-no-songs"
-        >
-          <p className="text-[14px] text-ink-3 mb-3">No songs yet.</p>
-          <Button icon={<Plus size={16} />} onClick={() => edit('?add=1')}>
-            Add songs
-          </Button>
-        </div>
-      ) : (
-        <div
-          className={card + ' divide-y divide-divider overflow-hidden'}
-          data-testid="practice-songs"
-        >
-          {practice.songs.map((ps, i) => {
-            const s = songsById.get(ps.songId)
-            const links = s?.referenceLinks ?? []
-            return (
-              <div
-                key={ps.songId + i}
-                className="px-4 py-3 cursor-pointer hover:bg-bg-3/40"
-                onClick={() => navigate(`/songs/${ps.songId}`)}
-                data-testid={`practice-song-${ps.songId}`}
-              >
-                <div className="flex items-baseline gap-2.5">
-                  <span className="w-4 font-mono text-[12px] text-ink-3 text-right">
-                    {i + 1}
-                  </span>
-                  <b className="flex-1 min-w-0 truncate text-[15.5px] font-semibold text-ink-1">
-                    {s?.title ?? 'Song'}
-                  </b>
-                  {ps.status === 'completed' && (
-                    <span className="font-mono text-[10.5px] uppercase text-success">
-                      Played
-                    </span>
-                  )}
-                  {ps.status === 'skipped' && (
-                    <span className="font-mono text-[10.5px] uppercase text-ink-3">
-                      Skipped
-                    </span>
-                  )}
-                </div>
-                {s && (
-                  <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1.5 pl-6 font-mono text-[12.5px] text-ink-2">
-                    {s.guitarTuning && (
-                      <TuningPill tuning={s.guitarTuning} size="sm" />
-                    )}
-                    {!!s.duration && (
-                      <span className="inline-flex items-center gap-1">
-                        <Clock size={13} className="text-ink-3" />
-                        {songLength(s.duration)}
-                      </span>
-                    )}
-                    {s.key && (
-                      <span className="inline-flex items-center gap-1">
-                        <Hash size={13} className="text-ink-3" />
-                        {showKey(s.key)}
-                      </span>
-                    )}
-                    {!!s.bpm && (
-                      <span className="inline-flex items-center gap-1">
-                        <Activity size={13} className="text-ink-3" />
-                        {s.bpm}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {links.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2 pl-6">
-                    {links.map((l, j) => (
-                      <LinkTile key={j} link={l} />
-                    ))}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={e => {
-                    e.stopPropagation()
-                    setSheet({ note: i })
-                  }}
-                  className={`flex items-start gap-2 mt-2 ml-6 text-left text-[13.5px] ${
-                    ps.notes ? 'text-ink-2' : 'text-ink-4'
-                  }`}
-                  data-testid="practice-song-note"
-                >
-                  <StickyNote size={14} className="mt-0.5 shrink-0" />
-                  {ps.notes || 'Note for this practice'}
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {status !== 'done' && (
-        <div
-          className={
-            page
-              ? 'fixed inset-x-4 bottom-[104px] z-30 md:static md:mt-6'
-              : 'mt-6'
-          }
-        >
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            icon={<Play size={18} className="fill-current" />}
-            onClick={() => navigate(`/practices/${practice.id}/session`)}
-            disabled={practice.songs.length === 0}
-            className="shadow-float md:shadow-none"
-            data-testid="practice-start-session"
+        {practice.songs.length > 0 && (
+          <span
+            className={`ml-1.5 ${over ? 'text-warn' : ''}`}
+            data-testid="practice-songs-total"
+            data-over={over || undefined}
           >
-            Start practice session
-          </Button>
-        </div>
+            · {total} of {minutes} min
+          </span>
+        )}
+      </p>
+      {practice.songs.length > 0 && (
+        <PracticeSongRows
+          songs={practice.songs}
+          songsById={songsById}
+          onChange={songs => void save({ songs })}
+          onOpenSong={id => navigate(`/songs/${id}`)}
+          onNote={i => setSheet({ note: i })}
+        />
       )}
+      <AddSongsRow
+        onClick={() => onAddSongs(practice.id || null)}
+        className={practice.songs.length ? 'mt-3' : ''}
+        data-testid="practice-add-songs"
+      />
+
+      {page && startButton}
 
       {sheet === 'menu' && (
         <Sheet
@@ -422,17 +454,10 @@ export const PracticeDetail: React.FC<{
         >
           <div role="menu" className="pb-1">
             <SheetItem
-              icon={<Pencil size={18} />}
-              label="Edit"
-              hint="Time, place and songs"
-              onClick={() => edit()}
-              data-testid="practice-menu-edit"
-            />
-            <SheetItem
               icon={<Copy size={18} />}
               label="Duplicate"
-              hint="Same songs and place, next week by default"
-              onClick={() => navigate(`/practices/new?from=${practice.id}`)}
+              hint="Same songs and place, a week later"
+              onClick={duplicate}
               data-testid="practice-menu-duplicate"
             />
             <SheetItem
@@ -451,7 +476,7 @@ export const PracticeDetail: React.FC<{
           sub={title}
           value={practice.notes ?? ''}
           markdown
-          onSave={v => void save({ notes: v }).catch(fail('Save focus failed'))}
+          onSave={v => void save({ notes: v })}
           onClose={() => setSheet(null)}
           data-testid="practice-focus-sheet"
         />
@@ -468,6 +493,68 @@ export const PracticeDetail: React.FC<{
         />
       )}
       <ConfirmDialog {...dialogProps} />
+    </div>
+  )
+}
+
+/** The title is the name, edited in place; empty falls back to the date. */
+const NameInput: React.FC<{
+  name: string
+  fallback: string
+  big: boolean
+  onCommit: (name: string) => void
+}> = ({ name, fallback, big, onCommit }) => {
+  const [v, setV] = useState(name)
+  useEffect(() => setV(name), [name])
+  return (
+    <input
+      name="practiceName"
+      id="practice-name"
+      aria-label="Practice name"
+      data-testid="practice-name-input"
+      value={v}
+      placeholder={fallback}
+      onChange={e => setV(e.target.value)}
+      onBlur={() => v.trim() !== name && onCommit(v.trim())}
+      onKeyDown={e =>
+        e.key === 'Enter' && (e.target as HTMLInputElement).blur()
+      }
+      className={`w-full bg-transparent font-display font-extrabold uppercase leading-[.95] text-ink-1 placeholder:text-ink-3 outline-none ${
+        big ? 'text-[44px] md:text-[50px]' : 'text-[34px]'
+      }`}
+    />
+  )
+}
+
+/** A text field that saves when you leave it (or press Enter). */
+const TextField: React.FC<{
+  id: string
+  name: string
+  label: string
+  value: string
+  placeholder?: string
+  onCommit: (value: string) => void
+}> = ({ id, name, label: text, value, placeholder, onCommit }) => {
+  const [v, setV] = useState(value)
+  useEffect(() => setV(value), [value])
+  return (
+    <div>
+      <label htmlFor={id} className={label}>
+        {text}
+      </label>
+      <input
+        id={id}
+        name={name}
+        data-testid={`${id}-input`}
+        value={v}
+        placeholder={placeholder}
+        onChange={e => setV(e.target.value)}
+        onBlur={() => v.trim() !== value && onCommit(v.trim())}
+        onKeyDown={e =>
+          e.key === 'Enter' && (e.target as HTMLInputElement).blur()
+        }
+        className={input}
+      />
     </div>
   )
 }

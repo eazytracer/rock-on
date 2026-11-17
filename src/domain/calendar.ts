@@ -3,6 +3,7 @@
  * list), titles that fall back sensibly, the countdown word, and the show
  * page's small rules (draft, pay, the set copy's line). No I/O.
  */
+import type { SessionSong } from '../types'
 
 export type AgendaType = 'show' | 'practice' | 'jam'
 export type AgendaFilter = 'all' | AgendaType
@@ -281,4 +282,18 @@ export function weekLater(at: Date): Date {
   const d = new Date(at)
   d.setDate(d.getDate() + 7)
   return d
+}
+
+/** A song as it goes into a practice: not started, keeping its practice note. */
+export function freshPracticeSong(songId: string, notes?: string): SessionSong {
+  return {
+    songId,
+    timeSpent: 0,
+    status: 'not-started',
+    notes,
+    sectionsWorked: [],
+    improvements: [],
+    needsWork: [],
+    memberRatings: [],
+  }
 }

@@ -1,8 +1,9 @@
 /**
  * Sheets for the song list: the hold / right-click menu, View options, Sort,
- * and Add to setlist.
+ * and Add to….
  */
-import React from 'react'
+import React, { useMemo, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ExternalLink,
   ListPlus,
@@ -20,16 +21,31 @@ import {
   ArrowDown,
   Check,
   Plus,
+  ListMusic,
 } from 'lucide-react'
 import type { Song } from '../../models/Song'
 import { Sheet, SheetItem, Segmented, Switch, TuningPill } from '../ui'
 import { formatSeconds } from '../../domain/format'
-import { SORT_LABELS, type ListView, type SortField } from '../../domain/songs'
 import {
-  useSetlists,
-  usePersonalSetlists,
-  useAddSetlistItem,
-} from '../../hooks/useSetlists'
+  SORT_KINDS,
+  SORT_LABELS,
+  type ListView,
+  type SortField,
+} from '../../domain/songs'
+import { defaultDir } from '../../domain/sort'
+import { useSetlistIndex } from '../../hooks/useSetlists'
+import {
+  addSongsToSetlist,
+  removeSetlistItem,
+} from '../../services/api/setlists'
+import { repository } from '../../services/data/RepositoryFactory'
+import { queryKeys } from '../../services/queryClient'
+import {
+  freshPracticeSong,
+  practiceStatus,
+  practiceTitle,
+} from '../../domain/calendar'
+import { formatShowDate } from '../../utils/dateHelpers'
 import { useToast } from '../../contexts/ToastContext'
 import { createLogger } from '../../utils/logger'
 
@@ -105,7 +121,7 @@ export const SongMenu: React.FC<SongMenuProps> = ({
         {onAddToSet && (
           <SheetItem
             icon={<ListPlus />}
-            label="Add to setlist"
+            label="Add to…"
             onClick={run(onAddToSet)}
             data-testid="add-to-setlist-button"
           />
@@ -251,7 +267,7 @@ export const ViewOptionsSheet: React.FC<{
   </Sheet>
 )
 
-const SORTS: SortField[] = ['title', 'artist', 'newest', 'oldest', 'nextShow']
+const SORTS: SortField[] = ['title', 'artist', 'added', 'nextShow']
 
 export const SortSheet: React.FC<{
   view: ListView
@@ -263,7 +279,6 @@ export const SortSheet: React.FC<{
     <div role="menu" className="divide-y divide-divider md:divide-y-0 pb-1">
       {SORTS.filter(f => f !== 'nextShow' || canNextShow).map(f => {
         const on = view.sort === f
-        const directional = f === 'title' || f === 'artist' || f === 'nextShow'
         return (
           <SheetItem
             key={f}
@@ -275,17 +290,8 @@ export const SortSheet: React.FC<{
               )
             }
             label={SORT_LABELS[f]}
-            hint={
-              on && directional
-                ? view.dir === 'asc'
-                  ? 'A → Z'
-                  : 'Z → A'
-                : undefined
-            }
             onClick={() =>
-              on && directional
-                ? onChange({ dir: view.dir === 'asc' ? 'desc' : 'asc' })
-                : onChange({ sort: f, dir: 'asc' })
+              onChange(on ? {} : { sort: f, dir: defaultDir(SORT_KINDS[f]) })
             }
             data-testid={`song-sort-option-${f}`}
           />
@@ -299,71 +305,191 @@ export function SortIcon({ dir }: { dir: 'asc' | 'desc' }) {
   return dir === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
 }
 
-/** Setlists of the song's own context; tap one to append the song. */
-export const AddToSetlistSheet: React.FC<{
+/**
+ * Add to…: the setlists of the song's own context and, for a band song, the
+ * band's upcoming practices. Tap one to put the song in or take it out (the
+ * check, as in Add songs); new setlists start with the song.
+ */
+export const AddToSheet: React.FC<{
   song: Song
   onClose: () => void
   onNewSetlist: () => void
 }> = ({ song, onClose, onNewSetlist }) => {
   const isBand = song.contextType === 'band'
-  const band = useSetlists(isBand ? song.contextId : '')
-  const mine = usePersonalSetlists(isBand ? '' : song.contextId)
-  const { setlists, loading } = isBand ? band : mine
-  const { addItem } = useAddSetlistItem()
+  const { rows: setlists, loading } = useSetlistIndex(
+    isBand ? 'band' : 'personal',
+    song.contextId
+  )
+  const practicesQuery = useQuery({
+    queryKey: queryKeys.practices.band(song.contextId),
+    queryFn: () => repository.getPracticeSessions(song.contextId),
+    enabled: isBand,
+  })
+  const practices = useMemo(() => {
+    const now = new Date()
+    return (practicesQuery.data ?? [])
+      .filter(
+        p =>
+          p.status !== 'cancelled' &&
+          practiceStatus(new Date(p.scheduledDate), p.duration, now) !== 'done'
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.scheduledDate).getTime() -
+          new Date(b.scheduledDate).getTime()
+      )
+  }, [practicesQuery.data])
+  const queryClient = useQueryClient()
   const { showToast } = useToast()
+  // Toggled here, until the refetch catches up.
+  const [on, setOn] = useState<Record<string, boolean>>({})
+  const [busy, setBusy] = useState(false)
 
-  const add = async (id: string, name: string) => {
+  const toggle = async (
+    key: string,
+    next: boolean,
+    op: () => Promise<unknown>
+  ) => {
+    if (busy) return
+    setBusy(true)
     try {
-      await addItem(id, { type: 'song', songId: song.id })
-      showToast(`Added to ${name}`, 'success')
-      onClose()
+      await op()
+      setOn(o => ({ ...o, [key]: next }))
     } catch (err) {
-      log.error('Failed to add to setlist', err)
-      showToast("Couldn't add it. Try again.", 'error')
+      log.error('Add to failed', err)
+      showToast("Couldn't change it. Try again.", 'error')
+    } finally {
+      setBusy(false)
+      void queryClient.invalidateQueries({ queryKey: ['setlists'] })
+      void queryClient.invalidateQueries({ queryKey: ['practices'] })
+      void queryClient.invalidateQueries({ queryKey: ['calendar'] })
     }
   }
+
+  const row = (
+    key: string,
+    icon: React.ReactNode,
+    label: string,
+    hint: string,
+    has: boolean,
+    onToggle: () => void,
+    testId: string
+  ) => (
+    <button
+      key={key}
+      type="button"
+      onClick={onToggle}
+      disabled={busy}
+      aria-pressed={has}
+      data-testid={testId}
+      data-in-set={has || undefined}
+      className="group w-full flex items-center gap-3 min-h-[52px] md:min-h-[44px] px-2.5 rounded-xl text-left hover:bg-bg-3 [&>svg]:w-[19px] [&>svg]:h-[19px] [&>svg]:shrink-0 [&>svg]:text-ink-3"
+    >
+      {icon}
+      <span className="flex-1 min-w-0">
+        <span className="block truncate text-[15.5px] md:text-[14px] font-semibold text-ink-1">
+          {label}
+        </span>
+        <span className="block truncate font-mono text-[10.5px] tracking-[.08em] uppercase text-ink-3">
+          {hint}
+        </span>
+      </span>
+      <span
+        className={`w-7 h-7 shrink-0 grid place-items-center rounded-full ${
+          has
+            ? 'bg-accent text-on-accent'
+            : 'ring-[1.5px] ring-inset ring-border-1 text-ink-3 group-hover:text-ink-1 group-hover:ring-ink-3'
+        }`}
+      >
+        {has ? <Check size={15} strokeWidth={3} /> : <Plus size={15} />}
+      </span>
+    </button>
+  )
+
+  const label = (text: string) => (
+    <p className="px-2.5 pt-3 pb-1 font-mono text-[10.5px] tracking-[.14em] uppercase text-ink-3">
+      {text}
+    </p>
+  )
 
   return (
     <Sheet
       onClose={onClose}
-      title="Add to setlist"
+      title="Add to…"
       sub={song.title}
       data-testid="add-to-setlist-sheet"
     >
-      <div className="divide-y divide-divider max-h-[50vh] overflow-y-auto custom-scrollbar-thin">
-        {loading && <p className="px-1 py-4 text-sm text-ink-3">Loading…</p>}
+      <div className="max-h-[55vh] overflow-y-auto custom-scrollbar-thin">
+        {label('Setlists')}
+        {loading && <p className="px-2.5 py-3 text-sm text-ink-3">Loading…</p>}
         {!loading && setlists.length === 0 && (
-          <p className="px-1 py-4 text-sm text-ink-3">No setlists yet.</p>
+          <p className="px-2.5 py-3 text-sm text-ink-3">No setlists yet.</p>
         )}
         {setlists.map(sl => {
-          const has = sl.items?.some(
-            i => i.type === 'song' && i.songId === song.id
+          const has = on[sl.id] ?? sl.songs.some(s => s.id === song.id)
+          const count = `${sl.songs.length} ${sl.songs.length === 1 ? 'song' : 'songs'}`
+          return row(
+            sl.id,
+            <ListMusic />,
+            sl.name,
+            sl.showId
+              ? `${count} · Show set · ${sl.showName || 'show'}`
+              : count,
+            has,
+            () =>
+              void toggle(sl.id, !has, async () => {
+                if (!has) return addSongsToSetlist(sl.id, [song.id], null)
+                const item = (await repository.getSetlist(sl.id))?.items?.find(
+                  i => i.type === 'song' && i.songId === song.id
+                )
+                if (item) await removeSetlistItem(sl.id, item.id)
+              }),
+            `add-to-setlist-${sl.id}`
           )
-          const count = sl.items?.filter(i => i.type === 'song').length ?? 0
-          return (
-            <SheetItem
-              key={sl.id}
-              icon={<ListPlus />}
-              label={sl.name}
-              hint={has ? 'Already in it' : `${count} songs`}
-              disabled={has}
-              onClick={() => add(sl.id, sl.name)}
-              data-testid={`add-to-setlist-${sl.id}`}
-            />
+        })}
+        {practices.length > 0 && label('Upcoming practices')}
+        {practices.map(p => {
+          const at = new Date(p.scheduledDate)
+          const has = on[p.id] ?? p.songs.some(s => s.songId === song.id)
+          return row(
+            p.id,
+            <CalendarDays />,
+            practiceTitle(p.name, at),
+            `${formatShowDate(at)} · ${p.songs.length} ${p.songs.length === 1 ? 'song' : 'songs'}`,
+            has,
+            () =>
+              void toggle(p.id, !has, () =>
+                repository.updatePracticeSession(p.id, {
+                  songs: has
+                    ? p.songs.filter(s => s.songId !== song.id)
+                    : [...p.songs, freshPracticeSong(song.id)],
+                })
+              ),
+            `add-to-practice-${p.id}`
           )
         })}
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          onClose()
-          onNewSetlist()
-        }}
-        className="mt-3 mb-1 w-full h-12 rounded-full bg-bg-3 text-ink-1 font-bold flex items-center justify-center gap-2"
-        data-testid="add-to-setlist-new"
-      >
-        <Plus size={18} /> New setlist
-      </button>
+      <div className="flex gap-2.5 mt-3 mb-1">
+        <button
+          type="button"
+          onClick={() => {
+            onClose()
+            onNewSetlist()
+          }}
+          className="flex-1 h-12 rounded-full bg-bg-3 text-ink-1 font-bold flex items-center justify-center gap-2"
+          data-testid="add-to-setlist-new"
+        >
+          <Plus size={18} /> New setlist
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 h-12 rounded-full bg-accent text-on-accent font-bold"
+          data-testid="add-to-done"
+        >
+          Done
+        </button>
+      </div>
     </Sheet>
   )
 }

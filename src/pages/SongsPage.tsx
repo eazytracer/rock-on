@@ -11,7 +11,6 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
-  ArrowUpDown,
   Music2,
   SearchX,
   X,
@@ -41,7 +40,7 @@ import {
   ViewOptionsSheet,
   SortSheet,
   SortIcon,
-  AddToSetlistSheet,
+  AddToSheet,
 } from '../components/songs/SongSheets'
 import {
   Button,
@@ -51,16 +50,19 @@ import {
   RetryCard,
   Sheet,
   SkeletonRow,
+  SortControl,
   TuningPill,
 } from '../components/ui'
 import type { Song } from '../models/Song'
 import {
+  SORT_KINDS,
   SORT_LABELS,
   catalogList,
   noteMark,
   tuningsInUse,
   usageSummary,
 } from '../domain/songs'
+import { flipDir } from '../domain/sort'
 import { songHref } from '../utils/songOrigin'
 import { songUsage } from '../services/api/songs'
 import { createLogger } from '../utils/logger'
@@ -79,6 +81,8 @@ export const SongsPage: React.FC = () => {
   const isBand = !!currentBandId
   const isDesktop = useMediaQuery('(min-width: 768px)')
   const hasPane = useMediaQuery('(min-width: 1440px)')
+  // The table's fixed columns need room for the title; narrower, use the list.
+  const isTable = useMediaQuery('(min-width: 1024px)')
 
   const band = useSongs(bandId)
   const personal = usePersonalSongs(userId)
@@ -264,7 +268,7 @@ export const SongsPage: React.FC = () => {
   const rowProps = (song: Song) => ({
     song,
     view,
-    layout: (isDesktop ? 'table' : 'list') as 'table' | 'list',
+    layout: (isTable ? 'table' : 'list') as 'table' | 'list',
     mark: noteMark(!!song.notes?.trim(), myNotes.has(song.id)),
     nextShow: nextShows.get(song.id)?.name,
     hidden: hiddenIds.has(song.id),
@@ -288,15 +292,6 @@ export const SongsPage: React.FC = () => {
     >
       <Plus size={18} /> Add song
     </Button>
-  )
-
-  const sortLabel = (
-    <>
-      {SORT_LABELS[view.sort]}
-      {(view.sort === 'title' ||
-        view.sort === 'artist' ||
-        view.sort === 'nextShow') && <SortIcon dir={view.dir} />}
-    </>
   )
 
   const list = () => {
@@ -354,13 +349,14 @@ export const SongsPage: React.FC = () => {
           data-testid="songs-no-matches"
         />
       )
-    if (isDesktop)
+    if (isTable)
       return (
         <div role="table" aria-label="Songs" data-testid="songs-table">
-          <div className="grid grid-cols-[minmax(0,1fr)_96px_52px_52px_64px_92px_72px] gap-2 pl-7 pr-4 h-10 items-center border-b border-divider font-mono text-[10.5px] tracking-[.14em] uppercase text-ink-3">
+          {/* Columns match SongLine's wide row (index.css .song-line). */}
+          <div className="flex gap-2 pl-7 pr-4 h-10 items-center border-b border-divider font-mono text-[10.5px] tracking-[.14em] uppercase text-ink-3">
             <button
               type="button"
-              className="flex items-center gap-1 text-left uppercase whitespace-nowrap"
+              className="flex-1 min-w-0 flex items-center gap-1 text-left uppercase whitespace-nowrap"
               onClick={() =>
                 setView(
                   view.sort === 'title'
@@ -372,12 +368,12 @@ export const SongsPage: React.FC = () => {
               Title{view.artist && ' · Artist'}
               {view.sort === 'title' && <SortIcon dir={view.dir} />}
             </button>
-            <span>Tuning</span>
-            <span>{view.key && 'Key'}</span>
-            <span>{view.bpm && 'BPM'}</span>
-            <span>Length</span>
-            <span>{view.links && 'Links'}</span>
-            <span />
+            <span className="w-24">Tuning</span>
+            <span className="w-16">Length</span>
+            {view.key && <span className="w-[52px]">Key</span>}
+            {view.bpm && <span className="w-[52px]">BPM</span>}
+            {view.links && <span className="w-[92px]">Links</span>}
+            <span className="w-[72px]" />
           </div>
           {visible.map(s => (
             <SongRow key={s.id} {...rowProps(s)} />
@@ -419,7 +415,7 @@ export const SongsPage: React.FC = () => {
         )}
 
         <div className="flex flex-col md:flex-row md:items-center gap-2.5 mb-4">
-          <label className="relative flex items-center md:w-[260px] md:shrink-0">
+          <label className="relative flex items-center md:w-[260px] md:min-w-[140px] md:shrink">
             <Search size={17} className="absolute left-3.5 text-ink-3" />
             <input
               type="search"
@@ -443,13 +439,14 @@ export const SongsPage: React.FC = () => {
             />
           </div>
           <div className="flex items-center gap-2 md:ml-auto">
-            <Chip
-              icon={<ArrowUpDown size={15} />}
-              onClick={() => setSheet('sort')}
-              data-testid="song-sort-trigger"
-            >
-              {sortLabel}
-            </Chip>
+            <SortControl
+              label={SORT_LABELS[view.sort]}
+              kind={SORT_KINDS[view.sort]}
+              dir={view.dir}
+              onPick={() => setSheet('sort')}
+              onFlip={() => setView({ dir: flipDir(view.dir) })}
+              testId="song-sort-trigger"
+            />
             <Chip
               icon={<SlidersHorizontal size={15} />}
               on={view.showHidden}
@@ -467,7 +464,7 @@ export const SongsPage: React.FC = () => {
         </div>
       </div>
 
-      {list()}
+      {isTable ? list() : <div className="md:px-7 lg:px-8">{list()}</div>}
 
       {!isDesktop && songs.length > 0 && addButton}
 
@@ -526,7 +523,7 @@ export const SongsPage: React.FC = () => {
         />
       )}
       {addToSet && (
-        <AddToSetlistSheet
+        <AddToSheet
           song={addToSet}
           onClose={() => setAddToSet(null)}
           onNewSetlist={() => navigate(`/setlists/new?song=${addToSet.id}`)}
