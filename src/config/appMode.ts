@@ -63,7 +63,9 @@ export function getAppMode(): AppMode {
 // In dev, point the local Supabase URL at whatever host the page was loaded
 // from (keeping its port), so the app works when opened from another machine on
 // the LAN or a phone — not only where `localhost` is the Supabase host. Remote
-// (https) Supabase URLs are left alone.
+// (https) Supabase URLs are left alone. Opened over https (the dev hostname
+// behind a TLS proxy), it uses the page's own origin, which Vite proxies to
+// Supabase (vite.config.ts), because an https page can't call http.
 export function getSupabaseUrl(): string | undefined {
   const url = import.meta.env.VITE_SUPABASE_URL
   if (
@@ -71,6 +73,7 @@ export function getSupabaseUrl(): string | undefined {
     import.meta.env.MODE === 'development' &&
     typeof window !== 'undefined'
   ) {
+    if (window.location.protocol === 'https:') return window.location.origin
     const local = new URL(url)
     local.hostname = window.location.hostname
     return local.origin

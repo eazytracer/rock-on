@@ -8,7 +8,6 @@ import {
   Settings,
   LogOut,
   HelpCircle,
-  CalendarDays,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -52,8 +51,9 @@ const Group: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 )
 
 /**
- * More (Core Navigation 8): band card with Manage band, your row (→ profile),
- * then everything outside the four main tabs.
+ * More (Core Navigation 8; trimmed per Tools on Home 4): band card with Manage
+ * band, your row (→ profile), Jam, Friends, then Settings, Help, Sign out.
+ * Events are a Calendar filter and Band members sit behind Manage band.
  */
 export function MorePage() {
   const navigate = useNavigate()
@@ -177,26 +177,12 @@ export function MorePage() {
           testid="more-jam"
         />
         <Row
-          label="Events"
-          icon={CalendarDays}
-          onClick={() => navigate('/events')}
-          testid="more-events"
-        />
-        <Row
           label="Friends"
           icon={UserPlus}
           badge={friendRequests}
           onClick={() => navigate('/friends')}
           testid="more-friends"
         />
-        {currentBandId && (
-          <Row
-            label="Band members"
-            icon={Users}
-            onClick={() => navigate('/band-members')}
-            testid="more-band"
-          />
-        )}
       </Group>
 
       <Group>

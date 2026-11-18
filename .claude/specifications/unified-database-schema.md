@@ -48,30 +48,31 @@ description: Single unified reference for ALL database operations (IndexedDB + S
 
 All tables with both naming conventions:
 
-| IndexedDB (Dexie)      | Supabase (PostgreSQL)    | Purpose                                   |
-| ---------------------- | ------------------------ | ----------------------------------------- |
-| `users`                | `users`                  | User accounts                             |
-| `userProfiles`         | `user_profiles`          | Extended user info                        |
-| `bands`                | `bands`                  | Band entities                             |
-| `bandMemberships`      | `band_memberships`       | User-band relationships                   |
-| `inviteCodes`          | `invite_codes`           | Band invitations                          |
-| `songs`                | `songs`                  | Song library                              |
-| `songGroups`           | `song_groups`            | Song variant groups                       |
-| `songGroupMemberships` | `song_group_memberships` | Song-group links                          |
-| `setlists`             | `setlists`               | Performance setlists                      |
-| `shows`                | `shows`                  | Live performances/gigs                    |
-| `practiceSessions`     | `practice_sessions`      | Practice sessions (NO gigs)               |
-| `songCastings`         | `song_castings`          | Context casting                           |
-| `songAssignments`      | `song_assignments`       | Member assignments                        |
-| `assignmentRoles`      | `assignment_roles`       | Specific roles                            |
-| `castingTemplates`     | `casting_templates`      | Reusable templates                        |
-| `memberCapabilities`   | `member_capabilities`    | Member skills                             |
-| `songPersonalNotes`    | `song_personal_notes`    | Per-user private song notes               |
-| `songNoteEntries`      | `song_note_entries`      | Band-visible practice log entries         |
-| N/A                    | `audit_log`              | Complete change history (Supabase only)   |
-| N/A                    | `jam_sessions`           | Ephemeral jam sessions (Supabase only)    |
-| N/A                    | `jam_participants`       | Jam session participants (Supabase only)  |
-| N/A                    | `jam_song_matches`       | Pre-computed song matches (Supabase only) |
+| IndexedDB (Dexie)      | Supabase (PostgreSQL)    | Purpose                                     |
+| ---------------------- | ------------------------ | ------------------------------------------- |
+| `users`                | `users`                  | User accounts                               |
+| `userProfiles`         | `user_profiles`          | Extended user info                          |
+| `bands`                | `bands`                  | Band entities                               |
+| `bandMemberships`      | `band_memberships`       | User-band relationships                     |
+| `inviteCodes`          | `invite_codes`           | Band invitations                            |
+| `songs`                | `songs`                  | Song library                                |
+| `songGroups`           | `song_groups`            | Song variant groups                         |
+| `songGroupMemberships` | `song_group_memberships` | Song-group links                            |
+| `setlists`             | `setlists`               | Performance setlists                        |
+| `shows`                | `shows`                  | Live performances/gigs                      |
+| `practiceSessions`     | `practice_sessions`      | Practice sessions (NO gigs)                 |
+| `songCastings`         | `song_castings`          | Context casting                             |
+| `songAssignments`      | `song_assignments`       | Member assignments                          |
+| `assignmentRoles`      | `assignment_roles`       | Specific roles                              |
+| `castingTemplates`     | `casting_templates`      | Reusable templates                          |
+| `memberCapabilities`   | `member_capabilities`    | Member skills                               |
+| `songPersonalNotes`    | `song_personal_notes`    | Per-user private song notes                 |
+| `songNoteEntries`      | `song_note_entries`      | Band-visible practice log entries           |
+| N/A                    | `audit_log`              | Complete change history (Supabase only)     |
+| N/A                    | `jam_sessions`           | Ephemeral jam sessions (Supabase only)      |
+| N/A                    | `jam_participants`       | Jam session participants (Supabase only)    |
+| N/A                    | `jam_song_matches`       | Pre-computed song matches (Supabase only)   |
+| N/A                    | `song_charts`            | One ChordPro chart per song (Supabase only) |
 
 ---
 
@@ -833,6 +834,41 @@ reach the source; Re-copy replaces the copy's items from the source.
 **RPCs (phase 1, `20261108120000_redesign_phase_1.sql`):** `list_my_contexts()`, `search(p_query, p_band_id,
 p_all, p_limit)`, `list_notifications(p_before, p_limit)` (activity from `audit_log` + the user's `notifications`
 rows), `mark_notifications_read(p_ids)`. Contract tests: `supabase/tests/029-context-search-notifications.test.sql`.
+
+---
+
+### song_charts (Supabase Only)
+
+**Purpose:** A song's chords and lyrics as ChordPro, plus its starting note (redesign phase 5,
+`20261119120000_redesign_phase_5.sql`). One row per song; a My Songs copy has its own row (copied once from the band
+song, decision 2). Read and written through `src/services/api/charts.ts`; the client converts chords-over-lyrics to
+ChordPro (`src/domain/chordpro.ts`) before saving.
+
+| Application    | Supabase           | Type        | Required | Default | Description                                                    |
+| -------------- | ------------------ | ----------- | -------- | ------- | -------------------------------------------------------------- |
+| N/A            | `id`               | UUID        | Yes      | auto    | PK                                                             |
+| `songId`       | `song_id`          | UUID        | Yes      | -       | UNIQUE, FK → songs (cascade)                                   |
+| `chordpro`     | `chordpro`         | TEXT        | Yes      | ''      | ChordPro text, ≤ 204800 bytes (CHECK)                          |
+| `startingNote` | `starting_note`    | SMALLINT    | No       | -       | MIDI 0–127                                                     |
+| N/A            | `created_date`     | TIMESTAMPTZ | Yes      | NOW()   |                                                                |
+| `updatedDate`  | `updated_date`     | TIMESTAMPTZ | Yes      | NOW()   | Set by `save_chart`                                            |
+| `version`      | `version`          | INTEGER     | Yes      | 1       | Bumped by `save_chart` only (the starting note doesn't)        |
+| N/A            | `last_modified_by` | UUID        | No       | -       | FK → users (set null); `get_chart` returns it as `editor_name` |
+
+**RLS:** SELECT where `can_access_song(song_id, auth.uid())`; no write policies (writes go through the RPCs).
+**Grants:** authenticated, service_role. **Audit:** `log_song_chart_audit()` writes a small `audit_log` row
+(`record_id` = song id, values = `{song_id, version}`, never the text); band songs only reach the feed
+(`song_charts:changed`).
+
+**RPCs:** `get_chart(p_song_id)`, `save_chart(p_song_id, p_chordpro, p_expected_version)` (`stale_version`,
+`chart_too_long`), `set_starting_note(p_song_id, p_note)` (`invalid_note`), `copy_linked_chart(p_song_id)`
+(`chart_exists`). `duplicate_song` and `copy_band_songs_to_personal` copy the chart.
+
+**Tunings (same migration):** `create_tuning(...)` / `update_tuning(...)` (`name_required`, `invalid_pitches`,
+`duplicate_tuning`, `stale_version`); unique index `tunings_unique_pitches` on
+(`context_type`, `context_id`, `instrument`, `string_count`, `pitches`) for customs; extended-range built-ins
+`drop-a-7`, `a-standard-7`, `drop-g-sharp-7`, `b-standard-baritone`. Contract tests:
+`supabase/tests/034-charts-and-tunings.test.sql`.
 
 ---
 

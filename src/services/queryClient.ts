@@ -51,6 +51,13 @@ export const queryKeys = {
       ['songs', 'notInCatalog', userId] as const,
   },
   listViews: (userId: string) => ['listViews', userId] as const,
+  chartPrefs: (userId: string) => ['chartPrefs', userId] as const,
+  charts: {
+    detail: (songId: string) => ['charts', 'detail', songId] as const,
+  },
+  tunings: {
+    all: (userId: string) => ['tunings', userId] as const,
+  },
   setlists: {
     band: (bandId: string) => ['setlists', 'band', bandId] as const,
     personal: (userId: string) => ['setlists', 'personal', userId] as const,

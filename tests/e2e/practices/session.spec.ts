@@ -44,6 +44,18 @@ test.describe('Practice session', () => {
         'true'
       )
       await expect(page.getByTestId('session-tune-now')).toBeVisible()
+      // Dark text on the yellow fill (the secondary variant's ink lost before).
+      const tuneNow = await page
+        .getByTestId('session-tune-now')
+        .evaluate(el => {
+          const bg = getComputedStyle(document.documentElement)
+            .getPropertyValue('--bg-0-rgb')
+            .trim()
+            .split(/\s+/)
+            .join(', ')
+          return { color: getComputedStyle(el).color, bg: `rgb(${bg})` }
+        })
+      expect(tuneNow.color).toBe(tuneNow.bg)
 
       await page.getByTestId('session-next').click()
       await expect(pos).toHaveText(/Song 2 of 3/i)

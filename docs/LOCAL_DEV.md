@@ -97,6 +97,17 @@ opened from, keeping the local port (`getSupabaseUrl()` in
 `10.10.10.30:54321` — the Supabase CLI listens on all interfaces. Remote (https)
 Supabase URLs and production builds are unaffected.
 
+**The tuner's mic needs a secure context.** Browsers only allow the microphone
+over https or on `localhost`, so over the LAN (`http://<ip>:5173`) the tuner
+shows "The tuner needs a secure connection" (reference notes and the metronome
+still work). To try the mic on a real phone, use
+**https://rockon.tnxhomelab.com**: a home-network DNS entry pointing at a TLS
+reverse proxy that forwards to this machine's :5173. Vite allows that hostname
+(`server.allowedHosts`), and over https the app calls Supabase on its own
+origin, which Vite proxies to local Supabase (`server.proxy` in
+`vite.config.ts`, `getSupabaseUrl()`), because an https page can't call
+`http://…:54321`. Another hostname needs adding to `allowedHosts`.
+
 ## Supabase lifecycle
 
 ```bash
@@ -141,6 +152,10 @@ just test-e2e    # Playwright end-to-end (needs the app + dev env too)
 For e2e specifically: `just dev` (or `just dev-host`) in one terminal, then
 `just test-e2e` in another. See `tests/README.md` for the full test-layer
 breakdown.
+
+The audio specs (`tests/e2e/tools/`: tuner with a fake mic, metronome drift)
+run in their own Chromium project: `npx playwright test --project=tools`. Their
+fake-mic WAVs come from `node scripts/make-audio-fixtures.mjs`.
 
 ## Applying migrations to production
 

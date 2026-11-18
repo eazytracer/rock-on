@@ -30,6 +30,7 @@ import { setlistStats } from '../domain/setlist'
 import { Button, PageTitle, TypeLabel, SkeletonRow } from '../components/ui'
 import type { EventType } from '../components/ui'
 import { NotificationRow } from '../components/notifications/NotificationRow'
+import { ToolsRow } from '../components/tools/ToolsRow'
 import type { Show } from '../models/Show'
 import type { PracticeSession } from '../models/PracticeSession'
 
@@ -231,6 +232,13 @@ export function HomePage() {
       />
 
       <div className="flex flex-col gap-5">
+        {/* Personal: the Tools row leads the page (Tools on Home 2). */}
+        {!hasBand && (
+          <Section title="Tools">
+            <ToolsRow />
+          </Section>
+        )}
+
         {showWalkthrough && (
           <Walkthrough
             title={
@@ -311,6 +319,13 @@ export function HomePage() {
               </>
             )}
           </div>
+        )}
+
+        {/* Band: between the practice card and Quick actions (Tools on Home 1). */}
+        {hasBand && (
+          <Section title="Tools">
+            <ToolsRow />
+          </Section>
         )}
 
         {!hasBand && !bandCardDismissed && (

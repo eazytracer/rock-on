@@ -1,20 +1,25 @@
 import { useState } from 'react'
-import { Lock, Plus, Trash2, Guitar, Music2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Lock, Plus, Trash2, Guitar, Music2, Pencil } from 'lucide-react'
 import { useTunings } from '../../hooks/useTunings'
 import { useConfirm } from '../../hooks/useConfirm'
 import { ConfirmDialog } from '../common/ConfirmDialog'
 import { useToast } from '../../contexts/ToastContext'
 import { TuningService } from '../../services/TuningService'
-import { pitchNames } from '../../utils/tunings'
-import { CreateTuningModal } from './CreateTuningModal'
+import { pitchNames, tuningColor, tuningOrderIndex } from '../../utils/tunings'
+import { customColour } from '../../domain/tuningEdit'
+import { ForkIcon } from '../setlists/SetlistStats'
+import { TuningEditor } from './TuningEditor'
 import type { Tuning } from '../../models/Tuning'
 
 function TuningRow({
   tuning,
   onDelete,
+  onEdit,
 }: {
   tuning: Tuning
   onDelete?: (t: Tuning) => void
+  onEdit?: (t: Tuning) => void
 }) {
   return (
     <div
@@ -23,7 +28,11 @@ function TuningRow({
     >
       <span
         className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-        style={{ backgroundColor: tuning.color ?? '#6b7280' }}
+        style={{
+          backgroundColor: tuning.isBuiltin
+            ? tuningColor(tuning.slug)
+            : (customColour(tuning) ?? '#6b7280'),
+        }}
         aria-hidden
       />
       <span className="flex-1 min-w-0">
@@ -41,14 +50,24 @@ function TuningRow({
           aria-label="Read-only"
         />
       ) : (
-        <button
-          onClick={() => onDelete?.(tuning)}
-          data-testid={`tuning-delete-${tuning.id}`}
-          aria-label={`Delete ${tuning.name}`}
-          className="flex-shrink-0 rounded-lg p-1.5 text-ink-5 hover:text-danger hover:bg-bg-3"
-        >
-          <Trash2 size={15} />
-        </button>
+        <>
+          <button
+            onClick={() => onEdit?.(tuning)}
+            data-testid={`tuning-edit-${tuning.id}`}
+            aria-label={`Edit ${tuning.name}`}
+            className="flex-shrink-0 rounded-lg p-1.5 text-ink-4 hover:text-ink-1 hover:bg-bg-3"
+          >
+            <Pencil size={15} />
+          </button>
+          <button
+            onClick={() => onDelete?.(tuning)}
+            data-testid={`tuning-delete-${tuning.id}`}
+            aria-label={`Delete ${tuning.name}`}
+            className="flex-shrink-0 rounded-lg p-1.5 text-ink-5 hover:text-danger hover:bg-bg-3"
+          >
+            <Trash2 size={15} />
+          </button>
+        </>
       )}
     </div>
   )
@@ -56,16 +75,25 @@ function TuningRow({
 
 /**
  * Settings › Tunings (fork #2). Built-ins are grouped by instrument and locked;
- * the user's custom tunings can be created (themed modal) and deleted (confirm).
+ * the user's custom tunings can be created and edited (the neck editor) and
+ * deleted (confirm). One Tuner shortcut in the top bar (DECISIONS).
  */
 export function TuningsSection() {
   const { builtins, customs, loading, refetch } = useTunings()
   const { confirm, dialogProps } = useConfirm()
   const { showToast } = useToast()
+  const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<Tuning | null>(null)
 
-  const guitarBuiltins = builtins.filter(t => t.instrument === 'guitar')
-  const bassBuiltins = builtins.filter(t => t.instrument === 'bass')
+  // Picker order (Standard first), as the song's tuning picker shows them.
+  const ordered = [...builtins].sort(
+    (a, b) =>
+      tuningOrderIndex(a.slug) - tuningOrderIndex(b.slug) ||
+      a.name.localeCompare(b.name)
+  )
+  const guitarBuiltins = ordered.filter(t => t.instrument === 'guitar')
+  const bassBuiltins = ordered.filter(t => t.instrument === 'bass')
 
   const handleDelete = async (t: Tuning) => {
     const ok = await confirm({
@@ -89,18 +117,27 @@ export function TuningsSection() {
       className="bg-surface-elevated rounded-lg border border-border-1 p-6"
       data-testid="settings-tunings"
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Guitar size={22} className="text-accent" />
           <h2 className="text-xl font-semibold text-ink-1">Tunings</h2>
         </div>
-        <button
-          onClick={() => setCreating(true)}
-          data-testid="tunings-new-button"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-accent-soft px-3 py-2 text-sm font-medium text-accent"
-        >
-          <Plus size={16} /> New tuning
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/tools/tuner')}
+            data-testid="settings-tunings-tuner"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-bg-3 px-3 py-2 text-sm font-medium text-ink-1"
+          >
+            <ForkIcon size={16} /> Tuner
+          </button>
+          <button
+            onClick={() => setCreating(true)}
+            data-testid="tunings-new-button"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-accent-soft px-3 py-2 text-sm font-medium text-accent"
+          >
+            <Plus size={16} /> New tuning
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -122,7 +159,12 @@ export function TuningsSection() {
                 data-testid="tunings-customs"
               >
                 {customs.map(t => (
-                  <TuningRow key={t.id} tuning={t} onDelete={handleDelete} />
+                  <TuningRow
+                    key={t.id}
+                    tuning={t}
+                    onDelete={handleDelete}
+                    onEdit={setEditing}
+                  />
                 ))}
               </div>
             )}
@@ -152,12 +194,16 @@ export function TuningsSection() {
         </div>
       )}
 
-      {creating && (
-        <CreateTuningModal
-          onClose={() => setCreating(false)}
-          onCreated={async () => {
+      {(creating || editing) && (
+        <TuningEditor
+          tuning={editing}
+          onClose={() => {
             setCreating(false)
-            await refetch()
+            setEditing(null)
+          }}
+          onSaved={() => {
+            setCreating(false)
+            setEditing(null)
           }}
         />
       )}

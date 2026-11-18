@@ -1561,6 +1561,54 @@ export type Database = {
           },
         ]
       }
+      song_charts: {
+        Row: {
+          chordpro: string
+          created_date: string
+          id: string
+          last_modified_by: string | null
+          song_id: string
+          starting_note: number | null
+          updated_date: string
+          version: number
+        }
+        Insert: {
+          chordpro?: string
+          created_date?: string
+          id?: string
+          last_modified_by?: string | null
+          song_id: string
+          starting_note?: number | null
+          updated_date?: string
+          version?: number
+        }
+        Update: {
+          chordpro?: string
+          created_date?: string
+          id?: string
+          last_modified_by?: string | null
+          song_id?: string
+          starting_note?: number | null
+          updated_date?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'song_charts_last_modified_by_fkey'
+            columns: ['last_modified_by']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'song_charts_song_id_fkey'
+            columns: ['song_id']
+            isOneToOne: true
+            referencedRelation: 'songs'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       song_group_memberships: {
         Row: {
           added_by: string
@@ -2166,6 +2214,22 @@ export type Database = {
           verb: string
         }[]
       }
+      _can_use_context: {
+        Args: { p_context_id: string; p_context_type: string }
+        Returns: boolean
+      }
+      _check_tuning: {
+        Args: {
+          p_context_id: string
+          p_context_type: string
+          p_instrument: string
+          p_name: string
+          p_pitches: number[]
+          p_self: string
+          p_string_count: number
+        }
+        Returns: string
+      }
       _jsonb_insert_at: {
         Args: { p_at: number; p_items: Json; p_new: Json }
         Returns: Json
@@ -2295,6 +2359,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _standard_tuning: {
+        Args: { p_instrument: string; p_string_count: number }
+        Returns: number[]
+      }
       add_songs_to_setlist: {
         Args: {
           p_after_item?: string
@@ -2402,11 +2470,65 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      copy_linked_chart: {
+        Args: { p_song_id: string }
+        Returns: {
+          chordpro: string
+          created_date: string
+          id: string
+          last_modified_by: string | null
+          song_id: string
+          starting_note: number | null
+          updated_date: string
+          version: number
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'song_charts'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_show: {
         Args: { p_band_id: string; p_patch: Json }
         Returns: string
       }
       create_show_set: { Args: { p_show_id: string }; Returns: string }
+      create_tuning: {
+        Args: {
+          p_color?: string
+          p_context_id: string
+          p_context_type: string
+          p_instrument: string
+          p_name: string
+          p_pitches: number[]
+          p_string_count: number
+        }
+        Returns: {
+          color: string | null
+          context_id: string | null
+          context_type: string | null
+          created_by: string | null
+          created_date: string
+          description: string | null
+          id: string
+          instrument: string
+          is_builtin: boolean
+          last_modified_by: string | null
+          name: string
+          pitches: number[]
+          slug: string | null
+          string_count: number
+          updated_date: string
+          version: number
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tunings'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_show: { Args: { p_show_id: string }; Returns: undefined }
       delete_song: { Args: { p_song_id: string }; Returns: undefined }
       duplicate_setlist: { Args: { p_setlist_id: string }; Returns: string }
@@ -2464,6 +2586,17 @@ export type Database = {
       }
       gen_event_code: { Args: never; Returns: string }
       gen_friend_code: { Args: never; Returns: string }
+      get_chart: {
+        Args: { p_song_id: string }
+        Returns: {
+          chordpro: string
+          editor_name: string
+          song_id: string
+          starting_note: number
+          updated_date: string
+          version: number
+        }[]
+      }
       get_jam_session_by_code: {
         Args: { p_code: string }
         Returns: {
@@ -2647,6 +2780,29 @@ export type Database = {
           user_id: string
         }[]
       }
+      save_chart: {
+        Args: {
+          p_chordpro: string
+          p_expected_version?: number
+          p_song_id: string
+        }
+        Returns: {
+          chordpro: string
+          created_date: string
+          id: string
+          last_modified_by: string | null
+          song_id: string
+          starting_note: number | null
+          updated_date: string
+          version: number
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'song_charts'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       search: {
         Args: {
           p_all?: boolean
@@ -2740,6 +2896,25 @@ export type Database = {
         Args: { p_confirmed: boolean; p_show_id: string }
         Returns: undefined
       }
+      set_starting_note: {
+        Args: { p_note?: number; p_song_id: string }
+        Returns: {
+          chordpro: string
+          created_date: string
+          id: string
+          last_modified_by: string | null
+          song_id: string
+          starting_note: number | null
+          updated_date: string
+          version: number
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'song_charts'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       setlist_index: {
         Args: { p_context_id: string; p_context_type: string }
         Returns: {
@@ -2782,6 +2957,39 @@ export type Database = {
       update_show: {
         Args: { p_patch: Json; p_show_id: string }
         Returns: undefined
+      }
+      update_tuning: {
+        Args: {
+          p_color?: string
+          p_expected_version?: number
+          p_name: string
+          p_pitches: number[]
+          p_tuning_id: string
+        }
+        Returns: {
+          color: string | null
+          context_id: string | null
+          context_type: string | null
+          created_by: string | null
+          created_date: string
+          description: string | null
+          id: string
+          instrument: string
+          is_builtin: boolean
+          last_modified_by: string | null
+          name: string
+          pitches: number[]
+          slug: string | null
+          string_count: number
+          updated_date: string
+          version: number
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'tunings'
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_user_activity: { Args: never; Returns: undefined }
       user_belongs_to_band: {

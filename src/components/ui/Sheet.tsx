@@ -3,7 +3,7 @@
  * card on desktop. When `at` is given on desktop it opens there instead, as a
  * context menu (right-click).
  */
-import React, { useEffect } from 'react'
+import React, { useEffect, useLayoutEffect, useRef } from 'react'
 
 export interface SheetProps {
   onClose: () => void
@@ -27,19 +27,39 @@ export const Sheet: React.FC<SheetProps> = ({
   'data-testid': testId,
 }) => {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    // preventDefault: Esc closes only this sheet, not the screen under it.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      onClose()
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
   const pop = at && window.innerWidth >= 768
+  const top = pop ? Math.max(8, Math.min(at.y, window.innerHeight - 420)) : 0
   const style: React.CSSProperties | undefined = pop
     ? {
         left: Math.max(8, Math.min(at.x, window.innerWidth - width - 12)),
-        top: Math.max(8, Math.min(at.y, window.innerHeight - 420)),
+        top,
         width,
+        // A long list scrolls inside the popover instead of running off-screen.
+        maxHeight: window.innerHeight - top - 8,
       }
     : undefined
+
+  // A popover taller than the room below its anchor moves up until it fits.
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!pop || !el) return
+    const fit = Math.max(8, window.innerHeight - 8 - el.scrollHeight)
+    if (fit < top) {
+      el.style.top = `${fit}px`
+      el.style.maxHeight = `${window.innerHeight - fit - 8}px`
+    }
+  })
 
   return (
     <div
@@ -51,6 +71,7 @@ export const Sheet: React.FC<SheetProps> = ({
       }}
     >
       <div
+        ref={ref}
         role="dialog"
         aria-modal="true"
         data-testid={testId}

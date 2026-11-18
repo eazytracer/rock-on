@@ -6,7 +6,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Grid3x3,
   ExternalLink,
   Users,
   Lock,
@@ -18,6 +17,7 @@ import {
 import type { Song } from '../../models/Song'
 import { TuningPill } from '../ui'
 import { MarkdownRenderer } from '../notes/MarkdownRenderer'
+import { ChartButton } from '../chart/ChartButton'
 import { linkGlyph } from './linkGlyphs'
 import { formatSeconds, showKey } from '../../domain/format'
 import { usePersonalNote } from '../../hooks/useNotes'
@@ -84,18 +84,11 @@ export const SongDetail: React.FC<{
       </div>
 
       <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          disabled
-          title="Coming soon"
-          className="h-11 px-4 rounded-full bg-bg-3 text-ink-3 font-bold flex items-center gap-2 cursor-not-allowed"
-          data-testid="song-chords-button"
-        >
-          <Grid3x3 size={17} /> Chords & lyrics
-          <span className="font-mono text-[10px] uppercase tracking-[.1em]">
-            Soon
-          </span>
-        </button>
+        <ChartButton
+          song={song}
+          search="?from=songs"
+          testId="songs-pane-chords-button"
+        />
       </div>
 
       <div className={SECTION}>Links</div>

@@ -11,6 +11,7 @@ export type RealtimeChangeEvent =
   | 'setlists:changed'
   | 'shows:changed'
   | 'practices:changed'
+  | 'song_charts:changed'
 
 interface RealtimeEventPayload {
   bandId?: string

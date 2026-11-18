@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Tools** (`/tools/tuner`, `/tools/metronome`, `/tools/chords`): one screen
+  with Tuner | Metronome | Chords tabs and Back; `/tools` opens the last tab
+  used. Sound comes from an in-app plucked-string synth (no sample files).
+- **Tuner**: listens through the mic (asked on Start, never on load) and shows
+  the note, a ±50 ¢ needle and chevrons that point toward the note (3 / 2 / 1,
+  one green each side in tune), "TUNE UP · 18¢". Auto-detect follows the string
+  you play, or tap a string to pick it and hear its reference; "N of 6 in tune"
+  counts strings that hold in tune. Any tuning can be picked (built-ins and the
+  context's own); Guitar / Bass switch (bass uses the matching bass tuning, or
+  the guitar tuning's four lowest strings an octave down). Strings that change
+  from the previous tuning show orange. Clear states for a blocked mic, no mic,
+  and an insecure (http) connection. Desktop keys: 1–6 string, Space hear,
+  ← → tuning. Remembers instrument, tuning and auto-detect on the device.
+- **Metronome**: big tempo with ± (hold to repeat), slider (30–260 BPM) and Tap
+  (last 4 taps); 2/4 · 3/4 · 4/4 · 6/8; 1–4 clicks per beat; tap a beat for
+  accent / normal / silent; an orange edge flash on beat 1. Clicks are
+  scheduled ahead on the audio clock, so tempo holds over long runs. Desktop
+  side panel with the next setlist's tempos; keys Space, T, ↑ ↓.
+- **Ways in**: the song page's **Tune** (on the song's tuning) and **Click
+  ‹bpm›** (loads the BPM; **Save to song** with Undo), each setlist retune
+  line's **Tune** (on the new tuning, changed strings marked), and the practice
+  session's **Tune now** / **Tune**, which open the tuner over the session so
+  the song and timer stay put.
+- **Chords** tab: pick a root (12) and a type (Major · Minor · 7 · m7) to see
+  the diagram, fingering and **Play** (a strum); the link keeps the chord
+  (`?chord=Am7`).
+- **Tools row on Home** (Tuner · Metronome · Chords, with the last tuning used
+  and the last tempo as hints): between the next practice and Quick actions in
+  a band, first on Personal. The desktop sidebar has a **Tools** group.
+- **Custom tuning editor** (the neck): Guitar 6 / 7 / 8 or Bass 4 / 5 / 6
+  strings, ↑ / ↓ per string (an octave down to 7 half steps up from standard;
+  the arrow dims at the limit), **½ step** for all strings, tap a note to hear
+  it, a name and a colour (Automatic from pitch, or one of 12). New tunings
+  start at standard; if the strings match an existing tuning it says so and
+  Save stays grey. Opens from a song's tuning picker (the new tuning comes back
+  picked), the tuner's **+ Custom** / **New tuning…**, and Settings → Tunings,
+  where custom tunings can now be edited and a **Tuner** button sits in the
+  section header. Full screen on phones, a centred panel on desktop.
+- **Chords & lyrics** (`/songs/:id/chart`, `/songs/:id/chart/edit`): a
+  reader with big Back / Next on phones, two paged columns in landscape and on
+  desktop (with the song's chord diagrams, Full screen and pedal keys: every
+  arrow, PgUp / PgDn and Space), key ± (saved per user, never on the song),
+  text size, hide chords, a chord viewer, notes, and a starting note you hear
+  with one tap (pick it on a piano; it saves as you pick). The editor takes a
+  paste in chords-over-lyrics or ChordPro and says which it found, with a live
+  preview; phones add Lyrics and Chords modes (tap a chord, tap a letter, nudge,
+  Other…) and "Chords from Verse 1". Saving checks the version, so a newer save
+  shows Show theirs / Keep mine. An empty My Songs copy offers "Copy ‹band›'s
+  chart"; the practice session's **Chart** opens the reader over the session.
+
+### Changed
+
+- Extended-range tuning pills read the way players say them: B STD⁷, A DROP⁷,
+  A STD⁷, G♯ DROP⁷, F♯ STD⁸, B STD⁵ (bass), and B STD for the 6-string
+  baritone; they take the colour of the matching 6-string shape.
+- More drops its Events row (a Calendar filter) and Band members row (the band
+  card's Manage band).
+- Custom tunings without a picked colour show an automatic colour from pitch
+  instead of grey.
+
+### Fixed
+
+- A desktop picker popover with a long list (the song's tuning picker) now
+  scrolls inside the screen instead of running off the bottom.
+
+### Database
+
+- Redesign phase 5 (`20261119120000_redesign_phase_5.sql`): `song_charts` (one
+  ChordPro chart + starting note per song, its own small audit trigger),
+  `get_chart`, `save_chart`, `set_starting_note`, `copy_linked_chart`;
+  `duplicate_song` and Copy to My Songs now copy the chart; `create_tuning` /
+  `update_tuning` (range and duplicate checks), a unique index on custom
+  tunings, four extended-range built-ins (Drop A⁷, A STD⁷, G♯ DROP⁷, baritone
+  B STD) and colours for the 7 / 8-string and bass built-ins.
+
 ## [0.11.0] - 2026-11-08
 
 Redesign phase 4 · Calendar, shows, practices.

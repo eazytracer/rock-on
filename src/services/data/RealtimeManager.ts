@@ -46,6 +46,13 @@ export type RealtimeEvents = {
     recordId: string
     userId: string
   }
+  /** recordId is the song id (one chart per song); band charts only. */
+  'song_charts:changed': {
+    bandId: string
+    action: 'INSERT' | 'UPDATE' | 'DELETE'
+    recordId: string
+    userId: string
+  }
   toast: { message: string; type: 'info' | 'success' | 'error' }
 }
 

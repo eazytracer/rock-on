@@ -38,7 +38,7 @@ import {
 } from '../../utils/tunings'
 import { Dropdown, DropdownGroup } from '../common/Dropdown'
 import { useTunings } from '../../hooks/useTunings'
-import { CreateTuningModal } from '../tunings/CreateTuningModal'
+import { TuningEditor } from '../tunings/TuningEditor'
 import { useNavigate } from 'react-router-dom'
 import { Settings2 } from 'lucide-react'
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges'
@@ -1359,9 +1359,10 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
 
       {/* Create custom tuning (from the tuning picker's "New tuning" action) */}
       {creatingTuning && (
-        <CreateTuningModal
+        <TuningEditor
+          instrument="guitar"
           onClose={() => setCreatingTuning(false)}
-          onCreated={async created => {
+          onSaved={async created => {
             setCreatingTuning(false)
             await refetchTunings()
             // Select the freshly-created tuning on this song.

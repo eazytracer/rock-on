@@ -123,7 +123,24 @@ const EventCreatePage = lazy(() =>
   }))
 )
 
+const ChartPage = lazy(() =>
+  import('./pages/ChartPage').then(module => ({ default: module.ChartPage }))
+)
+const ChartEditPage = lazy(() =>
+  import('./pages/ChartEditPage').then(module => ({
+    default: module.ChartEditPage,
+  }))
+)
+const ToolsPage = lazy(() =>
+  import('./pages/ToolsPage').then(module => ({ default: module.ToolsPage }))
+)
+
 // Dev-only pages
+const DevAudioHarnessPage = lazy(() =>
+  import('./pages/DevAudioHarnessPage').then(module => ({
+    default: module.DevAudioHarnessPage,
+  }))
+)
 const DevUIPreviewPage = lazy(() =>
   import('./pages/DevUIPreview/DevUIPreviewPage').then(module => ({
     default: module.DevUIPreviewPage,
@@ -210,6 +227,12 @@ const AppContent: React.FC = () => {
 
           {/* Dev-only preview page (no layout) */}
           <Route path="/dev/ui-preview" element={<DevUIPreviewPage />} />
+          {import.meta.env.DEV && (
+            <Route
+              path="/dev/audio-harness"
+              element={<DevAudioHarnessPage />}
+            />
+          )}
 
           {/* Public jam session view — no auth required */}
           <Route path="/jam/view/:shortCode" element={<JamViewPage />} />
@@ -228,6 +251,11 @@ const AppContent: React.FC = () => {
             <Route path="/songs" element={<SongsPage />} />
             <Route path="/songs/new" element={<SongNewPage />} />
             <Route path="/songs/:songId" element={<SongViewPage />} />
+            <Route path="/songs/:songId/chart" element={<ChartPage />} />
+            <Route
+              path="/songs/:songId/chart/edit"
+              element={<ChartEditPage />}
+            />
             <Route path="/setlists" element={<SetlistsPage />} />
             <Route path="/setlists/new" element={<SetlistViewPage />} />
             <Route path="/setlists/:setlistId" element={<SetlistViewPage />} />
@@ -266,6 +294,8 @@ const AppContent: React.FC = () => {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/jam" element={<JamSessionPage />} />
             <Route path="/jam/:sessionId" element={<JamSessionPage />} />
+            <Route path="/tools" element={<ToolsPage />} />
+            <Route path="/tools/:tab" element={<ToolsPage />} />
           </Route>
         </Routes>
       </Suspense>

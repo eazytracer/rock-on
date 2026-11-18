@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { TuningService } from '../services/TuningService'
+import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
+import { useAuth } from '../contexts/AuthContext'
 import type { Tuning } from '../models/Tuning'
-import { createLogger } from '../utils/logger'
-
-const log = createLogger('useTunings')
 
 /**
  * Tunings available to the current user for an optional instrument, sourced from
@@ -12,8 +12,10 @@ const log = createLogger('useTunings')
  * - `builtins`: the world-readable built-in tunings.
  * - `customs`: the caller's custom tunings (personal + their bands').
  *
- * `refetch` re-pulls after a create/update/delete. Offline/errored → empty lists
- * (callers fall back to the stored `guitarTuning` label for display).
+ * One cached query (`queryKeys.tunings`) for every picker, so a tuning created
+ * or edited in one place shows everywhere once the key is invalidated (or
+ * `refetch` is called). Errored → empty lists (callers fall back to the
+ * stored `guitarTuning` label for display).
  */
 export function useTunings(instrument?: 'guitar' | 'bass'): {
   builtins: Tuning[]
@@ -22,26 +24,12 @@ export function useTunings(instrument?: 'guitar' | 'bass'): {
   error: Error | null
   refetch: () => Promise<void>
 } {
-  const [all, setAll] = useState<Tuning[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  const refetch = useCallback(async () => {
-    try {
-      setLoading(true)
-      setAll(await TuningService.getAllTunings())
-      setError(null)
-    } catch (err) {
-      log.error('Error fetching tunings:', err)
-      setError(err as Error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    refetch()
-  }, [refetch])
+  const { currentUser } = useAuth()
+  const query = useQuery({
+    queryKey: queryKeys.tunings.all(currentUser?.id ?? ''),
+    queryFn: () => TuningService.getAllTunings(),
+  })
+  const all: Tuning[] = query.data ?? EMPTY_ARRAY
 
   const forInstrument = useCallback(
     (list: Tuning[]) =>
@@ -58,5 +46,16 @@ export function useTunings(instrument?: 'guitar' | 'bass'): {
     [all, forInstrument]
   )
 
-  return { builtins, customs, loading, error, refetch }
+  const { refetch: refetchQuery } = query
+  const refetch = useCallback(async () => {
+    await refetchQuery()
+  }, [refetchQuery])
+
+  return {
+    builtins,
+    customs,
+    loading: query.isLoading,
+    error: query.error as Error | null,
+    refetch,
+  }
 }

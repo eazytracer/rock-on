@@ -7,6 +7,7 @@
  * left of the rows.
  */
 import React, { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   DndContext,
   closestCenter,
@@ -34,6 +35,8 @@ import {
 } from 'lucide-react'
 import type { SetlistItem } from '../../types'
 import { BREAK_MINUTES, type EditorRow } from '../../domain/setlist'
+import { toolsHref } from '../../domain/toolsLink'
+import { songTuningParam } from '../../domain/tuner'
 import { LineNumber, SongLine } from '../songs/SongLine'
 import { TuningPill } from '../ui'
 import { ForkIcon } from './SetlistStats'
@@ -417,7 +420,7 @@ const Gutter: React.FC<{
     <>{children}</>
   )
 
-/** "RETUNE E STD → D DROP  Tune": Tune opens the tuner once it exists. */
+/** "RETUNE E STD → D DROP  Tune": Tune opens the tuner on the new tuning. */
 const RetuneLine: React.FC<{ from: string; to?: string | null }> = ({
   from,
   to,
@@ -432,15 +435,17 @@ const RetuneLine: React.FC<{ from: string; to?: string | null }> = ({
     <TuningPill tuning={from} size="sm" />
     <ArrowRight size={13} className="text-warn" />
     <TuningPill tuning={to} size="sm" />
-    <button
-      type="button"
-      disabled
-      title="The tuner arrives with Tools"
-      className="ml-1 h-8 px-3 rounded-full bg-bg-2 text-[13px] font-bold text-ink-1 flex items-center gap-1.5 disabled:opacity-60"
+    <Link
+      to={toolsHref('tuner', {
+        tuning: songTuningParam({ guitarTuning: to }),
+        prev: songTuningParam({ guitarTuning: from }),
+      })}
+      onClick={e => e.stopPropagation()}
+      className="ml-1 h-8 px-3 rounded-full bg-bg-2 text-[13px] font-bold text-ink-1 flex items-center gap-1.5 hover:bg-bg-3"
       data-testid="setlist-retune-tune"
     >
       <ForkIcon className="text-warn" /> Tune
-    </button>
+    </Link>
   </div>
 )
 

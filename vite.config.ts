@@ -22,11 +22,39 @@ export default defineConfig(({ mode }) => {
   // This allows journey/contract/integration tests to access Supabase
   const testEnv = mode === 'test' ? loadEnv('test', process.cwd(), '') : {}
 
+  // Local Supabase, for the same-origin proxy below (the container sets
+  // VITE_SUPABASE_URL to host.docker.internal; the devcontainer reads .env).
+  const supabaseTarget =
+    process.env.VITE_SUPABASE_URL ||
+    loadEnv(mode, process.cwd(), '').VITE_SUPABASE_URL ||
+    'http://127.0.0.1:54321'
+
   return {
     plugins: [react()],
     server: {
       port: 5173,
-      host: true
+      host: true,
+      // The https dev hostname (a reverse proxy on the home network → :5173),
+      // so a phone gets a secure context and the tuner's mic works.
+      allowedHosts: ['rockon.tnxhomelab.com'],
+      // Over https the page can't call http://…:54321 (mixed content), so it
+      // calls Supabase on its own origin and Vite forwards it (getSupabaseUrl).
+      proxy: Object.fromEntries(
+        [
+          '/rest/v1',
+          '/auth/v1',
+          '/storage/v1',
+          '/functions/v1',
+          '/realtime/v1',
+        ].map(p => [
+          p,
+          {
+            target: supabaseTarget,
+            changeOrigin: true,
+            ws: p === '/realtime/v1',
+          },
+        ])
+      ),
     },
     test: {
       globals: true,
@@ -38,10 +66,10 @@ export default defineConfig(({ mode }) => {
         '**/dist/**',
         '**/cypress/**',
         '**/.{idea,git,cache,output,temp}/**',
-        '**/tests/e2e/**/*.spec.ts',  // Exclude Playwright E2E tests
+        '**/tests/e2e/**/*.spec.ts', // Exclude Playwright E2E tests
       ],
       css: true,
-      env: testEnv,  // Load .env.test for journey/contract/integration tests
+      env: testEnv, // Load .env.test for journey/contract/integration tests
     },
     build: {
       // Add git hash to output filenames for cache busting
@@ -49,9 +77,9 @@ export default defineConfig(({ mode }) => {
         output: {
           entryFileNames: `assets/[name]-${getGitHash()}-[hash].js`,
           chunkFileNames: `assets/[name]-${getGitHash()}-[hash].js`,
-          assetFileNames: `assets/[name]-${getGitHash()}-[hash].[ext]`
-        }
-      }
-    }
+          assetFileNames: `assets/[name]-${getGitHash()}-[hash].[ext]`,
+        },
+      },
+    },
   }
 })

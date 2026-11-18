@@ -5,14 +5,18 @@
  * straight into the tile.
  */
 import React, { useEffect, useRef, useState } from 'react'
-import { AudioWaveform, Check, Grid3x3, Plus, Timer } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Check, Plus } from 'lucide-react'
+import { ForkIcon } from '../setlists/SetlistStats'
+import { MetroIcon } from '../ui/ToolIcons'
 import type { Song } from '../../models/Song'
 import type { Tuning } from '../../models/Tuning'
 import { Sheet, TuningPill } from '../ui'
 import CircleOfFifths from './CircleOfFifths'
-import { CreateTuningModal } from '../tunings/CreateTuningModal'
+import { TuningEditor } from '../tunings/TuningEditor'
 import { useTunings } from '../../hooks/useTunings'
 import { useToast } from '../../contexts/ToastContext'
+import { ChartButton } from '../chart/ChartButton'
 import {
   KEY_ROOTS,
   formatSeconds,
@@ -21,6 +25,9 @@ import {
   showKey,
 } from '../../domain/format'
 import { commitTitle } from '../../domain/songs'
+import { toolsHref } from '../../domain/toolsLink'
+import { songTuningParam } from '../../domain/tuner'
+import { customColour } from '../../domain/tuningEdit'
 import { pitchNames, tuningColor, tuningOrderIndex } from '../../utils/tunings'
 
 export type SaveField = (label: string, fields: Partial<Song>) => Promise<void>
@@ -248,7 +255,11 @@ const TuningList: React.FC<{
           >
             <span
               className="w-2.5 h-2.5 rounded-full shrink-0"
-              style={{ background: tuningColor(t.name) }}
+              style={{
+                background: t.isBuiltin
+                  ? tuningColor(t.name)
+                  : (customColour(t) ?? tuningColor(t.name)),
+              }}
             />
             <span className="flex-1 truncate text-[15px] md:text-[14px] font-semibold text-ink-1">
               {t.name}
@@ -283,6 +294,8 @@ export const SongFacts: React.FC<{
   const [picker, setPicker] = useState<Picker>(null)
   const [newTuning, setNewTuning] = useState(false)
   const tuning = song.guitarTuning || 'Standard'
+  const { customs } = useTunings()
+  const custom = customs.find(t => t.id === song.tuningId)
 
   // Stepping to another song closes any open picker.
   useEffect(() => setPicker(null), [song.id])
@@ -342,7 +355,11 @@ export const SongFacts: React.FC<{
           open={picker?.kind === 'tuning'}
           onClick={anchor('tuning')}
         >
-          <TuningPill tuning={tuning} size="md" />
+          <TuningPill
+            tuning={tuning}
+            color={custom ? customColour(custom) : null}
+            size="md"
+          />
         </FactTile>
         <FactTile
           label="Key"
@@ -379,22 +396,23 @@ export const SongFacts: React.FC<{
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <SoonButton
-          primary
-          icon={<Grid3x3 size={17} />}
-          testId="song-chords-button"
+        <ChartButton song={song} testId="song-chords-button" />
+        <Link
+          to={toolsHref('tuner', { tuning: songTuningParam(song) })}
+          className={TOOL_LINK}
+          data-testid="song-tune-button"
         >
-          Chords & lyrics
-        </SoonButton>
-        <SoonButton
-          icon={<AudioWaveform size={17} />}
-          testId="song-tune-button"
-        >
+          <ForkIcon size={17} />
           Tune
-        </SoonButton>
-        <SoonButton icon={<Timer size={17} />} testId="song-click-button">
+        </Link>
+        <Link
+          to={toolsHref('metronome', { song: song.id })}
+          className={TOOL_LINK}
+          data-testid="song-click-button"
+        >
+          <MetroIcon size={17} />
           Click{song.bpm ? ` ${song.bpm}` : ''}
-        </SoonButton>
+        </Link>
       </div>
 
       {picker?.kind === 'tuning' && (
@@ -436,10 +454,15 @@ export const SongFacts: React.FC<{
         </Sheet>
       )}
       {newTuning && (
-        <CreateTuningModal
+        <TuningEditor
           instrument="guitar"
+          context={
+            song.contextId
+              ? { type: song.contextType, id: song.contextId }
+              : null
+          }
           onClose={() => setNewTuning(false)}
-          onCreated={t => {
+          onSaved={t => {
             setNewTuning(false)
             pickTuning(t)
           }}
@@ -449,26 +472,6 @@ export const SongFacts: React.FC<{
   )
 }
 
-/** Tools land in later phases (Chart in 5, Tuner / Metronome in Tools). */
-const SoonButton: React.FC<{
-  primary?: boolean
-  icon: React.ReactNode
-  testId: string
-  children: React.ReactNode
-}> = ({ primary, icon, testId, children }) => (
-  <button
-    type="button"
-    disabled
-    title="Coming soon"
-    data-testid={testId}
-    className={`h-11 px-4 rounded-full font-bold flex items-center gap-2 cursor-not-allowed ${
-      primary ? 'bg-accent/35 text-on-accent/80' : 'bg-bg-3 text-ink-3'
-    }`}
-  >
-    {icon}
-    {children}
-    <span className="font-mono text-[10px] uppercase tracking-[.1em] opacity-80">
-      Soon
-    </span>
-  </button>
-)
+/** Tune / Click open the Tools screen on this song's tuning / BPM. */
+const TOOL_LINK =
+  'h-11 px-4 rounded-full font-bold flex items-center gap-2 bg-bg-3 text-ink-1 hover:bg-bg-4 active:scale-[.96] transition-transform'

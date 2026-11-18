@@ -10,26 +10,23 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Lock,
-  Users,
-  X,
-} from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, FileText, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { usePracticePage } from '../hooks/useCalendar'
-import { usePersonalNote } from '../hooks/useNotes'
-import { MarkdownRenderer } from '../components/notes/MarkdownRenderer'
+import { useWakeLock } from '../hooks/useWakeLock'
+import { useStageKeys } from '../hooks/useStageKeys'
+import { SongNotesView } from '../components/songs/SongNotesView'
+import { ChartReader } from '../components/chart/ChartReader'
+import { Tuner } from '../components/tools/Tuner'
+import { ToolLayer } from '../components/tools/ToolLayer'
 import { ForkIcon } from '../components/setlists/SetlistStats'
 import { Button, Sheet, TuningPill } from '../components/ui'
 import { repository } from '../services/data/RepositoryFactory'
 import { hoursMinutes, practiceTitle } from '../domain/calendar'
 import { formatSeconds, showKey } from '../domain/format'
 import { canonicalTuningId } from '../utils/tunings'
+import { songTuningParam } from '../domain/tuner'
 import type { Song } from '../models/Song'
 import type { SessionSong } from '../types'
 import { createLogger } from '../utils/logger'
@@ -44,70 +41,6 @@ const clock = (s: number) => {
   const m = Math.floor((s % 3600) / 60)
   const ss = String(s % 60).padStart(2, '0')
   return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
-}
-
-/** Keeps the screen on while mounted (re-acquired when the tab comes back). */
-function useWakeLock() {
-  useEffect(() => {
-    type Sentinel = { release: () => Promise<void> }
-    const nav = navigator as Navigator & {
-      wakeLock?: { request: (t: 'screen') => Promise<Sentinel> }
-    }
-    let lock: Sentinel | null = null
-    const take = () => {
-      if (document.visibilityState !== 'visible' || !nav.wakeLock) return
-      nav.wakeLock
-        .request('screen')
-        .then(l => (lock = l))
-        .catch(() => {})
-    }
-    take()
-    document.addEventListener('visibilitychange', take)
-    return () => {
-      document.removeEventListener('visibilitychange', take)
-      void lock?.release().catch(() => {})
-    }
-  }, [])
-}
-
-/** Band notes and my notes for the current song. */
-const SongNotes: React.FC<{
-  song: Song
-  userId: string
-  bandId: string
-  size: string
-}> = ({ song, userId, bandId, size }) => {
-  const { personalNote } = usePersonalNote(song.id!, userId, bandId)
-  const mine = personalNote?.content?.trim()
-  const band = song.notes?.trim()
-  const head =
-    'flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[.12em] text-ink-3 mb-2'
-  if (!band && !mine)
-    return (
-      <p className="text-ink-3 text-[15px]" data-testid="session-notes-empty">
-        No notes for this song yet.
-      </p>
-    )
-  return (
-    <div className={`space-y-5 ${size} leading-snug text-ink-1`}>
-      {band && (
-        <section data-testid="session-band-notes">
-          <p className={head}>
-            <Users size={13} /> Band notes
-          </p>
-          <MarkdownRenderer content={band} />
-        </section>
-      )}
-      {mine && (
-        <section data-testid="session-my-notes">
-          <p className={head}>
-            <Lock size={13} /> My notes
-          </p>
-          <MarkdownRenderer content={mine} />
-        </section>
-      )}
-    </div>
-  )
 }
 
 export const PracticeSessionPage: React.FC = () => {
@@ -126,6 +59,15 @@ export const PracticeSessionPage: React.FC = () => {
   const [ending, setEnding] = useState(false)
   const [wrapNotes, setWrapNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  // The tuner opens over the session (a layer, not a route: the session's
+  // place lives in this component's state).
+  const [tuner, setTuner] = useState<{
+    tuning: string
+    prev?: string
+    title: string
+  } | null>(null)
+  // The chart opens over the session the same way.
+  const [chartOpen, setChartOpen] = useState(false)
   const [size, setSize] = useState(() => {
     try {
       const n = Number(localStorage.getItem(SIZE_KEY))
@@ -221,26 +163,24 @@ export const PracticeSessionPage: React.FC = () => {
 
   const exit = () => navigate(`/practices/${practiceId}`)
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (ending || t.tagName === 'TEXTAREA' || t.tagName === 'INPUT') return
-      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
-        e.preventDefault()
-        if (index === count - 1) end()
-        else go(index + 1)
-      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-        e.preventDefault()
-        go(index - 1)
-      } else if (e.key === 'n' || e.key === 'N') {
-        setNotesOpen(o => !o)
-      } else if (e.key === 's' || e.key === 'S') {
-        skip()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [go, end, skip, index, count, ending])
+  // Pedals and keys: ← → / PgUp PgDn change songs, N notes, S skip. A layer
+  // over the session (tuner, chart) takes the keys while it's open.
+  const nextSong = () => (index === count - 1 ? end() : go(index + 1))
+  const prevSong = () => go(index - 1)
+  const toggleNotes = () => setNotesOpen(o => !o)
+  useStageKeys(
+    {
+      ArrowRight: nextSong,
+      PageDown: nextSong,
+      ArrowLeft: prevSong,
+      PageUp: prevSong,
+      n: toggleNotes,
+      N: toggleNotes,
+      s: skip,
+      S: skip,
+    },
+    !ending && !tuner && !chartOpen
+  )
 
   const saveWrapUp = async () => {
     if (!practice || saving) return
@@ -362,10 +302,15 @@ export const PracticeSessionPage: React.FC = () => {
       {retune && (
         <Button
           size="md"
-          disabled
-          title="Tuner arrives with Tools"
+          onClick={() =>
+            setTuner({
+              tuning: songTuningParam(next.song),
+              prev: songTuningParam(cur.song),
+              title: next.song.title,
+            })
+          }
           icon={<ForkIcon size={16} />}
-          className="bg-warn text-bg-0"
+          className="bg-warn !text-bg-0"
           data-testid="session-tune-now"
         >
           Tune now
@@ -450,16 +395,19 @@ export const PracticeSessionPage: React.FC = () => {
       </Button>
       <Button
         size="md"
-        disabled
-        title="Charts arrive with Tools"
+        onClick={() => setChartOpen(true)}
         data-testid="session-chart"
       >
         Chart
       </Button>
       <Button
         size="md"
-        disabled
-        title="Tuner arrives with Tools"
+        onClick={() =>
+          setTuner({
+            tuning: songTuningParam(cur.song),
+            title: cur.song.title,
+          })
+        }
         icon={<ForkIcon size={15} />}
         data-testid="session-tune"
       >
@@ -488,7 +436,7 @@ export const PracticeSessionPage: React.FC = () => {
   )
 
   const notes = (
-    <SongNotes
+    <SongNotesView
       song={cur.song}
       userId={currentUser?.id ?? ''}
       bandId={practice.bandId}
@@ -604,6 +552,26 @@ export const PracticeSessionPage: React.FC = () => {
             {notes}
           </div>
         </Sheet>
+      )}
+
+      {tuner && (
+        <ToolLayer
+          title="Tuner"
+          sub={tuner.title}
+          onClose={() => setTuner(null)}
+          data-testid="session-tuner-layer"
+        >
+          <Tuner tuning={tuner.tuning} prev={tuner.prev} />
+        </ToolLayer>
+      )}
+
+      {chartOpen && (
+        <ChartReader
+          song={cur.song}
+          layer
+          onClose={() => setChartOpen(false)}
+          data-testid="session-chart-layer"
+        />
       )}
 
       {ending && (

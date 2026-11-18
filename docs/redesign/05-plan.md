@@ -129,7 +129,8 @@ Guide: 03 → Chart and tools; 04 → charts, tunings. Design: Song Chart, Sound
 - `/tools/:tab` (Tuner · Metronome · Chords). Tuner via `getUserMedia` + pitch detection (autocorrelation / YIN in an AudioWorklet); chevron guidance; opens on the relevant tuning. Metronome on the AudioContext clock (lookahead scheduler), visuals from rAF.
 - In-app synth: Karplus-Strong pluck for strings and chords, soft sine for notes (see `demo/desktop-tools.js` for a reference implementation).
 - Chart reader (continuous scroll, Back / Next, pedal, transpose, size, chords on / off, chord viewer, starting note, notes sheet) and chart editor (paste / ChordPro, lyrics and chords modes).
-- Custom tuning neck editor; C Standard + extended-range built-ins.
+- Custom tuning neck editor; C Standard + extended-range built-ins. As built: the name field stays visible when the strings match an existing tuning (the warning card shows that tuning's pill), so a typed name isn't lost; a new tuning's colour opens on the first swatch not used in its context (Part A · 1), Automatic is one tap away.
+- More trimmed per Tools on Home 4 (no Events or Band members rows); the band card's Members / Band profile / Invite rows stay with Phase 6.
 - Replace the "Soon" placeholders as each tool lands (Home Tools row, retune-line Tune buttons, practice Tune now).
 - Migration: `song_charts`; tuning seeds; unique index on custom tunings.
 - Accept: Chart and tools section of the checklist; metronome drift under 1 ms over 5 minutes in a Playwright audio-clock test.

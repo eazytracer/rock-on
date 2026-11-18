@@ -21,6 +21,8 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useHasUnread } from '../../hooks/useNotifications'
 import { useIncomingRequestCount } from '../../hooks/useFriends'
 import { NotificationsPopout } from '../notifications/NotificationsPopout'
+import { ForkIcon } from '../setlists/SetlistStats'
+import { ChordBoxIcon, MetroIcon } from '../ui/ToolIcons'
 
 interface SidebarProps {
   currentPath: string
@@ -40,7 +42,8 @@ interface NavItem {
 
 /**
  * Desktop sidebar (design/demo/desktop.css `.sb`): context chip, Search ⌘K,
- * Home · Songs · Setlists · Calendar · Jam, BAND, YOU, and a footer with you,
+ * Home · Songs · Setlists · Calendar · Jam, TOOLS (Tuner · Metronome ·
+ * Chords), BAND, YOU, and a footer with you,
  * the theme toggle and the bell. Shows / Practices / Events are Calendar
  * filters now, not separate items.
  */
@@ -74,6 +77,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
       match: ['/shows', '/practices', '/events'],
     },
     { label: 'Jam', path: '/jam', icon: <PartyPopper />, testId: 'jam-link' },
+  ]
+  const tools: NavItem[] = [
+    {
+      label: 'Tuner',
+      path: '/tools/tuner',
+      icon: <ForkIcon />,
+      testId: 'sidebar-tool-tuner',
+    },
+    {
+      label: 'Metronome',
+      path: '/tools/metronome',
+      icon: <MetroIcon />,
+      testId: 'sidebar-tool-metronome',
+    },
+    {
+      label: 'Chords',
+      path: '/tools/chords',
+      icon: <ChordBoxIcon />,
+      testId: 'sidebar-tool-chords',
+    },
   ]
   const band: NavItem[] = currentBandId
     ? [
@@ -162,6 +185,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <nav className="flex-1 overflow-y-auto custom-scrollbar-thin px-2 py-1 space-y-0.5">
         {primary.map(renderItem)}
+        {label('Tools')}
+        {tools.map(renderItem)}
         {band.length > 0 && label('Band')}
         {band.map(renderItem)}
         {label('You')}

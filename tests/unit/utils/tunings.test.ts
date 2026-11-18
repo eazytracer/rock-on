@@ -8,6 +8,8 @@ import {
   BUILTIN_TUNINGS,
   midiToNoteName,
   pitchNames,
+  tuningShortLabel,
+  builtinSlugOf,
 } from '../../../src/utils/tunings'
 
 describe('canonicalTuningId', () => {
@@ -101,10 +103,21 @@ describe('CANONICAL_TUNINGS registry', () => {
 })
 
 describe('BUILTIN_TUNINGS (mirrors the DB seed)', () => {
-  it('has the 18 seeded built-ins with unique slugs', () => {
-    expect(BUILTIN_TUNINGS).toHaveLength(18)
+  it('has the 22 seeded built-ins with unique slugs', () => {
+    expect(BUILTIN_TUNINGS).toHaveLength(22)
     const slugs = BUILTIN_TUNINGS.map(t => t.slug)
-    expect(new Set(slugs).size).toBe(18)
+    expect(new Set(slugs).size).toBe(22)
+  })
+
+  it('carries the extended-range colours (decision 15)', () => {
+    const color = (slug: string) =>
+      BUILTIN_TUNINGS.find(t => t.slug === slug)?.color
+    expect(color('standard-7')).toBe('#60a5fa')
+    expect(color('drop-a-7')).toBe('#84cc16')
+    expect(color('a-standard-7')).toBe('#0ea5e9')
+    expect(color('drop-g-sharp-7')).toBe('#f59e0b')
+    expect(color('bass-eb')).toBe('#14b8a6')
+    expect(color('b-standard-baritone')).toBeNull()
   })
 
   it('every pitch array length equals its string count (DB CHECK parity)', () => {
@@ -142,5 +155,45 @@ describe('pitchNames', () => {
   it('names the strings without octaves', () => {
     expect(pitchNames([38, 45, 50, 55, 59, 64])).toBe('D A D G B E')
     expect(pitchNames([39, 44, 49, 54, 58, 63])).toBe('Eb Ab Db Gb Bb Eb')
+  })
+})
+
+describe('tuningShortLabel (Extended-range naming)', () => {
+  it('names 6-string built-ins the way players say them', () => {
+    expect(tuningShortLabel('Standard')).toBe('E STD')
+    expect(tuningShortLabel('drop-d')).toBe('D DROP')
+    expect(tuningShortLabel('Eb Standard')).toBe('E♭ STD')
+  })
+
+  it('adds the string-count superscript for extended range, by slug or name', () => {
+    expect(tuningShortLabel('standard-7')).toBe('B STD⁷')
+    expect(tuningShortLabel('7-string standard')).toBe('B STD⁷')
+    expect(tuningShortLabel('7-string Drop A')).toBe('A DROP⁷')
+    expect(tuningShortLabel('a-standard-7')).toBe('A STD⁷')
+    expect(tuningShortLabel('drop-g-sharp-7')).toBe('G♯ DROP⁷')
+    expect(tuningShortLabel('8-string standard')).toBe('F♯ STD⁸')
+    expect(tuningShortLabel('Baritone B Standard')).toBe('B STD')
+    expect(tuningShortLabel('5-string bass')).toBe('B STD⁵')
+    expect(tuningShortLabel('bass-6')).toBe('B STD⁶')
+    expect(tuningShortLabel('Bass standard')).toBe('E STD')
+  })
+
+  it('keeps custom names', () => {
+    expect(tuningShortLabel('Open C')).toBe('OPEN C')
+  })
+
+  it('resolves built-in slugs before the legacy normalizer', () => {
+    expect(builtinSlugOf('7-string standard')).toBe('standard-7')
+    expect(builtinSlugOf('Standard (EADGBE)')).toBeNull()
+    expect(canonicalTuningId('7-string standard')).toBe('7-string-standard')
+  })
+
+  it('colours extended range like the same-shape 6-string tuning', () => {
+    expect(tuningColor('standard-7')).toBe('var(--tuning-standard)')
+    expect(tuningColor('7-string Drop A')).toBe('var(--tuning-drop-d)')
+    expect(tuningColor('Bass Eb / Half-step down')).toBe(
+      'var(--tuning-half-step-down)'
+    )
+    expect(tuningColor('b-standard-baritone')).toBe(FALLBACK_TUNING_COLOR)
   })
 })
