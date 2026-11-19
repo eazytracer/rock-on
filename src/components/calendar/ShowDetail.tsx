@@ -14,7 +14,6 @@ import {
   ListMusic,
   Mail,
   Maximize2,
-  MoreHorizontal,
   Phone,
   Plus,
   RotateCcw,
@@ -66,6 +65,8 @@ import {
   parseTime12Hour,
 } from '../../utils/dateHelpers'
 import type { Show, ShowContact } from '../../models/Show'
+import { DockAction } from '../layout/PhoneDock'
+import { MoreButton } from '../common/MoreButton'
 import { createLogger } from '../../utils/logger'
 
 const log = createLogger('ShowDetail')
@@ -399,25 +400,23 @@ const ShowSet: React.FC<{
           )
         )}
       </div>
-      <div
-        className={
-          docked
-            ? 'fixed inset-x-4 bottom-[104px] z-30 md:static md:mt-3'
-            : 'mt-3'
-        }
-      >
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          icon={<ListMusic size={18} />}
-          onClick={() => onOpen(setlist.id)}
-          className={docked ? 'shadow-float md:shadow-none' : ''}
-          data-testid="show-open-set"
-        >
-          Open set
-        </Button>
-      </div>
+      {(() => {
+        const open = (
+          <div className={docked ? 'w-full md:mt-3' : 'mt-3'}>
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              icon={<ListMusic size={18} />}
+              onClick={() => onOpen(setlist.id)}
+              data-testid="show-open-set"
+            >
+              Open set
+            </Button>
+          </div>
+        )
+        return docked ? <DockAction>{open}</DockAction> : open
+      })()}
     </>
   )
 }
@@ -647,6 +646,20 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
   const contacts = show.contacts ?? []
   const page = variant === 'page'
 
+  // On the page ⋯ ends the Date · Start · Set line, so the name keeps the
+  // full width; the calendar pane keeps it beside the name.
+  const menu = !isNew && (
+    <MoreButton
+      label="Show menu"
+      onClick={e => {
+        const r = e.currentTarget.getBoundingClientRect()
+        setMenuAt({ x: r.right - 288, y: r.bottom + 8 })
+        setSheet('menu')
+      }}
+      data-testid="show-menu"
+    />
+  )
+
   return (
     <div data-testid="show-detail" data-show-id={show.id || undefined}>
       <div className="flex items-start gap-3">
@@ -685,21 +698,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
             <Maximize2 size={15} /> Open
           </button>
         )}
-        {!isNew && (
-          <button
-            type="button"
-            aria-label="Show menu"
-            onClick={e => {
-              const r = e.currentTarget.getBoundingClientRect()
-              setMenuAt({ x: r.right - 288, y: r.bottom + 8 })
-              setSheet('menu')
-            }}
-            className="grid place-items-center w-10 h-10 rounded-full bg-bg-2 text-ink-2 shrink-0"
-            data-testid="show-menu"
-          >
-            <MoreHorizontal size={18} />
-          </button>
-        )}
+        {!page && menu}
       </div>
 
       {page && (
@@ -722,6 +721,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
               <b className="text-[17px] uppercase text-ink-1">{v}</b>
             </span>
           ))}
+          <span className="ml-auto self-center">{menu}</span>
         </div>
       )}
 

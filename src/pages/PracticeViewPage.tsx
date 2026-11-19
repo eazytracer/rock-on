@@ -6,7 +6,7 @@
 import React, { useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft } from 'lucide-react'
+import { BackCrumb } from '../components/layout/MobileHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { BandRequiredPrompt } from '../components/common/BandRequiredPrompt'
@@ -127,15 +127,13 @@ export const PracticeViewPage: React.FC = () => {
   )
 
   return (
-    <div data-testid="practice-view-page" className="pb-44 md:pb-10">
-      <button
-        type="button"
+    <div data-testid="practice-view-page" className="md:pb-10">
+      <BackCrumb
+        label="Calendar"
         onClick={back}
-        className="inline-flex items-center gap-1 h-9 pl-2 pr-3.5 mb-4 rounded-full bg-bg-2 text-[14px] font-semibold text-ink-1"
+        className="mb-4"
         data-testid="practice-back"
-      >
-        <ChevronLeft size={17} /> Calendar
-      </button>
+      />
       {detail}
       {browsing && browser}
     </div>

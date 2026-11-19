@@ -7,6 +7,7 @@
  * beat 1. From a song (`?song=`) it loads the BPM and offers Save to song.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { DockAction } from '../layout/PhoneDock'
 import { Minus, Music2, Play, Plus, Square } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSong, useSongFieldSave } from '../../hooks/useSongCatalog'
@@ -454,13 +455,12 @@ export const Metronome: React.FC<MetronomeProps> = ({
         </div>
       </div>
       <div className="rounded-[18px] bg-bg-2 px-4 py-3">{flashRow}</div>
-      <div
-        className="sticky z-30 grid grid-cols-[110px_1fr] gap-2 mt-1"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 92px)' }}
-      >
-        {tapButton}
-        {startButton}
-      </div>
+      <DockAction>
+        <div className="w-full grid grid-cols-[84px_1fr] gap-2">
+          {tapButton}
+          {startButton}
+        </div>
+      </DockAction>
       {flashEdge}
     </div>
   )

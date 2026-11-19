@@ -6,13 +6,12 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Link,
   useLocation,
   useNavigate,
   useParams,
   useSearchParams,
 } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, MoreHorizontal, Music2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import {
@@ -28,6 +27,8 @@ import { useConfirm } from '../hooks/useConfirm'
 import { useMediaQuery } from '../hooks/useResponsive'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
+import { MoreButton } from '../components/common/MoreButton'
+import { BackCrumb } from '../components/layout/MobileHeader'
 import { SongFacts } from '../components/songs/SongFacts'
 import { SongNotes, type NoteLayerKey } from '../components/songs/SongNotes'
 import { SongSide } from '../components/songs/SongSide'
@@ -112,20 +113,22 @@ export const SongViewPage: React.FC = () => {
     return <ContentLoadingSpinner isLoading>{null}</ContentLoadingSpinner>
 
   const backButton = (
-    <Link
+    <BackCrumb
       to={where.href}
-      className="h-10 pl-2 pr-3.5 rounded-full bg-bg-3 text-ink-1 font-semibold flex items-center gap-1 max-w-[260px] hover:bg-bg-4"
+      label={where.label}
       data-testid="song-page-back"
-    >
-      <ChevronLeft size={19} className="shrink-0" />
-      <span className="truncate">{where.label}</span>
-    </Link>
+    />
   )
 
   if (!song)
     return (
       <div data-testid="song-view-page">
-        <div className="mb-4">{backButton}</div>
+        <BackCrumb
+          to={where.href}
+          label={where.label}
+          className="mb-4"
+          data-testid="song-page-back"
+        />
         <Empty
           icon={<Music2 size={28} />}
           title="This song was deleted."
@@ -172,15 +175,11 @@ export const SongViewPage: React.FC = () => {
   const bandName = isBand ? currentBand?.name : 'My Songs'
 
   const menuButton = (
-    <button
-      type="button"
+    <MoreButton
+      label="Song menu"
       onClick={openMenu}
-      aria-label="Song menu"
-      className="w-10 h-10 rounded-full bg-bg-3 grid place-items-center text-ink-1 hover:bg-bg-4"
       data-testid="song-view-menu"
-    >
-      <MoreHorizontal size={19} />
-    </button>
+    />
   )
 
   const stepper = step && (
@@ -250,15 +249,21 @@ export const SongViewPage: React.FC = () => {
           {menuButton}
         </div>
       ) : (
-        <div className="flex items-center gap-2 mb-4">
-          {backButton}
-          <span className="ml-auto" />
-          {menuButton}
-        </div>
+        <BackCrumb
+          to={where.href}
+          label={where.label}
+          className="mb-4"
+          data-testid="song-page-back"
+        />
       )}
 
       <div className={desktop ? 'max-w-[1180px] mx-auto' : 'max-w-3xl'}>
-        <SongFacts song={song} onSave={saveField} desktop={anchored} />
+        <SongFacts
+          song={song}
+          onSave={saveField}
+          desktop={anchored}
+          menu={desktop ? undefined : menuButton}
+        />
 
         {desktop ? (
           <div className="mt-4 grid grid-cols-[minmax(0,1fr)_300px] gap-6 min-[1180px]:grid-cols-[minmax(0,1fr)_340px] min-[1180px]:gap-8 items-start">

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
+import { BackCrumb } from '../components/layout/MobileHeader'
 import {
   useMarkAllRead,
   useNotificationFeed,
@@ -20,7 +19,6 @@ type Tab = 'activity' | 'updates'
  * what was new stays marked until you leave.
  */
 export function NotificationsPage() {
-  const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('activity')
   const feed = useNotificationFeed()
   const releases = useReleaseNotes()
@@ -53,15 +51,12 @@ export function NotificationsPage() {
 
   return (
     <div className="max-w-2xl" data-testid="notifications-page">
-      <div className="flex items-center justify-between mb-2">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-1 h-9 pl-2 pr-3 rounded-full bg-bg-3 text-sm font-semibold text-ink-2 hover:text-ink-1"
-          data-testid="notifications-back"
-        >
-          <ChevronLeft size={16} /> Home
-        </button>
-      </div>
+      <BackCrumb
+        to="/"
+        label="Home"
+        className="mb-2"
+        data-testid="notifications-back"
+      />
       <PageTitle title="Notifications" />
 
       <Segmented

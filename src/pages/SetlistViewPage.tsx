@@ -3,25 +3,24 @@
  * screens/Setlist Editor.html, review/setlist-nav ab2 / ab3 / a3 / m2 / m3).
  * Full width: no column beside it. Everything saves as you go.
  *
- * Desktop: ← Setlists and the show line, the name (click to rename) with a
- * caret switcher, then Timeline · Notes · + Break · + Section · Add songs · ⋯.
+ * Desktop: ‹ Setlists and the show line, the name (click to rename), then
+ * Timeline · Notes · + Break · + Section · Add songs · ⋯.
  * Break and Section go in after the selected row and open in place. Add songs
  * (or the "+ Add songs" row under the set) opens the song drawer.
- * Phone: the name (tap) or ⇄ opens the switcher sheet; one Add at the thumb
+ * Phone: ‹ Setlists in the app bar, the name (tap to rename), then the
+ * totals line ending in the timeline toggle and ⋯; one Add at the thumb
  * (Songs / Break / Section); hold a row for Move / note / Open / Remove.
  * `/setlists/new` makes an empty set in the current context and opens it.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { BackCrumb } from '../components/layout/MobileHeader'
+import { MoreButton } from '../components/common/MoreButton'
 import {
-  ArrowLeftRight,
-  ChevronDown,
-  ChevronLeft,
   Clock,
   Copy,
   FileText,
   ListMusic,
-  MoreHorizontal,
   Music2,
   Pencil,
   Plus,
@@ -52,7 +51,6 @@ import {
   InsertSheet,
   NotesSheet,
   RowMenuSheet,
-  SwitcherSheet,
 } from '../components/setlists/SetlistSheets'
 import {
   TOP,
@@ -87,6 +85,7 @@ import { useShowPage } from '../hooks/useCalendar'
 import { originHref, parseOrigin } from '../utils/songOrigin'
 import { songHref } from '../utils/songOrigin'
 import type { SetlistItem } from '../types'
+import { DockAction } from '../components/layout/PhoneDock'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('SetlistViewPage')
@@ -193,14 +192,12 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
           breakMinutes: 0,
         }
       : undefined)
-  const newSetlist = useNewSetlist()
   const duplicate = useDuplicateSetlist()
   const { deleteSetlist } = useDeleteSetlist()
 
   const [selected, setSelected] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [renaming, setRenaming] = useState(false)
-  const [switcher, setSwitcher] = useState<At | false>(false)
   const [headerMenu, setHeaderMenu] = useState<At | false>(false)
   const [rowMenu, setRowMenu] = useState<{ id: string; at: At } | null>(null)
   const [after, setAfter] = useState<
@@ -292,12 +289,12 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
   if (!setlist)
     return (
       <div data-testid="setlist-view-page">
-        <Link
+        <BackCrumb
           to="/setlists"
-          className="inline-flex h-9 pl-1.5 pr-3 rounded-full bg-bg-3 text-ink-1 text-[14px] font-semibold items-center gap-1"
-        >
-          <ChevronLeft size={18} /> Setlists
-        </Link>
+          label="Setlists"
+          className="mb-4"
+          data-testid="setlist-back"
+        />
         <Empty
           icon={<ListMusic size={28} />}
           title="This setlist was deleted."
@@ -436,12 +433,6 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
     )
   }
 
-  const create = async () => {
-    setSwitcher(false)
-    const id = await attempt('New setlist', () => newSetlist(ctxType, ctxId))
-    if (id) navigate(`/setlists/${id}`)
-  }
-
   const handleDuplicate = async () => {
     setHeaderMenu(false)
     const id = await attempt('Duplicate setlist', () => duplicate(setlistId))
@@ -535,10 +526,8 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
   ) : (
     <button
       type="button"
-      onClick={e =>
-        desktop ? setRenaming(true) : setSwitcher(below(e.currentTarget))
-      }
-      title={desktop ? 'Rename' : 'Switch setlist'}
+      onClick={() => setRenaming(true)}
+      title="Rename"
       className="min-w-0 text-left font-display font-extrabold uppercase text-[44px] md:text-[56px] leading-[.92] text-ink-1 break-words"
       data-testid="setlist-name-display"
     >
@@ -546,29 +535,12 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
     </button>
   )
 
-  const switcherButton = desktop
-    ? round(
-        'Switch setlist',
-        <ChevronDown size={20} />,
-        e => setSwitcher(below(e.currentTarget, false, 360)),
-        'setlist-switcher-toggle',
-        {},
-        'w-10 h-10'
-      )
-    : round(
-        'Switch setlist',
-        <ArrowLeftRight size={17} />,
-        () => setSwitcher(null),
-        'setlist-switcher-toggle',
-        {},
-        'w-[38px] h-[38px]'
-      )
-
-  const menuButton = round(
-    'Setlist menu',
-    <MoreHorizontal size={19} />,
-    e => setHeaderMenu(below(e.currentTarget, true)),
-    'setlist-header-menu'
+  const menuButton = (
+    <MoreButton
+      label="Setlist menu"
+      onClick={e => setHeaderMenu(below(e.currentTarget, true))}
+      data-testid="setlist-header-menu"
+    />
   )
 
   const pill = (
@@ -671,14 +643,11 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
   const header = desktop ? (
     <header className="pb-4 border-b border-divider">
       <div className="flex items-center gap-3">
-        <Link
+        <BackCrumb
           to={back.href}
-          className="h-9 pl-1.5 pr-3 rounded-full bg-bg-3 text-ink-1 text-[14px] font-semibold flex items-center gap-1 hover:bg-bg-4 max-w-[240px]"
+          label={back.label}
           data-testid="setlist-back"
-        >
-          <ChevronLeft size={18} className="shrink-0" />
-          <span className="truncate">{back.label}</span>
-        </Link>
+        />
         <span
           className="truncate font-mono text-[11.5px] tracking-[.14em] uppercase text-ink-3"
           data-testid="setlist-show-line"
@@ -689,7 +658,6 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
       <div className="flex items-center gap-4 mt-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {nameDisplay}
-          {!renaming && !isCopy && switcherButton}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {railButton}
@@ -727,21 +695,9 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
     </header>
   ) : (
     <header>
-      <div className="flex items-center gap-2">
-        <Link
-          to={back.href}
-          className="h-10 pl-2 pr-3.5 rounded-full bg-bg-3 text-ink-1 font-semibold flex items-center gap-1 max-w-[200px]"
-          data-testid="setlist-back"
-        >
-          <ChevronLeft size={19} className="shrink-0" />
-          <span className="truncate">{back.label}</span>
-        </Link>
-        <span className="ml-auto" />
-        {railButton}
-        {menuButton}
-      </div>
+      <BackCrumb to={back.href} label={back.label} data-testid="setlist-back" />
       <p
-        className="mt-4 truncate font-mono text-[11px] tracking-[.14em] uppercase text-ink-3"
+        className="truncate font-mono text-[11px] tracking-[.14em] uppercase text-ink-3"
         data-testid="setlist-show-line"
       >
         {indexLoading
@@ -750,11 +706,12 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
             ? `Show set · ${show}`
             : `Setlist · ${catalogName}`}
       </p>
-      <div className="flex items-center gap-3 mt-1">
-        {nameDisplay}
-        {!renaming && !isCopy && switcherButton}
+      <div className="flex mt-1">{nameDisplay}</div>
+      <div className="flex items-center gap-2 mt-2">
+        <div className="flex-1 min-w-0">{totalsLine}</div>
+        {railButton}
+        {menuButton}
       </div>
-      <div className="mt-2">{totalsLine}</div>
     </header>
   )
 
@@ -784,19 +741,18 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
           <div className="mt-5">{list}</div>
           {addRow}
           {rows.length > 0 && (
-            <div className="fixed inset-x-4 bottom-[104px] z-30">
+            <DockAction>
               <Button
                 variant="primary"
                 size="lg"
                 fullWidth
                 icon={<Plus size={19} />}
                 onClick={() => setAddMenu(true)}
-                className="shadow-float"
                 data-testid="setlist-add"
               >
                 Add
               </Button>
-            </div>
+            </DockAction>
           )}
         </>
       )}
@@ -816,22 +772,6 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
       )}
 
       {/* ── Sheets ── */}
-      {switcher !== false && (
-        <SwitcherSheet
-          rows={sets}
-          currentId={setlistId}
-          at={switcher}
-          desktop={desktop}
-          onPick={id => {
-            setSwitcher(false)
-            navigate(`/setlists/${id}`)
-          }}
-          onAll={() => navigate('/setlists')}
-          onNew={create}
-          onClose={() => setSwitcher(false)}
-        />
-      )}
-
       {headerMenu !== false && (
         <Sheet
           onClose={() => setHeaderMenu(false)}

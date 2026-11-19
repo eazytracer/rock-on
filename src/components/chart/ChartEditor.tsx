@@ -11,7 +11,8 @@
  * the conflict banner and nothing is lost.
  */
 import React, { useMemo, useRef, useState } from 'react'
-import { Check, ChevronLeft, ClipboardPaste } from 'lucide-react'
+import { Check, ClipboardPaste } from 'lucide-react'
+import { BackCrumb } from '../layout/MobileHeader'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../hooks/useConfirm'
 import { ConfirmDialog } from '../common/ConfirmDialog'
@@ -123,14 +124,11 @@ const DesktopEditor: React.FC<ChartEditorProps> = ({
       data-testid="chart-editor-page"
     >
       <div className="px-8 pt-5">
-        <button
-          type="button"
+        <BackCrumb
+          label="Song"
           onClick={() => void cancel()}
-          className="h-10 pl-2 pr-3.5 rounded-full bg-bg-3 text-ink-1 font-semibold flex items-center gap-1 hover:bg-bg-4"
           data-testid="chart-editor-back"
-        >
-          <ChevronLeft size={19} /> Song
-        </button>
+        />
       </div>
       <div className="flex items-end gap-3 px-8 pt-2 pb-4">
         <div className="flex-1 min-w-0">

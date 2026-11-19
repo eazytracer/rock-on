@@ -7,7 +7,7 @@
  */
 import React, { useEffect } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
+import { BackCrumb } from '../components/layout/MobileHeader'
 import { useGoBack } from '../hooks/useGoBack'
 import { useMediaQuery } from '../hooks/useResponsive'
 import { PageTitle, Segmented } from '../components/ui'
@@ -92,38 +92,16 @@ export const ToolsPage: React.FC = () => {
 
   return (
     <div data-testid="tools-page" className="pb-28 md:pb-8">
+      <BackCrumb
+        label="Back"
+        onClick={goBack}
+        className="mb-3"
+        data-testid="tools-back"
+      />
       {desktop ? (
-        <div className="flex items-start gap-3">
-          <button
-            type="button"
-            onClick={goBack}
-            aria-label="Back"
-            className="grid place-items-center w-11 h-11 rounded-full bg-bg-2 text-ink-1 shrink-0 mt-1"
-            data-testid="tools-back"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div className="flex-1 min-w-0">
-            <PageTitle eyebrow="Tools" title={TAB_LABELS[tab]} actions={tabs} />
-          </div>
-        </div>
+        <PageTitle eyebrow="Tools" title={TAB_LABELS[tab]} actions={tabs} />
       ) : (
-        <header className="mb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              type="button"
-              onClick={goBack}
-              className="flex items-center gap-1 h-10 pl-2 pr-3.5 rounded-full bg-bg-2 text-[14px] font-semibold text-ink-1"
-              data-testid="tools-back"
-            >
-              <ChevronLeft size={18} /> Back
-            </button>
-            <h1 className="flex-1 text-center font-bold text-[17px] text-ink-1 pr-[72px]">
-              Tools
-            </h1>
-          </div>
-          {tabs}
-        </header>
+        <header className="mb-4">{tabs}</header>
       )}
       {/* The chord lives in the link; picking one mustn't remount the tab. */}
       <React.Fragment key={tab === 'chords' ? tab : `${tab}${search}`}>

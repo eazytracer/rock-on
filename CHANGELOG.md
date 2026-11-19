@@ -61,6 +61,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Phone dock.** On a page with a main action (Start practice session, a
+  setlist's Add, Open set, the metronome's Tap / Start, Add song, New setlist,
+  New show / practice) the tab bar tucks into
+  a pill on the left and the action sits beside it in one bottom row, instead
+  of floating above the tab bar. Tap or swipe right on the pill for the tabs;
+  picking one, swiping left, tapping the page or 4 s idle tucks it back. Every
+  phone page fades and blurs into the bar.
+- **Phone app bar.** A page's way back (‹ Songs, ‹ Setlists, ‹ Calendar, ‹ Back)
+  moves up into the app bar, so content starts a row higher; the context chip
+  sits on the right beside the bell, shrinking to the band mark next to a
+  back. One back control (`BackCrumb`) and one ⋯ button (`MoreButton`) on
+  every page; the ⋯ ends the first line under the title (a setlist's totals,
+  a show's Date · Start · Set, a practice's first section, a song's Chords ·
+  Tune · Click), so titles keep the full width.
+- The setlist switcher (caret on desktop, ⇄ on phones) is gone: back to
+  Setlists and pick one. Tapping a setlist's name renames it on phones too.
+- A practice's Focus is plain text, edited in place, instead of a Markdown
+  sheet.
+- The date picker rings today instead of filling it, so only the chosen day
+  is solid, and dims past days (still pickable).
 - Extended-range tuning pills read the way players say them: B STD⁷, A DROP⁷,
   A STD⁷, G♯ DROP⁷, F♯ STD⁸, B STD⁵ (bass), and B STD for the 6-string
   baritone; they take the colour of the matching 6-string shape.

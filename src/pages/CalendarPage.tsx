@@ -25,6 +25,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../hooks/useConfirm'
 import { useMediaQuery } from '../hooks/useResponsive'
+import { DockAction } from '../components/layout/PhoneDock'
 import {
   duplicatePractice,
   rememberCalendar,
@@ -349,6 +350,7 @@ export function CalendarPage() {
     }
   }
 
+  // In the title from md up; in the phone dock below (layout/PhoneDock).
   const newButton = (
     <Button
       variant="primary"
@@ -358,9 +360,7 @@ export function CalendarPage() {
         const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
         setNewAt(desktop ? { x: r.right - 300, y: r.bottom + 8 } : null)
       }}
-      className={
-        desktop ? '' : 'fixed right-4 bottom-[104px] z-30 shadow-float'
-      }
+      className={desktop ? '' : 'w-full'}
       data-testid="calendar-new-button"
     >
       {NEW_LABEL[filter]}
@@ -569,7 +569,7 @@ export function CalendarPage() {
       ) : (
         list()
       )}
-      {!desktop && !empty && newButton}
+      {!desktop && !empty && <DockAction>{newButton}</DockAction>}
 
       {newAt !== false && (
         <Sheet

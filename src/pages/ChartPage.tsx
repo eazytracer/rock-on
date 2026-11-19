@@ -6,10 +6,11 @@
  */
 import React from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft, Music2 } from 'lucide-react'
+import { Music2 } from 'lucide-react'
+import { BackCrumb } from '../components/layout/MobileHeader'
 import { useSong } from '../hooks/useSongCatalog'
 import { ChartReader } from '../components/chart/ChartReader'
-import { Button, Empty } from '../components/ui'
+import { Empty } from '../components/ui'
 
 export const ChartPage: React.FC = () => {
   const { songId = '' } = useParams()
@@ -28,12 +29,12 @@ export const ChartPage: React.FC = () => {
   if (!song)
     return (
       <div data-testid="chart-page">
-        <Button
-          icon={<ChevronLeft size={18} />}
-          onClick={() => navigate('/songs')}
-        >
-          Songs
-        </Button>
+        <BackCrumb
+          to="/songs"
+          label="Songs"
+          className="mb-4"
+          data-testid="chart-back"
+        />
         <Empty
           icon={<Music2 size={28} />}
           title="This song was deleted."

@@ -1,8 +1,8 @@
 import React from 'react'
 import { Sidebar } from './Sidebar'
-import { MobileHeader } from './MobileHeader'
+import { TopBarProvider } from './MobileHeader'
 import { OfflineBanner } from './OfflineBanner'
-import { BottomNavigation } from '../common/BottomNavigation'
+import { DockProvider } from './PhoneDock'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { SwitchPromptProvider } from '../../contexts/SwitchPromptContext'
@@ -35,18 +35,16 @@ const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         />
       </div>
 
-      <MobileHeader />
-
-      <main className="md:ml-[248px] min-h-screen pt-16 md:pt-0 pb-28 md:pb-0">
-        <div className="px-4 py-5 md:px-7 md:py-6 lg:px-8">
-          <OfflineBanner />
-          {children}
-        </div>
-      </main>
-
-      <div className="md:hidden">
-        <BottomNavigation />
-      </div>
+      <TopBarProvider>
+        <DockProvider>
+          <main className="md:ml-[248px] min-h-screen pt-16 md:pt-0 pb-28 md:pb-0">
+            <div className="px-4 py-5 md:px-7 md:py-6 lg:px-8">
+              <OfflineBanner />
+              {children}
+            </div>
+          </main>
+        </DockProvider>
+      </TopBarProvider>
     </div>
   )
 }

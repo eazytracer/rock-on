@@ -39,21 +39,18 @@ describe('BackLink', () => {
     renderBackLink()
     const btn = screen.getByTestId('back-link')
     expect(btn).toBeInTheDocument()
-    expect(btn).toHaveTextContent('Back')
-    expect(btn).not.toHaveTextContent('Back to')
+    expect(btn).toHaveTextContent(/^Back$/)
   })
 
-  it('renders "Back to Setlists" when label is provided', () => {
+  it('names the destination when label is provided', () => {
     renderBackLink({ label: 'Setlists' })
-    expect(screen.getByTestId('back-link')).toHaveTextContent(
-      'Back to Setlists'
-    )
+    expect(screen.getByTestId('back-link')).toHaveTextContent(/^Setlists$/)
   })
 
-  it('applies a passed className alongside the base classes', () => {
+  it('wraps the crumb in a passed className (outside the app bar)', () => {
     renderBackLink({ className: 'mb-4' })
     const btn = screen.getByTestId('back-link')
-    expect(btn.className).toContain('mb-4')
+    expect(btn.parentElement?.className).toBe('mb-4')
     expect(btn.className).toContain('inline-flex')
   })
 

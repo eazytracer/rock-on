@@ -289,7 +289,9 @@ export const SongFacts: React.FC<{
   song: Song
   onSave: SaveField
   desktop: boolean
-}> = ({ song, onSave, desktop }) => {
+  /** Phone: the page's ⋯, at the end of the Chords · Tune · Click row. */
+  menu?: React.ReactNode
+}> = ({ song, onSave, desktop, menu }) => {
   const { showToast } = useToast()
   const [picker, setPicker] = useState<Picker>(null)
   const [newTuning, setNewTuning] = useState(false)
@@ -317,35 +319,40 @@ export const SongFacts: React.FC<{
 
   return (
     <div>
-      <InlineText
-        value={song.artist || ''}
-        placeholder="Add artist"
-        label="Artist"
-        inputTestId="song-artist-input"
-        testId="song-artist"
-        as="p"
-        className="font-mono text-[12.5px] tracking-[.14em] uppercase text-ink-3 inline-block"
-        onCommit={v => {
-          const artist = v.trim()
-          if (artist !== (song.artist || '')) void onSave('Artist', { artist })
-        }}
-      />
-      <div className="mt-0.5">
-        <InlineText
-          value={song.title}
-          placeholder="Title"
-          label="Title"
-          inputTestId="song-title-input"
-          testId="song-detail-title"
-          as="h1"
-          className="block font-display font-extrabold uppercase leading-[.92] text-ink-1 break-words text-[44px] md:text-[64px]"
-          onCommit={v => {
-            const r = commitTitle(v, song.title)
-            if (r.reverted)
-              showToast('A song needs a title · kept the old one', 'info')
-            else if (r.changed) void onSave('Title', { title: r.title })
-          }}
-        />
+      <div>
+        <div>
+          <InlineText
+            value={song.artist || ''}
+            placeholder="Add artist"
+            label="Artist"
+            inputTestId="song-artist-input"
+            testId="song-artist"
+            as="p"
+            className="font-mono text-[12.5px] tracking-[.14em] uppercase text-ink-3 inline-block"
+            onCommit={v => {
+              const artist = v.trim()
+              if (artist !== (song.artist || ''))
+                void onSave('Artist', { artist })
+            }}
+          />
+          <div className="mt-0.5">
+            <InlineText
+              value={song.title}
+              placeholder="Title"
+              label="Title"
+              inputTestId="song-title-input"
+              testId="song-detail-title"
+              as="h1"
+              className="block font-display font-extrabold uppercase leading-[.92] text-ink-1 break-words text-[44px] md:text-[64px]"
+              onCommit={v => {
+                const r = commitTitle(v, song.title)
+                if (r.reverted)
+                  showToast('A song needs a title · kept the old one', 'info')
+                else if (r.changed) void onSave('Title', { title: r.title })
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-4 gap-2 md:flex md:flex-wrap">
@@ -413,6 +420,7 @@ export const SongFacts: React.FC<{
           <MetroIcon size={17} />
           Click{song.bpm ? ` ${song.bpm}` : ''}
         </Link>
+        {menu && <span className="ml-auto">{menu}</span>}
       </div>
 
       {picker?.kind === 'tuning' && (

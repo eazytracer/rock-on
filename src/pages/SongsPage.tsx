@@ -22,6 +22,7 @@ import { useSongs, usePersonalSongs, useDeleteSong } from '../hooks/useSongs'
 import { useHiddenSongs } from '../hooks/useHiddenSongs'
 import { useBulkPersonalNotePresence } from '../hooks/useNotes'
 import { useMediaQuery } from '../hooks/useResponsive'
+import { DockAction } from '../components/layout/PhoneDock'
 import {
   useListView,
   useSongNextShows,
@@ -281,14 +282,13 @@ export const SongsPage: React.FC = () => {
     onAddToSet: () => setAddToSet(song),
   })
 
+  // In the title from md up; in the phone dock below (layout/PhoneDock).
   const addButton = (
     <Button
       variant="primary"
       onClick={() => navigate('/songs/new')}
       data-testid="add-song-button"
-      className={
-        isDesktop ? '' : 'fixed right-4 bottom-[104px] z-30 shadow-float'
-      }
+      className={isDesktop ? '' : 'w-full'}
     >
       <Plus size={18} /> Add song
     </Button>
@@ -466,7 +466,7 @@ export const SongsPage: React.FC = () => {
 
       {isTable ? list() : <div className="md:px-7 lg:px-8">{list()}</div>}
 
-      {!isDesktop && songs.length > 0 && addButton}
+      {!isDesktop && songs.length > 0 && <DockAction>{addButton}</DockAction>}
 
       {hasPane && selected && (
         <aside

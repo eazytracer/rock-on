@@ -1,11 +1,10 @@
 /**
- * The editor's sheets and menus (Setlist Editor 5–7, ab3 / m3 switcher). Each
+ * The editor's sheets and menus (Setlist Editor 5–7). Each
  * is a kit Sheet: a popover at `at` on desktop, a bottom sheet on phones.
  */
 import React, { useState } from 'react'
 import {
   ArrowRight,
-  Check,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -13,163 +12,18 @@ import {
   ListOrdered,
   Music2,
   Pencil,
-  Plus,
   SquareArrowOutUpRight,
   Trash2,
   ArrowUpToLine,
 } from 'lucide-react'
 import { Button, Segmented, Sheet, SheetItem } from '../ui'
 import { MarkdownWriter } from '../notes/MarkdownWriter'
-import {
-  BREAK_MINUTES,
-  indexTotals,
-  rowLabel,
-  type EditorRow,
-  type IndexRow,
-} from '../../domain/setlist'
+import { BREAK_MINUTES, rowLabel, type EditorRow } from '../../domain/setlist'
 import type { SetlistItem } from '../../types'
 import { tuningShortLabel } from '../../utils/tunings'
 
 type At = { x: number; y: number } | null
 type Row = EditorRow<SetlistItem>
-
-const isToday = (iso: string, now: Date) => {
-  const d = new Date(iso)
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  )
-}
-
-const shortDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
-
-const counts = (r: IndexRow) => {
-  const t = indexTotals(r)
-  return `${t.songs} ${t.songs === 1 ? 'song' : 'songs'} · ${t.minutes} min · ${t.retunes} ${t.retunes === 1 ? 'retune' : 'retunes'}`
-}
-
-// ── Switcher ────────────────────────────────────────────────────────────────
-
-/**
- * Switch setlist: the sets in this context, next show first, current ticked.
- * Desktop: anchored dropdown. Phone: bottom sheet with All / New buttons.
- * It only switches: no rename, duplicate or delete here.
- */
-export const SwitcherSheet: React.FC<{
-  rows: IndexRow[]
-  currentId: string
-  at: At
-  desktop: boolean
-  onPick: (id: string) => void
-  onAll: () => void
-  onNew: () => void
-  onClose: () => void
-}> = ({ rows, currentId, at, desktop, onPick, onAll, onNew, onClose }) => {
-  const now = new Date()
-  return (
-    <Sheet
-      onClose={onClose}
-      at={at}
-      width={360}
-      title={
-        desktop ? (
-          <span className="flex justify-between gap-3">
-            <span>Setlists · {rows.length}</span>
-            <span>Next show first</span>
-          </span>
-        ) : (
-          'Switch setlist'
-        )
-      }
-      sub="Next show first"
-      data-testid="setlist-switcher"
-    >
-      <div role="menu">
-        {rows.map(r => {
-          const on = r.id === currentId
-          const today = r.showAt && isToday(r.showAt, now)
-          return (
-            <button
-              key={r.id}
-              type="button"
-              role="menuitemradio"
-              aria-checked={on}
-              onClick={() => (on ? onClose() : onPick(r.id))}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left ${on ? 'bg-accent/20' : 'hover:bg-bg-3'}`}
-              data-testid={`setlist-switch-${r.id}`}
-            >
-              <span className="flex-1 min-w-0">
-                {!desktop && r.showAt && (
-                  <span
-                    className={`block truncate font-mono text-[10.5px] tracking-[.12em] uppercase ${today ? 'text-accent' : 'text-ink-3'}`}
-                  >
-                    {today ? 'Tonight' : shortDate(r.showAt)}
-                    {(r.showVenue || r.showName) &&
-                      ` · ${r.showVenue || r.showName}`}
-                  </span>
-                )}
-                <span className="block truncate text-[15px] font-bold text-ink-1">
-                  {r.name}
-                </span>
-                <span className="block truncate text-[13px] text-ink-3">
-                  {desktop && r.showAt ? `${shortDate(r.showAt)} · ` : ''}
-                  {counts(r)}
-                  {!desktop && !r.showAt ? ' · not attached to a show' : ''}
-                </span>
-              </span>
-              {on && <Check size={17} className="text-accent shrink-0" />}
-            </button>
-          )
-        })}
-      </div>
-      {desktop ? (
-        <>
-          <div className="my-1.5 mx-2 border-t border-divider" />
-          <SheetItem
-            icon={<ListMusic className="!text-accent" />}
-            label="All setlists"
-            onClick={onAll}
-            data-testid="setlist-switch-all"
-          />
-          <SheetItem
-            icon={<Plus className="!text-accent" />}
-            label="New setlist"
-            onClick={onNew}
-            data-testid="setlist-switch-new"
-          />
-        </>
-      ) : (
-        <div className="grid grid-cols-2 gap-2.5 pt-3">
-          <Button
-            size="lg"
-            icon={<ListMusic size={18} />}
-            onClick={onAll}
-            data-testid="setlist-switch-all"
-          >
-            All setlists
-          </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            icon={<Plus size={18} />}
-            onClick={onNew}
-            data-testid="setlist-switch-new"
-          >
-            New setlist
-          </Button>
-        </div>
-      )}
-    </Sheet>
-  )
-}
-
-// ── Row menu ────────────────────────────────────────────────────────────────
 
 /**
  * A row's menu (Setlist Editor 6): Up / Down / To top / After… tiles, then the

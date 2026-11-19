@@ -369,6 +369,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               const today = isToday(date)
               const selected = isSelected(date)
               const dateDisabled = isDateDisabled(date)
+              // Past days stay pickable, just dimmed, so a tap in the wrong
+              // month stands out.
+              const past = !today && date < new Date(new Date().toDateString())
               return (
                 <button
                   key={date.toISOString()}
@@ -382,9 +385,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                       : selected
                         ? 'bg-accent text-on-accent font-medium'
                         : today
-                          ? 'bg-accent text-on-accent'
-                          : 'text-ink-3 hover:bg-bg-4 hover:text-on-accent'
+                          ? 'text-accent-ink font-medium shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))] hover:bg-bg-4'
+                          : past
+                            ? 'text-ink-5 hover:bg-bg-4 hover:text-ink-3'
+                            : 'text-ink-2 hover:bg-bg-4 hover:text-ink-1'
                   }`}
+                  data-today={today || undefined}
+                  data-past={past || undefined}
                 >
                   {date.getDate()}
                 </button>

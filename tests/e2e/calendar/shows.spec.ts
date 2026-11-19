@@ -224,7 +224,6 @@ test.describe('Calendar and shows', () => {
 
     // Edit the copy in the setlist editor: remove Black.
     await page.goto(`/setlists/${copyId}?from=show:${seed.show}`)
-    await expect(page.getByTestId('setlist-switcher-toggle')).toHaveCount(0)
     await page.getByTestId('setlist-song-i0').click({ button: 'right' })
     await page.getByTestId('setlist-row-remove').click()
     await page.getByTestId('confirm-dialog-confirm').click()

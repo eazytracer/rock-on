@@ -7,15 +7,19 @@ import { BandMark } from '../ui/BandMark'
 
 interface ContextSwitcherProps {
   variant: 'sidebar' | 'mobile'
+  /** Mobile, beside a back crumb: just the band mark; the menu names it. */
+  compact?: boolean
 }
 
 /**
  * The one context switcher (Core Navigation 4): a chip in the mobile header and
  * at the top of the desktop sidebar. Personal · your bands (dot = unread
- * bandmate activity) · Create or join.
+ * bandmate activity) · Create or join. In the mobile header it sits on the
+ * right; `compact` shrinks it to the band mark.
  */
 export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
   variant,
+  compact = false,
 }) => {
   const navigate = useNavigate()
   const { currentBand, contextType, userBands, setContext, currentUser } =
@@ -71,10 +75,13 @@ export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
         data-testid="context-switcher-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={compact ? `Context: ${contextName}` : undefined}
         className={
           isSidebar
             ? 'flex items-center gap-2.5 w-full h-[52px] px-2.5 rounded-2xl bg-bg-3 text-left hover:bg-bg-4 transition-colors'
-            : 'flex items-center gap-2 h-10 pl-1.5 pr-3 rounded-full bg-bg-3 max-w-[220px]'
+            : compact
+              ? 'grid place-items-center w-11 h-11 rounded-full bg-bg-3'
+              : 'flex items-center gap-2 h-10 pl-1.5 pr-3 rounded-full bg-bg-3 max-w-[200px]'
         }
       >
         <BandMark
@@ -82,7 +89,7 @@ export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
           personal={personal}
           size={isSidebar ? 32 : 28}
         />
-        <span className="flex-1 min-w-0">
+        <span className={compact ? 'sr-only' : 'flex-1 min-w-0'}>
           <span
             className={`block truncate font-bold text-ink-1 ${isSidebar ? 'text-[15px]' : 'text-sm'}`}
             data-testid="sidebar-band-name"
@@ -95,10 +102,12 @@ export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
             </span>
           )}
         </span>
-        <ChevronDown
-          size={16}
-          className={`shrink-0 text-ink-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        />
+        {!compact && (
+          <ChevronDown
+            size={16}
+            className={`shrink-0 text-ink-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          />
+        )}
       </button>
 
       {open && (
@@ -106,7 +115,7 @@ export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
           role="menu"
           data-testid="context-switcher-menu"
           className={`absolute z-50 mt-2 rounded-[18px] bg-bg-2 p-1.5 shadow-float ring-1 ring-border-1 ${
-            isSidebar ? 'left-0 right-0' : 'left-0 w-72'
+            isSidebar ? 'left-0 right-0' : 'right-0 w-72'
           }`}
         >
           <Option

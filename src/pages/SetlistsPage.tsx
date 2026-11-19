@@ -28,6 +28,7 @@ import {
   useDeleteSetlist,
 } from '../hooks/useSetlists'
 import { useMediaQuery } from '../hooks/useResponsive'
+import { DockAction } from '../components/layout/PhoneDock'
 import { useConfirm } from '../hooks/useConfirm'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import {
@@ -159,14 +160,13 @@ export const SetlistsPage: React.FC = () => {
     }
   }
 
+  // In the title from md up; in the phone dock below (layout/PhoneDock).
   const newButton = (
     <Button
       variant="primary"
       onClick={create}
       data-testid="create-setlist-button"
-      className={
-        isDesktop ? '' : 'fixed right-4 bottom-[104px] z-30 shadow-float'
-      }
+      className={isDesktop ? '' : 'w-full'}
     >
       <Plus size={18} /> New setlist
     </Button>
@@ -324,7 +324,7 @@ export const SetlistsPage: React.FC = () => {
       )}
 
       {list()}
-      {!isDesktop && rows.length > 0 && newButton}
+      {!isDesktop && rows.length > 0 && <DockAction>{newButton}</DockAction>}
 
       {sortAt !== false && (
         <Sheet

@@ -175,29 +175,6 @@ test.describe('Setlist editor', () => {
       await assertNoConsoleErrors(page, errors)
     })
 
-    test('the caret switcher opens another set in place; All setlists → index', async ({
-      page,
-    }) => {
-      seed = await setup(page)
-      await page.goto(`/setlists/${seed.fall}`)
-      await page.getByTestId('setlist-switcher-toggle').click()
-      const sheet = page.getByTestId('setlist-switcher')
-      await expect(sheet).toContainText('Setlists · 2')
-      await expect(
-        page.getByTestId(`setlist-switch-${seed.fall}`)
-      ).toHaveAttribute('aria-checked', 'true')
-      await page.getByTestId(`setlist-switch-${seed.other}`).click()
-      await expect(page).toHaveURL(new RegExp(`/setlists/${seed.other}$`))
-      await expect(page.getByTestId('setlist-name-display')).toHaveText(
-        'Acoustic Sunday'
-      )
-      await expect(page.getByTestId('setlist-editor-empty')).toBeVisible()
-
-      await page.getByTestId('setlist-switcher-toggle').click()
-      await page.getByTestId('setlist-switch-all').click()
-      await expect(page).toHaveURL(/\/setlists$/)
-    })
-
     test('Add songs: + goes in after the selected row; your own song is copied in', async ({
       page,
     }) => {
@@ -427,26 +404,35 @@ test.describe('Setlist editor', () => {
   test.describe('phone', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
-    test('⇄ opens the switch sheet; All setlists → the list', async ({
+    test('‹ Setlists sits in the app bar, ⋯ beside the name; tap the name to rename', async ({
       page,
     }) => {
       seed = await setup(page)
       await page.goto(`/setlists/${seed.fall}`)
       await expect.poll(() => titles(page)).toEqual(['Black', 'Everlong'])
-      // The seed's realtime refresh can land mid-tap under load: retry.
-      const sheet = page.getByTestId('setlist-switcher')
-      await expect(async () => {
-        await page.getByTestId('setlist-switcher-toggle').tap()
-        await expect(sheet).toBeVisible({ timeout: 1000 })
-      }).toPass()
-      await expect(sheet).toContainText('Switch setlist')
-      await expect(sheet).toContainText('The Crocodile')
-      await page.getByTestId(`setlist-switch-${seed.other}`).tap()
-      await expect(page).toHaveURL(new RegExp(`/setlists/${seed.other}$`))
+      await expect(
+        page.getByTestId('mobile-header-back').getByTestId('setlist-back')
+      ).toBeVisible()
+      await expect(
+        page
+          .getByTestId('mobile-header')
+          .getByTestId('context-switcher-trigger')
+      ).toHaveAttribute('aria-label', /Context: /)
+      await expect(page.getByTestId('setlist-header-menu')).toBeVisible()
 
       await page.getByTestId('setlist-name-display').tap()
-      await page.getByTestId('setlist-switch-all').tap()
+      await expect(page.getByTestId('setlist-name-input')).toBeFocused()
+      await page.getByTestId('setlist-name-input').press('Escape')
+
+      await page.getByTestId('setlist-back').tap()
       await expect(page).toHaveURL(/\/setlists$/)
+      // A tab page has no crumb, and the full chip is back.
+      await expect(page.getByTestId('setlist-back')).toHaveCount(0)
+      await expect(
+        page
+          .getByTestId('mobile-header')
+          .getByTestId('context-switcher-trigger')
+      ).not.toHaveAttribute('aria-label', /Context: /)
     })
 
     test('Add → Break inserts after the last row; Add → Songs picks many', async ({

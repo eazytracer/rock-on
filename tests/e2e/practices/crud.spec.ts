@@ -57,12 +57,9 @@ test.describe('Practices', () => {
     await expect(page).toHaveURL(/\/practices\/[0-9a-f-]{36}$/)
     await page.getByTestId('practice-location-input').fill('The Loft')
     await page.getByTestId('practice-location-input').press('Enter')
-    await page.getByTestId('practice-focus-edit').click()
-    await page.getByTestId('markdown-textarea').fill('Tighten the outro')
-    await page.getByTestId('practice-focus-sheet-save').click()
-    await expect(page.getByTestId('practice-focus')).toContainText(
-      'Tighten the outro'
-    )
+    // Focus is plain text, saved on leave.
+    await page.getByTestId('practice-focus-input').fill('Tighten the outro')
+    await page.getByTestId('practice-focus-input').blur()
 
     // Songs come from the Add songs drawer.
     await page.getByTestId('practice-add-songs').click()

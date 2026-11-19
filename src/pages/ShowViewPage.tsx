@@ -4,7 +4,7 @@
  */
 import React from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
+import { BackCrumb } from '../components/layout/MobileHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { ShowDetail } from '../components/calendar/ShowDetail'
 import { calendarBackTo } from '../hooks/useCalendar'
@@ -16,15 +16,13 @@ export const ShowViewPage: React.FC = () => {
   const back = () => navigate(calendarBackTo('/calendar?type=show'))
 
   return (
-    <div data-testid="show-view-page" className="max-w-[720px] pb-44 md:pb-10">
-      <button
-        type="button"
+    <div data-testid="show-view-page" className="max-w-[720px] md:pb-10">
+      <BackCrumb
+        label="Calendar"
         onClick={back}
-        className="inline-flex items-center gap-1 h-9 pl-2 pr-3.5 mb-4 rounded-full bg-bg-2 text-[14px] font-semibold text-ink-1"
+        className="mb-4"
         data-testid="show-back"
-      >
-        <ChevronLeft size={17} /> Calendar
-      </button>
+      />
       <ShowDetail
         key={showId ?? 'new'}
         showId={showId ?? null}

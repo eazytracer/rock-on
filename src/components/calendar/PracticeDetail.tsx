@@ -6,18 +6,16 @@
  * the time, never a field. Start practice session is docked. Used full page
  * (`/practices/:id`, `/practices/new`) and in the desktop calendar's pane.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  Copy,
-  Maximize2,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Play,
-  Trash2,
-} from 'lucide-react'
+import { Copy, Maximize2, Plus, Play, Trash2 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../hooks/useConfirm'
@@ -29,7 +27,6 @@ import {
 import { ConfirmDialog } from '../common/ConfirmDialog'
 import { DatePicker } from '../common/DatePicker'
 import { TimePickerDropdown } from '../common/TimePickerDropdown'
-import { MarkdownRenderer } from '../notes/MarkdownRenderer'
 import { Button, Sheet, SheetItem, TypeLabel } from '../ui'
 import { NotesSheet } from '../setlists/SetlistSheets'
 import { EndPicker } from './EndPicker'
@@ -51,6 +48,8 @@ import {
   parseTime12Hour,
 } from '../../utils/dateHelpers'
 import type { PracticeSession } from '../../models/PracticeSession'
+import { DockAction } from '../layout/PhoneDock'
+import { MoreButton } from '../common/MoreButton'
 import { createLogger } from '../../utils/logger'
 
 const log = createLogger('PracticeDetail')
@@ -96,9 +95,7 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
     error,
     save: update,
   } = usePracticePage(practiceId)
-  const [sheet, setSheet] = useState<
-    null | 'menu' | 'focus' | { note: number }
-  >(null)
+  const [sheet, setSheet] = useState<null | 'menu' | { note: number }>(null)
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null)
   const [creating, setCreating] = useState(false)
   const now = useMemo(() => new Date(), [])
@@ -228,14 +225,10 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
         ? 'Now'
         : `Upcoming · ${countdown(at, now).replace('Tonight', 'today')}`
 
-  // Full page: docked above the tab bar on phones, after the songs from
-  // tablet up. Pane: under the title, so it's in view without scrolling.
+  // Full page: in the phone dock beside the tucked tab bar, after the songs
+  // from tablet up. Pane: under the title, so it's in view without scrolling.
   const startButton = !isNew && status !== 'done' && (
-    <div
-      className={
-        page ? 'fixed inset-x-4 bottom-[104px] z-30 md:static md:mt-6' : 'mt-4'
-      }
-    >
+    <div className={page ? 'w-full md:mt-6' : 'mt-4'}>
       <Button
         variant="primary"
         size="lg"
@@ -243,12 +236,26 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
         icon={<Play size={18} className="fill-current" />}
         onClick={() => navigate(`/practices/${practice.id}/session`)}
         disabled={practice.songs.length === 0}
-        className="shadow-float md:shadow-none"
         data-testid="practice-start-session"
       >
         Start practice session
       </Button>
     </div>
+  )
+
+  // ⋯ ends the first line under the name, so the name keeps the full width.
+  const menu = !isNew && (
+    <span className="ml-auto -mt-3 -mb-2 normal-case tracking-normal">
+      <MoreButton
+        label="Practice menu"
+        onClick={e => {
+          const r = e.currentTarget.getBoundingClientRect()
+          setMenuAt({ x: r.right - 288, y: r.bottom + 8 })
+          setSheet('menu')
+        }}
+        data-testid="practice-menu"
+      />
+    </span>
   )
 
   return (
@@ -308,27 +315,12 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
             </Button>
           </span>
         )}
-        {!isNew && (
-          <button
-            type="button"
-            aria-label="Practice menu"
-            onClick={e => {
-              const r = e.currentTarget.getBoundingClientRect()
-              setMenuAt({ x: r.right - 288, y: r.bottom + 8 })
-              setSheet('menu')
-            }}
-            className="grid place-items-center w-10 h-10 rounded-full bg-bg-2 text-ink-2 shrink-0"
-            data-testid="practice-menu"
-          >
-            <MoreHorizontal size={18} />
-          </button>
-        )}
       </div>
       {!page && startButton}
 
       {played !== null && (
         <>
-          <p className={groupLabel}>Wrap-up</p>
+          <p className={groupLabel}>Wrap-up{menu}</p>
           <div className={card + ' px-4 py-3'} data-testid="practice-wrapup">
             <p className="font-mono text-[12.5px] text-ink-2">
               {hoursMinutes(played)} played · {reached} of{' '}
@@ -343,7 +335,10 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
         </>
       )}
 
-      <p className={groupLabel}>When and where</p>
+      <p className={groupLabel}>
+        When and where
+        {played === null && menu}
+      </p>
       <div
         className={`${card} p-4 grid grid-cols-2 gap-3 ${page ? 'xl:grid-cols-4' : ''}`}
         data-testid="practice-when"
@@ -387,34 +382,13 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
         />
       </div>
 
-      <p className={groupLabel}>
+      <label htmlFor="practice-focus" className={groupLabel}>
         Focus
-        <button
-          type="button"
-          onClick={() => setSheet('focus')}
-          className="ml-auto inline-flex items-center gap-1 text-accent-ink tracking-[.06em]"
-          data-testid="practice-focus-edit"
-        >
-          <Pencil size={12} /> {practice.notes ? 'Edit' : 'Add'}
-        </button>
-      </p>
-      {practice.notes ? (
-        <button
-          type="button"
-          onClick={() => setSheet('focus')}
-          className={
-            card +
-            ' block w-full px-4 py-3 text-left text-[14.5px] text-ink-1 [&_*]:my-0'
-          }
-          data-testid="practice-focus"
-        >
-          <MarkdownRenderer content={practice.notes} />
-        </button>
-      ) : (
-        <p className="px-3 text-[13.5px] text-ink-4">
-          What do you want to get out of this one?
-        </p>
-      )}
+      </label>
+      <FocusField
+        value={practice.notes ?? ''}
+        onCommit={notes => void save({ notes })}
+      />
 
       <p className={groupLabel}>
         Songs · {practice.songs.length}
@@ -443,7 +417,7 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
         data-testid="practice-add-songs"
       />
 
-      {page && startButton}
+      {page && startButton && <DockAction>{startButton}</DockAction>}
 
       {sheet === 'menu' && (
         <Sheet
@@ -469,17 +443,6 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
             />
           </div>
         </Sheet>
-      )}
-      {sheet === 'focus' && (
-        <NotesSheet
-          title="Focus"
-          sub={title}
-          value={practice.notes ?? ''}
-          markdown
-          onSave={v => void save({ notes: v })}
-          onClose={() => setSheet(null)}
-          data-testid="practice-focus-sheet"
-        />
       )}
       {sheet && typeof sheet === 'object' && (
         <NotesSheet
@@ -522,6 +485,36 @@ const NameInput: React.FC<{
       className={`w-full bg-transparent font-display font-extrabold uppercase leading-[.95] text-ink-1 placeholder:text-ink-3 outline-none ${
         big ? 'text-[44px] md:text-[50px]' : 'text-[34px]'
       }`}
+    />
+  )
+}
+
+/** Focus: plain text, edited in place; it grows with its lines and saves on leave. */
+const FocusField: React.FC<{
+  value: string
+  onCommit: (value: string) => void
+}> = ({ value, onCommit }) => {
+  const [v, setV] = useState(value)
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => setV(value), [value])
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [v])
+  return (
+    <textarea
+      ref={ref}
+      id="practice-focus"
+      name="practiceFocus"
+      data-testid="practice-focus-input"
+      rows={2}
+      value={v}
+      placeholder="What do you want to get out of this one?"
+      onChange={e => setV(e.target.value)}
+      onBlur={() => v.trim() !== value && onCommit(v.trim())}
+      className={`${card} block w-full resize-none overflow-hidden px-4 py-3 text-[14.5px] leading-relaxed text-ink-1 placeholder:text-ink-4 outline-none focus:shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))]`}
     />
   )
 }
