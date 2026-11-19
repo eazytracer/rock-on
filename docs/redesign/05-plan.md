@@ -26,17 +26,17 @@ versions on the branch. **From Phase 5 on (decided Nov 16): no per-phase version
 new work goes under CHANGELOG `[Unreleased]` and gets one number when the whole redesign is finalized. The version numbers
 in the headings below are historical.
 
-| Phase                                      | State                                                                                            |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| 0 · Foundations (0.7.0)                    | Built                                                                                            |
-| 1 · Shell and Home (0.8.0)                 | Built                                                                                            |
-| 2 · Songs (0.9.0), 2.1 · Song page (0.9.1) | Built                                                                                            |
-| 3 · Setlists (0.10.0)                      | Built                                                                                            |
-| 4 · Calendar, shows, practices (0.11.0)    | Built (`007e6cb`), plus the follow-ups listed under Phase 4 (uncommitted at the time of writing) |
-| 5 · Tools and chart (0.12.0)               | Built (`8798d08`), plus the phone dock, app bar and other follow-ups (Nov 18)                    |
-| **6 · Account, band, friends (0.13.0)**    | **Next**                                                                                         |
-| 7 · Jam (0.14.0)                           | Not started. Build brief: [11-jam.md](11-jam.md) (Nov 16; its open questions are unanswered)     |
-| 8 · RSVP                                   | Post-launch                                                                                      |
+| Phase                                      | State                                                                                                                  |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| 0 · Foundations (0.7.0)                    | Built                                                                                                                  |
+| 1 · Shell and Home (0.8.0)                 | Built                                                                                                                  |
+| 2 · Songs (0.9.0), 2.1 · Song page (0.9.1) | Built                                                                                                                  |
+| 3 · Setlists (0.10.0)                      | Built                                                                                                                  |
+| 4 · Calendar, shows, practices (0.11.0)    | Built (`007e6cb`), plus the follow-ups listed under Phase 4 (uncommitted at the time of writing)                       |
+| 5 · Tools and chart (0.12.0)               | Built (`8798d08`), plus the phone dock, app bar and other follow-ups (Nov 18)                                          |
+| **6 · Account, band, friends (0.13.0)**    | **Next.** Build brief: [13-account-band-friends.md](13-account-band-friends.md) (Nov 18; slices 6a–6g, questions open) |
+| 7 · Jam (0.14.0)                           | Not started. Build brief: [11-jam.md](11-jam.md) (Nov 16; its open questions are unanswered)                           |
+| 8 · RSVP                                   | Post-launch                                                                                                            |
 
 Feature flags: add `REDESIGN_<AREA>` flags to `src/config/featureFlags.ts` only where a phase **removes** an old
 flow (the Shows / Practices list pages, the old song modal), so the old path can come back without a revert.
