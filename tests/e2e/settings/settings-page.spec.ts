@@ -1,385 +1,358 @@
 /**
- * E2E Tests for Settings Page
+ * Settings (docs/redesign/13 · 6e, 6f): phone list → sub-screens, desktop
+ * tabs, Profile (name, ordered instruments, colour), Music (click sound read
+ * by the metronome), push preferences, change password, and delete account
+ * (blocked for an owner, works for anyone else).
  *
- * Tests cover:
- * - Page navigation and accessibility
- * - Account information display
- * - Delete account workflow
- * - Dev-only features
+ * Each test creates its own user through the admin API and signs in on the
+ * sign-in screen, so nothing here touches the seeded demo users.
  */
-
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+import { createClient } from '@supabase/supabase-js'
+import {
+  createTestUser,
+  createTestUserInDB,
+  deleteTestUser,
+  type TestUser,
+} from '../../fixtures/auth'
+import { getLocalServiceKey, getSupabaseAdmin } from '../../fixtures/supabase'
 import {
   setupConsoleErrorTracking,
   assertNoConsoleErrors,
 } from '../../helpers/assertions'
-import { createTestUser, loginViaUI, logoutViaUI } from '../../fixtures/auth'
-import { clearTestData } from '../../fixtures/database'
 
-test.describe('Settings Page', () => {
-  let testUser: { email: string; password: string; name: string; id?: string }
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321'
+
+type User = TestUser & { id: string }
+
+/** A separate client signed in as the user (never the shared admin client). */
+async function clientAs(email: string, password: string) {
+  const c = createClient(SUPABASE_URL, await getLocalServiceKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  const { error } = await c.auth.signInWithPassword({ email, password })
+  return { c, error }
+}
+
+async function signIn(page: Page, user: TestUser) {
+  await page.goto('/auth')
+  await page.getByTestId('login-email-input').fill(user.email)
+  await page.getByTestId('login-password-input').fill(user.password)
+  await page.getByTestId('login-password-input').press('Enter')
+  await page.waitForURL(url => !url.pathname.startsWith('/auth'), {
+    timeout: 15000,
+  })
+}
+
+async function prefsOf(userId: string) {
+  const admin = await getSupabaseAdmin()
+  const { data } = await admin
+    .from('user_preferences')
+    .select('theme, metronome, push')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return data
+}
+
+test.describe('Settings', () => {
+  let user: User | undefined
 
   test.beforeEach(async ({ page }) => {
-    // Clear test data and create test user
-    await clearTestData()
-    testUser = createTestUser()
-
-    // Sign in via UI (creates account and logs in)
-    await page.goto('/auth')
-    await page.waitForSelector(
-      'button:has-text("Log In"), button:has-text("Create Account")',
-      {
-        state: 'visible',
-        timeout: 10000,
-      }
-    )
-    // Switch to signup if on login form
-    const logInButton = page.locator('button:has-text("Log In")')
-    if (await logInButton.isVisible()) {
-      await page.click('button:has-text("Don\'t have an account")')
-      await page.waitForSelector('[data-testid="signup-name-input"]', {
-        state: 'visible',
-        timeout: 5000,
-      })
-    }
-    await page.fill(
-      '[data-testid="signup-name-input"]',
-      testUser.name || 'Test User'
-    )
-    await page.fill('[data-testid="signup-email-input"]', testUser.email)
-    await page.fill('[data-testid="signup-password-input"]', testUser.password)
-    await page.fill(
-      '[data-testid="signup-confirm-password-input"]',
-      testUser.password
-    )
-    await page.click('button[type="submit"]:has-text("Create Account")')
-    await page.waitForURL(/\/get-started/, { timeout: 10000 })
-
-    // Create a band to access protected pages
-    const bandName = `Settings Test Band ${Date.now()}`
-    await page.fill('[data-testid="create-band-name-input"]', bandName)
-    await page.click('[data-testid="create-band-button"]')
-    await page.waitForURL(/\/songs/, { timeout: 10000 })
+    user = await createTestUserInDB(createTestUser())
+    await signIn(page, user)
+  })
+  test.afterEach(async () => {
+    if (user) await deleteTestUser(user.id)
+    user = undefined
   })
 
-  test.afterEach(async ({ page }) => {
-    // Sign out after each test - with shorter timeout to avoid blocking
-    try {
-      // A test may leave a modal open (e.g. the delete-account confirmation),
-      // whose overlay would intercept the logout click and hang the hook.
-      // Reload to a neutral page first to unmount any open modal.
-      await page.goto('/songs').catch(() => {})
-      // Sign out lives in the sidebar account menu
-      await page
-        .click('[data-testid="sidebar-account-button"]', { timeout: 2000 })
-        .catch(() => {})
-      const logoutButton = page.locator('[data-testid="logout-button"]')
-      const isVisible = await logoutButton
-        .isVisible({ timeout: 2000 })
-        .catch(() => false)
-      if (isVisible) {
-        await logoutButton.click()
-        // Redirect preserves a ?returnTo= param, so match the /auth path.
-        await page.waitForURL(/\/auth/, { timeout: 3000 }).catch(() => {})
-      }
-    } catch {
-      // Ignore logout errors (user may already be logged out or page closed)
-    }
-  })
+  test.describe('phone', () => {
+    test.use({ viewport: { width: 390, height: 844 } })
 
-  test.describe('Page Access and Navigation', () => {
-    test('should navigate to settings page from sidebar', async ({ page }) => {
-      const errors = setupConsoleErrorTracking(page)
-
-      // Click Settings link in sidebar using test ID
-      await page.click('[data-testid="settings-link"]')
-
-      // Should be on settings page
-      await expect(page).toHaveURL(/\/settings/)
-
-      // Page should load without errors
-      await assertNoConsoleErrors(page, errors)
-    })
-
-    test('should load settings page directly', async ({ page }) => {
-      const errors = setupConsoleErrorTracking(page)
-
-      // Navigate directly to settings
-      await page.goto('/settings')
-
-      // Should see settings page
-      await expect(page.getByTestId('settings-page')).toBeVisible()
-
-      await assertNoConsoleErrors(page, errors)
-    })
-
-    test('should require authentication', async ({ page }) => {
-      // Sign out first
-      await logoutViaUI(page)
-
-      // Try to access settings
-      await page.goto('/settings')
-
-      // Wait for page to settle
-      await page.waitForTimeout(1000)
-
-      // Should redirect to auth page or show sign-in message
-      const url = page.url()
-      const isAuth = url.includes('/auth')
-
-      // Also check for sign-in message (with wait since it may take time to render)
-      const hasSignInMessage = await page
-        .getByText(/please sign in/i)
-        .isVisible({ timeout: 2000 })
-        .catch(() => false)
-
-      // If neither condition is met, log current state for debugging
-      if (!isAuth && !hasSignInMessage) {
-        console.log('Current URL:', url)
-        console.log('Page content visible for debugging')
-      }
-
-      expect(isAuth || hasSignInMessage).toBe(true)
-    })
-  })
-
-  test.describe('Account Information Display', () => {
-    test('should display user email', async ({ page }) => {
-      await page.goto('/settings')
-
-      const emailElement = page.getByTestId('account-email')
-      await expect(emailElement).toBeVisible()
-      await expect(emailElement).toContainText(testUser.email)
-    })
-
-    test('should display user name', async ({ page }) => {
-      await page.goto('/settings')
-
-      const nameElement = page.getByTestId('account-name')
-      await expect(nameElement).toBeVisible()
-      // Name should be populated (either from profile or email)
-      await expect(nameElement).not.toBeEmpty()
-    })
-
-    test('should display user ID', async ({ page }) => {
-      await page.goto('/settings')
-
-      const userIdElement = page.getByTestId('account-user-id')
-      await expect(userIdElement).toBeVisible()
-      // User ID should be a UUID format
-      const userId = await userIdElement.textContent()
-      expect(userId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      )
-    })
-
-    test('should have account section heading', async ({ page }) => {
-      await page.goto('/settings')
-
-      // Scope to account section to avoid matching "Delete Account" heading
-      await expect(
-        page
-          .getByTestId('account-section')
-          .getByRole('heading', { name: 'Account' })
-      ).toBeVisible()
-    })
-  })
-
-  test.describe('Delete Account Workflow', () => {
-    test('should show delete account button', async ({ page }) => {
-      await page.goto('/settings')
-
-      const deleteButton = page.getByTestId('delete-account-button')
-      await expect(deleteButton).toBeVisible()
-      await expect(deleteButton).toContainText(/delete account/i)
-    })
-
-    test('should open confirmation modal when delete clicked', async ({
+    test('the list opens sub-screens with a Settings back crumb', async ({
       page,
     }) => {
-      await page.goto('/settings')
-
-      // Click delete button
-      await page.click('[data-testid="delete-account-button"]')
-
-      // Modal should appear
-      await expect(page.getByTestId('delete-account-modal')).toBeVisible()
-    })
-
-    test('should close modal when cancel clicked', async ({ page }) => {
-      await page.goto('/settings')
-
-      // Open modal
-      await page.click('[data-testid="delete-account-button"]')
-      await expect(page.getByTestId('delete-account-modal')).toBeVisible()
-
-      // Click cancel
-      await page.click('[data-testid="delete-account-cancel-button"]')
-
-      // Modal should close
-      await expect(page.getByTestId('delete-account-modal')).not.toBeVisible()
-    })
-
-    test('should close modal when X clicked', async ({ page }) => {
-      await page.goto('/settings')
-
-      // Open modal
-      await page.click('[data-testid="delete-account-button"]')
-      await expect(page.getByTestId('delete-account-modal')).toBeVisible()
-
-      // Find and click X button (close button in modal header)
-      await page.click('[data-testid="delete-account-modal"] button >> svg')
-
-      // Modal should close
-      await expect(page.getByTestId('delete-account-modal')).not.toBeVisible()
-    })
-
-    test('should require DELETE confirmation text', async ({ page }) => {
-      await page.goto('/settings')
-
-      // Open modal
-      await page.click('[data-testid="delete-account-button"]')
-
-      // Confirm button should be disabled initially
-      const confirmButton = page.getByTestId('delete-account-confirm-button')
-      await expect(confirmButton).toBeDisabled()
-
-      // Type wrong text
-      await page.fill(
-        '[data-testid="delete-account-confirmation-input"]',
-        'delete'
-      )
-      await expect(confirmButton).toBeDisabled()
-
-      // Type correct text
-      await page.fill(
-        '[data-testid="delete-account-confirmation-input"]',
-        'DELETE'
-      )
-      await expect(confirmButton).toBeEnabled()
-    })
-
-    test('should show warning messages in modal', async ({ page }) => {
-      await page.goto('/settings')
-
-      // Open modal
-      await page.click('[data-testid="delete-account-button"]')
-
-      // Wait for modal to be visible
-      const modal = page.getByTestId('delete-account-modal')
-      await expect(modal).toBeVisible()
-
-      // Should show warning (scoped to modal to avoid matching page text)
-      await expect(
-        modal.getByText(/this action cannot be undone/i)
-      ).toBeVisible()
-      await expect(modal.getByText(/all bands you created/i)).toBeVisible()
-      await expect(
-        modal.getByText(/all songs, setlists, and practices/i)
-      ).toBeVisible()
-    })
-
-    // Note: We don't test actual deletion in E2E to preserve test database integrity
-    // Actual deletion is tested in unit tests with mocks
-  })
-
-  test.describe('Data & Privacy Section', () => {
-    test('should have data & privacy heading', async ({ page }) => {
-      await page.goto('/settings')
-
-      await expect(
-        page.getByRole('heading', { name: /data.*privacy/i })
-      ).toBeVisible()
-    })
-
-    test('should show permanence warning', async ({ page }) => {
-      await page.goto('/settings')
-
-      await expect(
-        page.getByText(/permanently delete your account/i)
-      ).toBeVisible()
-    })
-  })
-
-  test.describe('Page Structure and Accessibility', () => {
-    test('should have proper heading hierarchy', async ({ page }) => {
-      await page.goto('/settings')
-
-      const settingsPage = page.getByTestId('settings-page')
-      await expect(settingsPage).toBeVisible()
-
-      // Main heading (scoped to settings page to avoid sidebar band name h1)
-      await expect(
-        settingsPage.getByRole('heading', { level: 1, name: 'Settings' })
-      ).toBeVisible()
-
-      // Section headings (scoped to avoid matching modal headings)
-      await expect(
-        page
-          .getByTestId('account-section')
-          .getByRole('heading', { level: 2, name: 'Account' })
-      ).toBeVisible()
-      await expect(
-        settingsPage.getByRole('heading', { level: 2, name: /data.*privacy/i })
-      ).toBeVisible()
-    })
-
-    test('should have all required test IDs', async ({ page }) => {
-      await page.goto('/settings')
-
-      await expect(page.getByTestId('settings-page')).toBeVisible()
-      await expect(page.getByTestId('account-section')).toBeVisible()
-      await expect(page.getByTestId('account-email')).toBeVisible()
-      await expect(page.getByTestId('account-name')).toBeVisible()
-      await expect(page.getByTestId('account-user-id')).toBeVisible()
-      await expect(page.getByTestId('delete-account-button')).toBeVisible()
-    })
-
-    test('should be responsive', async ({ page }) => {
-      await page.goto('/settings')
-
-      // Settings page should have max-width container
-      const container = page.getByTestId('settings-page')
-      await expect(container).toBeVisible()
-
-      // Should be visible on mobile viewport
-      await page.setViewportSize({ width: 375, height: 667 })
-      await expect(container).toBeVisible()
-    })
-  })
-
-  test.describe('Console Errors', () => {
-    test('should load without console errors', async ({ page }) => {
       const errors = setupConsoleErrorTracking(page)
-
       await page.goto('/settings')
+      await expect(page.getByTestId('settings-list')).toBeVisible()
+      await expect(page.getByTestId('theme-segmented')).toBeVisible()
+      await expect(page.getByTestId('account-email')).toHaveText(user!.email)
+      await expect(page.getByTestId('version-info')).toBeVisible()
+      await expect(page.getByTestId('account-user-id')).toHaveCount(0)
 
-      // Wait for page to fully load
-      await page.getByTestId('settings-page').waitFor()
+      await page.getByTestId('settings-row-profile').click()
+      await expect(page).toHaveURL(/\/settings\/profile$/)
+      await expect(page.getByTestId('settings-profile')).toBeVisible()
+      await expect(page.getByTestId('profile-email-note')).toContainText(
+        "email isn't shown"
+      )
+      await page.getByTestId('settings-back').click()
+      await expect(page).toHaveURL(/\/settings$/)
 
+      await page.getByTestId('settings-row-music').click()
+      await expect(page.getByTestId('settings-music')).toBeVisible()
+      await expect(page.getByTestId('settings-tunings-tuner')).toBeVisible()
+      await page.getByTestId('settings-back').click()
+
+      await page.getByTestId('delete-account-button').click()
+      await expect(page).toHaveURL(/\/settings\/delete$/)
+      await expect(page.getByTestId('settings-delete')).toBeVisible()
       await assertNoConsoleErrors(page, errors)
     })
+
+    test('profile: name, instruments in order and colour save', async ({
+      page,
+    }) => {
+      await page.goto('/settings/profile')
+      await page.getByTestId('profile-name-input').fill('Stage Name')
+      await page.getByTestId('profile-name-save').click()
+      await expect(page.getByText('Name saved')).toBeVisible()
+
+      await page.getByTestId('profile-instrument-add-bass').click()
+      await expect(page.getByTestId('profile-instrument-row-0')).toContainText(
+        'Bass'
+      )
+      await page.getByTestId('profile-instrument-add-vocals').click()
+      await expect(page.getByTestId('profile-instrument-row-1')).toContainText(
+        'Vocals'
+      )
+      await page.getByTestId('profile-instrument-other-button').click()
+      await page.getByTestId('profile-instrument-other-input').fill('Cello')
+      await page.getByTestId('profile-instrument-other-add').click()
+      await expect(page.getByTestId('profile-instrument-row-2')).toContainText(
+        'Cello'
+      )
+      // Cello to the top, then remove Vocals (now third).
+      await page.getByTestId('profile-instrument-up-2').click()
+      await expect(page.getByTestId('profile-instrument-row-1')).toContainText(
+        'Cello'
+      )
+      await page.getByTestId('profile-instrument-up-1').click()
+      await expect(page.getByTestId('profile-instrument-row-0')).toContainText(
+        'Cello'
+      )
+      await page.getByTestId('profile-instrument-remove-2').click()
+      await page.getByTestId('profile-color-teal').click()
+
+      const admin = await getSupabaseAdmin()
+      await expect
+        .poll(async () => {
+          const { data } = await admin
+            .from('user_profiles')
+            .select('display_name, instruments, personal_color')
+            .eq('user_id', user!.id)
+            .single()
+          return data
+        })
+        .toEqual({
+          display_name: 'Stage Name',
+          instruments: ['Cello', 'Bass'],
+          personal_color: '#2dd4bf',
+        })
+      const { data: u } = await admin
+        .from('users')
+        .select('name')
+        .eq('id', user!.id)
+        .single()
+      expect(u!.name).toBe('Stage Name')
+
+      await page.reload()
+      await expect(page.getByTestId('profile-name-input')).toHaveValue(
+        'Stage Name'
+      )
+      await expect(page.getByTestId('profile-instrument-row-0')).toContainText(
+        'Cello'
+      )
+      await expect(page.getByTestId('profile-color-teal')).toHaveAttribute(
+        'aria-checked',
+        'true'
+      )
+    })
+
+    test('push preferences persist, merged into user_preferences.push', async ({
+      page,
+    }) => {
+      const admin = await getSupabaseAdmin()
+      await admin
+        .from('user_preferences')
+        .upsert(
+          { user_id: user!.id, theme: 'dark', push: { legacy: 1 } },
+          { onConflict: 'user_id' }
+        )
+      await page.goto('/settings/notifications')
+      await expect(page.getByTestId('push-not-on-yet')).toContainText(
+        "Push isn't on yet"
+      )
+      await page.getByTestId('push-type-practices-switch').click()
+      await expect(
+        page.getByTestId('push-type-practices-switch')
+      ).toHaveAttribute('aria-checked', 'false')
+      await page.getByTestId('push-quiet-start-input').fill('22:30')
+      await expect(page.getByTestId('push-quiet-start-input')).toHaveValue(
+        '22:30'
+      )
+      await page.getByTestId('push-enabled-switch').click()
+      await expect(page.getByTestId('push-type-shows-switch')).toBeDisabled()
+
+      await expect
+        .poll(async () => {
+          const p = await prefsOf(user!.id)
+          const push = p?.push as Record<string, any>
+          return [
+            p?.theme,
+            push?.legacy,
+            push?.enabled,
+            push?.types?.practices,
+            push?.quietHours?.start,
+            typeof push?.quietHours?.tz,
+          ]
+        })
+        .toEqual(['dark', 1, false, false, '22:30', 'string'])
+
+      await page.reload()
+      await expect(page.getByTestId('push-enabled-switch')).toHaveAttribute(
+        'aria-checked',
+        'false'
+      )
+      await expect(page.getByTestId('push-quiet-start-input')).toHaveValue(
+        '22:30'
+      )
+    })
+
+    test('delete account works for a non-owner; sign-in fails after', async ({
+      page,
+    }) => {
+      await page.goto('/settings/delete')
+      await expect(
+        page.getByTestId('delete-account-consequences')
+      ).toContainText('Former member')
+      await expect(page.getByTestId('delete-account-owner-block')).toHaveCount(
+        0
+      )
+      const go = page.getByTestId('delete-account-confirm-button')
+      await expect(go).toBeDisabled()
+      await page.getByTestId('delete-account-confirmation-input').fill('delete')
+      await expect(go).toBeDisabled()
+      await page.getByTestId('delete-account-confirmation-input').fill('DELETE')
+      await expect(go).toBeEnabled()
+      await go.click()
+      await page.waitForURL(/\/auth/, { timeout: 15000 })
+
+      const admin = await getSupabaseAdmin()
+      const { data: row } = await admin
+        .from('users')
+        .select('id')
+        .eq('id', user!.id)
+        .maybeSingle()
+      expect(row).toBeNull()
+      const { error } = await clientAs(user!.email, user!.password)
+      expect(error).not.toBeNull()
+      user = undefined // already gone
+    })
   })
-})
 
-test.describe('Settings Page - Development Mode', () => {
-  // These tests would only run in development environment
-  // Skipped in CI/production builds
+  test.describe('desktop', () => {
+    test.use({ viewport: { width: 1280, height: 860 } })
 
-  test.skip('should show dev section in development', async ({ page }) => {
-    // This would require setting environment to dev
-    // Skip for now as we can't easily change env in E2E tests
-  })
+    test('tabs switch sections; /settings opens Profile', async ({ page }) => {
+      const errors = setupConsoleErrorTracking(page)
+      await page.goto('/settings')
+      await expect(page.getByTestId('settings-nav')).toBeVisible()
+      await expect(page.getByTestId('settings-tab-profile')).toHaveAttribute(
+        'aria-current',
+        'page'
+      )
+      await expect(page.getByTestId('settings-profile')).toBeVisible()
+      for (const [tab, body] of [
+        ['appearance', 'theme-segmented'],
+        ['music', 'settings-tunings'],
+        ['notifications', 'settings-notifications'],
+        ['account', 'account-email'],
+        ['about', 'version-info'],
+      ]) {
+        await page.getByTestId(`settings-tab-${tab}`).click()
+        await expect(page).toHaveURL(new RegExp(`/settings/${tab}$`))
+        await expect(page.getByTestId(body)).toBeVisible()
+      }
+      await page.getByTestId('about-whats-new').click()
+      await expect(page).toHaveURL(/\/notifications\?tab=updates/)
+      await expect(page.getByTestId('notifications-updates')).toBeVisible()
+      await assertNoConsoleErrors(page, errors)
+    })
 
-  test.skip('should have clear local data button in dev mode', async ({
-    page,
-  }) => {
-    // This would require setting environment to dev
-    // Skip for now
-  })
+    test('click sound saves (merged) and the metronome uses it', async ({
+      page,
+    }) => {
+      const admin = await getSupabaseAdmin()
+      await admin
+        .from('user_preferences')
+        .upsert(
+          { user_id: user!.id, theme: 'light', metronome: { other: 'kept' } },
+          { onConflict: 'user_id' }
+        )
+      await page.goto('/settings/music')
+      await expect(page.getByTestId('music-click-beep')).toBeVisible()
+      await page.getByTestId('music-click-woodblock').click()
+      await expect
+        .poll(async () => {
+          const p = await prefsOf(user!.id)
+          return [p?.theme, p?.metronome]
+        })
+        .toEqual(['light', { other: 'kept', click: 'woodblock' }])
 
-  test.skip('should display build version in dev mode', async ({ page }) => {
-    // This would require setting environment to dev
-    // Skip for now
+      await page.goto('/tools/metronome')
+      await expect(page.getByTestId('metronome')).toHaveAttribute(
+        'data-click-sound',
+        'woodblock'
+      )
+    })
+
+    test('change password asks for the current one first', async ({ page }) => {
+      await page.goto('/settings/account')
+      await expect(page.getByTestId('account-signin-methods')).toHaveText(
+        'Password'
+      )
+      await page.getByTestId('account-change-password').click()
+      await page
+        .getByTestId('change-password-current-input')
+        .fill('not-my-password')
+      await page.getByTestId('change-password-new-input').fill('short')
+      await expect(page.getByTestId('change-password-save')).toBeDisabled()
+      await page.getByTestId('change-password-new-input').fill('BrandNew-123')
+      await page.getByTestId('change-password-save').click()
+      await expect(
+        page.getByTestId('change-password-current-error')
+      ).toContainText("isn't your current password")
+
+      await page
+        .getByTestId('change-password-current-input')
+        .fill(user!.password)
+      await page.getByTestId('change-password-save').click()
+      await expect(page.getByText('Password changed')).toBeVisible()
+      await expect(page.getByTestId('change-password-form')).toHaveCount(0)
+
+      expect((await clientAs(user!.email, 'BrandNew-123')).error).toBeNull()
+      expect((await clientAs(user!.email, user!.password)).error).not.toBeNull()
+    })
+
+    test('delete account is blocked while you own a band', async ({ page }) => {
+      const { c } = await clientAs(user!.email, user!.password)
+      const { error } = await c.rpc('create_band', {
+        p_name: `Owned ${Date.now()}`,
+      })
+      expect(error).toBeNull()
+
+      await page.goto('/settings/account')
+      await page.getByTestId('delete-account-button').click()
+      await expect(page).toHaveURL(/\/settings\/delete$/)
+      await expect(page.getByTestId('delete-account-owner-block')).toBeVisible()
+      await expect(
+        page.getByTestId('delete-account-consequences')
+      ).toContainText('You own Owned')
+      await page.getByTestId('delete-account-confirmation-input').fill('DELETE')
+      await expect(
+        page.getByTestId('delete-account-confirm-button')
+      ).toBeDisabled()
+    })
   })
 })

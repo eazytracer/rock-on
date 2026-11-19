@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useMyContexts } from '../../hooks/useMyContexts'
 import { BandMark } from '../ui/BandMark'
+import type { BandMarkValue } from '../ui/bandMarkPalette'
 
 interface ContextSwitcherProps {
   variant: 'sidebar' | 'mobile'
@@ -86,6 +87,7 @@ export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
       >
         <BandMark
           name={personal ? userName : contextName}
+          mark={personal ? null : (current?.mark as BandMarkValue | null)}
           personal={personal}
           size={isSidebar ? 32 : 28}
         />
@@ -137,7 +139,13 @@ export const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
               <Option
                 key={band.id}
                 testId={`context-option-band-${band.id}`}
-                mark={<BandMark name={band.name} size={30} />}
+                mark={
+                  <BandMark
+                    name={band.name}
+                    mark={c?.mark as BandMarkValue | null}
+                    size={30}
+                  />
+                }
                 title={band.name}
                 sub={
                   c

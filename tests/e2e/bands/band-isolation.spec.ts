@@ -175,7 +175,7 @@ test.describe('Band Isolation and RLS Security', () => {
     await page2.waitForURL(/\/songs/, { timeout: 10000 })
 
     // User 1 goes to band members page
-    await page1.goto('/band-members')
+    await page1.goto('/band')
     await page1.waitForLoadState('networkidle')
 
     // User 1 should only see themselves
@@ -192,7 +192,7 @@ test.describe('Band Isolation and RLS Security', () => {
     expect(canSeeUser2).toBe(false)
 
     // Similarly for User 2
-    await page2.goto('/band-members')
+    await page2.goto('/band')
     await page2.waitForLoadState('networkidle')
 
     const user2OwnRow = page2
@@ -245,7 +245,7 @@ test.describe('Band Isolation and RLS Security', () => {
     await page1.waitForLoadState('networkidle')
     await page1.waitForTimeout(1000)
 
-    await page1.goto('/band-members')
+    await page1.goto('/band')
     await page1.waitForLoadState('networkidle')
     await page1.waitForTimeout(1000)
 
@@ -394,7 +394,7 @@ test.describe('Band Isolation and RLS Security', () => {
     // Navigate to trigger data fetches
     await page.goto('/songs')
     await page.waitForLoadState('networkidle')
-    await page.goto('/band-members')
+    await page.goto('/band')
     await page.waitForLoadState('networkidle')
 
     // Analyze requests - all data should belong to this user's band

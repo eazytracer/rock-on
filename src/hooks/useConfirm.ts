@@ -6,6 +6,8 @@ export interface ConfirmOptions {
   confirmLabel?: string
   cancelLabel?: string
   variant?: 'danger' | 'warning' | 'default'
+  /** Typed confirm: Confirm stays off until the user types this. */
+  typedConfirm?: string
 }
 
 export interface ConfirmDialogState extends ConfirmOptions {
@@ -77,6 +79,7 @@ export const useConfirm = () => {
         cancelLabel: dialogState.cancelLabel,
         variant: dialogState.variant,
         isLoading: dialogState.isLoading,
+        typedConfirm: dialogState.typedConfirm,
       }
     : {
         isOpen: false,

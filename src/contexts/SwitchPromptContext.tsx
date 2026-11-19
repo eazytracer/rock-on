@@ -8,6 +8,7 @@ import React, { createContext, useCallback, useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { BandMark } from '../components/ui/BandMark'
+import { useBandMarkOf } from '../hooks/useMyContexts'
 import { Button } from '../components/ui/Button'
 
 const SEEN_KEY = 'rockon.switchPromptSeen'
@@ -44,6 +45,7 @@ export const SwitchPromptProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const navigate = useNavigate()
   const { currentBandId, setContext } = useAuth()
+  const markOf = useBandMarkOf()
   const [pending, setPending] = useState<SwitchTarget | null>(null)
   const [firstTime, setFirstTime] = useState(false)
 
@@ -114,6 +116,7 @@ export const SwitchPromptProvider: React.FC<{ children: React.ReactNode }> = ({
               <div className="flex items-center gap-3">
                 <BandMark
                   name={pending.name}
+                  mark={markOf(pending.bandId)}
                   personal={!pending.bandId}
                   size={40}
                 />

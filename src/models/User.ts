@@ -11,7 +11,6 @@ export interface UserProfile {
   id: string
   userId: string
   displayName: string
-  primaryInstrument?: string
   instruments: string[]
   avatarUrl?: string
   createdDate: Date
@@ -31,7 +30,6 @@ export const UserProfileSchema = {
   '++id': '',
   userId: '',
   displayName: '',
-  primaryInstrument: '',
   '*instruments': '',
   avatarUrl: '',
   createdDate: '',

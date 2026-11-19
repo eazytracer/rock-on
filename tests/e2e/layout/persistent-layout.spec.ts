@@ -4,6 +4,7 @@ import {
   signUpViaUI,
   deleteTestUser,
 } from '../../fixtures/auth'
+import { createBandViaUI } from '../../fixtures/bands'
 
 /**
  * E2E tests for persistent layout feature
@@ -27,13 +28,7 @@ test.describe('Persistent Layout', () => {
 
     // Create a band
     const bandName = `Test Band ${Date.now()}`
-    await page.fill(
-      '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-      bandName
-    )
-    await page.click(
-      '[data-testid="create-band-button"], button:has-text("Create Band")'
-    )
+    await createBandViaUI(page, bandName)
 
     // Wait for redirect to songs
     await page.waitForURL(/\/songs/, { timeout: 10000 })
@@ -152,13 +147,7 @@ test.describe('Persistent Layout', () => {
       await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
       const bandName = `Test Band ${Date.now()}`
-      await page.fill(
-        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-        bandName
-      )
-      await page.click(
-        '[data-testid="create-band-button"], button:has-text("Create Band")'
-      )
+      await createBandViaUI(page, bandName)
       await page.waitForURL(/\/songs/, { timeout: 10000 })
 
       testUserId =
@@ -344,7 +333,7 @@ test.describe('Persistent Layout', () => {
         { route: '/practices', testId: 'calendar-page' },
         { route: '/more', testId: 'more-page' },
         { route: '/notifications', testId: 'notifications-page' },
-        { route: '/band-members', testId: 'band-members-page' },
+        { route: '/band', testId: 'band-page' },
         { route: '/settings', testId: 'settings-page' },
       ]
 

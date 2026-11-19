@@ -55,7 +55,8 @@ export const TABS: NavTab[] = [
     match: [
       '/more',
       '/jam',
-      '/band-members',
+      '/band',
+      '/j',
       '/settings',
       '/profile',
       '/events',

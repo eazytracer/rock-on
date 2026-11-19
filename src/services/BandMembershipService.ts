@@ -1,9 +1,44 @@
 import { BandMembership, InviteCode } from '../models/BandMembership'
 import { repository } from './data/RepositoryFactory'
-import { RemoteRepository } from './data/RemoteRepository'
-import { createLogger } from '../utils/logger'
+import { api } from './api/client'
+import { ApiError } from './api/errors'
+import * as bandsApi from './api/bands'
+import type { InviteCodeRow, MembershipRow } from './api/bands'
 
-const log = createLogger('BandMembershipService')
+const fromInviteRow = (r: InviteCodeRow): InviteCode => ({
+  id: r.id,
+  bandId: r.band_id,
+  code: r.code,
+  createdBy: r.created_by ?? '',
+  expiresAt: r.expires_at ? new Date(r.expires_at) : undefined,
+  maxUses: r.max_uses ?? undefined,
+  currentUses: r.current_uses ?? 0,
+  createdDate: new Date(r.created_date),
+  isActive: r.is_active ?? false,
+})
+
+const fromMembershipRow = (r: MembershipRow): BandMembership => ({
+  id: r.id,
+  userId: r.user_id,
+  bandId: r.band_id,
+  role: r.role as BandMembership['role'],
+  joinedDate: new Date(r.joined_date),
+  status: r.status as BandMembership['status'],
+  permissions: r.permissions ?? [],
+})
+
+/** The (band, user) pair the member RPCs take, from a membership id. */
+async function membershipKey(
+  membershipId: string
+): Promise<{ bandId: string; userId: string }> {
+  const { data, error } = await api()
+    .from('band_memberships')
+    .select('band_id, user_id')
+    .eq('id', membershipId)
+    .single()
+  if (error) throw error
+  return { bandId: data.band_id, userId: data.user_id }
+}
 
 export interface CreateInviteCodeRequest {
   bandId: string
@@ -14,46 +49,13 @@ export interface CreateInviteCodeRequest {
 
 export class BandMembershipService {
   /**
-   * Generate a random invite code (6 characters, alphanumeric)
-   */
-  private static generateCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Exclude similar-looking chars
-    let code = ''
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return code
-  }
-
-  /**
-   * Create an invite code for a band
+   * Issue a fresh invite code for a band (owner / admin). The band's previous
+   * code stops working; codes last 24 h with unlimited uses (server rule).
    */
   static async createInviteCode(
     request: CreateInviteCodeRequest
   ): Promise<InviteCode> {
-    const code = this.generateCode()
-
-    // Check if code already exists (very unlikely but possible)
-    const existingCode = await repository.getInviteCodeByCode(code)
-    if (existingCode) {
-      // Try again with a different code
-      return this.createInviteCode(request)
-    }
-
-    const inviteCode: InviteCode = {
-      id: crypto.randomUUID(),
-      bandId: request.bandId,
-      code,
-      createdBy: request.createdBy,
-      expiresAt: request.expiresAt,
-      maxUses: request.maxUses || 10,
-      isActive: true,
-      currentUses: 0,
-      createdDate: new Date(),
-    }
-
-    await repository.addInviteCode(inviteCode)
-    return inviteCode
+    return fromInviteRow(await bandsApi.regenerateInviteCode(request.bandId))
   }
 
   /**
@@ -64,101 +66,28 @@ export class BandMembershipService {
   }
 
   /**
-   * Validate an invite code
-   * Uses repository pattern (cloud-first read with local fallback)
-   */
-  static async validateInviteCode(code: string): Promise<{
-    valid: boolean
-    inviteCode?: InviteCode
-    error?: string
-  }> {
-    // Normalize code to uppercase for case-insensitive matching
-    const inviteCode = await repository.getInviteCodeByCode(code.toUpperCase())
-
-    if (!inviteCode) {
-      return { valid: false, error: 'Invalid invite code' }
-    }
-
-    if (!inviteCode.isActive) {
-      return { valid: false, error: 'Invite code is no longer active' }
-    }
-
-    if (inviteCode.expiresAt && inviteCode.expiresAt < new Date()) {
-      return { valid: false, error: 'Invite code has expired' }
-    }
-
-    if (inviteCode.maxUses && inviteCode.currentUses >= inviteCode.maxUses) {
-      return { valid: false, error: 'Invite code has reached maximum uses' }
-    }
-
-    return { valid: true, inviteCode }
-  }
-
-  /**
-   * Join a band using an invite code
+   * Join a band using an invite code (join_band checks the code and that you
+   * aren't already in). `userId` is kept for callers; the server uses the session.
    */
   static async joinBandWithCode(
-    userId: string,
+    _userId: string,
     code: string
   ): Promise<{
     success: boolean
     membership?: BandMembership
     error?: string
   }> {
-    const validation = await this.validateInviteCode(code)
-
-    if (!validation.valid || !validation.inviteCode) {
-      return { success: false, error: validation.error }
-    }
-
-    const inviteCode = validation.inviteCode
-
-    // Check if user is already a member via repository
-    const userMemberships = await repository.getUserMemberships(userId)
-
-    const existingMembership = userMemberships.find(
-      m => m.bandId === inviteCode.bandId
-    )
-
-    if (existingMembership) {
-      return { success: false, error: 'You are already a member of this band' }
-    }
-
-    // Create band membership via repository
-    const membership: BandMembership = {
-      id: crypto.randomUUID(),
-      userId,
-      bandId: inviteCode.bandId,
-      role: 'member',
-      joinedDate: new Date(),
-      status: 'active',
-      permissions: ['member'],
-    }
-
     try {
-      // Create the membership in Supabase (writes go straight to the cloud —
-      // there is no local queue/cache anymore).
-      const remote = new RemoteRepository()
-
-      // Create in remote Supabase (synchronously, not queued)
-      await remote.addBandMembership(membership)
-    } catch (error) {
-      log.error('Failed to create membership:', error)
-      throw error
+      return {
+        success: true,
+        membership: fromMembershipRow(await bandsApi.joinBand(code)),
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.key !== 'unknown') {
+        return { success: false, error: err.message }
+      }
+      throw err
     }
-
-    // Increment invite code usage via repository (uses secure Postgres function)
-    try {
-      await repository.incrementInviteCodeUsage(inviteCode.id)
-    } catch (error) {
-      log.error('Failed to increment usage:', error)
-      throw error
-    }
-
-    // The membership is now in Supabase. Reads are cloud-first (repository →
-    // RemoteRepository), so there is no local cache to pre-populate — the next
-    // getUserMemberships()/getBand() will fetch it directly.
-    return { success: true, membership }
   }
 
   /**
@@ -180,52 +109,29 @@ export class BandMembershipService {
   }
 
   /**
-   * Leave a band
+   * Leave a band. The owner is refused (transfer first, or delete the band).
    */
-  static async leaveBand(userId: string, bandId: string): Promise<void> {
-    // Get user memberships via repository
-    const userMemberships = await repository.getUserMemberships(userId)
-    const membership = userMemberships.find(
-      m => m.userId === userId && m.bandId === bandId
-    )
-
-    if (!membership) {
-      throw new Error('Membership not found')
-    }
-
-    // Check if user is the last admin
-    if (membership.role === 'admin') {
-      const allMembers = await this.getBandMembers(bandId)
-      const admins = allMembers.filter(m => m.role === 'admin')
-
-      if (admins.length <= 1) {
-        throw new Error(
-          'Cannot leave: you are the last admin. Please promote another member first.'
-        )
-      }
-    }
-
-    await repository.updateBandMembership(membership.id, { status: 'inactive' })
+  static async leaveBand(_userId: string, bandId: string): Promise<void> {
+    await bandsApi.leaveBand(bandId)
   }
 
-  /**
-   * Remove a member from a band (admin action). Marks the membership inactive
-   * via the repository so the change is queued for sync to Supabase — a direct
-   * local-DB write would never reach the cloud and the cloud-first members read
-   * would restore the member.
-   */
+  /** Remove a member from a band (owner / admin; never the owner). */
   static async removeMember(membershipId: string): Promise<void> {
-    await repository.updateBandMembership(membershipId, { status: 'inactive' })
+    const { bandId, userId } = await membershipKey(membershipId)
+    await bandsApi.removeMember(bandId, userId)
   }
 
   /**
-   * Update membership role
+   * Change a member's role. 'owner' transfers ownership (you become an admin,
+   * in one server step).
    */
   static async updateMembershipRole(
     membershipId: string,
-    role: 'admin' | 'member' | 'viewer'
+    role: 'owner' | 'admin' | 'member'
   ): Promise<void> {
-    await repository.updateBandMembership(membershipId, { role })
+    const { bandId, userId } = await membershipKey(membershipId)
+    if (role === 'owner') await bandsApi.transferOwnership(bandId, userId)
+    else await bandsApi.setMemberRole(bandId, userId, role)
   }
 
   /**

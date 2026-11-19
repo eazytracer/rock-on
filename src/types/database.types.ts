@@ -183,31 +183,46 @@ export type Database = {
       }
       bands: {
         Row: {
+          city: string | null
           created_by: string | null
           created_date: string
+          deleted_at: string | null
           description: string | null
+          genres: string[]
           id: string
           is_active: boolean | null
+          links: Json
+          mark: Json
           name: string
           settings: Json | null
           updated_date: string | null
         }
         Insert: {
+          city?: string | null
           created_by?: string | null
           created_date?: string
+          deleted_at?: string | null
           description?: string | null
+          genres?: string[]
           id?: string
           is_active?: boolean | null
+          links?: Json
+          mark?: Json
           name: string
           settings?: Json | null
           updated_date?: string | null
         }
         Update: {
+          city?: string | null
           created_by?: string | null
           created_date?: string
+          deleted_at?: string | null
           description?: string | null
+          genres?: string[]
           id?: string
           is_active?: boolean | null
+          links?: Json
+          mark?: Json
           name?: string
           settings?: Json | null
           updated_date?: string | null
@@ -229,7 +244,7 @@ export type Database = {
           confidence: number | null
           context_id: string
           context_type: string
-          created_by: string
+          created_by: string | null
           created_date: string
           event_lineup_item_id: string | null
           id: string
@@ -250,7 +265,7 @@ export type Database = {
           confidence?: number | null
           context_id: string
           context_type: string
-          created_by: string
+          created_by?: string | null
           created_date?: string
           event_lineup_item_id?: string | null
           id?: string
@@ -271,7 +286,7 @@ export type Database = {
           confidence?: number | null
           context_id?: string
           context_type?: string
-          created_by?: string
+          created_by?: string | null
           created_date?: string
           event_lineup_item_id?: string | null
           id?: string
@@ -328,7 +343,7 @@ export type Database = {
         Row: {
           band_id: string
           context_type: string
-          created_by: string
+          created_by: string | null
           created_date: string
           id: string
           name: string
@@ -338,7 +353,7 @@ export type Database = {
         Insert: {
           band_id: string
           context_type: string
-          created_by: string
+          created_by?: string | null
           created_date?: string
           id?: string
           name: string
@@ -348,7 +363,7 @@ export type Database = {
         Update: {
           band_id?: string
           context_type?: string
-          created_by?: string
+          created_by?: string | null
           created_date?: string
           id?: string
           name?: string
@@ -822,7 +837,7 @@ export type Database = {
         Row: {
           band_id: string
           code: string
-          created_by: string
+          created_by: string | null
           created_date: string
           current_uses: number | null
           expires_at: string | null
@@ -833,7 +848,7 @@ export type Database = {
         Insert: {
           band_id: string
           code: string
-          created_by: string
+          created_by?: string | null
           created_date?: string
           current_uses?: number | null
           expires_at?: string | null
@@ -844,7 +859,7 @@ export type Database = {
         Update: {
           band_id?: string
           code?: string
-          created_by?: string
+          created_by?: string | null
           created_date?: string
           current_uses?: number | null
           expires_at?: string | null
@@ -1248,7 +1263,7 @@ export type Database = {
           context_id: string | null
           context_type: string
           copied_at: string | null
-          created_by: string
+          created_by: string | null
           created_date: string
           fork_count: number | null
           forked_from: string | null
@@ -1270,7 +1285,7 @@ export type Database = {
           context_id?: string | null
           context_type?: string
           copied_at?: string | null
-          created_by: string
+          created_by?: string | null
           created_date?: string
           fork_count?: number | null
           forked_from?: string | null
@@ -1292,7 +1307,7 @@ export type Database = {
           context_id?: string | null
           context_type?: string
           copied_at?: string | null
-          created_by?: string
+          created_by?: string | null
           created_date?: string
           fork_count?: number | null
           forked_from?: string | null
@@ -1359,7 +1374,7 @@ export type Database = {
           band_id: string
           confirmed: boolean
           contacts: Json | null
-          created_by: string
+          created_by: string | null
           created_date: string
           duration: number | null
           end_time: string | null
@@ -1384,7 +1399,7 @@ export type Database = {
           band_id: string
           confirmed?: boolean
           contacts?: Json | null
-          created_by: string
+          created_by?: string | null
           created_date?: string
           duration?: number | null
           end_time?: string | null
@@ -1409,7 +1424,7 @@ export type Database = {
           band_id?: string
           confirmed?: boolean
           contacts?: Json | null
-          created_by?: string
+          created_by?: string | null
           created_date?: string
           duration?: number | null
           end_time?: string | null
@@ -1463,7 +1478,7 @@ export type Database = {
       }
       song_assignments: {
         Row: {
-          added_by: string
+          added_by: string | null
           added_date: string
           confidence: number | null
           id: string
@@ -1473,7 +1488,7 @@ export type Database = {
           updated_date: string | null
         }
         Insert: {
-          added_by: string
+          added_by?: string | null
           added_date?: string
           confidence?: number | null
           id?: string
@@ -1483,7 +1498,7 @@ export type Database = {
           updated_date?: string | null
         }
         Update: {
-          added_by?: string
+          added_by?: string | null
           added_date?: string
           confidence?: number | null
           id?: string
@@ -1520,7 +1535,7 @@ export type Database = {
         Row: {
           context_id: string
           context_type: string
-          created_by: string
+          created_by: string | null
           created_date: string
           id: string
           song_id: string
@@ -1529,7 +1544,7 @@ export type Database = {
         Insert: {
           context_id: string
           context_type: string
-          created_by: string
+          created_by?: string | null
           created_date?: string
           id?: string
           song_id: string
@@ -1538,7 +1553,7 @@ export type Database = {
         Update: {
           context_id?: string
           context_type?: string
-          created_by?: string
+          created_by?: string | null
           created_date?: string
           id?: string
           song_id?: string
@@ -1611,21 +1626,21 @@ export type Database = {
       }
       song_group_memberships: {
         Row: {
-          added_by: string
+          added_by: string | null
           added_date: string
           id: string
           song_group_id: string
           song_id: string
         }
         Insert: {
-          added_by: string
+          added_by?: string | null
           added_date?: string
           id?: string
           song_group_id: string
           song_id: string
         }
         Update: {
-          added_by?: string
+          added_by?: string | null
           added_date?: string
           id?: string
           song_group_id?: string
@@ -1657,19 +1672,19 @@ export type Database = {
       }
       song_groups: {
         Row: {
-          created_by: string
+          created_by: string | null
           created_date: string
           id: string
           name: string
         }
         Insert: {
-          created_by: string
+          created_by?: string | null
           created_date?: string
           id?: string
           name: string
         }
         Update: {
-          created_by?: string
+          created_by?: string | null
           created_date?: string
           id?: string
           name?: string
@@ -1727,7 +1742,7 @@ export type Database = {
           session_type: string | null
           song_id: string
           updated_date: string | null
-          user_id: string
+          user_id: string | null
           version: number
           visibility: string
         }
@@ -1844,7 +1859,7 @@ export type Database = {
           confidence_level: number | null
           context_id: string
           context_type: string
-          created_by: string
+          created_by: string | null
           created_date: string
           difficulty: number | null
           duration: number | null
@@ -1879,7 +1894,7 @@ export type Database = {
           confidence_level?: number | null
           context_id: string
           context_type?: string
-          created_by: string
+          created_by?: string | null
           created_date?: string
           difficulty?: number | null
           duration?: number | null
@@ -1914,7 +1929,7 @@ export type Database = {
           confidence_level?: number | null
           context_id?: string
           context_type?: string
-          created_by?: string
+          created_by?: string | null
           created_date?: string
           difficulty?: number | null
           duration?: number | null
@@ -2113,6 +2128,7 @@ export type Database = {
           friend_request_policy: string
           id: string
           instruments: string[] | null
+          personal_color: string | null
           primary_instrument: string | null
           updated_date: string
           user_id: string
@@ -2127,6 +2143,7 @@ export type Database = {
           friend_request_policy?: string
           id?: string
           instruments?: string[] | null
+          personal_color?: string | null
           primary_instrument?: string | null
           updated_date?: string
           user_id: string
@@ -2141,6 +2158,7 @@ export type Database = {
           friend_request_policy?: string
           id?: string
           instruments?: string[] | null
+          personal_color?: string | null
           primary_instrument?: string | null
           updated_date?: string
           user_id?: string
@@ -2199,6 +2217,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _backfill_band_owners: { Args: never; Returns: undefined }
       _band_activity: {
         Args: { p_user: string }
         Returns: {
@@ -2214,10 +2233,37 @@ export type Database = {
           verb: string
         }[]
       }
+      _band_by_code: {
+        Args: { p_code: string }
+        Returns: {
+          city: string | null
+          created_by: string | null
+          created_date: string
+          deleted_at: string | null
+          description: string | null
+          genres: string[]
+          id: string
+          is_active: boolean | null
+          links: Json
+          mark: Json
+          name: string
+          settings: Json | null
+          updated_date: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'bands'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _band_initials: { Args: { p_name: string }; Returns: string }
       _can_use_context: {
         Args: { p_context_id: string; p_context_type: string }
         Returns: boolean
       }
+      _check_band_name: { Args: { p_name: string }; Returns: string }
+      _check_mark: { Args: { p_mark: Json; p_name: string }; Returns: Json }
       _check_tuning: {
         Args: {
           p_context_id: string
@@ -2230,10 +2276,72 @@ export type Database = {
         }
         Returns: string
       }
+      _issue_invite_code: {
+        Args: { p_band_id: string }
+        Returns: {
+          band_id: string
+          code: string
+          created_by: string | null
+          created_date: string
+          current_uses: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'invite_codes'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _jsonb_insert_at: {
         Args: { p_at: number; p_items: Json; p_new: Json }
         Returns: Json
       }
+      _member_for_update: {
+        Args: { p_band_id: string; p_user_id: string }
+        Returns: {
+          band_id: string
+          id: string
+          joined_date: string
+          permissions: string[] | null
+          role: string
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'band_memberships'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _mutual_friend_count: {
+        Args: { p_a: string; p_b: string }
+        Returns: number
+      }
+      _my_membership: {
+        Args: { p_band_id: string }
+        Returns: {
+          band_id: string
+          id: string
+          joined_date: string
+          permissions: string[] | null
+          role: string
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'band_memberships'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _new_invite_code: { Args: never; Returns: string }
+      _require_signed_in: { Args: never; Returns: string }
       _require_song: {
         Args: { p_song_id: string }
         Returns: {
@@ -2243,7 +2351,7 @@ export type Database = {
           confidence_level: number | null
           context_id: string
           context_type: string
-          created_by: string
+          created_by: string | null
           created_date: string
           difficulty: number | null
           duration: number | null
@@ -2293,7 +2401,7 @@ export type Database = {
           context_id: string | null
           context_type: string
           copied_at: string | null
-          created_by: string
+          created_by: string | null
           created_date: string
           fork_count: number | null
           forked_from: string | null
@@ -2331,7 +2439,7 @@ export type Database = {
           band_id: string
           confirmed: boolean
           contacts: Json | null
-          created_by: string
+          created_by: string | null
           created_date: string
           duration: number | null
           end_time: string | null
@@ -2384,6 +2492,18 @@ export type Database = {
         Args: { p_setlist_id: string; p_show_id: string }
         Returns: string
       }
+      band_preview_by_code: {
+        Args: { p_code: string }
+        Returns: {
+          description: string
+          is_member: boolean
+          mark: Json
+          member_count: number
+          member_first_names: string[]
+          name: string
+          song_count: number
+        }[]
+      }
       band_songs_not_in_my_catalog: {
         Args: never
         Returns: {
@@ -2435,7 +2555,7 @@ export type Database = {
           confidence_level: number | null
           context_id: string
           context_type: string
-          created_by: string
+          created_by: string | null
           created_date: string
           difficulty: number | null
           duration: number | null
@@ -2489,6 +2609,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_band: {
+        Args: { p_mark?: Json; p_name: string }
+        Returns: {
+          city: string | null
+          created_by: string | null
+          created_date: string
+          deleted_at: string | null
+          description: string | null
+          genres: string[]
+          id: string
+          is_active: boolean | null
+          links: Json
+          mark: Json
+          name: string
+          settings: Json | null
+          updated_date: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'bands'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_show: {
         Args: { p_band_id: string; p_patch: Json }
         Returns: string
@@ -2529,6 +2673,31 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_account: { Args: never; Returns: undefined }
+      delete_band: {
+        Args: { p_band_id: string; p_confirm_name: string }
+        Returns: {
+          city: string | null
+          created_by: string | null
+          created_date: string
+          deleted_at: string | null
+          description: string | null
+          genres: string[]
+          id: string
+          is_active: boolean | null
+          links: Json
+          mark: Json
+          name: string
+          settings: Json | null
+          updated_date: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'bands'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_show: { Args: { p_show_id: string }; Returns: undefined }
       delete_song: { Args: { p_song_id: string }; Returns: undefined }
       duplicate_setlist: { Args: { p_setlist_id: string }; Returns: string }
@@ -2542,7 +2711,7 @@ export type Database = {
           confidence_level: number | null
           context_id: string
           context_type: string
-          created_by: string
+          created_by: string | null
           created_date: string
           difficulty: number | null
           duration: number | null
@@ -2578,11 +2747,45 @@ export type Database = {
         }
       }
       ensure_friend_code: { Args: never; Returns: string }
+      ensure_my_profile: {
+        Args: never
+        Returns: {
+          avatar_url: string | null
+          bio: string | null
+          created_date: string
+          discoverable: boolean
+          display_name: string | null
+          friend_code: string | null
+          friend_request_policy: string
+          id: string
+          instruments: string[] | null
+          personal_color: string | null
+          primary_instrument: string | null
+          updated_date: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'user_profiles'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       event_allows_suggestions: { Args: { p_event: string }; Returns: boolean }
       event_auto_approve: { Args: { p_event: string }; Returns: boolean }
       event_lineup_item_in_event: {
         Args: { p_event: string; p_item: string }
         Returns: boolean
+      }
+      find_people: {
+        Args: { p_query: string }
+        Returns: {
+          instruments: string[]
+          mutual_count: number
+          name: string
+          personal_color: string
+          user_id: string
+        }[]
       }
       gen_event_code: { Args: never; Returns: string }
       gen_friend_code: { Args: never; Returns: string }
@@ -2634,7 +2837,7 @@ export type Database = {
         Returns: {
           band_id: string
           code: string
-          created_by: string
+          created_by: string | null
           created_date: string
           current_uses: number | null
           expires_at: string | null
@@ -2680,6 +2883,24 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string }
         Returns: boolean
       }
+      join_band: {
+        Args: { p_code: string }
+        Returns: {
+          band_id: string
+          id: string
+          joined_date: string
+          permissions: string[] | null
+          role: string
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'band_memberships'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       join_event_by_code: {
         Args: { p_code: string }
         Returns: {
@@ -2714,11 +2935,30 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      leave_band: {
+        Args: { p_band_id: string }
+        Returns: {
+          band_id: string
+          id: string
+          joined_date: string
+          permissions: string[] | null
+          role: string
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'band_memberships'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       list_my_contexts: {
         Args: never
         Returns: {
           band_id: string
           has_unread: boolean
+          mark: Json
           member_count: number
           name: string
           role: string
@@ -2753,12 +2993,50 @@ export type Database = {
       }
       normalize_text: { Args: { input: string }; Returns: string }
       recopy_show_set: { Args: { p_show_id: string }; Returns: string }
+      regenerate_invite_code: {
+        Args: { p_band_id: string }
+        Returns: {
+          band_id: string
+          code: string
+          created_by: string | null
+          created_date: string
+          current_uses: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'invite_codes'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       related_names: {
         Args: { p_ids: string[] }
         Returns: {
           name: string
           user_id: string
         }[]
+      }
+      remove_member: {
+        Args: { p_band_id: string; p_user_id: string }
+        Returns: {
+          band_id: string
+          id: string
+          joined_date: string
+          permissions: string[] | null
+          role: string
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'band_memberships'
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       remove_setlist_item: {
         Args: { p_item_id: string; p_setlist_id: string }
@@ -2832,6 +3110,23 @@ export type Database = {
         }[]
       }
       seed_band_roles: { Args: { p_band: string }; Returns: undefined }
+      send_friend_request: {
+        Args: { p_code?: string; p_target_user_id?: string }
+        Returns: {
+          addressee_id: string
+          created_date: string
+          id: string
+          requester_id: string
+          responded_date: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'friend_requests'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_band_note: {
         Args: {
           p_expected_version?: number
@@ -2845,7 +3140,7 @@ export type Database = {
           confidence_level: number | null
           context_id: string
           context_type: string
-          created_by: string
+          created_by: string | null
           created_date: string
           difficulty: number | null
           duration: number | null
@@ -2876,6 +3171,24 @@ export type Database = {
         SetofOptions: {
           from: '*'
           to: 'songs'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_member_role: {
+        Args: { p_band_id: string; p_role: string; p_user_id: string }
+        Returns: {
+          band_id: string
+          id: string
+          joined_date: string
+          permissions: string[] | null
+          role: string
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'band_memberships'
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2949,6 +3262,56 @@ export type Database = {
           position: number
           starts_at: string
         }[]
+      }
+      transfer_ownership: {
+        Args: { p_band_id: string; p_user_id: string }
+        Returns: {
+          band_id: string
+          id: string
+          joined_date: string
+          permissions: string[] | null
+          role: string
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'band_memberships'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_band_profile: {
+        Args: {
+          p_band_id: string
+          p_city?: string
+          p_description?: string
+          p_genres?: string[]
+          p_links?: Json
+          p_mark?: Json
+          p_name?: string
+        }
+        Returns: {
+          city: string | null
+          created_by: string | null
+          created_date: string
+          deleted_at: string | null
+          description: string | null
+          genres: string[]
+          id: string
+          is_active: boolean | null
+          links: Json
+          mark: Json
+          name: string
+          settings: Json | null
+          updated_date: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'bands'
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_setlist_item: {
         Args: { p_item_id: string; p_patch: Json; p_setlist_id: string }

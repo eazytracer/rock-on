@@ -4,7 +4,7 @@ import {
   signUpViaUI,
   deleteTestUser,
 } from '../../fixtures/auth'
-import { createBandViaUI } from '../../fixtures/bands'
+import { createBandViaUI, joinBandViaUI } from '../../fixtures/bands'
 import { selectors } from '../../helpers/selectors'
 import {
   setupConsoleErrorTracking,
@@ -346,7 +346,7 @@ test.describe('Songs CRUD Operations', () => {
     await page1.waitForURL(/\/songs/, { timeout: 10000 })
 
     // Get invite code
-    await page1.goto('/band-members')
+    await page1.goto('/band')
     await page1.waitForLoadState('networkidle')
     const inviteCodeElement = page1.locator(selectors.band.inviteCode).first()
     await expect(inviteCodeElement).toBeVisible({ timeout: 5000 })
@@ -355,9 +355,7 @@ test.describe('Songs CRUD Operations', () => {
     // User 2 joins band
     const user2 = createTestUser()
     await signUpViaUI(page2, user2)
-    await page2.fill(selectors.band.inviteCodeInput, inviteCode!)
-    await page2.click(selectors.band.joinButton)
-    await page2.waitForURL(/\/(songs|band-members|bands)/, { timeout: 10000 })
+    await joinBandViaUI(page2, inviteCode!.trim())
 
     // Both users navigate to songs page
     await page1.goto('/songs')

@@ -4,7 +4,7 @@ export interface BandMembership {
   id: string
   userId: string
   bandId: string
-  role: 'admin' | 'member' | 'viewer'
+  role: 'owner' | 'admin' | 'member' | 'viewer'
   joinedDate: Date
   status: 'active' | 'pending' | 'inactive'
   permissions: string[]
@@ -17,7 +17,7 @@ export interface BandMembershipRow {
   id: string
   user_id: string
   band_id: string
-  role: 'admin' | 'member' | 'viewer'
+  role: 'owner' | 'admin' | 'member' | 'viewer'
   joined_date: string
   status: 'active' | 'pending' | 'inactive'
   permissions: string[] | null

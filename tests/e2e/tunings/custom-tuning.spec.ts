@@ -38,7 +38,7 @@ const makeOpenC = async (page: Page) => {
 }
 
 const openSettingsTunings = async (page: Page) => {
-  await page.goto('/settings#settings-tunings')
+  await page.goto('/settings/music')
   await expect(page.getByTestId('settings-tunings')).toBeVisible()
 }
 

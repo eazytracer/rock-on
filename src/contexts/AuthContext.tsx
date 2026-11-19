@@ -43,7 +43,7 @@ interface AuthContextType {
   currentUserProfile: UserProfile | null
   currentBand: Band | null
   currentBandId: string | null
-  currentUserRole: 'admin' | 'member' | 'viewer' | null
+  currentUserRole: 'owner' | 'admin' | 'member' | 'viewer' | null
   userBands: Band[]
   login: (userId: string) => Promise<void>
   logout: () => void
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [currentBand, setCurrentBand] = useState<Band | null>(null)
   const [currentBandId, setCurrentBandId] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<
-    'admin' | 'member' | 'viewer' | null
+    'owner' | 'admin' | 'member' | 'viewer' | null
   >(null)
   const [userBands, setUserBands] = useState<Band[]>([])
   // Retained in the context type for API stability; the web client no longer

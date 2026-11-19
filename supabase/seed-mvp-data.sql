@@ -3,6 +3,11 @@
 -- =====================================================
 -- This seed file matches the TypeScript seed data exactly
 -- Updated for Phase 4a schema (includes last_modified_by, version)
+-- Phase 5/6: reference links of every type, charts, owner role, band profile,
+-- a 24 h invite code, profile colours and a friends graph for Eric:
+--   Friends  Sarah, Leo          Requests  Mike → Eric, Dana → Eric
+--   Sent     Eric → Jess         Findable  Jess, Leo, Priya (+ the band)
+--   Policies Jess / Priya everyone · Leo friends_of_friends · Dana code_only (DANA2345)
 -- =====================================================
 
 BEGIN;
@@ -13,6 +18,11 @@ DECLARE
   v_eric_id UUID := '6ee2bc47-0014-4cdc-b063-68646bb5d3ba';
   v_mike_id UUID := 'a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d';
   v_sarah_id UUID := 'b2c3d4e5-6f7a-8b9c-0d1e-2f3a4b5c6d7e';
+  -- Friends-page people (not in the band)
+  v_jess_id  UUID := 'c3d4e5f6-7a8b-4c9d-8e0f-3a4b5c6d7e81';
+  v_dana_id  UUID := 'c3d4e5f6-7a8b-4c9d-8e0f-3a4b5c6d7e82';
+  v_leo_id   UUID := 'c3d4e5f6-7a8b-4c9d-8e0f-3a4b5c6d7e83';
+  v_priya_id UUID := 'c3d4e5f6-7a8b-4c9d-8e0f-3a4b5c6d7e84';
   v_band_id UUID := 'accfd37c-2bac-4e27-90b1-257659f58d44';
   -- Fixed song UUIDs (for setlist references)
   v_song_all_star UUID := '11111111-1111-1111-1111-111111111101';
@@ -37,6 +47,12 @@ DECLARE
   v_song_seven_nation UUID := '11111111-1111-1111-1111-111111111120';
   v_song_black UUID := '11111111-1111-1111-1111-111111111121';
   v_song_enter_sandman UUID := '11111111-1111-1111-1111-111111111122';
+  -- Public-domain / original songs with full charts (phase 5)
+  v_song_rising_sun UUID := '11111111-1111-1111-1111-111111111123';
+  v_song_scarborough UUID := '11111111-1111-1111-1111-111111111124';
+  v_song_low_end UUID := '11111111-1111-1111-1111-111111111125';
+  -- Fixed practice (linked to from bookmarks / manual tests)
+  v_practice_first UUID := 'c340b58d-4a47-4c6f-a471-d505c96e6794';
   -- Fixed show UUIDs (for setlist associations)
   v_show_spring_bash UUID := '22222222-2222-2222-2222-222222222201';
   v_show_memorial_day UUID := '22222222-2222-2222-2222-222222222202';
@@ -101,6 +117,58 @@ BEGIN
       '', '',
       '', '', '', '',
       FALSE, FALSE
+    ),
+    (
+      v_jess_id,
+      '00000000-0000-0000-0000-000000000000',
+      'jess@testband.demo',
+      crypt('test123', gen_salt('bf')),
+      NOW(), NOW(), NOW(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"name":"Jess Rivera"}'::jsonb,
+      FALSE, 'authenticated', 'authenticated',
+      '', '',
+      '', '', '', '',
+      FALSE, FALSE
+    ),
+    (
+      v_dana_id,
+      '00000000-0000-0000-0000-000000000000',
+      'dana@testband.demo',
+      crypt('test123', gen_salt('bf')),
+      NOW(), NOW(), NOW(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"name":"Dana Park"}'::jsonb,
+      FALSE, 'authenticated', 'authenticated',
+      '', '',
+      '', '', '', '',
+      FALSE, FALSE
+    ),
+    (
+      v_leo_id,
+      '00000000-0000-0000-0000-000000000000',
+      'leo@testband.demo',
+      crypt('test123', gen_salt('bf')),
+      NOW(), NOW(), NOW(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"name":"Leo Martins"}'::jsonb,
+      FALSE, 'authenticated', 'authenticated',
+      '', '',
+      '', '', '', '',
+      FALSE, FALSE
+    ),
+    (
+      v_priya_id,
+      '00000000-0000-0000-0000-000000000000',
+      'priya@testband.demo',
+      crypt('test123', gen_salt('bf')),
+      NOW(), NOW(), NOW(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"name":"Priya Shah"}'::jsonb,
+      FALSE, 'authenticated', 'authenticated',
+      '', '',
+      '', '', '', '',
+      FALSE, FALSE
     )
   ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
 
@@ -140,6 +208,42 @@ BEGIN
       NOW(),
       NOW(),
       NOW()
+    ),
+    (
+      v_jess_id::text,
+      v_jess_id,
+      format('{"sub":"%s","email":"jess@testband.demo"}', v_jess_id)::jsonb,
+      'email',
+      NOW(),
+      NOW(),
+      NOW()
+    ),
+    (
+      v_dana_id::text,
+      v_dana_id,
+      format('{"sub":"%s","email":"dana@testband.demo"}', v_dana_id)::jsonb,
+      'email',
+      NOW(),
+      NOW(),
+      NOW()
+    ),
+    (
+      v_leo_id::text,
+      v_leo_id,
+      format('{"sub":"%s","email":"leo@testband.demo"}', v_leo_id)::jsonb,
+      'email',
+      NOW(),
+      NOW(),
+      NOW()
+    ),
+    (
+      v_priya_id::text,
+      v_priya_id,
+      format('{"sub":"%s","email":"priya@testband.demo"}', v_priya_id)::jsonb,
+      'email',
+      NOW(),
+      NOW(),
+      NOW()
     )
   ON CONFLICT (provider, provider_id) DO NOTHING;
 
@@ -151,7 +255,11 @@ BEGIN
   INSERT INTO public.users (id, email, name, created_date, auth_provider) VALUES
     (v_eric_id, 'eric@testband.demo', 'Eric Johnson', '2024-01-15', 'email'),
     (v_mike_id, 'mike@testband.demo', 'Mike Thompson', '2024-01-20', 'email'),
-    (v_sarah_id, 'sarah@testband.demo', 'Sarah Chen', '2024-02-01', 'email')
+    (v_sarah_id, 'sarah@testband.demo', 'Sarah Chen', '2024-02-01', 'email'),
+    (v_jess_id, 'jess@testband.demo', 'Jess Rivera', '2024-03-10', 'email'),
+    (v_dana_id, 'dana@testband.demo', 'Dana Park', '2024-04-02', 'email'),
+    (v_leo_id, 'leo@testband.demo', 'Leo Martins', '2024-05-18', 'email'),
+    (v_priya_id, 'priya@testband.demo', 'Priya Shah', '2024-06-21', 'email')
   ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
   -- ========================================
@@ -159,14 +267,24 @@ BEGIN
   -- ========================================
   RAISE NOTICE '🎸 Seeding user_profiles...';
 
-  INSERT INTO public.user_profiles (id, user_id, display_name, instruments, primary_instrument, created_date, updated_date, discoverable, friend_code) VALUES
-    (gen_random_uuid(), v_eric_id, 'Eric', ARRAY['Guitar', 'Vocals'], 'Guitar', NOW(), NOW(), true, 'GTAR2345'),
-    (gen_random_uuid(), v_mike_id, 'Mike', ARRAY['Bass', 'Harmonica', 'Vocals', 'Guitar'], 'Bass', NOW(), NOW(), true, 'BASS6789'),
-    (gen_random_uuid(), v_sarah_id, 'Sarah', ARRAY['Drums', 'Percussion'], 'Drums', NOW(), NOW(), true, 'DRMS4567')
+  -- Instruments are an ordered list (first shows first); primary_instrument is
+  -- kept in step with the first one but no longer read.
+  INSERT INTO public.user_profiles (id, user_id, display_name, instruments, primary_instrument, created_date, updated_date, discoverable, friend_code, friend_request_policy, personal_color) VALUES
+    (gen_random_uuid(), v_eric_id, 'Eric', ARRAY['Guitar', 'Vocals'], 'Guitar', NOW(), NOW(), true, 'GTAR2345', 'everyone', '#ff7a1a'),
+    (gen_random_uuid(), v_mike_id, 'Mike', ARRAY['Bass', 'Vocals', 'Harmonica', 'Guitar'], 'Bass', NOW(), NOW(), true, 'BASS6789', 'everyone', '#38bdf8'),
+    (gen_random_uuid(), v_sarah_id, 'Sarah', ARRAY['Drums', 'Percussion'], 'Drums', NOW(), NOW(), true, 'DRMS4567', 'everyone', '#c084fc'),
+    (gen_random_uuid(), v_jess_id, 'Jess', ARRAY['Keys', 'Vocals', 'Synth'], 'Keys', NOW(), NOW(), true, 'JESS2345', 'everyone', '#4ade80'),
+    (gen_random_uuid(), v_dana_id, 'Dana', ARRAY['Guitar', 'Mandolin'], 'Guitar', NOW(), NOW(), false, 'DANA2345', 'code_only', '#f43f5e'),
+    (gen_random_uuid(), v_leo_id, 'Leo', ARRAY['Bass', 'Guitar'], 'Bass', NOW(), NOW(), true, 'LEMR2345', 'friends_of_friends', '#facc15'),
+    (gen_random_uuid(), v_priya_id, 'Priya', ARRAY['Violin', 'Vocals'], 'Violin', NOW(), NOW(), true, 'PRYA2345', 'everyone', '#2dd4bf')
   ON CONFLICT (user_id) DO UPDATE SET
     display_name = EXCLUDED.display_name,
+    instruments = EXCLUDED.instruments,
+    primary_instrument = EXCLUDED.primary_instrument,
     discoverable = EXCLUDED.discoverable,
-    friend_code = EXCLUDED.friend_code;
+    friend_code = EXCLUDED.friend_code,
+    friend_request_policy = EXCLUDED.friend_request_policy,
+    personal_color = EXCLUDED.personal_color;
 
   -- ========================================
   -- 4. BAND
@@ -175,7 +293,7 @@ BEGIN
 
   INSERT INTO public.bands (
     id, name, description, created_by, created_date, updated_date,
-    settings
+    settings, mark, city, genres, links
   ) VALUES (
     v_band_id,
     'Demo Band',
@@ -183,25 +301,35 @@ BEGIN
     v_eric_id,
     '2024-01-15',
     NOW(),
-    '{"defaultPracticeTime":120,"reminderMinutes":[60,30,10],"autoSaveInterval":30}'::jsonb
-  ) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, created_by = EXCLUDED.created_by;
+    '{"defaultPracticeTime":120,"reminderMinutes":[60,30,10],"autoSaveInterval":30}'::jsonb,
+    '{"kind":"symbol","initials":"DB","symbol":"bolt","color":"orange","lettering":"poster"}'::jsonb,
+    'Seattle, WA',
+    ARRAY['Rock', 'Grunge', '90s Alternative'],
+    '[{"label":"Website","url":"https://demoband.example.com"},
+      {"label":"Instagram","url":"https://www.instagram.com/demoband.sea"},
+      {"label":"Bandcamp","url":"https://demoband.bandcamp.com"}]'::jsonb
+  ) ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name, created_by = EXCLUDED.created_by, mark = EXCLUDED.mark,
+    city = EXCLUDED.city, genres = EXCLUDED.genres, links = EXCLUDED.links, deleted_at = NULL;
 
   -- ========================================
   -- 5. BAND MEMBERSHIPS
   -- ========================================
   RAISE NOTICE '👥 Seeding band_memberships...';
 
+  -- Eric owns Demo Band (role 'owner', one per band); permissions mirror the role.
   INSERT INTO public.band_memberships (id, user_id, band_id, role, joined_date, status, permissions) VALUES
-    (gen_random_uuid(), v_eric_id, v_band_id, 'admin', '2024-01-15', 'active', ARRAY['owner', 'admin']),
+    (gen_random_uuid(), v_eric_id, v_band_id, 'owner', '2024-01-15', 'active', ARRAY['owner']),
     (gen_random_uuid(), v_mike_id, v_band_id, 'admin', '2024-01-20', 'active', ARRAY['admin']),
     (gen_random_uuid(), v_sarah_id, v_band_id, 'member', '2024-02-01', 'active', ARRAY['member'])
-  ON CONFLICT (band_id, user_id) DO UPDATE SET role = EXCLUDED.role;
+  ON CONFLICT (band_id, user_id) DO UPDATE SET role = EXCLUDED.role, permissions = EXCLUDED.permissions;
 
   -- ========================================
   -- 6. INVITE CODE
   -- ========================================
   RAISE NOTICE '🔑 Seeding invite_codes...';
 
+  -- Codes last 24 h from creation, unlimited uses, one active per band (decision 10).
   INSERT INTO public.invite_codes (
     id, band_id, code, created_by, created_date, expires_at, max_uses, current_uses, is_active
   ) VALUES (
@@ -210,11 +338,13 @@ BEGIN
     'ROCK2025',
     v_eric_id,
     NOW(),
-    NOW() + INTERVAL '30 days',
-    999,
+    NOW() + INTERVAL '24 hours',
+    NULL,
     2,
     TRUE
-  ) ON CONFLICT (code) DO UPDATE SET current_uses = EXCLUDED.current_uses;
+  ) ON CONFLICT (code) DO UPDATE SET
+    current_uses = EXCLUDED.current_uses, created_date = EXCLUDED.created_date,
+    expires_at = EXCLUDED.expires_at, max_uses = NULL, is_active = TRUE;
 
   -- ========================================
   -- 7. SONGS (with fixed UUIDs for setlist references)
@@ -385,8 +515,156 @@ BEGIN
      'band', v_band_id::text, v_eric_id, 'band', NOW(), NULL, 1),
 
     (gen_random_uuid(), 'Ocean Avenue', 'Yellowcard', 213, 'C', 190, 3, 'Standard',
-     'band', v_band_id::text, v_eric_id, 'band', NOW(), NULL, 1)
+     'band', v_band_id::text, v_eric_id, 'band', NOW(), NULL, 1),
+
+    -- Charted songs: traditional (public domain) and an original riff
+    (v_song_rising_sun, 'House of the Rising Sun', 'Traditional', 270, 'Am', 116, 2, 'Standard',
+     'band', v_band_id::text, v_mike_id, 'band', NOW(),
+     E'## Notes\n- 6/8 feel, arpeggiate every chord\n- Organ solo after verse 3 (Mike on keys)', 1),
+
+    (v_song_scarborough, 'Scarborough Fair', 'Traditional', 205, 'D', 96, 3, 'DADGAD',
+     'band', v_band_id::text, v_sarah_id, 'band', NOW(),
+     E'## Tuning\n**DADGAD**: D-A-D-G-A-D\n\n## Notes\n- 3/4, let the open strings ring', 1),
+
+    (v_song_low_end, 'Low End Theory (Original)', 'Demo Band', 188, 'A', 140, 4, '7-string Drop A',
+     'band', v_band_id::text, v_eric_id, 'band', NOW(),
+     E'## Tuning\n**7-string Drop A**: A-E-A-D-G-B-E\n\n## Notes\n- Our own riff, palm-muted chugs on the low A', 1)
   ON CONFLICT (id) DO NOTHING;
+
+  -- Albums, time signatures and the odd missing fact.
+  UPDATE public.songs s SET album = v.album, time_signature = v.sig
+    FROM (VALUES
+      ('All Star', 'Astro Lounge', '4/4'), ('Wonderwall', '(What''s the Story) Morning Glory?', '4/4'),
+      ('Man in the Box', 'Facelift', '4/4'), ('Smells Like Teen Spirit', 'Nevermind', '4/4'),
+      ('Creep', 'Pablo Honey', '4/4'), ('Losing my Religion', 'Out of Time', '4/4'),
+      ('Zombie', 'No Need to Argue', '4/4'), ('No Rain', 'Blind Melon', '4/4'),
+      ('Plush', 'Core', '4/4'), ('Buddy Holly', 'Weezer (Blue Album)', '4/4'),
+      ('Sweet Child O'' Mine', 'Appetite for Destruction', '4/4'), ('Livin'' on a Prayer', 'Slippery When Wet', '4/4'),
+      ('Jump', '1984', '4/4'), ('Kickstart My Heart', 'Dr. Feelgood', '4/4'),
+      ('Hotel California', 'Hotel California', '4/4'), ('Dream On', 'Aerosmith', '4/4'),
+      ('Free Bird', '(Pronounced ''Lĕh-''nérd ''Skin-''nérd)', '4/4'), ('Mr. Brightside', 'Hot Fuss', '4/4'),
+      ('Hey There Delilah', 'All That We Needed', '4/4'), ('Seven Nation Army', 'Elephant', '4/4'),
+      ('Black', 'Ten', '4/4'), ('Enter Sandman', 'Metallica', '4/4'),
+      ('Just A Girl', 'Tragic Kingdom', '4/4'), ('Cumbersome', 'American Standard', '4/4'),
+      ('Everything Zen', 'Sixteen Stone', '4/4'), ('Lump', 'The Presidents of the United States of America', '4/4'),
+      ('Lightning Crashes', 'Throwing Copper', '4/4'), ('Shine', 'Hints, Allegations, and Things Left Unsaid', '4/4'),
+      ('La Grange', 'Tres Hombres', '4/4'), ('Heartache Tonight', 'The Long Run', '4/4'),
+      ('White Rabbit', 'Surrealistic Pillow', '4/4'), ('Mary Jane''s Last Dance', 'Greatest Hits', '4/4'),
+      ('When I Come Around', 'Dookie', '4/4'), ('Kryptonite', 'The Better Life', '4/4'),
+      ('Burn It to the Ground', 'Dark Horse', '4/4'), ('Dance, Dance', 'From Under the Cork Tree', '4/4'),
+      ('Broken', 'Disclaimer II', '4/4'), ('Harder to Breathe', 'Songs About Jane', '4/4'),
+      ('Short Skirt/Long Jacket', 'Comfort Eagle', '4/4'), ('When You Were Young', 'Sam''s Town', '4/4'),
+      ('Take A Picture', 'Title of Record', '4/4'), ('Monkey Wrench', 'The Colour and the Shape', '4/4'),
+      ('Sad But True', 'Metallica', '4/4'), ('The Remedy', 'Waiting for My Rocket to Come', '4/4'),
+      ('Ocean Avenue', 'Ocean Avenue', '4/4'),
+      ('House of the Rising Sun', NULL, '6/8'), ('Scarborough Fair', NULL, '3/4'),
+      ('Low End Theory (Original)', 'Garage Demos', '4/4')
+    ) AS v(title, album, sig)
+   WHERE s.context_type = 'band' AND s.context_id = v_band_id::text AND s.title = v.title;
+
+  -- Band notes for songs that had none (who last edited + when).
+  UPDATE public.songs s SET notes = v.notes, notes_edited_by = v.editor, notes_edited_at = NOW() - v.ago
+    FROM (VALUES
+      ('No Rain', E'## Notes\n- Bright clean tone, light chorus pedal\n- Sarah: brushes on the intro', v_sarah_id, INTERVAL '3 days'),
+      ('Everything Zen', E'## Notes\n- Drop D, big and sludgy\n- Watch the stop before the last chorus', v_mike_id, INTERVAL '6 days'),
+      ('Lightning Crashes', E'## Notes\n- Slow build, nobody rush the last chorus', v_eric_id, INTERVAL '1 day'),
+      ('Kryptonite', E'## Notes\n- Mike: the bass fill into the chorus is the hook', v_mike_id, INTERVAL '10 days')
+    ) AS v(title, notes, editor, ago)
+   WHERE s.context_type = 'band' AND s.context_id = v_band_id::text AND s.title = v.title;
+  UPDATE public.songs SET notes_edited_by = v_eric_id, notes_edited_at = NOW() - INTERVAL '2 days'
+   WHERE context_type = 'band' AND context_id = v_band_id::text AND notes IS NOT NULL AND notes_edited_by IS NULL;
+
+  -- Reference links: every type the app knows (spotify, youtube, tabs incl.
+  -- Ultimate Guitar / Songsterr / Guitar Pro, lyrics, drive, dropbox,
+  -- soundcloud, other). Stored as [{icon, url, description?}] like the editor.
+  UPDATE public.songs s SET reference_links = v.links::jsonb
+    FROM (VALUES
+      ('All Star', '[
+        {"icon":"spotify","url":"https://open.spotify.com/track/3cfOd4CMv2snFaKAnMdnvK"},
+        {"icon":"youtube","url":"https://www.youtube.com/watch?v=L_jWHffIx5E","description":"Official video"},
+        {"icon":"tabs","url":"https://tabs.ultimate-guitar.com/tab/smash-mouth/all-star-chords-189279","description":"Ultimate Guitar chords"},
+        {"icon":"lyrics","url":"https://genius.com/Smash-mouth-all-star-lyrics"},
+        {"icon":"soundcloud","url":"https://soundcloud.com/demo-band-sea/all-star-rehearsal-take-2","description":"Rehearsal take 2"}]'),
+      ('Wonderwall', '[
+        {"icon":"spotify","url":"https://open.spotify.com/track/5qqabIl2vWzo9ApSC317sa"},
+        {"icon":"youtube","url":"https://www.youtube.com/watch?v=bx1Bh8ZvH84"},
+        {"icon":"tabs","url":"https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-27596","description":"Chords, capo 2"},
+        {"icon":"drive","url":"https://docs.google.com/document/d/1hF3kQ9wZbXcV7nLmR2pT8sY4uJ6eA0dG5iK1oP3qWzE/edit","description":"Our chord chart"}]'),
+      ('Man in the Box', '[
+        {"icon":"spotify","url":"https://open.spotify.com/track/6gZVQvQZOFpzIy3HblJ20F"},
+        {"icon":"tabs","url":"https://www.songsterr.com/a/wsa/alice-in-chains-man-in-the-box-tab-s9147","description":"Songsterr (Eb)"},
+        {"icon":"tabs","url":"https://www.dropbox.com/s/k2m9q7x4v1z8n3c/man-in-the-box.gp5","description":"Guitar Pro 5 file"}]'),
+      ('Smells Like Teen Spirit', '[
+        {"icon":"spotify","url":"https://open.spotify.com/track/4CeeEOM32jQcH3eN9Q2dGj"},
+        {"icon":"youtube","url":"https://www.youtube.com/watch?v=hTWKbfoikeg"},
+        {"icon":"tabs","url":"https://www.songsterr.com/a/wsa/nirvana-smells-like-teen-spirit-tab-s269"}]'),
+      ('Creep', '[
+        {"icon":"youtube","url":"https://www.youtube.com/watch?v=XFkzRNyygfk"},
+        {"icon":"lyrics","url":"https://www.azlyrics.com/lyrics/radiohead/creep.html"}]'),
+      ('Sweet Child O'' Mine', '[
+        {"icon":"spotify","url":"https://open.spotify.com/track/7o2CTH4ctstm8TNelqjb51"},
+        {"icon":"tabs","url":"https://tabs.ultimate-guitar.com/tab/guns-n-roses/sweet-child-o-mine-tabs-1745","description":"Intro riff tab"},
+        {"icon":"tabs","url":"https://www.dropbox.com/s/r8t2w6y0u4i9o1p/sweet-child-o-mine.gpx","description":"Guitar Pro 6"},
+        {"icon":"dropbox","url":"https://www.dropbox.com/s/a7b3c9d1e5f2g8h/sweet-child-backing-track.mp3","description":"Backing track"}]'),
+      ('Hotel California', '[
+        {"icon":"spotify","url":"https://open.spotify.com/track/40riOy7x9W7GXjyGp4pjAv"},
+        {"icon":"youtube","url":"https://www.youtube.com/watch?v=09839DpTctU","description":"Live, 1977"},
+        {"icon":"tabs","url":"https://tabs.ultimate-guitar.com/tab/eagles/hotel-california-tabs-7398","description":"Solo harmony tab"},
+        {"icon":"drive","url":"https://drive.google.com/file/d/1Qw8Er4Ty6Ui2Op0As9Df3Gh7Jk1Lz5Xc/view","description":"Outro harmony chart (PDF)"}]'),
+      ('Mr. Brightside', '[
+        {"icon":"spotify","url":"https://open.spotify.com/track/003vvx7Niy0yvhvHt4a68B"},
+        {"icon":"youtube","url":"https://www.youtube.com/watch?v=gGdGFtwCNBE"}]'),
+      ('Seven Nation Army', '[
+        {"icon":"spotify","url":"https://open.spotify.com/track/3dPQuX8Gs42Y7b454ybpMR"},
+        {"icon":"youtube","url":"https://www.youtube.com/watch?v=0J2QdDbelmY"},
+        {"icon":"tabs","url":"https://www.songsterr.com/a/wsa/the-white-stripes-seven-nation-army-tab-s19530"}]'),
+      ('Enter Sandman', '[
+        {"icon":"spotify","url":"https://open.spotify.com/track/5sICkBXVmaCQk5aISGR3x1"},
+        {"icon":"youtube","url":"https://www.youtube.com/watch?v=CD-E-LDc384"},
+        {"icon":"tabs","url":"https://www.songsterr.com/a/wsa/metallica-enter-sandman-tab-s19"},
+        {"icon":"tabs","url":"https://www.dropbox.com/s/p0o9i8u7y6t5r4e/enter-sandman.gp4","description":"Guitar Pro 4 file"},
+        {"icon":"other","url":"https://www.setlist.fm/stats/songs/metallica-bd6bd12.html?song=Enter+Sandman","description":"Live stats"}]'),
+      ('Black', '[
+        {"icon":"lyrics","url":"https://www.musixmatch.com/lyrics/Pearl-Jam/Black"},
+        {"icon":"soundcloud","url":"https://soundcloud.com/demo-band-sea/black-acoustic-demo"}]'),
+      ('Hey There Delilah', '[
+        {"icon":"youtube","url":"https://youtu.be/h_m-BjrxmgI"},
+        {"icon":"tabs","url":"https://tabs.ultimate-guitar.com/tab/plain-white-ts/hey-there-delilah-chords-180932"}]'),
+      ('Plush', '[
+        {"icon":"dropbox","url":"https://www.dropbox.com/scl/fi/x1y2z3a4b5c6/plush-rehearsal-0412.m4a","description":"Rehearsal 04/12"},
+        {"icon":"other","url":"https://en.wikipedia.org/wiki/Plush_(song)"}]'),
+      ('House of the Rising Sun', '[
+        {"icon":"other","url":"https://en.wikipedia.org/wiki/The_House_of_the_Rising_Sun","description":"History of the song"},
+        {"icon":"drive","url":"https://docs.google.com/spreadsheets/d/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV2wX3yZ4AbCd/edit","description":"Arrangement sheet"}]'),
+      ('Scarborough Fair', '[
+        {"icon":"other","url":"https://en.wikipedia.org/wiki/Scarborough_Fair_(ballad)"},
+        {"icon":"soundcloud","url":"https://soundcloud.com/demo-band-sea/scarborough-fair-dadgad-sketch","description":"DADGAD sketch"}]'),
+      ('Low End Theory (Original)', '[
+        {"icon":"tabs","url":"https://www.dropbox.com/s/z9x8c7v6b5n4m3l/low-end-theory-7str.gp","description":"Guitar Pro 7 file"},
+        {"icon":"dropbox","url":"https://www.dropbox.com/s/q1w2e3r4t5y6u7i/low-end-theory-demo.wav","description":"Garage demo"}]')
+    ) AS v(title, links)
+   WHERE s.context_type = 'band' AND s.context_id = v_band_id::text AND s.title = v.title;
+
+  -- Charts (phase 5): ChordPro with sections, chords over lyrics and a starting
+  -- note (MIDI). Lyrics are traditional (public domain) or placeholder text.
+  INSERT INTO public.song_charts (song_id, chordpro, starting_note) VALUES
+    (v_song_rising_sun, E'{title: House of the Rising Sun}\n{artist: Traditional}\n{key: Am}\n{time: 6/8}\n\n{comment: Intro}\n[Am] [C] [D] [F] [Am] [E] [Am] [E]\n\n{start_of_verse: Verse 1}\nThere [Am]is a [C]house in [D]New Or[F]leans\nThey [Am]call the [C]Rising [E]Sun\nIt''s [Am]been the [C]ruin of [D]many a poor [F]girl\nAnd [Am]me, O [E]God, for [Am]one [E]\n{end_of_verse}\n\n{start_of_verse: Verse 2}\n[Am]Placeholder [C]words for the [D]second [F]verse\n[Am]Same four [C]bars a[E]gain\n[Am]Hold the [C]last chord [D]under the [F]voice\nThen [Am]round the [E]turn once [Am]more [E]\n{end_of_verse}\n\n{comment: Organ solo}\n[Am] [C] [D] [F] [Am] [C] [E] [E]\n\n{comment: Outro}\n[Am] [D] [Am] [D] [Am]\n', 57),
+    (v_song_scarborough, E'{title: Scarborough Fair}\n{artist: Traditional}\n{key: D}\n{time: 3/4}\n\n{start_of_verse: Verse 1}\nAre you [D]going to [C]Scarborough [D]Fair?\n[D]Parsley, [G]sage, rose[D]mary and [A]thyme\nRe[D]member [F#m]me to one who [G]lives there\nShe [D]once was a [C]true love of [D]mine\n{end_of_verse}\n\n{start_of_verse: Verse 2}\nTell her to [D]make me a [C]cambric [D]shirt\n[D]Parsley, [G]sage, rose[D]mary and [A]thyme\nWith[D]out any [F#m]seam or fine [G]needlework\nAnd [D]then she''ll be a [C]true love of [D]mine\n{end_of_verse}\n\n{start_of_tab: Open-string figure}\nD|-0---0---0-----|\nA|---0---2---0---|\nG|-----------0---|\n{end_of_tab}\n', 50),
+    (v_song_low_end, E'{title: Low End Theory (Original)}\n{artist: Demo Band}\n{key: A}\n{tempo: 140}\n\n{start_of_tab: Main riff}\nE|----------------|\nB|----------------|\nG|----------------|\nD|----------------|\nA|-----------3-5--|\nE|-0-0-0-1-0------|\nA|-0-0-0-1-0------|\n{end_of_tab}\n\n{start_of_verse: Verse}\n[A5]Placeholder line for the [C5]verse riff\n[A5]Counting chugs on the [Bb5]lowest string\n{end_of_verse}\n\n{start_of_chorus}\n[F5]Big open [G5]chords, [A5]let them ring\n[F5]Sing it [G5]back, the [A5]crowd joins in\n{end_of_chorus}\n\n{chorus}\n', 33),
+    (v_song_all_star, E'{title: All Star}\n{artist: Smash Mouth}\n{key: F#}\n{tempo: 104}\n\n{start_of_verse: Verse 1}\n[F#]Placeholder words for the [C#]opening line\n[G#m]Kept short so the [B]chart reads fine\n[F#]Second line, the [C#]chords move on\n[G#m]Bar four lands on [B]B before long\n{end_of_verse}\n\n{start_of_chorus}\n[F#]Chorus placeholder, [C#]everybody sing\n[G#m]Hold the last word, [B]let it ring\n{end_of_chorus}\n\n{chorus}\n', 66),
+    (v_song_wonderwall, E'{title: Wonderwall}\n{artist: Oasis}\n{key: F#m}\n{capo: 2}\n\n{comment: Intro}\n[Em7] [G] [Dsus4] [A7sus4]\n\n{start_of_verse: Verse 1}\n[Em7]Placeholder lyric, [G]capo on two\n[Dsus4]Strum the shapes the [A7sus4]way we do\n{end_of_verse}\n\n{start_of_chorus: Pre-chorus}\n[C]Build it [D]up and [Em7]hold it there\n{end_of_chorus}\n\n{start_of_chorus}\n[C]Big sing-a[Em7]long [G]part\n[C]Everyone [Em7]in [G]here\n{end_of_chorus}\n', 66),
+    (v_song_man_in_box, E'{title: Man in the Box}\n{artist: Alice In Chains}\n{key: E}\n{comment: Eb Standard, half step down}\n\n{start_of_tab: Main riff (wah)}\ne|----------------|\nB|----------------|\nG|----------------|\nD|----------------|\nA|-------3-2-0----|\nE|-0-0-3-------3-0|\n{end_of_tab}\n\n{start_of_verse: Verse}\n[E5]Placeholder verse over the [G5]riff\n[E5]Hold back, keep it [G5]tight\n{end_of_verse}\n\n{start_of_chorus}\n[C5]Chorus place[D5]holder, open it [E5]up\n{end_of_chorus}\n', 51),
+    (v_song_hotel_california, E'{title: Hotel California}\n{artist: Eagles}\n{key: Bm}\n{tempo: 74}\n\n{start_of_verse: Verse 1}\n[Bm]Placeholder line, let the [F#]intro breathe\n[A]Second line moves [E]down a step\n[G]Third line, [D]easy now\n[Em]Fourth line turns [F#]round again\n{end_of_verse}\n\n{start_of_chorus}\n[G]Chorus place[D]holder\n[F#]Hold the harmony [Bm]here\n{end_of_chorus}\n\n{start_of_grid: Outro solo}\n| Bm . . . | F# . . . | A . . . | E . . . |\n| G . . . | D . . . | Em . . . | F# . . . |\n{end_of_grid}\n', 59)
+  ON CONFLICT (song_id) DO NOTHING;
+
+  -- My notes (private per member).
+  INSERT INTO public.song_personal_notes (song_id, user_id, band_id, content) VALUES
+    (v_song_sweet_child, v_eric_id, v_band_id, E'Practice the intro at 100 BPM first, then up to 122.'),
+    (v_song_man_in_box, v_eric_id, v_band_id, E'Wah: heel down on beat 1, toe on the "and".'),
+    (v_song_enter_sandman, v_mike_id, v_band_id, E'Count 4 bars of the clean intro before coming in.'),
+    (v_song_jump, v_mike_id, v_band_id, E'Keys patch: "Oberheim brass" preset 34.'),
+    (v_song_kickstart, v_sarah_id, v_band_id, E'Double kick in the last chorus only.')
+  ON CONFLICT (song_id, user_id, band_id) DO NOTHING;
 
   -- ========================================
   -- 8. SETLISTS (with proper items format using songId references)
@@ -675,7 +953,7 @@ BEGIN
   ) VALUES
     -- Upcoming practices (relative to the day the seed runs)
     (
-      gen_random_uuid(),
+      v_practice_first,
       v_band_id,
       'rehearsal',
       (date_trunc('day', NOW() AT TIME ZONE 'America/Los_Angeles') + interval '2 days 19 hours') AT TIME ZONE 'America/Los_Angeles',
@@ -804,13 +1082,20 @@ BEGIN
     (v_eric_id, 'activity', 'Setlist updated', 'The Summer Festival Set was updated', '/setlists', NOW() - INTERVAL '20 hours', NOW() - INTERVAL '2 days');
 
   -- ── Friends demo data (mobile-redesign-port) ────────────────────────────
-  -- Eric (you) already friends with Sarah; Mike has a pending request to Eric.
+  -- Eric (you): Friends = Sarah, Leo · Requests = Mike, Dana · Sent = Jess.
+  -- Sarah is friends with Leo and Jess, so find_people shows mutual counts and
+  -- Leo (friends_of_friends) accepts requests from Sarah's friends.
   INSERT INTO public.friendships (user_a, user_b) VALUES
-    (LEAST(v_eric_id, v_sarah_id), GREATEST(v_eric_id, v_sarah_id))
+    (LEAST(v_eric_id, v_sarah_id), GREATEST(v_eric_id, v_sarah_id)),
+    (LEAST(v_eric_id, v_leo_id), GREATEST(v_eric_id, v_leo_id)),
+    (LEAST(v_sarah_id, v_leo_id), GREATEST(v_sarah_id, v_leo_id)),
+    (LEAST(v_sarah_id, v_jess_id), GREATEST(v_sarah_id, v_jess_id))
   ON CONFLICT (user_a, user_b) DO NOTHING;
 
-  INSERT INTO public.friend_requests (requester_id, addressee_id, status) VALUES
-    (v_mike_id, v_eric_id, 'pending')
+  INSERT INTO public.friend_requests (requester_id, addressee_id, status, created_date) VALUES
+    (v_mike_id, v_eric_id, 'pending', NOW() - INTERVAL '2 days'),
+    (v_dana_id, v_eric_id, 'pending', NOW() - INTERVAL '5 hours'),
+    (v_eric_id, v_jess_id, 'pending', NOW() - INTERVAL '1 day')
   ON CONFLICT (requester_id, addressee_id) DO NOTHING;
 
   -- ── Events demo data (mobile-redesign-port) ─────────────────────────────
@@ -838,10 +1123,15 @@ BEGIN
 
   RAISE NOTICE '✅ MVP seed data complete!';
   RAISE NOTICE 'Test users: eric@testband.demo, mike@testband.demo, sarah@testband.demo';
+  RAISE NOTICE 'Friends-page users: jess@, dana@, leo@, priya@testband.demo';
   RAISE NOTICE 'Password for all: test123';
   RAISE NOTICE 'Band: Demo Band';
 
 END $$;
+
+-- The 7-string song has no label alias: point it at the built-in directly.
+UPDATE public.songs SET tuning_id = (SELECT id FROM public.tunings WHERE is_builtin AND slug = 'drop-a-7')
+ WHERE id = '11111111-1111-1111-1111-111111111125';
 
 -- Resolve seeded songs' guitar_tuning label → built-in tuning_id (the tunings
 -- migration's backfill no-ops on a fresh reset because seed runs after migrations).
@@ -869,4 +1159,8 @@ SELECT 'Setlists', COUNT(*) FROM public.setlists
 UNION ALL
 SELECT 'Shows', COUNT(*) FROM public.shows
 UNION ALL
-SELECT 'Practice Sessions', COUNT(*) FROM public.practice_sessions;
+SELECT 'Practice Sessions', COUNT(*) FROM public.practice_sessions
+UNION ALL
+SELECT 'Song Charts', COUNT(*) FROM public.song_charts
+UNION ALL
+SELECT 'Friendships', COUNT(*) FROM public.friendships;

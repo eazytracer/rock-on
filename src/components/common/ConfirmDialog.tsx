@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react'
 
 interface ConfirmDialogProps {
@@ -11,6 +11,11 @@ interface ConfirmDialogProps {
   cancelLabel?: string
   variant?: 'danger' | 'warning' | 'default'
   isLoading?: boolean
+  /**
+   * Typed confirm (delete band, delete account): Confirm stays off until the
+   * user types this (trimmed, case-insensitive).
+   */
+  typedConfirm?: string
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -23,8 +28,16 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelLabel = 'Cancel',
   variant = 'default',
   isLoading = false,
+  typedConfirm,
 }) => {
+  const [typed, setTyped] = useState('')
+  useEffect(() => {
+    if (!isOpen) setTyped('')
+  }, [isOpen])
   if (!isOpen) return null
+  const typedOk =
+    !typedConfirm ||
+    typed.trim().toLowerCase() === typedConfirm.trim().toLowerCase()
 
   const variantConfig = {
     danger: {
@@ -51,6 +64,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const Icon = config.icon
 
   const handleConfirm = async () => {
+    if (!typedOk) return
     await onConfirm()
   }
 
@@ -93,6 +107,28 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               >
                 {message}
               </div>
+              {typedConfirm && (
+                <div className="mt-4">
+                  <label
+                    htmlFor="confirm-dialog-typed"
+                    className="block font-mono text-[10.5px] tracking-[.1em] uppercase text-ink-3 mb-1.5"
+                  >
+                    Type {typedConfirm} to confirm
+                  </label>
+                  <input
+                    id="confirm-dialog-typed"
+                    name="confirmTyped"
+                    data-testid="confirm-dialog-typed-input"
+                    autoFocus
+                    autoComplete="off"
+                    value={typed}
+                    onChange={e => setTyped(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleConfirm()}
+                    placeholder={typedConfirm}
+                    className="w-full h-11 px-3.5 rounded-xl bg-bg-3 text-ink-1 font-mono text-[15px] outline-none focus:shadow-[inset_0_0_0_2px_rgb(var(--accent-rgb))]"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -107,7 +143,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             </button>
             <button
               onClick={handleConfirm}
-              disabled={isLoading}
+              disabled={isLoading || !typedOk}
               className={`flex items-center gap-2 px-4 py-2 text-ink-1 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${config.buttonColor}`}
               data-testid="confirm-dialog-confirm"
             >

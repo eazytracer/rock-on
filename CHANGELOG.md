@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Band page** (`/band`, replaces `/band-members`): the band card, an invite
+  card (code, link `/j/CODE`, QR, Copy, Share, Regenerate; codes last 24 hours
+  with unlimited joins, New code once expired), members with a ⋯ by permission
+  (Make admin / member, Transfer to ‹name›…, Remove), and a danger zone
+  (Transfer, Leave, Delete band with the name typed; a sole owner gets Delete
+  instead of Leave). **Band profile** (`/band/profile`): mark, city, genres,
+  description, links. **New band** (`/band/new`): one field under a live mark,
+  then the band with the invite card on top. **Join** (`/j`, `/j/:code`): a
+  preview of the band first (mark, name, members, songs), big Join; signed-out
+  visitors sign in and come back to it.
+- **Band mark picker**: Initials or Symbol, 16 colours, 8 letterings; marks
+  show everywhere the band does (switcher, sidebar, More, notifications).
+- **Auth screens** redesigned (`/auth`, `/auth/signup`, `/auth/forgot`,
+  `/auth/reset`): logo and tagline, Continue with Google, inline errors (wrong
+  password offers a reset), **Forgot password → Check your email → Set new
+  password** (new), Resend with a countdown. **Get started** is four rows:
+  Create a band, Join a band, Got a jam code?, Continue solo. Google sign-in
+  keeps your place (`returnTo`).
+- **Settings** (`/settings/:section`): a list with sub-screens on phones, tabs on
+  desktop. **Profile** (name, ordered instruments, personal colour), **Music**
+  (Tunings and the metronome click sound: Beep, Woodblock, Hi-hat),
+  **Notifications** (push preferences, stored for when push arrives),
+  **Account** (sign-in methods, change password), **About** (version, What's
+  new, Help).
+- **Delete account** really deletes: personal songs, setlists, notes, friends
+  and the login go; band songs, setlists and shows stay with the band. Blocked
+  while you own a band (transfer it first). `delete-account` edge function.
+- **Friends**: privacy as a status line that rolls open, Add a friend (by name
+  or friend code) from the phone dock or a desktop button, Requests · Friends ·
+  Sent, ⋯ to remove a friend. Who can send you requests is now enforced.
+- **More**: a Band section (Members, Band profile, Invite) and a theme toggle.
+- **Terms** and **Privacy** pages (`/terms`, `/privacy`), linked from sign up
+  and Settings → About.
+- Sample data: links of every type on 16 songs, 7 chord charts, four more
+  sample users with friend requests and privacy settings.
+
 - **Tools** (`/tools/tuner`, `/tools/metronome`, `/tools/chords`): one screen
   with Tuner | Metronome | Chords tabs and Back; `/tools` opens the last tab
   used. Sound comes from an in-app plucked-string synth (no sample files).
@@ -96,6 +132,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Database
 
+- Redesign phase 6 (`20261120120000_redesign_phase_6.sql`): an `'owner'`
+  role (one per band, backfilled from the old flag, then the creator, then the
+  earliest admin); `bands.mark`, `city`, `genres`, `links`, `deleted_at`;
+  `user_profiles.personal_color`, instruments ordered (primary first);
+  24-hour unlimited invite codes, one active per band; RPCs `create_band`,
+  `band_preview_by_code`, `join_band`, `regenerate_invite_code`,
+  `set_member_role`, `remove_member`, `transfer_ownership`, `leave_band`,
+  `delete_band`, `update_band_profile`, `send_friend_request` (enforces the
+  request policy), `find_people`, `ensure_my_profile`, `delete_account`.
+  Security: memberships can no longer be inserted or changed directly (a user
+  could add themselves to any band), invite codes are readable only by the
+  band's owner and admins, and a friend request's sender can't accept it.
+  Foreign keys from band content to users are now `ON DELETE SET NULL`; band
+  notes stay as "Former member" and a band's events pass to its owner when an
+  account is deleted.
 - Redesign phase 5 (`20261119120000_redesign_phase_5.sql`): `song_charts` (one
   ChordPro chart + starting note per song, its own small audit trigger),
   `get_chart`, `save_chart`, `set_starting_note`, `copy_linked_chart`;

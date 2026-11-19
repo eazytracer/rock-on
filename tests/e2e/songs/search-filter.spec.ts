@@ -154,8 +154,9 @@ test.describe('Song Search and Filtering', () => {
       })
 
       // Should not see Eagles
+      // (Rows only: the 'Added "…"' toast can still be up.)
       const eaglesVisible = await page
-        .locator('text=Take It Easy')
+        .locator('[data-testid^="song-row-"]', { hasText: 'Take It Easy' })
         .first()
         .isVisible()
         .catch(() => false)
@@ -356,8 +357,9 @@ test.describe('Song Search and Filtering', () => {
       await page.waitForTimeout(1000)
 
       // Should not see existing song
+      // (Rows only: the 'Added "…"' toast can still be up.)
       const songVisible = await page
-        .locator('text=Existing Song')
+        .locator('[data-testid^="song-row-"]', { hasText: 'Existing Song' })
         .first()
         .isVisible()
         .catch(() => false)

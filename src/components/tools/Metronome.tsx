@@ -14,6 +14,7 @@ import { useSong, useSongFieldSave } from '../../hooks/useSongCatalog'
 import { useSongs, usePersonalSongs } from '../../hooks/useSongs'
 import { useSetlistIndex } from '../../hooks/useSetlists'
 import { useMediaQuery } from '../../hooks/useResponsive'
+import { useMetronomePrefs } from '../../hooks/useAccount'
 import { Segmented, Switch } from '../ui'
 import {
   BPM_MAX,
@@ -101,6 +102,13 @@ export const Metronome: React.FC<MetronomeProps> = ({
   const taps = useRef<number[]>([])
   const engine = useRef<MetronomeEngine | null>(null)
   const raf = useRef(0)
+  // The click sound follows the user (Settings → Music); new clicks use it.
+  const click = useMetronomePrefs().prefs.click
+  const clickRef = useRef(click)
+  clickRef.current = click
+  useEffect(() => {
+    if (engine.current) engine.current.sound = click
+  }, [click])
 
   const songBpm = song?.bpm ? clampBpm(song.bpm) : null
   const bpm = chosen ?? (songId ? songBpm : null) ?? linkBpm ?? memory.bpm
@@ -134,6 +142,7 @@ export const Metronome: React.FC<MetronomeProps> = ({
     const ctx = resumeAudio()
     engine.current ??= new MetronomeEngine(ctx)
     const e = engine.current
+    e.sound = clickRef.current
     e.start({ bpm: bpmRef.current, sig, sub, accents })
     setRunning(true)
     let shown: number | null = null
@@ -414,6 +423,7 @@ export const Metronome: React.FC<MetronomeProps> = ({
       <div
         className="grid grid-cols-[minmax(0,1fr)_340px] gap-6 min-h-[calc(100vh-180px)]"
         data-testid="metronome"
+        data-click-sound={click}
       >
         <div className="flex flex-col items-center justify-center gap-6 rounded-[24px] bg-bg-2/40 px-8 py-10">
           {fromSong && <div className="w-full max-w-[560px]">{fromSong}</div>}
@@ -440,7 +450,11 @@ export const Metronome: React.FC<MetronomeProps> = ({
     )
 
   return (
-    <div className="flex flex-col gap-4" data-testid="metronome">
+    <div
+      className="flex flex-col gap-4"
+      data-testid="metronome"
+      data-click-sound={click}
+    >
       {fromSong}
       <div className="pt-1">{beats}</div>
       {hero}

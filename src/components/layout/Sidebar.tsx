@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ? [
         {
           label: 'Members & profile',
-          path: '/band-members',
+          path: '/band',
           icon: <Users />,
           testId: 'band-members-link',
         },

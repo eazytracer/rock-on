@@ -43,7 +43,7 @@ export function notificationPath(n: NotificationLike): string | null {
     case 'practice':
       return `/practices/${n.object_id}`
     case 'band':
-      return '/band-members'
+      return '/band'
     default:
       return null
   }

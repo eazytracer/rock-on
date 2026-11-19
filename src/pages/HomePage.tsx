@@ -162,7 +162,7 @@ export function HomePage() {
         {
           label: 'Invite your bandmates',
           done: members.length > 1,
-          to: '/band-members',
+          to: '/band?invite',
         },
         {
           label: 'Add 5 songs',

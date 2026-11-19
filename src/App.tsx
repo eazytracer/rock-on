@@ -17,15 +17,21 @@ import { AuthCallback } from './pages/auth/AuthCallback'
 import { FEATURE_FLAGS } from './config/featureFlags'
 
 // Lazy load pages for better performance
-const AuthPages = lazy(() =>
-  import('./pages/AuthPages').then(module => ({
-    default: module.AuthPages,
-  }))
+const SignInPage = lazy(() => import('./pages/auth/SignInPage'))
+const SignUpPage = lazy(() => import('./pages/auth/SignUpPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
+const GetStartedPage = lazy(() => import('./pages/auth/GetStartedPage'))
+const JamCodePage = lazy(() => import('./pages/auth/JamCodePage'))
+const BandPage = lazy(() => import('./pages/BandPage'))
+const BandProfilePage = lazy(() => import('./pages/BandProfilePage'))
+const BandNewPage = lazy(() => import('./pages/BandNewPage'))
+const JoinBandPage = lazy(() => import('./pages/JoinBandPage'))
+const TermsPage = lazy(() =>
+  import('./pages/LegalPage').then(m => ({ default: m.TermsPage }))
 )
-const BandMembersPage = lazy(() =>
-  import('./pages/BandMembersPage').then(module => ({
-    default: module.BandMembersPage,
-  }))
+const PrivacyPage = lazy(() =>
+  import('./pages/LegalPage').then(m => ({ default: m.PrivacyPage }))
 )
 const SongNewPage = lazy(() =>
   import('./pages/SongNewPage').then(module => ({
@@ -221,9 +227,13 @@ const AppContent: React.FC = () => {
       >
         <Routes>
           {/* Auth routes - public (no layout) */}
-          <Route path="/auth" element={<AuthPages />} />
+          <Route path="/auth" element={<SignInPage />} />
+          <Route path="/auth/signup" element={<SignUpPage />} />
+          <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
+          <Route path="/auth/reset" element={<ResetPasswordPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/get-started" element={<AuthPages />} />
+          <Route path="/get-started" element={<GetStartedPage />} />
+          <Route path="/get-started/jam" element={<JamCodePage />} />
 
           {/* Dev-only preview page (no layout) */}
           <Route path="/dev/ui-preview" element={<DevUIPreviewPage />} />
@@ -233,6 +243,9 @@ const AppContent: React.FC = () => {
               element={<DevAudioHarnessPage />}
             />
           )}
+
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
 
           {/* Public jam session view — no auth required */}
           <Route path="/jam/view/:shortCode" element={<JamViewPage />} />
@@ -290,8 +303,13 @@ const AppContent: React.FC = () => {
               path="/practices/:practiceId/session"
               element={<PracticeSessionPage />}
             />
-            <Route path="/band-members" element={<BandMembersPage />} />
+            <Route path="/band" element={<BandPage />} />
+            <Route path="/band/profile" element={<BandProfilePage />} />
+            <Route path="/band/new" element={<BandNewPage />} />
+            <Route path="/j" element={<JoinBandPage />} />
+            <Route path="/j/:code" element={<JoinBandPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/:section" element={<SettingsPage />} />
             <Route path="/jam" element={<JamSessionPage />} />
             <Route path="/jam/:sessionId" element={<JamSessionPage />} />
             <Route path="/tools" element={<ToolsPage />} />

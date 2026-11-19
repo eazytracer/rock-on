@@ -77,8 +77,8 @@ test.describe('Join Existing Band', () => {
     // Join band using invite code
     await joinBandViaUI(page2, inviteCode)
 
-    // Verify User 2 is redirected to a band page (songs, band-members, or bands)
-    await expect(page2).toHaveURL(/\/(songs|band-members|bands)/, {
+    // Verify User 2 is redirected to a band page (songs, band, or bands)
+    await expect(page2).toHaveURL(/\/(songs|band|bands)/, {
       timeout: 10000,
     })
 
@@ -88,7 +88,7 @@ test.describe('Join Existing Band', () => {
     await expect(user2BandName).toHaveText(bandName)
 
     // Verify User 1 sees User 2 in members list (navigate to band members page)
-    await page1.goto('/band-members')
+    await page1.goto('/band')
     await page1.waitForLoadState('networkidle')
 
     // Verify both test users are present (page has desktop + mobile views, so use .first())
@@ -102,7 +102,7 @@ test.describe('Join Existing Band', () => {
     await expect(user2InList).toBeVisible({ timeout: 5000 })
 
     // Verify User 2 has correct role (member, not admin)
-    await page2.goto('/band-members')
+    await page2.goto('/band')
     await page2.waitForLoadState('networkidle')
 
     // Find User 2's member row using proper data-testid selector (use .first() for responsive layouts)
@@ -111,13 +111,10 @@ test.describe('Join Existing Band', () => {
       .first()
     await expect(user2MemberRow).toBeVisible({ timeout: 5000 })
 
-    // Look for role badge within the member row - should be "Member" not "Admin"
-    const user2RoleBadge = user2MemberRow
-      .locator(`[data-testid="member-role"]`)
-      .first()
-    await expect(user2RoleBadge).toBeVisible({ timeout: 5000 })
-    const roleText = await user2RoleBadge.textContent()
-    expect(roleText?.toLowerCase()).toContain('member')
+    // A plain member carries no role badge (only Owner / Admin do)
+    await expect(
+      user2MemberRow.locator(`[data-testid="member-role"]`)
+    ).toHaveCount(0)
 
     // CRITICAL: Verify User 2 sees User 1 in the members list (not just themselves)
     // This tests that band membership data syncs correctly for newly joined members
@@ -126,13 +123,13 @@ test.describe('Join Existing Band', () => {
       .first()
     await expect(user1MemberRow).toBeVisible({ timeout: 5000 })
 
-    // Verify User 1 has Admin role badge
+    // Verify User 1 (the creator) has the Owner role badge
     const user1RoleBadge = user1MemberRow
       .locator(`[data-testid="member-role"]`)
       .first()
     await expect(user1RoleBadge).toBeVisible({ timeout: 5000 })
     const user1RoleText = await user1RoleBadge.textContent()
-    expect(user1RoleText?.toLowerCase()).toContain('admin')
+    expect(user1RoleText?.toLowerCase()).toContain('owner')
 
     // Verify User 2 sees both members (use .first() to handle desktop + mobile views)
     // Already verified above that both user1 and user2 member rows are visible
@@ -153,32 +150,11 @@ test.describe('Join Existing Band', () => {
     await signUpViaUI(page, user)
     await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
-    // Try to join with invalid code
-    const invalidCode = 'INVALID123'
-    await page.fill(selectors.band.inviteCodeInput, invalidCode)
-    await page.click(selectors.band.joinButton)
-
-    // Should see error message (toast or inline error)
-    // Wait a bit for error to appear
-    await page.waitForTimeout(1000)
-
-    // Should not redirect (stay on get-started page)
-    await expect(page).toHaveURL(/\/get-started/)
-
-    // Look for error message in toast or alert
-    const errorMessage = page
-      .locator(
-        '[data-testid="toast-error"], [role="alert"], text=/invalid.*code/i'
-      )
-      .first()
-    const hasError = await errorMessage.isVisible().catch(() => false)
-
-    // If no visible error found, check console for error
-    if (!hasError) {
-      console.warn(
-        'No visible error message found for invalid invite code - may need to improve error handling'
-      )
-    }
+    // An invalid code's preview says so, without naming a band
+    await page.goto('/j/INVALID123')
+    await expect(page.getByTestId('join-invalid')).toContainText(
+      "That code isn't valid any more. Ask the band for a new link."
+    )
   })
 
   test('user can be member of multiple bands', async ({ page }) => {

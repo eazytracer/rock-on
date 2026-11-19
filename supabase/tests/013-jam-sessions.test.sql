@@ -77,15 +77,13 @@ select is(
   'jam_sessions.saved_setlist_id should ON DELETE SET NULL (preserve the jam if saved setlist is deleted)'
 );
 
--- jam_sessions.last_modified_by is intentionally NO ACTION (RESTRICT). This
--- is the same RESTRICT pattern the harness reset has to NULL-out before
--- deleting a user. If the schema ever flips this to CASCADE or SET NULL,
--- update `cascadeDeletePublicUserRows` in scripts/test-harness/personas.ts
--- to remove the matching cleanup step.
+-- jam_sessions.last_modified_by is ON DELETE SET NULL since phase 6 (delete
+-- account, decision 8). The harness cleanup in `cascadeDeletePublicUserRows`
+-- (scripts/test-harness/personas.ts) that NULLs it first is now redundant.
 select is(
   (SELECT confdeltype FROM pg_constraint WHERE conname = 'jam_sessions_last_modified_by_fkey')::text,
-  'a',
-  'jam_sessions.last_modified_by should be NO ACTION (RESTRICT) — harness cascadeDeletePublicUserRows clears it explicitly'
+  'n',
+  'jam_sessions.last_modified_by should ON DELETE SET NULL (delete account keeps the jam)'
 );
 
 -- jam_participants inbound from jam_sessions

@@ -10,40 +10,24 @@ export interface TestBand {
 }
 
 /**
- * Create a band via the UI
- * Assumes user is already logged in and on /get-started or similar page
+ * Create a band via the UI: New band (`/band/new`, the Get started "Create a
+ * band" row), then land on Songs so callers keep their old contract.
  */
 export async function createBandViaUI(
   page: Page,
   bandName: string
 ): Promise<void> {
-  // Check if we're on get-started page, if not navigate there
-  const currentUrl = page.url()
-  if (!currentUrl.includes('/get-started') && !currentUrl.includes('/bands')) {
-    await page.goto('/get-started')
-    await page.waitForLoadState('networkidle')
+  if (!page.url().includes('/band/new')) {
+    await page.goto('/band/new')
   }
-
-  // Small delay to simulate user focus
-  await page.waitForTimeout(100)
-
-  // Fill in band name
-  await page.fill(
-    'input[name="bandName"], input[id="bandName"], input[placeholder*="band" i]',
-    bandName
-  )
-
-  // Small delay to simulate user reviewing input
-  await page.waitForTimeout(300)
-
-  // Click create band button
-  await page.click('button:has-text("Create Band"), button[type="submit"]')
-
-  // Small delay after click
-  await page.waitForTimeout(200)
-
-  // Wait for success (either redirect to songs or success message)
-  await page.waitForURL(/\/(songs|bands)/, { timeout: 10000 })
+  const name = page.locator('[data-testid="band-new-name-input"]').first()
+  await expect(name).toBeVisible({ timeout: 10000 })
+  await name.fill(bandName)
+  await page.locator('[data-testid="band-new-create"]').first().click()
+  // The new band opens with its invite card (a full reload into the band).
+  await page.waitForURL(/\/band\?invite=new/, { timeout: 15000 })
+  await page.goto('/songs')
+  await expect(page.getByTestId('songs-page')).toBeVisible({ timeout: 15000 })
 }
 
 /**
@@ -51,10 +35,9 @@ export async function createBandViaUI(
  * Should be called right after creating a band
  */
 export async function getInviteCodeViaUI(page: Page): Promise<string> {
-  // Navigate to band members page if needed
-  const currentUrl = page.url()
-  if (!currentUrl.includes('/band-members')) {
-    await page.goto('/band-members')
+  // The invite card lives on the band page (/band)
+  if (new URL(page.url()).pathname !== '/band') {
+    await page.goto('/band')
     await page.waitForLoadState('networkidle')
   }
 
@@ -75,89 +58,28 @@ export async function getInviteCodeViaUI(page: Page): Promise<string> {
 }
 
 /**
- * Join a band via invite code through the UI
- * Assumes user is already logged in
+ * Join a band via invite code through the UI: the join preview (`/j/:code`),
+ * then Join. Ends on Songs, as the old Get started join did.
  */
 export async function joinBandViaUI(
   page: Page,
   inviteCode: string
 ): Promise<void> {
-  console.log('[joinBandViaUI] Starting join band flow...')
-
-  // Navigate to join band page
-  await page.goto('/get-started')
-  await page.waitForLoadState('networkidle')
-  console.log('[joinBandViaUI] Navigated to /get-started')
-
-  // Use data-testid for reliable element selection (per CLAUDE.md testability standards)
-  const inviteCodeInput = page.locator(
-    '[data-testid="join-band-invite-code-input"]'
-  )
-  const joinButton = page.locator('[data-testid="join-band-button"]')
-
-  // Wait for elements to be visible
-  await expect(inviteCodeInput).toBeVisible({ timeout: 5000 })
-  await expect(joinButton).toBeVisible({ timeout: 5000 })
-  console.log('[joinBandViaUI] Found invite code input and join button')
-
-  // Small delay to simulate user focus
-  await page.waitForTimeout(100)
-
-  // Fill in invite code
-  await inviteCodeInput.fill(inviteCode)
-  console.log(`[joinBandViaUI] Filled invite code: ${inviteCode}`)
-
-  // Small delay to simulate user reviewing input before clicking
-  await page.waitForTimeout(300)
-
-  // Check current URL before clicking
-  const urlBeforeClick = page.url()
-  console.log(`[joinBandViaUI] URL before click: ${urlBeforeClick}`)
-
-  // Submit
-  await joinButton.click()
-
-  // Small delay after click to allow UI state to update
-  await page.waitForTimeout(200)
-  console.log(
-    '[joinBandViaUI] Clicked join button, waiting for navigation or error...'
-  )
-
-  // Wait for EITHER successful navigation OR error message to appear
-  const errorSelector =
-    'text=/Failed to join band|Invalid invite code|Invite code has expired|already a member/i'
-
-  try {
-    await Promise.race([
-      // Wait for successful navigation
-      page
-        .waitForURL(/\/(songs|band-members|bands)/, { timeout: 15000 })
-        .then(() => 'success'),
-      // Wait for error message to appear
-      page
-        .locator(errorSelector)
-        .waitFor({ state: 'visible', timeout: 15000 })
-        .then(() => 'error'),
-    ]).then(async result => {
-      if (result === 'error') {
-        // Error message appeared - capture it and fail fast
-        const errorElement = page.locator(errorSelector)
-        const errorText = await errorElement.textContent()
-        throw new Error(`Join band failed with error: ${errorText}`)
-      }
-      // Otherwise, navigation succeeded
-      console.log(`[joinBandViaUI] Successfully navigated to: ${page.url()}`)
-    })
-  } catch (error: any) {
-    // If it's our error message, re-throw it
-    if (error.message?.includes('Join band failed')) {
-      throw error
-    }
-    // Otherwise, it's a timeout or other error
-    const currentUrl = page.url()
-    console.log(`[joinBandViaUI] Timeout or error at URL: ${currentUrl}`)
-    throw error
+  await page.goto(`/j/${inviteCode}`)
+  const join = page.locator('[data-testid="join-band-button"]')
+  const invalid = page.locator('[data-testid="join-invalid"]')
+  await expect(join.or(invalid)).toBeVisible({ timeout: 15000 })
+  if (await invalid.isVisible()) {
+    throw new Error(
+      `Join band failed with error: ${await invalid.textContent()}`
+    )
   }
+  await join.click()
+  await page.waitForURL(url => !url.pathname.startsWith('/j'), {
+    timeout: 15000,
+  })
+  await page.goto('/songs')
+  await expect(page.getByTestId('songs-page')).toBeVisible({ timeout: 15000 })
 }
 
 /**

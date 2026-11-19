@@ -6,7 +6,6 @@ export interface Member {
   email: string
   phone?: string
   instruments: string[]
-  primaryInstrument: string
   role: MemberRole
   joinDate: Date
   isActive: boolean
@@ -18,7 +17,6 @@ export const MemberSchema = {
   email: '',
   phone: '',
   instruments: '',
-  primaryInstrument: '',
   role: '',
   joinDate: '',
   isActive: '',

@@ -8,6 +8,7 @@ import {
   AuthResponse,
   AuthChangeEvent,
   AuthStateChangeCallback,
+  OAuthProvider,
 } from './types'
 import type {
   AuthChangeEvent as SupabaseAuthChangeEvent,
@@ -44,6 +45,16 @@ export class SupabaseAuthService implements IAuthService {
     const session = supabaseSession
       ? await this.mapSupabaseSession(supabaseSession)
       : null
+
+    // A recovery link that landed anywhere but the reset screen (e.g. the
+    // hosted Site URL fallback) must still end on Set new password.
+    if (
+      event === 'PASSWORD_RECOVERY' &&
+      window.location.pathname !== '/auth/reset'
+    ) {
+      window.location.assign('/auth/reset')
+      return
+    }
 
     // CRITICAL: Ensure the user row exists in Supabase BEFORE notifying listeners
     if (session && event === 'SIGNED_IN') {
@@ -153,12 +164,7 @@ export class SupabaseAuthService implements IAuthService {
       // AuthCallback page can finish signing them in. If a safe same-origin
       // returnTo was supplied (e.g. an event join URL), carry it across the
       // emailed link so it survives verification. Unsafe values are dropped.
-      const safeReturnTo = sanitizeReturnTo(returnTo)
-      const emailRedirectTo = safeReturnTo
-        ? `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(
-            safeReturnTo
-          )}`
-        : `${window.location.origin}/auth/callback`
+      const emailRedirectTo = callbackUrl(returnTo)
 
       const { data, error } = await this.supabase.auth.signUp({
         email: credentials.email,
@@ -382,25 +388,73 @@ export class SupabaseAuthService implements IAuthService {
   }
 
   /**
-   * Sign in with Google OAuth
+   * Sign in with an OAuth provider. Only Google is offered today; Apple is a
+   * config change and a button later (Phase 6 decision 1). A safe same-origin
+   * `returnTo` rides on the callback URL so a pending link (e.g. `/j/CODE`)
+   * survives the round trip through the provider.
    */
-  async signInWithGoogle(): Promise<{ error?: string }> {
+  async signInWithOAuth(
+    provider: OAuthProvider,
+    returnTo?: string | null
+  ): Promise<{ error?: string }> {
     try {
       const { error } = await this.supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        provider,
+        options: { redirectTo: callbackUrl(returnTo) },
       })
-
-      if (error) {
-        return { error: error.message }
-      }
-
-      return {}
+      return error ? { error: error.message } : {}
     } catch (error) {
-      log.error('Google sign in error:', error)
-      return { error: 'Failed to sign in with Google' }
+      log.error('OAuth sign in error:', error)
+      return { error: "Couldn't start sign-in. Try again." }
     }
   }
+
+  /** Email a password-reset link that opens `/auth/reset`. */
+  async requestPasswordReset(email: string): Promise<{ error?: string }> {
+    try {
+      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset`,
+      })
+      return error ? { error: error.message } : {}
+    } catch (error) {
+      log.error('Password reset request error:', error)
+      return { error: "Couldn't send the link. Try again." }
+    }
+  }
+
+  /** Send the sign-up confirmation email again. */
+  async resendSignupEmail(
+    email: string,
+    returnTo?: string | null
+  ): Promise<{ error?: string }> {
+    try {
+      const { error } = await this.supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: callbackUrl(returnTo) },
+      })
+      return error ? { error: error.message } : {}
+    } catch (error) {
+      log.error('Resend sign-up email error:', error)
+      return { error: "Couldn't send the link. Try again." }
+    }
+  }
+
+  /** Set a new password for the signed-in (or recovery-session) user. */
+  async updatePassword(password: string): Promise<{ error?: string }> {
+    try {
+      const { error } = await this.supabase.auth.updateUser({ password })
+      return error ? { error: error.message } : {}
+    } catch (error) {
+      log.error('Update password error:', error)
+      return { error: "Couldn't save your password. Try again." }
+    }
+  }
+}
+
+/** `/auth/callback`, carrying a sanitized `returnTo` when there is one. */
+function callbackUrl(returnTo?: string | null): string {
+  const safe = sanitizeReturnTo(returnTo)
+  const base = `${window.location.origin}/auth/callback`
+  return safe ? `${base}?returnTo=${encodeURIComponent(safe)}` : base
 }

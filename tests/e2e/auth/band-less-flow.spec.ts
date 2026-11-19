@@ -2,7 +2,7 @@
  * E2E tests for the band-less user flow — Phase 2.
  *
  * Covers:
- * - Event-code join at signup (the "I have an event code" path → join as guest)
+ * - Event-code join at signup (Get started → "Got a jam code?" → join as guest)
  * - Invalid event code shows an error (no navigation)
  * - Band-less users get a "create or join a band" prompt on the band-only pages
  *   (Setlists / Shows / Practices) instead of the feature
@@ -51,6 +51,7 @@ test.describe('Band-less user flow (Phase 2)', () => {
       (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
       undefined
 
+    await page.click('[data-testid="get-started-jam-code"]')
     await page.fill('[data-testid="join-event-code-input"]', SEED_EVENT_CODE)
     await page.click('[data-testid="join-event-button"]')
 
@@ -75,6 +76,7 @@ test.describe('Band-less user flow (Phase 2)', () => {
       (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
       undefined
 
+    await page.click('[data-testid="get-started-jam-code"]')
     await page.fill('[data-testid="join-event-code-input"]', 'ZZZZ0000')
     await page.click('[data-testid="join-event-button"]')
 

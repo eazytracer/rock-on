@@ -1258,20 +1258,19 @@ export class RemoteRepository implements IDataRepository {
     if (!supabase) throw new Error('Supabase client not initialized')
 
     const row: Record<string, unknown> = {
+      user_id: userId,
       updated_date: new Date().toISOString(),
     }
     if (updates.displayName !== undefined)
       row.display_name = updates.displayName
-    if (updates.primaryInstrument !== undefined)
-      row.primary_instrument = updates.primaryInstrument
     if (updates.instruments !== undefined) row.instruments = updates.instruments
     if (updates.avatarUrl !== undefined) row.avatar_url = updates.avatarUrl
 
+    // Upsert: some users have no profile row yet (insert-own + update-own RLS).
     const { error } = await supabase
       .from('user_profiles')
       // @ts-expect-error - Supabase generated types are overly strict, using Record<string, unknown> for field mapping
-      .update(row)
-      .eq('user_id', userId)
+      .upsert(row, { onConflict: 'user_id' })
 
     if (error) throw error
     return this.getUserProfile(userId)
@@ -1295,7 +1294,6 @@ export class RemoteRepository implements IDataRepository {
       id: row.id,
       userId: row.user_id,
       displayName: row.display_name ?? '',
-      primaryInstrument: row.primary_instrument ?? undefined,
       instruments: row.instruments ?? [],
       avatarUrl: row.avatar_url ?? undefined,
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
@@ -1612,7 +1610,7 @@ export class RemoteRepository implements IDataRepository {
     return {
       id: row.id,
       songId: row.song_id,
-      userId: row.user_id,
+      userId: row.user_id ?? '', // null = a deleted account ("Former member")
       bandId: row.band_id,
       sessionType: row.session_type,
       sessionId: row.session_id,

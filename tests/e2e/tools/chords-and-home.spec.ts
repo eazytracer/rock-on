@@ -144,7 +144,7 @@ test.describe('Tools · Chords and the way in', () => {
       await expect(page.getByTestId('home-tool-tuner')).toContainText('D DROP')
     })
 
-    test('More is trimmed: no Events or Band members rows', async ({
+    test('More is trimmed: no Events row; the band section holds Members', async ({
       page,
     }) => {
       seed = await seedCalendar(page)
@@ -154,7 +154,8 @@ test.describe('Tools · Chords and the way in', () => {
       await expect(page.getByTestId('more-friends')).toBeVisible()
       await expect(page.getByTestId('more-events')).toHaveCount(0)
       await expect(page.getByTestId('more-band')).toHaveCount(0)
-      await expect(page.getByTestId('more-manage-band')).toBeVisible()
+      await expect(page.getByTestId('more-band-members')).toBeVisible()
+      await expect(page.getByTestId('more-band-profile')).toBeVisible()
     })
   })
 })

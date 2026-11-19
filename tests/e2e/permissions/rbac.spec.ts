@@ -59,9 +59,9 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await expect(addSongButton).toBeVisible({ timeout: 5000 })
 
     // Admin should access band members page
-    await page.goto('/band-members')
+    await page.goto('/band')
     await page.waitForLoadState('networkidle')
-    expect(page.url()).toContain('band-members')
+    expect(page.url()).toContain('/band')
 
     await assertNoConsoleErrors(page, errors)
   })
@@ -84,7 +84,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     const member = createTestUser()
     await signUpViaUI(memberPage, member)
     await joinBandViaUI(memberPage, inviteCode)
-    await memberPage.waitForURL(/\/(songs|band-members|bands)/, {
+    await memberPage.waitForURL(/\/(songs|band|bands)/, {
       timeout: 10000,
     })
 
@@ -103,9 +103,9 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     }
 
     // Member can view band members
-    await memberPage.goto('/band-members')
+    await memberPage.goto('/band')
     await memberPage.waitForLoadState('networkidle')
-    expect(memberPage.url()).toContain('band-members')
+    expect(memberPage.url()).toContain('/band')
 
     await adminContext.close()
     await memberContext.close()
@@ -138,7 +138,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await joinBandViaUI(member2Page, inviteCode)
 
     // Member 1 tries to remove Member 2
-    await member1Page.goto('/band-members')
+    await member1Page.goto('/band')
     await member1Page.waitForLoadState('networkidle')
 
     const member2Row = member1Page
@@ -188,7 +188,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await joinBandViaUI(memberPage, inviteCode)
 
     // Admin goes to members page
-    await adminPage.goto('/band-members')
+    await adminPage.goto('/band')
     await adminPage.waitForLoadState('networkidle')
 
     const memberRow = adminPage
@@ -232,8 +232,8 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
     // Verify owner can access all pages
-    await page.goto('/band-members')
-    expect(page.url()).toContain('band-members')
+    await page.goto('/band')
+    expect(page.url()).toContain('/band')
 
     await page.goto('/songs')
     expect(page.url()).toContain('songs')
@@ -244,8 +244,8 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await page.goto('/shows')
     // May redirect if no shows, but should not error
 
-    // Owner should see admin badge
-    await page.goto('/band-members')
+    // The creator owns the band
+    await page.goto('/band')
     await page.waitForLoadState('networkidle')
 
     const ownerRow = page
@@ -255,7 +255,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
 
     const roleBadge = ownerRow.locator('[data-testid="member-role"]').first()
     const roleText = await roleBadge.textContent()
-    expect(roleText?.toLowerCase()).toContain('admin')
+    expect(roleText?.toLowerCase()).toContain('owner')
 
     await assertNoConsoleErrors(page, errors)
   })
@@ -280,7 +280,7 @@ test.describe('Role-Based Access Control (RBAC)', () => {
     await joinBandViaUI(memberPage, inviteCode)
 
     // Member tries to access their own profile
-    await memberPage.goto('/band-members')
+    await memberPage.goto('/band')
     await memberPage.waitForLoadState('networkidle')
 
     const memberRow = memberPage

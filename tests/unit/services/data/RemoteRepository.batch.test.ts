@@ -127,8 +127,8 @@ describe('RemoteRepository batched reads', () => {
       expect(members[0].profile).toMatchObject({
         displayName: 'Eric',
         instruments: ['Guitar'],
-        primaryInstrument: 'Guitar',
       })
+      expect(members[0].profile).not.toHaveProperty('primaryInstrument')
       expect(members[1].profile).toBeNull()
       // No visible email → empty, never another user's raw row value
       expect(members[1].user?.email).toBe('')

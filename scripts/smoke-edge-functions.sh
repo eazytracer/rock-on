@@ -26,13 +26,15 @@ BASE="$PROJECT_URL/functions/v1"
 #   the JWT gate is properly disabled.
 # - jam-recompute: requires JWT — anonymous GET is 401 at the gateway.
 # - spotify-search: requires JWT — same.
+# - delete-account: requires JWT — same.
 declare -A EXPECTED_STATUS=(
   [jam-view]="400"
   [jam-recompute]="401"
   [spotify-search]="401"
+  [delete-account]="401"
 )
 
-ALL_FUNCTIONS=(jam-view jam-recompute spotify-search)
+ALL_FUNCTIONS=(jam-view jam-recompute spotify-search delete-account)
 
 pass=0
 fail=0

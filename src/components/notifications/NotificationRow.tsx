@@ -23,6 +23,7 @@ import {
 import { BandMark } from '../ui/BandMark'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSwitchPrompt } from '../../contexts/SwitchPromptContext'
+import { useBandMarkOf } from '../../hooks/useMyContexts'
 
 const TYPE_ICON: Record<string, LucideIcon> = {
   song: Music2,
@@ -54,6 +55,7 @@ export const NotificationRow: React.FC<NotificationRowProps> = ({
 }) => {
   const { currentBandId } = useAuth()
   const { openIn } = useSwitchPrompt()
+  const markOf = useBandMarkOf()
   const Icon = TYPE_ICON[n.object_type ?? ''] ?? Bell
   const path = notificationPath(n)
   const sub = [
@@ -92,7 +94,7 @@ export const NotificationRow: React.FC<NotificationRowProps> = ({
       )}
       <span className="relative shrink-0">
         {n.band_name ? (
-          <BandMark name={n.band_name} size={34} />
+          <BandMark name={n.band_name} mark={markOf(n.band_id)} size={34} />
         ) : (
           <span className="grid place-items-center w-[34px] h-[34px] rounded-[11px] bg-bg-3 text-ink-2">
             <Icon size={17} />

@@ -202,7 +202,7 @@ select ok(
 );
 
 -- ============================================================================
--- Band Memberships Policies (4 policies)
+-- Band Memberships Policies (read only: writes go through the phase 6 RPCs)
 -- ============================================================================
 
 select ok(
@@ -211,23 +211,23 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_insert_self'),
-  'memberships_insert_self policy should exist'
+  NOT tests.policy_exists('band_memberships', 'memberships_insert_self'),
+  'memberships_insert_self is gone (anyone could add themselves to any band)'
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_insert_by_creator'),
-  'memberships_insert_by_creator policy should exist (non-recursive)'
+  NOT tests.policy_exists('band_memberships', 'memberships_insert_by_creator'),
+  'memberships_insert_by_creator is gone (writes go through RPCs)'
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_update_by_creator'),
-  'memberships_update_by_creator policy should exist (non-recursive)'
+  NOT tests.policy_exists('band_memberships', 'memberships_update_by_creator'),
+  'memberships_update_by_creator is gone (set_member_role / transfer_ownership / remove_member)'
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_delete_self_or_creator'),
-  'memberships_delete_self_or_creator policy should exist (non-recursive)'
+  NOT tests.policy_exists('band_memberships', 'memberships_delete_self_or_creator'),
+  'memberships_delete_self_or_creator is gone (leave_band / remove_member)'
 );
 
 -- ============================================================================
@@ -235,8 +235,8 @@ select ok(
 -- ============================================================================
 
 select ok(
-  tests.policy_exists('invite_codes', 'invite_codes_select_authenticated'),
-  'invite_codes_select_authenticated policy should exist'
+  tests.policy_exists('invite_codes', 'invite_codes_select_admin'),
+  'invite_codes_select_admin policy should exist (the open select is gone)'
 );
 
 select ok(
@@ -536,8 +536,8 @@ select is(
 
 select is(
   tests.policy_count('band_memberships'),
-  5,
-  'band_memberships table should have exactly 5 policies'
+  1,
+  'band_memberships table should have exactly 1 policy (read)'
 );
 
 select is(

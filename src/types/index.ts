@@ -41,7 +41,7 @@ export interface PaymentInfo {
   notes?: string
 }
 
-export type MemberRole = 'admin' | 'member' | 'viewer'
+export type MemberRole = 'owner' | 'admin' | 'member' | 'viewer'
 export type SessionType =
   | 'rehearsal'
   | 'writing'

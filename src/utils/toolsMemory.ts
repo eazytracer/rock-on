@@ -4,8 +4,8 @@
  * tempo, signature, subdivision and flash; and the last tab. localStorage only;
  * a blocked storage just means nothing is remembered.
  *
- * (`user_preferences.metronome` is the brief's eventual home for the metronome
- * memory; until services/api/preferences reads it, the device keeps it.)
+ * These stay per device (Phase 6 decision 6); only the click sound follows the
+ * user, in `user_preferences.metronome` (Settings → Music).
  */
 import {
   DEFAULT_BPM,

@@ -52,6 +52,10 @@ export const queryKeys = {
   },
   listViews: (userId: string) => ['listViews', userId] as const,
   chartPrefs: (userId: string) => ['chartPrefs', userId] as const,
+  metronomePrefs: (userId: string) => ['metronomePrefs', userId] as const,
+  pushPrefs: (userId: string) => ['pushPrefs', userId] as const,
+  myProfile: (userId: string) => ['myProfile', userId] as const,
+  signInMethods: (userId: string) => ['signInMethods', userId] as const,
   charts: {
     detail: (songId: string) => ['charts', 'detail', songId] as const,
   },
@@ -77,6 +81,10 @@ export const queryKeys = {
   bands: {
     forUser: (userId: string) => ['bands', 'forUser', userId] as const,
     detail: (bandId: string) => ['bands', 'detail', bandId] as const,
+    /** The raw band row: mark, profile fields (band page, Band profile). */
+    row: (bandId: string) => ['bands', 'row', bandId] as const,
+    invite: (bandId: string) => ['bands', 'invite', bandId] as const,
+    preview: (code: string) => ['bands', 'preview', code] as const,
   },
   memberships: {
     band: (bandId: string) => ['memberships', 'band', bandId] as const,

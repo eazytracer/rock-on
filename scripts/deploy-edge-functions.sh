@@ -19,10 +19,11 @@ declare -A AUTH_MODE=(
   [jam-view]="--no-verify-jwt"
   [jam-recompute]=""  # verify JWT (default)
   [spotify-search]="" # verify JWT (default)
+  [delete-account]="" # verify JWT (default)
 )
 
 # List of functions in deploy order
-ALL_FUNCTIONS=(jam-view jam-recompute spotify-search)
+ALL_FUNCTIONS=(jam-view jam-recompute spotify-search delete-account)
 
 require_token() {
   if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then

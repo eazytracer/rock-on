@@ -146,17 +146,18 @@ for band admins/owners. A new column is not readable until added to that GRANT.
 
 **Fields:**
 
-| Application         | IndexedDB           | Supabase             | Type             | Required | Default | Description           |
-| ------------------- | ------------------- | -------------------- | ---------------- | -------- | ------- | --------------------- |
-| `id`                | `id`                | `id`                 | UUID             | Yes      | auto    | Unique identifier     |
-| `userId`            | `userId`            | `user_id`            | UUID             | Yes      | -       | Associated user (FK)  |
-| `displayName`       | `displayName`       | `display_name`       | string           | No       | -       | Display name override |
-| `primaryInstrument` | `primaryInstrument` | `primary_instrument` | string           | No       | -       | Main instrument       |
-| `instruments`       | `instruments`       | `instruments`        | string[]         | No       | []      | List of instruments   |
-| `bio`               | `bio`               | `bio`                | string           | No       | -       | User biography        |
-| `avatarUrl`         | `avatarUrl`         | `avatar_url`         | string           | No       | -       | Profile picture URL   |
-| `createdDate`       | `createdDate`       | `created_date`       | Date/TIMESTAMPTZ | Yes      | NOW()   | Profile creation      |
-| `updatedDate`       | `updatedDate`       | `updated_date`       | Date/TIMESTAMPTZ | Yes      | NOW()   | Last modification     |
+| Application         | IndexedDB           | Supabase             | Type             | Required | Default | Description                                                          |
+| ------------------- | ------------------- | -------------------- | ---------------- | -------- | ------- | -------------------------------------------------------------------- |
+| `id`                | `id`                | `id`                 | UUID             | Yes      | auto    | Unique identifier                                                    |
+| `userId`            | `userId`            | `user_id`            | UUID             | Yes      | -       | Associated user (FK)                                                 |
+| `displayName`       | `displayName`       | `display_name`       | string           | No       | -       | Display name override                                                |
+| `primaryInstrument` | `primaryInstrument` | `primary_instrument` | string           | No       | -       | Legacy: no longer read (Phase 6); first of `instruments` shows first |
+| `instruments`       | `instruments`       | `instruments`        | string[]         | No       | []      | Ordered list of instruments                                          |
+| `personalColor`     | -                   | `personal_color`     | string           | No       | -       | Personal colour (Phase 6)                                            |
+| `bio`               | `bio`               | `bio`                | string           | No       | -       | User biography                                                       |
+| `avatarUrl`         | `avatarUrl`         | `avatar_url`         | string           | No       | -       | Profile picture URL                                                  |
+| `createdDate`       | `createdDate`       | `created_date`       | Date/TIMESTAMPTZ | Yes      | NOW()   | Profile creation                                                     |
+| `updatedDate`       | `updatedDate`       | `updated_date`       | Date/TIMESTAMPTZ | Yes      | NOW()   | Last modification                                                    |
 
 **Indexes:**
 
@@ -189,17 +190,22 @@ for band admins/owners. A new column is not readable until added to that GRANT.
 
 **Fields:**
 
-| Application   | IndexedDB     | Supabase       | Type             | Required | Default | Description                          |
-| ------------- | ------------- | -------------- | ---------------- | -------- | ------- | ------------------------------------ |
-| `id`          | `id`          | `id`           | UUID             | Yes      | auto    | Unique identifier                    |
-| `name`        | `name`        | `name`         | string           | Yes      | -       | Band name                            |
-| `description` | `description` | `description`  | string           | No       | -       | Band description                     |
-| `createdBy`   | -             | `created_by`   | UUID             | No       | -       | Creator user ID (Supabase only)      |
-| `createdDate` | `createdDate` | `created_date` | Date/TIMESTAMPTZ | Yes      | NOW()   | Creation timestamp                   |
-| `updatedDate` | -             | `updated_date` | Date/TIMESTAMPTZ | No       | -       | Last modification (Supabase only)    |
-| `settings`    | `settings`    | `settings`     | object/JSONB     | Yes      | {}      | Band configuration                   |
-| `isActive`    | -             | `is_active`    | boolean          | Yes      | true    | Active status (Supabase only)        |
-| `memberIds`   | `memberIds`   | -              | UUID[]           | Yes      | []      | Member IDs (IndexedDB only — legacy) |
+| Application   | IndexedDB     | Supabase       | Type             | Required | Default          | Description                                                      |
+| ------------- | ------------- | -------------- | ---------------- | -------- | ---------------- | ---------------------------------------------------------------- |
+| `id`          | `id`          | `id`           | UUID             | Yes      | auto             | Unique identifier                                                |
+| `name`        | `name`        | `name`         | string           | Yes      | -                | Band name                                                        |
+| `description` | `description` | `description`  | string           | No       | -                | Band description                                                 |
+| `createdBy`   | -             | `created_by`   | UUID             | No       | -                | Creator user ID (Supabase only)                                  |
+| `createdDate` | `createdDate` | `created_date` | Date/TIMESTAMPTZ | Yes      | NOW()            | Creation timestamp                                               |
+| `updatedDate` | -             | `updated_date` | Date/TIMESTAMPTZ | No       | -                | Last modification (Supabase only)                                |
+| `settings`    | `settings`    | `settings`     | object/JSONB     | Yes      | {}               | Band configuration                                               |
+| `isActive`    | -             | `is_active`    | boolean          | Yes      | true             | Active status (Supabase only)                                    |
+| `mark`        | -             | `mark`         | JSONB            | Yes      | initials, orange | Band mark `{kind, initials, symbol, color, lettering}` (Phase 6) |
+| `city`        | -             | `city`         | string           | No       | -                | Band profile (Phase 6)                                           |
+| `genres`      | -             | `genres`       | string[]         | Yes      | {}               | Band profile (Phase 6)                                           |
+| `links`       | -             | `links`        | JSONB            | Yes      | []               | Band profile `[{label?, url}]` (Phase 6)                         |
+| `deletedAt`   | -             | `deleted_at`   | TIMESTAMPTZ      | No       | -                | Soft delete via `delete_band` (Phase 6); hidden from reads       |
+| `memberIds`   | `memberIds`   | -              | UUID[]           | Yes      | []               | Member IDs (IndexedDB only — legacy)                             |
 
 **Indexes:**
 
@@ -236,7 +242,7 @@ for band admins/owners. A new column is not readable until added to that GRANT.
 
 **Enums:**
 
-- `role`: 'admin' | 'member' | 'viewer'
+- `role`: 'owner' | 'admin' | 'member' | 'viewer' (Phase 6: exactly one active owner per band, partial unique index; `permissions` mirrors the role; all membership writes go through RPCs: `create_band`, `join_band`, `set_member_role`, `remove_member`, `transfer_ownership`, `leave_band`, `delete_band`)
 - `status`: 'active' | 'inactive' | 'pending'
 
 **Indexes:**

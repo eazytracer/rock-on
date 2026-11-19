@@ -180,7 +180,6 @@ export class MockAuthService implements IAuthService {
           const profile = mockProfiles.get(user.id)
           if (profile) {
             profile.instruments = mockUser.instruments
-            profile.primaryInstrument = mockUser.instruments[0]
           }
         }
       } else {
@@ -251,6 +250,23 @@ export class MockAuthService implements IAuthService {
     return () => {
       this.listeners = this.listeners.filter(listener => listener !== callback)
     }
+  }
+
+  // Mock mode has no email or OAuth: these fail politely.
+  async signInWithOAuth(): Promise<{ error?: string }> {
+    return { error: "Social sign-in isn't available in mock mode." }
+  }
+
+  async requestPasswordReset(): Promise<{ error?: string }> {
+    return { error: "Email isn't available in mock mode." }
+  }
+
+  async resendSignupEmail(): Promise<{ error?: string }> {
+    return { error: "Email isn't available in mock mode." }
+  }
+
+  async updatePassword(): Promise<{ error?: string }> {
+    return { error: "Passwords aren't stored in mock mode." }
   }
 }
 

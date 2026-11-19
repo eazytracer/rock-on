@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { BackCrumb } from '../components/layout/MobileHeader'
 import {
   useMarkAllRead,
@@ -19,7 +20,11 @@ type Tab = 'activity' | 'updates'
  * what was new stays marked until you leave.
  */
 export function NotificationsPage() {
-  const [tab, setTab] = useState<Tab>('activity')
+  // `?tab=updates`: Settings → About → What's new lands on App updates.
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState<Tab>(
+    params.get('tab') === 'updates' ? 'updates' : 'activity'
+  )
   const feed = useNotificationFeed()
   const releases = useReleaseNotes()
   const markAll = useMarkAllRead()

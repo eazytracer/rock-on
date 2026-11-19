@@ -244,8 +244,8 @@ export const SongNotes: React.FC<{
   const saveSetNote = useSaveSetlistItemNote(setlist?.id ?? '')
   const [logOpen, setLogOpen] = useState(false)
 
-  const firstName = (id?: string) => {
-    if (!id) return ''
+  const firstName = (id?: string | null) => {
+    if (!id) return 'Former member'
     if (id === userId) return 'You'
     const m = members.find(x => x.membership.userId === id)
     return (m?.profile?.displayName || m?.user?.name || 'A bandmate').split(
