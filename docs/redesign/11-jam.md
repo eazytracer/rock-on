@@ -5,6 +5,19 @@
 moot. The brief was written as if Jam were pulled ahead; its findings still hold, and there's no hard
 dependency on 5 or 6 (see "Dependencies on Phases 5 and 6").
 
+**Nov 19 refresh (Phases 5 and 6 built):**
+
+- **`/j/:code` is taken** by band invites (Phase 6). Jam guests either share it or get another path (Q10).
+- **Get started → "Got a jam code?"** exists at `/get-started/jam` (thin, calls `EventService.joinByCode`); Jam
+  rebuilds it. The auth pages are restyled; the web guest's "Sign up free · Log in" uses them, with `returnTo`.
+- **Delete account** hands a band's events to the band owner and deletes personal events (with their lineup,
+  hands and participants). Guest rows with a nullable `user_id` must survive a host's deletion the same way.
+- **Kit since Nov 16:** phone app bar `BackCrumb`, `MoreButton` (⋯ ends the line under the title), `DockAction`
+  for a page's main phone action, `ConfirmDialog` with `typedConfirm`, `PersonAvatar` and personal colours
+  (`user_profiles.personal_color`), band marks. Use them rather than drawing new ones.
+- **Instruments** are an ordered list with no primary, so "Parts I play" can default to the first ones.
+- Q1 (version) is moot: Jam is 0.14.0.
+
 | Slice                              | What                                                                                                                                                            | Ships                                                               |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | **7a** · Hub and plan              | Jam hub, Host a jam, the planned jam page (Lineup / Requests / People, access, settings), on the Events tables, behind `REDESIGN_JAM`                           | Commits on `redesign/integration`, version "in progress"            |
@@ -493,8 +506,11 @@ note; 03-screens and 05-plan updated.
 9. **Cancel a jam.** Events can be cancelled today; the design only has Delete (planned only). _Recommend:_ ⋯ →
    Delete jam for planned jams (confirm names the consequence); keep rendering existing `cancelled` jams struck
    through; no new Cancel.
-10. **Public URL.** _Recommend_ `/j/:code` (the drawn `rockon.band/j/…`) and `/j/:code/tv`, and update
-    PLATFORM-NOTES' `/jam/<code>` example.
+10. **Public URL.** `/j/:code` is now band invites (Phase 6), and `/jam/:code` would collide with `/jam/:id`.
+    _Recommend_ sharing `/j/:code`: the page asks the server what the code is (a band invite or a jam) and shows
+    that preview; both code generators check the other table so a code is never both. Keeps the drawn
+    `rockon.band/j/…`, and one link format to explain. TV stays `/j/:code/tv`. (Alternative: a separate prefix
+    such as `/live/:code`.)
 11. **`SongBrowser` free-text row.** _Recommend_ adding "Add ‹query› as a title" (shown only with no exact match,
     opt-in prop), so the jam lineup adds uncatalogued songs in the same drawer. Setlists don't turn it on.
 12. **`FUNCTIONS.md` for anonymous RPCs.** _Recommend_ a new "Anonymous RPCs" section rather than an edge
