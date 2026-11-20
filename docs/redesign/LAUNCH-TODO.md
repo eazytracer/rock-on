@@ -17,6 +17,12 @@ redesign ships. Add to this list as phases need them; tick items off when done.
       a few emails an hour, so set up custom SMTP before launch or Resend will often fail with a rate-limit error.
 - [ ] **Google provider** stays enabled (client ID / secret); Apple stays off until the Flutter apps (decision 1).
 
+## Database
+
+- [ ] **Dry-run the Phase 6 owner backfill against production data** before `db push`: every band must end up with
+      exactly one owner (old owner flag → creator → earliest admin → earliest member). Run `migration list --linked`
+      first; a human reviews the push.
+
 ## App content
 
 - [ ] **Terms and Privacy** (`/terms`, `/privacy`, `src/pages/LegalPage.tsx`): generic placeholder wording. Have it

@@ -39,7 +39,7 @@ Complete a feature implementation with final quality checks, documentation updat
 
 3. **Updates documentation**:
    - Updates `CLAUDE.md` if new patterns introduced
-   - Creates/updates relevant specs in `.claude/specifications/`
+   - Adds hard rules to `docs/DECISIONS.md`; updates `docs/INDEX.md` if an area moved
    - Adds JSDoc comments where needed
 
 4. **Completes feature**:

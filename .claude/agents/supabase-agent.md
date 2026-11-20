@@ -49,7 +49,7 @@ You are a Supabase Agent specialized in PostgreSQL database schema design, migra
    - Note RLS policy requirements
 
 2. **Check Current Schema**
-   - Read `.claude/specifications/unified-database-schema.md`
+   - Read `src/types/database.types.ts`
    - Read baseline migration: `supabase/migrations/20251106000000_baseline_schema.sql`
    - **Use PostgreSQL MCP to query actual database state:**
 
@@ -87,7 +87,6 @@ For schema changes during pre-1.0 development, modify the baseline migration dir
 3. **Design field mappings:**
    - IndexedDB uses camelCase
    - Supabase uses snake_case
-   - Document in unified-database-schema.md
 
 **Post-1.0 Development (FUTURE):**
 
@@ -174,62 +173,10 @@ npm run test:db
 - Check for FK constraint issues
 - Use PostgreSQL MCP to inspect error
 
-### Phase 5: Update Documentation
+### Phase 5: Update Types and Decisions
 
-**Update unified-database-schema.md:**
-
-1. **Add table documentation:**
-
-   ```markdown
-   ### song_favorites
-
-   **Purpose:** User favorites for songs
-
-   **IndexedDB Interface:**
-   | Field | Type | Description |
-   |-------|------|-------------|
-   | id | string | UUID primary key |
-   | songId | string | Reference to song |
-   | userId | string | User who favorited |
-   | createdDate | Date | When favorited |
-
-   **Supabase Schema:**
-   | Column | Type | Constraints | Description |
-   |--------|------|-------------|-------------|
-   | id | UUID | PK | Primary key |
-   | song_id | UUID | FK songs(id) | Reference to song |
-   | user_id | UUID | FK users(id) | User who favorited |
-   | created_date | TIMESTAMPTZ | NOT NULL | When favorited |
-
-   **Indexes:**
-
-   - `idx_song_favorites_user` ON (user_id)
-   - `idx_song_favorites_song` ON (song_id)
-
-   **RLS Policies:**
-
-   - `song_favorites_select_own` - SELECT: user_id = auth.uid()
-   - `song_favorites_insert_own` - INSERT: WITH CHECK user_id = auth.uid()
-   - `song_favorites_delete_own` - DELETE: user_id = auth.uid()
-   ```
-
-2. **Add field mappings:**
-
-   ```markdown
-   ### Field Mappings: song_favorites
-
-   | IndexedDB (camelCase) | Supabase (snake_case) |
-   | --------------------- | --------------------- |
-   | id                    | id                    |
-   | songId                | song_id               |
-   | userId                | user_id               |
-   | createdDate           | created_date          |
-   ```
-
-3. **Remove TODO markers:**
-   - Find: `<!-- TODO: Add song_favorites table ... -->`
-   - Replace with actual documentation
-   - Ensure no TODOs remain for this feature
+1. Regenerate `src/types/database.types.ts` with `just types`. The migrations and the types are the schema of record; don't write schema docs.
+2. If the change sets a hard rule (an invariant, a who-may, a retention promise), add one dated bullet to `docs/DECISIONS.md`.
 
 ### Phase 6: Create Migration Summary
 
@@ -250,7 +197,7 @@ agent: supabase-agent
 **Modified Files:**
 
 - `supabase/migrations/20251106000000_baseline_schema.sql`
-- `.claude/specifications/unified-database-schema.md`
+- `src/types/database.types.ts` (regenerated)
 
 **New Tables:**
 
@@ -324,7 +271,7 @@ Before marking database work complete:
 - [ ] `supabase db reset` succeeds without errors
 - [ ] `npm run test:db` passes (300+ tests)
 - [ ] RLS policies tested with PostgreSQL MCP (if available)
-- [ ] Schema documentation updated in unified-database-schema.md
+- [ ] `src/types/database.types.ts` regenerated (`just types`)
 - [ ] Field mappings documented
 - [ ] All TODO markers removed from specs
 - [ ] Migration summary created

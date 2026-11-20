@@ -1,5 +1,5 @@
 /**
- * Charts (design/OPERATIONS.md §7, docs/redesign/12-tools-and-chart.md · 4.3).
+ * Charts (design/OPERATIONS.md §7).
  * The server stores ChordPro as given; chords-over-lyrics is converted on the
  * client first (src/domain/chordpro.ts, decision 4).
  */

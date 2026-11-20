@@ -13,8 +13,7 @@
  * intentionally NOT returned here: an anon viewer has no personal catalog
  * and therefore can neither contribute to nor benefit from the match set,
  * so surfacing it to them is irrelevant plumbing at best and misleading at
- * worst. (See v0.3.1 post-mortem and v0.3.2 rebuild in
- * `.claude/artifacts/2026-04-24T02:30_v0.3.1-post-mortem-and-next-session-handoff.md`.)
+ * worst (v0.3.1 post-mortem, v0.3.2 rebuild).
  *
  * Rate limiting: handled by Supabase Edge Function infrastructure.
  * Additional rate limiting via Retry-After header on 429 responses.

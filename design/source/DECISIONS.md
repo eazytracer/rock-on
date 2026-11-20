@@ -8,32 +8,32 @@ Every rule cites a law from `LAWS-OF-UX.md`.
 
 ## Files
 
-| File | What it locks |
-|---|---|
-| `Foundations.html` | Colour roles (dark + light), context accents, tuning spine, custom tuning colour, spacing, radii, elevation, motion, targets, overlays, Flutter token mapping |
-| `Song Row.html` | Song row (catalog + setlist), View options, sort, swipe / hold, drag + retune recount, link icons |
-| `Song Editor and View.html` | Add / edit song, tuning + key pickers, link entry, song view, notes editing |
-| `Song Chart.html` | Chart reader (paging, transpose, size), full-screen notes, chart entry |
-| `Sound Tools.html` | Hear a chord, starting note, tuner |
-| `Setlist Editor.html` | Setlists list, editor, one Add menu (songs / break / section), Move tiles, song browser, fixed-gutter timeline |
-| `Practice.html` | Practice page, practice session (stage), Up next + tuning change, wrap-up, tablet landscape |
-| `Core Navigation.html` | Home (band / new / Personal), context switcher dropdown, switch prompts, global search (trial), More, notifications popout + stream |
-| `Brand.html` | Strung wordmark + horns icon, colourways, usage |
-| `Metronome.html` | Metronome beside the tuner: tempo, tap, time sig, subdivision, accents, edge flash, count-in, save to song |
-| `Calendar and Shows.html` | Agenda with type icons + filters, New picker, show page (confirmed / cancelled / no set / offline), delete |
-| `Account and Settings.html` | Sign in (Apple/Google), get started, settings, tunings list, profile, instrument order, push notifications, delete account |
-| `Band and Friends.html` | Members, roles, invite, transfer, create, join preview, band of one, leave, friends, privacy |
-| `Band Identity.html` | Band mark picker (Initials / Symbol / Upload + colour), band profile, future public profile |
-| `Custom Tuning.html` | Custom tuning editor (neck style): guitar 6/7, bass 4/5, per-string steppers, ½-step all strings, tap-to-pluck, colour picker, duplicate check |
-| `Tools on Home.html` | Tools row on Home (Tuner / Metronome / Chords), Tools screen with tabs, chord lookup, trimmed More |
-| `Jam Plan.html` | One Jam type: hub, host, planned lineup / requests / people, walk-ups, Go live, guest app + web, table tent |
-| `Jam Live.html` | Crowd-first live jam: share-songs picker, people who know your songs, compare, pitch, coverage ranking, quiet-stage nudges, web guest |
-| `Jam TV.html` | Bar TV rotation: On stage / Looking for someone / Come play (wordmark, app optional), QR on every slide |
-| `Jam Venue.html` | Counter iPad kiosk, optional group sets |
-| `Jam Host.html` | Host on the night: Up next card, Call up anyway, fill from hands / house / room, swipe right = up next, left = Played / Left / Remove |
-| `Practice History.html` | Calendar → Practices History card, Practices / Songs tabs, past-practice recap, plan next from this |
-| `Components.html` + `kit/` | The kit: `kit/rock.css` (tokens for dark, light and Personal, plus every component, `r-` prefixed), `kit/rock.js` (builders + 4 screen templates: list, detail, editor, stage), `kit/Template.html` (starter page for explorations) |
-| `CHART-DATA-MODEL.md` | Chart storage (ChordPro), tables, anchor maths, conflicts |
+| File                        | What it locks                                                                                                                                                                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Foundations.html`          | Colour roles (dark + light), context accents, tuning spine, custom tuning colour, spacing, radii, elevation, motion, targets, overlays, Flutter token mapping                                                                       |
+| `Song Row.html`             | Song row (catalog + setlist), View options, sort, swipe / hold, drag + retune recount, link icons                                                                                                                                   |
+| `Song Editor and View.html` | Add / edit song, tuning + key pickers, link entry, song view, notes editing                                                                                                                                                         |
+| `Song Chart.html`           | Chart reader (paging, transpose, size), full-screen notes, chart entry                                                                                                                                                              |
+| `Sound Tools.html`          | Hear a chord, starting note, tuner                                                                                                                                                                                                  |
+| `Setlist Editor.html`       | Setlists list, editor, one Add menu (songs / break / section), Move tiles, song browser, fixed-gutter timeline                                                                                                                      |
+| `Practice.html`             | Practice page, practice session (stage), Up next + tuning change, wrap-up, tablet landscape                                                                                                                                         |
+| `Core Navigation.html`      | Home (band / new / Personal), context switcher dropdown, switch prompts, global search (trial), More, notifications popout + stream                                                                                                 |
+| `Brand.html`                | Strung wordmark + horns icon, colourways, usage                                                                                                                                                                                     |
+| `Metronome.html`            | Metronome beside the tuner: tempo, tap, time sig, subdivision, accents, edge flash, count-in, save to song                                                                                                                          |
+| `Calendar and Shows.html`   | Agenda with type icons + filters, New picker, show page (confirmed / cancelled / no set / offline), delete                                                                                                                          |
+| `Account and Settings.html` | Sign in (Apple/Google), get started, settings, tunings list, profile, instrument order, push notifications, delete account                                                                                                          |
+| `Band and Friends.html`     | Members, roles, invite, transfer, create, join preview, band of one, leave, friends, privacy                                                                                                                                        |
+| `Band Identity.html`        | Band mark picker (Initials / Symbol / Upload + colour), band profile, future public profile                                                                                                                                         |
+| `Custom Tuning.html`        | Custom tuning editor (neck style): guitar 6/7, bass 4/5, per-string steppers, ½-step all strings, tap-to-pluck, colour picker, duplicate check                                                                                      |
+| `Tools on Home.html`        | Tools row on Home (Tuner / Metronome / Chords), Tools screen with tabs, chord lookup, trimmed More                                                                                                                                  |
+| `Jam Plan.html`             | One Jam type: hub, host, planned lineup / requests / people, walk-ups, Go live, guest app + web, table tent                                                                                                                         |
+| `Jam Live.html`             | Crowd-first live jam: share-songs picker, people who know your songs, compare, pitch, coverage ranking, quiet-stage nudges, web guest                                                                                               |
+| `Jam TV.html`               | Bar TV rotation: On stage / Looking for someone / Come play (wordmark, app optional), QR on every slide                                                                                                                             |
+| `Jam Venue.html`            | Counter iPad kiosk, optional group sets                                                                                                                                                                                             |
+| `Jam Host.html`             | Host on the night: Up next card, Call up anyway, fill from hands / house / room, swipe right = up next, left = Played / Left / Remove                                                                                               |
+| `Practice History.html`     | Calendar → Practices History card, Practices / Songs tabs, past-practice recap, plan next from this                                                                                                                                 |
+| `Components.html` + `kit/`  | The kit: `kit/rock.css` (tokens for dark, light and Personal, plus every component, `r-` prefixed), `kit/rock.js` (builders + 4 screen templates: list, detail, editor, stage), `kit/Template.html` (starter page for explorations) |
+| `CHART-DATA-MODEL.md`       | Chart storage (ChordPro), tables, anchor maths, conflicts                                                                                                                                                                           |
 
 ## Building new screens
 
@@ -66,14 +66,14 @@ Every rule cites a law from `LAWS-OF-UX.md`.
 
 ## Song editor and song view
 
-- **Superseded Nov 8 (song page):** existing songs are edited on the song page itself, in place, each field saving on its own, with notes using Done; this editor is **Add song only**. Back on the song page follows where you came from. Build brief: `docs/redesign/10-song-page-and-setlist-nav.md`.
+- **Superseded Nov 8 (song page):** existing songs are edited on the song page itself, in place, each field saving on its own, with notes using Done; this editor is **Add song only**. Back on the song page follows where you came from.
 - **Editor:** full-screen route, Cancel / Save. Only the title is required. Spotify matches appear quietly under the title and fill in title, artist, album, length and the Spotify link. Tuning picker: sheet sorted by pitch, with strings listed, plus New tuning and Manage. Key picker: Circle of Fifths. Links: paste a URL, the type is auto-detected and editable inline. In a band, "Also add to My Songs" (linked copy). Cancel with changes opens a dialog that names the changes. No notes and no delete in the form. (**Parkinson's Law**, **Postel's Law**)
 - **Song view:** read-first. Facts (tuning pill, key, BPM, length) → links → note layers. The primary button is **Chords & lyrics** (or "Add chords & lyrics"). There's no chart preview.
 - **Notes:** three labelled layers. "In ‹setlist›" comes first, only when opened from that set. Then Band notes (shared, with last editor) and My notes (private, lock). Edit in place with a pencil, Markdown and a formatting bar; Done saves. A Full screen option opens the chart reader's Notes tab. (**Flow**)
 
 ## Chart
 
-- A per-song **Chart** (chords + lyrics), separate from notes. *This deviates from the spec, which takes chords from notes; the user has approved the direction.*
+- A per-song **Chart** (chords + lyrics), separate from notes. _This deviates from the spec, which takes chords from notes; the user has approved the direction._
 - **Reader:** no auto-scroll. Large **Next** (orange, wider) and **Back** buttons page about a screen and keep 2 lines of overlap. Top / bottom tap zones and a Bluetooth pedal also page. Key −/+ transposes live; text size control; progress bar on the edge. Chart | Notes tabs. Screen stays awake, works offline, edge swipe-back is off. Landscape uses two columns with the buttons on the right. (**Fitts's Law**, **Working Memory**)
 - **Entry:** paste (chords-over-lyrics or ChordPro, auto-detected). Lyrics mode keeps chords pinned to letters, so they move with edits. Chords mode: pick from a key-based palette, then tap a letter; tap a chord to nudge ◀ ▶, change or remove it. Other chords: keypad for root, type and bass, or type the name. "Chords from Verse 1" copies chords to the next verse. (**Tesler's Law**)
 - **Data:** see `CHART-DATA-MODEL.md`. Transpose and size are saved per user.
@@ -300,20 +300,20 @@ Answers to `docs/redesign/07-handoff-to-build.md` Part A. Each also changes the 
 
 1. **Tuning colours: keep today's hues, nudge the two that clash.** Bands' muscle memory wins over the pitch spine (spec 00-overview). Drop D moves off orange (it read as the band accent) and Drop C off red (it read as danger). Light theme uses the Tailwind 700 shade of each hue so pills stay readable on cream. C Standard, a new built-in, takes violet. Custom tunings: the user picks from 12 swatches; the picker opens on the first swatch not used by a built-in or another custom tuning in that context. Kit: `kit/rock.js` `PALETTE`. (**Jakob's Law**, **Von Restorff**) [01 §7]
 
-   | Tuning | Dark | Light | Change |
-   |---|---|---|---|
-   | Standard | `#60a5fa` | `#1d4ed8` | — |
-   | Half-step down | `#14b8a6` | `#0f766e` | — |
-   | Whole-step down | `#0ea5e9` | `#0369a1` | — |
-   | **Drop D** | **`#84cc16`** lime | `#4d7c0f` | was `#f97316` orange |
-   | Drop D♭ | `#f59e0b` | `#b45309` | — |
-   | **Drop C** | **`#d946ef`** fuchsia | `#a21caf` | was `#ef4444` red |
-   | Drop B | `#a855f7` | `#7e22ce` | — |
-   | Open G | `#eab308` | `#a16207` | — |
-   | Open D | `#ec4899` | `#be185d` | — |
-   | DADGAD | `#10b981` | `#047857` | — |
-   | C Standard (new) | `#8b5cf6` | `#6d28d9` | new built-in |
-   | Unknown | `#6b7280` | `#4b5563` | — |
+   | Tuning           | Dark                  | Light     | Change               |
+   | ---------------- | --------------------- | --------- | -------------------- |
+   | Standard         | `#60a5fa`             | `#1d4ed8` | —                    |
+   | Half-step down   | `#14b8a6`             | `#0f766e` | —                    |
+   | Whole-step down  | `#0ea5e9`             | `#0369a1` | —                    |
+   | **Drop D**       | **`#84cc16`** lime    | `#4d7c0f` | was `#f97316` orange |
+   | Drop D♭          | `#f59e0b`             | `#b45309` | —                    |
+   | **Drop C**       | **`#d946ef`** fuchsia | `#a21caf` | was `#ef4444` red    |
+   | Drop B           | `#a855f7`             | `#7e22ce` | —                    |
+   | Open G           | `#eab308`             | `#a16207` | —                    |
+   | Open D           | `#ec4899`             | `#be185d` | —                    |
+   | DADGAD           | `#10b981`             | `#047857` | —                    |
+   | C Standard (new) | `#8b5cf6`             | `#6d28d9` | new built-in         |
+   | Unknown          | `#6b7280`             | `#4b5563` | —                    |
 
 2. **Events vs Jam: option A.** One social type called **Jam**, built on the Events tables (`events`, `event_participants`, `event_lineup_items`, `event_lineup_requests`, `event_hands`), extended for the live night: a `live` status, a queue state per lineup item, people without accounts, house players, group size. It sits on the calendar beside shows and practices. **Casting** is hidden behind a `CASTING` feature flag; its tables and data stay. The 0.3 jam-session screens are retired; catalog matching survives as "who knows your songs" in the guest view. Today's Events data shows up as Jams. [03, 04, 05, 06]
    - **Who writes without an account: web guests only, narrowly.**

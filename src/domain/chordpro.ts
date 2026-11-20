@@ -1,6 +1,6 @@
 /**
  * ChordPro charts: parse for the reader, serialize for storage, and turn a paste
- * into ChordPro (docs/redesign/12-tools-and-chart.md · 3.1, decision 4). No I/O;
+ * into ChordPro (docs/DECISIONS.md · Songs and notes). No I/O;
  * ports to Dart line for line.
  *
  * Positions (`Anchor.at`) count graphemes (what a reader sees as one letter),

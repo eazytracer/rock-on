@@ -36,7 +36,7 @@ Authoritative detail is in `CLAUDE.md`:
   idempotent, with explicit `GRANT`s for new tables (`npm run lint:migrations`
   enforces it). The baseline is frozen.
 - **Edge-function policy** — every function's auth mode + role context is
-  documented in `supabase/functions/FUNCTIONS.md`.
+  recorded in the `AUTH_MODE` map in `scripts/deploy-edge-functions.sh`.
 - **Release gate** — no prod-bound PR merges without a version bump, a dated
   `CHANGELOG.md` entry, a `release_notes` row, and a `vX.Y.Z` tag.
 - **Pre-deploy checklist** — `.claude/process/pre-deploy-checklist.md`.

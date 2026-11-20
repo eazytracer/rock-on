@@ -14,8 +14,6 @@
  * accept an optional second argument that merges user entries in.
  *
  * Palette A was approved in the UI unification review (2026-04-22).
- * See `.claude/specifications/2025-10-22T14:01_design-style-guide.md`
- * "2026-04-22 Update" section for the rationale.
  */
 
 export interface TuningEntry {

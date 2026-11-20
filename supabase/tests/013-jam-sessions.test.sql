@@ -5,8 +5,7 @@
 -- Category: Schema + Data Integrity
 -- Created: 2026-04-22
 --
--- See `.claude/artifacts/2026-04-22T21:37_pgtap-coverage-review.md` for the
--- broader review that motivated this file. The intent is that any future
+-- From the Apr 22 2026 pgTAP coverage review. The intent is that any future
 -- migration that touches jam tables must update this file or break a test —
 -- so the social-catalog surface stays anchored.
 

@@ -129,7 +129,6 @@ jam rows `to: /events/:id` (`domain/calendar.ts`); Home's upcoming jam rows → 
 | Kiosk "who you're with" (keep friends together)                                                                      | Jam Venue 2                                                                                                                                                                                                                                                  | Defer; it needs a people-group concept the design doesn't define                                                                                         |
 | Go-live "reminder at start time"                                                                                     | Jam Plan 7                                                                                                                                                                                                                                                   | Push isn't in scope (05-plan). In-app only: the hub's planned row says "Starts now · Go live"                                                            |
 | Parts vocabulary                                                                                                     | Jam Plan (Vocals, Guitar, Bass, Drums, Keys, Harmonica, Other); prototype (Vox, Gtr, Bass, Drums, Keys); `models/Casting.ts DEFAULT_LINEUP` keys `guitar, bass, drums, vox, keys, other`; profiles store labels (`Guitar, Vocals, Harmonica, Percussion, …`) | Store `DEFAULT_LINEUP` keys; map profile instruments to keys in `domain/jam.ts`; Harmonica / Percussion → `other` with a label. Q7                       |
-| Events aren't in the schema of record                                                                                | `.claude/specifications/unified-database-schema.md` has no `events` / `event_*` / casting sections                                                                                                                                                           | 7a adds them (CLAUDE.md: never guess a name)                                                                                                             |
 
 ---
 
@@ -363,16 +362,13 @@ moves to the API (`list_calendar` in OPERATIONS §10 can wait).
 11. `end_jam` leaves no `guest_name` anywhere in the jam, no hands, no live tokens; played songs remain.
 12. Rate limits: the N+1th join / pitch / hand in the window → `rate_limited`, per IP and per token.
 
-### 3.4 `FUNCTIONS.md`
+### 3.4 Anonymous RPCs and the edge-function scripts
 
-No new edge function is needed (08: edge functions are for third parties and secrets). But Phase 7 opens the
-**first anonymous-write surface** through Postgres functions, and the manifest is where auth decisions are
-recorded. Add a section "Anonymous RPCs" to `supabase/functions/FUNCTIONS.md` with one row per anon-executable
-function (`jam_preview_by_code`, `join_jam_as_web_guest`, `jam_state`, `update_me`, `leave_jam`, `pitch_song`,
-`raise_hand`, `lower_hand`, `jam_tv_feed`): auth = anon + guest token, role = definer, tables touched,
-rate-limit bucket. Q12. In 7d remove the `jam-view` and `jam-recompute` rows, their entries in
-`scripts/deploy-edge-functions.sh` (`ALL_FUNCTIONS`, flags) and `scripts/smoke-edge-functions.sh`, and undeploy
-both from prod.
+No new edge function is needed (08: edge functions are for third parties and secrets). Phase 7 opens the
+**first anonymous-write surface** through Postgres functions; per decision 12 each guest-callable function
+records its own rule (token check first, one-line comment) and pgTAP sweeps every `anon` grant. In 7d remove
+`jam-view` and `jam-recompute` from `scripts/deploy-edge-functions.sh` (`AUTH_MODE`, `ALL_FUNCTIONS`) and
+`scripts/smoke-edge-functions.sh`, and undeploy both from prod.
 
 ### 3.5 Retiring the 0.3 data
 
@@ -439,7 +435,7 @@ nudges, quiet stage, ended state.
 Scope: `event_guest_tokens`, `join_jam_as_web_guest`, the `p_guest_token` path in every participant function,
 `jam_rate_limits` + `_jam_rate_check`, `jam_tv_feed`; public routes `/j/:code`, `/j/:code/tv`; `/jam/:id/tv`,
 `/jam/:id/kiosk`; group sets (setting, "Pitch a set", grouped queue, "song 2 of 3", TV group slide); table tent
-print; `FUNCTIONS.md` "Anonymous RPCs".
+print; the `anon` grant sweep in pgTAP (decision 12).
 
 - Accept: the 05-plan acceptance in full: host signed in, guest in a **fresh browser with no account** joins
   from `/j/:code`, raises hands, pitches; kiosk entry and walk-up show in People with their via; the TV rotates
@@ -513,8 +509,7 @@ note; 03-screens and 05-plan updated.
     such as `/live/:code`.)
 11. **`SongBrowser` free-text row.** _Recommend_ adding "Add ‹query› as a title" (shown only with no exact match,
     opt-in prop), so the jam lineup adds uncatalogued songs in the same drawer. Setlists don't turn it on.
-12. **`FUNCTIONS.md` for anonymous RPCs.** _Recommend_ a new "Anonymous RPCs" section rather than an edge
-    function, so the anonymous surface is listed in one place.
+12. **Where anonymous RPCs are recorded.** Answered by decision 12 below (in the code and pgTAP, no doc section).
 13. **Casting with `CASTING` on.** Where does it show? _Recommend:_ a "Casting" item in the planned jam's ⋯
     that opens the old `EventDetailPage` lineup / cast view at `/jam/:id/casting`; nothing else. Old pages stay
     in the tree until both flags are retired.
@@ -536,3 +531,66 @@ note; 03-screens and 05-plan updated.
   fill trigger and the column defaults keep them working; one e2e run with `REDESIGN_JAM=false` proves it.
 - **Size.** Four slices of new UI on stage-grade screens (swipes, drag, TV, kiosk). 7c is the biggest; it can
   split again (web guest first, then TV + kiosk + group sets).
+
+## Decisions (Nov 20, answered one at a time)
+
+2. **Pitches are pending lineup entries** (`state = 'pending'`), hands work on them. New jam setting **"Show song
+   requests to everyone"** (default on) under an Advanced fold: off = pending entries visible only to the host
+   and the pitcher. On probation: it's a column, so count how many jams turn it off and drop it if nobody does.
+3. **One "Who can join" setting replaces visibility**, three levels: **Invite only** (not listed; host and
+   co-hosts invite), **Friends** (listed in the host's friends' hub under a new "Friends' jams" section; friends
+   tap Join; participants invite), **Anyone with the code** (default; code, link, QR, walk-ups, web guests,
+   kiosk; participants invite). Codes only work in "Anyone"; elsewhere the code card is hidden and a typed code
+   says "This jam is invite only". Participants invite friends from inside the jam (notification + hub), no
+   code needed. The "58 private events" were local test data; no migration concern. Revisit once seen live.
+4. **Codes: random 8 characters shown `ABCD-EFGH`** (no look-alikes), like band invites. QR, links and friend
+   invites are the main ways in; `LUCK-42` is not used.
+5. **Jam songs = a "jam" tag on your personal songs** (no Jam list setlist, no per-user tag table). Joining a jam
+   shares from your personal catalog only. Tags belong to the song's context: a band song's tags are the band's,
+   your My Songs copy has its own, and a song page shows only the tags of the context you're in. First jam join
+   opens a setlist-style builder ("Songs you'd jam on") over My Songs with a ✓ per song; band songs you pick are
+   copied to My Songs (existing Copy to My Songs, which keeps the link) and tagged there. Skippable; later a
+   "Jam" toggle on the song page and a "Jam songs" filter on Songs. **Fix:** `songs.tags` is shown and edited in
+   the UI but never saved (no column; RemoteRepository drops it). Phase 7 adds `songs.tags TEXT[]` and saves it.
+6. **Matching: normalised exact match** on title + artist (lowercase; strip punctuation, apostrophes, a leading
+   "the", bracketed extras like "(Live)"), in SQL. The 0.3 fuzzy matcher goes with 7d. **Later idea:** an
+   alias table (alternate titles) built from the catalogue, by an LLM pass or MusicBrainz IDs; titles/artists
+   only, no user links, covered by the privacy policy. Needs a legal check first.
+7. **Parts: the host sets the jam's starting parts** at setup (picked from Vocals, Guitar, Bass, Drums, Keys,
+   plus any custom part typed in, e.g. Harmonica; default Vox, Guitar, Bass, Drums; venues without keys leave it
+   off). Every song starts with those. Per song the host can add a part to call out to the crowd (any of the
+   list or custom). Hands are raised for a part; more hands than slots is fine ("Guitar 2", "Vocals 2"), and the
+   host accepting a second guitar adds a second guitar slot. A part is stored as a key plus an optional label.
+   "Parts I play" at join defaults from the profile's ordered instruments.
+8. **Kiosk exit: a 4-digit PIN** set when kiosk starts, kept in that device's `sessionStorage` only; hold the
+   logo 3 s, enter the PIN. Kiosk routes refuse non-kiosk actions. Hosts are pointed at iPad Guided Access for
+   real lock-down (a web page can't block Home or closing the tab).
+   **The kiosk never holds the host's login:** the host taps "Open counter iPad", which shows a QR for
+   `rockon.band/kiosk#k=<token>` (token in the hash, so it stays out of server logs) and a short one-time pairing
+   code (10 min) for typing in at `rockon.band/kiosk`. The iPad runs on a jam-scoped kiosk token (kiosk actions
+   only) that dies when the jam ends.
+9. **No Cancel.** Planned jams: ⋯ → Delete jam (confirm names what goes); joined people get a "‹Host› called off
+   ‹Jam›" notification. Live and ended jams can't be deleted. Existing `cancelled` events keep rendering struck
+   through.
+10. **Shared `/j/:code`** for band invites and jams: the page asks the server what the code is and shows that
+    preview; each code generator checks the other table so a code is never both. TV at `/j/:code/tv`. Get
+    started keeps both rows, each accepting either kind. `/events?join=…` and `/jam/view/…` redirect to `/j/…`.
+11. **Free-text "Add ‹query› as a title"** row in `SongBrowser` (opt-in prop; jam lineup only, not setlists).
+    Plus, on any lineup song, a signed-in user gets one action matched against My Songs (normalised match, Q6):
+    no match → **"Add to My Songs"** (creates the personal song with title / artist, tagged "jam"); a match
+    without the tag → **"Add to jam songs"**; already tagged → shows as one of your jam songs. Web guests don't
+    see it.
+12. **No doc section for anonymous functions** (Nov 20: code is the source of truth). Each guest-callable
+    function starts with the token check and a one-line comment saying what it allows; pgTAP sweeps every
+    function granted to `anon` and asserts each refuses a missing / foreign token.
+13. **Casting = hands + host accept**, one data model. The host can also put someone on a part directly (tap an
+    open part, pick a person in the jam). The old separate cast grid goes with 0.3, but its overview comes back
+    as a **Grid view** of the same data on the planned jam and the host console: songs × parts, each cell the
+    accepted name, a hand count, or an empty gap (highlighted), tap a cell to fill it. Built as a reusable
+    component. **Future "band director" tier** (e.g. School of Rock style groups that swap members per song):
+    casting on band songs / setlists / shows reuses that grid; the band casting tables (`song_castings`,
+    `casting_templates`, `song_assignments`, empty today) stay until then.
+14. **RSVP waits for Phase 8.** Joining a jam counts as "Going"; keep the data and the label. Jams are mostly
+    ad hoc, so RSVP isn't a priority.
+15. **Cut from v1:** lock-screen card (native), kiosk "who you're with" (walk-ups sign in one at a time), the
+    "Say hi" wave, the go-live reminder. Everything else drawn ships.

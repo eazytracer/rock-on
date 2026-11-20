@@ -31,7 +31,7 @@ For each one, record the answer in `source/DECISIONS.md` (dated), and in the gui
 
 1. **Tuning colours.**
    - 01 §7 replaces the current palette with the pitch-ordered OKLCH spine.
-   - Eric's spec (`docs/design-specs/00-overview.md`) says keep the current mapping, for muscle memory.
+   - Eric's spec says keep the current mapping, for muscle memory.
    - Pick one. If it's the spine, Eric confirms the swap explicitly.
 2. **Events vs Jam** (guide 06). Choose A, B or C. Also answer:
    - Do walk-ups, web guests and kiosk entries without accounts **write** data (hands, pitches, names)?

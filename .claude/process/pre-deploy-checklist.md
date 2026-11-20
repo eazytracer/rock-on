@@ -52,14 +52,12 @@ npm run build         # verifies production build compiles
 
 If the PR touches `supabase/functions/`:
 
-- Every function has a row in `supabase/functions/FUNCTIONS.md` listing its auth mode, role context, and public tables accessed
-- New functions have deploy command in `scripts/deploy-edge-functions.sh` and smoke assertion in `scripts/smoke-edge-functions.sh`
+- Every function has an entry in the `AUTH_MODE` map in `scripts/deploy-edge-functions.sh` (auth flag + role-context comment) and a smoke assertion in `scripts/smoke-edge-functions.sh`
 
 ### 4. Capability coverage
 
 If the PR adds a new user-facing capability:
 
-- Entry added to `.claude/specifications/functionality-catalog.md` in the appropriate domain using the template (Who can / Who cannot / Tests)
 - Both positive AND negative tests exist for any RLS-scoped or role-scoped capability
 
 ## Pre-deploy gates (block `supabase db push` / Vercel deploy)
@@ -84,8 +82,8 @@ Confirm:
 
 Before deploying:
 
-- FUNCTIONS.md is accurate (did anyone add a function without updating it?)
-- `./scripts/deploy-edge-functions.sh` reads the manifest to pick the right auth flag — never ad-hoc `supabase functions deploy <name>`
+- The `AUTH_MODE` map is accurate (did anyone add a function without an entry?)
+- `./scripts/deploy-edge-functions.sh` reads the map to pick the right auth flag — never ad-hoc `supabase functions deploy <name>`
 
 After deploying:
 

@@ -3,9 +3,7 @@
  *
  * This page is the guest-facing window into a live jam: the host shares a
  * `/jam/view/<code>?t=<token>` URL, and a guest without an account can see
- * what the host is queuing. Per the v0.3.2 rebuild (see
- * `.claude/artifacts/2026-04-24T02:30_v0.3.1-post-mortem-and-next-session-handoff.md`),
- * the primary surface is the host's broadcast setlist — NOT the
+ * what the host is queuing. Per the v0.3.2 rebuild, the primary surface is the host's broadcast setlist — NOT the
  * common-songs match list that only makes sense for authenticated
  * participants with their own catalogs.
  *

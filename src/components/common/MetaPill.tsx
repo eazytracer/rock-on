@@ -8,10 +8,6 @@
  *
  * Tuning uses the accent variant (colored per the tuning registry).
  * Key / BPM / Duration use neutral styling.
- *
- * Design reference:
- * `.claude/specifications/2025-10-22T14:01_design-style-guide.md` §
- * "2026-04-22 Update"
  */
 
 import React from 'react'

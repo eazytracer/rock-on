@@ -545,12 +545,12 @@ Rate limit choices (same as shared-services.md):
 - Per-band-per-hour: 100 event-invite sends max
 - Per-event-per-hour: 20 re-sends max (prevents save-keystroke loops)
 
-### 5.3 FUNCTIONS.md manifest entry
+### 5.3 Deploy-script entry
 
-Add to `supabase/functions/FUNCTIONS.md`:
+Add to the `AUTH_MODE` map in `scripts/deploy-edge-functions.sh` (and `EXPECTED_STATUS` 401 in the smoke script):
 
 ```
-| send-event-invite | verify JWT | service_role (writes) + caller (auth check) | No  | shows, practice_sessions, band_memberships, users, user_notification_prefs, email_logs | 401 |
+[send-event-invite]="" # verify JWT; service_role writes, caller auth check
 ```
 
 ### 5.4 Grants required
@@ -901,7 +901,7 @@ src/
 
 supabase/
 ├── functions/
-│   └── FUNCTIONS.md                      # Manifest row for send-event-invite
+│   └── send-event-invite/                # + AUTH_MODE entry in scripts/deploy-edge-functions.sh
 ├── migrations/
 │   └── <timestamp>_calendar_events.sql   # See § 4
 supabase/tests/
@@ -932,7 +932,7 @@ scripts/
 3. Deploy edge function; smoke test with manual invoke
 4. Verify `.ics` renders correctly in Gmail + Apple Mail test
    accounts
-5. Add to `FUNCTIONS.md`
+5. Add to the `AUTH_MODE` map in `scripts/deploy-edge-functions.sh`
 
 ### Phase 3: Client Integration — Create Flow
 

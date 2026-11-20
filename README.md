@@ -111,7 +111,9 @@ npm run env:status        # Lost track of which environment is active?
 - [CLAUDE.md](./CLAUDE.md) — coding rules and project policy
 - [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) — how we build (agent workflow)
 - [ENVIRONMENTS.md](./ENVIRONMENTS.md) — environment configuration
-- Database schema: `.claude/specifications/unified-database-schema.md`
+- [docs/INDEX.md](./docs/INDEX.md) — map of the app: each area and where it lives
+- [docs/DECISIONS.md](./docs/DECISIONS.md) — hard product and technical rules, dated
+- Database schema: `supabase/migrations/` + `src/types/database.types.ts`
 
 ## Project Structure
 

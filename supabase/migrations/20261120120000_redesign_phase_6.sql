@@ -1,5 +1,5 @@
 -- ============================================================================
--- Redesign phase 6: account, band, friends (docs/redesign/13-account-band-friends.md)
+-- Redesign phase 6: account, band, friends (decisions: docs/DECISIONS.md)
 --
 -- Schema
 --   band_memberships   'owner' role; backfill (decision Part A · 4); one active

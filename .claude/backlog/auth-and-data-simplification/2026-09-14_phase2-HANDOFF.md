@@ -306,8 +306,7 @@ interface" plan would mean building throwaway CRUD against **deny-all tables**
 to keep **orphaned** code alive. Findings:
 
 - **Casting/capability Supabase tables are RLS-enabled with ZERO policies =
-  deny-all.** `unified-database-schema.md` §"Known Issues" (~L1074-1090,
-  authoritative): `song_castings`, `song_assignments`, `assignment_roles`,
+  deny-all.** The old schema doc's "Known Issues" (deleted; git history): `song_castings`, `song_assignments`, `assignment_roles`,
   `member_capabilities` — _"the application code does not query these tables."_
   Adding RemoteRepository methods for them = queries that silently return `[]`.
 - **`CastingService` is explicitly shelved.** `CastingAssignmentService.ts:5-6`:

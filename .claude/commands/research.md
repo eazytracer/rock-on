@@ -44,7 +44,7 @@ The research-agent will:
 2. **Search the Codebase**
    - Find related components using Glob/Grep
    - Read existing implementations
-   - Check database schema in `.claude/specifications/unified-database-schema.md`
+   - Check database schema in `src/types/database.types.ts` and `docs/INDEX.md`
    - Identify existing patterns to follow
 
 3. **Analyze Dependencies**

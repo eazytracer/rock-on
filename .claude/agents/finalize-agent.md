@@ -106,9 +106,8 @@ You are a Finalize Agent specialized in preparing completed features for release
 
 ```bash
 # Search for TODO markers in all documentation
-grep -r "TODO" .claude/specifications/
 grep -r "TODO" .claude/features/
-grep -r "\[ \]" .claude/specifications/  # Find unchecked checkboxes
+grep -r "\[ \]" .claude/features/  # Find unchecked checkboxes
 ```
 
 #### Step 2: Review Each TODO
@@ -161,7 +160,7 @@ grep -r "\[ \]" .claude/specifications/  # Find unchecked checkboxes
 
 **Remove from:**
 
-- `.claude/specifications/` (committed docs must be clean)
+- `docs/` (committed docs must be clean)
 - `README.md` (user-facing docs)
 - User flow documentation
 
@@ -404,7 +403,7 @@ git status
 # Verify changes look correct
 
 # 2. Stage relevant files
-git add .claude/specifications/unified-database-schema.md
+git add src/types/database.types.ts
 git add supabase/migrations/20251106000000_baseline_schema.sql
 git add src/components/songs/FavoriteButton.tsx
 git add src/hooks/useFavorites.ts
@@ -413,7 +412,6 @@ git add tests/e2e/song-favorites.spec.ts
 
 # Do NOT stage:
 # - .claude/features/ (feature design docs - these ARE committed)
-# - .claude/artifacts/ (implementation summaries, archived)
 # - Any temp files or logs
 
 # 3. Create commit
@@ -561,10 +559,8 @@ pr-url: [GitHub PR URL]
 
 **Files Cleaned:**
 
-- `.claude/specifications/unified-database-schema.md`
-  - Removed 3 TODO markers
-  - Removed implementation checklist
-  - Added complete song_favorites documentation
+- `docs/DECISIONS.md`
+  - Added the favorites rule (dated, one-line why)
 
 **TODOs Removed:** 3
 **Checklists Removed:** 2

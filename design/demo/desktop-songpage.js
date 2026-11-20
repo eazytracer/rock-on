@@ -1,4 +1,4 @@
-// Song page proposal (docs/redesign/09-design-review-songs.md), Nov 7 2026.
+// Song page proposal, Nov 7 2026.
 // A song opens as a full page inside the app (sidebar stays). It is the one place a song is edited:
 // title, facts and details edit in place and save on their own; notes edit in place with Done.
 // Back is named after where you came from (Songs, a setlist, search, or Songs for a direct link),

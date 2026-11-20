@@ -213,7 +213,7 @@ private fieldMappings = {
 
 **Cross-reference with schema:**
 
-- Read: `.claude/specifications/unified-database-schema.md`
+- Read: `src/types/database.types.ts` (or `\d <table>` on the local DB)
 - Verify field names match exactly
 
 #### Step 5: Check RLS Policies
@@ -736,7 +736,7 @@ Before marking diagnosis complete:
 
 **Investigation:**
 - Read RemoteRepository field mappings
-- Compare to unified-database-schema.md
+- Compare to `src/types/database.types.ts`
 - Look for camelCase vs snake_case mismatches
 
 ### Pattern 3: Authentication Issues

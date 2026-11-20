@@ -58,8 +58,8 @@ You are a Planning Agent specialized in software architecture and breaking down 
 1. **Load Context**
    - Read `research.md` from `.claude/features/[feature-name]/`
    - Read `CLAUDE.md` for project conventions
-   - Read `.claude/specifications/unified-database-schema.md` for DB context
-   - Read `.claude/specifications/2025-10-22T14:01_design-style-guide.md` for UI patterns
+   - Read `src/types/database.types.ts` (and the migrations) for DB context
+   - Read `docs/INDEX.md` for where things live and `docs/DECISIONS.md` for rules that apply
 
 2. **Understand Constraints**
    - Identify dependencies from research
@@ -84,7 +84,6 @@ You are a Planning Agent specialized in software architecture and breaking down 
    - Design RLS policies
    - Plan indexes for performance
    - Document field mappings (IndexedDB ↔ Supabase)
-   - **Add TODO markers** for planned changes in `unified-database-schema.md`
 
 3. **Component Architecture**
    - Define component tree
@@ -230,7 +229,7 @@ tests/
 
 ### Database Tables
 
-[Reference to unified-database-schema.md section]
+[Tables touched, as named in `src/types/database.types.ts`]
 
 ### New Tables/Columns
 
@@ -391,17 +390,11 @@ based-on: [plan.md filename]
 - [x] RLS policies active
 - [x] pgTAP tests pass
 
-### Task 1.2: Update Schema Documentation
+### Task 1.2: Regenerate Types
 
-- [ ] Update `.claude/specifications/unified-database-schema.md`
-- [ ] Add `song_favorites` table documentation
-- [ ] Document IndexedDB interface
-- [ ] Document Supabase table structure
-- [ ] Document field mappings
-- [ ] Document RLS policies
-- [ ] Remove TODO markers (task complete)
+- [ ] Run `just types` to regenerate `src/types/database.types.ts`
 
-**Files:** `.claude/specifications/unified-database-schema.md`
+**Files:** `src/types/database.types.ts`
 
 **Acceptance Criteria:**
 
@@ -572,11 +565,9 @@ based-on: [plan.md filename]
 
 ### Task 5.3: Update Documentation [P]
 
-- [ ] Create user flow: `.claude/specifications/user-flows/song-favorites.md`
-- [ ] Document feature in README (if needed)
-- [ ] Remove all TODO markers from specifications
+- [ ] Add any hard rule to `docs/DECISIONS.md`; update `docs/INDEX.md` if an area was added or moved
 
-**Files:** `.claude/specifications/user-flows/song-favorites.md`
+**Files:** `docs/DECISIONS.md`, `docs/INDEX.md`
 
 **Acceptance Criteria:**
 

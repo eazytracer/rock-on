@@ -34,7 +34,7 @@ in the headings below are historical.
 | 3 · Setlists (0.10.0)                      | Built                                                                                            |
 | 4 · Calendar, shows, practices (0.11.0)    | Built (`007e6cb`), plus the follow-ups listed under Phase 4 (uncommitted at the time of writing) |
 | 5 · Tools and chart (0.12.0)               | Built (`8798d08`), plus the phone dock, app bar and other follow-ups (Nov 18)                    |
-| **6 · Account, band, friends (0.13.0)**    | Built (Nov 18), brief: [13-account-band-friends.md](13-account-band-friends.md)                  |
+| **6 · Account, band, friends (0.13.0)**    | Built (Nov 18; decisions in docs/DECISIONS.md)                                                   |
 | 7 · Jam (0.14.0)                           | Not started. Build brief: [11-jam.md](11-jam.md) (Nov 16; its open questions are unanswered)     |
 | 8 · RSVP                                   | Post-launch                                                                                      |
 
@@ -82,7 +82,7 @@ Guide: 03 → Songs; 04 → Songs. Design: Song Row, Song Editor and View, Song 
 
 ## Phase 2.1 · Song page (0.9.1)
 
-Brief: [10](10-song-page-and-setlist-nav.md) Part 1 and Part 3. Design: `design/demo/Song Page.html`, `review/song-page/`.
+Brief: 10 Part 1 and Part 3 (built; decisions in docs/DECISIONS.md). Design: `design/demo/Song Page.html`, `review/song-page/`.
 
 - `/songs/:id?from=` is the one place a song is edited: facts and details in place (per-field save + Undo), notes in place with Done and the conflict prompt, Back and ‹ › from the origin.
 - `EditSongModal` becomes Add song only; desktop Add song keeps the sidebar. The pane becomes read-only with Open; rows open on double-click / Enter; one Tuning filter chip on desktop.
@@ -95,7 +95,7 @@ Guide: 03 → Setlists. Design: Setlist Editor 1–9, FP 9–12, 23; desktop Set
 
 - List: sort, ⋯ (Duplicate / Delete with the precise confirm), New setlist with empty state.
 - Editor: saves as you go, totals, retune lines + Tune (links to the tuner once phase 5 lands), drag + hold Move sheet, Add menu (mobile) / insert-after-selection (desktop), break + section inline edit, set notes, song browser, timeline rail.
-- **Navigation (10 → Part 2):** `/setlists` is an index of cards; `/setlists/:id` is the editor full width with ← Setlists (or the origin); the name is a switcher (caret dropdown on desktop, ⇄ bottom sheet on phones) ending with All setlists / New setlist; Rename / Duplicate / Delete move to the header ⋯. No setlist column beside the editor.
+- **Navigation (10 → Part 2, built):** `/setlists` is an index of cards; `/setlists/:id` is the editor full width with ← Setlists (or the origin); the name is a switcher (caret dropdown on desktop, ⇄ bottom sheet on phones) ending with All setlists / New setlist; Rename / Duplicate / Delete move to the header ⋯. No setlist column beside the editor.
 - Setlist statuses go (archived sets become ordinary sets). ("Open on stage" was never in the live app: nothing to remove.)
 - Accept: Setlists section of the checklist; desktop insert-after-selection; 10 → 2.4.
 
@@ -122,7 +122,7 @@ Guide: 03 → Calendar; 04 → Calendar. Design: FP 1–5, 7–8, 18, Calendar a
 
 ## Phase 5 · Tools and chart (0.12.0)
 
-Brief: [12-tools-and-chart.md](12-tools-and-chart.md). Note: Phase 1's Home Tools row was never built; the brief folds it into 5c. No `REDESIGN_TOOLS` flag (decision 1): each slice replaces its "Soon" buttons as it lands.
+Brief: 12 (built; decisions in docs/DECISIONS.md). Note: Phase 1's Home Tools row was never built; the brief folds it into 5c. No `REDESIGN_TOOLS` flag (decision 1): each slice replaces its "Soon" buttons as it lands.
 
 Guide: 03 → Chart and tools; 04 → charts, tunings. Design: Song Chart, Sound Tools, Metronome, Custom Tuning, Tools on Home 3; desktop Tuner, Metronome, Chords, Chart, chart editor, custom tuning.
 
@@ -152,7 +152,7 @@ Brief: [11-jam.md](11-jam.md) (slices 7a–7d, open questions). Guide: 03 → Ja
 Decided: option A, on the Events tables (Part A · 2).
 
 - Migration: `live` status, `group_size`, `joining_locked`, nullable `user_id` + `guest_name` / `via` / `is_house` / `parts` on participants, `event_guest_tokens`, lineup `state` + `parts_needed`, hands by participant, `shared_contexts`.
-- Anonymous web-guest join and writes through the jam-scoped token only; rate limits; `end_jam` deletes guest names. pgTAP for every guest rule. Record the new functions in `supabase/functions/FUNCTIONS.md`.
+- Anonymous web-guest join and writes through the jam-scoped token only; rate limits; `end_jam` deletes guest names. pgTAP for every guest rule.
 - `/events` → the Jam hub (flag `REDESIGN_JAM`); casting UI behind `CASTING`; retire the 0.3 `/jam` screens; Save tonight as a setlist.
 - Accept: run the flow below in the app with two browsers (host signed in, guest with no account), matching `Jam Night.html`: plan → share code → people join (app, web, kiosk, walk-up) → pitches and hands → Go live → Up next / call up / queue → bar TV → end.
 

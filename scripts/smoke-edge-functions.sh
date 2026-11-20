@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke-test deployed Supabase edge functions against their expected
-# unauthenticated GET status per supabase/functions/FUNCTIONS.md.
+# unauthenticated GET status (EXPECTED_STATUS below is the record).
 #
 # Purpose: catch deploy-time regressions where a function lost its
 # --no-verify-jwt flag (→ unexpected 401) or got it accidentally (→
@@ -10,7 +10,7 @@
 #   project-url defaults to the hosted prod URL.
 #
 # Exit 0 = all functions responded as expected. Exit 1 = one or more
-# drifted from the manifest.
+# drifted from EXPECTED_STATUS.
 
 set -euo pipefail
 
@@ -18,8 +18,8 @@ PROJECT_URL="${1:-https://khzeuxxhigqcmrytsfux.supabase.co}"
 BASE="$PROJECT_URL/functions/v1"
 
 # Expected HTTP status for an unauthenticated GET (or GET with documented
-# minimal params). Mirror of FUNCTIONS.md column "Expected unauthenticated
-# GET status" — if this changes, update both in the same commit.
+# minimal params). Auth modes live in deploy-edge-functions.sh's AUTH_MODE
+# map; keep both lists in step.
 #
 # - jam-view: anonymous is OK, but without `code` + `t` params the
 #   function returns 400 "Missing code or token". That's the marker that
@@ -75,6 +75,6 @@ if [[ $fail -gt 0 ]]; then
   echo "  - 404 → function is not deployed to this project"
   echo "  - 500 → function crashed on the request; check logs"
   echo ""
-  echo "See supabase/functions/FUNCTIONS.md for the expected matrix."
+  echo "See EXPECTED_STATUS in this script and AUTH_MODE in deploy-edge-functions.sh."
   exit 1
 fi

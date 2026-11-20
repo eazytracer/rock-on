@@ -1,5 +1,5 @@
 -- ============================================================================
--- Redesign phase 5: tools and chart (docs/redesign/12-tools-and-chart.md)
+-- Redesign phase 5: tools and chart (decisions: docs/DECISIONS.md)
 --
 -- Schema
 --   song_charts              one chart per song (ChordPro + starting note).

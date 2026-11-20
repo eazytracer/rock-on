@@ -1,7 +1,7 @@
 /**
  * Chord card: the name (in --chord), the diagram, the fingering and Play.
  * One card for Tools · Chords, the chart's chord viewer and the desktop
- * "Chords in this song" panel (docs/redesign/12-tools-and-chart.md 2.4, 2.6).
+ * "Chords in this song" panel.
  *
  * Sound is the caller's: Play calls `onPlay` with the MIDI notes to strum
  * (low → high), so this stays free of the audio services.

@@ -1,7 +1,7 @@
 -- Test: phase 5 contract: song_charts + get_chart, save_chart, set_starting_note,
 --       copy_linked_chart, duplicate_song / copy_band_songs_to_personal copying the
 --       chart, create_tuning, update_tuning, the custom-tuning unique index and the
---       extended-range seeds (docs/redesign/12-tools-and-chart.md · 4).
+--       extended-range seeds.
 -- Category: Functions + access
 -- Created: 2026-11-16
 

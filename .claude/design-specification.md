@@ -14,7 +14,6 @@
 - **Primary Mark**: Rock-on hand gesture with bold typography
 - **Style**: Minimalist, modern, music-focused
 - **Usage**: Clean geometric forms with strong visual impact
-- **File**: `.claude/artifacts/ChatGPT Image Sep 27, 2025, 04_59_12 PM.png`
 
 ### Brand Personality
 

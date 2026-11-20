@@ -4,6 +4,13 @@ Coding rules and project policy for agents working in this repo. For the broader
 "how we build" process (research → plan → implement → test → release), see
 `docs/DEVELOPMENT.md`.
 
+## Docs
+
+The code is the source of truth. Record only hard decisions (what the app must
+/ must not do, dated, one-line why) in `docs/DECISIONS.md`, and keep
+`docs/INDEX.md` current when an area is added, moved or removed. Don't write
+docs that restate how the code works.
+
 ## Development Strategy
 
 1. **Think before coding.** State assumptions explicitly; if uncertain, ask. If
@@ -202,9 +209,9 @@ functions). Don't leave troubleshooting traces behind — log failures, not step
 **🚨 Production exists. The baseline is frozen — never edit it.** Schema changes
 land as **incremental migrations**.
 
-- **Schema of record:** `.claude/specifications/unified-database-schema.md`
-  (documents app camelCase ↔ Supabase snake_case side by side). Never guess
-  a table/column name — check it.
+- **Schema of record:** the migrations + `src/types/database.types.ts`
+  (regenerate with `just types`). Never guess a table/column name — check the
+  types, or the local DB with `\d <table>`.
 - **Baseline:** `supabase/migrations/20251106000000_baseline_schema.sql` (17
   tables, RLS, audit log, realtime, triggers). Fresh installs = baseline + all
   incremental migrations in order (`supabase db reset`).
@@ -248,9 +255,10 @@ Reference migration (template for new feature migrations):
 
 ## Edge Function Policy
 
-Every edge function needs two documented decisions, both recorded as a row in
-`supabase/functions/FUNCTIONS.md` (a PR adding a function without updating the
-manifest is incomplete):
+Every edge function needs two decisions, both recorded in the `AUTH_MODE` map
+in `scripts/deploy-edge-functions.sh` (the flag, plus a one-line role-context
+comment), with its expected status in `scripts/smoke-edge-functions.sh`. A PR
+adding a function without a map entry is incomplete:
 
 1. **Auth mode** — JWT-verified at the gateway, or intentionally anonymous?
 2. **Role context** — queries via `service_role` (needs table grants — see above;

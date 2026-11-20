@@ -3,7 +3,7 @@
 --       transfer_ownership, leave_band, delete_band, update_band_profile,
 --       list_my_contexts (mark), get_user_emails (owner), ensure_my_profile,
 --       send_friend_request (policy), find_people, delete_account, and the
---       closed policies (docs/redesign/13-account-band-friends.md · 3.1).
+--       closed policies.
 -- Category: Functions + access
 -- Created: 2026-11-18
 
