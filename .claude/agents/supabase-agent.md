@@ -45,12 +45,13 @@ You are a Supabase Agent specialized in PostgreSQL database schema design, migra
 1. **Read Planning Documents**
    - Read `plan.md` from `.claude/features/[feature-name]/`
    - Identify database changes needed
-   - Review field mappings (IndexedDB ↔ Supabase)
+   - Review field mappings (app camelCase ↔ Supabase snake_case)
    - Note RLS policy requirements
 
 2. **Check Current Schema**
    - Read `src/types/database.types.ts`
-   - Read baseline migration: `supabase/migrations/20251106000000_baseline_schema.sql`
+   - Read the migrations in `supabase/migrations/` (the baseline is frozen; later
+     changes are incremental migrations on top of it)
    - **Use PostgreSQL MCP to query actual database state:**
 
      ```sql
@@ -70,42 +71,41 @@ You are a Supabase Agent specialized in PostgreSQL database schema design, migra
 
 ### Phase 2: Plan Database Changes
 
-**Pre-1.0 Development (CURRENT STATE):**
+Schema changes land in the feature's **one incremental migration**. The
+baseline (`supabase/migrations/20251106000000_baseline_schema.sql`) is frozen
+and production exists, so never edit it or any deployed migration.
 
-For schema changes during pre-1.0 development, modify the baseline migration directly:
+1. **Find or create the feature migration:**
 
-1. **Read baseline migration:**
-   - File: `supabase/migrations/20251106000000_baseline_schema.sql`
-   - Understand current schema structure
+   ```bash
+   supabase migration new <feature_name>   # first time only, at feature kickoff
+   ```
+
+   While the feature is in development, amend that same file in place.
 
 2. **Plan your changes:**
    - New tables/columns
    - Indexes for performance
    - RLS policies for security
-   - Triggers for version tracking/audit logging
+   - Triggers for version tracking/audit logging (add an audit trigger when
+     other members should see the table change live)
 
 3. **Design field mappings:**
-   - IndexedDB uses camelCase
+   - The app uses camelCase
    - Supabase uses snake_case
-
-**Post-1.0 Development (FUTURE):**
-
-After 1.0 release, create incremental migrations:
-
-```bash
-supabase migration new add_feature_name
-```
 
 ### Phase 3: Implement Changes
 
-**For Pre-1.0 (Modify Baseline):**
-
-1. **Edit baseline migration file:**
-   - Add table definitions
-   - Add indexes
-   - Add RLS policies
-   - Add triggers (if needed)
-   - Follow existing patterns in the file
+1. **Write the migration idempotently:**
+   - `CREATE TABLE/INDEX IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`
+   - `CREATE OR REPLACE FUNCTION`
+   - `DROP POLICY IF EXISTS` before `CREATE POLICY`
+   - `DO $$ ... EXCEPTION WHEN duplicate_object` guards for constraint and
+     publication adds
+   - **Every new table gets explicit `GRANT`s** to `authenticated` AND
+     `service_role` (plus `GRANT USAGE ON SEQUENCE` for serial columns);
+     `npm run lint:migrations` checks this
+   - Follow `supabase/migrations/20260422220000_social_catalog_and_jam_sessions.sql`
 
 2. **Critical: Follow Existing Patterns**
    - Version tracking: `version INT DEFAULT 1`, `last_modified_by UUID`
@@ -141,7 +141,7 @@ supabase migration new add_feature_name
 **Run full reset and validation:**
 
 ```bash
-# 1. Reset database (applies baseline from scratch)
+# 1. Reset database (applies baseline + all migrations from scratch)
 supabase db reset
 
 # Expected output:
@@ -149,7 +149,7 @@ supabase db reset
 # - Seed data loaded
 # - No errors
 
-# 2. Run pgTAP tests
+# 2. Run pgTAP tests (on the host: just test-db)
 npm run test:db
 
 # Expected output:
@@ -196,7 +196,7 @@ agent: supabase-agent
 
 **Modified Files:**
 
-- `supabase/migrations/20251106000000_baseline_schema.sql`
+- `supabase/migrations/<timestamp>_<feature_name>.sql`
 - `src/types/database.types.ts` (regenerated)
 
 **New Tables:**
@@ -233,11 +233,11 @@ CREATE INDEX idx_song_favorites_song ON song_favorites(song_id);
 
 ## Field Mappings
 
-| IndexedDB   | Supabase     |
-| ----------- | ------------ |
-| songId      | song_id      |
-| userId      | user_id      |
-| createdDate | created_date |
+| App (camelCase) | Supabase     |
+| --------------- | ------------ |
+| songId          | song_id      |
+| userId          | user_id      |
+| createdDate     | created_date |
 
 ## Next Steps
 
@@ -267,13 +267,13 @@ private fieldMappings = {
 
 Before marking database work complete:
 
-- [ ] Baseline migration modified (pre-1.0) OR new migration created (post-1.0)
+- [ ] Changes are in the feature's incremental migration (baseline untouched)
+- [ ] Migration is idempotent; new tables have `GRANT`s (`npm run lint:migrations` passes)
 - [ ] `supabase db reset` succeeds without errors
 - [ ] `npm run test:db` passes (300+ tests)
 - [ ] RLS policies tested with PostgreSQL MCP (if available)
 - [ ] `src/types/database.types.ts` regenerated (`just types`)
-- [ ] Field mappings documented
-- [ ] All TODO markers removed from specs
+- [ ] Field mappings listed in the handoff
 - [ ] Migration summary created
 
 **NEVER skip database tests. If tests fail, fix the migration.**
@@ -343,11 +343,11 @@ Before marking database work complete:
 
 ### Table Name Conventions
 - **Supabase:** `snake_case` plural (e.g., `practice_sessions`, `band_memberships`)
-- **IndexedDB:** `camelCase` plural (e.g., `practiceSessions`, `bandMemberships`)
+- **App models:** `camelCase` plural (e.g., `practiceSessions`, `bandMemberships`)
 
 ### Column Name Conventions
 - **Supabase:** `snake_case` (e.g., `created_date`, `last_modified`, `user_id`)
-- **IndexedDB:** `camelCase` (e.g., `createdDate`, `lastModified`, `userId`)
+- **App models:** `camelCase` (e.g., `createdDate`, `lastModified`, `userId`)
 
 ### Timestamp Columns (Critical!)
 
@@ -364,7 +364,7 @@ Different tables use different timestamp column names:
 **Always check existing schema before adding triggers!**
 
 ### Critical Field Differences
-- Songs: `bpm` (IndexedDB) ↔ `tempo` (Supabase)
+- Songs: `bpm` (app) ↔ `tempo` (Supabase)
 - Songs: `context_id` is TEXT, not UUID
 - Setlists: Have `items` JSONB column for songs/breaks/sections
 

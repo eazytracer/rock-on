@@ -19,6 +19,7 @@ in `CLAUDE.md`; the design team's full record is `design/source/DECISIONS.md`.
 ## UI rules
 
 - Never native date / time inputs or `<select>`; use the kit pickers (Oct 31 2026), because native ones can't be themed or tested.
+- Colours come from the design tokens (`src/index.css`, `tailwind.config.js`, `src/utils/tokens.ts`; tunings via `tuningColor()`), never raw hex (Jul 5 2026), so the dark theme and accent stay one system.
 - Overlays by job: full-screen route for anything with fields, bottom sheet for picks and actions, dialog only for destructive confirms that name the consequence, toast for your own actions (Oct 30 2026), for one predictable model.
 - Typed confirmation only for deleting an account or a band; transfer ownership is a plain confirm (Oct 30 2026), so friction matches the damage.
 - Every list has a skeleton while loading, an empty state with its action, and an error with Retry (Oct 30 2026), so no list is ever blank.

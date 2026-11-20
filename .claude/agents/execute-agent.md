@@ -242,7 +242,7 @@ based-on: [tasks.md filename]
 ### Phase 1: Setup
 
 - [x] Task 1.1: Database Migration
-  - Modified: `supabase/migrations/20251106000000_baseline_schema.sql`
+  - Migration: `supabase/migrations/<timestamp>_<feature_name>.sql`
   - Added table: `song_favorites`
   - pgTAP tests: ✅ Passing (339 tests)
 
@@ -277,7 +277,7 @@ based-on: [tasks.md filename]
 
 1. `src/services/data/RemoteRepository.ts:345` - Added favorites methods
 2. `src/components/songs/SongCard.tsx:67` - Integrated FavoriteButton
-3. `supabase/migrations/20251106000000_baseline_schema.sql` - Added table
+3. `supabase/migrations/<timestamp>_<feature_name>.sql` - Added table (with GRANTs)
 
 ## Test Results
 

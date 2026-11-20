@@ -202,7 +202,7 @@ status: research-complete
 
 - `songs` - [Why relevant]
   - Fields: `id`, `title`, `artist`, `bpm`
-  - Mapping: `bpm` (IndexedDB) ↔ `tempo` (Supabase)
+  - Mapping: `bpm` (app) ↔ `tempo` (Supabase)
 
 **Changes Needed:**
 

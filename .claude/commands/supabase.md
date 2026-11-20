@@ -18,13 +18,16 @@ Common Supabase CLI operations for local development with our migration-based wo
 
 **Migration Files:**
 
-- Location: `/workspaces/rock-on/supabase/migrations/`
+- Location: `supabase/migrations/`
 - Format: `YYYYMMDDHHMMSS_description.sql`
 - Applied in timestamp order
+- The baseline (`20251106000000_baseline_schema.sql`) is frozen; changes go in
+  one incremental, idempotent migration per release/feature, amended in place
+  while in development (see CLAUDE.md "Database & Migrations")
 
 **Seed File:**
 
-- Location: `/workspaces/rock-on/supabase/seed-mvp-data.sql`
+- Location: `supabase/seed-mvp-data.sql`
 - Configured in: `supabase/config.toml` → `[db.seed]` → `sql_paths`
 - Contains test users (eric@, mike@, sarah@) with password: `test123`
 - Auto-runs after migrations during `supabase db reset`
@@ -137,10 +140,8 @@ supabase migration list
 source .env.supabase.local && supabase migration list
 ```
 
-Current migrations:
-
-- ✅ `20251106000000_baseline_schema.sql` (Consolidated baseline - all 17 tables)
-- ✅ `20251110060100_fix_bands_insert_policy.sql` (RLS policy fix)
+The migrations themselves are in `supabase/migrations/`; always run
+`supabase migration list --linked` before (and after) a remote push.
 
 ## Remote Supabase (Production/Staging)
 
@@ -155,7 +156,9 @@ Current migrations:
 
 ```bash
 # Get token from: https://supabase.com/dashboard/account/tokens
-echo "SUPABASE_ACCESS_TOKEN=your-token-here" > .env.supabase.local
+# The file holds exactly one line; rewrite the whole file when rotating.
+# Never echo/cat the file or the token (see CLAUDE.md "Secret handling").
+printf 'export SUPABASE_ACCESS_TOKEN=%s\n' "<paste-token>" > .env.supabase.local
 ```
 
 **Authentication:**
@@ -192,7 +195,7 @@ For complex migrations or RLS policy fixes:
 1. Go to: https://supabase.com/dashboard/project/khzeuxxhigqcmrytsfux
 2. Navigate to **SQL Editor** (left sidebar)
 3. Click **"+ New query"**
-4. Paste SQL from `.claude/scripts/supabase/*.sql`
+4. Paste the migration's SQL from `supabase/migrations/`
 5. Click **"Run"** (Ctrl+Enter)
 6. Mark migration as applied: `supabase migration repair --status applied <id>`
 
@@ -218,6 +221,6 @@ For complex migrations or RLS policy fixes:
 
 1. **Always test locally first** - Use `supabase db reset` to test migrations from scratch
 2. **Name migrations clearly** - Use descriptive names: `add_user_roles.sql` not `update.sql`
-3. **One logical change per migration** - Don't bundle unrelated changes
-4. **Include verification queries** - Add SELECT queries at the end to verify the migration worked
-5. **Document breaking changes** - Add comments explaining why changes were made
+3. **One migration per release/feature** - Amend it in place until it ships; deployed migrations are frozen
+4. **Idempotent, with GRANTs** - `IF NOT EXISTS`, `DROP POLICY IF EXISTS`, explicit `GRANT`s on new tables (`npm run lint:migrations`)
+5. **Test with pgTAP** - `supabase db reset && npm run test:db` (`just test-db` on the host)

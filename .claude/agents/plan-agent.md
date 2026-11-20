@@ -83,7 +83,7 @@ You are a Planning Agent specialized in software architecture and breaking down 
    - Define new tables/columns
    - Design RLS policies
    - Plan indexes for performance
-   - Document field mappings (IndexedDB ↔ Supabase)
+   - Document field mappings (app camelCase ↔ Supabase snake_case)
 
 3. **Component Architecture**
    - Define component tree
@@ -98,7 +98,7 @@ You are a Planning Agent specialized in software architecture and breaking down 
    - Services (`src/services/`)
    - Hooks (`src/hooks/`)
    - Tests (`tests/unit/`, `tests/integration/`, `tests/e2e/`)
-   - Migrations (`supabase/migrations/`) - if pre-1.0, note to modify baseline
+   - Migrations (`supabase/migrations/`) - the feature's one incremental, idempotent migration (never the baseline)
 
 2. **Files to Modify**
    - List each file with specific line numbers
@@ -111,8 +111,8 @@ Create tasks following this structure:
 
 **Phase 1: Setup** (Sequential)
 
-- Database migrations
-- Schema documentation updates
+- Database migration (incremental, idempotent, with `GRANT`s for new tables)
+- Regenerate types (`just types`)
 
 **Phase 2: Tests** (TDD - Tests written BEFORE implementation)
 
@@ -158,25 +158,11 @@ Create tasks following this structure:
    - What user flows to automate
    - What cross-browser scenarios to test
 
-### Phase 6: Update Specifications
+### Phase 6: Note Hard Rules
 
-**Add TODO markers** to specifications for planned changes:
-
-```markdown
-<!-- TODO: Add song_favorites table (Supabase Agent will implement)
-Expected schema:
-- song_id (FK to songs)
-- user_id (FK to users)
-- created_date
-RLS: User can only see their own favorites
--->
-```
-
-**Mark sections that need updates:**
-
-```markdown
-<!-- TODO: Update after implementation - Document new endpoints -->
-```
+If the plan decides a hard rule (what the app must or must not do), list it in
+the plan as a dated bullet to add to `docs/DECISIONS.md`. Don't write or mark up
+spec or schema docs; the code is the source of truth.
 
 ## Output Format
 
@@ -223,7 +209,7 @@ tests/
 ### Modified Files
 
 - `src/path/to/file.ts:123` - [What changes]
-- `supabase/migrations/20251106000000_baseline_schema.sql` - [Schema change]
+- `supabase/migrations/<timestamp>_<feature_name>.sql` - [Schema change]
 
 ## Data Model Changes
 
@@ -259,19 +245,19 @@ tests/
 
 ### Field Mappings
 
-| IndexedDB (camelCase) | Supabase (snake_case) |
-| --------------------- | --------------------- |
-| id                    | id                    |
-| songId                | song_id               |
-| userId                | user_id               |
-| createdDate           | created_date          |
+| App (camelCase) | Supabase (snake_case) |
+| --------------- | --------------------- |
+| id              | id                    |
+| songId          | song_id               |
+| userId          | user_id               |
+| createdDate     | created_date          |
 
 ### Migrations
 
-**Pre-1.0:** Modify baseline migration directly
+The feature's one incremental migration (the baseline is frozen):
 
-- File: `supabase/migrations/20251106000000_baseline_schema.sql`
-- Add table definition, indexes, RLS policies
+- File: `supabase/migrations/<timestamp>_<feature_name>.sql` (`supabase migration new <feature_name>` once, then amend in place)
+- Idempotent table definition, indexes, RLS policies, and `GRANT`s to `authenticated` and `service_role`
 
 ## Component Architecture
 
@@ -373,14 +359,14 @@ based-on: [plan.md filename]
 
 ### Task 1.1: Database Migration
 
-- [ ] Modify baseline migration: `supabase/migrations/20251106000000_baseline_schema.sql`
-- [ ] Add `song_favorites` table definition
+- [ ] Create or amend the feature migration: `supabase/migrations/<timestamp>_<feature_name>.sql`
+- [ ] Add `song_favorites` table definition (`IF NOT EXISTS`) with `GRANT`s
 - [ ] Add indexes: `idx_song_favorites_user`, `idx_song_favorites_song`
 - [ ] Add RLS policies: SELECT, INSERT, DELETE
 - [ ] Run `supabase db reset` to test locally
-- [ ] Run `npm run test:db` to validate schema
+- [ ] Run `npm run lint:migrations` and `npm run test:db` (`just test-db` on the host)
 
-**Files:** `supabase/migrations/20251106000000_baseline_schema.sql`
+**Files:** `supabase/migrations/<timestamp>_<feature_name>.sql`
 
 **Acceptance Criteria:**
 
@@ -398,10 +384,8 @@ based-on: [plan.md filename]
 
 **Acceptance Criteria:**
 
-- [x] Schema doc matches actual migration
-- [x] Field mappings table complete
-- [x] RLS policies documented
-- [x] No TODOs remain for this table
+- [x] Types include the new table
+- [x] `just type-check` passes
 
 ---
 
@@ -603,7 +587,7 @@ Before marking planning complete:
 - [ ] Tasks ordered by dependencies
 - [ ] Parallel tasks marked with [P]
 - [ ] Testing strategy defined for all layers
-- [ ] TODO markers added to specifications
+- [ ] Hard rules (if any) listed for `docs/DECISIONS.md`
 
 ## Error Handling
 
@@ -635,7 +619,7 @@ Planning is complete when:
 4. ✅ Tasks broken down into discrete, testable units
 5. ✅ Dependencies identified and ordered
 6. ✅ Testing strategy defined
-7. ✅ TODO markers added to specifications
+7. ✅ Hard rules (if any) listed for `docs/DECISIONS.md`
 8. ✅ `plan.md` and `tasks.md` created in `.claude/features/[feature-name]/`
 
 **Your plan enables the Execute Agent to implement the feature systematically with TDD.**

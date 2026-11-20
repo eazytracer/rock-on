@@ -47,13 +47,13 @@ the app and tests through `just` / Docker on Node 24 (see docs/LOCAL_DEV.md →
 - **Jam Sessions** — impromptu jams; join by code, match songs across catalogs
 - **Events** — venue-oriented lineups, RSVP, and casting
 - **Band Management** — invite members and collaborate
-- **Offline-First** — works offline with automatic sync when connected
+- **Live updates** — band members see each other's changes in real time
 
 ## Tech Stack
 
 - **Frontend:** React 18+, TypeScript, TailwindCSS, Vite
 - **Backend:** Supabase (PostgreSQL, Auth, Realtime, Edge Functions)
-- **Local Storage:** IndexedDB (Dexie) for offline-first architecture
+- **Data:** online-only; direct Supabase reads/writes, TanStack Query as an in-memory cache, `audit_log` realtime for live updates
 - **Testing:** Vitest (unit), Playwright (E2E), pgTAP (database)
 
 ## Development
@@ -124,7 +124,7 @@ rock-on/
 │   ├── pages/              # Page components
 │   ├── services/           # Business logic
 │   │   ├── auth/           # Authentication
-│   │   ├── data/           # Data sync (offline-first)
+│   │   ├── data/           # Repository (Supabase) + realtime
 │   │   └── supabase/       # Supabase client
 │   └── models/             # TypeScript types
 ├── supabase/               # Supabase configuration

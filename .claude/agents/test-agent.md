@@ -86,7 +86,10 @@ You are a Test Agent specialized in integration and end-to-end (E2E) testing. Yo
 
 ### Phase 2: Run Test Suite
 
-**Run all test layers systematically:**
+**Run all test layers systematically.** On the host, use the `just` recipes
+(`just test`, `just test-db`, `just test-e2e`); unit tests never run on host
+Node, while Playwright runs on the host against the stack started by `just dev`.
+See `docs/LOCAL_DEV.md` and `tests/README.md`.
 
 ```bash
 # 1. Unit tests (Execute Agent should have run these already)
@@ -424,7 +427,7 @@ Response: {"message": "JWT expired"}
 
 **Files to investigate:**
 
-- `supabase/migrations/20251106000000_baseline_schema.sql` (RLS policies)
+- `supabase/migrations/` (the feature migration's RLS policies)
 - `src/services/data/RemoteRepository.ts` (field mappings)
 - `src/hooks/useFavorites.ts` (API call logic)
 

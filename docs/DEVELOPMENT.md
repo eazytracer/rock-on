@@ -1,50 +1,39 @@
 # Development Process
 
-Rock On is built with an agent-assisted workflow. This is the short "how we
-work" overview — the **intent**. The reusable process itself lives globally (in
-Eric's Hermes skills), not in this repo, so it isn't duplicated across projects.
+Rock On is built with an agent-assisted workflow. This page is the short "how we
+build" overview. The code is the source of truth; nothing here restates it.
 
 ## Runtime chain
 
-- **Hermes** orchestrates — plans, tracks progress, decides the next step.
-- **Claude Code** (`claude` CLI, under Eric's own Anthropic account) writes the
-  code. Hermes invokes and supervises it; Hermes is not itself the coding client.
-- **herdr** is the multiplexer Hermes uses to launch, persist, and read the
-  state of Claude Code sessions (currently local — server + `claude` on the Mac
-  host; containers run only the app).
+- **Hermes** orchestrates: plans, tracks progress, decides the next step.
+- **Claude Code** writes the code, invoked and supervised by Hermes.
+- **herdr** is the multiplexer Hermes uses to run Claude Code sessions on the
+  Mac host; containers run only the app.
 
 ## The loop
 
-research → plan → implement → test → review → finalize → release
+research → plan → implement → test → release
 
-- **Research** — explore the code, then stress-test the plan with an adversarial
-  interview (`grill-me`) until nothing is silently assumed.
-- **Plan** — a concrete markdown plan lands in `.hermes/plans/` before any code.
-- **Implement** — drive Claude Code through the plan, tests first (TDD).
-- **Test / Review** — full suite + a pre-commit review pass.
-- **Finalize / Release** — see the release gate below.
+- **Research**: read the code (start at `docs/INDEX.md`), check the hard rules
+  in `docs/DECISIONS.md`, then stress-test the plan (`grill-me`) until nothing
+  is silently assumed.
+- **Plan**: a concrete markdown plan (in `.hermes/plans/`) before any code.
+- **Implement**: tests first (TDD). Schema changes go in the feature's one
+  incremental, idempotent migration (amended in place while in development;
+  new tables get explicit `GRANT`s; the baseline is frozen), with pgTAP tests.
+- **Test**: `just check`, `just test-db`, and `just test-e2e` (Playwright on
+  the host, against the running stack). Layout and commands: `tests/README.md`.
+- **Release**: `/finalize` on the branch (version bump, dated CHANGELOG
+  section, `release_notes` row); `/release` on `main` after merge (tag the
+  merge commit). Before deploying: `.claude/process/pre-deploy-checklist.md`.
 
-## What's project-specific (lives here, not global)
-
-These are Rock On's own rules — an agent working this repo must follow them.
-Authoritative detail is in `CLAUDE.md`:
-
-- **Offline-first repository guardrail** — never write directly to `db.*`
-  (Dexie/IndexedDB) outside the storage layer; always go through the repository
-  so the sync queue sees the change.
-- **Supabase migration discipline** — one incremental migration per feature,
-  idempotent, with explicit `GRANT`s for new tables (`npm run lint:migrations`
-  enforces it). The baseline is frozen.
-- **Edge-function policy** — every function's auth mode + role context is
-  recorded in the `AUTH_MODE` map in `scripts/deploy-edge-functions.sh`.
-- **Release gate** — no prod-bound PR merges without a version bump, a dated
-  `CHANGELOG.md` entry, a `release_notes` row, and a `vX.Y.Z` tag.
-- **Pre-deploy checklist** — `.claude/process/pre-deploy-checklist.md`.
+When work decides a hard rule (what the app must or must not do), add one dated
+bullet to `docs/DECISIONS.md`. When an area is added, moved or removed, update
+`docs/INDEX.md`. Don't write docs that restate how the code works.
 
 ## See also
 
-- `docs/LOCAL_DEV.md` — running locally, tests, and the `just` recipes.
-- `CLAUDE.md` — the authoritative coding rules an agent loads for this repo.
-- `README.md` — setup and commands.
-- Vault: **Agentic Development Workflow** (the full process) and **Rock On** (the
-  product hub) — Eric's personal notes, not in this repo.
+- `CLAUDE.md`: the authoritative coding rules, migration and release policy.
+- `docs/LOCAL_DEV.md`: running the stack (host vs devcontainer, `just`).
+- `tests/README.md`: test layout and commands.
+- `docs/INDEX.md`: map of the app. `docs/DECISIONS.md`: hard rules.

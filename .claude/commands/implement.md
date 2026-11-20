@@ -118,6 +118,8 @@ npm test                  # Run test suite
 npm run lint              # Check code style
 ```
 
+On the host, use the `just` equivalents (`just check`, `just test-db`).
+
 ## Next Steps After Implementation
 
 Once all tasks complete:
