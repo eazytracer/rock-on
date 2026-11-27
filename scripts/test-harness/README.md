@@ -1,7 +1,7 @@
 # Test Harness — Multi-User Scripts
 
 Scripts for provisioning test users and driving them through real
-Supabase flows (jam sessions, catalog seeding, realtime watching, etc.)
+Supabase flows (personas, catalog seeding, etc.)
 **from the command line**. Complements Playwright E2E tests, which
 can't easily drive more than one authenticated user at a time.
 
@@ -34,11 +34,6 @@ All commands run via `npm run harness -- <command> [args]` (or
 | `seed-songs <persona> [--count=N] [--file=songs.json] [--preset=default]` | Insert songs into the persona's **personal** catalog. Uses the persona's JWT (respects RLS).                                                                                       |
 | `seed-setlist <persona> [--name=<n>] [--count=N] [--json]`                | Create a **personal** setlist from songs already in the persona's catalog. Returns the setlist id.                                                                                 |
 | `list-songs <persona>`                                                    | Print the persona's personal catalog.                                                                                                                                              |
-| `create-jam <persona> [--name=<n>] [--seed-from=<setlistId>] [--json]`    | Persona creates a jam session. With `--seed-from`, projects that personal setlist's songs into the jam's broadcast `setlistItems`.                                                 |
-| `join-jam <persona> <joinCode>`                                           | Persona joins an existing jam session via join code.                                                                                                                               |
-| `recompute <sessionId> [--as=<persona>]`                                  | Invoke the `jam-recompute` Edge Function (default acts as alice). Mirrors the auto-recompute the app does on participant changes.                                                  |
-| `dump-session <sessionId>`                                                | Full snapshot — session row, participants (with display names), matches, host queue, working setlist.                                                                              |
-| `watch <sessionId>`                                                       | Stream realtime changes for the session. One event per stdout line. Ctrl-C to stop.                                                                                                |
 
 ## Example flow — exercise the full jam session happy path
 
@@ -48,41 +43,8 @@ npm run harness -- ensure
 npm run harness -- seed-songs alice --preset=default
 npm run harness -- seed-songs bob --preset=default
 
-# Alice starts a jam
-OUT=$(npm run harness -- create-jam alice --name="Friday Practice" --json)
-SESSION_ID=$(echo "$OUT" | jq -r .id)
-JOIN_CODE=$(echo "$OUT" | jq -r .joinCode)
-
-# In another terminal: watch realtime
-npm run harness -- watch "$SESSION_ID"
-
-# Bob joins
-npm run harness -- join-jam bob "$JOIN_CODE"
-
-# Inspect
-npm run harness -- dump-session "$SESSION_ID"
-```
-
-## Example flow — seed jam from a personal setlist
-
-```bash
-npm run harness -- ensure
-npm run harness -- seed-songs alice --preset=default
-npm run harness -- seed-songs bob --preset=default
-
-# Alice creates a personal setlist from her catalog
-SETLIST=$(npm run harness -- seed-setlist alice --name="Friday Set" --json)
-SETLIST_ID=$(echo "$SETLIST" | jq -r .id)
-
-# Alice starts a jam pre-seeded with that setlist; bob joins.
-JAM=$(npm run harness -- create-jam alice --seed-from="$SETLIST_ID" --json)
-SESSION_ID=$(echo "$JAM" | jq -r .id)
-JOIN_CODE=$(echo "$JAM" | jq -r .joinCode)
-npm run harness -- join-jam bob "$JOIN_CODE"
-
-# Confirm the broadcast setlist is populated. dump-session will show
-# `seedSetlist:` and N entries under `setlistItems:`.
-npm run harness -- dump-session "$SESSION_ID"
+# Bob checks his catalog
+npm run harness -- list-songs bob
 ```
 
 ## Browser session injection

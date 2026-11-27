@@ -106,30 +106,36 @@ export function sortSongs(
 export function filterSongs(
   songs: Song[],
   query: string,
-  tunings: readonly string[] = []
+  tunings: readonly string[] = [],
+  tags: readonly string[] = []
 ): Song[] {
   const q = query.trim().toLowerCase()
   return songs.filter(
     s =>
       (!tunings.length || tunings.includes(s.guitarTuning || 'Standard')) &&
+      tags.every(t => s.tags?.includes(t)) &&
       (!q ||
         [s.title, s.artist, s.album].some(f => f?.toLowerCase().includes(q)))
   )
 }
 
-/** The Songs list as shown: hidden filter, search, tunings, then the sort. */
+/** The Songs list as shown: hidden filter, search, tunings, tags, then the sort. */
 export function catalogList(
   songs: Song[],
   view: ListView,
   hiddenIds: ReadonlySet<string>,
-  filter: { query: string; tunings: readonly string[] },
+  filter: {
+    query: string
+    tunings: readonly string[]
+    tags?: readonly string[]
+  },
   nextShowAt?: Map<string, number>
 ): Song[] {
   const shown = view.showHidden
     ? songs
     : songs.filter(s => !hiddenIds.has(s.id))
   return sortSongs(
-    filterSongs(shown, filter.query, filter.tunings),
+    filterSongs(shown, filter.query, filter.tunings, filter.tags),
     view.sort,
     view.dir,
     nextShowAt
@@ -182,6 +188,8 @@ export interface SongLineData {
   title: string
   artist?: string | null
   tuning?: string | null
+  /** A plain title with no song behind it (jam lineup): no tuning shown. */
+  noTuning?: boolean
   key?: string | null
   bpm?: number | null
   /** Length in seconds; 0 when unknown. */
@@ -232,4 +240,58 @@ export function usageSummary(
   else if (sets.length > 1) parts.push(`${sets.length} setlists`)
   if (shows) parts.push(`${shows} show${shows === 1 ? '' : 's'}`)
   return parts.length ? `Used in ${parts.join(' and ')}` : ''
+}
+
+/** The tag that makes a My Songs song one of your jam songs. */
+export const JAM_TAG = 'jam'
+
+/**
+ * Tags as saved: lowercase, trimmed, no blanks, no repeats (first wins).
+ * Takes the comma-separated text of the Tags field or a list.
+ */
+export function normalizeTags(input: string | readonly string[]): string[] {
+  const parts = typeof input === 'string' ? input.split(',') : input
+  return [...new Set(parts.map(t => t.trim().toLowerCase()).filter(Boolean))]
+}
+
+/** The tags with `tag` added (at the end) or taken out. */
+export function withTag(
+  tags: readonly string[] | undefined,
+  tag: string,
+  on: boolean
+): string[] {
+  const rest = normalizeTags(tags ?? []).filter(t => t !== tag)
+  return on ? [...rest, tag] : rest
+}
+
+/**
+ * Jam songs builder: the My Songs songs whose `jam` tag changes when
+ * `picked` (ids) is saved, with their new tags.
+ */
+export function jamTagChanges(
+  mySongs: readonly Song[],
+  picked: ReadonlySet<string>
+): { id: string; tags: string[] }[] {
+  return mySongs
+    .filter(s => picked.has(s.id) !== !!s.tags?.includes(JAM_TAG))
+    .map(s => ({ id: s.id, tags: withTag(s.tags, JAM_TAG, picked.has(s.id)) }))
+}
+
+/** Mirrors the server's `normalize_text`: how songs match across people. */
+export function normalizeText(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[([][^)\]]*[)\]]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^(the|a|an) /, '')
+}
+
+/** Same song, by normalised exact title + artist. */
+export function songMatchKey(s: {
+  title: string
+  artist?: string | null
+}): string {
+  return `${normalizeText(s.title)}|${normalizeText(s.artist ?? '')}`
 }

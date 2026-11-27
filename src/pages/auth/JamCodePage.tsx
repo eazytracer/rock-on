@@ -1,46 +1,37 @@
 /**
- * Got a jam code? (`/get-started/jam`): a thin code entry over today's event
- * join (decision 3). Phase 7 rebuilds the jam-code path.
+ * Got a jam code? (`/get-started/jam`): a code entry that hands off to the
+ * shared resolver at `/j/CODE` (jam or band code, with or without the hyphen).
  */
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { EventService } from '../../services/EventService'
-import { useToast } from '../../contexts/ToastContext'
-import { createLogger } from '../../utils/logger'
 import { Button } from '../../components/ui'
+import { parseInviteCode } from '../../domain/invites'
+import { resolveCode } from '../../services/api/jams'
+import { errorText } from '../../services/api/errors'
 import { AuthError, AuthFrame } from './AuthFrame'
-
-const log = createLogger('JamCodePage')
 
 export const JamCodePage: React.FC = () => {
   const navigate = useNavigate()
-  const { showToast } = useToast()
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [joining, setJoining] = useState(false)
+  const [checking, setChecking] = useState(false)
 
+  // A wrong code says so here; a jam or band code opens its preview.
   const join = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!code.trim()) {
+    const c = parseInviteCode(code)
+    if (!c) {
       setError('Enter the code from the host.')
       return
     }
-    setJoining(true)
-    setError(null)
+    setChecking(true)
     try {
-      const result = await EventService.joinByCode(code)
-      if (!result.ok || !result.eventId) {
-        setError(result.error || "Couldn't join. Try again.")
-        setJoining(false)
-        return
-      }
-      showToast(`You joined ${result.name || 'the event'}`, 'success')
-      navigate(`/events/${result.eventId}`)
+      if (await resolveCode(c)) navigate(`/j/${c}`)
+      else setError("That code isn't valid.")
     } catch (err) {
-      log.error('Join by code failed', err)
-      setError("Couldn't join. Try again.")
-      setJoining(false)
+      setError(errorText(err))
     }
+    setChecking(false)
   }
 
   return (
@@ -53,7 +44,7 @@ export const JamCodePage: React.FC = () => {
           jam code?
         </>
       }
-      lede="Enter the code from the host. You'll land on the jam or event."
+      lede="Enter the code from the host. You'll see the jam before you join."
       error={
         error && <AuthError data-testid="jam-code-error">{error}</AuthError>
       }
@@ -75,7 +66,7 @@ export const JamCodePage: React.FC = () => {
             setCode(e.target.value.toUpperCase())
             setError(null)
           }}
-          placeholder="JAM4567"
+          placeholder="ABCD-EFGH"
           autoComplete="off"
           autoCapitalize="characters"
           autoFocus
@@ -92,10 +83,10 @@ export const JamCodePage: React.FC = () => {
             variant="primary"
             size="lg"
             fullWidth
-            disabled={joining}
+            disabled={checking}
             data-testid="join-event-button"
           >
-            {joining ? 'Joining…' : 'Join'}
+            {checking ? 'Checking…' : 'Continue'}
           </Button>
         </div>
       </form>

@@ -8,6 +8,8 @@
 --   Friends  Sarah, Leo          Requests  Mike → Eric, Dana → Eric
 --   Sent     Eric → Jess         Findable  Jess, Leo, Priya (+ the band)
 --   Policies Jess / Priya everyone · Leo friends_of_friends · Dana code_only (DANA2345)
+-- Phase 7: five jams (codes FRDY4JAM, TUES7JAM, SRAH5JAM, HALW3JAM, MKBD6JAM; see
+-- "Jams" below) and personal songs tagged 'jam'.
 -- =====================================================
 
 BEGIN;
@@ -1120,6 +1122,172 @@ BEGIN
   INSERT INTO public.event_lineup_requests (event_id, requester_id, source, owner_id, display_title, display_artist, status) VALUES
     ('e1111111-1111-4111-8111-111111111111', v_mike_id, 'external', v_mike_id, 'Seven Nation Army', 'The White Stripes', 'pending')
   ON CONFLICT DO NOTHING;
+
+  -- ── Jams (phase 7) ──────────────────────────────────────────────────────
+  -- Codes (shown ABCD-EFGH):
+  --   FRDY4JAM  Friday Night Jam      planned, Eric hosts, 'code' (lineup, pitches, Guitar 2,
+  --                                   Harmonica, invited Leo, web guest Robin, house player Sam)
+  --   TUES7JAM  Tuesday Open Jam      live, Eric hosts (stage / queue / played, house player Kai,
+  --                                   web guest Alex)
+  --   SRAH5JAM  Sarah's Basement      planned, Sarah hosts, 'friends' (Eric's Friends' jams)
+  --   HALW3JAM  Halloween Jam         ended, played songs
+  --   MKBD6JAM  Band Rehearsal Jam    planned, Mike hosts the band jam, invite only (Eric invited)
+  --   JAM4567   Backyard Summer Jam   the legacy event (its pending request is backfilled below)
+  -- Web guest tokens (for jam_state etc. with p_guest_token): Robin = 'seed-guest-robin'
+  -- on FRDY4JAM, Alex = 'seed-guest-alex' on TUES7JAM.
+  INSERT INTO public.events (id, host_user_id, band_id, name, venue, scheduled_date, timezone, visibility,
+                             status, short_code, who_can_join, auto_approve)
+  VALUES
+    ('e2222222-2222-4222-8222-222222222201', v_eric_id, NULL, 'Friday Night Jam', 'Lucky''s',
+     date_trunc('day', NOW()) + interval '3 days 20 hours', 'America/Los_Angeles', 'unlisted',
+     'scheduled', 'FRDY4JAM', 'code', false),
+    ('e2222222-2222-4222-8222-222222222202', v_eric_id, NULL, 'Tuesday Open Jam', 'The Anchor',
+     NOW() - interval '1 hour', 'America/Los_Angeles', 'unlisted', 'live', 'TUES7JAM', 'code', true),
+    ('e2222222-2222-4222-8222-222222222203', v_sarah_id, NULL, 'Sarah''s Basement Session', 'Sarah''s place',
+     date_trunc('day', NOW()) + interval '5 days 19 hours', 'America/Los_Angeles', 'unlisted',
+     'scheduled', 'SRAH5JAM', 'friends', false),
+    ('e2222222-2222-4222-8222-222222222204', v_eric_id, NULL, 'Halloween Jam', 'The Anchor',
+     NOW() - interval '20 days', 'America/Los_Angeles', 'unlisted', 'completed', 'HALW3JAM', 'code', false),
+    ('e2222222-2222-4222-8222-222222222205', v_mike_id, v_band_id, 'Band Rehearsal Jam', 'Eric''s Garage',
+     date_trunc('day', NOW()) + interval '7 days 18 hours', 'America/Los_Angeles', 'unlisted',
+     'scheduled', 'MKBD6JAM', 'invite', false)
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.event_participants (id, event_id, user_id, guest_name, access_tier, rsvp, via, is_house, parts, invited_by) VALUES
+    -- Friday Night Jam
+    ('a2222222-2222-4222-8222-222222220101', 'e2222222-2222-4222-8222-222222222201', v_eric_id,  NULL, 'host',   'going',   'app',    false, '[{"key":"guitar"},{"key":"vox"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220102', 'e2222222-2222-4222-8222-222222222201', v_sarah_id, NULL, 'cohost', 'going',   'app',    false, '[{"key":"vox"},{"key":"keys"}]', v_eric_id),
+    ('a2222222-2222-4222-8222-222222220103', 'e2222222-2222-4222-8222-222222222201', v_mike_id,  NULL, 'guest',  'going',   'app',    false, '[{"key":"drums"},{"key":"bass"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220104', 'e2222222-2222-4222-8222-222222222201', v_leo_id,   NULL, 'guest',  'pending', 'app',    false, '[]', v_eric_id),
+    ('a2222222-2222-4222-8222-222222220105', 'e2222222-2222-4222-8222-222222222201', NULL, 'Robin',  'guest',  'going',   'web',    false, '[{"key":"bass"},{"key":"other","label":"Harmonica"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220106', 'e2222222-2222-4222-8222-222222222201', NULL, 'Sam',    'guest',  'going',   'walkup', true,  '[{"key":"drums"}]', NULL),
+    -- Tuesday Open Jam (live)
+    ('a2222222-2222-4222-8222-222222220201', 'e2222222-2222-4222-8222-222222222202', v_eric_id,  NULL, 'host',   'going', 'app',    false, '[{"key":"guitar"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220202', 'e2222222-2222-4222-8222-222222222202', v_mike_id,  NULL, 'guest',  'going', 'app',    false, '[{"key":"vox"},{"key":"drums"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220203', 'e2222222-2222-4222-8222-222222222202', v_sarah_id, NULL, 'guest',  'going', 'app',    false, '[{"key":"bass"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220204', 'e2222222-2222-4222-8222-222222222202', NULL, 'Alex',   'guest',  'going', 'web',    false, '[{"key":"guitar"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220205', 'e2222222-2222-4222-8222-222222222202', NULL, 'Kai',    'guest',  'going', 'walkup', true,  '[{"key":"drums"}]', NULL),
+    -- Sarah's Basement Session (friends mode; Eric isn't in it)
+    ('a2222222-2222-4222-8222-222222220301', 'e2222222-2222-4222-8222-222222222203', v_sarah_id, NULL, 'host',   'going', 'app', false, '[{"key":"vox"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220302', 'e2222222-2222-4222-8222-222222222203', v_leo_id,   NULL, 'guest',  'going', 'app', false, '[{"key":"guitar"}]', NULL),
+    -- Halloween Jam (ended: guests already gone)
+    ('a2222222-2222-4222-8222-222222220401', 'e2222222-2222-4222-8222-222222222204', v_eric_id,  NULL, 'host',   'going', 'app', false, '[{"key":"guitar"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220402', 'e2222222-2222-4222-8222-222222222204', v_mike_id,  NULL, 'guest',  'going', 'app', false, '[{"key":"drums"}]', NULL),
+    -- Band Rehearsal Jam (invite only; Eric invited)
+    ('a2222222-2222-4222-8222-222222220501', 'e2222222-2222-4222-8222-222222222205', v_mike_id,  NULL, 'host',   'going',   'app', false, '[{"key":"drums"}]', NULL),
+    ('a2222222-2222-4222-8222-222222220502', 'e2222222-2222-4222-8222-222222222205', v_sarah_id, NULL, 'guest',  'going',   'app', false, '[{"key":"bass"}]', v_mike_id),
+    ('a2222222-2222-4222-8222-222222220503', 'e2222222-2222-4222-8222-222222222205', v_eric_id,  NULL, 'guest',  'pending', 'app', false, '[]', v_mike_id)
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.event_guest_tokens (token_hash, event_id, participant_id, kind) VALUES
+    (extensions.digest('seed-guest-robin', 'sha256'), 'e2222222-2222-4222-8222-222222222201', 'a2222222-2222-4222-8222-222222220105', 'guest'),
+    (extensions.digest('seed-guest-alex', 'sha256'),  'e2222222-2222-4222-8222-222222222202', 'a2222222-2222-4222-8222-222222220204', 'guest')
+  ON CONFLICT (token_hash) DO NOTHING;
+
+  INSERT INTO public.event_lineup_items (id, event_id, position, source, owner_id, song_id, display_title, display_artist,
+                                         state, parts_needed, pitched_by, called_at, queue_position, created_date) VALUES
+    -- Friday Night Jam: open songs with gaps, a Guitar 2, a custom Harmonica, two pending pitches
+    ('f2222222-2222-4222-8222-222222220101', 'e2222222-2222-4222-8222-222222222201', 1, 'band', v_eric_id, v_song_mr_brightside,
+     'Mr. Brightside', 'The Killers', 'open', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NULL, NULL, NOW() - interval '2 days'),
+    ('f2222222-2222-4222-8222-222222220102', 'e2222222-2222-4222-8222-222222222201', 2, 'band', v_eric_id, v_song_seven_nation,
+     'Seven Nation Army', 'The White Stripes', 'open', '[{"key":"vox"},{"key":"guitar"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NULL, NULL, NOW() - interval '2 days'),
+    ('f2222222-2222-4222-8222-222222220103', 'e2222222-2222-4222-8222-222222222201', 3, 'external', v_eric_id, NULL,
+     'Low Rider', 'War', 'open', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"},{"key":"other","label":"Harmonica"}]', NULL, NULL, NULL, NOW() - interval '1 day'),
+    ('f2222222-2222-4222-8222-222222220104', 'e2222222-2222-4222-8222-222222222201', 4, 'external', v_mike_id, NULL,
+     'Plush', 'Stone Temple Pilots', 'pending', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', 'a2222222-2222-4222-8222-222222220103', NULL, NULL, NOW() - interval '20 hours'),
+    ('f2222222-2222-4222-8222-222222220105', 'e2222222-2222-4222-8222-222222222201', 5, 'external', NULL, NULL,
+     'Wonderwall (Live)', 'Oasis', 'pending', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', 'a2222222-2222-4222-8222-222222220105', NULL, NULL, NOW() - interval '3 hours'),
+    -- Tuesday Open Jam: played, on stage, queued, a pending pitch, an open song
+    ('f2222222-2222-4222-8222-222222220201', 'e2222222-2222-4222-8222-222222222202', 1, 'band', v_eric_id, v_song_all_star,
+     'All Star', 'Smash Mouth', 'played', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NOW() - interval '50 minutes', NULL, NOW() - interval '2 hours'),
+    ('f2222222-2222-4222-8222-222222220202', 'e2222222-2222-4222-8222-222222222202', 2, 'band', v_eric_id, v_song_creep,
+     'Creep', 'Radiohead', 'played', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NOW() - interval '30 minutes', NULL, NOW() - interval '2 hours'),
+    ('f2222222-2222-4222-8222-222222220203', 'e2222222-2222-4222-8222-222222222202', 3, 'band', v_eric_id, v_song_black,
+     'Black', 'Pearl Jam', 'stage', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NOW() - interval '12 minutes', NULL, NOW() - interval '2 hours'),
+    ('f2222222-2222-4222-8222-222222220204', 'e2222222-2222-4222-8222-222222222202', 4, 'band', v_eric_id, v_song_enter_sandman,
+     'Enter Sandman', 'Metallica', 'queued', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NULL, 1, NOW() - interval '2 hours'),
+    ('f2222222-2222-4222-8222-222222220205', 'e2222222-2222-4222-8222-222222222202', 5, 'band', v_eric_id, v_song_zombie,
+     'Zombie', 'The Cranberries', 'queued', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NULL, 2, NOW() - interval '2 hours'),
+    ('f2222222-2222-4222-8222-222222220206', 'e2222222-2222-4222-8222-222222222202', 6, 'external', NULL, NULL,
+     'Everlong', 'Foo Fighters', 'pending', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', 'a2222222-2222-4222-8222-222222220204', NULL, NULL, NOW() - interval '10 minutes'),
+    ('f2222222-2222-4222-8222-222222220207', 'e2222222-2222-4222-8222-222222222202', 7, 'external', v_mike_id, NULL,
+     'Hey Ya!', 'OutKast', 'open', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"},{"key":"keys"}]', 'a2222222-2222-4222-8222-222222220202', NULL, NULL, NOW() - interval '5 minutes'),
+    -- Sarah's Basement Session
+    ('f2222222-2222-4222-8222-222222220301', 'e2222222-2222-4222-8222-222222222203', 1, 'external', v_sarah_id, NULL,
+     'Dreams', 'Fleetwood Mac', 'open', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NULL, NULL, NOW() - interval '1 day'),
+    -- Halloween Jam: the night's played songs (in called order) and one that never made it
+    ('f2222222-2222-4222-8222-222222220401', 'e2222222-2222-4222-8222-222222222204', 1, 'band', v_eric_id, v_song_zombie,
+     'Zombie', 'The Cranberries', 'played', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NOW() - interval '20 days' + interval '30 minutes', NULL, NOW() - interval '21 days'),
+    ('f2222222-2222-4222-8222-222222220402', 'e2222222-2222-4222-8222-222222222204', 2, 'band', v_eric_id, v_song_creep,
+     'Creep', 'Radiohead', 'played', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NOW() - interval '20 days' + interval '1 hour', NULL, NOW() - interval '21 days'),
+    ('f2222222-2222-4222-8222-222222220403', 'e2222222-2222-4222-8222-222222222204', 3, 'external', v_mike_id, NULL,
+     'Thriller', 'Michael Jackson', 'played', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"},{"key":"keys"}]', NULL, NOW() - interval '20 days' + interval '15 minutes', NULL, NOW() - interval '21 days'),
+    ('f2222222-2222-4222-8222-222222220404', 'e2222222-2222-4222-8222-222222222204', 4, 'external', v_mike_id, NULL,
+     'Monster Mash', 'Bobby Pickett', 'removed', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NULL, NULL, NOW() - interval '21 days'),
+    -- Band Rehearsal Jam
+    ('f2222222-2222-4222-8222-222222220501', 'e2222222-2222-4222-8222-222222222205', 1, 'band', v_mike_id, v_song_plush,
+     'Plush', 'Stone Temple Pilots', 'open', '[{"key":"vox"},{"key":"guitar"},{"key":"bass"},{"key":"drums"}]', NULL, NULL, NULL, NOW() - interval '1 day')
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.event_hands (event_id, event_lineup_item_id, role_key, role_label, participant_id, user_id, user_name, status, resolved_date) VALUES
+    -- Friday: Mr. Brightside (Eric cast on guitar; Mike and Robin up; vox open)
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220101', 'guitar', NULL, 'a2222222-2222-4222-8222-222222220101', v_eric_id,  'Eric Johnson',  'accepted', NOW() - interval '1 day'),
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220101', 'drums',  NULL, 'a2222222-2222-4222-8222-222222220103', v_mike_id,  'Mike Thompson', 'raised',   NULL),
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220101', 'bass',   NULL, 'a2222222-2222-4222-8222-222222220105', NULL,       'Robin',         'raised',   NULL),
+    -- Friday: Seven Nation Army (Guitar 1 Eric, Guitar 2 Sarah, Mike up on bass)
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220102', 'guitar', NULL, 'a2222222-2222-4222-8222-222222220101', v_eric_id,  'Eric Johnson',  'accepted', NOW() - interval '1 day'),
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220102', 'guitar', NULL, 'a2222222-2222-4222-8222-222222220102', v_sarah_id, 'Sarah Chen',    'accepted', NOW() - interval '20 hours'),
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220102', 'bass',   NULL, 'a2222222-2222-4222-8222-222222220103', v_mike_id,  'Mike Thompson', 'raised',   NULL),
+    -- Friday: Low Rider (Robin up on Harmonica, Sam cast on drums)
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220103', 'other', 'Harmonica', 'a2222222-2222-4222-8222-222222220105', NULL, 'Robin', 'raised',   NULL),
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220103', 'drums',  NULL, 'a2222222-2222-4222-8222-222222220106', NULL,       'Sam',           'accepted', NOW() - interval '1 day'),
+    -- Friday: pitches (Mike on drums for his Plush, Sarah up on vox; Robin on bass for Wonderwall)
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220104', 'drums',  NULL, 'a2222222-2222-4222-8222-222222220103', v_mike_id,  'Mike Thompson', 'raised',   NULL),
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220104', 'vox',    NULL, 'a2222222-2222-4222-8222-222222220102', v_sarah_id, 'Sarah Chen',    'raised',   NULL),
+    ('e2222222-2222-4222-8222-222222222201', 'f2222222-2222-4222-8222-222222220105', 'bass',   NULL, 'a2222222-2222-4222-8222-222222220105', NULL,       'Robin',         'raised',   NULL),
+    -- Tuesday: Black on stage (full band), Enter Sandman queued (Kai cast, Alex up)
+    ('e2222222-2222-4222-8222-222222222202', 'f2222222-2222-4222-8222-222222220203', 'guitar', NULL, 'a2222222-2222-4222-8222-222222220201', v_eric_id,  'Eric Johnson',  'accepted', NOW() - interval '20 minutes'),
+    ('e2222222-2222-4222-8222-222222222202', 'f2222222-2222-4222-8222-222222220203', 'vox',    NULL, 'a2222222-2222-4222-8222-222222220202', v_mike_id,  'Mike Thompson', 'accepted', NOW() - interval '20 minutes'),
+    ('e2222222-2222-4222-8222-222222222202', 'f2222222-2222-4222-8222-222222220203', 'bass',   NULL, 'a2222222-2222-4222-8222-222222220203', v_sarah_id, 'Sarah Chen',    'accepted', NOW() - interval '20 minutes'),
+    ('e2222222-2222-4222-8222-222222222202', 'f2222222-2222-4222-8222-222222220203', 'drums',  NULL, 'a2222222-2222-4222-8222-222222220205', NULL,       'Kai',           'accepted', NOW() - interval '20 minutes'),
+    ('e2222222-2222-4222-8222-222222222202', 'f2222222-2222-4222-8222-222222220204', 'drums',  NULL, 'a2222222-2222-4222-8222-222222220205', NULL,       'Kai',           'accepted', NOW() - interval '15 minutes'),
+    ('e2222222-2222-4222-8222-222222222202', 'f2222222-2222-4222-8222-222222220204', 'guitar', NULL, 'a2222222-2222-4222-8222-222222220204', NULL,       'Alex',          'raised',   NULL),
+    ('e2222222-2222-4222-8222-222222222202', 'f2222222-2222-4222-8222-222222220206', 'guitar', NULL, 'a2222222-2222-4222-8222-222222220204', NULL,       'Alex',          'raised',   NULL),
+    ('e2222222-2222-4222-8222-222222222202', 'f2222222-2222-4222-8222-222222220207', 'vox',    NULL, 'a2222222-2222-4222-8222-222222220202', v_mike_id,  'Mike Thompson', 'raised',   NULL)
+  ON CONFLICT DO NOTHING;
+
+  -- Eric's invite to Mike's band jam.
+  INSERT INTO public.notifications (user_id, kind, title, body, link, payload, created_date) VALUES
+    (v_eric_id, 'event', 'Mike invited you to Band Rehearsal Jam', 'Eric''s Garage', '/jam/e2222222-2222-4222-8222-222222222205',
+     jsonb_build_object('type', 'jam_invite', 'event_id', 'e2222222-2222-4222-8222-222222222205', 'band_id', v_band_id),
+     NOW() - interval '2 hours');
+
+  -- Jam songs: personal songs tagged 'jam', titles written differently on each
+  -- side to exercise the normalised match (punctuation, case, "The", "(Live)").
+  --   Eric ↔ Mike: All Star, Mr. Brightside, Plush · Eric ↔ Sarah: Wonderwall, Black
+  --   Mike ↔ Sarah: Bohemian Rhapsody · Sarah ↔ Leo: Don't Stop Believin'
+  --   Eric's "Low Rider" isn't tagged (lineup shows "Add to jam songs").
+  UPDATE public.songs SET tags = ARRAY['jam']
+   WHERE context_type = 'personal'
+     AND ((context_id = v_eric_id::text AND title IN ('All Star', 'Wonderwall'))
+       OR (context_id = v_mike_id::text AND title IN ('All Star', 'Bohemian Rhapsody'))
+       OR (context_id = v_sarah_id::text AND title IN ('Wonderwall', 'Bohemian Rhapsody')));
+  INSERT INTO public.songs (id, title, artist, context_type, context_id, created_by, visibility, tags) VALUES
+    ('44444444-4444-4444-8444-444444444401', 'Mr Brightside', 'the killers', 'personal', v_eric_id::text, v_eric_id, 'personal', ARRAY['jam']),
+    ('44444444-4444-4444-8444-444444444402', 'Plush (Live)', 'Stone Temple Pilots', 'personal', v_eric_id::text, v_eric_id, 'personal', ARRAY['jam']),
+    ('44444444-4444-4444-8444-444444444403', 'Black', 'Pearl Jam', 'personal', v_eric_id::text, v_eric_id, 'personal', ARRAY['jam']),
+    ('44444444-4444-4444-8444-444444444404', 'Low Rider', 'War', 'personal', v_eric_id::text, v_eric_id, 'personal', '{}'),
+    ('44444444-4444-4444-8444-444444444411', 'Mr. Brightside', 'The Killers', 'personal', v_mike_id::text, v_mike_id, 'personal', ARRAY['jam']),
+    ('44444444-4444-4444-8444-444444444412', 'PLUSH', 'stone temple pilots', 'personal', v_mike_id::text, v_mike_id, 'personal', ARRAY['jam']),
+    ('44444444-4444-4444-8444-444444444413', 'Seven Nation Army', 'White Stripes', 'personal', v_mike_id::text, v_mike_id, 'personal', ARRAY['jam']),
+    ('44444444-4444-4444-8444-444444444421', 'Black [Live]', 'pearl jam', 'personal', v_sarah_id::text, v_sarah_id, 'personal', ARRAY['jam']),
+    ('44444444-4444-4444-8444-444444444422', 'Don''t Stop Believin''', 'Journey', 'personal', v_sarah_id::text, v_sarah_id, 'personal', ARRAY['jam']),
+    ('44444444-4444-4444-8444-444444444431', 'Dont Stop Believin', 'Journey', 'personal', v_leo_id::text, v_leo_id, 'personal', ARRAY['jam'])
+  ON CONFLICT (id) DO NOTHING;
+
+  -- The legacy event's pending request becomes a pending lineup entry (the
+  -- migration's backfill ran before this seed).
+  PERFORM public._jam_backfill_requests();
 
   RAISE NOTICE '✅ MVP seed data complete!';
   RAISE NOTICE 'Test users: eric@testband.demo, mike@testband.demo, sarah@testband.demo';

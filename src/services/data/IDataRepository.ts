@@ -8,11 +8,6 @@ import {
   BandMemberWithProfile,
   InviteCode,
 } from '../../models/BandMembership'
-import {
-  JamSession,
-  JamParticipant,
-  JamSongMatch,
-} from '../../models/JamSession'
 import { User } from '../../models/User'
 import type { UserProfile } from '../../models/User'
 import type {
@@ -151,57 +146,6 @@ export interface IDataRepository {
    * Set the current user ID for sync operations
    */
   setCurrentUser(userId: string): void
-
-  // ========== JAM SESSIONS (Supabase-only, no local cache) ==========
-
-  /** Get all active jam sessions for a user (as host or active participant) */
-  getActiveJamSessionsForUser(userId: string): Promise<JamSession[]>
-
-  /** Get a jam session by ID */
-  getJamSession(id: string): Promise<JamSession | null>
-
-  /** Get a jam session by its short_code (for join flow) */
-  getJamSessionByCode(shortCode: string): Promise<JamSession | null>
-  /** Join an active session by code (server-validated); null if no such code */
-  joinJamSession(shortCode: string): Promise<JamSession | null>
-
-  /** Create a new jam session */
-  createJamSession(session: Omit<JamSession, 'id'>): Promise<JamSession>
-
-  /** Update a jam session */
-  updateJamSession(
-    id: string,
-    updates: Partial<JamSession>
-  ): Promise<JamSession>
-
-  /** Delete a jam session */
-  deleteJamSession(id: string): Promise<void>
-
-  /** Get all participants for a jam session */
-  getJamParticipants(sessionId: string): Promise<JamParticipant[]>
-
-  /** Add a participant to a jam session */
-  addJamParticipant(
-    participant: Omit<JamParticipant, 'id'>
-  ): Promise<JamParticipant>
-
-  /** Update a jam participant (e.g. status change) */
-  updateJamParticipant(
-    id: string,
-    updates: Partial<JamParticipant>
-  ): Promise<JamParticipant>
-
-  /** Get all song matches for a jam session */
-  getJamSongMatches(sessionId: string): Promise<JamSongMatch[]>
-
-  /**
-   * Replace all song matches for a jam session.
-   * Deletes existing matches then inserts new ones atomically.
-   */
-  upsertJamSongMatches(
-    sessionId: string,
-    matches: Omit<JamSongMatch, 'id'>[]
-  ): Promise<JamSongMatch[]>
 
   // ========== USERS ==========
   /** Get a user by ID (cloud-first; for viewing other band members' profiles) */

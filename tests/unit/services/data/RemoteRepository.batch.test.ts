@@ -134,43 +134,4 @@ describe('RemoteRepository batched reads', () => {
       expect(members[1].user?.email).toBe('')
     })
   })
-
-  describe('jam sessions by code', () => {
-    const row = {
-      id: 'j1',
-      short_code: 'ABC123',
-      host_user_id: 'h1',
-      status: 'active',
-      created_date: '2026-10-25T00:00:00Z',
-      expires_at: '2026-10-26T00:00:00Z',
-      settings: {},
-    }
-
-    it('looks a session up via get_jam_session_by_code', async () => {
-      rpc.mockResolvedValue({ data: [row], error: null })
-
-      const session = await repository.getJamSessionByCode('ABC123')
-
-      expect(rpc).toHaveBeenCalledWith('get_jam_session_by_code', {
-        p_code: 'ABC123',
-      })
-      expect(from).not.toHaveBeenCalled()
-      expect(session?.id).toBe('j1')
-    })
-
-    it('joins via join_jam_session', async () => {
-      rpc.mockResolvedValue({ data: [row], error: null })
-
-      const session = await repository.joinJamSession('ABC123')
-
-      expect(rpc).toHaveBeenCalledWith('join_jam_session', { p_code: 'ABC123' })
-      expect(session?.shortCode).toBe('ABC123')
-    })
-
-    it('returns null when join_jam_session finds no session', async () => {
-      rpc.mockResolvedValue({ data: [], error: null })
-
-      expect(await repository.joinJamSession('NOPE00')).toBeNull()
-    })
-  })
 })

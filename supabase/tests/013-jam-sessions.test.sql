@@ -11,8 +11,9 @@
 
 begin;
 
--- 12 indexes + 8 FK on-delete + 3 check + 4 unique + 4 cascade-functional = 31
-select plan(31);
+-- 12 indexes + 8 FK on-delete + 3 check + 4 unique + 4 cascade-functional
+-- + 4 retired (phase 7: tables stay, RPCs and the co-participant policy go) = 35
+select plan(35);
 
 -- ============================================================================
 -- Indexes (12)
@@ -307,6 +308,22 @@ select results_eq(
   ARRAY[true],
   'Deleting the seed setlist should NULL out jam_sessions.seed_setlist_id (jam survives)'
 );
+
+-- ============================================================================
+-- Retired in phase 7 (7d): the tables stay until a later release drops them;
+-- nobody can call the 0.3 RPCs, and co-participants no longer read songs.
+-- ============================================================================
+select ok(NOT has_function_privilege('authenticated', 'public.join_jam_session(text)', 'EXECUTE'),
+  'join_jam_session is revoked from authenticated');
+select ok(NOT has_function_privilege('authenticated', 'public.get_jam_session_by_code(text)', 'EXECUTE'),
+  'get_jam_session_by_code is revoked from authenticated');
+select ok(NOT has_function_privilege('authenticated', 'public.replace_jam_matches(uuid, jsonb)', 'EXECUTE'),
+  'replace_jam_matches is revoked from authenticated');
+select ok(NOT EXISTS (SELECT 1 FROM pg_policies
+                       WHERE schemaname = 'public'
+                         AND policyname IN ('songs_select_jam_coparticipant', 'users_select_jam_coparticipant',
+                                            'user_profiles_select_jam_coparticipant')),
+  'the 0.3 jam co-participant policies are gone');
 
 select * from finish();
 rollback;

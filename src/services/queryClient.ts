@@ -103,6 +103,16 @@ export const queryKeys = {
   contexts: {
     mine: (userId: string) => ['contexts', userId] as const,
   },
+  jams: {
+    mine: (userId: string) => ['jams', 'mine', userId] as const,
+    /** jam_state; `viewer` is the user id, or 'guest' / 'kiosk' for a token. */
+    state: (eventId: string, viewer: string) =>
+      ['jams', 'state', eventId, viewer] as const,
+    preview: (code: string) => ['jams', 'preview', code] as const,
+    tv: (code: string) => ['jams', 'tv', code] as const,
+    overlap: (eventId: string, otherId?: string) =>
+      ['jams', 'overlap', eventId, otherId ?? null] as const,
+  },
   search: (query: string, bandId: string | null, all: boolean) =>
     ['search', query, bandId, all] as const,
 } as const

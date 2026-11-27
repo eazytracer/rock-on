@@ -33,7 +33,7 @@ const KIND_PATH: Record<string, (id: string) => string> = {
   setlist: id => `/setlists/${id}`,
   show: id => `/shows/${id}`,
   practice: id => `/practices/${id}`,
-  jam: id => `/events/${id}`,
+  jam: id => `/jam/${id}`,
 }
 const KIND_WORD: Record<string, string> = {
   song: 'This song',

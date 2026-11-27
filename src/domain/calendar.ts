@@ -42,6 +42,8 @@ export interface AgendaRow {
   at: Date
   cancelled: boolean
   confirmed: boolean
+  /** A jam on right now (the row shows a LIVE mark). */
+  live?: boolean
   to: string
 }
 
@@ -101,7 +103,8 @@ function jamRow(e: AgendaJam): AgendaRow {
     at,
     cancelled: e.status === 'cancelled',
     confirmed: false,
-    to: `/events/${e.id}`,
+    live: e.status === 'live',
+    to: `/jam/${e.id}`,
   }
 }
 

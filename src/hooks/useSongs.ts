@@ -5,7 +5,11 @@ import { repository } from '../services/data/RepositoryFactory'
 import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import type { Song } from '../models/Song'
-import { deleteSong as deleteSongApi } from '../services/api/songs'
+import {
+  deleteSong as deleteSongApi,
+  copyBandSongsToPersonalIds,
+} from '../services/api/songs'
+import { JAM_TAG, jamTagChanges } from '../domain/songs'
 
 /**
  * Hook to fetch songs for a band.
@@ -194,4 +198,39 @@ export function useDeleteSong() {
     loading: mutation.isPending,
     error: mutation.error as Error | null,
   }
+}
+
+/**
+ * Jam songs builder save, in one go: tag / untag My Songs songs (`picked`
+ * holds their ids), and copy the picked band songs (`bandIds`) to My Songs —
+ * linked copies — tagged `jam`. Resolves with the number of songs changed.
+ */
+export function useSaveJamSongs() {
+  const queryClient = useQueryClient()
+  const mutation = useMutation({
+    mutationFn: async ({
+      mySongs,
+      picked,
+      bandIds,
+    }: {
+      mySongs: Song[]
+      picked: ReadonlySet<string>
+      bandIds: string[]
+    }) => {
+      const changes = jamTagChanges(mySongs, picked)
+      const copying = bandIds.length
+        ? copyBandSongsToPersonalIds(bandIds)
+        : Promise.resolve<string[]>([])
+      await Promise.all(
+        changes.map(c => repository.updateSong(c.id, { tags: c.tags }))
+      )
+      const copies = await copying
+      await Promise.all(
+        copies.map(id => repository.updateSong(id, { tags: [JAM_TAG] }))
+      )
+      return changes.length + copies.length
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['songs'] }),
+  })
+  return mutation.mutateAsync
 }

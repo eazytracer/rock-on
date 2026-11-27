@@ -31,9 +31,9 @@ import {
   rememberCalendar,
   useAgenda,
 } from '../hooks/useCalendar'
-import { useEvents } from '../hooks/useEvents'
+import { useMyJams } from '../hooks/useJam'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
-import { JoinEventForm } from '../components/events/JoinEventForm'
+import { JoinCodeForm } from '../components/jams/JoinCodeForm'
 import { ShowDetail } from '../components/calendar/ShowDetail'
 import { PracticeDetail } from '../components/calendar/PracticeDetail'
 import {
@@ -105,7 +105,7 @@ const NEW_TYPES = [
 const NEW_ROUTE = {
   show: '/shows/new',
   practice: '/practices/new',
-  jam: '/events/new',
+  jam: '/jam/new',
 }
 
 /**
@@ -133,6 +133,10 @@ const Row: React.FC<{
     .toUpperCase()
   const status = row.cancelled ? (
     <span className="text-danger">Cancelled</span>
+  ) : row.live ? (
+    <span className="font-bold text-danger" data-testid="calendar-item-live">
+      Live
+    </span>
   ) : row.confirmed ? (
     <span className="text-success">Confirmed</span>
   ) : null
@@ -205,6 +209,15 @@ const Row: React.FC<{
             <TypeLabel type={row.type} iconOnly />
             {/* Reserved so the type icons stay in one column. */}
             <span className="w-[15px]">
+              {row.live && (
+                <span
+                  className="block w-2.5 h-2.5 mx-auto rounded-full bg-danger animate-pulse"
+                  role="img"
+                  aria-label="Live"
+                  title="Live"
+                  data-testid="calendar-item-live"
+                />
+              )}
               {row.confirmed && !row.cancelled && (
                 <Check
                   size={15}
@@ -259,7 +272,26 @@ export function CalendarPage() {
   }, [params])
 
   const { rows, loading, error, refetch } = useAgenda(bandId)
-  const { events, loading: jamsLoading, refetch: refetchJams } = useEvents()
+  // Jams you host or are invited to (Friends' jams stay in the Jam hub).
+  const {
+    data: myJams,
+    isLoading: jamsLoading,
+    refetch: refetchJams,
+  } = useMyJams()
+  const events = useMemo(
+    () =>
+      (myJams ?? [])
+        .filter(j => j.section !== 'friends')
+        .map(j => ({
+          id: j.id,
+          name: j.name,
+          venue: j.venue ?? undefined,
+          scheduledDate: j.scheduled_date,
+          endTime: j.end_time ?? undefined,
+          status: j.status,
+        })),
+    [myJams]
+  )
   const [newAt, setNewAt] = useState<At | false>(false)
   const [menu, setMenu] = useState<{ row: AgendaRow; at: At } | null>(null)
   const [joining, setJoining] = useState(false)
@@ -649,7 +681,7 @@ export function CalendarPage() {
           data-testid="calendar-join-sheet"
         >
           <div className="px-4 pb-4">
-            <JoinEventForm />
+            <JoinCodeForm autoFocus />
           </div>
         </Sheet>
       )}

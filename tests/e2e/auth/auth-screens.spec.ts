@@ -240,7 +240,7 @@ for (const { name, viewport } of VIEWPORTS) {
       await page.getByTestId('join-event-code-input').fill('ZZZZ0000')
       await page.getByTestId('join-event-button').click()
       await expect(page.getByTestId('jam-code-error')).toHaveText(
-        /No event found for that code/i
+        /That code isn't valid/i
       )
       await expect(page).toHaveURL(/\/get-started\/jam$/)
     })

@@ -83,7 +83,7 @@ in `CLAUDE.md`; the design team's full record is `design/source/DECISIONS.md`.
 - Display maths stays in pure functions in `src/domain/` (Nov 7 2026), so it ports to Dart line for line.
 - Every RPC gets pgTAP: happy path, each error key, and a non-member denied (Nov 7 2026), because those tests are the contract both clients rely on.
 
-## Jam (Phase 7, not built yet)
+## Jam
 
 - One social type, Jam, built on the Events tables; the 0.3 jam-session screens retire (Nov 7 2026), so there's one "join with a code" feature.
 - Only web guests and the kiosk write without an account, through tokens scoped to one jam that die when the jam ends (Nov 7, Nov 20 2026), to keep anonymous writes narrow.
@@ -101,4 +101,5 @@ in `CLAUDE.md`; the design team's full record is `design/source/DECISIONS.md`.
 - No Cancel: planned jams can be deleted (people are notified); live and ended jams can't (Nov 20 2026), to keep the history of nights that happened.
 - Casting is hands plus host accept, one data model, with a Grid view over it (Nov 20 2026), so there's no second casting system.
 - Joining a jam counts as Going; RSVP waits for Phase 8 (Nov 20 2026), because jams are mostly ad hoc.
+- Per-IP limits are generous for real use (a bar's guests share one Wi-Fi IP: 300 web-guest joins, 1000 code lookups per 10 min) and strict for wrong codes (30 per 10 min across preview / resolve / join / TV) (Nov 20 2026), because guessing is what limits are for, not crowds.
 - Cut from v1: lock-screen card, kiosk "who you're with", the "Say hi" wave, the go-live reminder (Nov 20 2026), to ship the core night first.

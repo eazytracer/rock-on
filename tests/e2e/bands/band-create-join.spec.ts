@@ -110,8 +110,9 @@ test.describe('Join a band', () => {
     const user = await newUser('Ivy')
     await loginViaUI(page, user)
     await page.goto('/j/NOTACODE')
-    await expect(page.getByTestId('join-invalid')).toContainText(
-      "That code isn't valid any more. Ask the band for a new link."
+    // An unknown code could be a band's or a jam's: the resolver's neutral copy.
+    await expect(page.getByTestId('jam-code-invalid')).toContainText(
+      "That code isn't valid."
     )
   })
 

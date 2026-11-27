@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       path: '/calendar',
       icon: <CalendarDays />,
       testId: 'calendar-link',
-      match: ['/shows', '/practices', '/events'],
+      match: ['/shows', '/practices'],
     },
     { label: 'Jam', path: '/jam', icon: <PartyPopper />, testId: 'jam-link' },
   ]

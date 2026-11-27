@@ -387,6 +387,48 @@ export type Database = {
           },
         ]
       }
+      event_guest_tokens: {
+        Row: {
+          created_at: string
+          event_id: string
+          kind: string
+          participant_id: string | null
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          kind?: string
+          participant_id?: string | null
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          kind?: string
+          participant_id?: string | null
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'event_guest_tokens_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_guest_tokens_participant_id_fkey'
+            columns: ['participant_id']
+            isOneToOne: false
+            referencedRelation: 'event_participants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       event_hands: {
         Row: {
           created_date: string
@@ -394,11 +436,13 @@ export type Database = {
           event_lineup_item_id: string
           id: string
           note: string | null
+          participant_id: string | null
           resolved_by: string | null
           resolved_date: string | null
           role_key: string
+          role_label: string | null
           status: string
-          user_id: string
+          user_id: string | null
           user_name: string | null
         }
         Insert: {
@@ -407,11 +451,13 @@ export type Database = {
           event_lineup_item_id: string
           id?: string
           note?: string | null
+          participant_id?: string | null
           resolved_by?: string | null
           resolved_date?: string | null
           role_key: string
+          role_label?: string | null
           status?: string
-          user_id: string
+          user_id?: string | null
           user_name?: string | null
         }
         Update: {
@@ -420,11 +466,13 @@ export type Database = {
           event_lineup_item_id?: string
           id?: string
           note?: string | null
+          participant_id?: string | null
           resolved_by?: string | null
           resolved_date?: string | null
           role_key?: string
+          role_label?: string | null
           status?: string
-          user_id?: string
+          user_id?: string | null
           user_name?: string | null
         }
         Relationships: [
@@ -443,6 +491,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'event_hands_participant_id_fkey'
+            columns: ['participant_id']
+            isOneToOne: false
+            referencedRelation: 'event_participants'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'event_hands_resolved_by_fkey'
             columns: ['resolved_by']
             isOneToOne: false
@@ -458,44 +513,94 @@ export type Database = {
           },
         ]
       }
+      event_kiosk_pairings: {
+        Row: {
+          code_hash: string
+          created_at: string
+          event_id: string
+          expires_at: string
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          event_id: string
+          expires_at: string
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          event_id?: string
+          expires_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'event_kiosk_pairings_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'events'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       event_lineup_items: {
         Row: {
+          called_at: string | null
           created_date: string
           display_artist: string
           display_title: string
           event_id: string
+          group_id: string | null
           id: string
           key: string | null
           owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
           position: number
+          queue_position: number | null
           song_id: string | null
           source: string
+          state: string
           tuning: string | null
         }
         Insert: {
+          called_at?: string | null
           created_date?: string
           display_artist: string
           display_title: string
           event_id: string
+          group_id?: string | null
           id?: string
           key?: string | null
           owner_id?: string | null
+          parts_needed: Json
+          pitched_by?: string | null
           position?: number
+          queue_position?: number | null
           song_id?: string | null
           source: string
+          state?: string
           tuning?: string | null
         }
         Update: {
+          called_at?: string | null
           created_date?: string
           display_artist?: string
           display_title?: string
           event_id?: string
+          group_id?: string | null
           id?: string
           key?: string | null
           owner_id?: string | null
+          parts_needed?: Json
+          pitched_by?: string | null
           position?: number
+          queue_position?: number | null
           song_id?: string | null
           source?: string
+          state?: string
           tuning?: string | null
         }
         Relationships: [
@@ -511,6 +616,13 @@ export type Database = {
             columns: ['owner_id']
             isOneToOne: false
             referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_lineup_items_pitched_by_fkey'
+            columns: ['pitched_by']
+            isOneToOne: false
+            referencedRelation: 'event_participants'
             referencedColumns: ['id']
           },
           {
@@ -607,26 +719,44 @@ export type Database = {
         Row: {
           access_tier: string
           event_id: string
+          guest_name: string | null
           id: string
+          invited_by: string | null
+          is_house: boolean
           joined_date: string
+          parts: Json
           rsvp: string
-          user_id: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
         }
         Insert: {
           access_tier?: string
           event_id: string
+          guest_name?: string | null
           id?: string
+          invited_by?: string | null
+          is_house?: boolean
           joined_date?: string
+          parts?: Json
           rsvp?: string
-          user_id: string
+          share_songs?: boolean
+          user_id?: string | null
+          via?: string
         }
         Update: {
           access_tier?: string
           event_id?: string
+          guest_name?: string | null
           id?: string
+          invited_by?: string | null
+          is_house?: boolean
           joined_date?: string
+          parts?: Json
           rsvp?: string
-          user_id?: string
+          share_songs?: boolean
+          user_id?: string | null
+          via?: string
         }
         Relationships: [
           {
@@ -634,6 +764,13 @@ export type Database = {
             columns: ['event_id']
             isOneToOne: false
             referencedRelation: 'events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_participants_invited_by_fkey'
+            columns: ['invited_by']
+            isOneToOne: false
+            referencedRelation: 'users'
             referencedColumns: ['id']
           },
           {
@@ -653,13 +790,17 @@ export type Database = {
           calendar_sequence: number
           calendar_uid: string | null
           created_date: string
+          default_parts: Json
           description: string | null
           end_time: string | null
+          group_size: number
           host_user_id: string
           id: string
+          joining_locked: boolean
           last_modified_by: string | null
           location: string | null
           name: string
+          requests_visible: boolean
           scheduled_date: string
           setlist_id: string | null
           short_code: string | null
@@ -671,6 +812,7 @@ export type Database = {
           view_token: string | null
           view_token_expires_at: string | null
           visibility: string
+          who_can_join: string
         }
         Insert: {
           allow_suggestions?: boolean
@@ -679,13 +821,17 @@ export type Database = {
           calendar_sequence?: number
           calendar_uid?: string | null
           created_date?: string
+          default_parts?: Json
           description?: string | null
           end_time?: string | null
+          group_size?: number
           host_user_id: string
           id?: string
+          joining_locked?: boolean
           last_modified_by?: string | null
           location?: string | null
           name: string
+          requests_visible?: boolean
           scheduled_date: string
           setlist_id?: string | null
           short_code?: string | null
@@ -697,6 +843,7 @@ export type Database = {
           view_token?: string | null
           view_token_expires_at?: string | null
           visibility?: string
+          who_can_join?: string
         }
         Update: {
           allow_suggestions?: boolean
@@ -705,13 +852,17 @@ export type Database = {
           calendar_sequence?: number
           calendar_uid?: string | null
           created_date?: string
+          default_parts?: Json
           description?: string | null
           end_time?: string | null
+          group_size?: number
           host_user_id?: string
           id?: string
+          joining_locked?: boolean
           last_modified_by?: string | null
           location?: string | null
           name?: string
+          requests_visible?: boolean
           scheduled_date?: string
           setlist_id?: string | null
           short_code?: string | null
@@ -723,6 +874,7 @@ export type Database = {
           view_token?: string | null
           view_token_expires_at?: string | null
           visibility?: string
+          who_can_join?: string
         }
         Relationships: [
           {
@@ -925,6 +1077,27 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      jam_rate_limits: {
+        Row: {
+          bucket: string
+          hits: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hits?: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          hits?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       jam_sessions: {
         Row: {
@@ -1755,7 +1928,7 @@ export type Database = {
           session_type?: string | null
           song_id: string
           updated_date?: string | null
-          user_id: string
+          user_id?: string | null
           version?: number
           visibility?: string
         }
@@ -1768,7 +1941,7 @@ export type Database = {
           session_type?: string | null
           song_id?: string
           updated_date?: string | null
-          user_id?: string
+          user_id?: string | null
           version?: number
           visibility?: string
         }
@@ -1879,6 +2052,7 @@ export type Database = {
           recording_url: string | null
           reference_links: Json | null
           song_group_id: string | null
+          tags: string[]
           tempo: number | null
           time_signature: string | null
           title: string
@@ -1914,6 +2088,7 @@ export type Database = {
           recording_url?: string | null
           reference_links?: Json | null
           song_group_id?: string | null
+          tags?: string[]
           tempo?: number | null
           time_signature?: string | null
           title: string
@@ -1949,6 +2124,7 @@ export type Database = {
           recording_url?: string | null
           reference_links?: Json | null
           song_group_id?: string | null
+          tags?: string[]
           tempo?: number | null
           time_signature?: string | null
           title?: string
@@ -2296,6 +2472,496 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _jam_actor: {
+        Args: { p_event: string; p_guest_token: string }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_backfill_requests: { Args: never; Returns: undefined }
+      _jam_by_code: {
+        Args: { p_code: string }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_can_read_song: {
+        Args: {
+          p_song: Database['public']['Tables']['songs']['Row']
+          p_uid: string
+        }
+        Returns: boolean
+      }
+      _jam_check_live: {
+        Args: { p_e: Database['public']['Tables']['events']['Row'] }
+        Returns: undefined
+      }
+      _jam_check_open: {
+        Args: { p_e: Database['public']['Tables']['events']['Row'] }
+        Returns: undefined
+      }
+      _jam_code: { Args: { p_code: string }; Returns: string }
+      _jam_code_refusal: {
+        Args: {
+          p_e: Database['public']['Tables']['events']['Row']
+          p_joining?: boolean
+        }
+        Returns: string
+      }
+      _jam_copy: { Args: { p_key: string }; Returns: string }
+      _jam_drop_person: {
+        Args: {
+          p_who: Database['public']['Tables']['event_participants']['Row']
+        }
+        Returns: undefined
+      }
+      _jam_event: {
+        Args: { p_event: string; p_lock?: boolean }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_fail: {
+        Args: { p_hint?: string; p_key: string }
+        Returns: undefined
+      }
+      _jam_find: {
+        Args: { p_code: string }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_has_part: {
+        Args: { p_key: string; p_label: string; p_parts: Json }
+        Returns: boolean
+      }
+      _jam_hash: { Args: { p_token: string }; Returns: string }
+      _jam_host: {
+        Args: { p_event: string; p_lock?: boolean }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_ip: { Args: never; Returns: string }
+      _jam_is_host_friend: {
+        Args: {
+          p_e: Database['public']['Tables']['events']['Row']
+          p_uid: string
+        }
+        Returns: boolean
+      }
+      _jam_item: {
+        Args: { p_item: string }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_join: {
+        Args: {
+          p_e: Database['public']['Tables']['events']['Row']
+          p_parts: Json
+          p_share_songs: boolean
+          p_uid: string
+        }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_kiosk_ok: {
+        Args: { p_event: string; p_token: string }
+        Returns: boolean
+      }
+      _jam_manager: {
+        Args: { p_event: string; p_lock?: boolean }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_name: {
+        Args: { p_guest_name: string; p_user_id: string }
+        Returns: string
+      }
+      _jam_new_token: { Args: never; Returns: string }
+      _jam_notify: {
+        Args: {
+          p_body: string
+          p_link: string
+          p_payload: Json
+          p_title: string
+          p_user: string
+        }
+        Returns: undefined
+      }
+      _jam_participant: {
+        Args: { p_participant: string }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_parts: { Args: { p_parts: Json; p_unique?: boolean }; Returns: Json }
+      _jam_pitch: {
+        Args: {
+          p_artist: string
+          p_e: Database['public']['Tables']['events']['Row']
+          p_group_id: string
+          p_mgr: boolean
+          p_my_parts: Json
+          p_parts_needed: Json
+          p_song_id: string
+          p_title: string
+          p_who: Database['public']['Tables']['event_participants']['Row']
+        }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_queue_item: {
+        Args: { p_item: string; p_live?: boolean }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _jam_raise: {
+        Args: {
+          p_item: Database['public']['Tables']['event_lineup_items']['Row']
+          p_parts: Json
+          p_who: Database['public']['Tables']['event_participants']['Row']
+        }
+        Returns: {
+          created_date: string
+          event_id: string
+          event_lineup_item_id: string
+          id: string
+          note: string | null
+          participant_id: string | null
+          resolved_by: string | null
+          resolved_date: string | null
+          role_key: string
+          role_label: string | null
+          status: string
+          user_id: string | null
+          user_name: string | null
+        }[]
+        SetofOptions: {
+          from: '*'
+          to: 'event_hands'
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      _jam_rate_check: {
+        Args: {
+          p_bucket: string
+          p_key: string
+          p_max: number
+          p_window: string
+        }
+        Returns: undefined
+      }
+      _jam_requeue: {
+        Args: { p_event: string; p_item: string; p_pos: number }
+        Returns: undefined
+      }
+      _jam_state: {
+        Args: {
+          p_event: string
+          p_me: string
+          p_mgr: boolean
+          p_viewer: string
+        }
+        Returns: Json
+      }
+      _jam_when: {
+        Args: { p_e: Database['public']['Tables']['events']['Row'] }
+        Returns: string
+      }
       _jsonb_insert_at: {
         Args: { p_at: number; p_items: Json; p_new: Json }
         Returns: Json
@@ -2341,6 +3007,8 @@ export type Database = {
         }
       }
       _new_invite_code: { Args: never; Returns: string }
+      _part_id: { Args: { p_key: string; p_label: string }; Returns: string }
+      _random_code: { Args: { p_len: number }; Returns: string }
       _require_signed_in: { Args: never; Returns: string }
       _require_song: {
         Args: { p_song_id: string }
@@ -2371,6 +3039,7 @@ export type Database = {
           recording_url: string | null
           reference_links: Json | null
           song_group_id: string | null
+          tags: string[]
           tempo: number | null
           time_signature: string | null
           title: string
@@ -2471,6 +3140,67 @@ export type Database = {
         Args: { p_instrument: string; p_string_count: number }
         Returns: number[]
       }
+      add_lineup_songs: {
+        Args: { p_event: string; p_parts_needed?: Json; p_song_ids: string[] }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }[]
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      add_lineup_title: {
+        Args: {
+          p_artist?: string
+          p_event: string
+          p_parts_needed?: Json
+          p_title: string
+        }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_songs_to_setlist: {
         Args: {
           p_after_item?: string
@@ -2478,6 +3208,66 @@ export type Database = {
           p_song_ids: string[]
         }
         Returns: string[]
+      }
+      add_walkup: {
+        Args: {
+          p_event: string
+          p_guest_token?: string
+          p_item?: string
+          p_name: string
+          p_parts?: Json
+          p_pitch_artist?: string
+          p_pitch_title?: string
+          p_via?: string
+        }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      approve_pitch: {
+        Args: { p_item: string }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       are_event_coparticipants: {
         Args: { p_caller: string; p_other: string }
@@ -2487,6 +3277,10 @@ export type Database = {
       are_jam_coparticipants: {
         Args: { p_caller: string; p_song_owner: string }
         Returns: boolean
+      }
+      ask_the_room: {
+        Args: { p_item: string; p_part: Json }
+        Returns: undefined
       }
       attach_set_to_show: {
         Args: { p_setlist_id: string; p_show_id: string }
@@ -2534,6 +3328,7 @@ export type Database = {
           venue: string
         }[]
       }
+      call_up: { Args: { p_item: string }; Returns: Json }
       can_access_song: {
         Args: { p_song_id: string; p_user: string }
         Returns: boolean
@@ -2575,6 +3370,7 @@ export type Database = {
           recording_url: string | null
           reference_links: Json | null
           song_group_id: string | null
+          tags: string[]
           tempo: number | null
           time_signature: string | null
           title: string
@@ -2633,6 +3429,54 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_jam: {
+        Args: {
+          p_at: string
+          p_band_id?: string
+          p_default_parts?: Json
+          p_name: string
+          p_timezone?: string
+          p_where?: string
+          p_who_can_join?: string
+        }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_show: {
         Args: { p_band_id: string; p_patch: Json }
         Returns: string
@@ -2673,6 +3517,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      decline_pitch: {
+        Args: { p_item: string }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_account: { Args: never; Returns: undefined }
       delete_band: {
         Args: { p_band_id: string; p_confirm_name: string }
@@ -2698,6 +3570,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_jam: { Args: { p_event: string }; Returns: undefined }
       delete_show: { Args: { p_show_id: string }; Returns: undefined }
       delete_song: { Args: { p_song_id: string }; Returns: undefined }
       duplicate_setlist: { Args: { p_setlist_id: string }; Returns: string }
@@ -2731,6 +3604,7 @@ export type Database = {
           recording_url: string | null
           reference_links: Json | null
           song_group_id: string | null
+          tags: string[]
           tempo: number | null
           time_signature: string | null
           title: string
@@ -2742,6 +3616,46 @@ export type Database = {
         SetofOptions: {
           from: '*'
           to: 'songs'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      end_jam: {
+        Args: { p_event: string }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2832,6 +3746,46 @@ export type Database = {
           user_id: string
         }[]
       }
+      go_live: {
+        Args: { p_event: string }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       increment_invite_code_usage: {
         Args: { p_invite_code_id: string }
         Returns: {
@@ -2863,6 +3817,29 @@ export type Database = {
         }
         Returns: string
       }
+      invite_to_jam: {
+        Args: { p_event: string; p_user_ids: string[] }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }[]
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       is_band_admin: {
         Args: { p_band_id: string; p_user_id: string }
         Returns: boolean
@@ -2883,6 +3860,27 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string }
         Returns: boolean
       }
+      jam_preview_by_code: {
+        Args: { p_code: string }
+        Returns: {
+          error: string
+          event_id: string
+          hint: string
+          host_first_name: string
+          is_participant: boolean
+          name: string
+          people_count: number
+          scheduled_date: string
+          status: string
+          timezone: string
+          venue: string
+        }[]
+      }
+      jam_state: {
+        Args: { p_event: string; p_guest_token?: string }
+        Returns: Json
+      }
+      jam_tv_feed: { Args: { p_code: string }; Returns: Json }
       join_band: {
         Args: { p_code: string }
         Returns: {
@@ -2909,6 +3907,62 @@ export type Database = {
           out_name: string
           out_scheduled_date: string
         }[]
+      }
+      join_jam: {
+        Args: { p_code: string; p_parts?: Json; p_share_songs?: boolean }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      join_jam_as_web_guest: {
+        Args: { p_code: string; p_name: string; p_parts?: Json }
+        Returns: {
+          error: string
+          event_id: string
+          hint: string
+          participant_id: string
+          token: string
+        }[]
+      }
+      join_jam_by_id: {
+        Args: { p_event: string; p_parts?: Json; p_share_songs?: boolean }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       join_jam_session: {
         Args: { p_code: string }
@@ -2953,6 +4007,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      leave_jam: {
+        Args: { p_event: string; p_guest_token?: string }
+        Returns: undefined
+      }
       list_my_contexts: {
         Args: never
         Returns: {
@@ -2962,6 +4020,31 @@ export type Database = {
           member_count: number
           name: string
           role: string
+        }[]
+      }
+      list_my_jams: {
+        Args: never
+        Returns: {
+          band_id: string
+          end_time: string
+          host_name: string
+          host_user_id: string
+          id: string
+          joined: boolean
+          lineup_count: number
+          location: string
+          my_participant_id: string
+          my_tier: string
+          name: string
+          pending_count: number
+          people_count: number
+          scheduled_date: string
+          section: string
+          short_code: string
+          status: string
+          timezone: string
+          venue: string
+          who_can_join: string
         }[]
       }
       list_notifications: {
@@ -2983,15 +4066,237 @@ export type Database = {
           verb: string
         }[]
       }
+      lock_joining: {
+        Args: { p_event: string; p_on: boolean }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      lower_hand: {
+        Args: { p_guest_token?: string; p_hand: string }
+        Returns: undefined
+      }
+      make_up_next: {
+        Args: { p_item: string }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mark_house_player: {
+        Args: { p_on: boolean; p_participant: string }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       mark_notifications_read: {
         Args: { p_ids?: string[] }
         Returns: undefined
+      }
+      move_queue_item: {
+        Args: { p_item: string; p_position: number }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       move_setlist_item: {
         Args: { p_item_id: string; p_setlist_id: string; p_to: number }
         Returns: undefined
       }
       normalize_text: { Args: { input: string }; Returns: string }
+      pair_kiosk: {
+        Args: { p_pairing_code: string }
+        Returns: {
+          error: string
+          event_id: string
+          hint: string
+          short_code: string
+          token: string
+        }[]
+      }
+      pitch_song: {
+        Args: {
+          p_artist?: string
+          p_event: string
+          p_group_id?: string
+          p_guest_token?: string
+          p_my_parts?: Json
+          p_parts_needed?: Json
+          p_song_id?: string
+          p_title?: string
+        }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      queue_pitch: {
+        Args: { p_item: string; p_position?: number }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      raise_hand: {
+        Args: { p_guest_token?: string; p_item: string; p_parts: Json }
+        Returns: {
+          created_date: string
+          event_id: string
+          event_lineup_item_id: string
+          id: string
+          note: string | null
+          participant_id: string | null
+          resolved_by: string | null
+          resolved_date: string | null
+          role_key: string
+          role_label: string | null
+          status: string
+          user_id: string | null
+          user_name: string | null
+        }[]
+        SetofOptions: {
+          from: '*'
+          to: 'event_hands'
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       recopy_show_set: { Args: { p_show_id: string }; Returns: string }
       regenerate_invite_code: {
         Args: { p_band_id: string }
@@ -3038,6 +4343,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      remove_person: { Args: { p_participant: string }; Returns: undefined }
       remove_setlist_item: {
         Args: { p_item_id: string; p_setlist_id: string }
         Returns: undefined
@@ -3046,9 +4352,19 @@ export type Database = {
         Args: { p_name: string; p_setlist_id: string }
         Returns: undefined
       }
+      reorder_lineup: {
+        Args: { p_event: string; p_item_ids: string[] }
+        Returns: undefined
+      }
       replace_jam_matches: {
         Args: { p_matches: Json; p_session_id: string }
         Returns: undefined
+      }
+      resolve_code: {
+        Args: { p_code: string }
+        Returns: {
+          kind: string
+        }[]
       }
       resolve_friend_code: {
         Args: { p_code: string }
@@ -3077,6 +4393,37 @@ export type Database = {
         SetofOptions: {
           from: '*'
           to: 'song_charts'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_jam_as_setlist: {
+        Args: { p_context_id?: string; p_context_type: string; p_event: string }
+        Returns: {
+          band_id: string | null
+          context_id: string | null
+          context_type: string
+          copied_at: string | null
+          created_by: string | null
+          created_date: string
+          fork_count: number | null
+          forked_from: string | null
+          id: string
+          items: Json | null
+          jam_session_id: string | null
+          last_modified: string
+          last_modified_by: string | null
+          name: string
+          notes: string | null
+          show_id: string | null
+          source_setlist_id: string | null
+          status: string | null
+          tags: string[] | null
+          version: number
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'setlists'
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3160,6 +4507,7 @@ export type Database = {
           recording_url: string | null
           reference_links: Json | null
           song_group_id: string | null
+          tags: string[]
           tempo: number | null
           time_signature: string | null
           title: string
@@ -3171,6 +4519,134 @@ export type Database = {
         SetofOptions: {
           from: '*'
           to: 'songs'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_cast: {
+        Args: {
+          p_item: string
+          p_on?: boolean
+          p_part: Json
+          p_participant: string
+        }
+        Returns: {
+          created_date: string
+          event_id: string
+          event_lineup_item_id: string
+          id: string
+          note: string | null
+          participant_id: string | null
+          resolved_by: string | null
+          resolved_date: string | null
+          role_key: string
+          role_label: string | null
+          status: string
+          user_id: string | null
+          user_name: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_hands'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_cohost: {
+        Args: { p_on: boolean; p_participant: string }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_item_parts: {
+        Args: { p_item: string; p_parts_needed: Json }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_jam_settings: {
+        Args: {
+          p_approve_myself?: boolean
+          p_default_parts?: Json
+          p_event: string
+          p_group_size?: number
+          p_requests_open?: boolean
+          p_requests_visible?: boolean
+          p_who_can_join?: string
+        }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3189,6 +4665,34 @@ export type Database = {
         SetofOptions: {
           from: '*'
           to: 'band_memberships'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_queue_state: {
+        Args: { p_item: string; p_position?: number; p_state: string }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3244,6 +4748,34 @@ export type Database = {
           songs: Json
         }[]
       }
+      skip_up_next: {
+        Args: { p_event: string }
+        Returns: {
+          called_at: string | null
+          created_date: string
+          display_artist: string
+          display_title: string
+          event_id: string
+          group_id: string | null
+          id: string
+          key: string | null
+          owner_id: string | null
+          parts_needed: Json
+          pitched_by: string | null
+          position: number
+          queue_position: number | null
+          song_id: string | null
+          source: string
+          state: string
+          tuning: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_lineup_items'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       song_next_shows: {
         Args: { p_band_id: string }
         Returns: {
@@ -3261,6 +4793,14 @@ export type Database = {
           name: string
           position: number
           starts_at: string
+        }[]
+      }
+      start_kiosk: {
+        Args: { p_event: string }
+        Returns: {
+          expires_at: string
+          pairing_code: string
+          token: string
         }[]
       }
       transfer_ownership: {
@@ -3313,6 +4853,75 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      update_jam: {
+        Args: { p_event: string; p_expected_version: number; p_patch: Json }
+        Returns: {
+          allow_suggestions: boolean
+          auto_approve: boolean
+          band_id: string | null
+          calendar_sequence: number
+          calendar_uid: string | null
+          created_date: string
+          default_parts: Json
+          description: string | null
+          end_time: string | null
+          group_size: number
+          host_user_id: string
+          id: string
+          joining_locked: boolean
+          last_modified_by: string | null
+          location: string | null
+          name: string
+          requests_visible: boolean
+          scheduled_date: string
+          setlist_id: string | null
+          short_code: string | null
+          status: string
+          timezone: string
+          updated_date: string
+          venue: string | null
+          version: number
+          view_token: string | null
+          view_token_expires_at: string | null
+          visibility: string
+          who_can_join: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'events'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_me: {
+        Args: {
+          p_event: string
+          p_guest_token?: string
+          p_name?: string
+          p_parts?: Json
+          p_share_songs?: boolean
+        }
+        Returns: {
+          access_tier: string
+          event_id: string
+          guest_name: string | null
+          id: string
+          invited_by: string | null
+          is_house: boolean
+          joined_date: string
+          parts: Json
+          rsvp: string
+          share_songs: boolean
+          user_id: string | null
+          via: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'event_participants'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_setlist_item: {
         Args: { p_item_id: string; p_patch: Json; p_setlist_id: string }
         Returns: undefined
@@ -3358,6 +4967,17 @@ export type Database = {
       user_belongs_to_band: {
         Args: { check_band_id: string; check_user_id: string }
         Returns: boolean
+      }
+      who_knows_your_songs: {
+        Args: { p_event: string; p_other?: string }
+        Returns: {
+          common: Json
+          common_count: number
+          name: string
+          only_mine: Json
+          only_theirs: Json
+          participant_id: string
+        }[]
       }
     }
     Enums: {

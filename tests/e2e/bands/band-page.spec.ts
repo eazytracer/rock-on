@@ -44,10 +44,12 @@ test.describe('Band page · desktop', () => {
 
     // The old link now says so, without naming the band.
     await page.goto(`/j/${band.code}`)
-    await expect(page.getByTestId('join-invalid')).toContainText(
-      "That code isn't valid any more. Ask the band for a new link."
+    await expect(page.getByTestId('jam-code-invalid')).toContainText(
+      "That code isn't valid."
     )
-    await expect(page.getByTestId('join-invalid')).not.toContainText(band.name)
+    await expect(page.getByTestId('jam-code-invalid')).not.toContainText(
+      band.name
+    )
   })
 
   test('owner makes a member an admin and back', async ({ page }) => {

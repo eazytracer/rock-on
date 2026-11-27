@@ -16,7 +16,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useUpcomingShows } from '../hooks/useShows'
 import { useUpcomingPractices } from '../hooks/usePractices'
-import { useEvents } from '../hooks/useEvents'
+import { useMyJams } from '../hooks/useJam'
 import { useSongs, usePersonalSongs } from '../hooks/useSongs'
 import { useSetlists, usePersonalSetlists } from '../hooks/useSetlists'
 import { useBandMembers } from '../hooks/useBands'
@@ -98,7 +98,13 @@ export function HomePage() {
     hasBand ? '' : userId
   )
   const { members } = useBandMembers(bandId)
-  const { events } = useEvents()
+  const { data: myJams } = useMyJams()
+  const jams = useMemo(
+    () => (myJams ?? []).filter(j => j.section !== 'friends'),
+    [myJams]
+  )
+  // A live jam you're in leads the page (Jam Plan 14).
+  const liveJam = jams.find(j => j.status === 'live' && j.joined)
   const feed = useNotificationFeed()
 
   const songs = hasBand ? bandSongs : personalSongs
@@ -134,24 +140,24 @@ export function HomePage() {
         where: p.location,
         path: `/practices/${p.id}`,
       })),
-      ...events
+      ...jams
         .filter(
           e =>
-            e.status !== 'cancelled' &&
-            e.scheduledDate.getTime() >= now &&
-            (hasBand ? e.bandId === bandId || !e.bandId : true)
+            (e.status === 'scheduled' || e.status === 'confirmed') &&
+            new Date(e.scheduled_date).getTime() >= now &&
+            (hasBand ? e.band_id === bandId || !e.band_id : true)
         )
         .map(e => ({
           key: `jam-${e.id}`,
           type: 'jam' as const,
           title: e.name,
-          when: e.scheduledDate,
-          where: e.venue,
-          path: `/events/${e.id}`,
+          when: new Date(e.scheduled_date),
+          where: e.venue ?? undefined,
+          path: `/jam/${e.id}`,
         })),
     ]
     return rows.sort((a, b) => a.when.getTime() - b.when.getTime()).slice(0, 4)
-  }, [upcomingShows, upcomingPractices, events, hasBand, bandId])
+  }, [upcomingShows, upcomingPractices, jams, hasBand, bandId])
 
   // Walkthroughs tick themselves off from real data.
   const walkKey = `rockon.walkthrough.${hasBand ? bandId : 'personal'}`
@@ -232,6 +238,40 @@ export function HomePage() {
       />
 
       <div className="flex flex-col gap-5">
+        {liveJam && (
+          <section
+            className="rounded-[20px] bg-bg-2 p-4 shadow-[inset_0_0_0_2px_rgb(var(--danger-rgb)/.6)] flex flex-wrap items-center gap-3"
+            data-testid="home-live-jam"
+          >
+            <span className="flex-1 min-w-0">
+              <span className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold tracking-[.12em] uppercase text-danger">
+                <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
+                Live now
+              </span>
+              <b className="block truncate text-[18px] text-ink-1">
+                {liveJam.name}
+              </b>
+              {liveJam.venue && (
+                <span className="block truncate text-[13px] text-ink-3">
+                  {liveJam.venue}
+                </span>
+              )}
+            </span>
+            <Button
+              variant="primary"
+              onClick={() =>
+                navigate(
+                  liveJam.section === 'hosting'
+                    ? `/jam/${liveJam.id}/live`
+                    : `/jam/${liveJam.id}`
+                )
+              }
+              data-testid="home-live-jam-return"
+            >
+              Return
+            </Button>
+          </section>
+        )}
         {/* Personal: the Tools row leads the page (Tools on Home 2). */}
         {!hasBand && (
           <Section title="Tools">

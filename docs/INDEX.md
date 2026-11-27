@@ -76,14 +76,15 @@ instruments, Tunings, Music, Notifications, Account incl. change password, About
 `components/notifications/*`, `hooks/useNotifications.ts`, `services/api/notifications.ts`,
 `domain/notifications.ts`.
 
-**Jam / Events (0.3–0.4 state; rebuilt in Phase 7, see `docs/redesign/11-jam.md`).** Two features today.
-Events: `/events`, `/events/new`, `/events/:eventId` (join code, RSVP, lineup, requests, hands, casting):
-`pages/Events*.tsx`, `EventDetailPage.tsx`, `EventCreatePage.tsx`, `components/events/*`,
-`components/casting/*`, hooks `useEvents`, `useCasting`, services `EventService`, `EventHandsService`,
-`CastingAssignmentService`. Jam sessions (0.3, to retire): `/jam`, `/jam/:sessionId`, public
-`/jam/view/:shortCode`: `pages/JamSessionPage.tsx`, `JamViewPage.tsx`, `components/jam/*`, hooks
-`useJamSession`, `useJamSessionMatches`, `useJamPresence`, `services/JamSessionService.ts`,
-`utils/songMatcher.ts`, edge functions `jam-view`, `jam-recompute`.
+**Jam.** Hub `/jam` (hosting, invited, friends' jams), `/jam/new`, the jam `/jam/:id` (planned: lineup,
+requests, people, Grid view, settings; live: Tonight; ended: Save tonight as a setlist), host console
+`/jam/:id/live`, Jam songs builder `/jam/songs`. Public: `/j/:code` (resolves a band invite or a jam; web guest
+without an account), bar TV `/j/:code/tv`, counter iPad `/kiosk`. `pages/jam/*`, `components/jams/*` (`live/`
+console + Tonight, `guest/` web guest / TV / kiosk), `hooks/useJam.ts` (jam*state + realtime `jam:<code>`),
+`services/api/jams.ts`. Data: the Events tables (`events`, `event_participants`, `event_lineup_items`,
+`event_hands`, `event_guest_tokens`, `event_kiosk_pairings`, `jam_rate_limits`); RPCs and the anonymous
+surface in `supabase/migrations/20261121120000_redesign_phase_7.sql`. The 0.3 `jam*\*` tables remain unused
+until a later release drops them.
 
 ## Data layer
 
@@ -111,7 +112,7 @@ Events: `/events`, `/events/new`, `/events/:eventId` (join code, RSVP, lineup, r
 
 ## Edge functions
 
-`supabase/functions/<name>/index.ts` (`delete-account`, `spotify-search`, `jam-view`, `jam-recompute`; shared code
+`supabase/functions/<name>/index.ts` (`delete-account`, `spotify-search`; shared code
 in `_shared/`). The `AUTH_MODE` map in `scripts/deploy-edge-functions.sh` is the record of each function's auth
 mode and role context; `scripts/smoke-edge-functions.sh` holds the expected unauthenticated status. Deploy and
 smoke only through those scripts.

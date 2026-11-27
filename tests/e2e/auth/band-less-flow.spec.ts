@@ -55,9 +55,16 @@ test.describe('Band-less user flow (Phase 2)', () => {
     await page.fill('[data-testid="join-event-code-input"]', SEED_EVENT_CODE)
     await page.click('[data-testid="join-event-button"]')
 
-    // Lands on the event detail with no band required.
-    await page.waitForURL(/\/events\/[0-9a-f-]+/, { timeout: 10000 })
-    await expect(page.getByText(SEED_EVENT_NAME)).toBeVisible({ timeout: 5000 })
+    // The jam preview (/j/CODE), then Join → parts → songs (none yet: Skip)
+    // → the jam, with no band required.
+    await page.waitForURL(new RegExp(`/j/${SEED_EVENT_CODE}$`))
+    await expect(page.getByTestId('jam-preview-name')).toHaveText(
+      SEED_EVENT_NAME
+    )
+    await page.getByTestId('jam-join-button').click()
+    await page.getByTestId('jam-join-parts-next').click()
+    await page.getByTestId('jam-join-skip').click()
+    await page.waitForURL(/\/jam\/[0-9a-f-]+/, { timeout: 10000 })
     // Band-less: sidebar shows the personal-account header, not a band name.
     expect(
       await page.evaluate(() => localStorage.getItem('currentBandId'))
@@ -82,7 +89,7 @@ test.describe('Band-less user flow (Phase 2)', () => {
 
     // Stays on get-started with an error; no event navigation.
     await expect(page).toHaveURL(/\/get-started/)
-    await expect(page.getByText(/No event found for that code/i)).toBeVisible({
+    await expect(page.getByText(/That code isn't valid/i)).toBeVisible({
       timeout: 5000,
     })
   })

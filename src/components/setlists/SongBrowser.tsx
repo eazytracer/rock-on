@@ -36,6 +36,11 @@ export interface SongBrowserProps {
   onClose: () => void
   /** List "From my songs" in a band (default). Practices take band songs only. */
   withMine?: boolean
+  /**
+   * Opt-in (jam lineups): when the search matches nothing, offer "Add ‹query›
+   * as a title" for a song nobody has catalogued. Resolves true when added.
+   */
+  onAddTitle?: (title: string) => Promise<boolean>
 }
 
 /** Scrolls the list row of a just-added song into view and flashes it. */
@@ -81,6 +86,7 @@ export const SongBrowser: React.FC<SongBrowserProps> = ({
   onRemove,
   onClose,
   withMine = true,
+  onAddTitle,
 }) => {
   const desktop = useMediaQuery('(min-width: 768px)')
   const isBand = contextType === 'band'
@@ -322,7 +328,33 @@ export const SongBrowser: React.FC<SongBrowserProps> = ({
               {mine.map(row)}
             </>
           )}
-          {!list.length && !mine.length && (
+          {!list.length && !mine.length && onAddTitle && q.trim() && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  if (await onAddTitle(q.trim().slice(0, 200))) {
+                    setAdded(n => n + 1)
+                    setQ('')
+                  }
+                } finally {
+                  setBusy(false)
+                }
+              }}
+              className="w-full flex items-center gap-3 min-h-14 px-3 rounded-xl text-left hover:bg-bg-2 disabled:opacity-50"
+              data-testid="browser-add-title"
+            >
+              <span className="w-7 h-7 shrink-0 grid place-items-center rounded-full ring-[1.5px] ring-inset ring-border-1 text-accent-ink">
+                <Plus size={15} />
+              </span>
+              <span className="flex-1 min-w-0 truncate text-[15px] text-ink-1">
+                Add <b>{q.trim()}</b> as a title
+              </span>
+            </button>
+          )}
+          {!list.length && !mine.length && !(onAddTitle && q.trim()) && (
             <p
               className="px-3 py-8 text-center text-[14px] text-ink-3"
               data-testid="browser-empty"

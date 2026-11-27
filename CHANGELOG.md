@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Jam** (`/jam`, replaces Events and the 0.3 jam sessions): a hub (Hosting,
+  Invited, Friends' jams), Host a jam, and the jam page: lineup with parts and
+  hands (more hands than slots is fine, "Guitar 2"), song requests (pending
+  until approved; "Show song requests to everyone" under Advanced), a Grid view
+  of songs × parts with gaps highlighted, people, invite friends, and settings
+  (who can join: Invite only, Friends, Anyone with the code; starting parts,
+  custom parts). Add a plain title to the lineup when a song isn't in anyone's
+  catalog; "Add to My Songs" / "Add to jam songs" on any lineup song. Delete a
+  planned jam (people are told).
+- **Live night**: Go live, the host console (on stage, up next, the queue with
+  Undo on every move, fill a part from hands or directly, Ask the room,
+  walk-ups, house players, lock joining, End), and Tonight for players (hands,
+  pitches, who knows your songs). Ended jams: Save tonight as a setlist.
+- **No account needed**: `/j/CODE` works for band invites and jams; guests join
+  a jam with a first name and parts, raise hands and request songs; their names
+  go when the jam ends. A bar TV view (`/j/CODE/tv`) and a counter iPad
+  (`/kiosk`, paired by QR or a one-time code, never signed in as the host, PIN
+  to exit).
+- **Song tags save** (they were silently dropped before), shown on the song
+  page with Undo. **Jam songs**: a "Jam song" switch on My Songs, a Jam songs
+  filter on Songs, and a "Songs you'd jam on" picker (`/jam/songs`).
 - **Band page** (`/band`, replaces `/band-members`): the band card, an invite
   card (code, link `/j/CODE`, QR, Copy, Share, Regenerate; codes last 24 hours
   with unlimited joins, New code once expired), members with a ⋯ by permission
@@ -132,6 +153,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Database
 
+- Redesign phase 7 (`20261121120000_redesign_phase_7.sql`): jams on the Events
+  tables (`live` status, who can join, requests visible, default parts,
+  guest participants, lineup states and queue, hands by participant, kiosk
+  pairings, hashed guest tokens, rate limits), about 40 RPCs including 12 for
+  people without an account (each checks its token or code first), realtime
+  broadcast to `jam:<code>`, `songs.tags`, and `normalize_text` ignoring
+  bracketed extras. Band invite and jam codes never collide. The 0.3 jam
+  policies and RPCs are switched off; anonymous EXECUTE is revoked from every
+  other public function.
 - Redesign phase 6 (`20261120120000_redesign_phase_6.sql`): an `'owner'`
   role (one per band, backfilled from the old flag, then the creator, then the
   earliest admin); `bands.mark`, `city`, `genres`, `links`, `deleted_at`;

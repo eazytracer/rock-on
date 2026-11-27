@@ -27,6 +27,8 @@ const STORE = 'rockon:songs-filter'
 export interface SongsFilter {
   query: string
   tunings: string[]
+  /** My Songs: only songs with all of these tags ("Jam songs"). */
+  tags: string[]
 }
 
 export function readSongsFilter(contextKey: string): SongsFilter {
@@ -36,9 +38,10 @@ export function readSongsFilter(contextKey: string): SongsFilter {
     return {
       query: typeof v?.query === 'string' ? v.query : '',
       tunings: Array.isArray(v?.tunings) ? v.tunings : [],
+      tags: Array.isArray(v?.tags) ? v.tags : [],
     }
   } catch {
-    return { query: '', tunings: [] }
+    return { query: '', tunings: [], tags: [] }
   }
 }
 

@@ -152,8 +152,9 @@ test.describe('Join Existing Band', () => {
 
     // An invalid code's preview says so, without naming a band
     await page.goto('/j/INVALID123')
-    await expect(page.getByTestId('join-invalid')).toContainText(
-      "That code isn't valid any more. Ask the band for a new link."
+    // An unknown code could be a band's or a jam's: the resolver's neutral copy.
+    await expect(page.getByTestId('jam-code-invalid')).toContainText(
+      "That code isn't valid."
     )
   })
 

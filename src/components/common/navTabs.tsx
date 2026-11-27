@@ -59,7 +59,6 @@ export const TABS: NavTab[] = [
       '/j',
       '/settings',
       '/profile',
-      '/events',
       '/friends',
     ],
   },

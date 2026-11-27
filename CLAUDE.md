@@ -101,7 +101,7 @@ your shell is and follow `docs/LOCAL_DEV.md` → "Where am I running?":
 - **Inside the devcontainer**: `npm run start:dev` (workspace = app container).
 
 Either way, never start Supabase, Vite, or edge functions by hand — the scripts
-handle the sequence (edge functions are required for jam-view + Spotify search;
+handle the sequence (edge functions are required for Spotify search and delete account;
 logs: `/tmp/edge-functions.log`).
 
 ```bash

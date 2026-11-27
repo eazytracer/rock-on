@@ -5,6 +5,7 @@ import {
   Route,
   Navigate,
   useParams,
+  useSearchParams,
 } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
@@ -27,6 +28,9 @@ const BandPage = lazy(() => import('./pages/BandPage'))
 const BandProfilePage = lazy(() => import('./pages/BandProfilePage'))
 const BandNewPage = lazy(() => import('./pages/BandNewPage'))
 const JoinBandPage = lazy(() => import('./pages/JoinBandPage'))
+const JoinCodePage = lazy(() => import('./pages/jam/JoinCodePage'))
+const JamTvPage = lazy(() => import('./pages/jam/JamTvPage'))
+const KioskPage = lazy(() => import('./pages/jam/KioskPage'))
 const TermsPage = lazy(() =>
   import('./pages/LegalPage').then(m => ({ default: m.TermsPage }))
 )
@@ -83,16 +87,11 @@ const SettingsPage = lazy(() =>
     default: module.SettingsPage,
   }))
 )
-const JamSessionPage = lazy(() =>
-  import('./pages/JamSessionPage').then(module => ({
-    default: module.JamSessionPage,
-  }))
-)
-const JamViewPage = lazy(() =>
-  import('./pages/JamViewPage').then(module => ({
-    default: module.JamViewPage,
-  }))
-)
+const JamHubPage = lazy(() => import('./pages/jam/JamHubPage'))
+const JamNewPage = lazy(() => import('./pages/jam/JamNewPage'))
+const JamPage = lazy(() => import('./pages/jam/JamPage'))
+const JamSongsPage = lazy(() => import('./pages/jam/JamSongsPage'))
+const JamConsolePage = lazy(() => import('./pages/jam/JamConsolePage'))
 // mobile-redesign-port: net-new IA screens (Home / Calendar / More / Notifications)
 const HomePage = lazy(() =>
   import('./pages/HomePage').then(module => ({ default: module.HomePage }))
@@ -113,19 +112,6 @@ const NotificationsPage = lazy(() =>
 const FriendsPage = lazy(() =>
   import('./pages/FriendsPage').then(module => ({
     default: module.FriendsPage,
-  }))
-)
-const EventsPage = lazy(() =>
-  import('./pages/EventsPage').then(module => ({ default: module.EventsPage }))
-)
-const EventDetailPage = lazy(() =>
-  import('./pages/EventDetailPage').then(module => ({
-    default: module.EventDetailPage,
-  }))
-)
-const EventCreatePage = lazy(() =>
-  import('./pages/EventCreatePage').then(module => ({
-    default: module.EventCreatePage,
   }))
 )
 
@@ -154,6 +140,22 @@ const DevUIPreviewPage = lazy(() =>
 )
 
 /** The practice page edits in place; the old editor URL lands there. */
+/** Old Events links (in the wild): `/events?join=CODE` → `/j/CODE`, else the hub. */
+const EventsRedirect: React.FC = () => {
+  const [params] = useSearchParams()
+  const code = params.get('join')
+  return <Navigate to={code ? `/j/${code}` : '/jam'} replace />
+}
+const EventRedirect: React.FC = () => {
+  const { eventId } = useParams<{ eventId: string }>()
+  return <Navigate to={`/jam/${eventId}`} replace />
+}
+/** The 0.3 public view: `/jam/view/:code` → `/j/:code`. */
+const JamViewRedirect: React.FC = () => {
+  const { shortCode } = useParams<{ shortCode: string }>()
+  return <Navigate to={`/j/${shortCode}`} replace />
+}
+
 const PracticeEditRedirect: React.FC = () => {
   const { practiceId } = useParams<{ practiceId: string }>()
   return <Navigate to={`/practices/${practiceId}`} replace />
@@ -247,8 +249,13 @@ const AppContent: React.FC = () => {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
 
-          {/* Public jam session view — no auth required */}
-          <Route path="/jam/view/:shortCode" element={<JamViewPage />} />
+          {/* The 0.3 jam view link: to the code resolver. */}
+          <Route path="/jam/view/:shortCode" element={<JamViewRedirect />} />
+          {/* Jam codes and band invites (resolver), the bar TV, the counter iPad:
+              public, no layout (the resolver adds it for signed-in visitors). */}
+          <Route path="/j/:code" element={<JoinCodePage />} />
+          <Route path="/j/:code/tv" element={<JamTvPage />} />
+          <Route path="/kiosk" element={<KioskPage />} />
 
           {/* Protected routes - with persistent layout */}
           {/* ModernLayout stays mounted during navigation between these routes */}
@@ -258,9 +265,12 @@ const AppContent: React.FC = () => {
             <Route path="/more" element={<MorePage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/events/new" element={<EventCreatePage />} />
-            <Route path="/events/:eventId" element={<EventDetailPage />} />
+            <Route path="/events" element={<EventsRedirect />} />
+            <Route
+              path="/events/new"
+              element={<Navigate to="/jam/new" replace />}
+            />
+            <Route path="/events/:eventId" element={<EventRedirect />} />
             <Route path="/songs" element={<SongsPage />} />
             <Route path="/songs/new" element={<SongNewPage />} />
             <Route path="/songs/:songId" element={<SongViewPage />} />
@@ -307,11 +317,13 @@ const AppContent: React.FC = () => {
             <Route path="/band/profile" element={<BandProfilePage />} />
             <Route path="/band/new" element={<BandNewPage />} />
             <Route path="/j" element={<JoinBandPage />} />
-            <Route path="/j/:code" element={<JoinBandPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/:section" element={<SettingsPage />} />
-            <Route path="/jam" element={<JamSessionPage />} />
-            <Route path="/jam/:sessionId" element={<JamSessionPage />} />
+            <Route path="/jam" element={<JamHubPage />} />
+            <Route path="/jam/new" element={<JamNewPage />} />
+            <Route path="/jam/songs" element={<JamSongsPage />} />
+            <Route path="/jam/:id" element={<JamPage />} />
+            <Route path="/jam/:id/live" element={<JamConsolePage />} />
             <Route path="/tools" element={<ToolsPage />} />
             <Route path="/tools/:tab" element={<ToolsPage />} />
           </Route>

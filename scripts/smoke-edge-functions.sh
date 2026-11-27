@@ -21,20 +21,14 @@ BASE="$PROJECT_URL/functions/v1"
 # minimal params). Auth modes live in deploy-edge-functions.sh's AUTH_MODE
 # map; keep both lists in step.
 #
-# - jam-view: anonymous is OK, but without `code` + `t` params the
-#   function returns 400 "Missing code or token". That's the marker that
-#   the JWT gate is properly disabled.
-# - jam-recompute: requires JWT — anonymous GET is 401 at the gateway.
-# - spotify-search: requires JWT — same.
+# - spotify-search: requires JWT — anonymous GET is 401 at the gateway.
 # - delete-account: requires JWT — same.
 declare -A EXPECTED_STATUS=(
-  [jam-view]="400"
-  [jam-recompute]="401"
   [spotify-search]="401"
   [delete-account]="401"
 )
 
-ALL_FUNCTIONS=(jam-view jam-recompute spotify-search delete-account)
+ALL_FUNCTIONS=(spotify-search delete-account)
 
 pass=0
 fail=0

@@ -69,6 +69,17 @@ export async function copyBandSongsToPersonal(
   return data?.length ?? 0
 }
 
+/** Copies band songs into My Songs and returns the copies' ids. */
+export async function copyBandSongsToPersonalIds(
+  songIds: string[]
+): Promise<string[]> {
+  const { data, error } = await api().rpc('copy_band_songs_to_personal', {
+    p_song_ids: songIds,
+  })
+  if (error) throw toApiError(error)
+  return (data ?? []).map(r => r.id)
+}
+
 /** "In ‹setlist›": one item's note, written on its own (docs/redesign/10 · 1.4). */
 export async function setSetlistItemNote(
   setlistId: string,

@@ -15,6 +15,17 @@ const BRAND_ACCENT = {
   light: { accent: '255 122 26', onAccent: '26 12 2', ink: '184 77 0' },
 }
 
+/** The brand orange on screens outside any context (auth, jam guests, kiosk). */
+export const useBrandAccent = (): React.CSSProperties => {
+  const { resolvedTheme } = useTheme()
+  const brand = BRAND_ACCENT[resolvedTheme]
+  return {
+    '--accent-rgb': brand.accent,
+    '--on-accent-rgb': brand.onAccent,
+    '--accent-ink-rgb': brand.ink,
+  } as React.CSSProperties
+}
+
 export const AuthFrame: React.FC<{
   'data-testid': string
   /** Back crumb above the column ("‹ Sign in"). */
@@ -46,18 +57,11 @@ export const AuthFrame: React.FC<{
   centered,
   children,
 }) => {
-  const { resolvedTheme } = useTheme()
-  const brand = BRAND_ACCENT[resolvedTheme]
+  const brand = useBrandAccent()
   return (
     <div
       data-testid={testId}
-      style={
-        {
-          '--accent-rgb': brand.accent,
-          '--on-accent-rgb': brand.onAccent,
-          '--accent-ink-rgb': brand.ink,
-        } as React.CSSProperties
-      }
+      style={brand}
       className="min-h-[100dvh] bg-bg-1 text-ink-1 flex flex-col md:grid md:place-items-center md:px-5 md:py-10 overflow-y-auto custom-scrollbar"
     >
       <div

@@ -8,17 +8,12 @@
  * See scripts/test-harness/README.md for the full command reference.
  */
 
-import { runCreateJam } from './commands/create-jam'
-import { runDumpSession } from './commands/dump-session'
 import { runEnsure } from './commands/ensure'
-import { runJoinJam } from './commands/join-jam'
 import { runListSongs } from './commands/list-songs'
-import { runRecompute } from './commands/recompute'
 import { runReset } from './commands/reset'
 import { runSeedSetlist } from './commands/seed-setlist'
 import { runSeedSongs } from './commands/seed-songs'
 import { runSignIn } from './commands/sign-in'
-import { runWatch } from './commands/watch'
 
 interface ParsedArgs {
   positional: string[]
@@ -56,13 +51,6 @@ Commands:
   seed-setlist <persona> [--name=<n>]
             [--count=N] [--json]            Create a personal setlist from persona's catalog.
   list-songs <persona>                      Print persona's personal catalog.
-  create-jam <persona> [--name=<n>]
-            [--seed-from=<setlistId>] [--json]  Persona creates a jam session
-                                              (optionally seeded from a personal setlist).
-  join-jam <persona> <joinCode>             Persona joins an existing session.
-  recompute <sessionId> [--as=<persona>]    Trigger jam-recompute Edge Function.
-  dump-session <sessionId>                  Service-role snapshot of a jam session.
-  watch <sessionId>                         Stream realtime events for a session.
 
 See scripts/test-harness/README.md for examples.
 `
@@ -109,37 +97,6 @@ async function main(): Promise<void> {
         count: flags.count ? parseInt(String(flags.count), 10) : undefined,
         json: Boolean(flags.json),
       })
-      break
-    case 'create-jam':
-      requirePositional(positional, 1, command)
-      await runCreateJam({
-        name: positional[0],
-        sessionName: typeof flags.name === 'string' ? flags.name : undefined,
-        seedFrom:
-          typeof flags['seed-from'] === 'string'
-            ? (flags['seed-from'] as string)
-            : undefined,
-        json: Boolean(flags.json),
-      })
-      break
-    case 'join-jam':
-      requirePositional(positional, 2, command)
-      await runJoinJam({ name: positional[0], joinCode: positional[1] })
-      break
-    case 'recompute':
-      requirePositional(positional, 1, command)
-      await runRecompute({
-        sessionId: positional[0],
-        asName: typeof flags.as === 'string' ? flags.as : undefined,
-      })
-      break
-    case 'dump-session':
-      requirePositional(positional, 1, command)
-      await runDumpSession({ sessionId: positional[0] })
-      break
-    case 'watch':
-      requirePositional(positional, 1, command)
-      await runWatch({ sessionId: positional[0] })
       break
     default:
       console.error(`Unknown command: ${command}\n`)

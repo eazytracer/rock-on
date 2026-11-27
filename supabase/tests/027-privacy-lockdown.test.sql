@@ -3,7 +3,8 @@
 --   1. Other users' email / last_login / last_active_at are not readable;
 --      get_user_emails() returns your own email and, for band admins/owners
 --      only, their bandmates' emails.
---   2. Jam sessions can't be listed or joined without the code.
+--   2. Jam sessions can't be listed or joined; the 0.3 RPCs and co-participant
+--      reads are gone (phase 7).
 --   3. Active bandmates can read each other's (non-discoverable) profiles.
 -- Category: RLS & Security
 -- Created: 2026-10-25
@@ -13,7 +14,7 @@
 
 begin;
 
-select plan(22);
+select plan(20);
 
 -- ── Users ────────────────────────────────────────────────────────────────────
 select tests.create_supabase_user('pl-admin@test.com');
@@ -135,57 +136,37 @@ select throws_ok(
   '42501', NULL,
   'A stranger cannot insert themselves into a jam directly');
 
+-- Phase 7 retired the 0.3 jam RPCs and the co-participant reads.
+select ok(NOT has_function_privilege('authenticated', 'public.get_jam_session_by_code(text)', 'EXECUTE')
+          AND NOT has_function_privilege('anon', 'public.get_jam_session_by_code(text)', 'EXECUTE'),
+  'get_jam_session_by_code is revoked (phase 7)');
+select ok(NOT has_function_privilege('authenticated', 'public.join_jam_session(text)', 'EXECUTE')
+          AND NOT has_function_privilege('anon', 'public.join_jam_session(text)', 'EXECUTE'),
+  'join_jam_session is revoked (phase 7)');
+select ok(NOT has_function_privilege('authenticated', 'public.replace_jam_matches(uuid, jsonb)', 'EXECUTE'),
+  'replace_jam_matches is revoked (phase 7)');
+
+-- A (former 0.3) co-participant: no longer reads the host's personal songs or name.
+reset role;
+INSERT INTO public.jam_participants (jam_session_id, user_id, status)
+VALUES ('dddddddd-0000-4000-8000-000000000027', current_setting('test.stranger_uid')::uuid, 'active');
+INSERT INTO public.songs (id, title, context_type, context_id, created_by, visibility)
+VALUES ('dddddddd-0000-4000-8000-0000000000a7', 'Host Private Song', 'personal',
+        current_setting('test.host_uid'), current_setting('test.host_uid')::uuid, 'personal');
+select tests.authenticate_as('pl-stranger@test.com');
 select is(
-  (SELECT count(*)::int FROM public.get_jam_session_by_code('nope00')),
+  (SELECT count(*)::int FROM public.songs WHERE id = 'dddddddd-0000-4000-8000-0000000000a7'),
   0,
-  'get_jam_session_by_code: a wrong code returns nothing');
-
-select results_eq(
-  $q$SELECT name FROM public.get_jam_session_by_code(' pljam1 ')$q$,
-  ARRAY['Active Jam'],
-  'get_jam_session_by_code: the exact code (trimmed, any case) finds the session');
-
+  'A jam co-participant cannot read the host''s personal songs');
 select is(
-  (SELECT count(*)::int FROM public.join_jam_session('nope00')),
+  (SELECT count(*)::int FROM public.users WHERE id = current_setting('test.host_uid')::uuid),
   0,
-  'join_jam_session: a wrong code joins nothing');
-
-select throws_ok(
-  $q$SELECT * FROM public.join_jam_session('PLJAM2')$q$,
-  'P0001', 'This jam session is no longer active',
-  'join_jam_session: an expired session cannot be joined');
-
-select results_eq(
-  $q$SELECT name FROM public.join_jam_session('PLJAM1')$q$,
-  ARRAY['Active Jam'],
-  'join_jam_session: the right code joins the session');
-
-select results_eq(
-  format($q$SELECT status FROM public.jam_participants
-            WHERE jam_session_id = 'dddddddd-0000-4000-8000-000000000027' AND user_id = %L$q$,
-    current_setting('test.stranger_uid')),
-  ARRAY['active'],
-  'The joiner is now an active participant');
+  'A jam co-participant cannot read the host''s user row');
 
 select throws_ok(
   'SELECT email FROM public.users',
   '42501', NULL,
   'A jam co-participant still cannot read emails');
-
--- Kicked participants stay kicked when they re-join
-reset role;
-UPDATE public.jam_participants SET status = 'kicked'
-  WHERE jam_session_id = 'dddddddd-0000-4000-8000-000000000027'
-    AND user_id = current_setting('test.stranger_uid')::uuid;
-select tests.authenticate_as('pl-stranger@test.com');
-DO $$ BEGIN PERFORM public.join_jam_session('PLJAM1'); END $$;
-reset role;
-select results_eq(
-  format($q$SELECT status FROM public.jam_participants
-            WHERE jam_session_id = 'dddddddd-0000-4000-8000-000000000027' AND user_id = %L$q$,
-    current_setting('test.stranger_uid')),
-  ARRAY['kicked'],
-  'join_jam_session does not re-activate a kicked participant');
 
 -- Host can still add themselves when creating a jam
 select tests.authenticate_as('pl-host@test.com');

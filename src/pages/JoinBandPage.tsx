@@ -1,6 +1,7 @@
 /**
- * Join a band: `/j` (enter a code or paste a link) and `/j/:code`, the
- * preview (Band and Friends 7, desktop join): mark, name, description,
+ * Join with a code: `/j` (enter a band or jam code, or paste a link; the
+ * resolver at `/j/:code`, pages/jam/JoinCodePage, works out which) and the
+ * band preview it hands band codes to (Band and Friends 7, desktop join): mark, name, description,
  * members' first names, song count; a big Join and a small Not now. A bad,
  * expired or regenerated code says so without naming the band. Signed-out
  * visitors are sent to sign in and back here (ProtectedLayoutRoute returnTo).
@@ -47,17 +48,17 @@ const JoinCodeEntry: React.FC = () => {
         data-testid="join-back"
       />
       <h1 className="font-display font-extrabold uppercase text-[44px] leading-[.9] text-ink-1 mt-2">
-        Join a band
+        Join with a code
       </h1>
       <p className="text-[15px] text-ink-2 mt-2 mb-5">
-        Enter the code or paste the link a bandmate sent you. You'll see the
-        band before you join.
+        Enter the code or paste the link for a band or a jam. You'll see it
+        before you join.
       </p>
       <label
         htmlFor="join-code"
         className="block font-mono text-[10.5px] tracking-[.1em] uppercase text-ink-3 mb-1.5"
       >
-        Band code
+        Code
       </label>
       <input
         id="join-code"
@@ -89,7 +90,7 @@ const JoinCodeEntry: React.FC = () => {
   )
 }
 
-const JoinPreview: React.FC<{ code: string }> = ({ code }) => {
+export const JoinPreview: React.FC<{ code: string }> = ({ code }) => {
   const navigate = useNavigate()
   const desktop = useMediaQuery('(min-width: 768px)')
   const { userBands } = useAuth()

@@ -144,10 +144,16 @@ export const SongLine: React.FC<SongLineProps> = ({
         {song && (
           <span className="song-line__meta">
             <span className="song-line__tuning">
-              <TuningPill
-                tuning={song.tuning || 'Standard'}
-                size={density === 'compact' ? 'sm' : 'md'}
-              />
+              {song.noTuning ? (
+                <span className="text-ink-4" aria-label="No tuning">
+                  –
+                </span>
+              ) : (
+                <TuningPill
+                  tuning={song.tuning || 'Standard'}
+                  size={density === 'compact' ? 'sm' : 'md'}
+                />
+              )}
             </span>
             {cell(
               'len',

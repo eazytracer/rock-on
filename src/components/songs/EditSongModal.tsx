@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import CircleOfFifths from './CircleOfFifths'
 import { formatSeconds } from '../../domain/format'
+import { normalizeTags } from '../../domain/songs'
 import { useSpotifySearch } from '../../hooks/useSpotifySearch'
 import type { Song } from '../../models/Song'
 import type { ReferenceLink } from '../../types'
@@ -624,10 +625,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     }
 
     const duration = minSecToSeconds(formData.durationMin, formData.durationSec)
-    const tags = formData.tags
-      .split(',')
-      .map(t => t.trim())
-      .filter(Boolean)
+    const tags = normalizeTags(formData.tags)
 
     const referenceLinks: ReferenceLink[] = links.map(link => ({
       icon: link.icon,

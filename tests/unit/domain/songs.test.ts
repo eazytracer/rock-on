@@ -4,12 +4,16 @@ import {
   catalogList,
   commitTitle,
   filterSongs,
+  jamTagChanges,
   linkCategory,
+  normalizeTags,
+  songMatchKey,
   noteMark,
   readListView,
   sortSongs,
   tuningsInUse,
   usageSummary,
+  withTag,
 } from '../../../src/domain/songs'
 import type { Song } from '../../../src/models/Song'
 
@@ -172,5 +176,73 @@ describe('commitTitle', () => {
       changed: true,
     })
     expect(commitTitle('Everlong', 'Everlong').changed).toBe(false)
+  })
+})
+
+describe('normalizeTags', () => {
+  it('lowercases, trims, drops blanks and repeats from the field text', () => {
+    expect(normalizeTags(' Jam, 90s ,,JAM, Covers ,')).toEqual([
+      'jam',
+      '90s',
+      'covers',
+    ])
+  })
+  it('takes a list too', () => {
+    expect(normalizeTags(['Jam', 'jam ', ''])).toEqual(['jam'])
+  })
+  it('empty text is no tags', () => {
+    expect(normalizeTags('  ')).toEqual([])
+  })
+})
+
+describe('withTag', () => {
+  it('adds once, at the end', () => {
+    expect(withTag(['90s'], 'jam', true)).toEqual(['90s', 'jam'])
+    expect(withTag(['jam', '90s'], 'jam', true)).toEqual(['90s', 'jam'])
+  })
+  it('removes and keeps the rest', () => {
+    expect(withTag(['90s', 'jam'], 'jam', false)).toEqual(['90s'])
+    expect(withTag(undefined, 'jam', false)).toEqual([])
+  })
+})
+
+describe('filterSongs by tag', () => {
+  const songs = [
+    song('A', { tags: ['jam'] }),
+    song('B', { tags: ['90s'] }),
+    song('C'),
+  ]
+  it('keeps songs with every tag asked for', () => {
+    expect(filterSongs(songs, '', [], ['jam']).map(s => s.id)).toEqual(['A'])
+    expect(filterSongs(songs, '', [], []).map(s => s.id)).toHaveLength(3)
+  })
+})
+
+describe('jamTagChanges', () => {
+  const mine = [
+    song('tagged', { tags: ['jam', '90s'] }),
+    song('plain', { tags: ['90s'] }),
+    song('untouched'),
+  ]
+  it('tags the newly picked and untags the unpicked, nothing else', () => {
+    expect(jamTagChanges(mine, new Set(['plain']))).toEqual([
+      { id: 'tagged', tags: ['90s'] },
+      { id: 'plain', tags: ['90s', 'jam'] },
+    ])
+  })
+  it('no changes when the pick matches the tags', () => {
+    expect(jamTagChanges(mine, new Set(['tagged']))).toEqual([])
+  })
+})
+
+describe('songMatchKey', () => {
+  it('matches like the server: case, punctuation, brackets, leading article', () => {
+    expect(
+      songMatchKey({ title: "Don't Stop Believin'", artist: 'Journey' })
+    ).toBe(songMatchKey({ title: 'Dont Stop Believin', artist: 'journey' }))
+    expect(songMatchKey({ title: 'Plush (Live)', artist: 'STP' })).toBe(
+      songMatchKey({ title: 'PLUSH', artist: 'stp' })
+    )
+    expect(songMatchKey({ title: 'The Middle', artist: null })).toBe('middle|')
   })
 })

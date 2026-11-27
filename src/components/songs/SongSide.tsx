@@ -1,9 +1,11 @@
 /**
- * Song page, right column (docs/redesign/10 · 1.2): Details (album, tags),
+ * Song page, right column (docs/redesign/10 · 1.2): Details (album, tags as
+ * chips, and in My Songs the "Jam song" switch, which is just the `jam` tag),
  * Links (inline add / edit / remove), Used in, and the context line. Each edit
- * saves on its own through the page's field save.
+ * saves on its own through the page's field save. Tags belong to the context:
+ * a band song's are the band's, a My Songs copy has its own.
  */
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CalendarDays,
@@ -19,6 +21,8 @@ import type { Song } from '../../models/Song'
 import type { ReferenceLink } from '../../types'
 import { linkGlyph } from './linkGlyphs'
 import { InlineText, type SaveField } from './SongFacts'
+import { Switch } from '../ui'
+import { JAM_TAG, normalizeTags, withTag } from '../../domain/songs'
 import { useSongUsage } from '../../hooks/useSongCatalog'
 import { detectLinkType } from '../../utils/linkDetection'
 import { formatShowDate } from '../../utils/dateHelpers'
@@ -36,6 +40,75 @@ function linkFrom(url: string, description?: string): ReferenceLink {
     url: u,
     ...(description ? { description } : {}),
   }
+}
+
+const DETAIL_LABEL =
+  'w-14 shrink-0 font-mono text-[10.5px] tracking-[.14em] uppercase text-ink-3'
+
+/** Tags as chips; tap to edit them as comma-separated text. */
+const TagsField: React.FC<{
+  tags: string[]
+  onCommit: (tags: string[]) => void
+}> = ({ tags, onCommit }) => {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const cancelled = useRef(false)
+  const start = () => {
+    setDraft(tags.join(', '))
+    setEditing(true)
+  }
+  if (editing)
+    return (
+      <input
+        autoFocus
+        value={draft}
+        aria-label="Tags"
+        placeholder="jam, covers, acoustic"
+        name="songTags"
+        id="song-tags-input"
+        data-testid="song-tags-input"
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+          if (e.key === 'Escape') {
+            e.stopPropagation()
+            cancelled.current = true
+            e.currentTarget.blur()
+          }
+        }}
+        onBlur={() => {
+          setEditing(false)
+          if (cancelled.current) cancelled.current = false
+          else onCommit(normalizeTags(draft))
+        }}
+        className="flex-1 min-w-0 py-1 text-[15px] text-ink-1 bg-transparent rounded-lg outline-none ring-2 ring-accent px-1 -mx-1"
+      />
+    )
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      title="Edit tags"
+      onClick={start}
+      onKeyDown={e => e.key === 'Enter' && start()}
+      data-testid="song-tags"
+      className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5 py-2 cursor-text rounded-lg hover:bg-bg-2 -mx-1 px-1"
+    >
+      {tags.length ? (
+        tags.map(t => (
+          <span
+            key={t}
+            className="h-6 px-2.5 rounded-full bg-bg-3 text-[12.5px] font-semibold text-ink-2 inline-flex items-center"
+            data-testid={`song-tag-${t}`}
+          >
+            {t}
+          </span>
+        ))
+      ) : (
+        <span className="text-[15px] text-ink-4">Add tags</span>
+      )}
+    </div>
+  )
 }
 
 const LinkInput: React.FC<{
@@ -88,6 +161,8 @@ export const SongSide: React.FC<{
     onSave('Links', { referenceLinks: next })
 
   const isBand = song.contextType === 'band'
+  const tags = song.tags ?? []
+  const isJam = tags.includes(JAM_TAG)
   const context = isBand
     ? `In ${bandName ?? 'the band'}.${
         hasLinkedCopy
@@ -102,44 +177,50 @@ export const SongSide: React.FC<{
     <div>
       <div className={SECTION}>Details</div>
       <div className={GROUP}>
-        {(
-          [
-            ['Album', 'album', song.album || ''],
-            ['Tags', 'tags', (song.tags ?? []).join(', ')],
-          ] as const
-        ).map(([label, field, value]) => (
-          <div
-            key={field}
-            className="flex items-center gap-4 px-3.5 min-h-[50px]"
-          >
-            <span className="w-14 shrink-0 font-mono text-[10.5px] tracking-[.14em] uppercase text-ink-3">
-              {label}
+        <div className="flex items-center gap-4 px-3.5 min-h-[50px]">
+          <span className={DETAIL_LABEL}>Album</span>
+          <InlineText
+            value={song.album || ''}
+            placeholder="Add album"
+            label="Album"
+            inputTestId="song-album-input"
+            testId="song-album"
+            className="flex-1 min-w-0 py-1 text-[15px] text-ink-1 truncate"
+            onCommit={v => {
+              const t = v.trim()
+              if (t !== (song.album || '')) void onSave('Album', { album: t })
+            }}
+          />
+        </div>
+        <div className="flex items-center gap-4 px-3.5 min-h-[50px]">
+          <span className={DETAIL_LABEL}>Tags</span>
+          <TagsField
+            key={song.id}
+            tags={tags}
+            onCommit={next => {
+              if (next.join(',') !== tags.join(','))
+                void onSave('Tags', { tags: next })
+            }}
+          />
+        </div>
+        {!isBand && (
+          <div className="flex items-center gap-4 px-3.5 min-h-[56px]">
+            <span className="flex-1 min-w-0">
+              <span className="block text-[15px] text-ink-1">Jam song</span>
+              <span className="block text-[12.5px] text-ink-3">
+                Shared when you join a jam
+              </span>
             </span>
-            <InlineText
-              value={value}
-              placeholder={`Add ${label.toLowerCase()}`}
-              label={label}
-              inputTestId={`song-${field}-input`}
-              testId={`song-${field}`}
-              className="flex-1 min-w-0 py-1 text-[15px] text-ink-1 truncate"
-              onCommit={v => {
-                const t = v.trim()
-                if (t === value) return
-                void onSave(
-                  label,
-                  field === 'album'
-                    ? { album: t }
-                    : {
-                        tags: t
-                          .split(',')
-                          .map(x => x.trim())
-                          .filter(Boolean),
-                      }
-                )
-              }}
+            <Switch
+              checked={isJam}
+              onChange={on =>
+                void onSave('Jam song', { tags: withTag(tags, JAM_TAG, on) })
+              }
+              label="Jam song"
+              data-testid="song-jam-toggle"
             />
           </div>
-        ))}
+        )}
       </div>
 
       <div className={SECTION}>

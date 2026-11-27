@@ -62,6 +62,7 @@ import {
   noteMark,
   tuningsInUse,
   usageSummary,
+  JAM_TAG,
 } from '../domain/songs'
 import { flipDir } from '../domain/sort'
 import { songHref } from '../utils/songOrigin'
@@ -107,14 +108,24 @@ export const SongsPage: React.FC = () => {
   const [tunings, setTunings] = useState<string[]>(
     () => readSongsFilter(contextKey).tunings
   )
+  // My Songs only: the "Jam songs" chip (band tags are the band's).
+  const [tags, setTags] = useState<string[]>(
+    () => readSongsFilter(contextKey).tags
+  )
   useEffect(() => {
     const f = readSongsFilter(contextKey)
     setQuery(f.query)
     setTunings(f.tunings)
+    setTags(f.tags)
   }, [contextKey])
   useEffect(
-    () => writeSongsFilter(contextKey, { query, tunings }),
-    [contextKey, query, tunings]
+    () => writeSongsFilter(contextKey, { query, tunings, tags }),
+    [contextKey, query, tunings, tags]
+  )
+  const jamOnly = tags.includes(JAM_TAG)
+  const jamCount = useMemo(
+    () => songs.filter(s => s.tags?.includes(JAM_TAG)).length,
+    [songs]
   )
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [menu, setMenu] = useState<MenuState>(null)
@@ -150,8 +161,15 @@ export const SongsPage: React.FC = () => {
   )
 
   const visible = useMemo(
-    () => catalogList(songs, view, hiddenIds, { query, tunings }, nextShowAt),
-    [songs, hiddenIds, view, query, tunings, nextShowAt]
+    () =>
+      catalogList(
+        songs,
+        view,
+        hiddenIds,
+        { query, tunings, tags: isBand ? [] : tags },
+        nextShowAt
+      ),
+    [songs, hiddenIds, view, query, tunings, tags, isBand, nextShowAt]
   )
 
   const myNotes = useBulkPersonalNotePresence(
@@ -282,6 +300,22 @@ export const SongsPage: React.FC = () => {
     onAddToSet: () => setAddToSet(song),
   })
 
+  const jamChip = !isBand && (
+    <Chip
+      on={jamOnly}
+      onClick={() =>
+        setTags(jamOnly ? tags.filter(t => t !== JAM_TAG) : [...tags, JAM_TAG])
+      }
+      className="shrink-0"
+      data-testid="songs-jam-filter"
+    >
+      Jam songs
+      {jamCount > 0 && (
+        <span className="font-mono text-[11.5px] opacity-70">{jamCount}</span>
+      )}
+    </Chip>
+  )
+
   // In the title from md up; in the phone dock below (layout/PhoneDock).
   const addButton = (
     <Button
@@ -328,19 +362,42 @@ export const SongsPage: React.FC = () => {
           data-testid="songs-empty"
         />
       )
+    if (visible.length === 0 && jamOnly && !jamCount)
+      return (
+        <Empty
+          icon={<Music2 size={28} />}
+          title="No jam songs yet"
+          why="Tag the songs you'd jam on. Joining a jam shares them."
+          action={
+            <Button
+              variant="primary"
+              onClick={() => navigate('/jam/songs?returnTo=/songs')}
+              data-testid="songs-pick-jam-songs"
+            >
+              Pick jam songs
+            </Button>
+          }
+          data-testid="songs-no-jam-songs"
+        />
+      )
     if (visible.length === 0)
       return (
         <Empty
           icon={<SearchX size={28} />}
           title="No matches"
           why={
-            query ? `Nothing matches "${query}".` : 'No songs in that tuning.'
+            query
+              ? `Nothing matches "${query}".`
+              : tunings.length
+                ? 'No songs in that tuning.'
+                : 'No jam songs match.'
           }
           action={
             <Button
               onClick={() => {
                 setQuery('')
                 setTunings([])
+                setTags([])
               }}
             >
               Clear
@@ -437,8 +494,10 @@ export const SongsPage: React.FC = () => {
               onChange={setTunings}
               menu={isDesktop}
             />
+            {isDesktop && jamChip}
           </div>
           <div className="flex items-center gap-2 md:ml-auto">
+            {!isDesktop && jamChip}
             <SortControl
               label={SORT_LABELS[view.sort]}
               kind={SORT_KINDS[view.sort]}

@@ -67,7 +67,9 @@ export async function joinBandViaUI(
 ): Promise<void> {
   await page.goto(`/j/${inviteCode}`)
   const join = page.locator('[data-testid="join-band-button"]')
-  const invalid = page.locator('[data-testid="join-invalid"]')
+  const invalid = page.locator(
+    '[data-testid="join-invalid"], [data-testid="jam-code-invalid"]'
+  )
   await expect(join.or(invalid)).toBeVisible({ timeout: 15000 })
   if (await invalid.isVisible()) {
     throw new Error(

@@ -5,6 +5,7 @@ import {
   Users,
   UserPlus,
   PartyPopper,
+  Music2,
   Settings,
   LogOut,
   HelpCircle,
@@ -271,6 +272,12 @@ export function MorePage() {
           icon={PartyPopper}
           onClick={() => navigate('/jam')}
           testid="more-jam"
+        />
+        <Row
+          label="Jam songs"
+          icon={Music2}
+          onClick={() => navigate('/jam/songs')}
+          testid="more-jam-songs"
         />
         <Row
           label="Friends"

@@ -35,7 +35,7 @@ in the headings below are historical.
 | 4 · Calendar, shows, practices (0.11.0)    | Built (`007e6cb`), plus the follow-ups listed under Phase 4 (uncommitted at the time of writing) |
 | 5 · Tools and chart (0.12.0)               | Built (`8798d08`), plus the phone dock, app bar and other follow-ups (Nov 18)                    |
 | **6 · Account, band, friends (0.13.0)**    | Built (Nov 18; decisions in docs/DECISIONS.md)                                                   |
-| 7 · Jam (0.14.0)                           | Not started. Build brief: [11-jam.md](11-jam.md) (Nov 16; its open questions are unanswered)     |
+| 7 · Jam (0.14.0)                           | Built (Nov 20), brief: [11-jam.md](11-jam.md); decisions in `docs/DECISIONS.md`                  |
 | 8 · RSVP                                   | Post-launch                                                                                      |
 
 Feature flags: add `REDESIGN_<AREA>` flags to `src/config/featureFlags.ts` only where a phase **removes** an old

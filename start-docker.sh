@@ -37,7 +37,7 @@ else
     supabase start
 fi
 
-# Edge functions (jam-view, Spotify search) aren't part of the app container;
+# Edge functions (Spotify search, delete account) aren't part of the app container;
 # serve them with the host's Supabase CLI against the same local stack.
 echo ""
 echo -e "${GREEN}Starting edge functions...${NC}"

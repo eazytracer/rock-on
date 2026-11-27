@@ -144,8 +144,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('users', 'users_select_jam_coparticipant'),
-  'users_select_jam_coparticipant policy should exist (read jam coparticipants)'
+  NOT tests.policy_exists('users', 'users_select_jam_coparticipant'),
+  'users_select_jam_coparticipant policy is gone (0.3 jam sessions retired, phase 7)'
 );
 
 select ok(
@@ -168,8 +168,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('user_profiles', 'user_profiles_select_jam_coparticipant'),
-  'user_profiles_select_jam_coparticipant policy should exist (display_name in jams)'
+  NOT tests.policy_exists('user_profiles', 'user_profiles_select_jam_coparticipant'),
+  'user_profiles_select_jam_coparticipant policy is gone (0.3 jam sessions retired, phase 7)'
 );
 
 select ok(
@@ -259,8 +259,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('songs', 'songs_select_jam_coparticipant'),
-  'songs_select_jam_coparticipant policy should exist (read coparticipants personal songs)'
+  NOT tests.policy_exists('songs', 'songs_select_jam_coparticipant'),
+  'songs_select_jam_coparticipant policy is gone (jam songs are shared through who_knows_your_songs, phase 7)'
 );
 
 select ok(
@@ -497,14 +497,14 @@ select ok(
 
 select is(
   tests.policy_count('users'),
-  6,
-  'users table should have exactly 6 policies (self + band-member + jam-coparticipant + event-coparticipant + insert + update)'
+  5,
+  'users table should have exactly 5 policies (self + band-member + event-coparticipant + insert + update)'
 );
 
 select is(
   tests.policy_count('user_profiles'),
-  8,
-  'user_profiles table should have exactly 8 policies (own select + band-member + jam-coparticipant + event-coparticipant select + insert + update + friends discoverable + friend select)'
+  7,
+  'user_profiles table should have exactly 7 policies (own select + band-member + event-coparticipant select + insert + update + friends discoverable + friend select)'
 );
 
 -- Social events (mobile-redesign-port): co-participant name visibility for casting.
@@ -548,8 +548,8 @@ select is(
 
 select is(
   tests.policy_count('songs'),
-  9,
-  'songs table should have exactly 9 policies (4 personal + 4 band + 1 jam-coparticipant select)'
+  8,
+  'songs table should have exactly 8 policies (4 personal + 4 band)'
 );
 
 select is(

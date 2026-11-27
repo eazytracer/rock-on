@@ -37,7 +37,7 @@ export function calendarBackTo(fallback: string) {
   return fallback
 }
 
-/** The band's shows and practices for the agenda (jams come from useEvents). */
+/** The band's shows and practices for the agenda (jams come from useMyJams). */
 export function useAgenda(bandId: string) {
   const queryKey = ['calendar', 'agenda', bandId]
   const query = useQuery({

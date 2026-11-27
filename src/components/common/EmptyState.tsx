@@ -29,7 +29,7 @@ const SIZE_CONFIG = {
  * Unified empty-state panel.
  *
  * Replaces 9+ inline icon+headline+subtext+CTA patterns across SongsPage,
- * SetlistsPage, ShowsPage, JamSessionPage, and BrowseSongsDrawer.
+ * SetlistsPage and ShowsPage.
  */
 export function EmptyState({
   icon: Icon,
