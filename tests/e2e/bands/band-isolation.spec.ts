@@ -3,6 +3,7 @@ import {
   createTestUser,
   signUpViaUI,
   deleteTestUser,
+  getCurrentUserId,
 } from '../../fixtures/auth'
 import { createBandViaUI } from '../../fixtures/bands'
 import {
@@ -162,43 +163,45 @@ test.describe('Band Isolation and RLS Security', () => {
     // User 1 creates Band A
     const user1 = createTestUser()
     await signUpViaUI(page1, user1)
+    const user1Uid = await getCurrentUserId(page1)
     await createBandViaUI(page1, `Isolation Band A ${Date.now()}`)
     await page1.waitForURL(/\/songs/, { timeout: 10000 })
 
     // User 2 creates Band B
     const user2 = createTestUser()
     await signUpViaUI(page2, user2)
+    const user2Uid = await getCurrentUserId(page2)
     await createBandViaUI(page2, `Isolation Band B ${Date.now() + 1}`)
     await page2.waitForURL(/\/songs/, { timeout: 10000 })
 
     // User 1 goes to band members page
-    await page1.goto('/band-members')
+    await page1.goto('/band')
     await page1.waitForLoadState('networkidle')
 
     // User 1 should only see themselves
     const user1Row = page1
-      .locator(`[data-testid="member-row-${user1.email}"]`)
+      .locator(`[data-testid="member-row-${user1Uid}"]`)
       .first()
     await expect(user1Row).toBeVisible({ timeout: 5000 })
 
     // User 1 should NOT see User 2
     const user2Row = page1
-      .locator(`[data-testid="member-row-${user2.email}"]`)
+      .locator(`[data-testid="member-row-${user2Uid}"]`)
       .first()
     const canSeeUser2 = await user2Row.isVisible().catch(() => false)
     expect(canSeeUser2).toBe(false)
 
     // Similarly for User 2
-    await page2.goto('/band-members')
+    await page2.goto('/band')
     await page2.waitForLoadState('networkidle')
 
     const user2OwnRow = page2
-      .locator(`[data-testid="member-row-${user2.email}"]`)
+      .locator(`[data-testid="member-row-${user2Uid}"]`)
       .first()
     await expect(user2OwnRow).toBeVisible({ timeout: 5000 })
 
     const user1RowInBandB = page2
-      .locator(`[data-testid="member-row-${user1.email}"]`)
+      .locator(`[data-testid="member-row-${user1Uid}"]`)
       .first()
     const canSeeUser1 = await user1RowInBandB.isVisible().catch(() => false)
     expect(canSeeUser1).toBe(false)
@@ -242,7 +245,7 @@ test.describe('Band Isolation and RLS Security', () => {
     await page1.waitForLoadState('networkidle')
     await page1.waitForTimeout(1000)
 
-    await page1.goto('/band-members')
+    await page1.goto('/band')
     await page1.waitForLoadState('networkidle')
     await page1.waitForTimeout(1000)
 
@@ -391,7 +394,7 @@ test.describe('Band Isolation and RLS Security', () => {
     // Navigate to trigger data fetches
     await page.goto('/songs')
     await page.waitForLoadState('networkidle')
-    await page.goto('/band-members')
+    await page.goto('/band')
     await page.waitForLoadState('networkidle')
 
     // Analyze requests - all data should belong to this user's band

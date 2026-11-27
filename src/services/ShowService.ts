@@ -1,6 +1,5 @@
 import { Show, ShowContact, ShowStatus } from '../models/Show'
 import { repository } from './data/RepositoryFactory'
-import { SetlistService } from './SetlistService'
 
 export interface ShowFilters {
   bandId: string
@@ -165,35 +164,6 @@ export class ShowService {
   }
 
   /**
-   * Fork a setlist for a show
-   * Creates a copy of the specified setlist linked to the show
-   */
-  static async forkSetlistForShow(
-    showId: string,
-    setlistId: string
-  ): Promise<string> {
-    const show = await this.getShow(showId)
-    if (!show) {
-      throw new Error('Show not found')
-    }
-
-    // Fork the setlist (creates a copy)
-    const forkedSetlist = await SetlistService.forkSetlist(setlistId, show.name)
-
-    // Update the show to reference the forked setlist
-    await this.updateShow(showId, {
-      setlistId: forkedSetlist.id,
-    })
-
-    // Update the forked setlist to reference the show (bidirectional link)
-    await SetlistService.updateSetlist(forkedSetlist.id, {
-      showId: showId,
-    })
-
-    return forkedSetlist.id
-  }
-
-  /**
    * Get upcoming shows (scheduled date >= today)
    */
   static async getUpcomingShows(bandId: string): Promise<Show[]> {
@@ -322,7 +292,6 @@ export class ShowService {
     if (showData.status) {
       const validStatuses: ShowStatus[] = [
         'scheduled',
-        'confirmed',
         'completed',
         'cancelled',
       ]

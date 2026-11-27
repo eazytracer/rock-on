@@ -7,6 +7,690 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-26
+
+The redesign, as one release. Production last shipped 0.5.0, so 1.0.0 also
+ships everything listed under 0.6.0–0.11.0 below; those versions were never
+released on their own. From here the web app takes bug fixes only until the
+mobile apps are done.
+
+### Added
+
+- **Plan a practice from a setlist** (setlist ⋯ → Plan a practice): a new
+  practice with the set's songs, in the set's order.
+- Practice song lists show the **RETUNE** line between songs whose tunings
+  differ, as setlists do.
+- Practice session, from tablet up: the left column lists the song's links and
+  has a practice-note field for the song (saves when you leave it).
+- Practice session, from tablet up: the side panel shows the song's chart
+  (in your key, chords setting and size) when it has one, else its notes;
+  Notes and Chart switch it, A− / A+ size what it shows, and Full screen opens
+  the chart reader over the session.
+- **Jam** (`/jam`, replaces Events and the 0.3 jam sessions): a hub (Hosting,
+  Invited, Friends' jams), Host a jam, and the jam page: lineup with parts and
+  hands (more hands than slots is fine, "Guitar 2"), song requests (pending
+  until approved; "Show song requests to everyone" under Advanced), a Grid view
+  of songs × parts with gaps highlighted, people, invite friends, and settings
+  (who can join: Invite only, Friends, Anyone with the code; starting parts,
+  custom parts). Add a plain title to the lineup when a song isn't in anyone's
+  catalog; "Add to My Songs" / "Add to jam songs" on any lineup song. Delete a
+  planned jam (people are told).
+- **Live night**: Go live, the host console (on stage, up next, the queue with
+  Undo on every move, fill a part from hands or directly, Ask the room,
+  walk-ups, house players, lock joining, End), and Tonight for players (hands,
+  pitches, who knows your songs). Ended jams: Save tonight as a setlist.
+- **No account needed**: `/j/CODE` works for band invites and jams; guests join
+  a jam with a first name and parts, raise hands and request songs; their names
+  go when the jam ends. A bar TV view (`/j/CODE/tv`) and a counter iPad
+  (`/kiosk`, paired by QR or a one-time code, never signed in as the host, PIN
+  to exit).
+- **Song tags save** (they were silently dropped before), shown on the song
+  page with Undo. **Jam songs**: a "Jam song" switch on My Songs, a Jam songs
+  filter on Songs, and a "Songs you'd jam on" picker (`/jam/songs`).
+- **Band page** (`/band`, replaces `/band-members`): the band card, an invite
+  card (code, link `/j/CODE`, QR, Copy, Share, Regenerate; codes last 24 hours
+  with unlimited joins, New code once expired), members with a ⋯ by permission
+  (Make admin / member, Transfer to ‹name›…, Remove), and a danger zone
+  (Transfer, Leave, Delete band with the name typed; a sole owner gets Delete
+  instead of Leave). **Band profile** (`/band/profile`): mark, city, genres,
+  description, links. **New band** (`/band/new`): one field under a live mark,
+  then the band with the invite card on top. **Join** (`/j`, `/j/:code`): a
+  preview of the band first (mark, name, members, songs), big Join; signed-out
+  visitors sign in and come back to it.
+- **Band mark picker**: Initials or Symbol, 16 colours, 8 letterings; marks
+  show everywhere the band does (switcher, sidebar, More, notifications).
+- **Auth screens** redesigned (`/auth`, `/auth/signup`, `/auth/forgot`,
+  `/auth/reset`): logo and tagline, Continue with Google, inline errors (wrong
+  password offers a reset), **Forgot password → Check your email → Set new
+  password** (new), Resend with a countdown. **Get started** is four rows:
+  Create a band, Join a band, Got a jam code?, Continue solo. Google sign-in
+  keeps your place (`returnTo`).
+- **Settings** (`/settings/:section`): a list with sub-screens on phones, tabs on
+  desktop. **Profile** (name, ordered instruments, personal colour), **Music**
+  (Tunings and the metronome click sound: Beep, Woodblock, Hi-hat),
+  **Notifications** (push preferences, stored for when push arrives),
+  **Account** (sign-in methods, change password), **About** (version, What's
+  new, Help).
+- **Delete account** really deletes: personal songs, setlists, notes, friends
+  and the login go; band songs, setlists and shows stay with the band. Blocked
+  while you own a band (transfer it first). `delete-account` edge function.
+- **Friends**: privacy as a status line that rolls open, Add a friend (by name
+  or friend code) from the phone dock or a desktop button, Requests · Friends ·
+  Sent, ⋯ to remove a friend. Who can send you requests is now enforced.
+- **More**: a Band section (Members, Band profile, Invite) and a theme toggle.
+- **Terms** and **Privacy** pages (`/terms`, `/privacy`), linked from sign up
+  and Settings → About.
+- Sample data: links of every type on 16 songs, 7 chord charts, four more
+  sample users with friend requests and privacy settings.
+
+- **Tools** (`/tools/tuner`, `/tools/metronome`, `/tools/chords`): one screen
+  with Tuner | Metronome | Chords tabs and Back; `/tools` opens the last tab
+  used. Sound comes from an in-app plucked-string synth (no sample files).
+- **Tuner**: listens through the mic (asked on Start, never on load) and shows
+  the note, a ±50 ¢ needle and chevrons that point toward the note (3 / 2 / 1,
+  one green each side in tune), "TUNE UP · 18¢". Auto-detect follows the string
+  you play, or tap a string to pick it and hear its reference; "N of 6 in tune"
+  counts strings that hold in tune. Any tuning can be picked (built-ins and the
+  context's own); Guitar / Bass switch (bass uses the matching bass tuning, or
+  the guitar tuning's four lowest strings an octave down). Strings that change
+  from the previous tuning show orange. Clear states for a blocked mic, no mic,
+  and an insecure (http) connection. Desktop keys: 1–6 string, Space hear,
+  ← → tuning. Remembers instrument, tuning and auto-detect on the device.
+- **Metronome**: big tempo with ± (hold to repeat), slider (30–260 BPM) and Tap
+  (last 4 taps); 2/4 · 3/4 · 4/4 · 6/8; 1–4 clicks per beat; tap a beat for
+  accent / normal / silent; an orange edge flash on beat 1. Clicks are
+  scheduled ahead on the audio clock, so tempo holds over long runs. Desktop
+  side panel with the next setlist's tempos; keys Space, T, ↑ ↓.
+- **Ways in**: the song page's **Tune** (on the song's tuning) and **Click
+  ‹bpm›** (loads the BPM; **Save to song** with Undo), each setlist retune
+  line's **Tune** (on the new tuning, changed strings marked), and the practice
+  session's **Tune now** / **Tune**, which open the tuner over the session so
+  the song and timer stay put.
+- **Chords** tab: pick a root (12) and a type (Major · Minor · 7 · m7) to see
+  the diagram, fingering and **Play** (a strum); the link keeps the chord
+  (`?chord=Am7`).
+- **Tools row on Home** (Tuner · Metronome · Chords, with the last tuning used
+  and the last tempo as hints): between the next practice and Quick actions in
+  a band, first on Personal. The desktop sidebar has a **Tools** group.
+- **Custom tuning editor** (the neck): Guitar 6 / 7 / 8 or Bass 4 / 5 / 6
+  strings, ↑ / ↓ per string (an octave down to 7 half steps up from standard;
+  the arrow dims at the limit), **½ step** for all strings, tap a note to hear
+  it, a name and a colour (Automatic from pitch, or one of 12). New tunings
+  start at standard; if the strings match an existing tuning it says so and
+  Save stays grey. Opens from a song's tuning picker (the new tuning comes back
+  picked), the tuner's **+ Custom** / **New tuning…**, and Settings → Tunings,
+  where custom tunings can now be edited and a **Tuner** button sits in the
+  section header. Full screen on phones, a centred panel on desktop.
+- **Chords & lyrics** (`/songs/:id/chart`, `/songs/:id/chart/edit`): a
+  reader with big Back / Next on phones, two paged columns in landscape and on
+  desktop (with the song's chord diagrams, Full screen and pedal keys: every
+  arrow, PgUp / PgDn and Space), key ± (saved per user, never on the song),
+  text size, hide chords, a chord viewer, notes, and a starting note you hear
+  with one tap (pick it on a piano; it saves as you pick). The editor takes a
+  paste in chords-over-lyrics or ChordPro and says which it found, with a live
+  preview; phones add Lyrics and Chords modes (tap a chord, tap a letter, nudge,
+  Other…) and "Chords from Verse 1". Saving checks the version, so a newer save
+  shows Show theirs / Keep mine. An empty My Songs copy offers "Copy ‹band›'s
+  chart"; the practice session's **Chart** opens the reader over the session.
+
+### Changed
+
+- Add songs filtered by a setlist lists the songs, and Add all adds them, in
+  that set's order instead of A–Z.
+- Setlists and practices, from 1440 px: a click previews the song in the
+  song pane on the right, as on Songs; double-click or the pane's Open goes
+  to the song page (a click used to open it on practices).
+- **Phone dock.** On a page with a main action (Start practice session, a
+  setlist's Add, Open set, the metronome's Tap / Start, Add song, New setlist,
+  New show / practice) the tab bar tucks into
+  a pill on the left and the action sits beside it in one bottom row, instead
+  of floating above the tab bar. Tap or swipe right on the pill for the tabs;
+  picking one, swiping left, tapping the page or 4 s idle tucks it back. Every
+  phone page fades and blurs into the bar.
+- **Phone app bar.** A page's way back (‹ Songs, ‹ Setlists, ‹ Calendar, ‹ Back)
+  moves up into the app bar, so content starts a row higher; the context chip
+  sits on the right beside the bell, shrinking to the band mark next to a
+  back. One back control (`BackCrumb`) and one ⋯ button (`MoreButton`) on
+  every page; the ⋯ ends the first line under the title (a setlist's totals,
+  a show's Date · Start · Set, a practice's first section, a song's Chords ·
+  Tune · Click), so titles keep the full width.
+- The setlist switcher (caret on desktop, ⇄ on phones) is gone: back to
+  Setlists and pick one. Tapping a setlist's name renames it on phones too.
+- A practice's Focus is plain text, edited in place, instead of a Markdown
+  sheet.
+- The date picker rings today instead of filling it, so only the chosen day
+  is solid, and dims past days (still pickable).
+- Extended-range tuning pills read the way players say them: B STD⁷, A DROP⁷,
+  A STD⁷, G♯ DROP⁷, F♯ STD⁸, B STD⁵ (bass), and B STD for the 6-string
+  baritone; they take the colour of the matching 6-string shape.
+- More drops its Events row (a Calendar filter) and Band members row (the band
+  card's Manage band).
+- Custom tunings without a picked colour show an automatic colour from pitch
+  instead of grey.
+- RETUNE lines on setlists and practices are thin rows of their own between
+  songs; while you drag, the list reorders live and retunes and numbers follow
+  the order you'd drop instead of riding along with the dragged song.
+- A practice's Start practice session button stays at the bottom of the
+  screen from tablet up, as it does on phones, instead of only after the songs.
+
+### Fixed
+
+- A song opened from a practice or a show now has Back to that practice or
+  show (it went to Songs).
+- A practice whose time has passed can still start a session, and its wrap-up
+  notes edit in place on the practice page (a session started again opens its
+  wrap-up with them).
+- A desktop picker popover with a long list (the song's tuning picker) now
+  scrolls inside the screen instead of running off the bottom.
+
+### Database
+
+- Release notes: one 1.0.0 entry replaces the rows for 0.6.0–0.11.0, which
+  were never released (in `20261121120000_redesign_phase_7.sql`).
+- Redesign phase 7 (`20261121120000_redesign_phase_7.sql`): jams on the Events
+  tables (`live` status, who can join, requests visible, default parts,
+  guest participants, lineup states and queue, hands by participant, kiosk
+  pairings, hashed guest tokens, rate limits), about 40 RPCs including 12 for
+  people without an account (each checks its token or code first), realtime
+  broadcast to `jam:<code>`, `songs.tags`, and `normalize_text` ignoring
+  bracketed extras. Band invite and jam codes never collide. The 0.3 jam
+  policies and RPCs are switched off; anonymous EXECUTE is revoked from every
+  other public function.
+- Redesign phase 6 (`20261120120000_redesign_phase_6.sql`): an `'owner'`
+  role (one per band, backfilled from the old flag, then the creator, then the
+  earliest admin); `bands.mark`, `city`, `genres`, `links`, `deleted_at`;
+  `user_profiles.personal_color`, instruments ordered (primary first);
+  24-hour unlimited invite codes, one active per band; RPCs `create_band`,
+  `band_preview_by_code`, `join_band`, `regenerate_invite_code`,
+  `set_member_role`, `remove_member`, `transfer_ownership`, `leave_band`,
+  `delete_band`, `update_band_profile`, `send_friend_request` (enforces the
+  request policy), `find_people`, `ensure_my_profile`, `delete_account`.
+  Security: memberships can no longer be inserted or changed directly (a user
+  could add themselves to any band), invite codes are readable only by the
+  band's owner and admins, and a friend request's sender can't accept it.
+  Foreign keys from band content to users are now `ON DELETE SET NULL`; band
+  notes stay as "Former member" and a band's events pass to its owner when an
+  account is deleted.
+- Redesign phase 5 (`20261119120000_redesign_phase_5.sql`): `song_charts` (one
+  ChordPro chart + starting note per song, its own small audit trigger),
+  `get_chart`, `save_chart`, `set_starting_note`, `copy_linked_chart`;
+  `duplicate_song` and Copy to My Songs now copy the chart; `create_tuning` /
+  `update_tuning` (range and duplicate checks), a unique index on custom
+  tunings, four extended-range built-ins (Drop A⁷, A STD⁷, G♯ DROP⁷, baritone
+  B STD) and colours for the 7 / 8-string and bass built-ins.
+
+## [0.11.0] - 2026-11-08
+
+Redesign phase 4 · Calendar, shows, practices.
+
+### Added
+
+- **One Calendar** for shows, practices and jams, with filters (All · Shows ·
+  Practices · Jams), Upcoming then Past, and one New button (on All it asks
+  which). Each row has a ⋯ menu: Open, Duplicate, Delete. On desktop the
+  selected show or practice previews in a pane beside the list; **Open** in
+  the pane, a double-click, or Enter on the selected row opens the full page,
+  and a practice's pane starts with Start practice session. **‹ Calendar**
+  from a show or practice returns to the filter and selection you left. The
+  pane appears from 1200 px wide (narrower, rows open the page), and when a
+  row runs short of room its type column shrinks to the type icon and a check
+  for Confirmed before the title is cut.
+- **New show is the show page, blank.** It saves as you go; the first field
+  you fill creates the show (next Saturday, 8 PM, 45 minutes until you change
+  them).
+- **Show page edits in place**: name, venue, address (with Directions), date,
+  start, load-in, soundcheck, set length, pay, contacts (call / email) and
+  notes. **Confirmed** is a toggle; **Mark cancelled** strikes the show through
+  with an Undo; ⋯ adds Duplicate (a week later) and Delete.
+- **The show's set is its own copy.** Copy a set from any setlist (or start a
+  new one): the show shows where it came from, its songs and runtime against
+  the set length, and Open set. Editing it never changes the original.
+  **Re-copy** refreshes it from the original, asking first if you changed it.
+- **The practice page edits in place**, like a setlist with a few more
+  fields: name, date, start, end (each choice shows the length), where and
+  focus save as you go; songs come from the song browser (which can show just
+  the songs in a setlist), drag by the grip (mouse, touch or keyboard) and ×
+  out, each with its links (Spotify, YouTube, tabs, lyrics) and a note for
+  this practice. Then the wrap-up once played, and Start session. **New
+  practice** is the page blank (the first change creates it); **Duplicate**
+  makes the same practice a week later and opens it. Practices can have a
+  name.
+- **Practice session, built for the stage**: big Prev / Next buttons that name
+  the song they go to (the last one ends the practice), the song's tuning,
+  key, BPM and length, Notes (band notes and yours) as a side panel on desktop
+  or a sheet on phones with A / A text size, and an Up next card that turns
+  amber before a retune. The screen stays awake. Keys and page-turn pedals:
+  ← → / PgUp PgDn, N for notes. Skip (or S) marks the song skipped and moves
+  on.
+- **Wrap-up**: time played, which songs you played (the rest marked
+  skipped; tap a song to change it) and notes shared with the band, saved to
+  the practice.
+
+### Changed
+
+- **/shows and /practices open the Calendar** on their filter.
+- **One song row everywhere** (Songs, setlists, a show's set, practices, Add
+  songs, search): title · artist, then tuning, length, key, BPM and links in
+  the same order and style. Two lines when narrow, one line of fixed columns
+  when wide. A setlist's songs share one surface per section; rows get a ×;
+  a show's set rows open the song; keys read F♯ / E♭ everywhere.
+- **One Add songs picker** for setlists and practices: a drawer over the
+  right edge on desktop, full screen on phones, with × / Done / Esc to close.
+  Tap a song to put it in or take it out (the check shows it's in); the song
+  scrolls into view in the list and flashes. Filter by a setlist, then "Add
+  all"; tuning chips wrap. Every song list ends with "+ Add songs". On Songs,
+  "Add to…" ticks setlists and the band's upcoming practices.
+- The practice page uses the full width on desktop, like the setlist editor:
+  When and where on one row, songs in table columns, Add songs top right.
+- Show status is Scheduled / Completed / Cancelled; Confirmed is separate.
+- Deleting a setlist says shows keep their own copy of the set. Deleting a
+  show's copy from the editor names the show that loses it.
+- A show's set opened from the show goes back to the show and has no setlist
+  switcher.
+- Practice sessions start and end are recorded.
+- **Sort is a field plus a direction.** Songs and Setlists pick what to sort
+  by, and a separate toggle beside it reverses the order and says which way it
+  runs (A–Z / Z–A, Newest / Oldest, Soonest / Latest). Songs' Newest and Oldest
+  become Date added; saved views move over.
+
+### Fixed
+
+- Global search: the filter chips no longer get squeezed off by a long list
+  of results.
+- Songs at medium widths: the toolbar (search, Tuning, Sort, View) no longer
+  runs off the right edge, and between 768 and 1024 px the songs show as the
+  card list instead of a table whose title column was crushed.
+
+### Removed
+
+- The old Shows list and practice builder (and their modals).
+
+### Database
+
+- `shows.confirmed` (backfilled from the old 'confirmed' status),
+  `setlists.copied_at`, `practice_sessions.name`.
+- Existing show sets became show copies; `setlist_index` finds a set's show
+  through its copies and leaves the copies out.
+- RPCs `calendar_agenda`, `create_show`, `update_show`, `set_show_confirmed`,
+  `set_show_cancelled`, `delete_show`, `attach_set_to_show`,
+  `recopy_show_set`, `create_show_set`, `duplicate_show`.
+- `release_notes` 0.11.0.
+
+## [0.10.0] - 2026-11-08
+
+Redesign phase 3 · Setlists.
+
+### Added
+
+- **Setlists index**: cards on desktop (show line, runtime · songs · retunes,
+  the first five songs), a list on phones. The next show's set comes first, with an
+  accent outline. Sort by Next show, Name or Updated; search on phones by set
+  name or song title. ⋯ (or hold a row) for Open, Duplicate and Delete.
+- **The editor opens full width** with ← Setlists (or the show / search you
+  came from) and the show line. The set's name is a switcher: a caret dropdown
+  on desktop, a ⇄ sheet on phones, next show first, ending with All setlists
+  and New setlist.
+- **Header ⋯**: Rename, Duplicate (not attached to a show), Delete.
+- **Totals** update as you edit, runtime first: a clock and the minutes
+  (breaks included) in orange, "47 of 45 min" in warning colour when the set
+  runs over the show slot, then songs and retunes, each with its own icon.
+- **Retune lines** between songs whose tunings differ. Tune links to the tuner
+  once it ships.
+- **Breaks and sections** edit in place. On desktop, + Break and + Section go
+  in after the selected row. On phones, one **Add** button offers Songs,
+  Break or Section label; breaks default to 15 minutes, and "Goes after"
+  defaults to the row you last touched.
+- **Song browser**: a pane beside the set on desktop (+ adds after the
+  selected row), a screen on phones (pick several, then Add). Search, a filter
+  for the songs in another setlist, tuning chips by most used, songs already
+  in the set marked (on desktop with × to take an accidental add straight back
+  out), and **From my songs** in a band (copied into the band when
+  added).
+- **Row menu** (hold on phones; ⋯ or right-click on desktop): Up, Down, To top,
+  After…, Note for this set, Open song, Remove from set.
+- **Drag to reorder** by the grip, with the mouse, touch or keyboard.
+- **Timeline rail**: the clock button shows each row's start time in a gutter.
+  Hold it (or right-click) to choose Set time (from the top) or Clock (from the
+  show's start; needs a show). Opened from a show, it starts in clock time.
+- **Set notes** in Markdown from the header, shown at the top in two lines.
+- New setlist from a song's "Add to setlist" sheet starts with that song.
+
+### Changed
+
+- **Everything saves as you go**: no Save button. Setlist statuses are gone;
+  archived sets are ordinary sets.
+- No setlist column beside the editor; Rename / Duplicate / Delete moved to
+  the editor's header ⋯.
+- Personal and band sets are no longer tabs: Setlists shows the current
+  context's sets, like Songs.
+- Deleting a set says which show loses it (show copies of sets arrive with
+  the Calendar update).
+
+### Fixed
+
+- The song picker no longer crashes on a song without an artist.
+- The song page's tuning picker shows note names (D A D G B E), not numbers.
+
+### Database
+
+- RPCs `setlist_index`, `duplicate_setlist`, `rename_setlist`,
+  `set_setlist_notes`, `add_songs_to_setlist`, `insert_setlist_item`,
+  `update_setlist_item`, `move_setlist_item`, `remove_setlist_item`. Each
+  editor op locks the row and changes only the item named, so two members
+  editing at once don't overwrite each other.
+- `release_notes` 0.10.0.
+
+## [0.9.1] - 2026-11-08
+
+Redesign phase 2.1 · The song page.
+
+### Added
+
+- **Song page is where a song is edited.** Click a fact (title, artist,
+  tuning, key, BPM, length, album, tags, links) to change it; each saves on its
+  own with "saved · Undo".
+- **Back goes where you came from**: Songs, a setlist, a show, a practice or a
+  search, named on the button, with the song selected when you return.
+  ‹ › (J / K on desktop) step through that same list.
+- **Notes edit in place** with Write / Preview and Done (⌘↵). If someone saved
+  the band note while you were writing, choose Keep mine or Show theirs.
+- **"In ‹set›" note**: opened from a setlist, the song page shows that set's
+  note for the song and lets you edit it.
+- Setlist, show and practice rows have an open-song button (or double-click
+  the row).
+
+### Changed
+
+- The desktop Songs pane is a read-only preview with one action, **Open**
+  (or double-click the row), which goes to the song page.
+- The full-screen form is only for **Add song** (`/songs/new`); on desktop it
+  sits beside the sidebar in two columns.
+- Desktop tuning filter is one **Tuning** menu (pick several, pitch order,
+  counts). Phones keep the chips.
+- Icons: a caret means "opens right here". Removed the carets beside the
+  Setlists, Shows and Jam titles, which opened nothing.
+
+### Database
+
+- RPC `set_setlist_item_note(p_setlist_id, p_item_id, p_notes)`.
+- Song edits are version-checked (`stale_version`).
+- `release_notes` 0.9.1.
+
+## [0.9.0] - 2026-11-07
+
+Redesign phase 2 · Songs.
+
+### Added
+
+- **Song view** (`/songs/:id`; a side pane on wide desktops): facts, links,
+  the band's note with who edited it last and the practice-log count, your own
+  notes, and Used in (setlists with position, shows, upcoming practices).
+- **View options** per list, saved to your account: Comfortable / Compact, and
+  which of Artist, Key, BPM, Links and Next show appear. Show hidden songs.
+- **Sort** by Title, Artist, Newest, Oldest or Next show, either direction.
+- **Tuning chips** filter the list to one tuning.
+- **Song menu** on press-and-hold or right-click: Open, Edit, Add to setlist,
+  Add to My Songs, Duplicate, Hide, Delete (names where the song is used).
+  Swipe left on phones for Hide / Add to set; hover actions on desktop.
+- **Personal banner**: "N songs in your bands aren't in My Songs · Copy all ·
+  Pick some".
+- Add to setlist now lists your real setlists (it was a placeholder).
+
+### Changed
+
+- New song row: tuning pill, length, key, BPM and up to two link tiles; a grey
+  notes mark after the title. No ⋯ button. Desktop shows a table.
+- Song editor is full screen with Cancel / Save. Only the title is required.
+  Spotify matches appear under the title while adding. Notes moved out of the
+  form into the song view. Cancel names what you changed.
+- My Songs is the Personal context: the Band Songs / My Songs tabs are gone;
+  use the context switcher.
+
+### Fixed
+
+- Album is saved (it was silently dropped).
+- The list no longer looks up next shows one song at a time.
+
+### Database
+
+- `songs.album`, `songs.notes_edited_by`, `songs.notes_edited_at`.
+- RPCs `song_usage`, `song_next_shows`, `set_band_note`, `duplicate_song`,
+  `delete_song` (one transaction, removes the song from its setlists),
+  `band_songs_not_in_my_catalog`, `copy_band_songs_to_personal`.
+- `release_notes` 0.9.0.
+
+## [0.8.0] - 2026-11-07
+
+Redesign phase 1 · Shell and Home.
+
+### Added
+
+- **Global search** (Home on mobile, ⌘K on desktop): songs, setlists, shows,
+  practices and jams, including a show or setlist by a song in it. Current
+  context first, with "Search all contexts".
+- **Context switcher** with band marks, member counts and an unread dot;
+  "Switch to ‹Band›?" when opening something from another context.
+- **Notifications**: bell popout (desktop), a stream page with Activity and App
+  updates; Activity shows what bandmates changed, never your own changes.
+- **Home walkthroughs** for new bands and Personal; one offline banner.
+
+### Changed
+
+- New desktop sidebar (Search, Home · Songs · Setlists · Calendar · Jam, Band,
+  You; footer with you, theme toggle and bell). Shows / Practices / Events are
+  Calendar filters. Sign out moved to the menu under your name.
+- Floating bottom nav; mobile header with the context chip, search and bell.
+- Home: next show and practice cards with countdowns, Upcoming, Quick actions;
+  stats removed. More reorganised. Display titles on the main pages.
+
+### Removed
+
+- Unused `NotificationService`, `models/Notification` and `MobileDrawer`.
+
+### Database
+
+- `user_preferences.notifications_seen_at`; RPCs `list_my_contexts`, `search`,
+  `list_notifications`, `mark_notifications_read` (pgTAP contract tests);
+  `release_notes` row for 0.8.0.
+
+## [0.7.0] - 2026-11-07
+
+Redesign phase 0 · Foundations. New look across the whole app, a light theme,
+and the API conventions the web and Flutter apps will share
+(`docs/redesign/08-api-conventions.md`).
+
+### Added
+
+- **Light theme.** Settings → Appearance: System / Light / Dark, saved per user
+  and applied before first paint.
+- **Personal context accent.** The accent turns indigo in Personal.
+- **C Standard** built-in tuning (violet).
+- **Kit primitives** in `src/components/ui/` (Button, IconButton, Chip, Switch,
+  Segmented, TuningPill, TypeLabel, Group/ListRow, skeleton/retry/empty states).
+- **Typed API layer** `src/services/api/` (generated `database.types.ts`,
+  `ApiError` keys) and `just types`.
+
+### Changed
+
+- Warm palette, new fonts (Big Shoulders Display, Atkinson Hyperlegible Next,
+  Martian Mono); hard-coded colours replaced with theme tokens.
+- Tuning colours are theme-aware; Drop D → lime, Drop C → fuchsia. Tuning tags
+  show short labels (E STD, D DROP).
+
+### Removed
+
+- Sync / offline indicators (the app is online-only).
+
+### Fixed
+
+- Other users' emails are hidden from non-admins; jams need the code to find or
+  join.
+- Band members and setlist songs load in batches.
+
+### Database
+
+- `user_preferences` table (own-row RLS, explicit grants, version trigger).
+- Tuning colour updates, C Standard seed, `builtin_tuning_slug` recognises
+  "C Standard"; `release_notes` row for 0.7.0.
+
+## [0.6.1] - 2026-09-19
+
+Calendar item duplication. Any show or practice can be cloned from its calendar
+row as a starting point for a new one — copying the reusable template parts
+(venue/logistics, setlist, songs, invitees) while resetting instance-specific
+state (date, status, progress). Also a logging cleanup pass and fixes for
+Phase 2 regressions found in end-to-end testing.
+
+### Added
+
+- **Duplicate shows & practices from the calendar.** Each calendar row now has a
+  kebab menu (Open / Duplicate / Delete) for shows and practices; the card itself
+  still click-opens the detail page.
+- **Reusable `DuplicateModal`.** Prefilled, editable scalar fields (name, date,
+  venue, duration, etc.) plus read-only summaries of the collections that carry
+  over. The new date is required and defaults to today.
+- **`ShowService.duplicateShow` / `useDuplicateShow`.** Copies venue, logistics,
+  and contacts (with fresh ids), and forks the chosen setlist into a new
+  owned copy (defaults to the source show's setlist; may pick another or none) so
+  every show still owns a unique setlist. Resets status, dates, and audit fields.
+
+### Changed
+
+- **`PracticeSessionService.duplicateSession` reworked** — the new date now
+  defaults to the source's date (was +1 week) and accepts editable overrides
+  (type, duration, location, notes). Songs copy over with progress reset and
+  invitees copy with RSVP reset.
+- **Logging cleanup.** All `console.*` calls now go through the
+  environment-aware logger (errors only in production), and ESLint `no-console`
+  enforces it. Early troubleshooting traces were removed — including several that
+  dumped tokens, invite codes or full user/band objects — and `RemoteRepository.addSong`
+  no longer makes a debug-only `auth.getUser()` round trip.
+- Removed leftover IndexedDB/sync wording from the Settings page, startup logs,
+  comments and `CLAUDE.md`.
+- **Local dev works from any machine on the LAN.** On the Vite dev server the
+  app now calls local Supabase on the host the page was opened from (port 54321) instead of a baked-in `localhost`, so opening it from a desktop or
+  phone just works. This replaces the `HOST_IP` / nginx phone-testing mode.
+  Production builds are unchanged.
+
+### Security
+
+- **Other users' emails are no longer readable.** Row-level security let anyone
+  who could see a `users` row — bandmates, and jam or event co-participants —
+  read its `email`, `last_login` and `last_active_at`. Those columns are no
+  longer selectable by clients. Emails come from `get_user_emails()`, which
+  returns your own email and, for band admins/owners only, their bandmates'.
+  The band roster shows emails to admins only, and member rows are keyed by user
+  id instead of email.
+- **Jam sessions can't be discovered or joined without the code.** Any signed-in
+  user could list every active jam (the code was only checked in the browser)
+  and add themselves as a participant. Lookup and join now go through
+  `get_jam_session_by_code()` / `join_jam_session()`, which require the exact
+  code and an active, unexpired session. Kicked participants stay kicked.
+
+### Fixed
+
+- **Infinite render loop on Songs and Band Members** ("Maximum update depth
+  exceeded"). The TanStack hooks returned a fresh `[]` every render while data
+  was loading, re-triggering page effects that set state; they now share a
+  stable `EMPTY_ARRAY`.
+- **Shows page refetched setlists in an endless loop.** `useUpcomingShows` /
+  `useUpcomingPractices` rebuilt their upcoming/past arrays every render; now
+  memoized.
+- **Mirrored songs lost their link to the band song** (no chain icon, "Copy to
+  My Songs" not marked as copied, no source-band label). `linkedFromSongId` was
+  only ever stored in the removed IndexedDB mirror; it's now a Supabase column.
+- Single-row lookups that find nothing (e.g. a song with no personal note) no
+  longer log a 406 network error — they use `maybeSingle()`.
+- **Sign Out no longer hard-reloads the page.** The route guard never reacted to
+  `logout()`, so it fell into its "valid session but no user" recovery path and
+  called `window.location.reload()`. `useAuthCheck` now handles `auth-logout`.
+- **"You were signed out" redirect was intermittently lost** when a session
+  expired: a remount of the route guard re-checked after the stale ids were
+  cleared and downgraded `signed-out` to `no-user`. A per-tab marker keeps it.
+- **Band-less users can't open the practice builder** — `/practices/new` shows
+  the create/join-a-band prompt again (the guard was lost when the standalone
+  practices list was retired in 0.5.0).
+- **Fewer Supabase round trips on Band Members and Setlists.** Band members
+  now load with their user + profile in one embedded query instead of 1 + 2 per
+  member, and setlist pages fetch all referenced songs in one `id IN (...)`
+  query instead of one per item (and reuse the already-loaded shows). Measured
+  on the seed band: Band Members 13 → 7 requests, Setlists 95 → 17.
+
+### Tests
+
+- Practice e2e specs repointed from the retired `/practices` list to the
+  calendar agenda and its row menu; page-inventory and band-less specs updated.
+- Sign-out-while-navigating specs tolerate the SDK redirecting before the click.
+
+### Removed
+
+- Console troubleshooting helpers: `window.debugRealtime()` (+
+  `RealtimeManager.getDiagnostics`), the auto-loaded `testSupabaseConnection`
+  self-test, and the unused `envCheck`.
+
+### Database
+
+- **`privacy_lockdown` migration** — column-level `SELECT` on `users`;
+  `get_user_emails`, `get_jam_session_by_code`, `join_jam_session` RPCs; drops
+  `jam_sessions_select_by_code` and `jam_participants_insert_self` (replaced by
+  host-only `jam_participants_insert_host_self`); adds
+  `user_profiles_select_band_member` so bandmates see each other's profiles even
+  when not discoverable.
+
+- **`songs.linked_from_song_id`** (UUID, FK `songs(id)` ON DELETE SET NULL),
+  added to the not-yet-deployed `extend_audit_triggers` migration. Covered by
+  pgTAP (`026-song-linked-from`). Songs mirrored before this release can't be
+  re-linked (the link was never stored server-side).
+- **v0.6.1 `release_notes` row**, folded into the not-yet-deployed
+  `extend_audit_triggers` migration and stamped after 0.6.0 (the in-app "what's
+  new" shows only the newest note, so it also summarizes 0.6.0).
+
+## [0.6.0] - 2026-09-15
+
+Phase 2 data-layer simplification: the web client is now a naive online Supabase
+client. The on-device IndexedDB (Dexie) mirror and the background sync engine are
+gone; reads/writes go straight to Supabase, with TanStack Query as an ephemeral
+in-memory cache and the `audit_log` change-feed (Supabase Realtime) as the single
+freshness push. Net removal of several thousand lines.
+
+### Changed
+
+- **All data access now routes through `RemoteRepository` (direct Supabase).**
+  `RepositoryFactory` returns the remote repository; every page, hook, and service
+  reads/writes via `repository.*` instead of `db.*` (Dexie).
+- **`AuthContext` bootstrap is cloud-first.** Login no longer performs a blocking
+  initial sync or populates a local cache; user/profile/band/membership reads come
+  straight from Supabase.
+- **Auth services (`SupabaseAuthService`, `MockAuthService`) no longer write to
+  Dexie.** `MockAuthService` uses an in-memory store; `SupabaseAuthService` only
+  provisions the Supabase `users` row.
+- **`RealtimeManager` slimmed to a pure change-notifier** — it emits
+  `{entity}:changed` events + batched toasts from `audit_log`, and no longer maps
+  audit rows back into a local database.
+- **"Clear local data" (Settings) now clears the TanStack Query cache** instead of
+  deleting an IndexedDB database.
+
+### Removed
+
+- **Dexie/sync layer:** `SyncEngine`, `SyncRepository`, `LocalRepository`, the
+  Dexie schema (`services/database`), seed modules, `auditMappers`, `debugSync`,
+  `resetDatabase`, and the `dexie` / `dexie-react-hooks` / `fake-indexeddb`
+  dependencies.
+- **Sync UI:** the sync-conflict modal + `useSyncConflicts` (conflicts can't occur
+  without a sync queue); the `DevDashboard` (Dexie inspector / sync-queue viewer)
+  and its `mermaid` dependency.
+- **Orphaned pre-repository services:** `DatabaseService`, `SyncService`,
+  `InitialSetupService`, `CastingSuggestionService`, `MemberCapabilityService`,
+  the shelved `CastingService`, and dead `BandService`/`SongService` methods.
+
+### Database
+
+- **`extend_audit_triggers` migration** — adds `audit_log` triggers for `bands`,
+  `band_memberships`, `song_castings`, `song_assignments`, and
+  `member_capabilities` so their changes reach the realtime change-feed (the web
+  client's only push channel). Extends `log_audit_trail()` band_id derivation for
+  the new tables. Covered by pgTAP (`025-extended-audit-logging`).
+
 ## [0.5.0] - 2026-09-13
 
 Database & session simplification plus calendar/practice quality-of-life fixes,

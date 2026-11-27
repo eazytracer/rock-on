@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Song chart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{color:#cfc6bd;font-family:"Atkinson Hyperlegible Next",sans-serif}
+a{color:#ff7a1a}a:hover{color:#ffa060}
+.frame{position:absolute}
+.card{background:#141414;border-radius:28px;padding:30px;font-size:15px;line-height:1.5;text-wrap:pretty}
+.card p{margin-bottom:10px}.card b{color:#fff}
+.eb{font-family:"Martian Mono";font-size:11px;letter-spacing:.12em;color:#ff7a1a;text-transform:uppercase}
+.D{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;line-height:.9;color:#f4efe9}
+h1.D{font-size:80px;margin:10px 0 14px}h1 span{color:#ff7a1a}
+h2.D{font-size:40px;margin:6px 0 10px}
+.law{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px}
+.law span{font-family:"Martian Mono";font-size:10px;letter-spacing:.06em;color:#f4efe9;background:#232323;border-radius:6px;padding:4px 8px;text-transform:uppercase}
+.cap{font-family:"Martian Mono";font-size:11px;letter-spacing:.1em;color:#5a5149;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+.capd{font-size:13.5px;color:#3d352f;margin-bottom:12px;width:410px;line-height:1.45;min-height:96px}
+.capd b{color:#1a1512}
+.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;margin-top:8px}
+.four h3{color:#fff;font-size:15px;margin-bottom:4px}
+.four p{font-size:14px;margin:0}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.phone{width:410px;height:864px;border-radius:58px;background:#1b1b1b;padding:10px;box-shadow:0 0 0 1px #333,0 30px 60px rgba(0,0,0,.35)}
+.scr{width:390px;height:844px;border-radius:48px;overflow:hidden;position:relative;background:#0c0b0a;color:#f4efe9;display:flex;flex-direction:column}
+.land{width:864px;height:410px;border-radius:58px;background:#1b1b1b;padding:10px;box-shadow:0 0 0 1px #333,0 30px 60px rgba(0,0,0,.35)}
+.land .scr{width:844px;height:390px;flex-direction:row}
+.sb{height:50px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 34px 8px;font-weight:600;font-size:15px;flex-shrink:0}
+.ab{display:flex;justify-content:space-between;align-items:center;padding:6px 16px;flex-shrink:0}
+.ib{width:44px;height:44px;border-radius:22px;background:#1d1a17;display:grid;place-items:center;color:#f4efe9;flex-shrink:0;cursor:pointer}
+.back{height:44px;padding:0 14px 0 8px;border-radius:22px;background:#1d1a17;display:flex;align-items:center;gap:4px;font-weight:600;font-size:14px}
+.pill{height:44px;padding:0 18px;border-radius:22px;background:#1d1a17;display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.body{flex:1;overflow:hidden;position:relative}
+.grp{margin:0 12px 10px;background:#151311;border-radius:20px;overflow:hidden}
+.grp>*+*{box-shadow:0 -1px 0 #221f1b}
+.gl{font-family:"Martian Mono";font-size:10.5px;letter-spacing:.12em;color:#a69c92;text-transform:uppercase;padding:8px 24px 8px;display:flex;align-items:center}
+.gl .r{margin-left:auto;color:#ff7a1a;letter-spacing:.06em;display:flex;align-items:center;gap:4px}
+.tp{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;background:color-mix(in oklch,var(--c) 16%,#151311);color:var(--c);font-family:"Martian Mono";font-size:12px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.sv-eb{padding:2px 20px 0;font-family:"Martian Mono";font-size:11px;color:#a69c92;letter-spacing:.06em}
+.sv-t{padding:6px 20px 12px;font-size:52px}
+.facts{display:flex;align-items:center;gap:16px;padding:0 20px 14px}
+.facts .f{display:flex;flex-direction:column;gap:2px}
+.facts .f small{font-family:"Martian Mono";font-size:9.5px;letter-spacing:.1em;color:#a69c92}
+.facts .f b{font-family:"Martian Mono";font-size:15px;font-weight:500}
+.lrow{display:flex;align-items:center;gap:12px;padding:8px 10px 8px 16px;min-height:56px}
+.lt{width:30px;height:30px;border-radius:8px;border:1px solid #34302b;display:grid;place-items:center;flex-shrink:0}
+.lt svg{width:16px;height:16px;stroke-width:2}
+.lt.audio{color:#1ed760}.lt.tabs{color:#facc15}.lt.video{color:#ff4e45}.lt.video svg{fill:currentColor;stroke-width:1.4}
+.lrow .grow{flex:1;min-width:0}.lrow b{display:block;font-size:15px}.lrow small{font-size:12.5px;color:#a69c92}
+.x{width:44px;height:44px;display:grid;place-items:center;color:#8a8178}
+.nc{padding:12px 16px 14px}
+.nc .nh{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.nc .nh b{font-size:14px}.nc .nh small{font-size:12px;color:#a69c92}
+.nc .nh .nedit{margin-left:auto;width:36px;height:36px;display:grid;place-items:center;color:#a69c92;margin-right:-6px}
+.nc .nh svg.i{width:16px;height:16px;color:#a69c92}
+.md{font-size:14.5px;line-height:1.5;color:#e8e0d8}
+.md ul{padding-left:18px}
+.md .muted{color:#8a8178;font-size:12.5px;margin-top:6px}
+.fade{position:absolute;left:0;right:0;bottom:0;height:150px;background:linear-gradient(transparent,#0c0b0a 60%);z-index:2;pointer-events:none}
+.cta{position:absolute;left:16px;right:16px;bottom:24px;height:60px;border-radius:30px;background:#ff7a1a;color:#1a0c02;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:800;font-size:17px;box-shadow:0 10px 28px rgba(255,122,26,.3);z-index:3}
+.cta.sec{background:#1d1a17;color:#f4efe9;box-shadow:none;border:1.5px dashed #3a332d}
+/* chart */
+.chart{--fs:22px;font-size:var(--fs);line-height:1.2}
+.sec{font-family:"Martian Mono";font-size:calc(var(--fs)*.5);letter-spacing:.14em;color:#a69c92;text-transform:uppercase;margin:1.1em 0 .35em;font-weight:500}
+.sec:first-child{margin-top:0}
+.ln{display:flex;flex-wrap:wrap;margin-bottom:.35em;color:#f4efe9}
+.cs{display:inline-flex;flex-direction:column;white-space:pre}
+.cs b{font-family:"Martian Mono";font-weight:700;font-size:.68em;color:#ffb070;min-height:1.35em;line-height:1.35em;padding-right:.35em}
+/* reader */
+.ptop{display:flex;align-items:center;gap:10px;padding:4px 14px 8px;flex-shrink:0}
+.ptop .tt{flex:1;min-width:0}
+.ptop .tt b{display:block;font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptop .tt small{display:flex;gap:8px;align-items:center;margin-top:3px;font-family:"Martian Mono";font-size:11px;color:#a69c92}
+.ptop .tt small .tp{height:20px;font-size:10.5px;padding:0 7px}
+.setb{height:44px;padding:0 14px 0 10px;border-radius:22px;background:#26221e;display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;cursor:pointer;flex-shrink:0;box-shadow:inset 0 0 0 1.5px #3a332d}.setb svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.setb.on{background:#f4efe9;color:#0c0b0a;box-shadow:none}
+.nbtn{height:44px;padding:0 14px 0 10px;border-radius:22px;background:#1d1a17;display:flex;align-items:center;gap:6px;font-weight:700;font-size:13.5px;cursor:pointer}.nbtn svg{fill:none;stroke:currentColor;stroke-width:1.8}
+.lbr{align-items:center}.lbr .lbl{flex:1;font-size:14px;font-weight:600;padding-left:4px}
+.ntop{width:44px;height:44px;border-radius:22px;background:#26221e;display:grid;place-items:center;cursor:pointer;flex-shrink:0;box-shadow:inset 0 0 0 1.5px #3a332d}.ntop svg{fill:none;stroke:currentColor;stroke-width:1.8}.ntop.on{background:#f4efe9;color:#0c0b0a;box-shadow:none}
+.nscrim{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:8}
+.nsheet{position:absolute;left:0;right:0;bottom:0;height:62%;z-index:9;background:#26221e;border-radius:28px 28px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,.6);display:flex;flex-direction:column}
+.nsheet:before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:#4a433d;margin:10px auto 4px}
+.nhd{display:flex;align-items:center;padding:0 12px 4px 20px}.nhd b{flex:1;font-size:18px}
+.nx{width:44px;height:44px;border-radius:22px;background:#1d1a17;display:grid;place-items:center;cursor:pointer}.nx svg{width:18px;height:18px}
+.nbody{flex:1;overflow:auto;padding:4px 20px 24px;font-size:19px;line-height:1.45}
+.chtg{height:44px;padding:0 14px 0 11px;border-radius:22px;box-shadow:inset 0 0 0 1.5px #2a2522;display:flex;align-items:center;gap:7px;font-weight:600;font-size:14px;color:#cfc6bd;cursor:pointer}.chtg svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}.chtg.on{background:#f4efe9;color:#0c0b0a;box-shadow:none}
+.seg2{display:flex;background:#1d1a17;border-radius:22px;padding:3px;height:44px;cursor:pointer}.seg2 span{min-width:70px;border-radius:19px;display:grid;place-items:center;font-weight:700;font-size:13.5px;color:#a69c92}.seg2 span.on{background:#f4efe9;color:#0c0b0a}
+.chart.nolbl .cs b{display:none}
+[data-reader] .ctl{gap:6px}[data-reader] .ctl .dgrp span{width:36px}[data-reader] .ctl .dgrp .val{min-width:34px}.dgrp.tl{margin-left:auto;flex-shrink:0}.dgrp.tl span{width:44px!important;display:grid;place-items:center}.dgrp.tl .snb{width:auto!important;padding:0 8px 0 6px;gap:4px;display:flex;align-items:center;font-family:"Martian Mono";font-size:13px}.dgrp.tl svg{fill:none;stroke:currentColor;stroke-width:1.8}
+.seg{display:flex;background:#1d1a17;border-radius:22px;padding:3px;height:44px;flex-shrink:0}
+.seg span{flex:1;border-radius:19px;display:grid;place-items:center;font-weight:700;font-size:14px;color:#a69c92;cursor:pointer;padding:0 12px}
+.seg span.on{background:#f4efe9;color:#0c0b0a}
+.ctl{display:flex;gap:8px;padding:0 14px 10px;flex-shrink:0}
+.dgrp{display:flex;align-items:center;background:#1d1a17;border-radius:22px;height:44px;padding:0 2px}
+.dgrp span{width:42px;height:40px;border-radius:20px;display:grid;place-items:center;font-weight:700;font-size:16px;cursor:pointer;color:#f4efe9;user-select:none}
+.dgrp span:active{background:#2a2521}
+.dgrp .val{width:auto;min-width:48px;padding:0 2px;font-family:"Martian Mono";font-size:12.5px;color:#f4efe9;cursor:default;flex-direction:column;line-height:1.1;text-align:center;font-weight:700}
+.dgrp .val small{font-size:8.5px;color:#8a8178;letter-spacing:.08em;font-weight:500}
+.pscroll{flex:1;overflow-y:auto;padding:6px 20px 150px;scrollbar-width:none;position:relative}
+.pscroll::-webkit-scrollbar{display:none}
+.prog{position:absolute;right:6px;width:3px;border-radius:2px;background:#1d1a17;z-index:2}
+.prog i{position:absolute;left:0;right:0;top:0;border-radius:2px;background:#ff7a1a;transition:height 280ms cubic-bezier(.2,0,0,1)}
+.pager{position:absolute;left:0;right:0;bottom:0;padding:16px 14px 24px;background:linear-gradient(transparent,#0c0b0a 22%);display:flex;gap:10px;z-index:3}
+.pg{height:88px;border-radius:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:800;font-size:16px;cursor:pointer;user-select:none;transition:transform 100ms cubic-bezier(.2,0,0,1)}
+.pg:active{transform:scale(.97)}
+.pg svg{width:32px;height:32px;stroke-width:2.4}
+.pg small{font-family:"Martian Mono";font-size:10px;font-weight:500;letter-spacing:.08em;opacity:.75}
+.pg.up{flex:2;background:#26221e;color:#f4efe9}
+.pg.dn{flex:3;background:#ff7a1a;color:#1a0c02}
+.pg.off{opacity:.35}
+.ntb .nb{margin-bottom:22px}
+.ntb .nh{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-family:"Martian Mono";font-size:11px;letter-spacing:.1em;color:#a69c92;text-transform:uppercase}
+.ntb .nh svg{width:15px;height:15px}
+.ntb .txt{font-size:23px;line-height:1.4;color:#f4efe9}
+.ntb ul{padding-left:24px}
+/* landscape */
+.land .pcol{flex:1;display:flex;flex-direction:column;min-width:0;padding-left:44px}
+.land .pscroll{padding:4px 24px 20px 0;columns:2;column-gap:36px;overflow:hidden}
+.land .pscroll .sec{break-after:avoid;margin:.6em 0 .2em}.land .pscroll .sec:first-child{margin-top:0}
+.land .pscroll .ln{margin-bottom:.15em;break-inside:avoid}
+.land .side{width:132px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;padding:16px 40px 16px 0;box-sizing:content-box}
+.land .pg{height:auto;width:100%}
+.land .pg.up{flex:2}.land .pg.dn{flex:3}
+/* editor */
+.eab{display:flex;align-items:center;justify-content:space-between;padding:6px 16px 8px;flex-shrink:0}
+.eab .tx{height:44px;padding:0 6px;display:flex;align-items:center;font-weight:600;font-size:16px;color:#cfc6bd}
+.eab h3{font-size:17px;font-weight:700}
+.save{height:44px;padding:0 20px;border-radius:22px;background:#ff7a1a;color:#1a0c02;font-weight:700;font-size:15px;display:grid;place-items:center}
+.hint{margin:0 14px 8px;font-size:13px;color:#a69c92;display:flex;align-items:center;gap:8px;min-height:20px}
+.hint b{color:#f4efe9}
+.ed{flex:1;overflow-y:auto;padding:4px 20px 280px;scrollbar-width:none}
+.ed::-webkit-scrollbar{display:none}
+.ed .chart{--fs:20px}
+.ed .sec{display:flex;align-items:center;gap:8px}
+.ed .sec .copy{margin-left:auto;height:30px;padding:0 10px;border-radius:15px;background:#1d1a17;color:#ff7a1a;font-size:11.5px;letter-spacing:.04em;display:flex;align-items:center;gap:5px;cursor:pointer;text-transform:none;font-family:"Atkinson Hyperlegible Next";font-weight:700}
+.ed .ln{cursor:text}
+.ch{display:inline-flex;flex-direction:column;white-space:pre;position:relative}
+.ch .c{font-family:"Martian Mono";font-weight:700;font-size:.68em;line-height:1.35em;min-height:1.35em;color:#ffb070;padding-right:.3em;white-space:nowrap}
+.ch .c.sel{color:#1a0c02}
+.ch .c.sel span{background:#ff7a1a;border-radius:6px;padding:0 4px;margin:0 -4px;box-shadow:0 0 0 3px rgba(255,122,26,.25)}
+.ch .c span{cursor:pointer}
+.ch .tx i{font-style:normal;cursor:pointer;border-radius:3px}
+.ch .tx i:hover{background:#26221e}
+.ch .tx i.at{box-shadow:inset 0 -2px 0 #ff7a1a}
+.pal{position:absolute;left:0;right:0;bottom:0;background:#1d1a17;border-top:1px solid #2c2824;padding:10px 12px 24px;z-index:3}
+.pal .pl{font-family:"Martian Mono";font-size:9.5px;letter-spacing:.1em;color:#8a8178;text-transform:uppercase;margin:2px 4px 6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.chipc{height:44px;min-width:52px;padding:0 12px;border-radius:14px;background:#26221e;display:grid;place-items:center;font-family:"Martian Mono";font-weight:700;font-size:15px;color:#f4efe9;cursor:pointer;user-select:none}
+.chipc.on{background:#ff7a1a;color:#1a0c02}
+.chipc.more{font-family:"Atkinson Hyperlegible Next";font-size:13.5px;color:#cfc6bd;border:1.5px dashed #3a332d;background:none}
+.selbar{display:flex;gap:6px;align-items:center}
+.selbar span{height:44px;padding:0 14px;border-radius:14px;background:#26221e;display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;cursor:pointer;user-select:none}
+.selbar .del{color:#ff8a7a;margin-left:auto}
+.selbar .lbl{background:none;padding:0 4px;font-family:"Martian Mono";font-size:12px;color:#a69c92;cursor:default}
+.caret{display:inline-block;width:2px;height:20px;background:#ff7a1a;vertical-align:-4px;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+.ghost .c{color:#8a5a36}
+.moved{background:rgba(255,122,26,.18);border-radius:4px}
+.kb{position:absolute;left:0;right:0;bottom:0;height:290px;background:#1f1d1b;padding:8px 4px 0;z-index:3;display:flex;flex-direction:column;gap:10px}
+.kb .r{display:flex;gap:6px;justify-content:center}
+.kb .r span{height:44px;flex:0 0 32px;border-radius:6px;background:#3d3a37;display:grid;place-items:center;font-size:17px;color:#f4efe9}
+.kb .r span.w{flex:0 0 44px;background:#2b2927;font-size:12px}
+.kb .r span.sp{flex:1 0 auto;max-width:190px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#26221e;border-radius:28px 28px 0 0;z-index:5;padding:10px 16px 28px;box-shadow:0 -8px 32px rgba(0,0,0,.6)}
+.sheet:before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:#4a433d;margin:0 auto 12px}
+.sheet h3{font-size:18px;padding:0 4px}
+.kp{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-bottom:12px}
+.kp span{height:48px;border-radius:12px;background:#1d1a17;display:grid;place-items:center;font-family:"Martian Mono";font-weight:700;font-size:14px}
+.kp span.on{background:#ff7a1a;color:#1a0c02}
+.kp.q{grid-template-columns:repeat(5,minmax(0,1fr))}
+.kp.q span{font-size:12.5px}
+.big{font-family:"Big Shoulders Display";font-weight:800;font-size:56px;line-height:1;padding:0 4px 8px;display:flex;align-items:baseline;gap:12px}
+.big small{font-family:"Atkinson Hyperlegible Next";font-weight:500;font-size:13px;color:#a69c92}
+.raw{margin:0 12px;padding:14px;border-radius:18px;background:#151311;font-family:"Martian Mono";font-size:12px;line-height:1.55;color:#e8e0d8;white-space:pre;overflow:hidden}
+.raw .c{color:#ffb070}.raw .s{color:#a69c92}
+.detect{margin:10px 12px;padding:12px 14px;border-radius:16px;background:#1d1a17;display:flex;gap:10px;font-size:13.5px;line-height:1.4}
+.detect svg{color:#3ec986;width:18px;height:18px;margin-top:1px}
+.detect b{color:#f4efe9}
+.sbtns{display:flex;gap:8px;margin:0 12px}
+.sbtns span{flex:1;height:52px;border-radius:26px;display:grid;place-items:center;font-weight:700;font-size:15px;background:#1d1a17}
+.sbtns span.a{background:#ff7a1a;color:#1a0c02}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></symbol><symbol id="notes2" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/></symbol><symbol id="spk" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></symbol><symbol id="chordbox" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M5 8.5h14M5 13h14M9.7 3.5v17M14.3 3.5v17"/></symbol><symbol id="audio" viewBox="0 0 24 24"><path d="M4 10v4M8 6.5v11M12 3.5v17M16 7.5v9M20 10.5v3"/></symbol>
+<symbol id="tabs" viewBox="0 0 24 24"><path d="m17 4 3 3-2.5 2.5-3-3zM15.5 8.5 11 13"/><path d="M11.5 10.5c-1.6-1.3-4.2-.8-4.9 1-.3.8-1 1.1-1.9 1.3-1.8.3-2.3 2.4-1 4l3.5 3.5c1.6 1.3 3.7.8 4-1 .2-.9.5-1.6 1.3-1.9 1.8-.7 2.3-3.3 1-4.9z"/><circle cx="8.5" cy="15.5" r="1.3"/></symbol>
+<symbol id="video" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+<symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+<symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+<symbol id="moreh" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol>
+<symbol id="edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+<symbol id="people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></symbol>
+<symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></symbol>
+<symbol id="open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+<symbol id="expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+<symbol id="up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+<symbol id="dn" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+<symbol id="music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></symbol>
+<symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="3"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+<symbol id="lft" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+<symbol id="rgt" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+<symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+<symbol id="tap" viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11M12 10.5v-1a1.5 1.5 0 0 1 3 0V12M15 11a1.5 1.5 0 0 1 3 0v3.5a6.5 6.5 0 0 1-6.5 6.5h-.3a6 6 0 0 1-4.6-2.2L4 16a1.6 1.6 0 0 1 2.4-2.1L9 16"/></symbol>
+</defs></svg>
+
+<div class="frame card" style="left:80px;top:60px;width:1850px" data-screen-label="Header">
+<div class="eb">Rock On · Source · Song chart</div>
+<h1 class="D">Your hands, your <span>pace</span>.</h1>
+<p style="font-size:17px;max-width:1340px;color:#d4d4d4">No auto-scroll. Two <b>large page buttons</b> move the chart a screen at a time, so long intros and solos don't throw you off. The chart is now its <b>own view</b>, and the song view no longer has a preview. The second half of the page answers how you enter a chart. Phones 2 and 5 work.</p>
+<div class="four">
+<div><h3>Paging, not scrolling</h3><p><b>Next</b> is the big orange button at the thumb, and <b>Back</b> is smaller beside it (<b>Fitts's Law</b>). Each tap moves about one screen with a short slide, and the last two lines stay at the top so you keep your place (<b>Working Memory</b>). Bluetooth pedals and the top/bottom halves of the screen do the same thing.</p></div>
+<div><h3>Chart as its own view</h3><p>Someone either needs the chords or they don't, so the song view holds only a <b>Chords &amp; lyrics</b> button. The song view keeps its space for facts, links and every note layer. Songs without a chart show <b>Add chords &amp; lyrics</b> in the same spot (<b>Hick's Law</b>).</p></div>
+<div><h3>Chords pinned to letters</h3><p>Behind the scenes, a chart is lyrics plus chords attached to character positions (ChordPro). Lyrics and chords are edited separately. Change the words and each chord moves with the letter it's attached to, so nothing drifts out of line (<b>Tesler's Law</b>).</p></div>
+<div><h3>Three ways in</h3><p><b>Paste</b> chords-over-lyrics from a tab site and it's converted. <b>Type</b> the lyrics, then <b>tap</b> chords onto the words, using a palette built from the song's key. <b>Copy chords</b> from verse 1 to the next verses in one tap (<b>Pareto</b>: most songs repeat).</p></div>
+</div>
+</div>
+
+<div id="mount"></div>
+
+<script>
+(()=>{
+const okhex=(L,C,h)=>{for(let c=C;c>=0;c-=.005){const a=c*Math.cos(h*Math.PI/180),b=c*Math.sin(h*Math.PI/180);const l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,s=(L-.0894841775*a-1.291485548*b)**3;const lin=[4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.707614701*s];if(lin.every(v=>v>=-.0005&&v<=1.0005))return '#'+lin.map(v=>{v=Math.min(1,Math.max(0,v));v=v<=.0031308?12.92*v:1.055*v**(1/2.4)-.055;return Math.round(v*255).toString(16).padStart(2,'0')}).join('')}return '#888'};
+const STD=okhex(.88,.16,110);
+const ic=(id,st='')=>`<svg class="i" style="${st}"><use href="#${id}"/></svg>`;
+const tp=`<span class="tp" style="--c:${STD}">E STD</span>`;
+const SB=`<div class="sb"><span>9:41</span><span>●●● ▮</span></div>`;
+// public-domain text (John Newton, 1779)
+const CHART=`{Verse 1}
+[G]Amazing [G7]grace, how [C]sweet the [G]sound
+That [G]saved a [Em]wretch like [A7]me[D]
+I [G]once was [G7]lost, but [C]now am [G]found
+Was [G]blind, but [D]now I [G]see
+{Verse 2}
+'Twas [G]grace that [G7]taught my [C]heart to [G]fear
+And [G]grace my [Em]fears re[A7]lieved[D]
+How [G]precious [G7]did that [C]grace ap[G]pear
+The [G]hour I [D]first be[G]lieved
+{Verse 3}
+Through [G]many [G7]dangers, [C]toils and [G]snares
+I [G]have al[Em]ready [A7]come[D]
+'Tis [G]grace hath [G7]brought me [C]safe thus [G]far
+And [G]grace will [D]lead me [G]home
+{Verse 4}
+When [G]we've been [G7]there ten [C]thousand [G]years
+Bright [G]shining [Em]as the [A7]sun[D]
+We've [G]no less [G7]days to [C]sing God's [G]praise
+Than [G]when we'd [D]first be[G]gun`;
+const N=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
+const IDX={C:0,'C♯':1,D:2,'E♭':3,E:4,F:5,'F♯':6,G:7,'A♭':8,A:9,'B♭':10,B:11};
+const tr=(c,s)=>{const m=c.match(/^([A-G][♯♭]?)(.*)$/);if(!m)return c;return N[(IDX[m[1]]+s+120)%12]+m[2]};
+const render=(src,shift)=>src.split('\n').map(l=>{const s=l.match(/^\{(.+)\}$/);if(s)return `<div class="sec">${s[1]}</div>`;
+ const p=l.split(/\[([^\]]+)\]/);const segs=[];if(p[0])segs.push(['',p[0]]);for(let i=1;i<p.length;i+=2)segs.push([p[i],p[i+1]||'']);
+ return `<div class="ln">${segs.map(([c,t])=>`<span class="cs"><b>${c?tr(c,shift):'&nbsp;'}</b>${t||' '}</span>`).join('')}</div>`}).join('');
+const keyName=s=>N[(7+s+120)%12];
+
+// 1 song view
+const p1=`<div class="scr">${SB}<div class="ab"><span class="back">${ic('back')}Songs</span><div style="display:flex;gap:8px"><span class="pill">${ic('edit','width:17px;height:17px')}Edit</span><span class="ib">${ic('moreh')}</span></div></div><div class="body">
+<div class="sv-eb">TRADITIONAL · ACOUSTIC</div><div class="D sv-t">Amazing Grace</div>
+<div class="facts">${tp}<div class="f"><small>KEY</small><b>G</b></div><div class="f"><small>BPM</small><b>72</b></div><div class="f"><small>LENGTH</small><b>3:40</b></div></div>
+<div class="grp">${['tabs','audio'].map(t=>`<div class="lrow"><span class="lt ${t}">${ic(t)}</span><div class="grow"><b>${t==='tabs'?'Tabs':'Spotify'}</b><small>${t==='tabs'?'Ultimate Guitar':'Acoustic version'}</small></div><span class="x">${ic('open','width:18px;height:18px')}</span></div>`).join('')}</div>
+<div class="gl">Notes<span class="r">${ic('expand','width:14px;height:14px')}FULL SCREEN</span></div>
+<div class="grp"><div class="nc"><div class="nh">${ic('people')}<b>Band notes</b><small>shared</small><span class="nedit">${ic('edit')}</span></div><div class="md"><ul><li>Intro: 4 bars of G, fingerpicked</li><li>Verse 2 Dana joins on harmony</li><li>Hold the D on "see" for two bars before verse 3</li><li>Last verse a cappella, then strum out</li></ul><div class="muted">Dana · edited yesterday</div></div></div>
+<div class="nc"><div class="nh">${ic('lock')}<b>My notes</b><small>only you</small><span class="nedit">${ic('edit')}</span></div><div class="md">Capo 2 if they want it higher. Slow the last verse. Don't rush the G7.</div></div></div>
+</div><div class="fade"></div><div class="cta">${ic('music','width:22px;height:22px')}Chords &amp; lyrics</div></div>`;
+
+// 2 reader
+let SHIFT=0,FS=24,CTL=false,LBL=true,VIEW='chart',NOTES=false;
+const NOTESHTML=`<div class="ntb" style="font-size:var(--fs)"><div class="nb"><div class="nh">${ic('people')}Band notes</div><div class="txt"><ul><li>Intro: 4 bars of G, fingerpicked</li><li>Verse 2 Dana joins on harmony</li><li>Hold the D on "see" for two bars</li><li>Last verse a cappella</li></ul></div></div><div class="nb"><div class="nh">${ic('lock')}My notes</div><div class="txt">Capo 2 if they want it higher. Slow the last verse.</div></div></div>`;
+const reader=()=>`<div class="scr" data-reader>${SB}<div class="ptop"><span class="ib">${ic('x')}</span><div class="tt"><b>Amazing Grace</b><small>${tp}<span>3:40</span></small></div><span class="ntop ${NOTES?'on':''}" data-a="vnotes" title="Notes">${ic('notes2','width:20px;height:20px')}</span><span class="setb ${CTL?'on':''}" data-a="ctl">${ic('sliders','width:20px;height:20px')}Controls</span></div>
+${CTL?`<div class="ctl"><div class="dgrp"><span data-a="tr-">−</span><span class="val">${keyName(SHIFT)}<small>KEY${SHIFT?` ${SHIFT>0?'+':''}${SHIFT}`:''}</small></span><span data-a="tr+">+</span></div><div class="dgrp"><span data-a="fs-" style="font-size:13px">A</span><span class="val">${FS}<small>SIZE</small></span><span data-a="fs+" style="font-size:19px">A</span></div><div class="dgrp tl"><span class="snb">${ic('spk','width:20px;height:20px;flex-shrink:0')}D</span><span>${ic('chordbox','width:22px;height:22px;flex-shrink:0')}</span></div></div><div class="ctl lbr"><span class="chtg ${LBL?'on':''}" data-a="lbl" role="button" aria-pressed="${LBL}">${ic('chordbox','width:18px;height:18px')}${LBL?'Hide chords':'Show chords'}</span></div>`:''}
+<div style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0"><div class="pscroll chart ${LBL?'':'nolbl'}" data-scroll style="--fs:${FS}px">${render(CHART,SHIFT)}</div><div class="prog" style="top:4px;bottom:130px"><i data-prog></i></div></div>
+<div class="pager"><div class="pg up" data-a="up">${ic('up')}<small>BACK</small></div><div class="pg dn" data-a="dn">${ic('dn')}<small>NEXT</small></div></div>${NOTES?`<div class="nscrim" data-a="nclose"></div><div class="nsheet"><div class="nhd"><b>Notes</b><span class="nx" data-a="nclose">${ic('x')}</span></div><div class="nbody">${NOTESHTML}</div></div>`:''}</div>`;
+
+// 3 notes full screen
+const p3=`<div class="scr">${SB}<div class="ptop"><span class="ib">${ic('x')}</span><div class="tt"><b>Amazing Grace</b><small>${tp}<span>3:40</span></small></div><span class="setb">${ic('sliders','width:20px;height:20px')}Controls</span></div>
+<div class="pscroll"><div class="ntb">
+<div class="nb"><div class="nh">${ic('people')}Band notes</div><div class="txt"><ul><li>Intro: 4 bars of G, fingerpicked</li><li>Verse 2 Dana joins on harmony</li><li>Hold the D on "see" for two bars</li><li>Last verse a cappella</li></ul></div></div>
+<div class="nb"><div class="nh">${ic('lock')}My notes</div><div class="txt">Capo 2 if they want it higher. Slow the last verse.</div></div></div></div>
+<div class="pager"><div class="pg up">${ic('up')}<small>BACK</small></div><div class="pg dn">${ic('dn')}<small>NEXT</small></div></div></div>`;
+
+// 4 landscape
+const land=`<div class="land"><div class="scr"><div class="pcol"><div class="ptop" style="padding:14px 0 6px"><span class="ib">${ic('x')}</span><div class="tt"><b>Amazing Grace</b><small>${tp}<span>KEY G</span></small></div><span class="setb" style="margin-right:20px">${ic('sliders','width:20px;height:20px')}Controls</span></div><div class="pscroll chart" style="--fs:14px">${render(CHART.split('{Verse 4}')[0].trim(),0)}</div></div>
+<div class="side"><div class="pg up">${ic('up')}<small>BACK</small></div><div class="pg dn">${ic('dn')}<small>NEXT</small></div></div></div></div>`;
+
+// 5 chord placement editor
+const parse=src=>src.split('\n').map(l=>{const s=l.match(/^\{(.+)\}$/);if(s)return {sec:s[1]};let text='',chords=[];l.split(/\[([^\]]+)\]/).forEach((p,i)=>{if(i%2)chords.push({i:text.length,c:p});else text+=p});return {text,chords}});
+let ED=parse(CHART.split('{Verse 3}')[0].trim());
+ED.forEach((l,i)=>{if(i>5&&l.chords)l.chords=i===6?l.chords:[]});
+let PICK='G',SEL=null,MOVED=null;
+const words=t=>{const r=[];t.replace(/\S+/g,(m,o)=>{r.push(o)});return r};
+const lineHTML=(l,li)=>{const cs=[...l.chords].sort((a,b)=>a.i-b.i);const cuts=[0,...cs.map(c=>c.i).filter(i=>i>0),l.text.length].filter((v,i,a)=>a.indexOf(v)===i).sort((a,b)=>a-b);let h='';
+ for(let k=0;k<cuts.length-1;k++){const a=cuts[k],b=cuts[k+1];const c=cs.find(x=>x.i===a);const chars=[...l.text.slice(a,b)].map((ch,j)=>`<i data-li="${li}" data-ci="${a+j}" class="${MOVED&&MOVED[0]===li&&MOVED[1]===a+j?'moved':''}">${ch===' '?' ':ch}</i>`).join('');
+  h+=`<span class="ch"><span class="c ${SEL&&SEL[0]===li&&SEL[1]===a?'sel':''}">${c?`<span data-sel="${li},${a}">${c.c}</span>`:' '}</span><span class="tx">${chars||' '}</span></span>`}
+ const endc=cs.find(x=>x.i===l.text.length&&l.text.length>0);if(endc)h+=`<span class="ch"><span class="c ${SEL&&SEL[0]===li&&SEL[1]===endc.i?'sel':''}"><span data-sel="${li},${endc.i}">${endc.c}</span></span><span class="tx"><i data-li="${li}" data-ci="${l.text.length}"> </i></span></span>`;
+ else h+=`<span class="ch"><span class="c"> </span><span class="tx"><i data-li="${li}" data-ci="${l.text.length}"> </i></span></span>`;
+ return `<div class="ln">${h}</div>`};
+const PAL1=['G','G7','C','Em','A7','D'],PAL2=['Am','Bm','F♯°','Dsus4','Cadd9'];
+const edScr=()=>{const v1=ED.findIndex(l=>l.sec==='Verse 1'),v2=ED.findIndex(l=>l.sec==='Verse 2');
+ const body=ED.map((l,li)=>l.sec?`<div class="sec">${l.sec}${l.sec==='Verse 2'?`<span class="copy" data-copy>${ic('copy','width:13px;height:13px')}Chords from Verse 1</span>`:''}</div>`:lineHTML(l,li)).join('');
+ const selc=SEL&&ED[SEL[0]].chords.find(c=>c.i===SEL[1]);
+ const bottom=selc?`<div class="pl">Selected chord</div><div class="selbar"><span class="lbl">${selc.c}</span><span data-nudge="-1">${ic('lft','width:18px;height:18px')}</span><span data-nudge="1">${ic('rgt','width:18px;height:18px')}</span><span data-swap>Change to ${PICK}</span><span class="del" data-del>${ic('trash','width:16px;height:16px')}Remove</span></div><div class="pl" style="margin-top:10px">Or tap a letter to move it there</div>`
+ :`<div class="pl">In this song</div><div class="chips">${PAL1.map(c=>`<span class="chipc ${PICK===c?'on':''}" data-pick="${c}">${c}</span>`).join('')}</div><div class="pl">Key of G · suggested</div><div class="chips" style="margin:0">${PAL2.map(c=>`<span class="chipc ${PICK===c?'on':''}" data-pick="${c}">${c}</span>`).join('')}<span class="chipc more">Other…</span></div>`;
+ return `<div class="scr" data-edscr>${SB}<div class="eab"><span class="tx">Cancel</span><h3>Chart</h3><span class="save">Save</span></div>
+<div class="seg" style="margin:0 12px 8px"><span>Lyrics</span><span class="on">Chords</span><span>Preview</span></div>
+<div class="hint">${ic('tap','width:16px;height:16px')}${selc?`<span><b>${selc.c}</b> selected. Nudge, change or remove it.</span>`:`<span>Pick <b>${PICK}</b>, then tap a letter to place it.</span>`}</div>
+<div class="ed"><div class="chart">${body}</div></div><div class="pal" data-pal>${bottom}</div></div>`};
+
+// 6 lyrics mode
+const p6=`<div class="scr">${SB}<div class="eab"><span class="tx">Cancel</span><h3>Chart</h3><span class="save">Save</span></div>
+<div class="seg" style="margin:0 12px 8px"><span class="on">Lyrics</span><span>Chords</span><span>Preview</span></div>
+<div class="hint">Type freely. Chords stay attached to their letters.</div>
+<div class="ed" style="padding-bottom:300px"><div class="chart" style="--fs:20px">
+<div class="sec">Verse 1</div>
+<div class="ln ghost">${[['G','Amazing '],['G7','grace, how '],['C','sweet the '],['G','sound']].map(([c,t])=>`<span class="ch"><span class="c">${c}</span><span class="tx">${t}</span></span>`).join('')}</div>
+<div class="ln ghost"><span class="ch"><span class="c"> </span><span class="tx">That </span></span><span class="ch"><span class="c">G</span><span class="tx">saved a </span></span><span class="ch"><span class="c">Em</span><span class="tx">poor <span class="caret"></span></span></span><span class="ch"><span class="c" style="color:#ffb070;background:rgba(255,122,26,.18);border-radius:4px">→</span><span class="tx"> </span></span><span class="ch"><span class="c">  </span><span class="tx">wretch like </span></span><span class="ch"><span class="c">A7</span><span class="tx">me</span></span></div>
+<div style="margin:4px 0 14px;font-size:13px;color:#a69c92;line-height:1.4;font-family:'Atkinson Hyperlegible Next'">Typing "poor" before "wretch" pushes <b style="color:#ffb070;font-family:'Martian Mono'">Em</b> along with the "w" it belongs to. Chords are dimmed here so the words come first.</div>
+<div class="sec">Verse 2</div>
+<div class="ln">'Twas grace that taught my heart to fear</div>
+<div class="ln">And grace my fears relieved</div>
+</div></div>
+<div class="kb">${['qwertyuiop','asdfghjkl','⇧zxcvbnm⌫'].map(r=>`<div class="r">${[...r].map(c=>`<span class="${'⇧⌫'.includes(c)?'w':''}">${c}</span>`).join('')}</div>`).join('')}<div class="r"><span class="w">123</span><span class="w">[ ]</span><span class="sp">space</span><span class="w" style="flex-basis:84px">return</span></div></div></div>`;
+
+// 7 other chord keypad
+const p7=`<div class="scr">${SB}<div class="eab"><span class="tx">Cancel</span><h3>Chart</h3><span class="save">Save</span></div><div class="seg" style="margin:0 12px 8px"><span>Lyrics</span><span class="on">Chords</span><span>Preview</span></div><div class="ed"><div class="chart">${render(CHART.split('{Verse 2}')[0],0)}</div></div>
+<div class="scrim"></div><div class="sheet"><div class="big">Fmaj7/A<small>builds as you tap</small></div>
+<div class="pl" style="font-family:'Martian Mono';font-size:9.5px;letter-spacing:.1em;color:#8a8178;margin:0 4px 6px">ROOT</div><div class="kp">${N.map(n=>`<span class="${n==='F'?'on':''}">${n}</span>`).join('')}</div>
+<div class="pl" style="font-family:'Martian Mono';font-size:9.5px;letter-spacing:.1em;color:#8a8178;margin:0 4px 6px">TYPE</div><div class="kp q">${['maj','m','7','m7','maj7','sus2','sus4','add9','dim','aug'].map(q=>`<span class="${q==='maj7'?'on':''}">${q}</span>`).join('')}</div>
+<div class="pl" style="font-family:'Martian Mono';font-size:9.5px;letter-spacing:.1em;color:#8a8178;margin:0 4px 6px">BASS NOTE · OPTIONAL</div><div class="kp" style="grid-template-columns:repeat(7,minmax(0,1fr))">${['—','C','D','E','F','G','A'].map(n=>`<span class="${n==='A'?'on':''}">${n}</span>`).join('')}</div>
+<div class="sbtns" style="margin:0"><span>Type it instead</span><span class="a">Use chord</span></div></div></div>`;
+
+// 8 paste
+const RAW=`<span class="s">Verse 1</span>
+<span class="c">G        G7        C          G</span>
+Amazing  grace, how  sweet the  sound
+<span class="c">     G       Em        A7  D</span>
+That saved a wretch like me
+<span class="c">  G        G7         C       G</span>
+I once was lost, but now am found
+<span class="c">    G         D       G</span>
+Was blind, but now I see`;
+const p8=`<div class="scr">${SB}<div class="eab"><span class="tx">Cancel</span><h3>Paste a chart</h3><span class="save">Next</span></div>
+<div class="raw">${RAW}</div>
+<div class="detect">${ic('check')}<div><b>Chords above lyrics detected.</b> 4 lines, 15 chords. Each chord is attached to the letter under it.</div></div>
+<div class="detect" style="background:none;padding-top:0">${ic('music','color:#a69c92')}<div style="color:#a69c92">"Verse 1" became a section. Lines in <span style="font-family:'Martian Mono';font-size:12px;color:#cfc6bd">[brackets]</span> or ChordPro work too. Next opens it in the editor to check.</div></div>
+<div style="position:absolute;left:0;right:0;bottom:24px"><div class="sbtns"><span>Paste again</span><span class="a">Looks right</span></div></div></div>`;
+
+const ph=(lbl,desc,scr,attr='')=>`<div style="width:410px"><div class="cap">${lbl}</div><div class="capd">${desc}</div><div class="phone" ${attr}>${scr}</div></div>`;
+document.getElementById('mount').outerHTML=`
+<div class="frame" style="left:80px;top:500px;display:flex;gap:70px" data-screen-label="Read">
+${ph('1 · Song view · no preview','Full notes the way they were in the song editor work, with nothing pushed down. <b>Chords &amp; lyrics</b> is a single button at the thumb, and it\'s the only sign a chart exists. Without a chart it becomes a dashed "Add chords &amp; lyrics".',p1)}
+${ph('2 · Chart · try it','Opened from <b>Chords &amp; lyrics</b> in the song view. Performance-first: only the title and <b>Controls</b> show until you need them. Controls hold Key, Size, 🔈 starting note, the Chords viewer (see Sound Tools), chord labels Show / Hide, and Notes. <b>Next / Back</b> page about a screen at a time; the orange bar on the right shows where you are. <b>Key −/+</b> transposes every chord live, and the small/large A buttons resize the text. Tapping the top or bottom half of the screen, or a pedal, pages too.',reader(),'data-readph')}
+${ph('3 · Notes, full screen','Reached from "Full screen" in the song view, for reading notes on their own. From inside the chart, notes open as a sheet instead (phone 2: the notes button beside Controls), so the chart never disappears.',p3)}
+<div style="width:864px"><div class="cap">4 · Rotated</div><div class="capd" style="width:864px;min-height:0">Two columns, with the page buttons stacked down the right edge, still big and still Next-heavy.</div>${land}</div>
+</div>
+<div class="frame" style="left:80px;top:1540px;display:flex;gap:70px" data-screen-label="Enter">
+${ph('5 · Chords mode · try it','<b>Pick a chord, tap a letter.</b> Tap a placed chord to select it, then nudge it a letter with ◀ ▶ (44px, no fiddly dragging), change it or remove it. Verse 2 is half-done; tap <b>Chords from Verse 1</b> to fill it.',edScr(),'data-edph')}
+${ph('6 · Lyrics mode','Type or fix words with the regular keyboard. Chords dim and ride along with their letters, so editing lyrics never misaligns them. The [ ] key drops a chord at the cursor for anyone who prefers typing.',p6)}
+${ph('7 · Other chord','"Other…" opens a keypad: root, then type, then an optional bass note. Every key is 48px and the chord name builds as you tap. "Type it instead" accepts text like "Fmaj7/A" and tidies it up (<b>Postel\'s Law</b>).',p7)}
+${ph('8 · Paste','The fastest path for most songs. Paste from a tab site, check what was detected, then open it in the editor to fix anything.',p8)}
+</div>`;
+
+// reader interactions
+const rd=()=>document.querySelector('[data-readph]');
+const sc=()=>rd().querySelector('[data-scroll]');
+const upd=()=>{const s=sc();const max=s.scrollHeight-s.clientHeight;rd().querySelector('[data-prog]').style.height=(max>0?s.scrollTop/max*100:0)+'%';rd().querySelector('[data-a="up"]').classList.toggle('off',s.scrollTop<2);rd().querySelector('[data-a="dn"]').classList.toggle('off',s.scrollTop>=max-2)};
+const redraw=()=>{const s=sc(),r=s.scrollTop/(s.scrollHeight-s.clientHeight||1);rd().innerHTML=reader();const n=sc();n.scrollTop=r*(n.scrollHeight-n.clientHeight);n.addEventListener('scroll',upd);upd()};
+document.addEventListener('click',e=>{const a=e.target.closest('[data-readph] [data-a]');if(a){const k=a.dataset.a,s=sc();
+ if(k==='up'||k==='dn'){const step=(s.clientHeight-130)-FS*2.6;s.scrollBy({top:k==='dn'?step:-step,behavior:'smooth'});return}
+ if(k==='ctl')CTL=!CTL;if(k==='lbl')LBL=!LBL;if(k==='vnotes'){NOTES=true;CTL=false}if(k==='nclose')NOTES=false;if(k==='fs-')FS=Math.max(16,FS-2);if(k==='fs+')FS=Math.min(38,FS+2);if(k==='tr-')SHIFT--;if(k==='tr+')SHIFT++;redraw();return}
+ // editor
+ const ep=e.target.closest('[data-edph]');if(!ep)return;
+ const pk=e.target.closest('[data-pick]');const sl=e.target.closest('[data-sel]');const ch=e.target.closest('i[data-li]');
+ if(pk){PICK=pk.dataset.pick;SEL=null}
+ else if(sl){const [li,ci]=sl.dataset.sel.split(',').map(Number);SEL=SEL&&SEL[0]===li&&SEL[1]===ci?null:[li,ci]}
+ else if(ch){const li=+ch.dataset.li,ci=+ch.dataset.ci;const L=ED[li];
+  if(SEL){const c=ED[SEL[0]].chords.find(x=>x.i===SEL[1]);ED[SEL[0]].chords=ED[SEL[0]].chords.filter(x=>x!==c);L.chords=L.chords.filter(x=>x.i!==ci);L.chords.push({i:ci,c:c.c});SEL=[li,ci]}
+  else{L.chords=L.chords.filter(x=>x.i!==ci);L.chords.push({i:ci,c:PICK});SEL=null;MOVED=[li,ci]}}
+ else if(e.target.closest('[data-nudge]')){const d=+e.target.closest('[data-nudge]').dataset.nudge;const L=ED[SEL[0]];const c=L.chords.find(x=>x.i===SEL[1]);const ni=Math.max(0,Math.min(L.text.length,c.i+d));if(!L.chords.some(x=>x.i===ni&&x!==c)){c.i=ni;SEL=[SEL[0],ni]}}
+ else if(e.target.closest('[data-swap]')){const c=ED[SEL[0]].chords.find(x=>x.i===SEL[1]);c.c=PICK}
+ else if(e.target.closest('[data-del]')){ED[SEL[0]].chords=ED[SEL[0]].chords.filter(x=>x.i!==SEL[1]);SEL=null}
+ else if(e.target.closest('[data-copy]')){const v1=ED.findIndex(l=>l.sec==='Verse 1'),v2=ED.findIndex(l=>l.sec==='Verse 2');
+  for(let k=1;k<=4;k++){const a=ED[v1+k],b=ED[v2+k];if(!a||!b||a.sec||b.sec)continue;const wa=words(a.text),wb=words(b.text);
+   const used=new Set();b.chords=a.chords.map(c=>{if(c.i>=a.text.length)return {i:b.text.length,c:c.c};let wi=wa.findIndex((o,j)=>c.i>=o&&(j===wa.length-1||c.i<wa[j+1]));if(wi<0)wi=0;let ti=Math.round(wi*(wb.length-1)/Math.max(1,wa.length-1));while(used.has(ti)&&ti<wb.length-1)ti++;used.add(ti);return {i:wb[ti],c:c.c}})}
+  SEL=null}
+ else return;
+ const scrollY=ep.querySelector('.ed').scrollTop;ep.innerHTML=edScr();ep.querySelector('.ed').scrollTop=scrollY;
+ if(MOVED)setTimeout(()=>{MOVED=null},600)});
+sc().addEventListener('scroll',upd);upd();
+})();
+</script>
+</body>
+</html>

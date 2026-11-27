@@ -2,12 +2,6 @@
 created: 2026-04-29T06:06
 status: research / open-questions
 related:
-  - .claude/artifacts/context-specific-casting-system.md
-  - .claude/artifacts/2026-04-02T20:34_jam-session-user-flows.md
-  - .claude/artifacts/2026-04-03T00:50_jam-user-goals-and-scenarios.md
-  - .claude/artifacts/2026-04-19T21:21_schema-review-and-forward-compat.md
-  - .claude/artifacts/2026-04-24T02:30_v0.3.1-post-mortem-and-next-session-handoff.md
-  - .claude/specifications/functionality-catalog.md
   - .claude/backlog/BACKLOG.md (social-catalog initiative)
 prompt-summary: |
   Captured the five open product decisions that gate design work on
@@ -30,7 +24,7 @@ When you bring this to a future prompt, the right opening move is:
 > Read `.claude/backlog/open-jam-venue-mode/2026-04-29T06:06_open-questions.md`,
 > then ask me the five decisions in §3 one at a time. Once I've answered
 > all five, draft the design artifact (schema deltas + UI spec + phased
-> rollout) and write it to `.claude/artifacts/`.
+> rollout) and write it to `.claude/backlog/open-jam-venue-mode/`.
 
 ---
 
@@ -76,14 +70,13 @@ TS models exist (`src/models/SongCasting.ts:1-164`), but:
 - **Broken Dexie compound index** in `CastingService.getCasting`
   (`src/services/CastingService.ts:38-39`) — would throw on first call.
 - **RLS hole.** All 5 casting tables have RLS enabled with **zero
-  policies** — already flagged as RLS-3 in
-  `.claude/artifacts/2026-04-19T21:21_schema-review-and-forward-compat.md`.
+  policies** — already flagged as RLS-3 in the Apr 19 schema review (deleted; git history).
 - **Two unconnected instrument concepts coexist:**
   - Free-text `UserProfile.instruments: string[]` — what the app actually
     uses (auth, band membership, members page).
   - Closed `RoleType` enum — only referenced inside the dead casting tree.
 
-The original PRD `.claude/artifacts/context-specific-casting-system.md`
+The original casting PRD (deleted; git history)
 is more coherent than what shipped — re-read before any redesign.
 
 ### Jam sessions today are solid but single-purpose
@@ -103,8 +96,7 @@ is more coherent than what shipped — re-read before any redesign.
   include `'jam'`.
 - **Lifecycle is binary terminal:** `active → expired | saved`.
 - The "lightweight guest contribution without account" question is
-  already raised in
-  `.claude/artifacts/2026-04-02T20:34_jam-session-user-flows.md:319`
+  already raised in the Apr 2 jam user-flows doc (deleted; git history)
   but never decided.
 
 ---
@@ -420,13 +412,9 @@ If you (future agent) need to verify any of the current-state claims:
 - Casting service (dead): `src/services/CastingService.ts:17-410`
 - Casting DB schema: `supabase/migrations/20251106000000_baseline_schema.sql:444-502`
 - Casting components (orphaned): `src/components/casting/{SetlistCastingView,SongCastingEditor,MemberRoleSelector,CastingComparison}.tsx`
-- Original casting PRD: `.claude/artifacts/context-specific-casting-system.md`
 - Jam TS: `src/models/JamSession.ts:1-143`
 - Jam service: `src/services/JamSessionService.ts`
 - Jam DB schema: `supabase/migrations/20260422220000_social_catalog_and_jam_sessions.sql:122-186`
 - Jam edge functions: `supabase/functions/jam-view/index.ts`, `supabase/functions/jam-recompute/index.ts`
 - Jam pages: `src/pages/JamSessionPage.tsx`, `src/pages/JamViewPage.tsx`
 - Jam components: `src/components/jam/{JamSessionCard,JamInviteQR,JamParticipantList,JamWatcherList,JamMatchList}.tsx`
-- Existing jam flow doc: `.claude/artifacts/2026-04-02T20:34_jam-session-user-flows.md` (the open-question
-  about anon contribution lives at line 319)
-- v0.3.1 jam-view post-mortem: `.claude/artifacts/2026-04-24T02:30_v0.3.1-post-mortem-and-next-session-handoff.md`

@@ -48,6 +48,8 @@ export type AuthStateChangeCallback = (
   session: AuthSession | null
 ) => void
 
+export type OAuthProvider = 'google' | 'apple'
+
 export interface IAuthService {
   signUp(
     credentials: SignUpCredentials,
@@ -63,4 +65,14 @@ export interface IAuthService {
    * Provides more granular control than onAuthStateChange.
    */
   onAuthStateChangeWithEvent?(callback: AuthStateChangeCallback): () => void
+  signInWithOAuth(
+    provider: OAuthProvider,
+    returnTo?: string | null
+  ): Promise<{ error?: string }>
+  requestPasswordReset(email: string): Promise<{ error?: string }>
+  resendSignupEmail(
+    email: string,
+    returnTo?: string | null
+  ): Promise<{ error?: string }>
+  updatePassword(password: string): Promise<{ error?: string }>
 }

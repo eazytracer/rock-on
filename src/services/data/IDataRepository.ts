@@ -3,13 +3,22 @@ import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
-import { BandMembership, InviteCode } from '../../models/BandMembership'
-import { IncrementalSyncResult } from './syncTypes'
 import {
-  JamSession,
-  JamParticipant,
-  JamSongMatch,
-} from '../../models/JamSession'
+  BandMembership,
+  BandMemberWithProfile,
+  InviteCode,
+} from '../../models/BandMembership'
+import { User } from '../../models/User'
+import type { UserProfile } from '../../models/User'
+import type {
+  SongPersonalNote,
+  SongPersonalNoteInput,
+} from '../../models/SongPersonalNote'
+import type {
+  SongNoteEntry,
+  SongNoteEntryInput,
+  SongNoteEntryUpdate,
+} from '../../models/SongNoteEntry'
 
 export interface SongFilter {
   id?: string
@@ -27,14 +36,21 @@ export interface BandFilter {
 
 /**
  * Data repository interface
- * Abstracts data access for local, remote, or synchronized storage
+ * Abstracts data access (implemented by RemoteRepository over Supabase)
  */
 export interface IDataRepository {
   // ========== SONGS ==========
   getSongs(filter?: SongFilter): Promise<Song[]>
+  /** Songs with the given ids in one query (e.g. a setlist's items) */
+  getSongsByIds(ids: string[]): Promise<Song[]>
   getSong(id: string): Promise<Song | null>
   addSong(song: Song): Promise<Song>
-  updateSong(id: string, updates: Partial<Song>): Promise<Song>
+  /** With `expectedVersion`, throws ApiError `stale_version` if it moved on. */
+  updateSong(
+    id: string,
+    updates: Partial<Song>,
+    expectedVersion?: number
+  ): Promise<Song>
   deleteSong(id: string): Promise<void>
 
   // ========== BANDS ==========
@@ -73,6 +89,8 @@ export interface IDataRepository {
 
   // ========== BAND MEMBERSHIPS ==========
   getBandMemberships(bandId: string): Promise<BandMembership[]>
+  /** Active members of a band with their user + profile, in one query */
+  getBandMembersWithProfiles(bandId: string): Promise<BandMemberWithProfile[]>
   getUserMemberships(userId: string): Promise<BandMembership[]>
   addBandMembership(membership: BandMembership): Promise<BandMembership>
   updateBandMembership(
@@ -100,7 +118,6 @@ export interface IDataRepository {
 
   /**
    * Create a new invite code
-   * Automatically syncs to Supabase via SyncEngine
    */
   addInviteCode(inviteCode: InviteCode): Promise<InviteCode>
 
@@ -129,80 +146,46 @@ export interface IDataRepository {
    */
   setCurrentUser(userId: string): void
 
-  /**
-   * Check if initial sync is needed
-   * Returns true if never synced or > 30 days since last full sync
-   */
-  isInitialSyncNeeded(): Promise<boolean>
+  // ========== USERS ==========
+  /** Get a user by ID (cloud-first; for viewing other band members' profiles) */
+  getUser(id: string): Promise<User | null>
 
-  /**
-   * Perform initial sync - download all data from cloud on first login
-   */
-  performInitialSync(userId: string): Promise<void>
+  /** Get a user's profile (instruments, display name) by user ID */
+  getUserProfile(userId: string): Promise<UserProfile | null>
 
-  /**
-   * Pull changes from remote (incremental sync)
-   */
-  pullFromRemote(userId: string): Promise<void>
+  /** Update a user's profile (instruments, display name, etc.) by user ID */
+  updateUserProfile(
+    userId: string,
+    updates: Partial<UserProfile>
+  ): Promise<UserProfile | null>
 
-  /**
-   * Pull incremental changes from remote since last sync
-   * Called on every app load to catch updates from other devices
-   */
-  pullIncrementalChanges(userId: string): Promise<IncrementalSyncResult>
+  // ========== SONG PERSONAL NOTES ==========
+  getPersonalNote(
+    songId: string,
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote | null>
+  getPersonalNotesForUser(
+    userId: string,
+    bandId: string
+  ): Promise<SongPersonalNote[]>
+  upsertPersonalNote(input: SongPersonalNoteInput): Promise<SongPersonalNote>
+  deletePersonalNote(id: string): Promise<void>
 
-  /**
-   * Get the sync engine instance (if available)
-   * Only SyncRepository has a sync engine
-   */
-  getSyncEngine?(): import('./SyncEngine').SyncEngine | null
-
-  // ========== JAM SESSIONS (Supabase-only, no local cache) ==========
-
-  /** Get all active jam sessions for a user (as host or active participant) */
-  getActiveJamSessionsForUser(userId: string): Promise<JamSession[]>
-
-  /** Get a jam session by ID */
-  getJamSession(id: string): Promise<JamSession | null>
-
-  /** Get a jam session by its short_code (for join flow) */
-  getJamSessionByCode(shortCode: string): Promise<JamSession | null>
-
-  /** Create a new jam session */
-  createJamSession(session: Omit<JamSession, 'id'>): Promise<JamSession>
-
-  /** Update a jam session */
-  updateJamSession(
+  // ========== SONG NOTE ENTRIES ==========
+  getNoteEntriesForSong(
+    songId: string,
+    bandId: string
+  ): Promise<SongNoteEntry[]>
+  getNoteEntriesForSession(
+    sessionType: 'practice' | 'show',
+    sessionId: string
+  ): Promise<SongNoteEntry[]>
+  getNoteEntry(id: string): Promise<SongNoteEntry | null>
+  createNoteEntry(input: SongNoteEntryInput): Promise<SongNoteEntry>
+  updateNoteEntry(
     id: string,
-    updates: Partial<JamSession>
-  ): Promise<JamSession>
-
-  /** Delete a jam session */
-  deleteJamSession(id: string): Promise<void>
-
-  /** Get all participants for a jam session */
-  getJamParticipants(sessionId: string): Promise<JamParticipant[]>
-
-  /** Add a participant to a jam session */
-  addJamParticipant(
-    participant: Omit<JamParticipant, 'id'>
-  ): Promise<JamParticipant>
-
-  /** Update a jam participant (e.g. status change) */
-  updateJamParticipant(
-    id: string,
-    updates: Partial<JamParticipant>
-  ): Promise<JamParticipant>
-
-  /** Get all song matches for a jam session */
-  getJamSongMatches(sessionId: string): Promise<JamSongMatch[]>
-
-  /**
-   * Replace all song matches for a jam session.
-   * Deletes existing matches then inserts new ones atomically.
-   */
-  upsertJamSongMatches(
-    sessionId: string,
-    matches: Omit<JamSongMatch, 'id'>[]
-  ): Promise<JamSongMatch[]>
+    updates: SongNoteEntryUpdate
+  ): Promise<SongNoteEntry>
+  deleteNoteEntry(id: string): Promise<void>
 }

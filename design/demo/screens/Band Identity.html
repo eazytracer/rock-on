@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Band identity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&family=Pirata+One&family=Permanent+Marker&family=Bungee&family=Abril+Fatface&family=Yellowtail&family=Black+Ops+One&family=Special+Elite&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<style>
+.bm{display:grid;place-items:center;font-style:normal;line-height:1;overflow:hidden;flex-shrink:0}
+.bm svg.i{width:52%;height:52%;stroke-width:2}
+.bm img{width:100%;height:100%;object-fit:cover}
+.mkp{padding:4px 0 8px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.mkp .sm{display:flex;gap:18px;align-items:center;font-family:var(--r-fm);font-size:10px;color:var(--mu);letter-spacing:.06em}
+.mkp .sm>span{display:flex;flex-direction:column;align-items:center;gap:6px}
+.sec{padding:0 16px 14px}
+.sec .lb{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.1em;color:var(--mu);margin:4px 2px 8px;display:flex;justify-content:space-between}
+.up{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 14px;border-radius:16px;background:var(--s1);box-shadow:var(--shg);cursor:pointer}
+.up .g{flex:1}.up b{display:block;font-size:15px}.up small{font-size:12.5px;color:var(--mu)}
+.up.on{box-shadow:inset 0 0 0 2px var(--acc)}
+.ltr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ltr span{height:68px;border-radius:14px;background:var(--s1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;box-shadow:var(--shg)}
+.ltr span i{font-style:normal;font-size:26px;line-height:1;color:var(--tx)}
+.ltr span small{font-size:10.5px;color:var(--mu);font-weight:600}
+.ltr span.on{box-shadow:inset 0 0 0 2px var(--acc)}
+.cols{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.cols span{aspect-ratio:1;border-radius:14px;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.cols span.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--tx)}
+.syms{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.syms span{aspect-ratio:1;border-radius:14px;background:var(--s1);display:grid;place-items:center;cursor:pointer;color:var(--tx);box-shadow:var(--shg)}
+.syms span svg.i{width:22px;height:22px}
+.syms span.on{box-shadow:inset 0 0 0 2px var(--acc)}
+.ini{display:flex;align-items:center;gap:10px;background:var(--s1);border-radius:14px;height:48px;padding:0 14px;margin-bottom:10px;box-shadow:var(--shg)}
+.ini small{font-family:var(--r-fm);font-size:10px;color:var(--mu);letter-spacing:.08em}
+.ini b{font-size:17px;flex:1}.ini span{font-size:12px;color:var(--mu)}
+/* create */
+.cb{display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 20px 16px}
+.cb .wrap{position:relative}
+.cb .ed{position:absolute;right:-6px;bottom:-6px;width:34px;height:34px;border-radius:17px;background:var(--s3);color:var(--tx);display:grid;place-items:center;box-shadow:0 0 0 3px var(--bg)}.cb .ed svg.i{width:16px;height:16px}
+.cb .nm{width:100%;text-align:center;font-family:var(--r-fd);font-weight:800;font-size:38px;text-transform:uppercase;color:var(--tx);border-bottom:2px solid var(--acc);padding:4px 0 6px;display:flex;justify-content:center;align-items:center}
+.cb small{font-size:12.5px;color:var(--mu)}
+.gch{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px}
+.gch span{height:36px;padding:0 12px;border-radius:18px;background:var(--s2);display:flex;align-items:center;font-weight:600;font-size:13.5px}
+.gch span.on{background:var(--tx);color:var(--bg)}
+.gch span.add{background:none;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--mu)}
+.desc{padding:12px 16px;font-size:14.5px;color:var(--tx2);line-height:1.5}
+.desc.ph{color:var(--mu)}
+.fut{display:flex;align-items:center;gap:12px;padding:12px 16px}
+.fut .g{flex:1}.fut b{display:block;font-size:15px}.fut small{font-size:12.5px;color:var(--mu)}
+.tg{font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;padding:3px 7px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--line);color:var(--mu)}
+/* profile */
+.bp{display:flex;gap:14px;align-items:center;padding:4px 20px 12px}
+.bp .g{flex:1;min-width:0}
+.bp .r-d{font-size:40px;line-height:.9}
+.bp .loc{display:flex;gap:6px;align-items:center;font-size:13.5px;color:var(--tx2);margin-top:6px}.bp .loc svg.i{width:14px;height:14px;color:var(--mu)}
+.gtags{display:flex;gap:6px;flex-wrap:wrap;padding:0 20px 12px}
+.gtags span{font-family:var(--r-fm);font-size:10.5px;letter-spacing:.06em;padding:5px 9px;border-radius:8px;background:var(--s2);color:var(--tx2);text-transform:uppercase}
+.lnks .r-item{min-height:52px}
+.stat3{display:grid;grid-template-columns:repeat(3,1fr);padding:12px 4px}
+.stat3 div{text-align:center}.stat3 b{display:block;font-family:var(--r-fd);font-size:28px;font-weight:800}.stat3 small{font-family:var(--r-fm);font-size:10px;color:var(--mu);letter-spacing:.08em}
+/* EPK */
+.epk .hero{height:200px;background:repeating-linear-gradient(135deg,var(--s2) 0 12px,var(--s1) 12px 24px);display:flex;align-items:flex-end;padding:14px 16px;position:relative}
+.epk .hero small{position:absolute;top:12px;left:14px;font-family:var(--r-fm);font-size:10px;color:var(--mu)}
+.epk .hb{display:flex;gap:12px;align-items:flex-end}
+.epk .hb .r-d{font-size:38px;line-height:.9}
+.epk .row{display:flex;gap:8px;padding:12px 16px}
+.epk .row .r-btn{flex:1}
+.fbox{position:absolute;top:58px;right:14px;z-index:4;font-family:var(--r-fm);font-size:10px;letter-spacing:.1em;padding:4px 8px;border-radius:6px;background:var(--warn);color:#1a1300}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,grp,gl,item,fld,srow,sheet,phone,tpl,backbar,title,editbar,T}=R,{ph,page}=Draft;
+const LT=[['Poster',"'Big Shoulders Display'",900,1,1],['Metal',"'Pirata One'",400,1.05,0],['Punk',"'Permanent Marker'",400,.9,0],['Marquee',"'Bungee'",400,.82,1],['Classic',"'Abril Fatface'",400,.95,0],['Script',"'Yellowtail'",400,1,0],['Stencil',"'Black Ops One'",400,.85,1],['Indie',"'Special Elite'",400,.9,0]];
+const CO=[['#ff7a1a','#1a0c02'],['#f43f5e','#2a0510'],['#facc15','#1f1800'],['#4ade80','#03200f'],['#2dd4bf','#032b26'],['#38bdf8','#03202e'],['#7c86f5','#0b0d2b'],['#c084fc','#1f0833'],['#26221e','#f4efe9'],['#f4efe9','#1a1512']];
+const SY=['guitar','mic','drum','amp','bolt','flame','vinyl','headph','music','star','crown','audio'];
+const ST={mode:'ini',lt:0,co:0,sy:4,ini:'iP'};
+const mark=(st,sz,rad)=>{const [bg,fg]=CO[st.co];const r=rad??Math.round(sz*.29);
+ if(st.mode==='photo')return `<i class="bm" style="width:${sz}px;height:${sz}px;border-radius:${r}px;background:repeating-linear-gradient(135deg,#3a332d 0 6px,#2a2420 6px 12px)"></i>`;
+ if(st.mode==='sym')return `<i class="bm" style="width:${sz}px;height:${sz}px;border-radius:${r}px;background:${bg};color:${fg}">${ic(SY[st.sy])}</i>`;
+ const [_,f,w,s,up]=LT[st.lt];const t=up?st.ini.toUpperCase():st.ini;return `<i class="bm" style="width:${sz}px;height:${sz}px;border-radius:${r}px;background:${bg};color:${fg};font-family:${f};font-weight:${w};font-size:${Math.round(sz*.44*s)}px">${t}</i>`};
+const picker=()=>{const st=ST;const ltr=LT.map(([n,f,w,sc,up],i)=>`<span data-lt="${i}" class="${st.lt===i?'on':''}"><i style="font-family:${f};font-weight:${w};font-size:${Math.round(26*sc)}px">${up?st.ini.toUpperCase():st.ini}</i><small>${n}</small></span>`).join('');
+ const tabs=`<div class="sec" data-tabs>${seg(['Initials','Symbol','Upload'],{ini:0,sym:1,photo:2}[st.mode])}</div>`;
+ const body=st.mode==='ini'?`<div class="sec"><div class="ini"><small>INITIALS</small><b>${st.ini}</b><span>1–3 characters</span></div><div class="lb"><span>LETTERING</span></div><div class="ltr">${ltr}</div></div>`
+  :st.mode==='sym'?`<div class="sec"><div class="lb"><span>SYMBOL</span></div><div class="syms">${SY.map((x,i)=>`<span data-sy="${i}" class="${st.sy===i?'on':''}">${ic(x)}</span>`).join('')}</div></div>`
+  :`<div class="sec" style="display:flex;flex-direction:column;gap:8px"><div class="up on">${ic('upload','color:var(--accink);width:22px;height:22px')}<div class="g"><b>Upload a file</b><small>PNG, JPG or SVG · square crop next</small></div></div><div class="up">${ic('link2','color:var(--mu)')}<div class="g"><b>From a link</b><small>Website, Bandcamp, any image URL</small></div></div><div class="r-m r-muted" style="padding:2px 4px;line-height:1.5">Links are imported once and stored with the band, so the mark doesn\'t break if the original moves. Transparent PNG and SVG keep your colour behind them.</div></div>`;
+ const col=`<div class="sec"><div class="lb"><span>${st.mode==='photo'?'BACKGROUND · FOR TRANSPARENT LOGOS':'COLOUR'}</span></div><div class="cols">${CO.map(([b],i)=>`<span data-co="${i}" class="${st.co===i?'on':''}" style="background:${b}"></span>`).join('')}</div></div>`;
+ return `${editbar('Band mark',true,'Done')}<div class="r-body"><div class="mkp">${mark(st,120)}<div class="sm"><span>${mark(st,40)}SWITCHER</span><span>${mark(st,32)}NOTIFICATION</span><span>${mark(st,22,6)}NAV</span></div></div>${tabs}${body}${col}<div style="height:20px"></div></div>`};
+// create
+const create=tpl.editor({title:'New band',save:'Create',body:`<div class="cb"><div class="wrap">${mark({mode:'ini',lt:0,co:0,ini:'iP'},104)}<span class="ed">${ic('edit')}</span></div><div class="nm">iPod Shuffle<span class="r-caret"></span></div><small>Only the name is needed. Everything below can wait.</small></div>
+${gl('About · optional')}${grp(item({lead:ic('home','color:var(--mu)'),title:'Seattle, WA',sub:'City · region · country',trail:'chev'}))}
+${gl('Genres')}${grp('<div class="gch"><span class="on">Grunge</span><span class="on">Covers</span><span>Alt rock</span><span>Punk</span><span>Indie</span><span class="add">+ Add</span></div>')}
+${gl('Description')}${grp('<div class="desc ph">One or two lines about the band…</div>')}<div style="height:30px"></div>`});
+// profile (band info, edit in place)
+const BAND={mode:'ini',lt:0,co:0,ini:'iP'};
+const av=(ini)=>`<span class="av" style="background:var(--s3);color:var(--tx)">${ini}</span>`;
+const profile=`${backbar('More',ib('moreh'))}<div class="r-body"><div class="bp">${mark(BAND,84)}<div class="g"><div class="r-d">iPod Shuffle</div><div class="loc">${ic('home')}Seattle, WA · since 2025</div></div></div>
+<div class="gtags"><span>Grunge</span><span>2000s</span><span>Covers</span></div>
+<div class="desc" style="padding:0 20px 12px">Grunge and 2000s covers around Seattle. Three-piece, loud, on time.</div>
+${grp(`<div class="stat3"><div><b>42</b><small>SONGS</small></div><div><b>3</b><small>MEMBERS</small></div><div><b>11</b><small>SHOWS</small></div></div>`)}
+${gl('Members',{label:'INVITE',icon:'plus'})}${grp(item({lead:`<div class="avs">${av('E')}${av('M')}${av('S')}</div>`,title:'Eric, Mike, Sarah',sub:'Guitar, vocals · Bass · Drums',trail:'chev'}))}
+${gl('Links',{label:'ADD',icon:'plus'})}<div class="lnks">${grp(item({lead:ic('globe','color:var(--mu)'),title:'ipodshuffle.band',trail:'open'})+item({lead:ic('camera','color:var(--mu)'),title:'Instagram',sub:'@ipodshuffleband',trail:'open'})+item({lead:ic('audio','color:var(--mu)'),title:'Spotify',sub:'Artist page',trail:'open'}))}</div>
+${gl('Public profile')}${grp(`<div class="fut">${ic('eye','color:var(--mu)')}<div class="g"><b>Off · private to members</b><small>Later: let venues and players find you, and share a press kit</small></div><span class="tg">COMING</span></div>`)}<div style="height:30px"></div></div>`;
+// EPK future
+const epk=`${backbar('iPod Shuffle',ib('share'))}<span class="fbox">FUTURE</span><div class="r-body epk"><div class="hero"><small>BAND PHOTO</small><div class="hb">${mark(BAND,64)}<div><div class="r-d">iPod Shuffle</div><div class="r-m r-muted">SEATTLE, WA · GRUNGE · COVERS</div></div></div></div>
+<div class="row">${btn('Book us',{kind:'pri',icon:'mail'})}${btn('Listen',{icon:'audio'})}</div>
+<div class="desc">Grunge and 2000s covers around Seattle. Three-piece, loud, on time.</div>
+${gl('Upcoming')}${grp(item({lead:'<div class="db"><small>NOV</small><b>1</b></div>',title:'Fall Kickoff',sub:'<span class="r-ty show">'+ic('ticket')+'SHOW</span> · The Crocodile'}))}
+${gl('Repertoire · 42 songs')}${grp(item({title:'Monkey Wrench',sub:'Foo Fighters'})+item({title:'Black',sub:'Pearl Jam'})+item({title:'Everlong',sub:'Foo Fighters'}))}
+${gl('Tech')}${grp('<div class="desc">3-piece · 2 vocal mics · own backline · 45–90 min sets</div>')}<div style="height:30px"></div></div>`;
+const host=()=>document.querySelector('[data-pk]');
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Band identity · locked Oct 30 2026',h:'Your <span>band</span>, your mark.',
+ lede:'Second pass at B1. One band mark picker: Initials, Symbol or Upload as tabs, then colour, previewed live at every size the mark appears. Then the band profile that the create screen feeds, and a sketch of the future public profile so today\'s fields line up with it.',
+ notes:[['Three tabs, one mark','Initials, Symbol or Upload: only one can be the mark, so a segmented control shows one set of options at a time. Upload takes a file or a link (imported once, then stored). Colour sits below and applies to whichever is chosen, and is the backdrop for transparent logos (<b>Hick\'s Law</b>, <b>Law of Proximity</b>).'],['Lettering with a genre','Eight letterings named for the scene they suggest: Poster (our display face), Metal, Punk, Marquee, Classic, Script, Stencil, Indie. They\'re distinct at 22px, not just weights of one face (<b>Aesthetic-Usability</b>).'],['Symbols that mean band','Guitar, mic, drums, amp, bolt, flame, vinyl, headphones, note, star, crown, wave. No generic UI icons. Ten colours, including charcoal and bone for bands that want no colour (<b>Jakob\'s Law</b>).'],['Shaped for later','The record holds name, mark, location, genres, description, links and visibility. A public profile and press kit read straight from it, adding photos, repertoire, upcoming shows and tech notes (<b>Tesler\'s Law</b>).']],
+ rows:[[ph('1 · Create a band','Name is the hero, under the mark. Tap the mark (pencil) for the picker. Location, genres and description are optional.',create),
+ `<div class="ph"><div class="cap">2 · Band mark · try it</div><div class="capd">Switch Initials / Symbol / Upload, then pick a style and colour. The preview updates at 120px and at switcher, notification and nav sizes, so you see whether it holds up small (<b>Doherty Threshold</b>).</div><div data-pk>${phone(picker())}</div></div>`,
+ ph('3 · Band profile','More → band card. Mark, name, location, genres, description, quick counts, members, links. Edit in place, like every detail page. Public profile shows as Off and Coming.',profile),
+ ph('4 · Public profile · future','Not for launch. What venues and players would see, built only from fields the band already has, plus a photo, repertoire and tech notes.',epk)]]});
+document.addEventListener('click',e=>{const h=host();if(!h||!h.contains(e.target))return;const tb=e.target.closest('[data-tabs] .r-seg span, [data-tabs] [class*=seg] span');if(tb){ST.mode=['ini','sym','photo'][[...tb.parentNode.children].indexOf(tb)];}const t=tb||e.target.closest('[data-lt],[data-sy],[data-co]');if(!t)return;
+ if(tb){}else if(t.dataset.lt!=null){ST.lt=+t.dataset.lt}else if(t.dataset.sy!=null){ST.sy=+t.dataset.sy}else if(t.dataset.co!=null){ST.co=+t.dataset.co}
+ const y=h.querySelector('.r-body').scrollTop;h.innerHTML=phone(picker());h.querySelector('.r-body').scrollTop=y});
+})();
+</script>
+</body>
+</html>

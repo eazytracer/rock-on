@@ -19,6 +19,10 @@ export interface FriendSummary {
   name: string
   /** Count of bands this friend and the current user both belong to. */
   sharedBands: number
+  /** Ordered, primary first; empty when their profile isn't readable. */
+  instruments: string[]
+  /** `user_profiles.personal_color` (hex), when set and readable. */
+  color: string | null
 }
 
 export interface FriendRequestSummary {
@@ -29,6 +33,8 @@ export interface FriendRequestSummary {
   direction: 'incoming' | 'outgoing'
   status: FriendRequestStatus
   createdDate: Date
+  instruments: string[]
+  color: string | null
 }
 
 export interface MyFriendProfile {
@@ -37,8 +43,12 @@ export interface MyFriendProfile {
   policy: FriendRequestPolicy
 }
 
-/** A discoverable person surfaced by a find-by-name search. */
+/** A findable person from `find_people`. */
 export interface FriendSearchResult {
   userId: string
   name: string
+  instruments: string[]
+  color: string | null
+  /** Friends you share. */
+  mutualCount: number
 }

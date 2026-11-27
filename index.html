@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#1f2937" />
+    <meta name="theme-color" content="#0c0b0a" />
     <meta name="description" content="Rock On! - Mobile-first band management platform" />
 
-    <!-- Fonts: Geist (UI) + JetBrains Mono (stats/tempo/keys/IDs) -->
+    <!-- Fonts (redesign): Big Shoulders Display (titles), Atkinson Hyperlegible Next (UI), Martian Mono (meta) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
 
@@ -21,6 +21,14 @@
     <meta http-equiv="Expires" content="0" />
 
     <title>Rock On!</title>
+    <script>
+      // First paint in the saved theme (ThemeContext takes over after load).
+      try {
+        var t = localStorage.getItem('rockon.theme') || 'system'
+        if (t === 'system') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+        document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

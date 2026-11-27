@@ -13,7 +13,7 @@ import {
 /**
  * #3 Catalog provenance / Source filter — Hide / Re-add.
  * A song hidden from the catalog is removed from the default list, surfaced
- * behind a "Hidden (N)" toggle, and can be re-added. Backed by the Supabase
+ * behind View → Show hidden songs, and can be shown again. Backed by the Supabase
  * `song_hidden` table (own-rows-only RLS).
  */
 test.describe('Songs — Hide / Re-add', () => {
@@ -62,57 +62,41 @@ test.describe('Songs — Hide / Re-add', () => {
     })
 
     // No hidden songs yet → the Hidden toggle is not rendered.
-    await expect(
-      page.locator('[data-testid="songs-show-hidden-toggle"]')
-    ).toHaveCount(0)
+    const row = () =>
+      page.locator('[data-testid^="song-row-"]', { hasText: title }).first()
+    const viewButton = page.locator('[data-testid="songs-view-button"]')
+    await expect(viewButton).not.toContainText('hidden')
 
-    // Hide the song via its action menu.
-    await page
-      .locator('[data-testid="song-actions-menu-button"]')
-      .first()
-      .click()
-    await page.waitForTimeout(300)
-    await page.locator('[data-testid="song-hide-button"]').first().click()
+    // Hide it from the row menu (right-click; no ⋯ in the redesign).
+    await row().click({ button: 'right' })
+    await page.locator('[data-testid="song-hide-button"]').click()
     await page.waitForTimeout(1000)
 
-    // It leaves the default catalog; the Hidden (1) toggle appears.
-    await expect(page.locator(`text=${title}`)).toHaveCount(0)
-    const toggle = page.locator('[data-testid="songs-show-hidden-toggle"]')
-    await expect(toggle).toBeVisible({ timeout: 5000 })
-    await expect(toggle).toContainText('Hidden (1)')
+    await expect(row()).toHaveCount(0)
+    await expect(viewButton).toContainText('1 hidden')
 
-    // Show hidden → the song is back in view, with a Re-add action (no Hide).
-    await toggle.click()
-    await page.waitForTimeout(500)
-    await expect(page.locator(`text=${title}`).first()).toBeVisible({
-      timeout: 5000,
-    })
-    await page
-      .locator('[data-testid="song-actions-menu-button"]')
-      .first()
-      .click()
-    await page.waitForTimeout(300)
-    await expect(
-      page.locator('[data-testid="song-readd-button"]').first()
-    ).toBeVisible({ timeout: 2000 })
+    // View → Show hidden songs brings it back, dimmed, with "Show again".
+    await viewButton.click()
+    await page.locator('[data-testid="songs-view-show-hidden"]').click()
+    await page.keyboard.press('Escape')
+    await expect(row()).toBeVisible({ timeout: 5000 })
+    await row().click({ button: 'right' })
+    await expect(page.locator('[data-testid="song-readd-button"]')).toBeVisible(
+      { timeout: 2000 }
+    )
     await expect(page.locator('[data-testid="song-hide-button"]')).toHaveCount(
       0
     )
 
-    // Re-add it.
-    await page.locator('[data-testid="song-readd-button"]').first().click()
+    await page.locator('[data-testid="song-readd-button"]').click()
     await page.waitForTimeout(1000)
+    await expect(viewButton).not.toContainText('hidden')
 
-    // Back in the normal catalog; the Hidden toggle is gone (nothing hidden).
-    await expect(toggle).toContainText('Hidden (0)')
-    await toggle.click()
-    await page.waitForTimeout(500)
-    await expect(page.locator(`text=${title}`).first()).toBeVisible({
-      timeout: 5000,
-    })
-    await expect(
-      page.locator('[data-testid="songs-show-hidden-toggle"]')
-    ).toHaveCount(0)
+    // Turn Show hidden off again: the song stays, it's no longer hidden.
+    await viewButton.click()
+    await page.locator('[data-testid="songs-view-show-hidden"]').click()
+    await page.keyboard.press('Escape')
+    await expect(row()).toBeVisible({ timeout: 5000 })
 
     await assertNoConsoleErrors(page, errors)
   })

@@ -1,9 +1,11 @@
 /**
  * E2E tests for Personal Song Catalog
  *
+ * My Songs is the Personal context's catalog (redesign: the Band / My Songs
+ * tabs became the context switcher).
+ *
  * Covers:
- * - Creating a personal song (appears in My Songs, not Band Songs)
- * - Editing a personal song
+ * - Creating a personal song (appears in Personal, not the band)
  * - Deleting a personal song
  * - Personal songs isolated from band songs
  */
@@ -13,27 +15,21 @@ import {
   signUpViaUI,
   deleteTestUser,
 } from '../../fixtures/auth'
-import { createBandViaUI } from '../../fixtures/bands'
+import { createBandViaUI, switchContextViaUI } from '../../fixtures/bands'
 import {
   setupConsoleErrorTracking,
   assertNoConsoleErrors,
 } from '../../helpers/assertions'
 
-// ---------------------------------------------------------------------------
-// Helper: navigate to My Songs tab
-// ---------------------------------------------------------------------------
-async function switchToPersonalTab(page: import('@playwright/test').Page) {
-  const personalTab = page.locator('[data-testid="songs-personal-tab"]')
-  await expect(personalTab).toBeVisible({ timeout: 5000 })
-  await personalTab.click()
-  await page.waitForTimeout(300)
+async function switchToPersonal(page: import('@playwright/test').Page) {
+  await switchContextViaUI(page, 'personal')
+  await expect(page.locator('[data-testid="songs-title"]')).toContainText(
+    'My Songs'
+  )
 }
 
-async function switchToBandTab(page: import('@playwright/test').Page) {
-  const bandTab = page.locator('[data-testid="songs-band-tab"]')
-  await expect(bandTab).toBeVisible({ timeout: 5000 })
-  await bandTab.click()
-  await page.waitForTimeout(300)
+async function switchToBand(page: import('@playwright/test').Page) {
+  await switchContextViaUI(page, 'band')
 }
 
 // ---------------------------------------------------------------------------
@@ -78,7 +74,7 @@ test.describe('Personal Song Catalog', () => {
     }
   })
 
-  test('personal song appears in My Songs tab, not Band Songs tab', async ({
+  test('personal song appears in My Songs, not in the band', async ({
     page,
   }) => {
     const errors = setupConsoleErrorTracking(page)
@@ -88,8 +84,8 @@ test.describe('Personal Song Catalog', () => {
     await createBandViaUI(page, `Personal Songs Test ${Date.now()}`)
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
-    // Switch to personal tab and add a song
-    await switchToPersonalTab(page)
+    // Switch to Personal and add a song
+    await switchToPersonal(page)
     await addSong(page, 'My Personal Song', 'Personal Artist')
 
     // Verify it appears in My Songs
@@ -97,21 +93,15 @@ test.describe('Personal Song Catalog', () => {
       timeout: 5000,
     })
 
-    // Switch to Band Songs — the personal song should NOT be there
-    await switchToBandTab(page)
-    await page.waitForTimeout(500)
-    await expect(page.locator('text=My Personal Song').first())
-      .not.toBeVisible({
-        timeout: 3000,
-      })
-      .catch(() => {
-        // Passing — song correctly absent from band tab
-      })
+    // Back in the band, the personal song is not there
+    await switchToBand(page)
+    await expect(page.locator('[data-testid="songs-page"]')).toBeVisible()
+    await expect(page.locator('text=My Personal Song')).toHaveCount(0)
 
     await assertNoConsoleErrors(page, errors)
   })
 
-  test('band song does not appear in My Songs tab', async ({ page }) => {
+  test('band song does not appear in My Songs', async ({ page }) => {
     const errors = setupConsoleErrorTracking(page)
     const user = createTestUser()
 
@@ -119,23 +109,17 @@ test.describe('Personal Song Catalog', () => {
     await createBandViaUI(page, `Band Song Isolation ${Date.now()}`)
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
-    // Add a band song from the Band Songs tab (default)
-    await expect(page.locator('[data-testid="songs-band-tab"]')).toBeVisible({
-      timeout: 5000,
-    })
+    // Add a band song (the new band is the current context)
     await addSong(page, 'Unique Band Song', 'Band Artist')
 
-    // Switch to personal tab — band song should not appear
-    await switchToPersonalTab(page)
-    await page.waitForTimeout(500)
-
-    // The personal tab should NOT show the band song
-    const bandSongInPersonal = page.locator('text=Unique Band Song')
-    await expect(bandSongInPersonal)
-      .not.toBeVisible({ timeout: 2000 })
-      .catch(() => {
-        // Expected — song correctly isolated
+    // In Personal the band song is not in the list (the "not in My Songs"
+    // banner may name it, so look in the rows only)
+    await switchToPersonal(page)
+    await expect(
+      page.locator('[data-testid^="song-row-"]', {
+        hasText: 'Unique Band Song',
       })
+    ).toHaveCount(0)
 
     await assertNoConsoleErrors(page, errors)
   })
@@ -147,7 +131,7 @@ test.describe('Personal Song Catalog', () => {
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
     // Add a personal song
-    await switchToPersonalTab(page)
+    await switchToPersonal(page)
     await addSong(page, 'Song To Delete Personal', 'Delete Artist')
 
     // Verify it was added
@@ -155,51 +139,18 @@ test.describe('Personal Song Catalog', () => {
       page.locator('text=Song To Delete Personal').first()
     ).toBeVisible({ timeout: 5000 })
 
-    // Open the action menu for the song and delete it
-    const kebabButton = page
-      .locator(
-        '[data-testid="song-more-options"], button[aria-label*="more"], button:has([data-lucide="more-vertical"])'
-      )
-      .first()
-    if (await kebabButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await kebabButton.click()
-      const deleteOption = page
-        .locator('button:has-text("Delete"), [data-testid*="delete"]')
-        .first()
-      if (await deleteOption.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await deleteOption.click()
-        // Confirm deletion if dialog appears
-        const confirmBtn = page
-          .locator(
-            'button:has-text("Delete"), button:has-text("Confirm"), [data-testid="confirm-button"]'
-          )
-          .first()
-        if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await confirmBtn.click()
-        }
-        await page.waitForTimeout(1000)
-        await expect(page.locator('text=Song To Delete Personal'))
-          .not.toBeVisible({ timeout: 3000 })
-          .catch(() => {
-            // Song correctly removed
-          })
-      }
-    }
-  })
-
-  test('personal and band tabs are both visible on songs page', async ({
-    page,
-  }) => {
-    const user = createTestUser()
-    await signUpViaUI(page, user)
-    await createBandViaUI(page, `Tab Visibility Test ${Date.now()}`)
-    await page.waitForURL(/\/songs/, { timeout: 10000 })
-
-    await expect(page.locator('[data-testid="songs-band-tab"]')).toBeVisible({
-      timeout: 5000,
-    })
+    // Right-click → Delete… → confirm
+    await page
+      .locator('[data-testid^="song-row-"]', {
+        hasText: 'Song To Delete Personal',
+      })
+      .click({ button: 'right' })
+    await page.locator('[data-testid="delete-song-button"]').click()
+    await page.locator('[data-testid="confirm-dialog-confirm"]').click()
     await expect(
-      page.locator('[data-testid="songs-personal-tab"]')
-    ).toBeVisible({ timeout: 5000 })
+      page.locator('[data-testid^="song-row-"]', {
+        hasText: 'Song To Delete Personal',
+      })
+    ).toHaveCount(0, { timeout: 5000 })
   })
 })

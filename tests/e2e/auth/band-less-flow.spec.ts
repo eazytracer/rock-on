@@ -2,7 +2,7 @@
  * E2E tests for the band-less user flow — Phase 2.
  *
  * Covers:
- * - Event-code join at signup (the "I have an event code" path → join as guest)
+ * - Event-code join at signup (Get started → "Got a jam code?" → join as guest)
  * - Invalid event code shows an error (no navigation)
  * - Band-less users get a "create or join a band" prompt on the band-only pages
  *   (Setlists / Shows / Practices) instead of the feature
@@ -51,12 +51,20 @@ test.describe('Band-less user flow (Phase 2)', () => {
       (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
       undefined
 
+    await page.click('[data-testid="get-started-jam-code"]')
     await page.fill('[data-testid="join-event-code-input"]', SEED_EVENT_CODE)
     await page.click('[data-testid="join-event-button"]')
 
-    // Lands on the event detail with no band required.
-    await page.waitForURL(/\/events\/[0-9a-f-]+/, { timeout: 10000 })
-    await expect(page.getByText(SEED_EVENT_NAME)).toBeVisible({ timeout: 5000 })
+    // The jam preview (/j/CODE), then Join → parts → songs (none yet: Skip)
+    // → the jam, with no band required.
+    await page.waitForURL(new RegExp(`/j/${SEED_EVENT_CODE}$`))
+    await expect(page.getByTestId('jam-preview-name')).toHaveText(
+      SEED_EVENT_NAME
+    )
+    await page.getByTestId('jam-join-button').click()
+    await page.getByTestId('jam-join-parts-next').click()
+    await page.getByTestId('jam-join-skip').click()
+    await page.waitForURL(/\/jam\/[0-9a-f-]+/, { timeout: 10000 })
     // Band-less: sidebar shows the personal-account header, not a band name.
     expect(
       await page.evaluate(() => localStorage.getItem('currentBandId'))
@@ -75,12 +83,13 @@ test.describe('Band-less user flow (Phase 2)', () => {
       (await page.evaluate(() => localStorage.getItem('currentUserId'))) ??
       undefined
 
+    await page.click('[data-testid="get-started-jam-code"]')
     await page.fill('[data-testid="join-event-code-input"]', 'ZZZZ0000')
     await page.click('[data-testid="join-event-button"]')
 
     // Stays on get-started with an error; no event navigation.
     await expect(page).toHaveURL(/\/get-started/)
-    await expect(page.getByText(/No event found for that code/i)).toBeVisible({
+    await expect(page.getByText(/That code isn't valid/i)).toBeVisible({
       timeout: 5000,
     })
   })
@@ -111,10 +120,11 @@ test.describe('Band-less user flow (Phase 2)', () => {
       page.locator('[data-testid="setlists-band-required"]')
     ).toHaveCount(0)
 
-    // Shows and Practices remain band-only.
+    // Shows and Practices remain band-only. (/practices now redirects to the
+    // calendar, so the practice builder is where the guard lives.)
     for (const [path, testid] of [
       ['/shows', 'shows-band-required'],
-      ['/practices', 'practices-band-required'],
+      ['/practices/new', 'practices-band-required'],
     ] as const) {
       await page.goto(path)
       await expect(page.locator(`[data-testid="${testid}"]`)).toBeVisible({
@@ -146,11 +156,12 @@ test.describe('Band-less user flow (Phase 2)', () => {
       timeout: 5000,
     })
     await expect(page.locator('[data-testid="home-create-band"]')).toBeVisible()
-    // Personal actions present; band-only actions hidden.
+    // Personal actions present (setlists are personal-capable); band-only
+    // actions hidden.
     await expect(page.locator('[data-testid="home-action-song"]')).toBeVisible()
     await expect(
       page.locator('[data-testid="home-action-setlist"]')
-    ).toHaveCount(0)
+    ).toBeVisible()
     await expect(
       page.locator('[data-testid="home-action-practice"]')
     ).toHaveCount(0)
@@ -185,9 +196,9 @@ test.describe('Band-less user flow (Phase 2)', () => {
     await createBandViaUI(page, `Upgrade Band ${Date.now()}`)
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
-    // The band-only Shows page now renders the real feature (no prompt).
+    // Shows (now the calendar's Shows filter) renders the real feature.
     await page.goto('/shows')
-    await expect(page.locator('[data-testid="shows-page"]')).toBeVisible({
+    await expect(page.locator('[data-testid="calendar-page"]')).toBeVisible({
       timeout: 5000,
     })
     await expect(

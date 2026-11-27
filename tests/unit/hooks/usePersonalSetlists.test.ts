@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { usePersonalSetlists } from '../../../src/hooks/useSetlists'
 import { SetlistService } from '../../../src/services/SetlistService'
+import { createQueryWrapper } from '../helpers/queryWrapper'
 import type { Setlist } from '../../../src/models/Setlist'
 
 vi.mock('../../../src/services/SetlistService', () => ({
@@ -15,17 +16,7 @@ vi.mock('../../../src/services/SetlistService', () => ({
 }))
 
 vi.mock('../../../src/contexts/AuthContext', () => ({
-  useAuth: vi.fn(() => ({ realtimeManager: null })),
-}))
-
-vi.mock('../../../src/services/database', () => ({
-  db: {
-    setlists: {
-      filter: vi.fn(() => ({
-        reverse: vi.fn(() => ({ toArray: vi.fn().mockResolvedValue([]) })),
-      })),
-    },
-  },
+  useAuth: vi.fn(() => ({ user: { id: 'user-123' }, realtimeManager: null })),
 }))
 
 function makePersonalSetlist(
@@ -63,7 +54,9 @@ describe('usePersonalSetlists', () => {
       total: 2,
     })
 
-    const { result } = renderHook(() => usePersonalSetlists('user-123'))
+    const { result } = renderHook(() => usePersonalSetlists('user-123'), {
+      wrapper: createQueryWrapper().wrapper,
+    })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 
@@ -74,7 +67,9 @@ describe('usePersonalSetlists', () => {
   })
 
   it('returns empty array when userId is empty', async () => {
-    const { result } = renderHook(() => usePersonalSetlists(''))
+    const { result } = renderHook(() => usePersonalSetlists(''), {
+      wrapper: createQueryWrapper().wrapper,
+    })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 
@@ -95,7 +90,10 @@ describe('usePersonalSetlists', () => {
 
     const { result, rerender } = renderHook(
       ({ userId }: { userId: string }) => usePersonalSetlists(userId),
-      { initialProps: { userId: 'user-a' } }
+      {
+        initialProps: { userId: 'user-a' },
+        wrapper: createQueryWrapper().wrapper,
+      }
     )
 
     await waitFor(() => expect(result.current.loading).toBe(false))
@@ -113,11 +111,12 @@ describe('usePersonalSetlists', () => {
       new Error('Network error') as never
     )
 
-    const { result } = renderHook(() => usePersonalSetlists('user-123'))
+    const { result } = renderHook(() => usePersonalSetlists('user-123'), {
+      wrapper: createQueryWrapper().wrapper,
+    })
 
-    await waitFor(() => expect(result.current.loading).toBe(false))
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error))
 
-    expect(result.current.error).toBeInstanceOf(Error)
     expect(result.current.setlists).toHaveLength(0)
   })
 
@@ -127,7 +126,9 @@ describe('usePersonalSetlists', () => {
       total: 1,
     })
 
-    const { result } = renderHook(() => usePersonalSetlists('user-123'))
+    const { result } = renderHook(() => usePersonalSetlists('user-123'), {
+      wrapper: createQueryWrapper().wrapper,
+    })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 
@@ -142,7 +143,9 @@ describe('usePersonalSetlists', () => {
       total: 1,
     })
 
-    const { result } = renderHook(() => usePersonalSetlists('user-123'))
+    const { result } = renderHook(() => usePersonalSetlists('user-123'), {
+      wrapper: createQueryWrapper().wrapper,
+    })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 

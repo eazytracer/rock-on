@@ -154,8 +154,9 @@ test.describe('Song Search and Filtering', () => {
       })
 
       // Should not see Eagles
+      // (Rows only: the 'Added "…"' toast can still be up.)
       const eaglesVisible = await page
-        .locator('text=Take It Easy')
+        .locator('[data-testid^="song-row-"]', { hasText: 'Take It Easy' })
         .first()
         .isVisible()
         .catch(() => false)
@@ -201,12 +202,12 @@ test.describe('Song Search and Filtering', () => {
     await page.locator('button:has-text("Save")').first().click()
     await page.waitForTimeout(1500)
 
-    // Open the Filters panel, then filter by Drop D
-    await page.locator('[data-testid="song-filter-toggle-button"]').click()
-    await page.locator('[data-testid="song-tuning-filter-trigger"]').click()
+    // Desktop: open the Tuning menu, then pick Drop D
+    await page.locator('[data-testid="song-tuning-filter"]').click()
     await page
       .locator('[data-testid="song-tuning-filter-option-Drop D"]')
       .click()
+    await page.keyboard.press('Escape')
     await page.waitForTimeout(1000)
 
     // Should only see Drop D song
@@ -224,7 +225,7 @@ test.describe('Song Search and Filtering', () => {
     await assertNoConsoleErrors(page, errors)
   })
 
-  test('user can sort songs via the sort dropdown', async ({ page }) => {
+  test('user can sort songs via the sort sheet', async ({ page }) => {
     const errors = setupConsoleErrorTracking(page)
     const user = createTestUser()
 
@@ -245,17 +246,17 @@ test.describe('Song Search and Filtering', () => {
       await page.waitForTimeout(1500)
     }
 
-    // Exercise the migrated sort Dropdown with a deterministic ordering:
-    // Title (Z-A) must reorder Third → Second → First (reverse-alphabetical),
-    // proving the C0 Dropdown drives the sort. (We deliberately assert on
-    // title order, not "recently added" — createdDate for songs added in the
-    // same session is subject to sync-timestamp propagation and is a separate
-    // concern from this select→Dropdown migration.)
+    // Sort by Title, then the direction toggle reverses it: Title Z–A must
+    // reorder Third → Second → First.
     const sortTrigger = page.locator('[data-testid="song-sort-trigger"]')
     await expect(sortTrigger).toBeVisible({ timeout: 5000 })
     await sortTrigger.click()
-    await page.locator('[data-testid="song-sort-option-title-desc"]').click()
-    await expect(sortTrigger).toContainText('Title (Z-A)')
+    await page.locator('[data-testid="song-sort-option-title"]').click()
+    await expect(sortTrigger).toContainText('Title')
+    const sortDir = page.getByTestId('song-sort-trigger-dir')
+    await expect(sortDir).toHaveText('A–Z')
+    await sortDir.click()
+    await expect(sortDir).toHaveText('Z–A')
     await page.waitForTimeout(500)
 
     const rowTexts = await page
@@ -356,8 +357,9 @@ test.describe('Song Search and Filtering', () => {
       await page.waitForTimeout(1000)
 
       // Should not see existing song
+      // (Rows only: the 'Added "…"' toast can still be up.)
       const songVisible = await page
-        .locator('text=Existing Song')
+        .locator('[data-testid^="song-row-"]', { hasText: 'Existing Song' })
         .first()
         .isVisible()
         .catch(() => false)

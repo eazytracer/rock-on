@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Calendar, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import {
   formatDateForInput,
   parseDateInputAsLocal,
@@ -54,7 +54,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   'data-testid': dataTestId,
   className = '',
   autoEdit = false,
-  hideIcon = false,
 }) => {
   const [isOpen, setIsOpen] = useState(autoEdit)
   const [viewDate, setViewDate] = useState<Date>(() =>
@@ -99,13 +98,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
 
-  // Format display value (e.g., "Friday, January 2")
+  // Format display value, kit style (e.g., "Fri, Jan 2, 2026")
   const formatDisplayDate = useCallback(
     (date: Date): string =>
       date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
+        weekday: 'short',
+        month: 'short',
         day: 'numeric',
+        year: 'numeric',
       }),
     []
   )
@@ -161,6 +161,51 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       newDate.setMonth(prev.getMonth() + direction)
       return newDate
     })
+  }
+
+  // Live view-jump: as the user types, parse a partial date (month, month+day,
+  // M/D, etc.) and move the calendar view so they get visual confirmation
+  // (month + day-of-week) before committing with Enter. Returns null when the
+  // input is too ambiguous to jump.
+  const viewDateFromPartial = (raw: string): Date | null => {
+    const t = raw.trim().toLowerCase()
+    if (!t) return null
+    const year = viewDate.getFullYear()
+
+    // Month name (>=3 chars), optionally followed by a day: "march", "mar 5".
+    const nameMatch = t.match(/^([a-z]{3,})\s*(\d{1,2})?/)
+    if (nameMatch) {
+      const mi = MONTHS.findIndex(m => m.toLowerCase().startsWith(nameMatch[1]))
+      if (mi >= 0) {
+        const day = nameMatch[2] ? parseInt(nameMatch[2], 10) : 1
+        const clamped = Math.min(Math.max(day, 1), 31)
+        return new Date(year, mi, clamped)
+      }
+      return null
+    }
+
+    // Numeric: "3", "3/5", "3-5-2026", "03/05".
+    const numMatch = t.match(/^(\d{1,2})(?:[/-](\d{1,2}))?(?:[/-](\d{2,4}))?/)
+    if (numMatch) {
+      const mo = parseInt(numMatch[1], 10) - 1
+      if (mo < 0 || mo > 11) return null
+      const day = numMatch[2] ? parseInt(numMatch[2], 10) : 1
+      let yr = year
+      if (numMatch[3]) {
+        yr = parseInt(numMatch[3], 10)
+        if (yr < 100) yr += 2000
+      }
+      const clamped = Math.min(Math.max(day, 1), 31)
+      return new Date(yr, mo, clamped)
+    }
+
+    return null
+  }
+
+  const handleTypedChange = (raw: string) => {
+    setTypedValue(raw)
+    const jump = viewDateFromPartial(raw)
+    if (jump && !isNaN(jump.getTime())) setViewDate(jump)
   }
 
   // Type-ahead: parse a typed date and select it (Enter inside the popover).
@@ -243,11 +288,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             : 'hover:border-border-2 cursor-pointer'
         } ${isOpen ? 'border-accent ring-2 ring-accent/20' : ''}`}
       >
-        <span className={selectedDate ? 'text-white' : 'text-ink-4'}>
+        <span
+          className={`truncate ${selectedDate ? 'text-ink-1' : 'text-ink-4'}`}
+        >
           {displayValue}
         </span>
         <div className="flex items-center gap-2">
-          {!hideIcon && <Calendar size={18} className="text-ink-4" />}
           <ChevronDown
             size={14}
             className={`text-ink-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -265,16 +311,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <input
             type="text"
             value={typedValue}
-            onChange={e => setTypedValue(e.target.value)}
+            onChange={e => handleTypedChange(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') {
                 e.preventDefault()
                 handleTypedSubmit()
               }
             }}
-            placeholder="Type a date (e.g. 1/15/2026)"
+            placeholder="Type a date (e.g. March or 1/15)"
             data-testid={dataTestId ? `${dataTestId}-type-input` : undefined}
-            className="w-full h-9 px-3 mb-3 bg-bg-1 border border-border-1 rounded-lg text-white text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            className="w-full h-9 px-3 mb-3 bg-bg-1 border border-border-1 rounded-lg text-ink-1 text-sm placeholder-ink-5 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
           />
 
           {/* Month/Year header */}
@@ -282,19 +328,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={() => navigateMonth(-1)}
-              className="p-1 text-ink-3 hover:text-white hover:bg-bg-4 rounded transition-colors"
+              className="p-1 text-ink-3 hover:text-ink-1 hover:bg-bg-4 rounded transition-colors"
               data-testid={`${dataTestId}-prev-month`}
               aria-label="Previous month"
             >
               <ChevronLeft size={20} />
             </button>
-            <span className="text-white font-medium">
+            <span className="text-ink-1 font-medium">
               {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
             </span>
             <button
               type="button"
               onClick={() => navigateMonth(1)}
-              className="p-1 text-ink-3 hover:text-white hover:bg-bg-4 rounded transition-colors"
+              className="p-1 text-ink-3 hover:text-ink-1 hover:bg-bg-4 rounded transition-colors"
               data-testid={`${dataTestId}-next-month`}
               aria-label="Next month"
             >
@@ -323,6 +369,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               const today = isToday(date)
               const selected = isSelected(date)
               const dateDisabled = isDateDisabled(date)
+              // Past days stay pickable, just dimmed, so a tap in the wrong
+              // month stands out.
+              const past = !today && date < new Date(new Date().toDateString())
               return (
                 <button
                   key={date.toISOString()}
@@ -334,11 +383,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                     dateDisabled
                       ? 'text-ink-5 cursor-not-allowed'
                       : selected
-                        ? 'bg-accent text-white font-medium'
+                        ? 'bg-accent text-on-accent font-medium'
                         : today
-                          ? 'bg-[#2563eb] text-white'
-                          : 'text-ink-3 hover:bg-bg-4 hover:text-white'
+                          ? 'text-accent-ink font-medium shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))] hover:bg-bg-4'
+                          : past
+                            ? 'text-ink-5 hover:bg-bg-4 hover:text-ink-3'
+                            : 'text-ink-2 hover:bg-bg-4 hover:text-ink-1'
                   }`}
+                  data-today={today || undefined}
+                  data-past={past || undefined}
                 >
                   {date.getDate()}
                 </button>

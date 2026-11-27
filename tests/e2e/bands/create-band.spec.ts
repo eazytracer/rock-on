@@ -3,6 +3,7 @@ import {
   createTestUser,
   signUpViaUI,
   deleteTestUser,
+  getCurrentUserId,
 } from '../../fixtures/auth'
 import { createBandViaUI } from '../../fixtures/bands'
 import { selectors } from '../../helpers/selectors'
@@ -47,12 +48,13 @@ test.describe('Band Creation', () => {
     await assertNoConsoleErrors(page, errors)
   })
 
-  test('user is automatically admin of created band', async ({ page }) => {
+  test('user is automatically owner of created band', async ({ page }) => {
     const errors = setupConsoleErrorTracking(page)
     const user = createTestUser()
 
     // Sign up and create band
     await signUpViaUI(page, user)
+    const userUid = await getCurrentUserId(page)
     await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
     const bandName = `Admin Test Band ${Date.now()}`
@@ -60,20 +62,20 @@ test.describe('Band Creation', () => {
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
     // Navigate to band members page
-    await page.goto('/band-members')
+    await page.goto('/band')
     await page.waitForLoadState('networkidle')
 
     // Find user's member row
     const memberRow = page
-      .locator(`[data-testid="member-row-${user.email}"]`)
+      .locator(`[data-testid="member-row-${userUid}"]`)
       .first()
     await expect(memberRow).toBeVisible({ timeout: 5000 })
 
-    // Verify role is Admin
+    // Verify role is Owner (the creator owns the band)
     const roleBadge = memberRow.locator('[data-testid="member-role"]').first()
     await expect(roleBadge).toBeVisible()
     const roleText = await roleBadge.textContent()
-    expect(roleText?.toLowerCase()).toContain('admin')
+    expect(roleText?.toLowerCase()).toContain('owner')
 
     // Verify no console errors
     await assertNoConsoleErrors(page, errors)
@@ -92,7 +94,7 @@ test.describe('Band Creation', () => {
     await page.waitForURL(/\/songs/, { timeout: 10000 })
 
     // Navigate to band members page
-    await page.goto('/band-members')
+    await page.goto('/band')
     await page.waitForLoadState('networkidle')
 
     // Verify invite code is visible
@@ -156,40 +158,29 @@ test.describe('Band Creation', () => {
   })
 
   test('band creation handles validation correctly', async ({ page }) => {
-    const errors = setupConsoleErrorTracking(page)
     const user = createTestUser()
 
-    // Sign up
+    // Sign up, then New band
     await signUpViaUI(page, user)
     await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
+    await page.goto('/band/new')
 
-    // Try to create band without name
-    const createButton = page.locator(selectors.band.createButton)
+    // No name: stays put with an inline error
+    const createButton = page.getByTestId('band-new-create')
     await createButton.click()
+    await expect(page.getByTestId('band-new-error')).toBeVisible()
+    await expect(page).toHaveURL(/\/band\/new/)
 
-    // Should stay on get-started page (validation prevents submit)
-    await page.waitForTimeout(1000)
-    await expect(page).toHaveURL(/\/get-started/)
+    // The field caps the name at 60 characters (the server's limit)
+    const nameInput = page.getByTestId('band-new-name-input')
+    await nameInput.fill('A'.repeat(256))
+    await expect(nameInput).toHaveValue('A'.repeat(60))
 
-    // Try with very long name
-    const longName = 'A'.repeat(256)
-    await page.fill(selectors.band.nameInput, longName)
+    // A valid name creates the band and opens it with the invite card
+    await nameInput.fill(`Valid Band ${Date.now()}`)
     await createButton.click()
-
-    // May stay on page or show error
-    await page.waitForTimeout(1000)
-    // Just verify we don't crash
-    const url = page.url()
-    expect(url).toBeTruthy()
-
-    // Create with valid name to verify form still works
-    const validName = `Valid Band ${Date.now()}`
-    await page.fill(selectors.band.nameInput, validName)
-    await createButton.click()
-    await expect(page).toHaveURL(/\/songs/, { timeout: 10000 })
-
-    // Verify no critical console errors (may have validation warnings)
-    // Don't fail test on validation errors, only on crashes
+    await expect(page).toHaveURL(/\/band\?invite=new/, { timeout: 15000 })
+    await expect(page.getByTestId('invite-card')).toBeVisible()
   })
 
   test('band creation syncs to Supabase correctly', async ({ page }) => {
@@ -200,7 +191,10 @@ test.describe('Band Creation', () => {
     const createRequests: any[] = []
     page.on('request', request => {
       const url = request.url()
-      if (url.includes('/rest/v1/bands') && request.method() === 'POST') {
+      if (
+        url.includes('/rest/v1/rpc/create_band') &&
+        request.method() === 'POST'
+      ) {
         createRequests.push({
           url,
           method: request.method(),

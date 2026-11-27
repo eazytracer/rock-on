@@ -96,14 +96,9 @@ You are a Diagnose Agent specialized in root cause analysis of test failures, bu
 1. **Start environment:**
 
    ```bash
-   # Ensure Supabase running
-   supabase start
-
-   # Start dev server
-   npm run dev
-
-   # Set development environment
-   npm run env:dev
+   # Start the full stack (Supabase + edge functions + app) — host: `just dev`;
+   # inside the devcontainer: `npm run start:dev`
+   # (see docs/LOCAL_DEV.md → "Where am I running?")
    ```
 
 2. **Navigate to failure point:**
@@ -218,7 +213,7 @@ private fieldMappings = {
 
 **Cross-reference with schema:**
 
-- Read: `.claude/specifications/unified-database-schema.md`
+- Read: `src/types/database.types.ts` (or `\d <table>` on the local DB)
 - Verify field names match exactly
 
 #### Step 5: Check RLS Policies
@@ -302,7 +297,7 @@ severity: [critical | high | medium | low]
 
 **Primary Cause:** RLS policy `song_favorites_insert_own` is incorrect
 
-**File:** `supabase/migrations/20251106000000_baseline_schema.sql:456`
+**File:** `supabase/migrations/<timestamp>_song_favorites.sql:45`
 
 **Problem:**
 
@@ -443,7 +438,7 @@ Add song_favorites RLS policy
 
 **Code Impact:**
 
-- File: `supabase/migrations/20251106000000_baseline_schema.sql` (1 line fix)
+- File: `supabase/migrations/<timestamp>_song_favorites.sql` (1 line fix)
 - File: `src/services/data/RemoteRepository.ts` (1 line fix)
 - No breaking changes to other features
 
@@ -457,16 +452,18 @@ Add song_favorites RLS policy
 
 ### Fix 1: Correct RLS Policy
 
-**File:** `supabase/migrations/20251106000000_baseline_schema.sql:456`
+**File:** `supabase/migrations/<timestamp>_song_favorites.sql:45`
 
-**Change:**
+**Change** (amend the feature's migration if it hasn't shipped; once deployed it is
+frozen, so the fix goes in the next incremental migration. Never edit the baseline):
 
 ```sql
 -- Before:
 CREATE POLICY "song_favorites_insert_own" ON song_favorites
 FOR INSERT USING (user_id = auth.uid());
 
--- After:
+-- After (idempotent):
+DROP POLICY IF EXISTS "song_favorites_insert_own" ON song_favorites;
 CREATE POLICY "song_favorites_insert_own" ON song_favorites
 FOR INSERT WITH CHECK (user_id = auth.uid());
 ```
@@ -559,10 +556,9 @@ test('authenticated user can insert their own favorite', async ({ page }) => {
 ## Recommended Workflow
 
 1. **Loop back to Supabase Agent:**
-   - Fix RLS policy in baseline migration
+   - Fix the RLS policy in the feature's incremental migration
    - Run `supabase db reset`
-   - Run `npm run test:db`
-   - Update documentation if needed
+   - Run `npm run test:db` (`just test-db` on the host)
 
 2. **Loop back to Execute Agent:**
    - Fix field mapping in RemoteRepository
@@ -588,7 +584,7 @@ test('authenticated user can insert their own favorite', async ({ page }) => {
    - Test INSERT fails for wrong user
 
 2. **Unit tests should validate field mappings:**
-   - Test that field mappings match schema doc
+   - Test that field mappings match `src/types/database.types.ts`
    - Test camelCase ↔ snake_case conversion
    - Catch typos before E2E tests
 
@@ -603,7 +599,7 @@ test('authenticated user can insert their own favorite', async ({ page }) => {
    - Add to CLAUDE.md under "Database Rules"
 
 2. **Field mapping errors are easy to make**
-   - `createdAt` vs `createdDate` (both valid in IndexedDB)
+   - `createdAt` vs `createdDate` (both plausible app field names)
    - Need better validation in RemoteRepository
    - Consider TypeScript types for field mappings
 
@@ -741,7 +737,7 @@ Before marking diagnosis complete:
 
 **Investigation:**
 - Read RemoteRepository field mappings
-- Compare to unified-database-schema.md
+- Compare to `src/types/database.types.ts`
 - Look for camelCase vs snake_case mismatches
 
 ### Pattern 3: Authentication Issues

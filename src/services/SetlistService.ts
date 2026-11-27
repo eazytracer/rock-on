@@ -1,8 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { db } from './database'
 import { Setlist } from '../models/Setlist'
 import { SetlistStatus, SetlistSong } from '../types'
-import { castingService } from './CastingService'
 import { repository } from './data/RepositoryFactory'
 
 export interface SetlistFilters {
@@ -148,44 +145,6 @@ export class SetlistService {
     }
 
     return await repository.addSetlist(newSetlist)
-  }
-
-  /**
-   * Fork (copy) an existing setlist for use with a show
-   * Creates a new setlist with all items copied, maintaining a reference to the original
-   * @param sourceSetlistId - ID of the setlist to fork
-   * @param showName - Name of the show (used to name the forked setlist)
-   * @returns The newly created forked setlist
-   */
-  static async forkSetlist(
-    sourceSetlistId: string,
-    showName: string
-  ): Promise<Setlist> {
-    const sourceSetlist = await this.getSetlistById(sourceSetlistId)
-    if (!sourceSetlist) {
-      throw new Error('Source setlist not found')
-    }
-
-    const forkedSetlist: Setlist = {
-      id: crypto.randomUUID(),
-      name: `${sourceSetlist.name} (${showName})`,
-      bandId: sourceSetlist.bandId,
-      sourceSetlistId: sourceSetlistId, // Reference to original
-      showId: undefined, // Will be set when show is created
-      showDate: undefined,
-      venue: undefined,
-      songs: [...(sourceSetlist.songs || [])], // Copy songs array
-      items: JSON.parse(JSON.stringify(sourceSetlist.items)), // Deep copy items
-      totalDuration: sourceSetlist.totalDuration,
-      notes: sourceSetlist.notes
-        ? `Forked from "${sourceSetlist.name}"\n\n${sourceSetlist.notes}`
-        : `Forked from "${sourceSetlist.name}"`,
-      status: 'draft', // New fork starts as draft
-      createdDate: new Date(),
-      lastModified: new Date(),
-    }
-
-    return await repository.addSetlist(forkedSetlist)
   }
 
   static async getSetlistById(setlistId: string): Promise<Setlist | null> {
@@ -417,7 +376,7 @@ export class SetlistService {
     let needsPracticeSongs = 0
 
     for (const setlistSong of setlist.songs || []) {
-      const song = await db.songs.get(setlistSong.songId)
+      const song = await repository.getSong(setlistSong.songId)
       if (!song) continue
 
       const daysSincePractice = song.lastPracticed
@@ -526,120 +485,5 @@ export class SetlistService {
   private static isValidMusicalKey(key: string): boolean {
     const keyPattern = /^[A-G](#|b)?m?$/
     return keyPattern.test(key)
-  }
-
-  /**
-   * Get casting for all songs in a setlist
-   */
-  static async getSetlistCasting(
-    setlistId: string
-  ): Promise<{ songId: number; casting: any }[]> {
-    const setlist = await this.getSetlistById(setlistId)
-    if (!setlist) {
-      throw new Error('Setlist not found')
-    }
-
-    const castings = await castingService.getCastingsForContext(
-      'setlist',
-      setlistId
-    )
-
-    return castings.map(casting => ({
-      songId: casting.songId,
-      casting,
-    }))
-  }
-
-  /**
-   * Create casting for a song in a setlist
-   */
-  static async createSongCasting(
-    setlistId: string,
-    songId: number,
-    createdBy: string
-  ): Promise<number> {
-    const setlist = await this.getSetlistById(setlistId)
-    if (!setlist) {
-      throw new Error('Setlist not found')
-    }
-
-    return await castingService.createCasting({
-      contextType: 'setlist',
-      contextId: setlistId,
-      songId,
-      createdBy,
-      createdDate: new Date(),
-    })
-  }
-
-  /**
-   * Copy casting from another setlist
-   */
-  static async copyCastingFromSetlist(
-    sourceSetlistId: string,
-    targetSetlistId: string,
-    createdBy: string
-  ): Promise<void> {
-    await castingService.copyCasting(
-      'setlist',
-      sourceSetlistId,
-      'setlist',
-      targetSetlistId,
-      createdBy
-    )
-  }
-
-  /**
-   * Delete casting when a setlist is deleted
-   */
-  static async deleteSetlistCasting(setlistId: string): Promise<void> {
-    const castings = await castingService.getCastingsForContext(
-      'setlist',
-      setlistId
-    )
-
-    for (const casting of castings) {
-      if (casting.id) {
-        await castingService.deleteCasting(casting.id)
-      }
-    }
-  }
-
-  /**
-   * Get complete setlist with casting information
-   */
-  static async getSetlistWithCasting(setlistId: string) {
-    const setlist = await this.getSetlistById(setlistId)
-    if (!setlist) return null
-
-    const castings = await castingService.getCastingsForContext(
-      'setlist',
-      setlistId
-    )
-
-    const songsWithCasting = await Promise.all(
-      (setlist.songs || []).map(async setlistSong => {
-        const song = await db.songs.get(setlistSong.songId)
-        const casting = castings.find(
-          c => c.songId === parseInt(setlistSong.songId)
-        )
-
-        let completeCasting = null
-        if (casting && casting.id) {
-          completeCasting = await castingService.getCompleteCasting(casting.id)
-        }
-
-        return {
-          ...setlistSong,
-          song,
-          casting: completeCasting,
-        }
-      })
-    )
-
-    return {
-      ...setlist,
-      songsWithCasting,
-    }
   }
 }

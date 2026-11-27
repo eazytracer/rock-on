@@ -10,7 +10,7 @@ import React, {
 } from 'react'
 import { User, UserProfile } from '../models/User'
 import { Band } from '../models/Band'
-import { db } from '../services/database'
+import { BandMembership } from '../models/BandMembership'
 import { authService as defaultAuthService } from '../services/auth/AuthFactory'
 import {
   AuthSession,
@@ -20,12 +20,7 @@ import {
   AuthChangeEvent,
 } from '../services/auth/types'
 import { RealtimeManager } from '../services/data/RealtimeManager'
-import {
-  setupRealtimeDebug,
-  cleanupRealtimeDebug,
-} from '../utils/debugRealtime'
 import { RemoteRepository } from '../services/data/RemoteRepository'
-import { isE2ETestEnvironment } from '../config/appMode'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('AuthContext')
@@ -48,7 +43,7 @@ interface AuthContextType {
   currentUserProfile: UserProfile | null
   currentBand: Band | null
   currentBandId: string | null
-  currentUserRole: 'admin' | 'member' | 'viewer' | null
+  currentUserRole: 'owner' | 'admin' | 'member' | 'viewer' | null
   userBands: Band[]
   login: (userId: string) => Promise<void>
   logout: () => void
@@ -90,10 +85,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [currentBand, setCurrentBand] = useState<Band | null>(null)
   const [currentBandId, setCurrentBandId] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<
-    'admin' | 'member' | 'viewer' | null
+    'owner' | 'admin' | 'member' | 'viewer' | null
   >(null)
   const [userBands, setUserBands] = useState<Band[]>([])
-  const [syncing, setSyncing] = useState(false)
+  // Retained in the context type for API stability; the web client no longer
+  // performs a blocking initial sync, so this stays false.
+  const [syncing] = useState(false)
 
   // Auth ready state - tracks when full auth setup is complete
   const [authReady, setAuthReady] = useState(false)
@@ -151,67 +148,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         const storedBandId = localStorage.getItem('currentBandId')
 
         if (storedUserId) {
-          // Import repository for sync operations
+          // Import repository for cloud reads
           const { repository } = await import(
             '../services/data/RepositoryFactory'
           )
 
-          // Set current user ID on sync engine
+          // Set current user ID (used by repository read routing)
           repository.setCurrentUser(storedUserId)
-
-          // Skip sync in test environment to avoid race conditions with test setup
-          if (!isE2ETestEnvironment()) {
-            // Check if initial sync is needed
-            const needsSync = await repository.isInitialSyncNeeded()
-
-            if (needsSync) {
-              // Removed: console.log (security)
-              setSyncing(true)
-
-              try {
-                await repository.performInitialSync(storedUserId)
-                // Removed: console.log (security)
-              } catch (error) {
-                console.error('❌ Initial sync failed:', error)
-              } finally {
-                setSyncing(false)
-              }
-            } else {
-              // No full sync needed - perform incremental sync to catch recent changes
-              // This happens on every app load after initial sync
-              try {
-                const result =
-                  await repository.pullIncrementalChanges(storedUserId)
-                const totalChanges =
-                  result.newSongs +
-                  result.updatedSongs +
-                  result.newSetlists +
-                  result.updatedSetlists +
-                  result.newPractices +
-                  result.updatedPractices +
-                  result.newShows +
-                  result.updatedShows
-
-                if (totalChanges > 0) {
-                  console.log(
-                    `🔄 Incremental sync: ${totalChanges} changes in ${result.syncDurationMs}ms`
-                  )
-                }
-              } catch (error) {
-                // Don't fail login if incremental sync fails - data will sync via realtime
-                console.warn('⚠️ Incremental sync failed (non-fatal):', error)
-              }
-            }
-          }
 
           await loadUserData(storedUserId, storedBandId)
 
-          // Start real-time sync if user has bands
-          const bands = await db.bandMemberships
-            .where('userId')
-            .equals(storedUserId)
-            .filter(m => m.status === 'active')
-            .toArray()
+          // Start real-time sync if user has bands (cloud read — no local mirror)
+          const memberships = await repository.getUserMemberships(storedUserId)
+          const bands = memberships.filter(m => m.status === 'active')
 
           if (bands.length > 0) {
             try {
@@ -227,18 +176,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
               if (currentSession?.accessToken) {
                 supabase.realtime.setAuth(currentSession.accessToken)
               } else {
-                console.warn('⚠️ No session token found - realtime may fail')
+                log.warn('No session token found - realtime may fail')
               }
 
-              // Removed: console.log (security)
               // Only create if doesn't exist yet
               if (!realtimeManagerRef.current) {
-                // Removed: console.log (security)
                 realtimeManagerRef.current = new RealtimeManager()
-                setupRealtimeDebug(realtimeManagerRef.current)
                 setRealtimeManagerReady(true)
-              } else {
-                // Removed: console.log (security)
               }
 
               // Subscribe using the manager instance
@@ -247,7 +191,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 storedUserId,
                 bandIds
               )
-              // Removed: console.log (security)
 
               // Track user activity for multi-device sync optimization
               try {
@@ -255,21 +198,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 await remoteRepo.updateUserActivity()
               } catch (activityError) {
                 // Non-fatal: activity tracking failure shouldn't block app
-                console.warn(
-                  '⚠️ Failed to update user activity:',
-                  activityError
-                )
+                log.warn('Failed to update user activity:', activityError)
               }
             } catch (error) {
-              console.error('❌ Failed to start real-time sync:', error)
-              if (error instanceof Error) {
-                console.error('Error details:', error.message, error.stack)
-              }
+              log.error('Failed to start real-time sync:', error)
             }
           }
         }
       } catch (error) {
-        console.error('Failed to load initial session:', error)
+        log.error('Failed to load initial session:', error)
       } finally {
         setLoading(false)
       }
@@ -315,46 +252,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             setSession(newSession)
             setUser(newSession.user)
 
-            // Import repository for sync operations
+            // Import repository for cloud reads
             const { repository } = await import(
               '../services/data/RepositoryFactory'
             )
 
-            // Set current user ID on sync engine (enables periodic pull sync)
+            // Set current user ID (used by repository read routing)
             repository.setCurrentUser(userId)
 
-            // Skip sync in test environment to avoid race conditions with test setup
-            if (!isE2ETestEnvironment()) {
-              // Check if initial sync is needed (first login or > 30 days)
-              const needsSync = await repository.isInitialSyncNeeded()
-
-              if (needsSync) {
-                setSyncing(true)
-
-                try {
-                  // Perform initial sync: download all data from Supabase to IndexedDB
-                  await repository.performInitialSync(userId)
-                } catch (error) {
-                  console.error('❌ Initial sync failed:', error)
-                  // Continue anyway - user can manually refresh or data will sync incrementally
-                  // We don't want to block login if sync fails
-                } finally {
-                  setSyncing(false)
-                }
-              }
-            }
-
-            // Load user data from IndexedDB
+            // Load user data (cloud-first via repository)
             const storedBandId = localStorage.getItem('currentBandId')
             await loadUserData(userId, storedBandId)
             localStorage.setItem('currentUserId', userId)
 
-            // Start real-time sync for user's bands
-            const memberships = await db.bandMemberships
-              .where('userId')
-              .equals(userId)
-              .filter(m => m.status === 'active')
-              .toArray()
+            // Start real-time sync for user's bands (cloud read — no local mirror)
+            const memberships = (
+              await repository.getUserMemberships(userId)
+            ).filter(m => m.status === 'active')
 
             if (memberships.length > 0) {
               try {
@@ -368,7 +282,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 // Only create if doesn't exist yet
                 if (!realtimeManagerRef.current) {
                   realtimeManagerRef.current = new RealtimeManager()
-                  setupRealtimeDebug(realtimeManagerRef.current)
                   setRealtimeManagerReady(true)
                 }
 
@@ -385,16 +298,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                   await remoteRepo.updateUserActivity()
                 } catch (activityError) {
                   // Non-fatal: activity tracking failure shouldn't block sign-in
-                  console.warn(
-                    '⚠️ Failed to update user activity:',
-                    activityError
-                  )
+                  log.warn('Failed to update user activity:', activityError)
                 }
               } catch (error) {
-                console.error('❌ Failed to start real-time sync:', error)
-                if (error instanceof Error) {
-                  console.error('Error details:', error.message, error.stack)
-                }
+                log.error('Failed to start real-time sync:', error)
               }
             }
 
@@ -431,9 +338,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
       // Cleanup real-time subscriptions
       if (realtimeManagerRef.current) {
-        console.log('🔌 Disconnecting real-time sync...')
         realtimeManagerRef.current.unsubscribeAll()
-        cleanupRealtimeDebug()
         realtimeManagerRef.current = null
         setRealtimeManagerReady(false)
       }
@@ -442,62 +347,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
   const loadUserData = async (userId: string, bandId: string | null) => {
     try {
-      // Load user from database
-      const dbUser = await db.users.get(userId)
+      const { repository } = await import('../services/data/RepositoryFactory')
+
+      // Load user + profile (cloud-first; no local mirror anymore)
+      const dbUser = await repository.getUser(userId)
       setCurrentUser(dbUser || null)
 
-      // Load user profile
-      const profile = await db.userProfiles
-        .where('userId')
-        .equals(userId)
-        .first()
+      const profile = await repository.getUserProfile(userId)
       setCurrentUserProfile(profile || null)
 
-      // Load all bands the user is a member of. Read the local cache first
-      // (fast, offline-friendly), but if it's empty fall back to a cloud-first
-      // membership read. Pre-update / cross-device users can hold a valid
-      // server-side membership that was never synced into IndexedDB (a stale
-      // `last_full_sync` makes SyncEngine skip the initial sync that would fill
-      // it). Without this fallback such a user is wrongly treated as band-less
-      // and pushed into new-user onboarding — while the cloud-first join-code
-      // path insists they're "already a member" (v0.4.5 lockout fix).
-      let memberships = await db.bandMemberships
-        .where('userId')
-        .equals(userId)
-        .filter(m => m.status === 'active')
-        .toArray()
-
-      // `membershipResolved` is true when we have an AUTHORITATIVE membership
-      // list — local rows were found, or the cloud read succeeded. It is false
-      // only when the cache is empty AND the cloud read failed (offline); in
-      // that case we must NOT destroy a persisted band context below.
-      let membershipResolved = memberships.length > 0
-
-      if (memberships.length === 0) {
-        try {
-          const { repository } = await import(
-            '../services/data/RepositoryFactory'
-          )
-          const remote = await repository.getUserMemberships(userId)
-          memberships = remote.filter(m => m.status === 'active')
-          membershipResolved = true
-        } catch (error) {
-          console.warn(
-            'Cloud membership fallback failed; preserving stored context:',
-            error
-          )
-        }
+      // Load the user's active memberships from Supabase (source of truth).
+      // `membershipResolved` is false only when the cloud read throws (offline);
+      // in that case we must NOT destroy a persisted band context below.
+      let memberships: BandMembership[] = []
+      let membershipResolved = false
+      try {
+        const remote = await repository.getUserMemberships(userId)
+        memberships = remote.filter(m => m.status === 'active')
+        membershipResolved = true
+      } catch (error) {
+        log.warn(
+          'Cloud membership read failed; preserving stored context:',
+          error
+        )
       }
 
-      // Resolve band details, fetching any band not yet in the local cache
-      // (cloud-first) so a cold IndexedDB still yields real bands.
+      // Resolve band details from Supabase.
       const resolveBand = async (id: string): Promise<Band | undefined> => {
-        const local = await db.bands.get(id)
-        if (local) return local
         try {
-          const { repository } = await import(
-            '../services/data/RepositoryFactory'
-          )
           return (await repository.getBand(id)) || undefined
         } catch {
           return undefined
@@ -507,8 +384,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       const bands = await Promise.all(
         memberships.map(m => resolveBand(m.bandId))
       )
-      // Dedupe by band id — duplicate active memberships can exist in IndexedDB
-      // and would otherwise render as repeated bands (switcher, "Your bands").
+      // Dedupe by band id — duplicate active memberships can exist and would
+      // otherwise render as repeated bands (switcher, "Your bands").
       const uniqueBands = Array.from(
         new Map(
           bands.filter((b): b is Band => b !== undefined).map(b => [b.id, b])
@@ -568,7 +445,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       }
     } catch (error) {
-      console.error('Failed to load user data:', error)
+      log.error('Failed to load user data:', error)
     }
   }
 
@@ -581,7 +458,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
       return { needsEmailConfirmation: response.needsEmailConfirmation }
     } catch (error) {
-      console.error('Sign up error:', error)
+      log.error('Sign up error:', error)
       return { error: 'An unexpected error occurred' }
     } finally {
       setLoading(false)
@@ -613,13 +490,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
 
       // Wait for onAuthStateChange handler to complete setup
-      console.log('⏳ Waiting for authentication setup to complete...')
       await authReadyPromise
-      console.log('✅ Authentication setup complete')
 
       return {}
     } catch (error) {
-      console.error('Sign in error:', error)
+      log.error('Sign in error:', error)
       const errorMessage =
         error instanceof Error ? error.message : 'An unexpected error occurred'
       return { error: errorMessage }
@@ -632,8 +507,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const signOut = async () => {
     setLoading(true)
     try {
-      console.log('🚪 Signing out...')
-
       // 1. Clear local session state FIRST and unconditionally. This is the
       //    guaranteed escape hatch: the user is always signed out locally even
       //    if the network sign-out hangs or fails. Without this, a degraded
@@ -653,12 +526,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           )
         ),
       ])
-
-      console.log('✅ Sign out complete')
     } catch (error) {
       // Local state is already cleared above — a network failure/timeout here
       // is non-fatal to the user's ability to sign out and recover.
-      console.warn(
+      log.warn(
         'Network sign-out failed or timed out (local session already cleared):',
         error
       )
@@ -675,11 +546,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   }
 
   const logout = () => {
-    console.log('🧹 Clearing session state (preserving offline data)...')
-
     // Disconnect real-time sync
     if (realtimeManagerRef.current) {
-      console.log('🔌 Disconnecting real-time sync...')
       realtimeManagerRef.current.unsubscribeAll()
       realtimeManagerRef.current = null
       setRealtimeManagerReady(false)
@@ -711,14 +579,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         localStorage.removeItem(key)
       }
     })
-
-    // IMPORTANT: Do NOT clear IndexedDB!
-    // This preserves offline data for multi-user scenarios
-    // Each user's data is isolated by queries filtering on user_id
-
-    console.log(
-      '✅ Session cleared (offline data preserved for multi-user support)'
-    )
   }
 
   const switchBand = async (bandId: string) => {
@@ -726,7 +586,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       // Import repository to query Supabase (cloud-first read)
       const { repository } = await import('../services/data/RepositoryFactory')
 
-      // Query Supabase for band details (User 2 might not have it in IndexedDB yet)
       const band = await repository.getBand(bandId)
       if (!band) {
         throw new Error('Band not found')
@@ -754,7 +613,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setCurrentUserRole(membership.role)
       localStorage.setItem('currentBandId', bandId)
     } catch (error) {
-      console.error('Failed to switch band:', error)
+      log.error('Failed to switch band:', error)
       throw error
     }
   }

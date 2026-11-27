@@ -5,8 +5,13 @@ import { Band } from '../../models/Band'
 import { Setlist } from '../../models/Setlist'
 import { PracticeSession } from '../../models/PracticeSession'
 import { Show } from '../../models/Show'
-import { BandMembership, InviteCode } from '../../models/BandMembership'
+import {
+  BandMembership,
+  BandMemberWithProfile,
+  InviteCode,
+} from '../../models/BandMembership'
 import { User } from '../../models/User'
+import type { UserProfile } from '../../models/User'
 import {
   SongPersonalNote,
   SongPersonalNoteInput,
@@ -18,16 +23,15 @@ import {
   SongNoteEntryUpdate,
 } from '../../models/SongNoteEntry'
 import { supabase } from '../supabase/client'
-import {
-  IncrementalSyncResult,
-  createEmptyIncrementalSyncResult,
-  AuditLogEntry,
-} from './syncTypes'
-import {
-  JamSession,
-  JamParticipant,
-  JamSongMatch,
-} from '../../models/JamSession'
+import { ApiError } from '../api/errors'
+import { AuditLogEntry } from './syncTypes'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('RemoteRepository')
+
+// Columns of `users` clients may read (email, last_login and last_active_at
+// are not granted — see the privacy_lockdown migration).
+const USER_PUBLIC_COLUMNS = 'id, name, created_date, auth_provider'
 
 /**
  * Remote repository implementation using Supabase
@@ -63,6 +67,22 @@ export class RemoteRepository implements IDataRepository {
     return data.map(row => this.mapSongFromSupabase(row))
   }
 
+  async getSongsByIds(ids: string[]): Promise<Song[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const unique = [...new Set(ids)]
+    if (unique.length === 0) return []
+
+    const { data, error } = await supabase
+      .from('songs')
+      .select('*')
+      .in('id', unique)
+
+    if (error) throw error
+
+    return data.map(row => this.mapSongFromSupabase(row))
+  }
+
   async getSong(id: string): Promise<Song | null> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
@@ -70,12 +90,10 @@ export class RemoteRepository implements IDataRepository {
       .from('songs')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapSongFromSupabase(data)
   }
@@ -85,19 +103,6 @@ export class RemoteRepository implements IDataRepository {
 
     const mappedSong = this.mapSongToSupabase(song)
 
-    // Debug logging for RLS issues
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    console.log('[RemoteRepository.addSong] Debug info:', {
-      songId: song.id,
-      createdBy: mappedSong.created_by,
-      contextId: mappedSong.context_id,
-      contextType: mappedSong.context_type,
-      authUid: user?.id,
-      authUidMatches: mappedSong.created_by === user?.id,
-    })
-
     const { data, error } = await supabase
       .from('songs')
       .insert(mappedSong as any)
@@ -105,29 +110,39 @@ export class RemoteRepository implements IDataRepository {
       .single()
 
     if (error) {
-      console.error('[RemoteRepository.addSong] Insert failed:', {
-        error,
-        mappedSong,
-        authUser: user?.id,
-      })
+      log.error('addSong insert failed:', error)
       throw error
     }
 
     return this.mapSongFromSupabase(data)
   }
 
-  async updateSong(id: string, updates: Partial<Song>): Promise<Song> {
+  async updateSong(
+    id: string,
+    updates: Partial<Song>,
+    expectedVersion?: number
+  ): Promise<Song> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('songs')
       // @ts-expect-error - Supabase generated types are overly strict, using Record<string, any> for field mapping
       .update(this.mapSongToSupabase(updates))
       .eq('id', id)
-      .select()
-      .single()
+    // Only write if nobody saved since we read it (the song page's per-field
+    // saves). No row back means the version moved on.
+    if (expectedVersion !== undefined)
+      query = query.eq('version', expectedVersion)
+    const { data, error } = await query.select().maybeSingle()
 
     if (error) throw error
+    if (!data)
+      throw new ApiError(
+        expectedVersion !== undefined ? 'stale_version' : 'not_found',
+        expectedVersion !== undefined
+          ? 'Someone just changed this. Showing the latest.'
+          : 'This song was deleted.'
+      )
 
     return this.mapSongFromSupabase(data)
   }
@@ -144,8 +159,8 @@ export class RemoteRepository implements IDataRepository {
 
   private mapSongToSupabase(song: Partial<Song>): Record<string, any> {
     // Note: Only include fields that exist in Supabase schema
-    // Fields like album, lyrics, chords, tags, structure
-    // are IndexedDB-only and should NOT be sent to Supabase
+    // Fields like lyrics, chords, structure are client-only
+    // and should NOT be sent to Supabase
     // Only include fields that are actually present in the update
     // to avoid wiping out existing data with undefined values
     const result: Record<string, any> = {}
@@ -153,10 +168,10 @@ export class RemoteRepository implements IDataRepository {
     if (song.id !== undefined) result.id = song.id
     if (song.title !== undefined) result.title = song.title
     if (song.artist !== undefined) result.artist = song.artist
-    // album: IndexedDB only - do NOT send to Supabase
+    if (song.album !== undefined) result.album = song.album || null
     if (song.duration !== undefined) result.duration = song.duration
     if (song.key !== undefined) result.key = song.key
-    if (song.bpm !== undefined) result.tempo = song.bpm // bpm (IndexedDB) -> tempo (Supabase)
+    if (song.bpm !== undefined) result.tempo = song.bpm // bpm (model) -> tempo (Supabase)
     if (song.difficulty !== undefined) result.difficulty = song.difficulty
     if (song.guitarTuning !== undefined)
       result.guitar_tuning = song.guitarTuning
@@ -176,35 +191,38 @@ export class RemoteRepository implements IDataRepository {
       result.last_modified_by = song.lastModifiedBy
     if (song.referenceLinks !== undefined)
       result.reference_links = song.referenceLinks
+    if (song.linkedFromSongId !== undefined)
+      result.linked_from_song_id = song.linkedFromSongId || null
+    if (song.tags !== undefined) result.tags = song.tags ?? []
 
     return result
   }
 
   private mapSongFromSupabase(row: any): Song {
-    // Note: Supabase doesn't store album, lyrics, chords, tags, structure
-    // These fields are IndexedDB-only and will be empty when reading from Supabase
+    // Note: Supabase doesn't store lyrics, chords, structure
+    // These fields are client-only and will be empty when reading from Supabase
     return {
       id: row.id,
       title: row.title,
       artist: row.artist,
-      album: '', // IndexedDB only - not in Supabase
+      album: row.album ?? '',
       duration: row.duration ?? 0,
       key: row.key,
-      bpm: row.tempo ?? 0, // tempo (Supabase) -> bpm (IndexedDB)
+      bpm: row.tempo ?? 0, // tempo (Supabase) -> bpm (model)
       difficulty: row.difficulty ?? 1,
-      guitarTuning: row.guitar_tuning ?? 'Standard', // guitar_tuning (Supabase) -> guitarTuning (IndexedDB)
+      guitarTuning: row.guitar_tuning ?? 'Standard', // guitar_tuning (Supabase) -> guitarTuning (model)
       tuningId: row.tuning_id ?? null,
-      structure: [], // IndexedDB only - not in Supabase
-      lyrics: '', // IndexedDB only - not in Supabase (Supabase has lyrics_url instead)
-      chords: [], // IndexedDB only - not in Supabase (Supabase has chords_url instead)
-      // reference_links (Supabase JSONB) -> referenceLinks (IndexedDB)
+      structure: [], // model only - not in Supabase
+      lyrics: '', // model only - not in Supabase (Supabase has lyrics_url instead)
+      chords: [], // model only - not in Supabase (Supabase has chords_url instead)
+      // reference_links (Supabase JSONB) -> referenceLinks (model)
       // Support both old 'type' and new 'icon' field names for backward compatibility
       referenceLinks: (row.reference_links ?? []).map((link: any) => ({
         icon: link.icon ?? link.type ?? 'other',
         url: link.url,
         description: link.description,
       })),
-      tags: [], // IndexedDB only - not in Supabase
+      tags: row.tags ?? [],
       notes: row.notes ?? '',
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
       lastPracticed: row.last_practiced
@@ -216,7 +234,13 @@ export class RemoteRepository implements IDataRepository {
       createdBy: row.created_by,
       visibility: row.visibility ?? 'band', // Default to 'band' for MVP
       songGroupId: row.song_group_id,
+      linkedFromSongId: row.linked_from_song_id ?? undefined,
       lastModifiedBy: row.last_modified_by ?? undefined,
+      version: row.version ?? undefined,
+      notesEditedBy: row.notes_edited_by ?? undefined,
+      notesEditedAt: row.notes_edited_at
+        ? new Date(row.notes_edited_at)
+        : undefined,
     }
   }
 
@@ -284,12 +308,10 @@ export class RemoteRepository implements IDataRepository {
       .from('bands')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapBandFromSupabase(data)
   }
@@ -409,12 +431,10 @@ export class RemoteRepository implements IDataRepository {
       .from('setlists')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapSetlistFromSupabase(data)
   }
@@ -504,6 +524,7 @@ export class RemoteRepository implements IDataRepository {
       tags: row.tags ?? [],
       showId: row.show_id ?? undefined,
       sourceSetlistId: row.source_setlist_id ?? undefined,
+      copiedAt: row.copied_at ? new Date(row.copied_at) : undefined,
       showDate: undefined, // Not in Supabase
       venue: '', // Not in Supabase
       songs: row.items || [], // Map from items JSONB for backwards compatibility
@@ -572,12 +593,10 @@ export class RemoteRepository implements IDataRepository {
       .from('practice_sessions')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapPracticeSessionFromSupabase(data)
   }
@@ -638,9 +657,12 @@ export class RemoteRepository implements IDataRepository {
 
     if (session.id !== undefined) result.id = session.id
     if (session.bandId !== undefined) result.band_id = session.bandId
+    if (session.name !== undefined) result.name = session.name || null
     if (session.setlistId !== undefined) result.setlist_id = session.setlistId
     if (session.scheduledDate !== undefined)
       result.scheduled_date = session.scheduledDate
+    if (session.startTime !== undefined) result.start_time = session.startTime
+    if (session.endTime !== undefined) result.end_time = session.endTime
     if (session.duration !== undefined) result.duration = session.duration
     if (session.location !== undefined) result.location = session.location
     if (session.type !== undefined) result.type = session.type
@@ -666,10 +688,13 @@ export class RemoteRepository implements IDataRepository {
       scheduledDate: row.scheduled_date
         ? new Date(row.scheduled_date)
         : new Date(),
+      startTime: row.start_time ? new Date(row.start_time) : undefined,
+      endTime: row.end_time ? new Date(row.end_time) : undefined,
       duration: row.duration ?? 0,
+      name: row.name ?? undefined,
       location: row.location ?? '',
       type: row.type ?? 'rehearsal',
-      status: 'scheduled', // Default status for IndexedDB (not in Supabase)
+      status: 'scheduled', // model default (not in Supabase)
       notes: row.notes ?? '',
       wrapupNotes: row.wrapup_notes ?? '',
       objectives: row.objectives ?? [],
@@ -732,12 +757,10 @@ export class RemoteRepository implements IDataRepository {
       .from('shows')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapShowFromSupabase(data)
   }
@@ -819,6 +842,7 @@ export class RemoteRepository implements IDataRepository {
       payment: row.payment ?? undefined,
       contacts: row.contacts ?? undefined, // Supabase JSONB returns objects automatically
       status: row.status,
+      confirmed: row.confirmed ?? false,
       notes: row.notes ?? undefined,
       createdDate: new Date(row.created_date),
       updatedDate: new Date(row.updated_date),
@@ -915,29 +939,58 @@ export class RemoteRepository implements IDataRepository {
     return data.map(row => this.mapBandMembershipFromSupabase(row))
   }
 
+  async getBandMembersWithProfiles(
+    bandId: string
+  ): Promise<BandMemberWithProfile[]> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    // Embed users -> user_profiles via their FKs, so the whole roster is one
+    // request instead of 1 + 2 per member. users.email isn't selectable by
+    // clients; get_user_emails() returns only the ones the caller may see
+    // (their own, or all of them for a band admin).
+    const { data, error } = await supabase
+      .from('band_memberships')
+      .select(`*, users(${USER_PUBLIC_COLUMNS}, user_profiles(*))`)
+      .eq('band_id', bandId)
+      .eq('status', 'active')
+
+    if (error) throw error
+
+    const emails = await this.getVisibleEmails(
+      data.map((row: any) => row.user_id)
+    )
+
+    return data.map((row: any) => {
+      const user = row.users ?? null
+      // user_profiles.user_id is UNIQUE, so PostgREST embeds one object; accept
+      // an array too in case the relationship is detected as one-to-many.
+      const profile = Array.isArray(user?.user_profiles)
+        ? user.user_profiles[0]
+        : user?.user_profiles
+      return {
+        membership: this.mapBandMembershipFromSupabase(row),
+        user: user
+          ? {
+              ...this.mapUserFromSupabase(user),
+              email: emails.get(user.id) ?? '',
+            }
+          : null,
+        profile: profile ? this.mapUserProfileFromSupabase(profile) : null,
+      }
+    })
+  }
+
   async getUserMemberships(userId: string): Promise<BandMembership[]> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    console.log(
-      '[RemoteRepository.getUserMemberships] Querying for userId:',
-      userId
-    )
     const { data, error } = await supabase
       .from('band_memberships')
       .select('*')
       .eq('user_id', userId)
 
     if (error) {
-      console.error('[RemoteRepository.getUserMemberships] Error:', error)
+      log.error('getUserMemberships failed:', error)
       throw error
-    }
-
-    console.log(
-      '[RemoteRepository.getUserMemberships] Found memberships:',
-      data?.length || 0
-    )
-    if (data && data.length > 0) {
-      console.log('[RemoteRepository.getUserMemberships] Memberships:', data)
     }
 
     return data.map(row => this.mapBandMembershipFromSupabase(row))
@@ -946,10 +999,7 @@ export class RemoteRepository implements IDataRepository {
   async addBandMembership(membership: BandMembership): Promise<BandMembership> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
-    // Removed: console.log with user/band IDs (security)
-
     const mapped = this.mapBandMembershipToSupabase(membership) as any
-    // Removed: console.log with membership data (security)
 
     const { data, error } = await supabase
       .from('band_memberships')
@@ -958,11 +1008,10 @@ export class RemoteRepository implements IDataRepository {
       .single()
 
     if (error) {
-      console.error('[RemoteRepository.addBandMembership] Error:', error)
+      log.error('addBandMembership failed:', error)
       throw error
     }
 
-    // Removed: console.log with membership data (security)
     return this.mapBandMembershipFromSupabase(data)
   }
 
@@ -1117,7 +1166,7 @@ export class RemoteRepository implements IDataRepository {
     const { error } = await supabase.rpc('update_user_activity')
 
     if (error) {
-      console.error('[RemoteRepository.updateUserActivity] Error:', error)
+      log.error('updateUserActivity failed:', error)
       throw error
     }
   }
@@ -1149,9 +1198,11 @@ export class RemoteRepository implements IDataRepository {
   async getUser(id: string): Promise<User | null> {
     if (!supabase) throw new Error('Supabase client not initialized')
 
+    // Public columns only (users.email isn't selectable by clients — see
+    // getVisibleEmails); callers needing their own email use the auth session.
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select(USER_PUBLIC_COLUMNS)
       .eq('id', id)
       .maybeSingle()
 
@@ -1161,16 +1212,88 @@ export class RemoteRepository implements IDataRepository {
     return this.mapUserFromSupabase(data)
   }
 
+  /** Emails the caller may see (own; bandmates' if band admin), by user id */
+  private async getVisibleEmails(
+    userIds: string[]
+  ): Promise<Map<string, string>> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+    if (userIds.length === 0) return new Map()
+
+    const { data, error } = await (supabase as any).rpc('get_user_emails', {
+      p_user_ids: userIds,
+    })
+    if (error) throw error
+
+    return new Map(
+      ((data ?? []) as { user_id: string; email: string }[]).map(r => [
+        r.user_id,
+        r.email,
+      ])
+    )
+  }
+
+  async getUserProfile(userId: string): Promise<UserProfile | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) return null
+
+    return this.mapUserProfileFromSupabase(data)
+  }
+
+  async updateUserProfile(
+    userId: string,
+    updates: Partial<UserProfile>
+  ): Promise<UserProfile | null> {
+    if (!supabase) throw new Error('Supabase client not initialized')
+
+    const row: Record<string, unknown> = {
+      user_id: userId,
+      updated_date: new Date().toISOString(),
+    }
+    if (updates.displayName !== undefined)
+      row.display_name = updates.displayName
+    if (updates.instruments !== undefined) row.instruments = updates.instruments
+    if (updates.avatarUrl !== undefined) row.avatar_url = updates.avatarUrl
+
+    // Upsert: some users have no profile row yet (insert-own + update-own RLS).
+    const { error } = await supabase
+      .from('user_profiles')
+      // @ts-expect-error - Supabase generated types are overly strict, using Record<string, unknown> for field mapping
+      .upsert(row, { onConflict: 'user_id' })
+
+    if (error) throw error
+    return this.getUserProfile(userId)
+  }
+
   // ========== USER FIELD MAPPING ==========
 
   private mapUserFromSupabase(row: any): User {
     return {
       id: row.id,
-      email: row.email,
+      email: row.email ?? '',
       name: row.name,
       createdDate: row.created_date ? new Date(row.created_date) : new Date(),
       lastLogin: row.last_login ? new Date(row.last_login) : undefined,
       authProvider: row.auth_provider ?? 'email',
+    }
+  }
+
+  private mapUserProfileFromSupabase(row: any): UserProfile {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      displayName: row.display_name ?? '',
+      instruments: row.instruments ?? [],
+      avatarUrl: row.avatar_url ?? undefined,
+      createdDate: row.created_date ? new Date(row.created_date) : new Date(),
+      updatedDate: row.updated_date ? new Date(row.updated_date) : new Date(),
     }
   }
 
@@ -1187,7 +1310,7 @@ export class RemoteRepository implements IDataRepository {
       permissions: membership.permissions ?? [],
       joined_date: membership.joinedDate,
       status: membership.status,
-      // Note: nickname, customRole exist in IndexedDB only
+      // Note: nickname, customRole exist in the model only
       // Note: Supabase has NO updated_date field
     }
   }
@@ -1259,12 +1382,10 @@ export class RemoteRepository implements IDataRepository {
       .eq('song_id', songId)
       .eq('user_id', userId)
       .eq('band_id', bandId)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapPersonalNoteFromSupabase(data)
   }
@@ -1419,12 +1540,10 @@ export class RemoteRepository implements IDataRepository {
       .from('song_note_entries')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
-    }
+    if (error) throw error
+    if (!data) return null
 
     return this.mapNoteEntryFromSupabase(data)
   }
@@ -1487,7 +1606,7 @@ export class RemoteRepository implements IDataRepository {
     return {
       id: row.id,
       songId: row.song_id,
-      userId: row.user_id,
+      userId: row.user_id ?? '', // null = a deleted account ("Former member")
       bandId: row.band_id,
       sessionType: row.session_type,
       sessionId: row.session_id,
@@ -1499,413 +1618,8 @@ export class RemoteRepository implements IDataRepository {
     }
   }
 
-  // ========== SYNC OPERATIONS ==========
-  // These are no-op implementations since RemoteRepository doesn't handle sync orchestration
-  // Sync is handled by SyncRepository/SyncEngine
-
   setCurrentUser(_userId: string): void {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-  }
-
-  async isInitialSyncNeeded(): Promise<boolean> {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-    return false
-  }
-
-  async performInitialSync(_userId: string): Promise<void> {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-  }
-
-  async pullFromRemote(_userId: string): Promise<void> {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-  }
-
-  async pullIncrementalChanges(
-    _userId: string
-  ): Promise<IncrementalSyncResult> {
-    // No-op: RemoteRepository doesn't handle sync orchestration
-    return createEmptyIncrementalSyncResult()
-  }
-
-  // ========== JAM SESSIONS ==========
-
-  async getActiveJamSessionsForUser(userId: string): Promise<JamSession[]> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-
-    // Sessions the user is hosting
-    const { data: hostedData, error: hostedError } = await supabase
-      .from('jam_sessions')
-      .select('*')
-      .eq('host_user_id', userId)
-      .eq('status', 'active')
-      .order('created_date', { ascending: false })
-    if (hostedError) throw hostedError
-
-    // Sessions the user joined as a participant (not necessarily host)
-    const { data: participantData, error: participantError } = await supabase
-      .from('jam_participants')
-      .select('jam_session_id')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-    if (participantError) throw participantError
-
-    const participantSessionIds = (participantData ?? []).map(
-      (r: { jam_session_id: string }) => r.jam_session_id
-    )
-
-    let participatingSessions: JamSession[] = []
-    if (participantSessionIds.length > 0) {
-      const { data: participatingData, error: participatingError } =
-        await supabase
-          .from('jam_sessions')
-          .select('*')
-          .in('id', participantSessionIds)
-          .eq('status', 'active')
-          .order('created_date', { ascending: false })
-      if (participatingError) throw participatingError
-      participatingSessions = (participatingData ?? []).map((row: any) =>
-        this.mapJamSessionFromSupabase(row)
-      )
-    }
-
-    // Merge and deduplicate (user may appear in both as host + participant)
-    const hosted = (hostedData ?? []).map((row: any) =>
-      this.mapJamSessionFromSupabase(row)
-    )
-    const seen = new Set(hosted.map(s => s.id))
-    const merged = [...hosted]
-    for (const s of participatingSessions) {
-      if (!seen.has(s.id)) {
-        merged.push(s)
-        seen.add(s.id)
-      }
-    }
-    return merged
-  }
-
-  async getJamSession(id: string): Promise<JamSession | null> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { data, error } = await supabase
-      .from('jam_sessions')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle()
-    if (error) throw error
-    if (!data) return null
-    return this.mapJamSessionFromSupabase(data)
-  }
-
-  async getJamSessionByCode(shortCode: string): Promise<JamSession | null> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { data, error } = await supabase
-      .from('jam_sessions')
-      .select('*')
-      .eq('short_code', shortCode)
-      .maybeSingle() // Returns null instead of 406 when no row found
-    if (error) throw error
-    if (!data) return null
-    return this.mapJamSessionFromSupabase(data)
-  }
-
-  async createJamSession(session: Omit<JamSession, 'id'>): Promise<JamSession> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { data, error } = await supabase
-      .from('jam_sessions')
-      .insert(this.mapJamSessionToSupabase(session) as any)
-      .select()
-      .single()
-    if (error) throw error
-    return this.mapJamSessionFromSupabase(data)
-  }
-
-  async updateJamSession(
-    id: string,
-    updates: Partial<JamSession>
-  ): Promise<JamSession> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { data, error } = await supabase
-      .from('jam_sessions')
-      // @ts-expect-error - Supabase generated types are overly strict for new tables
-      .update(this.mapJamSessionToSupabase(updates))
-      .eq('id', id)
-      .select()
-      .single()
-    if (error) throw error
-    return this.mapJamSessionFromSupabase(data)
-  }
-
-  async deleteJamSession(id: string): Promise<void> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { error } = await supabase.from('jam_sessions').delete().eq('id', id)
-    if (error) throw error
-  }
-
-  async getJamParticipants(sessionId: string): Promise<JamParticipant[]> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    // Note: PostgREST cannot auto-embed user_profiles/users here —
-    // jam_participants has no direct FK to either, and users/user_profiles
-    // aren't related via FK the way PostgREST auto-joins want. We do
-    // separate lookups and merge.
-    //
-    // Display name resolution prefers user_profiles.display_name (the
-    // "richer" profile field), falling back to users.name (populated at
-    // signup and always non-null for authenticated users). user_profiles
-    // rows are only created when a user explicitly sets a profile, so
-    // many users won't have one — the fallback keeps the host name from
-    // collapsing to "User abc123" for those accounts.
-    //
-    // RLS gates:
-    //   - users_select_self / users_select_band_member /
-    //     users_select_jam_coparticipant (covers self + co-participants)
-    //   - user_profiles_select_own / user_profiles_select_jam_coparticipant
-    const { data, error } = await supabase
-      .from('jam_participants')
-      .select('*')
-      .eq('jam_session_id', sessionId)
-      .eq('status', 'active')
-    if (error) throw error
-    const rows = (data as any[]) ?? []
-    if (rows.length === 0) return []
-
-    const userIds = Array.from(new Set(rows.map(row => row.user_id as string)))
-
-    const [profilesResult, usersResult] = await Promise.all([
-      supabase
-        .from('user_profiles')
-        .select('user_id, display_name')
-        .in('user_id', userIds),
-      supabase.from('users').select('id, name').in('id', userIds),
-    ])
-    if (profilesResult.error) throw profilesResult.error
-    if (usersResult.error) throw usersResult.error
-
-    const profileByUserId = new Map<string, { display_name?: string }>()
-    for (const profile of (profilesResult.data as any[]) ?? []) {
-      profileByUserId.set(profile.user_id, {
-        display_name: profile.display_name ?? undefined,
-      })
-    }
-    const userNameById = new Map<string, string | undefined>()
-    for (const user of (usersResult.data as any[]) ?? []) {
-      userNameById.set(user.id, user.name ?? undefined)
-    }
-
-    return rows.map(row => {
-      const profile = profileByUserId.get(row.user_id)
-      const fallbackName = userNameById.get(row.user_id)
-      return this.mapJamParticipantFromSupabase({
-        ...row,
-        user_profiles: {
-          display_name: profile?.display_name ?? fallbackName ?? undefined,
-        },
-      })
-    })
-  }
-
-  async addJamParticipant(
-    participant: Omit<JamParticipant, 'id'>
-  ): Promise<JamParticipant> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { data, error } = await supabase
-      .from('jam_participants')
-      .insert(this.mapJamParticipantToSupabase(participant) as any)
-      .select()
-      .single()
-    if (error) throw error
-    return this.mapJamParticipantFromSupabase(
-      await this.attachParticipantDisplayName(data)
-    )
-  }
-
-  async updateJamParticipant(
-    id: string,
-    updates: Partial<JamParticipant>
-  ): Promise<JamParticipant> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { data, error } = await supabase
-      .from('jam_participants')
-      // @ts-expect-error - Supabase generated types are overly strict for new tables
-      .update(this.mapJamParticipantToSupabase(updates))
-      .eq('id', id)
-      .select()
-      .single()
-    if (error) throw error
-    return this.mapJamParticipantFromSupabase(
-      await this.attachParticipantDisplayName(data)
-    )
-  }
-
-  /**
-   * Given a raw jam_participants row, look up the owning user's display
-   * name (user_profiles.display_name preferred, users.name fallback) and
-   * return the row augmented with `user_profiles: { display_name }` so
-   * mapJamParticipantFromSupabase can consume it uniformly. Used by
-   * add/update variants that can't rely on getJamParticipants' bulk
-   * lookup.
-   */
-  private async attachParticipantDisplayName(row: any): Promise<any> {
-    if (!supabase || !row?.user_id) return row
-    const [profileResult, userResult] = await Promise.all([
-      supabase
-        .from('user_profiles')
-        .select('display_name')
-        .eq('user_id', row.user_id)
-        .maybeSingle(),
-      supabase.from('users').select('name').eq('id', row.user_id).maybeSingle(),
-    ])
-    return {
-      ...row,
-      user_profiles: {
-        display_name:
-          (profileResult.data as any)?.display_name ??
-          (userResult.data as any)?.name ??
-          undefined,
-      },
-    }
-  }
-
-  async getJamSongMatches(sessionId: string): Promise<JamSongMatch[]> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { data, error } = await supabase
-      .from('jam_song_matches')
-      .select('*')
-      .eq('jam_session_id', sessionId)
-      .order('participant_count', { ascending: false })
-    if (error) throw error
-    return data.map(row => this.mapJamSongMatchFromSupabase(row))
-  }
-
-  async upsertJamSongMatches(
-    sessionId: string,
-    matches: Omit<JamSongMatch, 'id'>[]
-  ): Promise<JamSongMatch[]> {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    // Delete existing matches for this session
-    await supabase
-      .from('jam_song_matches')
-      .delete()
-      .eq('jam_session_id', sessionId)
-    if (matches.length === 0) return []
-    // Insert new matches
-    const { data, error } = await supabase
-      .from('jam_song_matches')
-      .insert(
-        matches.map(m =>
-          this.mapJamSongMatchToSupabase({ ...m, id: crypto.randomUUID() })
-        ) as any
-      )
-      .select()
-    if (error) throw error
-    return data.map(row => this.mapJamSongMatchFromSupabase(row))
-  }
-
-  // ========== JAM SESSION FIELD MAPPING ==========
-
-  private mapJamSessionToSupabase(
-    session: Partial<JamSession>
-  ): Record<string, any> {
-    const result: Record<string, any> = {}
-    if (session.shortCode !== undefined) result.short_code = session.shortCode
-    if (session.name !== undefined) result.name = session.name ?? null
-    if (session.hostUserId !== undefined)
-      result.host_user_id = session.hostUserId
-    if (session.status !== undefined) result.status = session.status
-    if (session.createdDate !== undefined)
-      result.created_date = session.createdDate
-    if (session.expiresAt !== undefined) result.expires_at = session.expiresAt
-    if (session.savedSetlistId !== undefined)
-      result.saved_setlist_id = session.savedSetlistId ?? null
-    if (session.seedSetlistId !== undefined)
-      result.seed_setlist_id = session.seedSetlistId ?? null
-    if (session.viewToken !== undefined)
-      result.view_token = session.viewToken ?? null
-    if (session.viewTokenExpiresAt !== undefined)
-      result.view_token_expires_at = session.viewTokenExpiresAt ?? null
-    if (session.settings !== undefined) result.settings = session.settings ?? {}
-    if (session.version !== undefined) result.version = session.version
-    if (session.lastModifiedBy !== undefined)
-      result.last_modified_by = session.lastModifiedBy ?? null
-    return result
-  }
-
-  private mapJamSessionFromSupabase(row: any): JamSession {
-    return {
-      id: row.id,
-      shortCode: row.short_code,
-      name: row.name ?? undefined,
-      hostUserId: row.host_user_id,
-      status: row.status,
-      createdDate: new Date(row.created_date),
-      expiresAt: new Date(row.expires_at),
-      savedSetlistId: row.saved_setlist_id ?? undefined,
-      seedSetlistId: row.seed_setlist_id ?? undefined,
-      viewToken: row.view_token ?? undefined,
-      viewTokenExpiresAt: row.view_token_expires_at
-        ? new Date(row.view_token_expires_at)
-        : undefined,
-      settings: row.settings ?? {},
-      version: row.version,
-      lastModifiedBy: row.last_modified_by ?? undefined,
-    }
-  }
-
-  private mapJamParticipantToSupabase(
-    participant: Partial<JamParticipant>
-  ): Record<string, any> {
-    const result: Record<string, any> = {}
-    if (participant.jamSessionId !== undefined)
-      result.jam_session_id = participant.jamSessionId
-    if (participant.userId !== undefined) result.user_id = participant.userId
-    if (participant.joinedDate !== undefined)
-      result.joined_date = participant.joinedDate
-    if (participant.status !== undefined) result.status = participant.status
-    if (participant.sharedContexts !== undefined)
-      result.shared_contexts = participant.sharedContexts
-    return result
-  }
-
-  private mapJamParticipantFromSupabase(row: any): JamParticipant {
-    const profile = row.user_profiles as { display_name?: string } | null
-    return {
-      id: row.id,
-      jamSessionId: row.jam_session_id,
-      userId: row.user_id,
-      joinedDate: new Date(row.joined_date),
-      status: row.status,
-      sharedContexts: row.shared_contexts ?? [],
-      displayName: profile?.display_name ?? undefined,
-    }
-  }
-
-  private mapJamSongMatchToSupabase(match: JamSongMatch): Record<string, any> {
-    return {
-      id: match.id,
-      jam_session_id: match.jamSessionId,
-      canonical_title: match.canonicalTitle,
-      canonical_artist: match.canonicalArtist,
-      display_title: match.displayTitle,
-      display_artist: match.displayArtist,
-      match_confidence: match.matchConfidence,
-      is_confirmed: match.isConfirmed,
-      matched_songs: match.matchedSongs,
-      participant_count: match.participantCount,
-      computed_at: match.computedAt,
-    }
-  }
-
-  private mapJamSongMatchFromSupabase(row: any): JamSongMatch {
-    return {
-      id: row.id,
-      jamSessionId: row.jam_session_id,
-      canonicalTitle: row.canonical_title,
-      canonicalArtist: row.canonical_artist,
-      displayTitle: row.display_title,
-      displayArtist: row.display_artist,
-      matchConfidence: row.match_confidence,
-      isConfirmed: row.is_confirmed,
-      matchedSongs: row.matched_songs ?? [],
-      participantCount: row.participant_count,
-      computedAt: new Date(row.computed_at),
-    }
+    // No-op: RemoteRepository reads/writes Supabase directly; there is no
+    // per-user sync orchestration or local cache to scope.
   }
 }

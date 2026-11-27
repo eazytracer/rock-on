@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import type { Band } from '../../../src/models/Band'
-import type { Member } from '../../../src/models/Member'
 
 // Mock the RepositoryFactory module BEFORE importing BandService
 vi.mock('../../../src/services/data/RepositoryFactory', () => {
@@ -31,31 +30,10 @@ vi.mock('../../../src/services/data/RepositoryFactory', () => {
   }
 })
 
-// Mock the database module for member operations (not yet in repository)
-vi.mock('../../../src/services/database', () => {
-  const mockMembers = {
-    get: vi.fn(),
-    where: vi.fn(() => ({
-      equals: vi.fn(() => ({
-        first: vi.fn(),
-      })),
-    })),
-    add: vi.fn(),
-    update: vi.fn(),
-  }
-
-  return {
-    db: {
-      members: mockMembers,
-    },
-  }
-})
-
 // Import BandService AFTER the mocks are set up
 import { BandService } from '../../../src/services/BandService'
 // Import the mocked repository to get access to the mock functions
 import { repository } from '../../../src/services/data/RepositoryFactory'
-import { db } from '../../../src/services/database'
 
 // Extract mock functions for test assertions
 const mockGetBands = repository.getBands as ReturnType<typeof vi.fn>
@@ -65,7 +43,9 @@ const mockUpdateBand = repository.updateBand as ReturnType<typeof vi.fn>
 const mockDeleteBand = repository.deleteBand as ReturnType<typeof vi.fn>
 const mockGetSongs = repository.getSongs as ReturnType<typeof vi.fn>
 const mockGetSetlists = repository.getSetlists as ReturnType<typeof vi.fn>
-const mockGetPracticeSessions = repository.getPracticeSessions as ReturnType<typeof vi.fn>
+const mockGetPracticeSessions = repository.getPracticeSessions as ReturnType<
+  typeof vi.fn
+>
 
 describe('BandService - Migrated to Repository Pattern', () => {
   beforeEach(() => {
@@ -259,13 +239,13 @@ describe('BandService - Migrated to Repository Pattern', () => {
 
     it('should throw error for empty band name', async () => {
       // Act & Assert
-      await expect(
-        BandService.createBand({ name: '' })
-      ).rejects.toThrow('Band name is required')
+      await expect(BandService.createBand({ name: '' })).rejects.toThrow(
+        'Band name is required'
+      )
 
-      await expect(
-        BandService.createBand({ name: '   ' })
-      ).rejects.toThrow('Band name is required')
+      await expect(BandService.createBand({ name: '   ' })).rejects.toThrow(
+        'Band name is required'
+      )
     })
 
     it('should throw error for band name exceeding 100 characters', async () => {
@@ -273,9 +253,9 @@ describe('BandService - Migrated to Repository Pattern', () => {
       const longName = 'a'.repeat(101)
 
       // Act & Assert
-      await expect(
-        BandService.createBand({ name: longName })
-      ).rejects.toThrow('Band name cannot exceed 100 characters')
+      await expect(BandService.createBand({ name: longName })).rejects.toThrow(
+        'Band name cannot exceed 100 characters'
+      )
     })
 
     it('should throw error for description exceeding 500 characters', async () => {
@@ -623,109 +603,6 @@ describe('BandService - Migrated to Repository Pattern', () => {
       await expect(BandService.deleteBand('band-123')).rejects.toThrow(
         'Cannot delete band: has associated songs, sessions, or setlists'
       )
-    })
-  })
-
-  describe('getBandMembers', () => {
-    it('should get band members from member IDs', async () => {
-      // Arrange
-      const mockBand: Band = {
-        id: 'band-123',
-        name: 'The Band',
-        createdDate: new Date(),
-        settings: {
-          defaultPracticeTime: 120,
-          reminderMinutes: [60, 30, 10],
-          autoSaveInterval: 30,
-        },
-        memberIds: ['member-1', 'member-2'],
-      }
-
-      const mockMember1: Member = {
-        id: 'member-1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        instruments: ['Guitar'],
-        primaryInstrument: 'Guitar',
-        role: 'admin',
-        joinDate: new Date(),
-        isActive: true,
-      }
-
-      const mockMember2: Member = {
-        id: 'member-2',
-        name: 'Jane Smith',
-        email: 'jane@example.com',
-        instruments: ['Bass'],
-        primaryInstrument: 'Bass',
-        role: 'member',
-        joinDate: new Date(),
-        isActive: true,
-      }
-
-      mockGetBand.mockResolvedValue(mockBand)
-      ;(db.members.get as any)
-        .mockResolvedValueOnce(mockMember1)
-        .mockResolvedValueOnce(mockMember2)
-
-      // Act
-      const result = await BandService.getBandMembers('band-123')
-
-      // Assert
-      expect(mockGetBand).toHaveBeenCalledWith('band-123')
-      expect(db.members.get).toHaveBeenCalledWith('member-1')
-      expect(db.members.get).toHaveBeenCalledWith('member-2')
-      expect(result).toHaveLength(2)
-      expect(result[0].name).toBe('John Doe')
-      expect(result[1].name).toBe('Jane Smith')
-    })
-
-    it('should throw error when band not found', async () => {
-      // Arrange
-      mockGetBand.mockResolvedValue(null)
-
-      // Act & Assert
-      await expect(BandService.getBandMembers('non-existent')).rejects.toThrow(
-        'Band not found'
-      )
-    })
-
-    it('should filter out null members', async () => {
-      // Arrange
-      const mockBand: Band = {
-        id: 'band-123',
-        name: 'The Band',
-        createdDate: new Date(),
-        settings: {
-          defaultPracticeTime: 120,
-          reminderMinutes: [60, 30, 10],
-          autoSaveInterval: 30,
-        },
-        memberIds: ['member-1', 'non-existent'],
-      }
-
-      const mockMember1: Member = {
-        id: 'member-1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        instruments: ['Guitar'],
-        primaryInstrument: 'Guitar',
-        role: 'admin',
-        joinDate: new Date(),
-        isActive: true,
-      }
-
-      mockGetBand.mockResolvedValue(mockBand)
-      ;(db.members.get as any)
-        .mockResolvedValueOnce(mockMember1)
-        .mockResolvedValueOnce(null)
-
-      // Act
-      const result = await BandService.getBandMembers('band-123')
-
-      // Assert
-      expect(result).toHaveLength(1)
-      expect(result[0].name).toBe('John Doe')
     })
   })
 })

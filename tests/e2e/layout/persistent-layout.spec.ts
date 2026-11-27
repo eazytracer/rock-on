@@ -4,6 +4,7 @@ import {
   signUpViaUI,
   deleteTestUser,
 } from '../../fixtures/auth'
+import { createBandViaUI } from '../../fixtures/bands'
 
 /**
  * E2E tests for persistent layout feature
@@ -27,13 +28,7 @@ test.describe('Persistent Layout', () => {
 
     // Create a band
     const bandName = `Test Band ${Date.now()}`
-    await page.fill(
-      '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-      bandName
-    )
-    await page.click(
-      '[data-testid="create-band-button"], button:has-text("Create Band")'
-    )
+    await createBandViaUI(page, bandName)
 
     // Wait for redirect to songs
     await page.waitForURL(/\/songs/, { timeout: 10000 })
@@ -74,16 +69,9 @@ test.describe('Persistent Layout', () => {
       await expect(navbar).toBeVisible()
       await expect(page.locator('[data-testid="setlists-page"]')).toBeVisible()
 
-      // Navigate to Shows — nested under Calendar, opens the filtered agenda
-      // (Calendar-parent IA: /calendar?filter=shows).
-      await page.click('[data-testid="shows-link"]')
-      await page.waitForURL(/\/calendar\?filter=shows/)
-      await expect(navbar).toBeVisible()
-      await expect(page.locator('[data-testid="calendar-page"]')).toBeVisible()
-
-      // Navigate to Practices — likewise a Calendar-filtered view
-      await page.click('[data-testid="practices-link"]')
-      await page.waitForURL(/\/calendar\?filter=practices/)
+      // Navigate to Calendar (shows and practices are its filters)
+      await page.click('[data-testid="calendar-link"]')
+      await page.waitForURL(/\/calendar/)
       await expect(navbar).toBeVisible()
       await expect(page.locator('[data-testid="calendar-page"]')).toBeVisible()
     })
@@ -107,8 +95,8 @@ test.describe('Persistent Layout', () => {
         await page.waitForURL(/\/setlists/)
         await expect(sidebar.first()).toBeVisible()
 
-        await page.click('[data-testid="shows-link"]')
-        await page.waitForURL(/\/calendar\?filter=shows/)
+        await page.click('[data-testid="calendar-link"]')
+        await page.waitForURL(/\/calendar/)
         await expect(sidebar.first()).toBeVisible()
       }
     })
@@ -125,8 +113,8 @@ test.describe('Persistent Layout', () => {
       // Perform rapid navigation using sidebar nav links
       const navLinks = [
         'setlists-link',
-        'shows-link',
-        'practices-link',
+        'calendar-link',
+        'home-link',
         'songs-link',
         'setlists-link',
       ]
@@ -159,13 +147,7 @@ test.describe('Persistent Layout', () => {
       await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
       const bandName = `Test Band ${Date.now()}`
-      await page.fill(
-        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-        bandName
-      )
-      await page.click(
-        '[data-testid="create-band-button"], button:has-text("Create Band")'
-      )
+      await createBandViaUI(page, bandName)
       await page.waitForURL(/\/songs/, { timeout: 10000 })
 
       testUserId =
@@ -220,9 +202,8 @@ test.describe('Persistent Layout', () => {
       // Navigate between pages and check that background stays dark
       const navLinks = [
         { link: 'setlists-link', route: '/setlists' },
-        // Shows/Practices are nested under Calendar now (→ /calendar?filter=…)
-        { link: 'shows-link', route: '/calendar' },
-        { link: 'practices-link', route: '/calendar' },
+        { link: 'calendar-link', route: '/calendar' },
+        { link: 'home-link', route: '/$' },
         { link: 'songs-link', route: '/songs' },
       ]
 
@@ -272,8 +253,8 @@ test.describe('Persistent Layout', () => {
       // Navigate rapidly between pages using sidebar nav
       const navLinks = [
         'setlists-link',
-        'shows-link',
-        'practices-link',
+        'calendar-link',
+        'home-link',
         'songs-link',
       ]
       for (const link of navLinks) {
@@ -347,11 +328,12 @@ test.describe('Persistent Layout', () => {
         { route: '/songs', testId: 'songs-page' },
         { route: '/setlists', testId: 'setlists-page' },
         { route: '/calendar', testId: 'calendar-page' },
-        { route: '/shows', testId: 'shows-page' },
-        { route: '/practices', testId: 'practices-page' },
+        // /shows and /practices redirect to the calendar agenda's filters
+        { route: '/shows', testId: 'calendar-page' },
+        { route: '/practices', testId: 'calendar-page' },
         { route: '/more', testId: 'more-page' },
         { route: '/notifications', testId: 'notifications-page' },
-        { route: '/band-members', testId: 'band-members-page' },
+        { route: '/band', testId: 'band-page' },
         { route: '/settings', testId: 'settings-page' },
       ]
 
@@ -405,16 +387,19 @@ test.describe('Persistent Layout', () => {
       await expect(bottomNav).toBeVisible()
     })
 
-    test('home dashboard renders stats + quick actions and a quick action navigates', async ({
+    test('home renders the new-band walkthrough + quick actions and a quick action navigates', async ({
       page,
     }) => {
       await setupAuthenticatedUser(page)
       await page.goto('/')
       await expect(page.locator('[data-testid="home-page"]')).toBeVisible()
 
-      // Stats + quick actions render (fresh band → cards present regardless of data)
+      // A fresh band gets the walkthrough and the empty next-show card
       await expect(
-        page.locator('[data-testid="home-stat-songs"]')
+        page.locator('[data-testid="home-walkthrough"]')
+      ).toBeVisible()
+      await expect(
+        page.locator('[data-testid="home-empty-show"]')
       ).toBeVisible()
       await expect(
         page.locator('[data-testid="home-action-setlist"]')

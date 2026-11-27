@@ -4,6 +4,7 @@ import {
   signUpViaUI,
   deleteTestUser,
 } from '../../fixtures/auth'
+import { createBandViaUI } from '../../fixtures/bands'
 
 /**
  * Session Expiry E2E Tests (Phase 1 — Supabase-as-source-of-truth)
@@ -54,8 +55,7 @@ async function signUpAndCreateBand(page: Page): Promise<string | undefined> {
   await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
   const bandName = `Test Band ${Date.now()}`
-  await page.fill('[data-testid="create-band-name-input"]', bandName)
-  await page.click('[data-testid="create-band-button"]')
+  await createBandViaUI(page, bandName)
   await page.waitForURL(/\/songs/, { timeout: 10000 })
 
   return (
@@ -175,9 +175,13 @@ test.describe('Session Expiry', () => {
 
       await clearSupabaseSession(page)
 
-      // Click a nav button to another protected route (nav uses buttons)
+      // Click a nav button to another protected route (nav uses buttons).
+      // The SDK may notice the missing session on its own and redirect before
+      // the click lands — either path must end on /auth.
       const setlistsButton = page.locator('button:has-text("Setlists")').first()
-      await setlistsButton.click()
+      if (!/\/auth/.test(page.url())) {
+        await setlistsButton.click({ timeout: 5000 }).catch(() => {})
+      }
 
       await expect(page).toHaveURL(/\/auth/, { timeout: 5000 })
     })

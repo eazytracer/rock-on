@@ -120,7 +120,7 @@ function getVariantStyles(variant: StatusVariant) {
       return {
         container: 'bg-accent/10 border-2 border-accent',
         month: 'text-accent',
-        day: 'text-white',
+        day: 'text-ink-1',
         weekday: 'text-ink-3',
       }
     case 'completed':

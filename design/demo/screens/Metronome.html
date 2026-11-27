@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Metronome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<style>
+.mt{display:flex;flex-direction:column;flex:1;min-height:0;position:relative}
+.mt .top{padding:0 14px 8px}
+.src{margin:0 14px 10px;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:var(--s1);box-shadow:var(--shg)}
+.src .g{flex:1;min-width:0}.src small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;color:var(--mu)}.src b{font-size:15px}
+.src .r-btn{height:36px;font-size:13px;padding:0 12px}
+.beats{display:flex;justify-content:center;gap:10px;padding:16px 20px 6px}
+.beats span{flex:1;max-width:64px;height:64px;border-radius:18px;background:var(--s2);display:grid;place-items:center;font-family:var(--r-fm);font-weight:700;font-size:15px;color:var(--mu);cursor:pointer}
+.beats span.acc{box-shadow:inset 0 0 0 2px var(--acc);color:var(--tx)}
+.beats span.mute{opacity:.35}
+.beats span.hit{background:var(--tx);color:var(--bg);transform:scale(1.06)}
+.beats span.acc.hit{background:var(--acc);color:var(--onacc)}
+.bhint{text-align:center;font-size:12px;color:var(--mu);padding-bottom:4px}
+.bpm{display:flex;align-items:center;justify-content:center;gap:14px;padding:4px 16px 0}
+.bpm .n{text-align:center;min-width:170px}
+.bpm .n b{display:block;font-family:var(--r-fd);font-weight:900;font-size:120px;line-height:.85;color:var(--tx)}
+.bpm .n small{font-family:var(--r-fm);font-size:11px;letter-spacing:.14em;color:var(--mu)}
+.bpm .r-ib{width:60px;height:60px;border-radius:30px;font-size:30px;font-weight:700}
+.bpm .r-ib svg.i{width:24px;height:24px}
+.mrk{display:flex;justify-content:center;font-family:var(--r-fm);font-size:11px;color:var(--mu2);padding:4px 0 8px;letter-spacing:.06em}
+.sl{padding:4px 24px 12px}
+.sl input{width:100%;accent-color:var(--acc);height:28px}
+.ctr{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 8px}
+.ctr .c{background:var(--s1);border-radius:16px;padding:8px 10px 10px;box-shadow:var(--shg)}
+.ctr .c small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;color:var(--mu);margin:0 2px 6px}
+.ctr .opts{display:flex;gap:4px}
+.ctr .opts span{flex:1;height:40px;border-radius:12px;display:grid;place-items:center;font-family:var(--r-fm);font-weight:700;font-size:13px;background:var(--s2);cursor:pointer}
+.ctr .opts span.on{background:var(--tx);color:var(--bg)}
+.ctr .opts span svg{width:22px;height:16px;fill:currentColor}
+.dk2{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;padding:10px 14px 26px;background:linear-gradient(transparent,var(--bg) 22%)}
+.dk2 .tap{width:110px;height:84px;border-radius:24px;background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:16px;cursor:pointer;user-select:none}
+.dk2 .tap small{font-family:var(--r-fm);font-size:10px;color:var(--mu);font-weight:500;margin-top:2px}
+.dk2 .go{flex:1;height:84px;border-radius:24px;background:var(--acc);color:var(--onacc);display:flex;align-items:center;justify-content:center;gap:10px;font-weight:800;font-size:20px;cursor:pointer;user-select:none}
+.dk2 .go svg.i{width:26px;height:26px;fill:currentColor}
+.dk2 .go.stop{background:var(--tx);color:var(--bg)}
+.flash{position:absolute;inset:0;pointer-events:none;z-index:9;opacity:0;box-shadow:inset 0 0 0 6px var(--acc),inset 0 0 60px color-mix(in srgb,var(--acc) 45%,transparent);border-radius:inherit}
+.flash.on{animation:mfl 260ms ease-out}
+@keyframes mfl{0%{opacity:1}100%{opacity:0}}
+.ci{display:flex;align-items:center;gap:10px;padding:0 16px;min-height:52px}
+.ci .g{flex:1}.ci b{display:block;font-size:15px}.ci small{font-size:12.5px;color:var(--mu)}
+.ciover{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:center;background:color-mix(in srgb,var(--bg) 88%,transparent)}
+.ciover small{font-family:var(--r-fm);font-size:12px;letter-spacing:.14em;color:var(--mu)}
+.ciover b{font-family:var(--r-fd);font-weight:900;font-size:220px;line-height:.85;color:var(--acc)}
+.ciover .s{font-size:22px;font-weight:700;margin-top:10px}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,seg,sw,tp,grp,gl,item,sheet,phone,backbar,T,SONGS:S}=R,{ph,page}=Draft;
+const MK=[[40,'GRAVE'],[60,'LARGO'],[76,'ADAGIO'],[108,'ANDANTE'],[120,'MODERATO'],[156,'ALLEGRO'],[176,'VIVACE'],[200,'PRESTO']];
+const mk=b=>{let n='LENTO';for(const [v,l] of MK)if(b>=v)n=l;return n};
+const SUB=[['q','<svg viewBox="0 0 22 16"><ellipse cx="9" cy="12.5" rx="3.6" ry="2.6"/><rect x="11.6" y="1" width="1.6" height="11.5"/></svg>'],['e','<svg viewBox="0 0 22 16"><ellipse cx="5" cy="12.5" rx="3.2" ry="2.4"/><ellipse cx="16" cy="12.5" rx="3.2" ry="2.4"/><rect x="7.2" y="1" width="1.4" height="11.5"/><rect x="18.2" y="1" width="1.4" height="11.5"/><rect x="7.2" y="1" width="12.4" height="2.4"/></svg>'],['t','<svg viewBox="0 0 22 16"><ellipse cx="3.6" cy="12.5" rx="2.6" ry="2"/><ellipse cx="10.6" cy="12.5" rx="2.6" ry="2"/><ellipse cx="17.6" cy="12.5" rx="2.6" ry="2"/><rect x="5.3" y="2" width="1.2" height="10.5"/><rect x="12.3" y="2" width="1.2" height="10.5"/><rect x="19.3" y="2" width="1.2" height="10.5"/><rect x="5.3" y="2" width="15.2" height="2"/></svg>'],['s','<svg viewBox="0 0 22 16"><ellipse cx="5" cy="12.5" rx="3.2" ry="2.4"/><ellipse cx="16" cy="12.5" rx="3.2" ry="2.4"/><rect x="7.2" y="1" width="1.4" height="11.5"/><rect x="18.2" y="1" width="1.4" height="11.5"/><rect x="7.2" y="1" width="12.4" height="2.2"/><rect x="7.2" y="4.6" width="12.4" height="2.2"/></svg>']];
+const SIGS=[[2,4],[3,4],[4,4],[6,8]];
+const M={bpm:124,sig:2,sub:0,beats:['acc','n','n','n'],on:false,beat:-1,flash:true,taps:[]};
+const setSig=i=>{M.sig=i;const n=SIGS[i][0];M.beats=Array.from({length:n},(_,k)=>k===0?'acc':(SIGS[i][1]===8&&k===3?'acc':'n'))};
+const screen=(o={})=>`<div class="mt">${backbar(o.back||'Monkey Wrench',ib('moreh'))}<div class="top">${seg(['Tuner','Metronome','Chords'],1)}</div>
+${o.song?`<div class="src">${ic('music','color:var(--mu)')}<div class="g"><small>FROM SONG</small><b>${o.song}</b></div>${btn('Save to song')}</div>`:''}
+<div class="beats" data-beats>${M.beats.map((b,i)=>`<span data-b="${i}" class="${b==='acc'?'acc':b==='mute'?'mute':''} ${M.on&&M.beat===i?'hit':''}">${i+1}</span>`).join('')}</div><div class="bhint">Tap a beat: accent · normal · silent</div>
+<div class="bpm"><span class="r-ib" data-d="-1">−</span><div class="n"><b data-bpm>${M.bpm}</b><small>BPM</small></div><span class="r-ib" data-d="1">+</span></div><div class="mrk" data-mk>${mk(M.bpm)}</div>
+<div class="sl"><input type="range" min="30" max="260" value="${M.bpm}" data-sl aria-label="Tempo"></div>
+<div class="ctr"><div class="c"><small>TIME</small><div class="opts">${SIGS.map((s,i)=>`<span data-sig="${i}" class="${M.sig===i?'on':''}">${s[0]}/${s[1]}</span>`).join('')}</div></div><div class="c"><small>CLICKS PER BEAT</small><div class="opts">${SUB.map(([k,s],i)=>`<span data-sub="${i}" class="${M.sub===i?'on':''}">${s}</span>`).join('')}</div></div></div>
+<div class="ctr" style="grid-template-columns:1fr"><div class="c" style="padding:4px 4px 4px 12px;display:flex;align-items:center;gap:10px"><div style="flex:1"><b style="font-size:14.5px;display:block">Flash on the beat</b><small style="margin:0;letter-spacing:0;font-family:var(--r-fu);font-size:12px">Edge pulse on beat 1, for loud rooms</small></div><span data-fl>${sw(M.flash)}</span></div></div>
+<div style="height:120px"></div>
+<div class="dk2"><div class="tap" data-tap>Tap<small>TEMPO</small></div><div class="go ${M.on?'stop':''}" data-go>${M.on?`<svg class="i" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop`:`${ic('play')}Start`}</div></div><div class="flash" data-flash></div></div>${o.overlay||''}`;
+// audio
+let AC=null,next=0,step=0,timer=null;
+const ac=()=>{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC};
+let NODES=[],QUEUE=[],raf=0;
+const click=(t,kind)=>{const a=ac(),o=a.createOscillator(),g=a.createGain();NODES.push(o);o.onended=()=>{NODES=NODES.filter(x=>x!==o)};o.type='square';o.frequency.value=kind==='acc'?1760:kind==='sub'?880:1175;const v=kind==='acc'?.32:kind==='sub'?.09:.2;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.001);g.gain.exponentialRampToValueAtTime(.0001,t+.04);o.connect(g).connect(a.destination);o.start(t);o.stop(t+.05)};
+const per=()=>[1,2,3,4][M.sub];
+const sched=()=>{const a=ac();const spb=60/M.bpm*(SIGS[M.sig][1]===8?.5:1);while(next<a.currentTime+1.2){const n=M.beats.length,p=per();const bi=Math.floor(step/p)%n,sub=step%p;const k=M.beats[bi];
+ if(k!=='mute')click(next,sub?'sub':k);
+ if(!sub)QUEUE.push([next,bi,k]);
+ next+=spb/p;step++}};
+const host=()=>document.querySelector('[data-mt]');
+const vis=(bi,k)=>{if(!M.on)return;M.beat=bi;const h=host();if(!h)return;h.querySelectorAll('[data-b]').forEach((e,i)=>e.classList.toggle('hit',i===bi));if(M.flash&&bi===0){const f=h.querySelector('[data-flash]');f.classList.remove('on');void f.offsetWidth;f.classList.add('on')}};
+const loop=()=>{if(!M.on)return;const t=AC.currentTime;while(QUEUE.length&&QUEUE[0][0]<=t+.01){const [,bi,k]=QUEUE.shift();vis(bi,k)}raf=requestAnimationFrame(loop)};
+const resync=()=>{if(!M.on)return;const t=AC.currentTime;NODES.forEach(n=>{try{n.stop()}catch(e){}});NODES=[];QUEUE=[];step=0;next=t+.05;sched()};
+const start=()=>{ac();M.on=true;step=0;QUEUE=[];next=AC.currentTime+.06;timer=setInterval(sched,100);sched();re();raf=requestAnimationFrame(loop)};
+const stop=()=>{M.on=false;clearInterval(timer);cancelAnimationFrame(raf);NODES.forEach(n=>{try{n.stop()}catch(e){}});NODES=[];QUEUE=[];M.beat=-1;re()};
+const re=()=>{const h=host();h.innerHTML=phone(screen())};
+const upd=()=>{resync();const h=host();h.querySelector('[data-bpm]').textContent=M.bpm;h.querySelector('[data-mk]').textContent=mk(M.bpm);h.querySelector('[data-sl]').value=M.bpm};
+// static screens
+const k0=JSON.parse(JSON.stringify(M));
+const songScr=(()=>{M.bpm=164;const h=screen({song:'Everlong · saved at 158',back:'Everlong'});return h})();
+Object.assign(M,JSON.parse(JSON.stringify(k0)));
+const ciScr=(()=>{M.bpm=128;M.on=false;return screen({back:'Practice',overlay:`<div class="ciover"><small>COUNT-IN · 1 BAR</small><b>3</b><div class="s">Them Bones</div><span class="r-m r-muted" style="margin-top:4px">128 BPM · 4/4</span></div>`})})();
+Object.assign(M,JSON.parse(JSON.stringify(k0)));
+const setScr=`${backbar('Settings')}<div class="r-ttl"><div class="r-d r-h1">Metronome</div></div><div class="r-body">${gl('Sound')}${grp(item({title:'Click',sub:'Woodblock · Beep · Hi-hat',trail:'chev'}))}${gl('Count-in')}${grp(`<div class="ci"><div class="g"><b>Count in before a song</b><small>In practice sessions, from the song\'s BPM</small></div>${sw(true)}</div><div class="ci"><div class="g"><b>Length</b><small>1 bar</small></div>${ic('chev','color:var(--dim)')}</div>`)}${gl('Visual')}${grp(`<div class="ci"><div class="g"><b>Flash on the beat</b><small>Accented beats only</small></div>${sw(true)}</div><div class="ci"><div class="g"><b>Vibrate</b></div>${sw(true)}</div>`)}</div>`;
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Metronome · locked Oct 30 2026',h:'Keep <span>time</span>.',
+ lede:'A basic metronome beside the tuner in Sound Tools: one switch at the top, same screen shape. Built from the kit. Phone 1 plays real clicks: Start, Tap, ± and the slider all work, and tapping a beat cycles accent, normal and silent.',
+ notes:[['Same place as the tuner','Tuner | Metronome is a two-way switch at the top of Sound Tools, so both tools are one tap from any song, setlist or practice (<b>Jakob\'s Law</b>, <b>Law of Proximity</b>).'],['Big, then fine','The tempo is the biggest thing on screen. ± nudge by 1 (hold to repeat), the slider jumps, and Tap sets it from four taps. Start/Stop is the 84px dock button at the thumb (<b>Fitts\'s Law</b>).'],['Only what a band needs','Four time signatures, four subdivisions, per-beat accents. No polyrhythms or setlist automation for now (<b>Hick\'s Law</b>, <b>Occam\'s Razor</b>).'],['Knows the song','Opened from a song, it loads that song\'s BPM; changing it offers Save to song. In a practice session, an optional one-bar count-in plays before the song (<b>Doherty Threshold</b>).']],
+ rows:[[`<div class="ph"><div class="cap">1 · Metronome · try it</div><div class="capd">Start plays clicks (accent higher). The beat squares light in time; with Flash on, the screen edge pulses orange on beat 1 only. Tap tempo averages your last four taps.</div><div data-mt>${phone(screen())}</div></div>`,
+ ph('2 · From a song','Opened from Everlong: loads its saved 158 BPM. Nudged to 164 here, so <b>Save to song</b> appears and writes it back to the same field as the song editor.',songScr),
+ ph('3 · Count-in','In a practice session with count-in on: one bar counted big before the song, at the song\'s BPM. Tap anywhere to skip.',ciScr),
+ ph('4 · Metronome settings','Click sound, count-in on/off and length, flash and vibrate. Lives under Settings → Music, beside Tunings.',setScr)]]});
+// interactions
+let hold=null;
+document.addEventListener('click',e=>{const h=host();if(!h||!h.contains(e.target))return;
+ if(e.target.closest('[data-go]')){M.on?stop():start();return}
+ const b=e.target.closest('[data-b]');if(b){const i=+b.dataset.b;M.beats[i]=M.beats[i]==='acc'?'n':M.beats[i]==='n'?'mute':'acc';re();resync();return}
+ const sg=e.target.closest('[data-sig]');if(sg){setSig(+sg.dataset.sig);re();resync();return}
+ const sb=e.target.closest('[data-sub]');if(sb){M.sub=+sb.dataset.sub;re();resync();return}
+ if(e.target.closest('[data-fl]')){M.flash=!M.flash;re();return}
+ const d=e.target.closest('[data-d]');if(d){M.bpm=Math.max(30,Math.min(260,M.bpm+(+d.dataset.d)));upd();return}});
+document.addEventListener('pointerdown',e=>{const h=host();if(!h||!h.contains(e.target))return;const t=e.target.closest('[data-tap]');if(!t)return;const now=performance.now();M.taps=M.taps.filter(x=>now-x<2500);M.taps.push(now);if(M.taps.length>4)M.taps.shift();if(M.taps.length>=2){const iv=(M.taps[M.taps.length-1]-M.taps[0])/(M.taps.length-1);M.bpm=Math.max(30,Math.min(260,Math.round(60000/iv)));upd()}click(ac().currentTime,'n')});
+document.addEventListener('input',e=>{const h=host();if(!h||!h.contains(e.target)||!e.target.matches('[data-sl]'))return;M.bpm=+e.target.value;h.querySelector('[data-bpm]').textContent=M.bpm;h.querySelector('[data-mk]').textContent=mk(M.bpm);resync()});
+})();
+</script>
+</body>
+</html>

@@ -24,9 +24,9 @@ select has_column('event_hands', 'status', 'event_hands.status exists');
 select has_column('event_hands', 'role_key', 'event_hands.role_key exists');
 select ok(EXISTS(SELECT 1 FROM pg_constraint WHERE conname='event_hands_status_check'
   AND conrelid='public.event_hands'::regclass), 'event_hands.status CHECK exists');
-select ok(EXISTS(SELECT 1 FROM pg_constraint
-  WHERE conrelid='public.event_hands'::regclass AND contype='u'),
-  'event_hands has a UNIQUE constraint (one hand per person per part)');
+select ok(EXISTS(SELECT 1 FROM pg_indexes
+  WHERE schemaname='public' AND tablename='event_hands' AND indexname='event_hands_one_per_part'),
+  'event_hands has a UNIQUE index (one hand per person per part, phase 7)');
 select ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.event_hands'::regclass),
   'RLS enabled on event_hands');
 select has_column('events', 'allow_suggestions', 'events.allow_suggestions column exists');

@@ -14,32 +14,93 @@
  * accept an optional second argument that merges user entries in.
  *
  * Palette A was approved in the UI unification review (2026-04-22).
- * See `.claude/specifications/2025-10-22T14:01_design-style-guide.md`
- * "2026-04-22 Update" section for the rationale.
  */
+
+import { noteName } from '../domain/notes'
 
 export interface TuningEntry {
   id: string
   label: string
+  /** A CSS colour: `var(--tuning-…)` for built-ins, a hex for custom tunings. */
   color: string
+  /** Dark-theme hex, built-ins only. */
+  hex?: string
 }
 
 /**
- * Built-in canonical tunings — Palette A.
- * Array order IS the canonical display order (Standard, Eb, Drop D, Drop Db,
- * then the rest) — see `tuningOrderIndex` used by the song-form picker.
+ * Built-in canonical tunings. Colours are CSS variables (`--tuning-<id>` in
+ * src/index.css) so the light theme can swap in its darker shades; `hex` is the
+ * dark-theme value for places that need a literal (DB seeds, tests).
+ * Colours per design/source/DECISIONS.md, Part A · 1 (Nov 2026).
+ * Array order IS the canonical display order — see `tuningOrderIndex`.
  */
 export const CANONICAL_TUNINGS: readonly TuningEntry[] = [
-  { id: 'standard', label: 'Standard', color: '#60a5fa' },
-  { id: 'half-step-down', label: 'Half-step down', color: '#14b8a6' },
-  { id: 'drop-d', label: 'Drop D', color: '#f97316' },
-  { id: 'drop-db', label: 'Drop Db', color: '#f59e0b' },
-  { id: 'drop-c', label: 'Drop C', color: '#ef4444' },
-  { id: 'drop-b', label: 'Drop B', color: '#a855f7' },
-  { id: 'whole-step-down', label: 'Whole-step down', color: '#0ea5e9' },
-  { id: 'open-g', label: 'Open G', color: '#eab308' },
-  { id: 'open-d', label: 'Open D', color: '#ec4899' },
-  { id: 'dadgad', label: 'DADGAD', color: '#10b981' },
+  {
+    id: 'standard',
+    label: 'Standard',
+    color: 'var(--tuning-standard)',
+    hex: '#60a5fa',
+  },
+  {
+    id: 'half-step-down',
+    label: 'Half-step down',
+    color: 'var(--tuning-half-step-down)',
+    hex: '#14b8a6',
+  },
+  {
+    id: 'drop-d',
+    label: 'Drop D',
+    color: 'var(--tuning-drop-d)',
+    hex: '#84cc16',
+  },
+  {
+    id: 'drop-db',
+    label: 'Drop Db',
+    color: 'var(--tuning-drop-db)',
+    hex: '#f59e0b',
+  },
+  {
+    id: 'drop-c',
+    label: 'Drop C',
+    color: 'var(--tuning-drop-c)',
+    hex: '#d946ef',
+  },
+  {
+    id: 'drop-b',
+    label: 'Drop B',
+    color: 'var(--tuning-drop-b)',
+    hex: '#a855f7',
+  },
+  {
+    id: 'whole-step-down',
+    label: 'Whole-step down',
+    color: 'var(--tuning-whole-step-down)',
+    hex: '#0ea5e9',
+  },
+  {
+    id: 'c-standard',
+    label: 'C Standard',
+    color: 'var(--tuning-c-standard)',
+    hex: '#8b5cf6',
+  },
+  {
+    id: 'open-g',
+    label: 'Open G',
+    color: 'var(--tuning-open-g)',
+    hex: '#eab308',
+  },
+  {
+    id: 'open-d',
+    label: 'Open D',
+    color: 'var(--tuning-open-d)',
+    hex: '#ec4899',
+  },
+  {
+    id: 'dadgad',
+    label: 'DADGAD',
+    color: 'var(--tuning-dadgad)',
+    hex: '#10b981',
+  },
 ] as const
 
 /**
@@ -54,7 +115,7 @@ export function tuningOrderIndex(slug: string | null | undefined): number {
 }
 
 /** Fallback color for custom / unrecognized tunings. */
-export const FALLBACK_TUNING_COLOR = '#6b7280'
+export const FALLBACK_TUNING_COLOR = 'var(--tuning-unknown)'
 
 /**
  * Normalize a free-text tuning string so legacy label drift all resolves
@@ -87,6 +148,7 @@ export function canonicalTuningId(input: string | undefined | null): string {
     return 'drop-db'
   if (dashed === 'drop-c') return 'drop-c'
   if (dashed === 'drop-b') return 'drop-b'
+  if (['c-standard', 'c-std'].includes(dashed)) return 'c-standard'
 
   // ½-step down is commonly labelled "Eb Standard" / "Eb".
   if (
@@ -130,7 +192,8 @@ export function tuningColor(
   tuning: string | undefined | null,
   extraTunings?: readonly TuningEntry[]
 ): string {
-  const id = canonicalTuningId(tuning)
+  const slug = builtinSlugOf(tuning)
+  const id = slug ? (SAME_SHAPE[slug] ?? slug) : canonicalTuningId(tuning)
   const registry = extraTunings
     ? [...CANONICAL_TUNINGS, ...extraTunings]
     : CANONICAL_TUNINGS
@@ -150,15 +213,6 @@ export function tuningLabel(
   const entry = registry.find(t => t.id === id)
   // Fall back to the raw input if it's a custom tuning; default to "Standard"
   return entry?.label ?? tuning ?? 'Standard'
-}
-
-/**
- * Convenience list of labels for rendering a <select> of tunings in song
- * creation / editing UIs. Returns just the built-in labels in registry
- * order.
- */
-export function builtInTuningLabels(): string[] {
-  return CANONICAL_TUNINGS.map(t => t.label)
 }
 
 // ── Full built-in tuning data (mirrors the seed in the tunings migration) ─────
@@ -190,7 +244,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'guitar',
     stringCount: 6,
     pitches: [38, 45, 50, 55, 59, 64],
-    color: '#f97316',
+    color: '#84cc16',
   },
   {
     slug: 'drop-db',
@@ -222,7 +276,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'guitar',
     stringCount: 6,
     pitches: [36, 43, 48, 53, 57, 62],
-    color: '#ef4444',
+    color: '#d946ef',
   },
   {
     slug: 'drop-b',
@@ -256,6 +310,14 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     pitches: [38, 45, 50, 55, 57, 62],
     color: '#10b981',
   },
+  {
+    slug: 'c-standard',
+    name: 'C Standard',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [36, 41, 46, 51, 55, 60],
+    color: '#8b5cf6',
+  },
   // Guitar (extended range)
   {
     slug: 'standard-7',
@@ -263,7 +325,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'guitar',
     stringCount: 7,
     pitches: [35, 40, 45, 50, 55, 59, 64],
-    color: null,
+    color: '#60a5fa',
   },
   {
     slug: 'standard-8',
@@ -271,6 +333,38 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'guitar',
     stringCount: 8,
     pitches: [30, 35, 40, 45, 50, 55, 59, 64],
+    color: '#60a5fa',
+  },
+  {
+    slug: 'drop-a-7',
+    name: '7-string Drop A',
+    instrument: 'guitar',
+    stringCount: 7,
+    pitches: [33, 40, 45, 50, 55, 59, 64],
+    color: '#84cc16',
+  },
+  {
+    slug: 'a-standard-7',
+    name: '7-string A Standard',
+    instrument: 'guitar',
+    stringCount: 7,
+    pitches: [33, 38, 43, 48, 53, 57, 62],
+    color: '#0ea5e9',
+  },
+  {
+    slug: 'drop-g-sharp-7',
+    name: '7-string Drop G#',
+    instrument: 'guitar',
+    stringCount: 7,
+    pitches: [32, 39, 44, 49, 54, 58, 63],
+    color: '#f59e0b',
+  },
+  {
+    slug: 'b-standard-baritone',
+    name: 'Baritone B Standard',
+    instrument: 'guitar',
+    stringCount: 6,
+    pitches: [35, 40, 45, 50, 54, 59],
     color: null,
   },
   // Bass
@@ -280,7 +374,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'bass',
     stringCount: 4,
     pitches: [28, 33, 38, 43],
-    color: null,
+    color: '#60a5fa',
   },
   {
     slug: 'bass-drop-d',
@@ -288,7 +382,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'bass',
     stringCount: 4,
     pitches: [26, 33, 38, 43],
-    color: null,
+    color: '#84cc16',
   },
   {
     slug: 'bass-eb',
@@ -296,7 +390,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'bass',
     stringCount: 4,
     pitches: [27, 32, 37, 42],
-    color: null,
+    color: '#14b8a6',
   },
   {
     slug: 'bass-5',
@@ -304,7 +398,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'bass',
     stringCount: 5,
     pitches: [23, 28, 33, 38, 43],
-    color: null,
+    color: '#60a5fa',
   },
   {
     slug: 'bass-6',
@@ -312,26 +406,90 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
     instrument: 'bass',
     stringCount: 6,
     pitches: [23, 28, 33, 38, 43, 48],
-    color: null,
+    color: '#60a5fa',
   },
 ] as const
 
 /** MIDI note number → note name with octave (flats for accidentals, e.g. Eb3). */
 export function midiToNoteName(midi: number): string {
-  const names = [
-    'C',
-    'Db',
-    'D',
-    'Eb',
-    'E',
-    'F',
-    'Gb',
-    'G',
-    'Ab',
-    'A',
-    'Bb',
-    'B',
-  ]
-  const octave = Math.floor(midi / 12) - 1
-  return `${names[((midi % 12) + 12) % 12]}${octave}`
+  return noteName(midi)
+}
+
+/** MIDI pitches → note names with the octave dropped, e.g. "E A D G B E". */
+export function pitchNames(pitches: number[]): string {
+  return pitches.map(p => midiToNoteName(p).replace(/\d+$/, '')).join(' ')
+}
+
+/**
+ * Pill labels, the way players say them (design/source/kit/rock.js SPINE), by
+ * the lowest string's root. Extended range adds the string count as a
+ * superscript (DECISIONS · Extended-range naming): B STD⁷ is a 7-string, B STD
+ * the 6-string baritone. 4-string bass has none.
+ */
+const SHORT_LABELS: Record<string, string> = {
+  standard: 'E STD',
+  'half-step-down': 'E♭ STD',
+  'whole-step-down': 'D STD',
+  'drop-d': 'D DROP',
+  'drop-db': 'D♭ DROP',
+  'drop-c': 'C DROP',
+  'drop-b': 'B DROP',
+  'c-standard': 'C STD',
+  'open-g': 'G OPEN',
+  'open-d': 'D OPEN',
+  dadgad: 'DADGAD',
+  'standard-7': 'B STD⁷',
+  'drop-a-7': 'A DROP⁷',
+  'a-standard-7': 'A STD⁷',
+  'drop-g-sharp-7': 'G♯ DROP⁷',
+  'standard-8': 'F♯ STD⁸',
+  'b-standard-baritone': 'B STD',
+  'bass-standard': 'E STD',
+  'bass-drop-d': 'D DROP',
+  'bass-eb': 'E♭ STD',
+  'bass-5': 'B STD⁵',
+  'bass-6': 'B STD⁶',
+}
+
+/**
+ * Extended-range built-ins take the colour of the 6-string tuning with the
+ * same shape (decision 15); the baritone has none (grey).
+ */
+const SAME_SHAPE: Record<string, string> = {
+  'standard-7': 'standard',
+  'standard-8': 'standard',
+  'bass-standard': 'standard',
+  'bass-5': 'standard',
+  'bass-6': 'standard',
+  'drop-a-7': 'drop-d',
+  'bass-drop-d': 'drop-d',
+  'drop-g-sharp-7': 'drop-db',
+  'a-standard-7': 'whole-step-down',
+  'bass-eb': 'half-step-down',
+}
+
+/**
+ * A built-in's slug from its slug or name ("7-string standard" → standard-7),
+ * before the legacy-label normalizer (which folds every "standard…" into E
+ * standard). Null when it isn't a built-in's exact slug or name.
+ */
+export function builtinSlugOf(
+  tuning: string | undefined | null
+): string | null {
+  const v = tuning?.trim().toLowerCase()
+  if (!v) return null
+  const t = BUILTIN_TUNINGS.find(
+    b => b.slug === v || b.name.toLowerCase() === v
+  )
+  return t?.slug ?? null
+}
+
+/** Short pill label: "E STD", "B STD⁷"; custom tunings show their name. */
+export function tuningShortLabel(tuning: string | undefined | null): string {
+  const slug = builtinSlugOf(tuning)
+  return (
+    (slug && SHORT_LABELS[slug]) ??
+    SHORT_LABELS[canonicalTuningId(tuning)] ??
+    (tuning ?? 'Standard').toUpperCase()
+  )
 }

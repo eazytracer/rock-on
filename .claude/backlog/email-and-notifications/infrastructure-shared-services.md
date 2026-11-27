@@ -111,8 +111,8 @@ aren't themselves deployed but are imported by deployed functions.
 
 ### 2.2 Auth mode policy
 
-Per CLAUDE.md § "Edge Function Policy", every function has a row in
-`supabase/functions/FUNCTIONS.md`. Both email-sending functions MUST
+Per CLAUDE.md § "Edge Function Policy", every function has an entry in
+the `AUTH_MODE` map in `scripts/deploy-edge-functions.sh`. Both email-sending functions MUST
 be deployed with `--verify-jwt` (the default). Rationale:
 
 - Only authenticated users should be able to trigger email sends
@@ -340,7 +340,7 @@ source .env.supabase.local
 ./scripts/deploy-edge-functions.sh send-event-invite
 ```
 
-This reads `FUNCTIONS.md` and picks the correct `--verify-jwt` /
+This reads its `AUTH_MODE` map and picks the correct `--verify-jwt` /
 `--no-verify-jwt` flag. Never `supabase functions deploy` directly.
 
 Post-deploy, always run:
@@ -634,7 +634,7 @@ npm run start:dev    # Starts Supabase + edge functions runtime + Vite
 `scripts/start-dev.sh` automatically launches `supabase functions
 serve --no-verify-jwt` in the background (logs → `/tmp/edge-functions.log`).
 Note: the `--no-verify-jwt` flag applies ONLY in local dev for
-convenience; deployment uses the per-function flag from `FUNCTIONS.md`.
+convenience; deployment uses the per-function flag from the deploy script's `AUTH_MODE` map.
 
 To invoke locally from the browser/client:
 

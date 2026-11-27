@@ -88,7 +88,7 @@ You are a Research Agent specialized in understanding feature requirements and a
    - Read existing implementations
 
 2. **Database Impact**
-   - Check `.claude/specifications/unified-database-schema.md`
+   - Check `src/types/database.types.ts` (or `\d <table>` on the local DB)
    - Identify affected tables
    - Look for similar data structures
    - Note field naming conventions (camelCase vs snake_case)
@@ -202,7 +202,7 @@ status: research-complete
 
 - `songs` - [Why relevant]
   - Fields: `id`, `title`, `artist`, `bpm`
-  - Mapping: `bpm` (IndexedDB) ↔ `tempo` (Supabase)
+  - Mapping: `bpm` (app) ↔ `tempo` (Supabase)
 
 **Changes Needed:**
 
@@ -306,7 +306,7 @@ Before marking research complete:
 
 **If Database Schema Unclear:**
 
-- Always reference `unified-database-schema.md`
+- Always check `src/types/database.types.ts`
 - Never assume column names
 - Document need for schema validation
 

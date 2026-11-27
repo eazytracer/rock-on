@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Calendar &amp; shows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<style>
+.cal .r-item{min-height:64px}
+.cal .r-item small{white-space:normal}
+.tyb{display:inline-flex;align-items:center;gap:5px;font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;color:var(--mu);margin-top:3px}
+.tyb svg.i{width:13px;height:13px;stroke-width:2.2}
+.tyb.show{color:var(--ty-show)}.tyb.prac{color:var(--ty-prac)}.tyb.evt{color:var(--ty-evt)}
+.tyb .cf{color:var(--ok)}.tyb .cx{color:var(--err,#ff5d5d)}
+.past{opacity:.6}
+.cxl b{text-decoration:line-through;color:var(--mu)}
+.tyo{display:flex;flex-direction:column;gap:8px}
+.tyo .o{display:flex;align-items:center;gap:14px;min-height:64px;padding:0 16px;border-radius:18px;background:var(--s2)}
+.tyo .o .ico{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--s3)}
+.tyo .o .ico svg.i{width:20px;height:20px}
+.tyo .o b{display:block;font-size:16px}.tyo .o small{font-size:12.5px;color:var(--mu)}
+.chk{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px}
+.chk .bx{width:26px;height:26px;border-radius:8px;background:var(--ok);color:#06140c;display:grid;place-items:center}
+.chk .bx svg.i{width:16px;height:16px;stroke-width:3}
+.chk .g{flex:1}.chk b{display:block;font-size:15px}.chk small{font-size:12.5px;color:var(--mu)}
+.ft2{display:grid;grid-template-columns:1fr 1fr}
+.ft2 .r-item{min-height:56px}
+.ft2 .r-item+.r-item{box-shadow:-1px 0 0 var(--div)}
+.cont .r-item .tr+.tr{margin-left:-6px}
+.att{display:flex;gap:16px;padding:12px 16px 14px}
+.att div{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.att small{font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;color:var(--mu)}
+.rsvp{display:flex;gap:6px;padding:0 12px 12px}
+.rsvp span{flex:1;height:44px;border-radius:14px;background:var(--s2);display:grid;place-items:center;font-weight:700;font-size:14px}
+.rsvp span.on{background:var(--acc);color:var(--onacc)}
+.cpy{display:flex;align-items:center;gap:8px;padding:10px 16px;font-size:13px;color:var(--mu);border-bottom:1px solid var(--div)}
+.cpy svg.i{width:15px;height:15px}.cpy u{margin-left:auto;color:var(--accink);text-decoration:none;font-weight:700}
+.sx{display:flex;gap:8px;padding:12px}
+.sx .r-btn{flex:1}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,tp,row,grp,gl,item,srow,sheet,dialog,banner,empty,phone,tpl,appbar,nav,title,sec,retune,T,SONGS:S}=R,{ph,page}=Draft;
+const av=(ini,k)=>`<span class="av" style="background:${T[k].dark}">${ini}</span>`;
+const db=(m,d,dw)=>`<div class="db"><small>${m}</small><b>${d}</b><small style="margin-top:2px">${dw}</small></div>`;
+const ty={show:'SHOW',prac:'PRACTICE',evt:'JAM'};
+const ci=(m,d,dw,t,sub,k,st='',cls='')=>`<div class="${cls}">${item({lead:db(m,d,dw),title:t,sub:sub+`<br><span class="tyb ${k}">${ic({show:'ticket',prac:'cal',evt:'party'}[k])}${ty[k]}${st==='cf'?' · <span class="cf">CONFIRMED</span>':st==='cx'?' · <span class="cx">CANCELLED</span>':''}</span>`,trail:'moreh'})}</div>`;
+const agenda=(f=0)=>{const up=[ci('NOV','5','THU','Thursday run','7:00 PM · Mike\'s Garage','prac'),ci('NOV','7','SAT','Fall Kickoff','8:30 PM · The Crocodile','show','cf'),ci('NOV','12','THU','Thursday run','7:00 PM · Mike\'s Garage','prac'),ci('NOV','14','SAT','Birthday Jam','7:00 PM · Mike\'s Garage','evt'),ci('NOV','21','SAT','Halloween Bash','9:00 PM · Neumos','show','cx','cxl')];
+ const ps=[ci('OCT','29','THU','Thursday run','7:00 PM · Mike\'s Garage','prac','','past'),ci('OCT','10','SAT','Lucky\'s open mic','8:00 PM · Lucky\'s','show','cf','past')];
+ const pick=a=>f===0?a:a.filter(x=>x.includes(['','tyb show','tyb prac','tyb evt'][f]));
+ return {up:pick(up),ps:pick(ps)}};
+const calScr=(f=0,o={})=>{const a=agenda(f);return tpl.list({title:'Calendar',tools:['All','Shows','Practices','Jams'].map((l,i)=>chip(l,{on:i===f})).join('')+(f===3?chip('Join with a code',{icon:'qr'}):''),
+ body:`<div class="cal">${gl('Upcoming')}${grp(a.up.join(''))}${gl('Past')}${grp(a.ps.join(''))}</div><div style="height:120px"></div>`,fab:['New','New show','New practice','New jam'][f],nav:3,overlay:o.overlay||''})};
+const typeSheet=sheet({title:'New',body:`<div class="tyo">${[['cal','Show','A gig with a venue, set and pay'],['clock','Practice','Time, place and songs to work on'],['party','Jam','Open stage with guests, lineup and requests']].map(([i,t,s])=>`<div class="o"><span class="ico">${ic(i)}</span><div><b>${t}</b><small>${s}</small></div></div>`).join('')}</div>`});
+const rowMenu=sheet({title:'Thursday run',sub:'Practice · Thu, Nov 5 · 7:00 PM',body:srow({icon:'open',label:'Open'})+srow({icon:'copy',label:'Duplicate',sub:'Same songs and place, next week by default'})+srow({icon:'trash',label:'Delete…',cls:'dng'})});
+const calEmpty=tpl.list({title:'Calendar',tools:['All','Shows','Practices','Jams'].map((l,i)=>chip(l,{on:i===0})).join(''),body:empty('cal','Nothing on the calendar','Book your next gig or get a practice in.',`<div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px">${btn('Book a show',{kind:'pri',size:'lg',icon:'plus'})}${btn('Schedule practice',{size:'lg',icon:'plus'})}</div>`),nav:3});
+// show page
+const set=['as','aag','mw','ev','mb'];
+const SS=Object.assign({},S,{as:{title:'All Star',artist:'Smash Mouth',tun:'std',dur:'3:14'}});
+const setRows=()=>{let h='',prev=null;set.forEach((id,i)=>{const s=SS[id];if(prev&&prev!==s.tun)h+=retune(prev,s.tun);prev=s.tun;h+=row(s,{n:i+1,compact:true,view:{links:false}})});return h};
+const showBody=(cx)=>`${cx?banner('x','Cancelled','Kept on the calendar, struck through. Undo from the menu.','alert'):''}
+${grp(`<div class="chk"><span class="bx" style="${cx?'background:var(--s3);color:var(--mu)':''}">${ic('check')}</span><div class="g"><b>Confirmed</b><small>Venue has said yes</small></div></div>`)}
+${gl('When')}${grp(item({lead:ic('cal','color:var(--mu)'),title:'Sat, Nov 7 · 8:30 PM',sub:'45 min set'})+`<div class="ft2">${item({title:'6:30 PM',sub:'Load-in'})}${item({title:'7:15 PM',sub:'Soundcheck'})}</div>`)}
+${gl('Venue')}${grp(item({lead:ic('home','color:var(--mu)'),title:'The Crocodile',sub:'2505 1st Ave, Seattle',trail:'open'})+item({lead:'<span style="width:24px;font-family:var(--r-fm);font-size:13px;color:var(--mu);text-align:center">$</span>',title:'$300',sub:'Pay · split 3 ways'}))}
+${gl('Contacts',{label:'ADD',icon:'plus'})}<div class="cont">${grp(item({lead:av('J','whole'),title:'Jess Park',sub:'Booking · The Crocodile',trail:'phone'}).replace('</div></div>',`</div><span class="tr">${ic('mail','width:18px;height:18px')}</span></div>`))}</div>
+${gl('Set',{label:'EDIT SET',icon:'edit'})}${grp(`<div class="cpy">${ic('copy')}Copied from Fall Set · Oct 28<u>Re-copy</u></div><div class="r-tot" style="padding:10px 16px"><span><b>5</b> songs</span><span><b>2</b> retunes</span><span class="over"><b>52</b> of 45 min</span></div>${setRows()}`)}
+${gl('Who\'s going')}${grp(`<div class="att"><div><small>GOING · 2</small><div class="avs">${av('E','std')}${av('S','dd')}</div></div><div><small>MAYBE · 1</small><div class="avs">${av('M','half')}</div></div><div><small>CAN'T · 0</small></div></div><div class="rsvp"><span class="on">Going</span><span>Maybe</span><span>Can't</span></div>`)}
+${gl('Notes')}${grp(`<div style="padding:12px 16px;font-size:14px;color:var(--tx2)">Bring the backup snare. Parking behind the venue after 6.</div>`)}<div style="height:100px"></div>`;
+const show=(cx,o={})=>tpl.detail({back:'Calendar',right:ib('share')+ib('moreh'),kicker:cx?'Show · cancelled':'Show · in 6 days',title:cx?'<s style="text-decoration-thickness:4px;color:var(--mu)">Halloween Bash</s>':'Fall Kickoff',
+ facts:`<div class="r-facts" style="padding:0 20px 14px"><div class="f"><small>DATE</small><b>NOV 7</b></div><div class="f"><small>START</small><b>8:30</b></div><div class="f"><small>SET</small><b>45 MIN</b></div></div>`,
+ body:showBody(cx),cta:cx?'':btn('Open set',{kind:'pri',size:'lg',icon:'list'}).replace('r-btn pri','r-btn pri w'),overlay:o.overlay||''});
+const attach=sheet({title:'Add a set',sub:'The show gets its own copy. Edits here never change the setlist.',body:srow({icon:'plus',label:'New set for this show'})+`<div class="r-label" style="margin:10px 4px 4px">COPY FROM A SETLIST</div>`+srow({icon:'list',label:'Fall Set',sub:'9 songs · 50 min',aside:'Copy'})+srow({icon:'list',label:'Birthday Jam',sub:'12 songs · 48 min',aside:'Copy'})+srow({icon:'list',label:'Acoustic Sunday',sub:'6 songs · 24 min',aside:'Copy'})});
+const noSet=tpl.detail({back:'Calendar',right:ib('moreh'),kicker:'Show · in 16 days',title:'Neumos',facts:'',body:gl('Set')+grp(`<div class="sx">${btn('Copy a setlist',{kind:'pri',icon:'copy'})}${btn('New set',{icon:'plus'})}</div>`)+'<div style="height:300px"></div>',overlay:attach});
+const offline=tpl.detail({back:'Calendar',right:ib('moreh'),kicker:'Show · tonight',title:'Fall Kickoff',facts:'',body:banner('offline','You\'re offline','Showing the copy saved on this phone. Changes sync when you\'re back.','warn')+gl('Set')+grp(`<div class="r-tot" style="padding:10px 16px"><span><b>5</b> songs</span><span class="over"><b>52</b> of 45 min</span></div>${setRows()}`),cta:btn('Open set',{kind:'pri',size:'lg',icon:'play'}).replace('r-btn pri','r-btn pri w')});
+const del=dialog('Delete Fall Kickoff?','The show, its set copy, contacts and RSVPs go. Fall Set itself is untouched. If it\'s just off, mark it Cancelled instead.','Keep','Delete');
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Calendar &amp; shows · locked Oct 30 2026',h:'On the <span>calendar</span>.',
+ lede:'The Calendar tab and the show page, against <span style="font-family:\'Martian Mono\';font-size:13px">calendar.md</span>, <span style="font-family:\'Martian Mono\';font-size:13px">show.md</span> and workflow 07. Filters replace separate shows and practices lists (spec Must not). Practice pages are in source/Practice.html.',
+ notes:[['One agenda, three types','Shows, practices and events in one list, soonest first, Past below. Each row carries a small icon and word: ticket = show (in accent, the one you can\'t miss), calendar = practice, party popper = event. Never colour alone (<b>Law of Similarity</b>, <b>Jakob\'s Law</b>: same icons as today\'s app).'],['New knows the filter','On All, New asks which type. On a filter, it creates that type straight away (spec). One less question when you already said (<b>Hick\'s Law</b>).'],['Show edits in place','Every field is tappable; there\'s no Edit mode. Confirmed is a checkbox, Cancelled strikes it through and keeps it. No other statuses (spec Must not, <b>Tesler\'s Law</b>).'],['The set is a copy','"Copied from Fall Set" with Re-copy, so show edits never leak back. "52 of 45 min" turns yellow when it\'s over. Open set goes to the setlist editor in clock time (<b>Mental Model</b>).']],
+ rows:[[ph('1 · Calendar · All','Date block, title, time and place, type and status. Cancelled rows strike through. Past rows dim. The ⋯ opens the row menu.',calScr(0)),
+ ph('2 · New on All','The FAB says "New" on All and opens the type picker. On Shows it reads "New show" and skips this.',calScr(0,{overlay:typeSheet})),
+ ph('3 · Jams filter','On Jams the toolbar adds <b>Join with a code</b> (spec). FAB reads "New jam".',calScr(3)),
+ ph('4 · Row menu','Open, Duplicate (shows and practices), Delete with confirmation.',calScr(0,{overlay:rowMenu}))],
+ [ph('5 · Show','Confirmed, when (load-in, soundcheck), venue with directions, pay, contacts (tap to call or email), the set copy, RSVP, notes. <b>Open set</b> is docked and opens the setlist editor in clock time (a stage view comes later).',show(false)),
+ ph('6 · Show · cancelled','Struck through and kept. A banner says how to undo. No Open set.',show(true)),
+ ph('7 · Show · no set yet','Two ways in: copy a setlist (most common, so primary) or start a new set. The sheet says up front that it\'s a copy.',noSet),
+ ph('8 · Offline · light','Stage-adjacent screens work from the saved copy. The banner says what\'s happening and when it syncs.',offline,{theme:'light'})],
+ [ph('9 · Delete','Confirms what goes and what doesn\'t, and points to Cancelled as the gentler option.',show(false,{overlay:del})),
+ ph('10 · Calendar empty','"Nothing on the calendar" with Book a show and Schedule practice, full width.',calEmpty)]]});
+})();
+</script>
+</body>
+</html>

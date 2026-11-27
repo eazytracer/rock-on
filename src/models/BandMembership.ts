@@ -1,8 +1,10 @@
+import type { User, UserProfile } from './User'
+
 export interface BandMembership {
   id: string
   userId: string
   bandId: string
-  role: 'admin' | 'member' | 'viewer'
+  role: 'owner' | 'admin' | 'member' | 'viewer'
   joinedDate: Date
   status: 'active' | 'pending' | 'inactive'
   permissions: string[]
@@ -15,7 +17,7 @@ export interface BandMembershipRow {
   id: string
   user_id: string
   band_id: string
-  role: 'admin' | 'member' | 'viewer'
+  role: 'owner' | 'admin' | 'member' | 'viewer'
   joined_date: string
   status: 'active' | 'pending' | 'inactive'
   permissions: string[] | null
@@ -33,23 +35,9 @@ export interface InviteCode {
   isActive: boolean
 }
 
-export const BandMembershipSchema = {
-  '++id': '',
-  userId: '',
-  bandId: '',
-  role: '',
-  joinedDate: '',
-  status: '',
-  '*permissions': '',
-}
-
-export const InviteCodeSchema = {
-  '++id': '',
-  bandId: '',
-  code: '',
-  createdBy: '',
-  expiresAt: '',
-  maxUses: '',
-  currentUses: '',
-  createdDate: '',
+/** A band membership joined with the member's user row and profile */
+export interface BandMemberWithProfile {
+  membership: BandMembership
+  user: User | null
+  profile: UserProfile | null
 }

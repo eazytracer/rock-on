@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { User } from '../../models/User'
 import { getSupabaseClient } from '../supabase/client'
-import { db } from '../database'
 import {
   IAuthService,
   AuthSession,
@@ -10,13 +8,16 @@ import {
   AuthResponse,
   AuthChangeEvent,
   AuthStateChangeCallback,
+  OAuthProvider,
 } from './types'
 import type {
   AuthChangeEvent as SupabaseAuthChangeEvent,
   Session as SupabaseSession,
 } from '@supabase/supabase-js'
-import { getSyncRepository } from '../data/SyncRepository'
 import { sanitizeReturnTo } from '../../utils/returnTo'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('SupabaseAuthService')
 
 export class SupabaseAuthService implements IAuthService {
   private supabase
@@ -45,8 +46,17 @@ export class SupabaseAuthService implements IAuthService {
       ? await this.mapSupabaseSession(supabaseSession)
       : null
 
-    // CRITICAL: Sync user to local database BEFORE notifying listeners
-    // This ensures bands/memberships are in IndexedDB when AuthContext tries to load them
+    // A recovery link that landed anywhere but the reset screen (e.g. the
+    // hosted Site URL fallback) must still end on Set new password.
+    if (
+      event === 'PASSWORD_RECOVERY' &&
+      window.location.pathname !== '/auth/reset'
+    ) {
+      window.location.assign('/auth/reset')
+      return
+    }
+
+    // CRITICAL: Ensure the user row exists in Supabase BEFORE notifying listeners
     if (session && event === 'SIGNED_IN') {
       await this.syncUserToLocalDB(session.user)
     }
@@ -97,160 +107,51 @@ export class SupabaseAuthService implements IAuthService {
 
   private async ensureUserInSupabase(user: User): Promise<void> {
     try {
-      // Use upsert (INSERT ... ON CONFLICT UPDATE) to handle race conditions
-      const { error } = await this.supabase
+      // Create the row if missing, then refresh it. Not a single
+      // ON CONFLICT DO UPDATE: that reads excluded.email, and clients have no
+      // SELECT on users.email (privacy_lockdown migration).
+      const row = {
+        email: user.email,
+        name: user.name,
+        last_login: new Date(),
+        auth_provider: user.authProvider || 'email',
+      }
+      let { error } = await this.supabase
         .from('users')
         // @ts-expect-error - Supabase generated types are overly strict
         .upsert(
-          {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            created_date: user.createdDate || new Date(),
-            last_login: new Date(),
-            auth_provider: user.authProvider || 'email',
-          },
-          {
-            onConflict: 'id',
-            ignoreDuplicates: false, // Update on conflict
-          }
+          { id: user.id, created_date: user.createdDate || new Date(), ...row },
+          { onConflict: 'id', ignoreDuplicates: true }
         )
+      if (!error) {
+        ;({ error } = await this.supabase
+          .from('users')
+          // @ts-expect-error - Supabase generated types are overly strict
+          .update(row)
+          .eq('id', user.id))
+      }
 
       if (error) {
-        console.error('⚠️ Failed to sync user to Supabase public.users:', error)
-        // Don't throw - log and continue. User can still use the app offline.
+        log.error('Failed to sync user to Supabase public.users:', error)
+        // Don't throw - log and continue.
         // Band creation will fail until this succeeds, but app should still load.
       }
     } catch (error) {
-      console.error('⚠️ Error ensuring user in Supabase:', error)
+      log.error('Error ensuring user in Supabase:', error)
       // Don't throw - this shouldn't block app initialization
     }
   }
 
+  /**
+   * Provision the signed-in user. The only durable side effect needed at
+   * sign-in is ensuring the user row exists in Supabase `public.users`, which
+   * foreign keys (e.g. bands.created_by) depend on.
+   */
   private async syncUserToLocalDB(user: User): Promise<void> {
     try {
-      // CRITICAL: First, ensure user exists in Supabase public.users table
-      // This is required for foreign key constraints (bands.created_by references users.id)
       await this.ensureUserInSupabase(user)
-
-      // Check if user exists in local DB
-      const existingUser = await db.users.get(user.id)
-
-      if (existingUser) {
-        // Update last login
-        await db.users.update(user.id, { lastLogin: new Date() })
-      } else {
-        // Add user to local DB using put (upsert) to handle race conditions
-        await db.users.put(user)
-
-        // Check if profile exists before creating
-        const existingProfile = await db.userProfiles
-          .where('userId')
-          .equals(user.id)
-          .first()
-        if (!existingProfile) {
-          // Create user profile only if it doesn't exist
-          await db.userProfiles.add({
-            id: crypto.randomUUID(),
-            userId: user.id,
-            displayName: user.name,
-            instruments: [],
-            createdDate: new Date(),
-            updatedDate: new Date(),
-          })
-        }
-      }
-
-      // CRITICAL: Sync user's bands and memberships from Supabase to IndexedDB
-      await this.syncUserBandsFromSupabase(user.id)
-
-      // Perform initial sync if needed (downloads songs, setlists, practices)
-      const syncRepo = getSyncRepository()
-      const needsSync = await syncRepo.isInitialSyncNeeded()
-
-      if (needsSync) {
-        console.log('🔄 Initial sync needed, downloading all data...')
-        await syncRepo.performInitialSync(user.id)
-        console.log('✅ Initial sync complete')
-      } else {
-        // Set current user for periodic sync even if initial sync not needed
-        const syncEngine = (syncRepo as any).syncEngine
-        if (syncEngine && syncEngine.setCurrentUser) {
-          syncEngine.setCurrentUser(user.id)
-        }
-        console.log('ℹ️ Initial sync not needed, data already synced')
-      }
     } catch (error) {
-      console.error('Failed to sync user to local DB:', error)
-    }
-  }
-
-  private async syncUserBandsFromSupabase(userId: string): Promise<void> {
-    try {
-      // Fetch user's band memberships from Supabase
-      const { data: memberships, error: membershipsError } = await this.supabase
-        .from('band_memberships')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-
-      if (membershipsError) {
-        console.error(
-          'Failed to fetch band memberships from Supabase:',
-          membershipsError
-        )
-        return
-      }
-
-      if (!memberships || memberships.length === 0) {
-        console.log('No band memberships found in Supabase for user:', userId)
-        return
-      }
-
-      // Fetch the associated bands
-      const bandIds = (memberships as any[]).map((m: any) => m.band_id)
-      const { data: bands, error: bandsError } = await this.supabase
-        .from('bands')
-        .select('*')
-        .in('id', bandIds)
-
-      if (bandsError) {
-        console.error('Failed to fetch bands from Supabase:', bandsError)
-        return
-      }
-
-      // Store bands in IndexedDB
-      for (const band of (bands as any[]) || []) {
-        await db.bands.put({
-          id: band.id,
-          name: band.name,
-          description: band.description || '',
-          createdDate: new Date(
-            band.created_date || band.createdDate || new Date()
-          ),
-          settings: band.settings || {},
-          memberIds: [], // Will be populated from memberships
-        })
-      }
-
-      // Store band memberships in IndexedDB
-      for (const membership of memberships as any[]) {
-        await db.bandMemberships.put({
-          id: membership.id,
-          bandId: membership.band_id,
-          userId: membership.user_id,
-          role: membership.role,
-          permissions: membership.permissions || [],
-          status: membership.status,
-          joinedDate: new Date(membership.joined_date),
-        })
-      }
-
-      console.log(
-        `Synced ${bands?.length || 0} bands and ${memberships.length} memberships to IndexedDB for user: ${userId}`
-      )
-    } catch (error) {
-      console.error('Failed to sync bands from Supabase:', error)
+      log.error('Failed to provision user in Supabase:', error)
     }
   }
 
@@ -263,12 +164,7 @@ export class SupabaseAuthService implements IAuthService {
       // AuthCallback page can finish signing them in. If a safe same-origin
       // returnTo was supplied (e.g. an event join URL), carry it across the
       // emailed link so it survives verification. Unsafe values are dropped.
-      const safeReturnTo = sanitizeReturnTo(returnTo)
-      const emailRedirectTo = safeReturnTo
-        ? `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(
-            safeReturnTo
-          )}`
-        : `${window.location.origin}/auth/callback`
+      const emailRedirectTo = callbackUrl(returnTo)
 
       const { data, error } = await this.supabase.auth.signUp({
         email: credentials.email,
@@ -329,7 +225,7 @@ export class SupabaseAuthService implements IAuthService {
         session,
       }
     } catch (error) {
-      console.error('Sign up error:', error)
+      log.error('Sign up error:', error)
       return {
         user: null,
         session: null,
@@ -370,7 +266,7 @@ export class SupabaseAuthService implements IAuthService {
         session,
       }
     } catch (error) {
-      console.error('Sign in error:', error)
+      log.error('Sign in error:', error)
       return {
         user: null,
         session: null,
@@ -380,15 +276,13 @@ export class SupabaseAuthService implements IAuthService {
   }
 
   async signOut(): Promise<void> {
-    console.log('🔓 Signing out from Supabase...')
-
     let signOutError: Error | null = null
 
     try {
       // Sign out from Supabase (clears session from their storage)
       await this.supabase.auth.signOut()
     } catch (error) {
-      console.error('Supabase sign out error:', error)
+      log.error('Supabase sign out error:', error)
       signOutError = error as Error
       // Don't throw yet - still need to clear localStorage
     }
@@ -403,11 +297,8 @@ export class SupabaseAuthService implements IAuthService {
       }
     }
     keysToRemove.forEach(key => {
-      console.log(`🗑️  Removing localStorage key: ${key}`)
       localStorage.removeItem(key)
     })
-
-    console.log('✅ Supabase sign out complete')
 
     // Now throw if there was an error
     if (signOutError) {
@@ -420,7 +311,7 @@ export class SupabaseAuthService implements IAuthService {
       const { data, error } = await this.supabase.auth.getSession()
 
       if (error) {
-        console.error('Get session error:', error)
+        log.error('Get session error:', error)
         return null
       }
 
@@ -430,7 +321,7 @@ export class SupabaseAuthService implements IAuthService {
 
       return await this.mapSupabaseSession(data.session)
     } catch (error) {
-      console.error('Get session error:', error)
+      log.error('Get session error:', error)
       return null
     }
   }
@@ -440,7 +331,7 @@ export class SupabaseAuthService implements IAuthService {
       const { data, error } = await this.supabase.auth.refreshSession()
 
       if (error) {
-        console.error('Refresh session error:', error)
+        log.error('Refresh session error:', error)
         return null
       }
 
@@ -450,7 +341,7 @@ export class SupabaseAuthService implements IAuthService {
 
       return await this.mapSupabaseSession(data.session)
     } catch (error) {
-      console.error('Refresh session error:', error)
+      log.error('Refresh session error:', error)
       return null
     }
   }
@@ -497,25 +388,73 @@ export class SupabaseAuthService implements IAuthService {
   }
 
   /**
-   * Sign in with Google OAuth
+   * Sign in with an OAuth provider. Only Google is offered today; Apple is a
+   * config change and a button later (Phase 6 decision 1). A safe same-origin
+   * `returnTo` rides on the callback URL so a pending link (e.g. `/j/CODE`)
+   * survives the round trip through the provider.
    */
-  async signInWithGoogle(): Promise<{ error?: string }> {
+  async signInWithOAuth(
+    provider: OAuthProvider,
+    returnTo?: string | null
+  ): Promise<{ error?: string }> {
     try {
       const { error } = await this.supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        provider,
+        options: { redirectTo: callbackUrl(returnTo) },
       })
-
-      if (error) {
-        return { error: error.message }
-      }
-
-      return {}
+      return error ? { error: error.message } : {}
     } catch (error) {
-      console.error('Google sign in error:', error)
-      return { error: 'Failed to sign in with Google' }
+      log.error('OAuth sign in error:', error)
+      return { error: "Couldn't start sign-in. Try again." }
     }
   }
+
+  /** Email a password-reset link that opens `/auth/reset`. */
+  async requestPasswordReset(email: string): Promise<{ error?: string }> {
+    try {
+      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset`,
+      })
+      return error ? { error: error.message } : {}
+    } catch (error) {
+      log.error('Password reset request error:', error)
+      return { error: "Couldn't send the link. Try again." }
+    }
+  }
+
+  /** Send the sign-up confirmation email again. */
+  async resendSignupEmail(
+    email: string,
+    returnTo?: string | null
+  ): Promise<{ error?: string }> {
+    try {
+      const { error } = await this.supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: callbackUrl(returnTo) },
+      })
+      return error ? { error: error.message } : {}
+    } catch (error) {
+      log.error('Resend sign-up email error:', error)
+      return { error: "Couldn't send the link. Try again." }
+    }
+  }
+
+  /** Set a new password for the signed-in (or recovery-session) user. */
+  async updatePassword(password: string): Promise<{ error?: string }> {
+    try {
+      const { error } = await this.supabase.auth.updateUser({ password })
+      return error ? { error: error.message } : {}
+    } catch (error) {
+      log.error('Update password error:', error)
+      return { error: "Couldn't save your password. Try again." }
+    }
+  }
+}
+
+/** `/auth/callback`, carrying a sanitized `returnTo` when there is one. */
+function callbackUrl(returnTo?: string | null): string {
+  const safe = sanitizeReturnTo(returnTo)
+  const base = `${window.location.origin}/auth/callback`
+  return safe ? `${base}?returnTo=${encodeURIComponent(safe)}` : base
 }

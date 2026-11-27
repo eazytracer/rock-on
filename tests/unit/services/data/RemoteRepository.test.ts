@@ -15,11 +15,11 @@ vi.mock('../../../../src/services/supabase/client', () => ({
               context_type: 'band',
               context_id: 'test-band-1',
               created_by: 'test-user-1',
-              confidence_level: 3
-            }
+              confidence_level: 3,
+            },
           ],
-          error: null
-        }))
+          error: null,
+        })),
       })),
       insert: vi.fn(() => ({
         select: vi.fn(() => ({
@@ -27,24 +27,24 @@ vi.mock('../../../../src/services/supabase/client', () => ({
             data: {
               id: 'new-song-1',
               title: 'New Song',
-              artist: 'New Artist'
+              artist: 'New Artist',
             },
-            error: null
-          }))
-        }))
+            error: null,
+          })),
+        })),
       })),
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
           select: vi.fn(() => ({
             single: vi.fn(() => ({
               data: { id: 'test-song-1', title: 'Updated' },
-              error: null
-            }))
-          }))
-        }))
-      }))
-    }))
-  }
+              error: null,
+            })),
+          })),
+        })),
+      })),
+    })),
+  },
 }))
 
 describe('RemoteRepository - Field Mapping', () => {
@@ -76,7 +76,7 @@ describe('RemoteRepository - Field Mapping', () => {
       contextId: 'band-1',
       createdBy: 'user-1',
       visibility: 'band_only' as 'private' | 'band_only' | 'public',
-      songGroupId: 'group-1'
+      songGroupId: 'group-1',
     }
 
     const mapped = repository['mapSongToSupabase'](song)
@@ -109,7 +109,7 @@ describe('RemoteRepository - Field Mapping', () => {
       visibility: 'band_only',
       song_group_id: 'group-1',
       created_date: '2024-01-01T00:00:00Z',
-      last_practiced: '2024-01-15T00:00:00Z'
+      last_practiced: '2024-01-15T00:00:00Z',
     }
 
     const mapped = repository['mapSongFromSupabase'](row)
@@ -123,12 +123,28 @@ describe('RemoteRepository - Field Mapping', () => {
     expect(mapped.lastPracticed).toBeInstanceOf(Date)
   })
 
+  it('saves and reads song tags', () => {
+    expect(repository['mapSongToSupabase']({ tags: ['jam'] })).toEqual({
+      tags: ['jam'],
+    })
+    expect(repository['mapSongToSupabase']({ title: 'X' })).not.toHaveProperty(
+      'tags'
+    )
+    expect(
+      repository['mapSongFromSupabase']({ id: 's', title: 'X', tags: ['jam'] })
+        .tags
+    ).toEqual(['jam'])
+    expect(
+      repository['mapSongFromSupabase']({ id: 's', title: 'X' }).tags
+    ).toEqual([])
+  })
+
   it('should handle partial Song objects in mapping to Supabase', () => {
     const partialSong = {
       id: 'test',
       title: 'Test',
       contextType: 'band' as 'band' | 'personal',
-      contextId: 'band-1'
+      contextId: 'band-1',
     }
 
     const mapped = repository['mapSongToSupabase'](partialSong)
@@ -148,7 +164,7 @@ describe('RemoteRepository - Field Mapping', () => {
       created_by: 'user-1',
       confidence_level: 3,
       created_date: null,
-      last_practiced: null
+      last_practiced: null,
     }
 
     const mapped = repository['mapSongFromSupabase'](row)

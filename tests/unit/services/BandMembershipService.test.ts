@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import type { IDataRepository } from '../../../src/services/data/IDataRepository'
-import type { BandMembership, InviteCode } from '../../../src/models/BandMembership'
+import type {
+  BandMembership,
+  InviteCode,
+} from '../../../src/models/BandMembership'
 
 // Mock the RepositoryFactory module BEFORE importing BandMembershipService
 vi.mock('../../../src/services/data/RepositoryFactory', () => {
@@ -34,7 +37,6 @@ vi.mock('../../../src/services/data/RepositoryFactory', () => {
     updateInviteCode: mockUpdateInviteCode,
     deleteInviteCode: mockDeleteInviteCode,
     incrementInviteCodeUsage: mockIncrementInviteCodeUsage,
-    pullFromRemote: mockPullFromRemote,
   }
 
   return {
@@ -43,36 +45,74 @@ vi.mock('../../../src/services/data/RepositoryFactory', () => {
   }
 })
 
-// Mock RemoteRepository for joinBandWithCode tests
-vi.mock('../../../src/services/data/RemoteRepository', () => {
-  return {
-    RemoteRepository: vi.fn().mockImplementation(() => ({
-      addBandMembership: vi.fn().mockResolvedValue(undefined),
-    })),
-  }
-})
+// Writes go through the phase 6 RPCs (src/services/api/bands.ts).
+vi.mock('../../../src/services/api/bands', () => ({
+  regenerateInviteCode: vi.fn(),
+  joinBand: vi.fn(),
+  leaveBand: vi.fn(),
+  removeMember: vi.fn(),
+  setMemberRole: vi.fn(),
+  transferOwnership: vi.fn(),
+}))
+
+// membershipKey(): band_memberships id → (band_id, user_id)
+const keyQuery = vi.hoisted(() => ({
+  single: vi.fn(() =>
+    Promise.resolve({
+      data: { band_id: 'band-1', user_id: 'user-2' },
+      error: null,
+    })
+  ),
+}))
+vi.mock('../../../src/services/api/client', () => ({
+  api: () => ({
+    from: () => ({
+      select: () => ({ eq: () => ({ single: keyQuery.single }) }),
+    }),
+  }),
+}))
 
 // Import BandMembershipService AFTER the mocks are set up
 import { BandMembershipService } from '../../../src/services/BandMembershipService'
 // Import the mocked repository to get access to the mock functions
 import { repository } from '../../../src/services/data/RepositoryFactory'
+import * as bandsApi from '../../../src/services/api/bands'
+import { ApiError } from '../../../src/services/api/errors'
+
+const api = bandsApi as unknown as Record<string, ReturnType<typeof vi.fn>>
 
 // Extract mock functions for test assertions
-const mockGetBandMemberships = repository.getBandMemberships as ReturnType<typeof vi.fn>
-const mockGetUserMemberships = repository.getUserMemberships as ReturnType<typeof vi.fn>
-const mockAddBandMembership = repository.addBandMembership as ReturnType<typeof vi.fn>
-const mockUpdateBandMembership = repository.updateBandMembership as ReturnType<typeof vi.fn>
-const mockDeleteBandMembership = repository.deleteBandMembership as ReturnType<typeof vi.fn>
+const mockGetBandMemberships = repository.getBandMemberships as ReturnType<
+  typeof vi.fn
+>
+const mockGetUserMemberships = repository.getUserMemberships as ReturnType<
+  typeof vi.fn
+>
+const mockAddBandMembership = repository.addBandMembership as ReturnType<
+  typeof vi.fn
+>
+const mockUpdateBandMembership = repository.updateBandMembership as ReturnType<
+  typeof vi.fn
+>
+const mockDeleteBandMembership = repository.deleteBandMembership as ReturnType<
+  typeof vi.fn
+>
 
 // Extract invite code mock functions (now in repository)
 const mockGetInviteCodes = repository.getInviteCodes as ReturnType<typeof vi.fn>
 const mockGetInviteCode = repository.getInviteCode as ReturnType<typeof vi.fn>
-const mockGetInviteCodeByCode = repository.getInviteCodeByCode as ReturnType<typeof vi.fn>
+const mockGetInviteCodeByCode = repository.getInviteCodeByCode as ReturnType<
+  typeof vi.fn
+>
 const mockAddInviteCode = repository.addInviteCode as ReturnType<typeof vi.fn>
-const mockUpdateInviteCode = repository.updateInviteCode as ReturnType<typeof vi.fn>
-const mockDeleteInviteCode = repository.deleteInviteCode as ReturnType<typeof vi.fn>
-const mockIncrementInviteCodeUsage = repository.incrementInviteCodeUsage as ReturnType<typeof vi.fn>
-const mockPullFromRemote = repository.pullFromRemote as ReturnType<typeof vi.fn>
+const mockUpdateInviteCode = repository.updateInviteCode as ReturnType<
+  typeof vi.fn
+>
+const mockDeleteInviteCode = repository.deleteInviteCode as ReturnType<
+  typeof vi.fn
+>
+const mockIncrementInviteCodeUsage =
+  repository.incrementInviteCodeUsage as ReturnType<typeof vi.fn>
 
 describe('BandMembershipService - Migrated to Repository Pattern', () => {
   beforeEach(() => {
@@ -123,7 +163,7 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       expect(mockGetUserMemberships).toHaveBeenCalledWith('user-123')
       // Should only return active memberships (client-side filter)
       expect(result).toHaveLength(2)
-      expect(result.every((m) => m.status === 'active')).toBe(true)
+      expect(result.every(m => m.status === 'active')).toBe(true)
     })
 
     it('should return empty array when user has no bands', async () => {
@@ -181,7 +221,7 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
       expect(mockGetBandMemberships).toHaveBeenCalledWith('band-123')
       // Should only return active memberships (client-side filter)
       expect(result).toHaveLength(2)
-      expect(result.every((m) => m.status === 'active')).toBe(true)
+      expect(result.every(m => m.status === 'active')).toBe(true)
     })
 
     it('should return empty array when band has no members', async () => {
@@ -197,247 +237,99 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
   })
 
   describe('updateMembershipRole', () => {
-    it('should update membership role via repository', async () => {
-      // Arrange
-      const updatedMembership: BandMembership = {
-        id: 'membership-123',
-        userId: 'user-1',
-        bandId: 'band-1',
-        role: 'admin',
-        joinedDate: new Date(),
-        status: 'active',
-        permissions: ['admin'],
-      }
+    it('sets admin / member through set_member_role', async () => {
+      await BandMembershipService.updateMembershipRole(
+        'membership-123',
+        'admin'
+      )
+      expect(api.setMemberRole).toHaveBeenCalledWith(
+        'band-1',
+        'user-2',
+        'admin'
+      )
 
-      mockUpdateBandMembership.mockResolvedValue(updatedMembership)
-
-      // Act
-      await BandMembershipService.updateMembershipRole('membership-123', 'admin')
-
-      // Assert
-      expect(mockUpdateBandMembership).toHaveBeenCalledTimes(1)
-      expect(mockUpdateBandMembership).toHaveBeenCalledWith('membership-123', {
-        role: 'admin',
-      })
+      await BandMembershipService.updateMembershipRole(
+        'membership-123',
+        'member'
+      )
+      expect(api.setMemberRole).toHaveBeenCalledWith(
+        'band-1',
+        'user-2',
+        'member'
+      )
+      expect(api.transferOwnership).not.toHaveBeenCalled()
     })
 
-    it('should update role to member', async () => {
-      // Arrange
-      mockUpdateBandMembership.mockResolvedValue({} as any)
-
-      // Act
-      await BandMembershipService.updateMembershipRole('membership-123', 'member')
-
-      // Assert
-      expect(mockUpdateBandMembership).toHaveBeenCalledWith('membership-123', {
-        role: 'member',
-      })
+    it('owner transfers ownership in one call', async () => {
+      await BandMembershipService.updateMembershipRole(
+        'membership-123',
+        'owner'
+      )
+      expect(api.transferOwnership).toHaveBeenCalledWith('band-1', 'user-2')
+      expect(api.setMemberRole).not.toHaveBeenCalled()
     })
 
-    it('should update role to viewer', async () => {
-      // Arrange
-      mockUpdateBandMembership.mockResolvedValue({} as any)
+    it('never writes the membership row directly', async () => {
+      await BandMembershipService.updateMembershipRole(
+        'membership-123',
+        'admin'
+      )
+      expect(mockUpdateBandMembership).not.toHaveBeenCalled()
+    })
+  })
 
-      // Act
-      await BandMembershipService.updateMembershipRole('membership-123', 'viewer')
-
-      // Assert
-      expect(mockUpdateBandMembership).toHaveBeenCalledWith('membership-123', {
-        role: 'viewer',
-      })
+  describe('removeMember', () => {
+    it('removes through remove_member', async () => {
+      await BandMembershipService.removeMember('membership-123')
+      expect(api.removeMember).toHaveBeenCalledWith('band-1', 'user-2')
+      expect(mockUpdateBandMembership).not.toHaveBeenCalled()
     })
   })
 
   describe('leaveBand', () => {
-    it('should mark membership as inactive via repository', async () => {
-      // Arrange
-      const mockMembership: BandMembership = {
-        id: 'membership-123',
-        userId: 'user-1',
-        bandId: 'band-1',
-        role: 'member',
-        joinedDate: new Date(),
-        status: 'active',
-        permissions: ['member'],
-      }
-
-      const mockAllMembers: BandMembership[] = [
-        mockMembership,
-        {
-          id: 'membership-456',
-          userId: 'user-2',
-          bandId: 'band-1',
-          role: 'admin',
-          joinedDate: new Date(),
-          status: 'active',
-          permissions: ['admin'],
-        },
-      ]
-
-      mockGetBandMemberships.mockResolvedValue(mockAllMembers)
-      mockGetUserMemberships.mockResolvedValue([mockMembership])
-      mockUpdateBandMembership.mockResolvedValue({
-        ...mockMembership,
-        status: 'inactive',
-      })
-
-      // Act
+    it('leaves through leave_band', async () => {
       await BandMembershipService.leaveBand('user-1', 'band-1')
-
-      // Assert
-      expect(mockUpdateBandMembership).toHaveBeenCalledWith('membership-123', {
-        status: 'inactive',
-      })
+      expect(api.leaveBand).toHaveBeenCalledWith('band-1')
     })
 
-    it('should throw error if membership not found', async () => {
-      // Arrange
-      mockGetUserMemberships.mockResolvedValue([])
-
-      // Act & Assert
-      await expect(
-        BandMembershipService.leaveBand('user-999', 'band-1')
-      ).rejects.toThrow('Membership not found')
-    })
-
-    it('should throw error if user is last admin', async () => {
-      // Arrange
-      const mockMembership: BandMembership = {
-        id: 'membership-123',
-        userId: 'user-1',
-        bandId: 'band-1',
-        role: 'admin',
-        joinedDate: new Date(),
-        status: 'active',
-        permissions: ['admin'],
-      }
-
-      const mockAllMembers: BandMembership[] = [
-        mockMembership,
-        {
-          id: 'membership-456',
-          userId: 'user-2',
-          bandId: 'band-1',
-          role: 'member',
-          joinedDate: new Date(),
-          status: 'active',
-          permissions: ['member'],
-        },
-      ]
-
-      mockGetUserMemberships.mockResolvedValue([mockMembership])
-      mockGetBandMemberships.mockResolvedValue(mockAllMembers)
-
-      // Act & Assert
+    it('passes the owner refusal through', async () => {
+      api.leaveBand.mockRejectedValueOnce(
+        new ApiError('owner_must_transfer', 'You own Band. Transfer it first.')
+      )
       await expect(
         BandMembershipService.leaveBand('user-1', 'band-1')
-      ).rejects.toThrow('Cannot leave: you are the last admin')
-    })
-
-    it('should allow admin to leave if there are other admins', async () => {
-      // Arrange
-      const mockMembership: BandMembership = {
-        id: 'membership-123',
-        userId: 'user-1',
-        bandId: 'band-1',
-        role: 'admin',
-        joinedDate: new Date(),
-        status: 'active',
-        permissions: ['admin'],
-      }
-
-      const mockAllMembers: BandMembership[] = [
-        mockMembership,
-        {
-          id: 'membership-456',
-          userId: 'user-2',
-          bandId: 'band-1',
-          role: 'admin',
-          joinedDate: new Date(),
-          status: 'active',
-          permissions: ['admin'],
-        },
-      ]
-
-      mockGetUserMemberships.mockResolvedValue([mockMembership])
-      mockGetBandMemberships.mockResolvedValue(mockAllMembers)
-      mockUpdateBandMembership.mockResolvedValue({
-        ...mockMembership,
-        status: 'inactive',
-      })
-
-      // Act
-      await BandMembershipService.leaveBand('user-1', 'band-1')
-
-      // Assert
-      expect(mockUpdateBandMembership).toHaveBeenCalledWith('membership-123', {
-        status: 'inactive',
-      })
+      ).rejects.toMatchObject({ key: 'owner_must_transfer' })
     })
   })
 
   describe('createInviteCode', () => {
-    it('should create invite code via repository', async () => {
-      // Arrange
-      const request = {
-        bandId: 'band-123',
+    it('issues a fresh code through regenerate_invite_code', async () => {
+      api.regenerateInviteCode.mockResolvedValue({
+        id: 'ic-1',
+        band_id: 'band-1',
+        code: 'ABCD2345',
+        created_by: 'user-1',
+        created_date: '2026-11-18T10:00:00Z',
+        expires_at: '2026-11-19T10:00:00Z',
+        max_uses: null,
+        current_uses: 0,
+        is_active: true,
+      })
+
+      const result = await BandMembershipService.createInviteCode({
+        bandId: 'band-1',
         createdBy: 'user-1',
-        maxUses: 10,
-      }
+      })
 
-      // Mock code doesn't exist
-      mockGetInviteCodeByCode.mockResolvedValue(null)
-      mockAddInviteCode.mockResolvedValue('invite-id')
-
-      // Act
-      const result = await BandMembershipService.createInviteCode(request)
-
-      // Assert
-      expect(mockAddInviteCode).toHaveBeenCalledTimes(1)
-      expect(result.bandId).toBe('band-123')
-      expect(result.createdBy).toBe('user-1')
-      expect(result.maxUses).toBe(10)
-      expect(result.currentUses).toBe(0)
-      expect(result.code).toHaveLength(6)
-    })
-
-    it('should retry if generated code already exists', async () => {
-      // Arrange
-      const request = {
-        bandId: 'band-123',
-        createdBy: 'user-1',
-      }
-
-      // First call: code exists, second call: code doesn't exist
-      mockGetInviteCodeByCode
-        .mockResolvedValueOnce({ id: 'existing', code: 'ABC123' } as any)
-        .mockResolvedValueOnce(null)
-
-      mockAddInviteCode.mockResolvedValue('invite-id')
-
-      // Act
-      const result = await BandMembershipService.createInviteCode(request)
-
-      // Assert
-      expect(mockGetInviteCodeByCode).toHaveBeenCalledTimes(2)
-      expect(mockAddInviteCode).toHaveBeenCalledTimes(1)
-    })
-
-    it('should use default maxUses of 10 if not provided', async () => {
-      // Arrange
-      const request = {
-        bandId: 'band-123',
-        createdBy: 'user-1',
-      }
-
-      mockGetInviteCodeByCode.mockResolvedValue(null)
-      mockAddInviteCode.mockResolvedValue('invite-id')
-
-      // Act
-      const result = await BandMembershipService.createInviteCode(request)
-
-      // Assert
-      expect(result.maxUses).toBe(10)
+      expect(api.regenerateInviteCode).toHaveBeenCalledWith('band-1')
+      expect(mockAddInviteCode).not.toHaveBeenCalled()
+      expect(result).toMatchObject({
+        code: 'ABCD2345',
+        bandId: 'band-1',
+        isActive: true,
+        maxUses: undefined,
+        expiresAt: new Date('2026-11-19T10:00:00Z'),
+      })
     })
   })
 
@@ -479,204 +371,61 @@ describe('BandMembershipService - Migrated to Repository Pattern', () => {
     })
   })
 
-  describe('validateInviteCode', () => {
-    it('should validate a valid invite code', async () => {
-      // Arrange
-      const mockInviteCode: InviteCode = {
-        id: '1',
-        bandId: 'band-123',
-        code: 'ABC123',
-        createdBy: 'user-1',
-        expiresAt: new Date('2099-12-31'),
-        maxUses: 10,
-        currentUses: 3,
-        createdDate: new Date('2025-01-01'),
-        isActive: true,
-      }
-
-      mockGetInviteCodeByCode.mockResolvedValue(mockInviteCode)
-
-      // Act
-      const result = await BandMembershipService.validateInviteCode('ABC123')
-
-      // Assert
-      expect(result.valid).toBe(true)
-      expect(result.inviteCode).toEqual(mockInviteCode)
-      expect(result.error).toBeUndefined()
-    })
-
-    it('should reject invalid invite code', async () => {
-      // Arrange
-      mockGetInviteCodeByCode.mockResolvedValue(null)
-
-      // Act
-      const result = await BandMembershipService.validateInviteCode('INVALID')
-
-      // Assert
-      expect(result.valid).toBe(false)
-      expect(result.error).toBe('Invalid invite code')
-    })
-
-    it('should reject expired invite code', async () => {
-      // Arrange
-      const mockInviteCode: InviteCode = {
-        id: '1',
-        bandId: 'band-123',
-        code: 'ABC123',
-        createdBy: 'user-1',
-        expiresAt: new Date('2020-01-01'), // Expired
-        maxUses: 10,
-        currentUses: 3,
-        createdDate: new Date('2025-01-01'),
-        isActive: true,
-      }
-
-      mockGetInviteCodeByCode.mockResolvedValue(mockInviteCode)
-
-      // Act
-      const result = await BandMembershipService.validateInviteCode('ABC123')
-
-      // Assert
-      expect(result.valid).toBe(false)
-      expect(result.error).toBe('Invite code has expired')
-    })
-
-    it('should reject invite code at max uses', async () => {
-      // Arrange
-      const mockInviteCode: InviteCode = {
-        id: '1',
-        bandId: 'band-123',
-        code: 'ABC123',
-        createdBy: 'user-1',
-        maxUses: 10,
-        currentUses: 10, // At max uses
-        createdDate: new Date('2025-01-01'),
-        isActive: true,
-      }
-
-      mockGetInviteCodeByCode.mockResolvedValue(mockInviteCode)
-
-      // Act
-      const result = await BandMembershipService.validateInviteCode('ABC123')
-
-      // Assert
-      expect(result.valid).toBe(false)
-      expect(result.error).toBe('Invite code has reached maximum uses')
-    })
-
-    it('should convert code to uppercase', async () => {
-      // Arrange
-      const mockInviteCode: InviteCode = {
-        id: '1',
-        bandId: 'band-123',
-        code: 'ABC123',
-        createdBy: 'user-1',
-        expiresAt: new Date('2099-12-31'),
-        maxUses: 10,
-        currentUses: 3,
-        createdDate: new Date('2025-01-01'),
-        isActive: true,
-      }
-
-      mockGetInviteCodeByCode.mockResolvedValue(mockInviteCode)
-
-      // Act
-      await BandMembershipService.validateInviteCode('abc123')
-
-      // Assert
-      expect(mockGetInviteCodeByCode).toHaveBeenCalledWith('ABC123')
-    })
-  })
-
   describe('joinBandWithCode', () => {
-    it('should join band with valid code via repository', async () => {
-      // Arrange
-      const mockInviteCode: InviteCode = {
-        id: 'invite-1',
-        bandId: 'band-123',
-        code: 'ABC123',
-        createdBy: 'user-1',
-        expiresAt: new Date('2099-12-31'),
-        maxUses: 10,
-        currentUses: 3,
-        createdDate: new Date('2025-01-01'),
-        isActive: true,
-      }
-
-      // Mock validateInviteCode
-      mockGetInviteCodeByCode.mockResolvedValue(mockInviteCode)
-
-      // Mock no existing membership via repository
-      mockGetUserMemberships.mockResolvedValue([])
-
-      // Mock increment usage and pull from remote
-      mockIncrementInviteCodeUsage.mockResolvedValue(undefined)
-      mockPullFromRemote.mockResolvedValue(undefined)
-
-      // Act
-      const result = await BandMembershipService.joinBandWithCode('user-999', 'ABC123')
-
-      // Assert
-      expect(result.success).toBe(true)
-      expect(result.membership).toMatchObject({
-        userId: 'user-999',
-        bandId: 'band-123',
+    it('joins through join_band', async () => {
+      api.joinBand.mockResolvedValue({
+        id: 'm-9',
+        user_id: 'user-9',
+        band_id: 'band-1',
         role: 'member',
+        joined_date: '2026-11-18T10:00:00Z',
         status: 'active',
         permissions: ['member'],
       })
-      expect(result.membership?.id).toBeDefined()
-      expect(mockIncrementInviteCodeUsage).toHaveBeenCalledWith('invite-1')
-      expect(mockPullFromRemote).toHaveBeenCalledWith('user-999')
+
+      const result = await BandMembershipService.joinBandWithCode(
+        'user-9',
+        'abcd2345'
+      )
+
+      expect(api.joinBand).toHaveBeenCalledWith('abcd2345')
+      expect(mockAddBandMembership).not.toHaveBeenCalled()
+      expect(result.success).toBe(true)
+      expect(result.membership).toMatchObject({
+        bandId: 'band-1',
+        role: 'member',
+      })
     })
 
-    it('should reject if code is invalid', async () => {
-      // Arrange
-      mockGetInviteCodeByCode.mockResolvedValue(null)
-
-      // Act
-      const result = await BandMembershipService.joinBandWithCode('user-999', 'INVALID')
-
-      // Assert
-      expect(result.success).toBe(false)
-      expect(result.error).toBe('Invalid invite code')
+    it('returns the server copy for a bad or expired code', async () => {
+      api.joinBand.mockRejectedValueOnce(
+        new ApiError(
+          'invite_invalid',
+          "That code isn't valid any more. Ask for a new link."
+        )
+      )
+      const result = await BandMembershipService.joinBandWithCode(
+        'user-9',
+        'NOPE'
+      )
+      expect(result).toEqual({
+        success: false,
+        error: "That code isn't valid any more. Ask for a new link.",
+      })
     })
 
-    it('should reject if user is already a member', async () => {
-      // Arrange
-      const mockInviteCode: InviteCode = {
-        id: 'invite-1',
-        bandId: 'band-123',
-        code: 'ABC123',
-        createdBy: 'user-1',
-        expiresAt: new Date('2099-12-31'),
-        maxUses: 10,
-        currentUses: 3,
-        createdDate: new Date('2025-01-01'),
-        isActive: true,
-      }
-
-      mockGetInviteCodeByCode.mockResolvedValue(mockInviteCode)
-
-      // Mock existing membership via repository
-      mockGetUserMemberships.mockResolvedValue([
-        {
-          id: 'existing',
-          userId: 'user-999',
-          bandId: 'band-123',
-          role: 'member',
-          joinedDate: new Date(),
-          status: 'active',
-          permissions: ['member'],
-        },
-      ])
-
-      // Act
-      const result = await BandMembershipService.joinBandWithCode('user-999', 'ABC123')
-
-      // Assert
-      expect(result.success).toBe(false)
-      expect(result.error).toBe('You are already a member of this band')
+    it('returns the server copy when already a member', async () => {
+      api.joinBand.mockRejectedValueOnce(
+        new ApiError('already_member', "You're already in Band.")
+      )
+      const result = await BandMembershipService.joinBandWithCode(
+        'user-9',
+        'CODE'
+      )
+      expect(result).toEqual({
+        success: false,
+        error: "You're already in Band.",
+      })
     })
   })
 

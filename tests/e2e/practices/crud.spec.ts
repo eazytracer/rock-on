@@ -1,320 +1,386 @@
 /**
- * E2E Tests: Practice Sessions CRUD Operations
- *
- * Tests User Flow 14:
- * - Flow 14: Schedule and manage practice sessions
- *
- * Updated 2026-01: Tests use new page-based flow (PracticeViewPage)
- * instead of the old modal-based workflow.
- *
- * The PracticeViewPage uses InlineEditableField components which require
- * clicking to enter edit mode before filling values.
- *
- * @see /workspaces/rock-on/.claude/plans/02-create-e2e-tests.md
- * @see /workspaces/rock-on/.claude/specifications/testing-overview-and-strategy.md
+ * Practices (docs/redesign 03-screens Practice; Practice 1, FP 7): the practice
+ * page edits in place, like a setlist with a few more fields. New from the
+ * calendar is the page blank and the first change creates it; name, when,
+ * where and focus save as you go; songs come from the Add songs drawer, drag by the
+ * grip and × out; Duplicate makes a copy a week later; delete from the
+ * agenda's row menu; the old /edit URL lands on the page. From a setlist (its
+ * ⋯ → Plan a practice, or Add songs filtered by it) songs keep the set's order,
+ * and a RETUNE line sits on each song whose tuning differs from the one before.
+ * A song opened from the practice comes Back to it; from 1440 px a click
+ * previews it in the song pane and a double-click opens it. A past practice
+ * can still start, and its wrap-up notes edit in place.
  */
-
-import { test, expect } from '@playwright/test'
-import { signUpViaUI, createTestUser } from '../../fixtures/auth'
+import { test, expect, type Page } from '@playwright/test'
+import { deleteTestUser } from '../../fixtures/auth'
+import { getSupabaseAdmin } from '../../fixtures/supabase'
 import {
-  createBandViaUI,
-  getInviteCodeViaUI,
-  joinBandViaUI,
-} from '../../fixtures/bands'
-import {
-  fillInlineEditableField,
-  fillMarkdownField,
-  clickToEdit,
-  clickButtonReliably,
-  closeBrowseSongsDrawer,
-} from '../../helpers/inlineEditable'
+  setupConsoleErrorTracking,
+  assertNoConsoleErrors,
+} from '../../helpers/assertions'
+import { seedCalendar, type CalendarSeed } from '../../helpers/calendarSeed'
 
-test.describe('Practice Sessions CRUD Operations', () => {
-  test.beforeEach(async ({ page }) => {
-    // ARRANGE: Create user and band
-    const user = createTestUser()
-    await signUpViaUI(page, user)
-    await createBandViaUI(page, 'E2E Practice Test Band')
+const practices = async (bandId: string) => {
+  const admin = await getSupabaseAdmin()
+  const { data } = await admin
+    .from('practice_sessions')
+    .select('id, name, location, notes, duration, scheduled_date, songs')
+    .eq('band_id', bandId)
+    .order('scheduled_date')
+  return data!
+}
 
-    // Navigate to practices page
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
-  })
-
-  test('member can schedule a new practice session', async ({ page }) => {
-    // ARRANGE: Verify we're on practices page
-    await expect(page).toHaveURL(/\/practices/)
-
-    // ACT: Click Schedule Practice to navigate to builder page
-    // Note: There may be two buttons (header + empty state), use first()
-    const createButton = page
-      .locator('button:has-text("Schedule Practice")')
-      .first()
-    await expect(createButton).toBeVisible({ timeout: 10000 })
-    await createButton.click()
-
-    // Wait for navigation to /practices/new
-    await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
-
-    // Wait for the page to fully load (Details section should be visible)
-    await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
-
-    // Fill in location using InlineEditableField helper
-    await fillInlineEditableField(page, 'practice-location', 'Studio A')
-
-    // Close the Browse Songs drawer if open (it auto-opens on new practice)
-    await closeBrowseSongsDrawer(page)
-
-    // Save by clicking Create Practice button (use reliable JS click)
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-
-    // ASSERT: Verify we navigate to the created practice
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // Verify location is shown (appears in header and details)
-    await expect(page.locator('text=Studio A').first()).toBeVisible({
-      timeout: 5000,
-    })
-  })
-
-  test('practice displays duration and location', async ({ page }) => {
-    // ARRANGE: Create a practice
-    await page.locator('button:has-text("Schedule Practice")').first().click()
-    await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
-    await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
-
-    // Set location using InlineEditableField helper
-    await fillInlineEditableField(page, 'practice-location', 'Rehearsal Room')
-
-    // Close the Browse Songs drawer if open
-    await closeBrowseSongsDrawer(page)
-
-    // Save the practice (use reliable JS click)
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-
-    // Wait for navigation to the created practice
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // ACT & ASSERT: Verify location is displayed
-    await expect(page.locator('text=Rehearsal Room').first()).toBeVisible({
-      timeout: 10000,
-    })
-
-    // Verify duration is displayed (default is 2h)
-    await expect(page.locator('text=2h')).toBeVisible({ timeout: 5000 })
-  })
-
-  test('practice can include notes', async ({ page }) => {
-    // ARRANGE: Create practice with notes
-    await page.locator('button:has-text("Schedule Practice")').first().click()
-    await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
-    await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
-
-    // Set location using InlineEditableField helper
-    await fillInlineEditableField(page, 'practice-location', 'Main Studio')
-
-    // Set notes — the notes field is a MarkdownField (not an InlineEditableField).
-    await fillMarkdownField(page, 'practice-notes', 'Focus on new songs')
-
-    // Close the Browse Songs drawer if open
-    await closeBrowseSongsDrawer(page)
-
-    // Save the practice (use reliable JS click)
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-
-    // Wait for navigation
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // ACT & ASSERT: Verify practice was created with location
-    await expect(page.locator('text=Main Studio').first()).toBeVisible({
-      timeout: 10000,
-    })
-  })
-
-  test('member can edit existing practice', async ({ page }) => {
-    // ARRANGE: Create a practice first
-    await page.locator('button:has-text("Schedule Practice")').first().click()
-    await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
-    await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
-
-    // Set initial location
-    await fillInlineEditableField(
-      page,
-      'practice-location',
-      'Original Location'
+const order = (page: Page) =>
+  page
+    .locator('li[data-testid^="practice-song-"]')
+    .evaluateAll(els =>
+      els.map(e => e.getAttribute('data-testid')!.replace('practice-song-', ''))
     )
 
-    // Close the Browse Songs drawer if open
-    await closeBrowseSongsDrawer(page)
-
-    // Save the practice (use reliable JS click)
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // Verify original location
-    await expect(page.locator('text=Original Location').first()).toBeVisible({
-      timeout: 10000,
-    })
-
-    // ACT: Edit the location (inline editing)
-    await fillInlineEditableField(page, 'practice-location', 'Updated Location')
-
-    // ASSERT: Verify changes
-    await expect(page.locator('text=Updated Location').first()).toBeVisible({
-      timeout: 10000,
-    })
-    await expect(page.locator('text=Original Location')).not.toBeVisible()
+test.describe('Practices', () => {
+  test.use({ viewport: { width: 1280, height: 900 } })
+  let seed: CalendarSeed | undefined
+  test.afterEach(async () => {
+    if (seed) await deleteTestUser(seed.userId)
+    seed = undefined
   })
 
-  test('member can delete practice', async ({ page }) => {
-    // ARRANGE: Create a practice
-    await page.locator('button:has-text("Schedule Practice")').first().click()
-    await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
-    await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
-
-    // Set location
-    await fillInlineEditableField(
-      page,
-      'practice-location',
-      'Delete Test Location'
-    )
-
-    // Close the Browse Songs drawer if open
-    await closeBrowseSongsDrawer(page)
-
-    // Save the practice (use reliable JS click)
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
-
-    // Verify practice was created
-    await expect(page.locator('text=Delete Test Location').first()).toBeVisible(
-      { timeout: 10000 }
-    )
-
-    // Go back to list
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
-
-    // Change filter to "All" to see all practices (including today's)
-    await page.locator('[data-testid="practices-filter-trigger"]').click()
-    await page.locator('[data-testid="practices-filter-option-all"]').click()
-    await page.waitForTimeout(500)
-
-    // Wait for list to load and find the practice
-    await expect(page.locator('text=Delete Test Location').first()).toBeVisible(
-      { timeout: 10000 }
-    )
-
-    // Find and click delete button - it's in the card dropdown menu
-    const practiceCard = page
-      .locator('[data-testid^="practice-item-"]')
-      .filter({
-        hasText: 'Delete Test Location',
-      })
-    await expect(practiceCard).toBeVisible({ timeout: 5000 })
-
-    // Look for the menu button (MoreVertical icon)
-    const menuButton = practiceCard
-      .locator('button')
-      .filter({ has: page.locator('svg') })
-      .last()
-    await menuButton.click()
-    await page.waitForTimeout(300)
-
-    // Click Delete option
-    const deleteOption = page.locator('text=Delete').first()
-    if (await deleteOption.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await deleteOption.click()
-
-      // Handle confirmation dialog
-      const confirmButton = page
-        .locator(
-          '[data-testid="confirm-dialog-confirm"], button:has-text("Delete")'
-        )
-        .last()
-      if (await confirmButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await confirmButton.click()
-      }
-
-      // ASSERT: Verify practice is gone
-      await expect(page.locator('text=Delete Test Location')).not.toBeVisible({
-        timeout: 10000,
-      })
-    } else {
-      // Skip test if delete functionality not accessible
-      test.skip()
-    }
-  })
-
-  test('practice changes sync to all band members', async ({
+  test('New practice is the page blank; the first change creates it', async ({
     page,
-    context,
   }) => {
-    // ARRANGE: Create user A and band
-    const userA = createTestUser()
-    await signUpViaUI(page, userA)
-    await createBandViaUI(page, 'Practice Sync Test Band')
+    const errors = setupConsoleErrorTracking(page)
+    seed = await seedCalendar(page)
+    await page.goto('/calendar?type=practice')
+    await page.getByTestId('calendar-new-button').click()
+    await expect(page).toHaveURL(/\/practices\/new/)
+    await expect(page.getByTestId('practice-kicker')).toContainText(
+      /saves as you go/i
+    )
 
-    // Get invite code
-    await page.goto('/band-members')
-    const inviteCode = await getInviteCodeViaUI(page)
+    await page.getByTestId('practice-name-input').fill('Set run')
+    await page.getByTestId('practice-name-input').press('Enter')
+    await expect(page).toHaveURL(/\/practices\/[0-9a-f-]{36}$/)
+    await page.getByTestId('practice-location-input').fill('The Loft')
+    await page.getByTestId('practice-location-input').press('Enter')
+    // Focus is plain text, saved on leave.
+    await page.getByTestId('practice-focus-input').fill('Tighten the outro')
+    await page.getByTestId('practice-focus-input').blur()
 
-    // Create user B in new context
-    const page2 = await context.newPage()
-    const userB = createTestUser()
-    await signUpViaUI(page2, userB)
-    await joinBandViaUI(page2, inviteCode)
+    // Songs come from the Add songs drawer.
+    await page.getByTestId('practice-add-songs').click()
+    await page.getByTestId(`browser-song-${seed.songs.Breed}`).click()
+    await page.getByTestId(`browser-song-${seed.songs.Black}`).click()
+    await expect
+      .poll(() => order(page))
+      .toEqual([seed.songs.Breed, seed.songs.Black])
 
-    // Both pages navigate to practices
-    await page.goto('/practices')
-    await page2.goto('/practices')
+    await expect
+      .poll(async () =>
+        (await practices(seed!.bandId)).find(p => p.name === 'Set run')
+      )
+      .toMatchObject({ location: 'The Loft', notes: 'Tighten the outro' })
+    const saved = (await practices(seed.bandId)).find(p => p.name === 'Set run')
+    expect(saved?.songs.map((s: { songId: string }) => s.songId)).toEqual([
+      seed.songs.Breed,
+      seed.songs.Black,
+    ])
+    await assertNoConsoleErrors(page, errors)
+  })
 
-    await page.waitForLoadState('networkidle')
-    await page2.waitForLoadState('networkidle')
+  test('fields save in place; × removes a song; /edit lands here', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    await page.goto(`/practices/${seed.practice}/edit`)
+    await expect(page).toHaveURL(new RegExp(`/practices/${seed.practice}$`))
+    await expect(page.getByTestId('practice-name-input')).toHaveValue(
+      'Thursday run'
+    )
+    await page.getByTestId('practice-location-input').fill('Studio B')
+    await page.getByTestId('practice-location-input').press('Enter')
+    await page.getByTestId('practice-end-input').click()
+    await page.getByTestId('practice-end-option-90').click()
+    await page
+      .getByTestId(`practice-song-${seed.songs.Breed}`)
+      .getByTestId('practice-song-remove')
+      .click()
+    await expect(
+      page.getByTestId(`practice-song-${seed.songs.Breed}`)
+    ).toHaveCount(0)
 
-    // ACT: User A creates practice using new page-based flow
-    await page.locator('button:has-text("Schedule Practice")').first().click()
-    await page.waitForURL(/\/practices\/new/, { timeout: 10000 })
-    await expect(page.locator('text=Details')).toBeVisible({ timeout: 10000 })
+    await expect
+      .poll(async () => (await practices(seed!.bandId))[0])
+      .toMatchObject({ location: 'Studio B', duration: 90 })
+    const [p] = await practices(seed.bandId)
+    expect(p.songs).toHaveLength(2)
 
-    // Set location using InlineEditableField helper
-    await fillInlineEditableField(page, 'practice-location', 'Synced Location')
+    // Full width on desktop: Add songs also sits top right.
+    await page.getByTestId('practice-header-add-songs').click()
+    await expect(page.getByTestId('song-browser')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('song-browser')).toHaveCount(0)
+  })
 
-    // Close the Browse Songs drawer if open
-    await closeBrowseSongsDrawer(page)
+  test('Add to… on the Songs page ticks setlists and upcoming practices', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    await page.goto('/songs')
+    const row = page.getByTestId(`song-row-${seed.songs.Breed}`)
+    await row.hover()
+    await row.getByLabel('Add to setlist or practice').click()
+    const sheet = page.getByTestId('add-to-setlist-sheet')
+    const practice = sheet.getByTestId(`add-to-practice-${seed.practice}`)
+    const set = sheet.getByTestId(`add-to-setlist-${seed.fall}`)
+    await expect(practice).toHaveAttribute('data-in-set', 'true')
+    await expect(set).not.toHaveAttribute('data-in-set', 'true')
 
-    // Save the practice (use reliable JS click)
-    await clickButtonReliably(page, '[data-testid="create-practice-button"]')
-    await page.waitForURL(/\/practices\/(?!new)[^/]+$/, { timeout: 10000 })
+    await set.click()
+    await expect(set).toHaveAttribute('data-in-set', 'true')
+    await practice.click()
+    await expect(practice).not.toHaveAttribute('data-in-set', 'true')
+    await sheet.getByTestId('add-to-done').click()
+    await expect(sheet).toHaveCount(0)
 
-    // User A goes back to list
-    await page.goto('/practices')
-    await page.waitForLoadState('networkidle')
+    const admin = await getSupabaseAdmin()
+    const { data: sl } = await admin
+      .from('setlists')
+      .select('items')
+      .eq('id', seed.fall)
+      .single()
+    expect((sl!.items as { songId?: string }[]).map(i => i.songId)).toContain(
+      seed.songs.Breed
+    )
+    const [p] = await practices(seed.bandId)
+    expect(p.songs.map((s: { songId: string }) => s.songId)).toEqual([
+      seed.songs.Black,
+      seed.songs.Everlong,
+    ])
+  })
 
-    // Change filter to "All" to see all practices
-    await page.locator('[data-testid="practices-filter-trigger"]').click()
-    await page.locator('[data-testid="practices-filter-option-all"]').click()
-    await page.waitForTimeout(500)
+  test('drag by the grip (keyboard or mouse) reorders the songs', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    await page.goto(`/practices/${seed.practice}`)
+    const { Black, Everlong, Breed } = seed.songs
+    await expect.poll(() => order(page)).toEqual([Black, Everlong, Breed])
 
-    // Verify User A sees the practice
-    await expect(page.locator('text=Synced Location').first()).toBeVisible({
-      timeout: 10000,
+    // Keyboard: Black down one.
+    await page
+      .getByTestId(`practice-song-${Black}`)
+      .getByTestId('practice-song-grip')
+      .focus()
+    await page.keyboard.press('Space')
+    await page.waitForTimeout(150)
+    await page.keyboard.press('ArrowDown')
+    await page.waitForTimeout(150)
+    await page.keyboard.press('Space')
+    await expect.poll(() => order(page)).toEqual([Everlong, Black, Breed])
+
+    // Mouse: Breed's grip to the top.
+    const from = await page
+      .getByTestId(`practice-song-${Breed}`)
+      .getByTestId('practice-song-grip')
+      .boundingBox()
+    const to = await page.getByTestId(`practice-song-${Everlong}`).boundingBox()
+    await page.mouse.move(from!.x + 10, from!.y + 10)
+    await page.mouse.down()
+    await page.mouse.move(from!.x + 10, to!.y + 4, { steps: 12 })
+    await page.mouse.up()
+    await expect.poll(() => order(page)).toEqual([Breed, Everlong, Black])
+
+    await expect
+      .poll(async () =>
+        (await practices(seed!.bandId))[0].songs.map(
+          (s: { songId: string }) => s.songId
+        )
+      )
+      .toEqual([Breed, Everlong, Black])
+    await page.reload()
+    await expect.poll(() => order(page)).toEqual([Breed, Everlong, Black])
+  })
+
+  test('Duplicate makes the same practice a week later and opens it', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    await page.goto(`/practices/${seed.practice}`)
+    await page.getByTestId('practice-menu').click()
+    await page.getByTestId('practice-menu-duplicate').click()
+    await expect(page).toHaveURL(/\/practices\/[0-9a-f-]{36}$/)
+    await expect(page).not.toHaveURL(new RegExp(seed.practice))
+    await expect(page.getByTestId('practice-name-input')).toHaveValue(
+      'Thursday run'
+    )
+
+    const [first, second] = await practices(seed.bandId)
+    expect(second.id).not.toBe(first.id)
+    const days =
+      (new Date(second.scheduled_date).getTime() -
+        new Date(first.scheduled_date).getTime()) /
+      864e5
+    expect(Math.round(days)).toBe(7)
+    expect(second.songs).toHaveLength(3)
+  })
+
+  test('delete from the agenda row menu', async ({ page }) => {
+    seed = await seedCalendar(page)
+    await page.goto('/calendar?type=practice')
+    const row = page.getByTestId(`calendar-item-practice-${seed.practice}`)
+    await expect(row).toBeVisible()
+    await page.getByTestId(`calendar-item-menu-${seed.practice}`).click()
+    await page.getByTestId('calendar-row-delete').click()
+    await page.getByTestId('confirm-dialog-confirm').click()
+    await expect(row).toHaveCount(0)
+    expect(await practices(seed.bandId)).toHaveLength(0)
+  })
+
+  /** Fall Set as Everlong (Drop D), Breed, Black: not alphabetical. */
+  const reorderFall = async (seed: CalendarSeed) => {
+    const { Everlong, Breed, Black } = seed.songs
+    const admin = await getSupabaseAdmin()
+    await admin
+      .from('setlists')
+      .update({
+        items: [Everlong, Breed, Black].map((songId, i) => ({
+          id: `i${i}`,
+          type: 'song',
+          position: i + 1,
+          songId,
+        })),
+      })
+      .eq('id', seed.fall)
+  }
+
+  test('Plan a practice from a setlist keeps its order and retunes', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    await reorderFall(seed)
+    const { Everlong, Breed, Black } = seed.songs
+    await page.goto(`/setlists/${seed.fall}`)
+    await page.getByTestId('setlist-header-menu').click()
+    await page.getByTestId('setlist-menu-practice').click()
+    await expect(page).toHaveURL(/\/practices\/[0-9a-f-]{36}$/)
+    await expect.poll(() => order(page)).toEqual([Everlong, Breed, Black])
+    // Drop D → Standard before Breed; Breed → Black needs none.
+    const retunes = page.getByTestId('practice-retune')
+    await expect(retunes).toHaveCount(1)
+    // Its own row, right above Breed.
+    await expect(
+      page
+        .getByTestId('practice-retune-row')
+        .locator('xpath=following-sibling::li[1]')
+    ).toHaveAttribute('data-song-id', Breed)
+    expect(await practices(seed.bandId)).toHaveLength(2)
+  })
+
+  test('Add songs filtered by a setlist lists and adds in its order', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    await reorderFall(seed)
+    const { Everlong, Breed, Black } = seed.songs
+    await page.goto('/practices/new?add=1')
+    const browser = page.getByTestId('song-browser')
+    await browser.getByTestId('browser-setlist-filter').click()
+    await page.getByTestId(`browser-setlist-option-${seed.fall}`).click()
+    await expect
+      .poll(() =>
+        browser
+          .locator('[data-testid^="browser-song-"]')
+          .evaluateAll(els =>
+            els.map(e =>
+              e.getAttribute('data-testid')!.replace('browser-song-', '')
+            )
+          )
+      )
+      .toEqual([Everlong, Breed, Black])
+    await browser.getByTestId('browser-add-all').click()
+    await expect(page).toHaveURL(/\/practices\/[0-9a-f-]{36}\?add=1$/)
+    await browser.getByTestId('browser-done').click()
+    await expect.poll(() => order(page)).toEqual([Everlong, Breed, Black])
+  })
+
+  test('a song opened from the practice comes Back to it', async ({ page }) => {
+    seed = await seedCalendar(page)
+    const { Everlong } = seed.songs
+    await page.goto(`/practices/${seed.practice}`)
+    await page.getByTestId(`practice-song-${Everlong}`).click()
+    await expect(page).toHaveURL(
+      new RegExp(`/songs/${Everlong}\\?from=practice`)
+    )
+    await expect(page.getByTestId('song-page-back')).toHaveText(/Practice/)
+    await page.getByTestId('song-page-back').click()
+    await expect(page).toHaveURL(new RegExp(`/practices/${seed.practice}$`))
+  })
+
+  test.describe('wide', () => {
+    test.use({ viewport: { width: 1440, height: 900 } })
+
+    test('a click previews the song in the pane; a double-click opens it', async ({
+      page,
+    }) => {
+      seed = await seedCalendar(page)
+      const { Everlong } = seed.songs
+      await page.goto(`/practices/${seed.practice}`)
+      const row = page.getByTestId(`practice-song-${Everlong}`)
+      await row.click()
+      await expect(page).toHaveURL(new RegExp(`/practices/${seed.practice}$`))
+      const pane = page.getByTestId('song-pane')
+      await expect(pane.getByTestId('song-detail-title')).toHaveText('Everlong')
+      // A second click keeps it open (no flicker before a double-click); × closes.
+      await row.click()
+      await expect(pane).toBeVisible()
+      await pane.getByTestId('song-pane-close').click()
+      await expect(pane).toHaveCount(0)
+
+      await row.dblclick()
+      await expect(page).toHaveURL(
+        new RegExp(`/songs/${Everlong}\\?from=practice`)
+      )
     })
+  })
 
-    // ASSERT: User B should see it appear (realtime sync or after refresh)
-    await page2.reload()
-    await page2.waitForLoadState('networkidle')
+  test('a past practice can still start, and its wrap-up notes edit in place', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    const admin = await getSupabaseAdmin()
+    await admin
+      .from('practice_sessions')
+      .update({
+        scheduled_date: new Date(Date.now() - 2 * 86400_000).toISOString(),
+        wrapup_notes: 'Bridge loose',
+      })
+      .eq('id', seed.practice)
+    await page.goto(`/practices/${seed.practice}`)
+    await expect(page.getByTestId('practice-detail')).toHaveAttribute(
+      'data-status',
+      'done'
+    )
+    const notes = page.getByTestId('practice-wrapup-notes-input')
+    await expect(notes).toHaveValue('Bridge loose')
+    await notes.fill('Bridge tight now')
+    await notes.blur()
+    await expect
+      .poll(async () => {
+        const { data } = await admin
+          .from('practice_sessions')
+          .select('wrapup_notes')
+          .eq('id', seed!.practice)
+          .single()
+        return data!.wrapup_notes
+      })
+      .toBe('Bridge tight now')
 
-    // Change filter to "All" on page2 as well
-    await page2.locator('[data-testid="practices-filter-trigger"]').click()
-    await page2.locator('[data-testid="practices-filter-option-all"]').click()
-    await page2.waitForTimeout(500)
-
-    await expect(page2.locator('text=Synced Location').first()).toBeVisible({
-      timeout: 20000,
-    })
-
-    // Cleanup
-    await page2.close()
+    await page.getByTestId('practice-start-session').click()
+    await expect(page).toHaveURL(/\/session$/)
+    // Its wrap-up starts from the notes it has.
+    await page.getByTestId('session-end').click()
+    await expect(page.getByTestId('session-wrapup-notes')).toHaveValue(
+      'Bridge tight now'
+    )
   })
 })

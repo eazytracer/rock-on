@@ -5,11 +5,6 @@ export interface AppConfig {
   isLocal: boolean
   isProduction: boolean
 
-  // Sync settings
-  syncInterval: number
-  syncOnStartup: boolean
-  syncOnOnline: boolean
-
   // Auth settings
   enableMockAuth: boolean
   enableSupabaseAuth: boolean
@@ -17,23 +12,6 @@ export interface AppConfig {
   // Supabase settings
   supabaseUrl?: string
   supabaseAnonKey?: string
-}
-
-// Detect if we're running in Playwright E2E tests (headless browser automation)
-export function isE2ETestEnvironment(): boolean {
-  if (typeof window === 'undefined') return false
-
-  try {
-    // Check for headless Chrome (Playwright's default)
-    if (navigator.userAgent.includes('HeadlessChrome')) return true
-
-    // Check for webdriver flag (set by automation)
-    if ((navigator as { webdriver?: boolean }).webdriver) return true
-  } catch {
-    // Ignore errors (e.g., in SSR)
-  }
-
-  return false
 }
 
 export function getAppMode(): AppMode {
@@ -60,6 +38,27 @@ export function getAppMode(): AppMode {
   return 'production'
 }
 
+// In dev, point the local Supabase URL at whatever host the page was loaded
+// from (keeping its port), so the app works when opened from another machine on
+// the LAN or a phone — not only where `localhost` is the Supabase host. Remote
+// (https) Supabase URLs are left alone. Opened over https (the dev hostname
+// behind a TLS proxy), it uses the page's own origin, which Vite proxies to
+// Supabase (vite.config.ts), because an https page can't call http.
+export function getSupabaseUrl(): string | undefined {
+  const url = import.meta.env.VITE_SUPABASE_URL
+  if (
+    url?.startsWith('http://') &&
+    import.meta.env.MODE === 'development' &&
+    typeof window !== 'undefined'
+  ) {
+    if (window.location.protocol === 'https:') return window.location.origin
+    const local = new URL(url)
+    local.hostname = window.location.hostname
+    return local.origin
+  }
+  return url
+}
+
 export function getConfig(): AppConfig {
   const mode = getAppMode()
 
@@ -68,18 +67,12 @@ export function getConfig(): AppConfig {
     isLocal: mode === 'local',
     isProduction: mode === 'production',
 
-    // Sync settings (only relevant in production)
-    syncInterval: 30000, // 30 seconds
-    syncOnStartup: true,
-    syncOnOnline: true,
-
     // Auth settings
     enableMockAuth: mode === 'local',
     enableSupabaseAuth: mode === 'production',
 
     // Supabase settings
-    supabaseUrl:
-      mode === 'production' ? import.meta.env.VITE_SUPABASE_URL : undefined,
+    supabaseUrl: mode === 'production' ? getSupabaseUrl() : undefined,
     supabaseAnonKey:
       mode === 'production'
         ? import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -95,9 +88,9 @@ if (typeof window !== 'undefined') {
   import('../utils/logger').then(({ logger }) => {
     logger.info(`🚀 Rock On running in ${config.mode} mode`)
     if (config.isLocal) {
-      logger.info('📦 Using local-only mode (Dexie + Mock Auth)')
+      logger.info('📦 Using local-only mode (Mock Auth)')
     } else {
-      logger.info('☁️  Using production mode (Dexie + Supabase sync)')
+      logger.info('☁️  Using production mode (Supabase)')
     }
   })
 }

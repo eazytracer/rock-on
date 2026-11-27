@@ -115,7 +115,7 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          className="w-full pl-10 pr-4 py-2.5 bg-bg-2 border border-border-2 rounded-lg text-white placeholder-ink-4 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-colors"
+          className="w-full pl-10 pr-4 py-2.5 bg-bg-2 border border-border-2 rounded-lg text-ink-1 placeholder-ink-4 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954] transition-colors"
           data-testid="spotify-search-input"
         />
         {isLoading && (
@@ -170,7 +170,7 @@ export const SpotifySearch: React.FC<SpotifySearchProps> = ({
 
               {/* Track Info */}
               <div className="flex-1 min-w-0">
-                <div className="text-white text-sm font-medium truncate">
+                <div className="text-ink-1 text-sm font-medium truncate">
                   {track.name}
                 </div>
                 <div className="text-ink-3 text-xs truncate">

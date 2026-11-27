@@ -11,7 +11,7 @@
  *
  *   logger.debug('Detailed debugging info')        // Only in dev
  *   logger.info('General information')             // Dev + test
- *   logger.warn('Warning message')                 // Dev + test + prod
+ *   logger.warn('Warning message')                 // Dev + test
  *   logger.error('Error occurred', error)          // Always logged
  */
 
@@ -72,8 +72,8 @@ export const logger: Logger = {
  * Create a namespaced logger for a specific module
  *
  * Usage:
- *   const log = createLogger('SyncEngine')
- *   log.debug('Sync started')  // Outputs: [SyncEngine] Sync started
+ *   const log = createLogger('SongsPage')
+ *   log.debug('Loaded')  // Outputs: [SongsPage] Loaded
  */
 export function createLogger(namespace: string): Logger {
   const prefix = `[${namespace}]`

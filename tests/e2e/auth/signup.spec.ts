@@ -4,6 +4,7 @@ import {
   signUpViaUI,
   deleteTestUser,
 } from '../../fixtures/auth'
+import { createBandViaUI } from '../../fixtures/bands'
 import { selectors } from '../../helpers/selectors'
 import {
   setupConsoleErrorTracking,
@@ -33,18 +34,13 @@ test.describe('User Signup and Band Creation', () => {
     // Should redirect to get-started page
     await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
-    // Step 2: Create band
+    // Step 2: Create a band (Get started row → New band)
     const bandName = `Test Band ${Date.now()}`
-    const bandNameInput = page.locator(selectors.band.nameInput)
-    await expect(bandNameInput).toBeVisible()
+    await page.getByTestId('get-started-create-band').click()
+    await expect(page).toHaveURL(/\/band\/new/)
+    await createBandViaUI(page, bandName)
 
-    await bandNameInput.fill(bandName)
-
-    const createButton = page.locator(selectors.band.createButton)
-    await createButton.click()
-
-    // Step 3: Verify redirect to songs page
-    await page.waitForURL(/\/songs/, { timeout: 10000 })
+    // Step 3: createBandViaUI ends on Songs
     await expect(page).toHaveURL(/\/songs/)
 
     // Step 4: Verify band name is in the DOM (may be hidden on mobile)
@@ -82,12 +78,7 @@ test.describe('User Signup and Band Creation', () => {
     await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
     // Create band
-    const bandName = `RLS Test Band ${Date.now()}`
-    await page.fill(selectors.band.nameInput, bandName)
-    await page.click(selectors.band.createButton)
-
-    // Wait for redirect
-    await page.waitForURL(/\/songs/, { timeout: 10000 })
+    await createBandViaUI(page, `RLS Test Band ${Date.now()}`)
 
     // Verify no RLS errors
     expect(rlsErrors).toHaveLength(0)
@@ -107,30 +98,24 @@ test.describe('User Signup and Band Creation', () => {
     const switchButton = page.locator(selectors.auth.switchToSignUp)
     await switchButton.click()
 
-    // Fill signup form
+    // Fill signup form: one password field, no confirm
+    await expect(page).toHaveURL(/\/auth\/signup/)
     await page.fill(selectors.auth.nameInput, user.name)
     await page.fill(selectors.auth.signupEmailInput, user.email)
     await page.fill(selectors.auth.signupPasswordInput, user.password)
-    await page.fill(selectors.auth.confirmPasswordInput, user.password)
 
     // Submit
     await page.click(selectors.auth.signUpButton)
 
-    // Should go to get-started
+    // Should go to get-started, with its four paths
     await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
-
-    // Should see both options: Create Band and Join Band
-    await expect(
-      page.locator('text=Create Your First Band').first()
-    ).toBeVisible()
-    await expect(
-      page.locator('text=Join an Existing Band').first()
-    ).toBeVisible()
-
-    // Should see band name input
-    await expect(page.locator(selectors.band.nameInput)).toBeVisible()
-
-    // Should see invite code input
-    await expect(page.locator(selectors.band.inviteCodeInput)).toBeVisible()
+    for (const id of [
+      'get-started-create-band',
+      'get-started-join-band',
+      'get-started-jam-code',
+      'personal-account-button',
+    ]) {
+      await expect(page.getByTestId(id)).toBeVisible()
+    }
   })
 })

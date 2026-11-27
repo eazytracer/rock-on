@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Foundations v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0c0b0a;--s1:#151311;--s2:#1d1a17;--s3:#26221e;--line:#2a2522;--tx:#f4efe9;--tx2:#cfc6bd;--mu:#a69c92;--brand:#ff7a1a;--onb:#1a0c02;--pers:#7c86f5;--onp:#0b0d2b}
+body{color:var(--tx2);font-family:"Atkinson Hyperlegible Next",sans-serif}
+a{color:#ff7a1a}a:hover{color:#ffa060}
+.frame{position:absolute}
+.D{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;line-height:.9;color:var(--tx)}
+.M{font-family:"Martian Mono";letter-spacing:.06em}
+.wrap{width:1790px;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:24px}
+.card{background:#141414;border-radius:28px;padding:30px;font-size:15px;line-height:1.5;text-wrap:pretty}
+.card p{margin-bottom:10px}.card b{color:#fff}
+.eb{font-family:"Martian Mono";font-size:11px;letter-spacing:.12em;color:var(--brand);text-transform:uppercase}
+.c12{grid-column:span 12}.c8{grid-column:span 8}.c7{grid-column:span 7}.c6{grid-column:span 6}.c5{grid-column:span 5}.c4{grid-column:span 4}
+h1.D{font-size:84px;margin:10px 0 14px}h1 span{color:var(--brand)}
+h2.D{font-size:44px;margin:8px 0 14px}
+.law{display:inline-flex;gap:6px;flex-wrap:wrap;margin:2px 0 14px}
+.law span{font-family:"Martian Mono";font-size:10px;letter-spacing:.06em;color:var(--tx);background:#232323;border-radius:6px;padding:4px 8px;text-transform:uppercase}
+.lede{font-size:18px;max-width:980px;color:#d4d4d4}
+.cap{font-family:"Martian Mono";font-size:10.5px;letter-spacing:.1em;color:#9a9a9a;text-transform:uppercase;margin:18px 0 10px}
+/* colour roles */
+.roles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.role{border-radius:16px;padding:14px;height:96px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:inset 0 0 0 1px #2c2c2c}
+.role b{font-size:14px}.role small{font-family:"Martian Mono";font-size:10px;letter-spacing:.04em;opacity:.8}
+.ctxs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ctxp{background:var(--bg);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.chip{display:flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 6px;border-radius:18px;background:var(--s2);font-weight:600;font-size:14px;color:var(--tx);width:max-content}
+.chip i{width:24px;height:24px;border-radius:12px;font-style:normal;font-weight:800;font-size:11px;display:grid;place-items:center}
+.hero{border-radius:22px;padding:16px 18px}
+.hero .M{font-size:10.5px;font-weight:700}
+.hero .D{font-size:36px;color:inherit;margin-top:6px}
+.navp{height:56px;border-radius:28px;background:var(--s2);display:flex;justify-content:space-around;align-items:center}
+.navp div{width:44px;height:38px;border-radius:19px}
+.navp .on{width:58px}
+.navp div:not(.on){background:#2a2521;width:22px;height:4px}
+/* tuning */
+.spine{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}
+.tun{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.tok{width:56px;height:56px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:color-mix(in oklch,var(--c) 17%,#171513);color:var(--c)}
+.tok b{font-family:"Big Shoulders Display";font-weight:800;font-size:26px;line-height:1}
+.tok span{font-family:"Martian Mono";font-size:8px;font-weight:500;letter-spacing:.04em;margin-top:3px}
+.tun .nm{font-size:13px;color:var(--tx);font-weight:600;line-height:1.2}
+.tun .hx{font-family:"Martian Mono";font-size:10px;color:#8a8a8a}
+.tun .hx s{color:#666}
+.tl{display:inline-flex;align-items:center;gap:6px;font-family:"Martian Mono";font-size:11px;letter-spacing:.04em;color:#e8e0d8;white-space:nowrap}
+.tl i{width:8px;height:8px;border-radius:4px;display:block}
+.chg{outline:2px dashed #fff;outline-offset:4px;border-radius:14px}
+.cmp{display:flex;gap:14px;align-items:center;background:var(--bg);border-radius:18px;padding:14px 16px;margin-top:4px}
+.cmp .sw{width:48px;height:48px;border-radius:12px}
+/* custom tuning phone */
+.phone{width:410px;height:864px;border-radius:58px;background:#1b1b1b;padding:10px;box-shadow:0 0 0 1px #333,0 30px 60px rgba(0,0,0,.35);flex-shrink:0}
+.scr{width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);color:var(--tx);display:flex;flex-direction:column}
+.sb{height:50px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 34px 8px;font-weight:600;font-size:15px}
+.ab{display:flex;justify-content:space-between;align-items:center;padding:8px 16px}
+.ib{width:44px;height:44px;border-radius:22px;background:var(--s2);display:grid;place-items:center;color:var(--tx);border:0;cursor:pointer}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.save{height:44px;padding:0 18px;border-radius:22px;background:var(--brand);color:var(--onb);font-weight:700;font-size:15px;display:grid;place-items:center}
+.cbody{padding:0 16px;display:flex;flex-direction:column;gap:12px;overflow:auto;flex:1}
+.fld{background:var(--s1);border-radius:16px;padding:10px 14px}
+.fld small{display:block;font-family:"Martian Mono";font-size:10px;letter-spacing:.08em;color:var(--mu);text-transform:uppercase;margin-bottom:2px}
+.fld input{background:none;border:0;color:var(--tx);font:600 17px "Atkinson Hyperlegible Next";width:100%;outline:none}
+.seg{display:flex;background:var(--s2);border-radius:22px;padding:3px;height:44px}
+.seg button{flex:1;border:0;background:none;color:var(--mu);font:600 14px "Atkinson Hyperlegible Next";border-radius:19px;cursor:pointer}
+.seg button.on{background:var(--tx);color:var(--bg)}
+.strs{background:var(--s1);border-radius:18px;padding:6px}
+.str{display:flex;align-items:center;gap:10px;padding:2px 6px;height:52px}
+.str .k{font-family:"Martian Mono";font-size:10px;color:var(--mu);width:34px}
+.str .n{flex:1;font-family:"Big Shoulders Display";font-weight:800;font-size:28px;display:flex;align-items:baseline;gap:6px}
+.str .n sub{font-family:"Martian Mono";font-size:10px;font-weight:400;color:var(--mu)}
+.str .n.dif{color:var(--c)}
+.stp{width:44px;height:44px;border-radius:14px;background:var(--s2);border:0;color:var(--tx);font-size:22px;cursor:pointer;display:grid;place-items:center}
+.stp:active{transform:scale(.94)}
+.colr{background:var(--s1);border-radius:18px;padding:14px;display:flex;gap:14px;align-items:center}
+.wheel{width:116px;height:116px;border-radius:50%;position:relative;flex-shrink:0;cursor:crosshair;background:conic-gradient(from 90deg,hsl(0 80% 60%),hsl(60 80% 60%),hsl(120 80% 60%),hsl(180 80% 60%),hsl(240 80% 60%),hsl(300 80% 60%),hsl(360 80% 60%))}
+.wheel:after{content:"";position:absolute;inset:26px;border-radius:50%;background:var(--s1)}
+.wheel .bb{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 90deg,transparent 0 20deg,rgba(12,11,10,.72) 35deg 75deg,transparent 75deg)}
+.wheel .dot{position:absolute;width:22px;height:22px;border-radius:11px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.6);transform:translate(-50%,-50%);z-index:2}
+.wheel .mid{position:absolute;inset:36px;border-radius:50%;z-index:1}
+.colr .tx{font-size:13px;line-height:1.4;color:var(--tx2);display:flex;flex-direction:column;gap:6px;min-width:0}
+.colr .tx b{color:var(--tx);font-size:15px}
+.reset{height:36px;border-radius:18px;border:1.5px solid var(--line);background:none;color:var(--tx);font:600 13px "Atkinson Hyperlegible Next";padding:0 12px;width:max-content;cursor:pointer}
+.warn{font-size:13px;color:#ffd166;display:none}
+.prev{background:var(--s1);border-radius:18px;padding:10px 14px;display:flex;align-items:center;gap:14px}
+.prev .t{font-weight:600;font-size:16px;flex:1}
+.math{font-family:"Martian Mono";font-size:12px;line-height:1.8;color:#cfcfcf;background:#0c0b0a;border-radius:16px;padding:16px 18px;margin:14px 0}
+.math b{color:var(--brand);font-weight:500}
+/* spacing / radii / elevation */
+.sp{display:flex;flex-direction:column;gap:8px}
+.sp div{display:flex;align-items:center;gap:14px;font-family:"Martian Mono";font-size:11px;color:#bbb}
+.sp div i{display:block;height:14px;background:var(--brand);border-radius:3px}
+.sp div span{width:120px}
+.rad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.rad div{height:84px;background:var(--s2);display:flex;align-items:flex-end;padding:10px;font-family:"Martian Mono";font-size:10px;color:#ccc;line-height:1.4}
+.elv{display:flex;flex-direction:column;gap:0;background:var(--bg);border-radius:22px;padding:18px;position:relative;height:332px}
+.elv .l{position:absolute;border-radius:18px;padding:12px 14px;font-family:"Martian Mono";font-size:10.5px;color:var(--tx);line-height:1.5}
+.elv .l small{color:var(--mu);display:block}
+/* motion */
+.mt{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.mt div{background:#0c0b0a;border-radius:16px;padding:14px}
+.mt b{font-family:"Big Shoulders Display";font-size:34px;color:var(--tx);display:block;line-height:1}
+.mt small{font-family:"Martian Mono";font-size:10px;color:var(--mu);letter-spacing:.04em}
+.mt p{font-size:13px;margin:6px 0 0}
+.stage{margin-top:14px;height:300px;border-radius:22px;background:var(--bg);position:relative;overflow:hidden}
+.stage .btns{position:absolute;left:16px;top:16px;display:flex;gap:8px;z-index:3}
+.stage .btns button{height:44px;padding:0 16px;border-radius:22px;border:0;background:var(--s2);color:var(--tx);font:600 14px "Atkinson Hyperlegible Next";cursor:pointer;transition:transform 120ms cubic-bezier(.2,0,0,1)}
+.stage .btns button:active{transform:scale(.96)}
+.stage .btns button.pri{background:var(--brand);color:var(--onb)}
+.sheet{position:absolute;left:0;right:0;bottom:0;height:180px;background:var(--s3);border-radius:28px 28px 0 0;transform:translateY(100%);transition:transform 280ms cubic-bezier(.05,.7,.1,1);padding:12px 20px;z-index:2}
+.sheet.on{transform:none}
+.sheet:before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:#4a433d;margin:0 auto 14px}
+.sheet .r{height:48px;display:flex;align-items:center;color:var(--tx);font-weight:600;border-bottom:1px solid var(--line)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);opacity:0;transition:opacity 280ms;pointer-events:none;z-index:1}
+.scrim.on{opacity:1}
+.toast{position:absolute;left:50%;bottom:20px;transform:translate(-50%,20px);opacity:0;background:var(--tx);color:var(--bg);height:44px;border-radius:22px;padding:0 18px;display:flex;align-items:center;gap:12px;font-weight:600;font-size:14px;transition:transform 200ms cubic-bezier(.2,0,0,1),opacity 200ms;z-index:3;white-space:nowrap}
+.toast.on{transform:translate(-50%,0);opacity:1}
+.toast u{text-decoration:none;color:#c24d00;font-weight:700}
+.banner{position:absolute;left:16px;right:16px;top:76px;background:var(--s2);border-radius:16px;padding:12px 14px;color:var(--tx);font-size:14px;display:flex;justify-content:space-between;transform:translateY(-12px);opacity:0;transition:all 280ms cubic-bezier(.2,0,0,1)}
+.banner.on{transform:none;opacity:1}
+.banner span{color:var(--mu)}
+/* overlay rules */
+.ovl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ovl>div{background:var(--bg);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.mini{height:150px;border-radius:18px;background:var(--s1);position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px #262220}
+.mini i{position:absolute;display:block}
+.ovl h3{color:var(--tx);font-size:16px}
+.ovl p{font-size:13px;margin:0;color:var(--tx2)}
+.ovl p em{font-style:normal;color:var(--mu)}
+.tg{display:flex;gap:16px;align-items:flex-end}
+.tg div{background:var(--s2);border-radius:14px;display:grid;place-items:center;font-family:"Martian Mono";font-size:10px;color:var(--tx);text-align:center;line-height:1.3}
+pre{font-family:"Martian Mono";font-size:11.5px;line-height:1.75;color:#d6d6d6;background:#0c0b0a;border-radius:18px;padding:20px;white-space:pre-wrap}
+pre b{color:var(--brand);font-weight:500}pre i{color:#7d7d7d;font-style:normal}
+.thm .tl{color:var(--tx)}
+.tun .tl{font-size:13px}.tun .tl i{width:10px;height:10px;border-radius:5px}
+.anat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:8px}
+.acol{display:flex;flex-direction:column;gap:10px}
+.acol h4{font-family:"Martian Mono";font-size:10.5px;letter-spacing:.1em;color:#9a9a9a;text-transform:uppercase;font-weight:500}
+.alist{border-radius:22px;padding:6px 0;background:var(--s1);color:var(--tx)}
+.alist.lt{--s1:#fffdfa;--tx:#1a1512;--mu:#6b6158;--line:#ddd4ca;box-shadow:0 1px 2px rgba(60,40,20,.08),0 4px 14px rgba(60,40,20,.06);background:#f7f3ee;padding:10px}
+.alist.lt .arow{background:#fffdfa}
+.arow{display:flex;align-items:center;gap:12px;padding:0 16px;min-height:56px;border-radius:14px}
+.arow+.arow{box-shadow:0 -1px 0 var(--line)}
+.arow .tt{flex:1;min-width:0}
+.arow .tt b{display:block;font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .sub2{font-family:"Martian Mono";font-size:11px;letter-spacing:.04em;color:var(--mu);margin-top:3px;display:flex;gap:12px}
+.arow .sub2 em{font-style:normal;color:var(--tx)}
+.arow .rt{display:flex;align-items:center;gap:14px;font-family:"Martian Mono";font-size:11px;letter-spacing:.04em}
+.arow .rt .tl{color:var(--tx);width:74px}
+.arow .rt .du{color:var(--tx);width:34px;text-align:right}
+.arow.two{min-height:64px}
+.thms{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:8px}
+.thm{border-radius:24px;padding:20px;background:var(--bg);color:var(--tx);display:flex;flex-direction:column;gap:16px;box-shadow:inset 0 0 0 1px var(--line)}
+.thm.dk{--bg:#0c0b0a;--s1:#151311;--s2:#1d1a17;--s3:#26221e;--line:#2a2522;--tx:#f4efe9;--tx2:#cfc6bd;--mu:#a69c92;--ink:.17;--tink:#000;--tmix:0%;--sh:none}
+.thm.lt{--bg:#f7f3ee;--s1:#fffdfa;--s2:#ebe4dc;--s3:#ffffff;--line:#ddd4ca;--tx:#1a1512;--tx2:#3d352f;--mu:#6b6158;--tmix:45%;--sh:0 1px 2px rgba(60,40,20,.08),0 4px 14px rgba(60,40,20,.06)}
+.thh{display:flex;align-items:baseline;gap:10px}.thh span{font-family:"Big Shoulders Display";font-weight:800;font-size:30px;text-transform:uppercase}.thh small{font-family:"Martian Mono";font-size:10px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase}
+.tr6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.tr6 div{border-radius:12px;height:70px;padding:8px 10px;display:flex;flex-direction:column;justify-content:flex-end;font-size:12px;font-weight:600;box-shadow:inset 0 0 0 1px var(--line)}
+.tr6 small{font-family:"Martian Mono";font-size:9.5px;font-weight:400;opacity:.8}
+.tlist{background:var(--s1);border-radius:20px;padding:6px 0;box-shadow:var(--sh)}
+.trow{display:flex;align-items:center;gap:14px;padding:8px 14px}
+.trow .tk2{width:48px;height:48px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:color-mix(in oklch,var(--c) 17%,var(--s1));color:color-mix(in oklch,var(--c),#000 var(--tmix))}
+.trow .tk2 b{font-family:"Big Shoulders Display";font-weight:800;font-size:23px;line-height:1}.trow .tk2 span{font-family:"Martian Mono";font-size:8px;margin-top:3px}
+.trow .t{flex:1;font-weight:600;font-size:16px;min-width:0}
+.trow .m{font-family:"Martian Mono";font-size:11px;color:var(--mu);text-align:right;line-height:1.6}
+.tbar{display:flex;gap:10px;align-items:center}
+.tbar .bp{height:48px;padding:0 20px;border-radius:24px;font-weight:700;font-size:15px;display:flex;align-items:center}
+.tbar .lnk{font-weight:700;font-size:14px}
+.tbar .cf{font-size:13px;font-weight:600;display:flex;gap:6px;align-items:center}
+ul.dec{padding-left:18px;display:flex;flex-direction:column;gap:6px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+</defs></svg>
+<div class="frame" style="left:80px;top:60px"><div class="wrap">
+
+<div class="card c12" data-screen-label="Header">
+<div class="eb">Rock On · Source · Foundations</div>
+<h1 class="D">Tokens for the <span>build</span>.</h1>
+<p class="lede">Colour roles, the tuning spine, custom tuning colour, spacing, radii, elevation, motion and overlay rules, all ready to map onto Flutter. Light and dark, following the system setting. Type stays as the Marquee pairing used in the setlist work: Big Shoulders Display, Atkinson Hyperlegible Next and Martian Mono.</p>
+</div>
+
+<div class="card c7" data-screen-label="Colour roles">
+<div class="eb">01 · Colour roles</div>
+<h2 class="D">Neutrals carry the screen</h2>
+<div class="law"><span>Law of Similarity</span><span>Von Restorff</span><span>Selective Attention</span></div>
+<p>Warm near-black surfaces in three steps. One accent per context, and the tuning spine. Semantic colours always come with an icon and words.</p>
+<div class="cap">Surfaces &amp; text</div>
+<div class="roles">
+<div class="role" style="background:#0c0b0a"><b style="color:#f4efe9">bg</b><small>#0c0b0a · screen</small></div>
+<div class="role" style="background:#151311"><b style="color:#f4efe9">surface-1</b><small>#151311 · cards, fields</small></div>
+<div class="role" style="background:#1d1a17"><b style="color:#f4efe9">surface-2</b><small>#1d1a17 · controls, nav</small></div>
+<div class="role" style="background:#26221e"><b style="color:#f4efe9">surface-3</b><small>#26221e · sheets</small></div>
+<div class="role" style="background:#f4efe9;color:#0c0b0a"><b>text</b><small>#f4efe9 · 17.6:1</small></div>
+<div class="role" style="background:#cfc6bd;color:#0c0b0a"><b>text-2</b><small>#cfc6bd · body</small></div>
+<div class="role" style="background:#a69c92;color:#0c0b0a"><b>muted</b><small>#a69c92 · 7.4:1 on bg</small></div>
+<div class="role" style="background:#2a2522;color:#f4efe9"><b>line</b><small>#2a2522 · dividers</small></div>
+</div>
+<div class="cap">Semantic: icon + label, never colour alone</div>
+<div class="roles">
+<div class="role" style="background:#0c0b0a;color:#3ec986"><b>success</b><small>#3ec986 · Confirmed</small></div>
+<div class="role" style="background:#0c0b0a;color:#ffd166"><b>warning</b><small>#ffd166 · tuning change</small></div>
+<div class="role" style="background:#0c0b0a;color:#ff5d5d"><b>danger</b><small>#ff5d5d · delete, Cancelled</small></div>
+<div class="role" style="background:#0c0b0a;color:#a69c92"><b>— no info hue</b><small>blue is taken twice</small></div>
+</div>
+</div>
+
+<div class="card c5" data-screen-label="Context accents">
+<div class="eb">02 · Context accent</div>
+<h2 class="D">Band orange, personal indigo</h2>
+<div class="law"><span>Mental Model</span><span>Law of Similarity</span></div>
+<p>The accent swaps with the switcher, filling the hero card, the active nav pill and the primary button. Personal stays in the blue family as you asked, but moves to a deeper <b>indigo #7c86f5</b>. That keeps it apart from Standard <b>#60a5fa</b> and Whole-step <b>#0ea5e9</b>, which are always small and labelled.</p>
+<div class="ctxs">
+<div class="ctxp"><div class="chip"><i style="background:#ff7a1a;color:#1a0c02">iP</i>iPod Shuffle</div><div class="hero" style="background:#ff7a1a;color:#1a0c02"><div class="M">NEXT SHOW · 4 DAYS</div><div class="D">The Crocodile</div></div><div class="navp"><div class="on" style="background:#ff7a1a"></div><div></div><div></div><div></div><div></div></div></div>
+<div class="ctxp"><div class="chip"><i style="background:#7c86f5;color:#0b0d2b">ER</i>Personal</div><div class="hero" style="background:#7c86f5;color:#0b0d2b"><div class="M">BIRTHDAY JAM · SAT</div><div class="D">Mike's Garage</div></div><div class="navp"><div class="on" style="background:#7c86f5"></div><div></div><div></div><div></div><div></div></div></div>
+</div>
+<div class="cmp"><div class="sw" style="background:#7c86f5"></div><div class="sw" style="background:#60a5fa;width:24px;height:24px;border-radius:7px"></div><div class="sw" style="background:#0ea5e9;width:24px;height:24px;border-radius:7px"></div><div style="font-size:13px">Size and role separate them: the accent fills big areas, tunings are 8px dots and tinted tokens with a name.</div></div>
+</div>
+
+<div class="card c12" data-screen-label="Light and dark">
+<div class="eb">02b · Light &amp; dark</div>
+<h2 class="D">Same roles, two themes</h2>
+<div class="law"><span>Postel's Law</span><span>Jakob's Law</span><span>Law of Similarity</span></div>
+<p>The app follows the system setting, and Settings → Appearance can override it (System / Light / Dark). Every role has a value in each theme, so screens are designed once. Dark stays the stage default: practice session, performance and jam live suggest dark when they open, and you can stay in light. Light is the daytime admin theme: building sets, booking shows.</p>
+<p>Accents keep their fill colour in both themes, always with dark ink on top. On light, coloured <b>text</b> uses a deeper ink version (brand ink <span class="M" style="font-size:12px">#b84d00</span>, personal ink <span class="M" style="font-size:12px">#3f49c9</span>) to clear 4.5:1. Tuning dots use the light value of each tuning pair (§03), which clears 3:1 on the light background; the caps label next to it carries the meaning at full text contrast. In light, height comes from white surfaces plus a soft shadow, the reverse of dark.</p>
+<div class="thms">
+<div class="thm dk"><div class="thh"><span>Dark</span><small>stage default</small></div><div class="tr6" id="rDk"></div><div class="tlist" id="lDk"></div></div>
+<div class="thm lt"><div class="thh"><span>Light</span><small>daytime admin</small></div><div class="tr6" id="rLt"></div><div class="tlist" id="lLt"></div></div>
+</div>
+</div>
+
+<div class="card c12" data-screen-label="Tuning spine">
+<div class="eb">03 · Tuning spine</div>
+<h2 class="D">A pitch spine</h2>
+<div class="law"><span>Law of Similarity</span><span>Von Restorff</span><span>Mental Model</span><span>Tesler's Law</span></div>
+<p>Tuning always shows its colour <b>and</b> its name. In rows it is a tinted pill with the label in the tuning colour (Song Row). The label carries the meaning and the dot is a quick extra cue (<b>Von Restorff</b>: never colour alone).</p>
+<p><b>Hue follows pitch.</b> Built-ins are ranked by their average offset from standard (semitones per string). They are then spread <b>evenly</b> along one path in OKLCH, so eleven tunings get about 23° of hue each. They also get brighter as they get higher: the low end is deep magenta, Standard is bright lime. Hue and lightness change together, so even neighbours differ in two ways at 8px. The path skips the brand-orange band (35°–75°) and red, which is reserved for danger. Custom tunings use the same path (§04), so one rule (<b>Mental Model</b>) explains every colour: darker and cooler means lower. Each tuning is a <b>pair</b>: the same hue, with lightness tuned per theme (dark L .64→.88, light L .45→.62), so every dot clears 3:1 as a graphic on its own background (WCAG 1.4.11). The readout under each dot shows both values and their contrast.</p>
+<div class="spine" id="spine"></div>
+<p style="margin-top:18px;font-size:13px">Known overlaps, all with a label beside them: Drop D and Standard sit near success green and warning yellow. Semantic colours always carry an icon and words.</p>
+</div>
+
+<div class="card c12" data-screen-label="Custom tuning colour" style="display:flex;gap:40px;align-items:flex-start">
+<div class="phone"><div class="scr">
+<div class="sb"><span>9:41</span><span>●●●</span></div>
+<div class="ab"><button class="ib" aria-label="Close"><svg class="i"><use href="#x"></use></svg></button><div style="font-weight:700;font-size:16px">New tuning</div><div class="save">Save</div></div>
+<div class="cbody">
+<div class="fld"><small>Name</small><input id="tname" value="Open C"></div>
+<div class="seg" id="inst"><button data-i="g6" class="on">Guitar 6</button><button data-i="g7">7-string</button><button data-i="b4">Bass 4</button></div>
+<div class="strs" id="strs"></div>
+<div class="colr"><div class="wheel" id="wheel"><div class="bb"></div><div class="mid" id="mid"></div><div class="dot" id="dot"></div></div>
+<div class="tx"><b id="ctitle">Auto from pitch</b><span id="cdesc"></span><button class="reset" id="reset" style="display:none">Reset to auto</button></div></div>
+<div class="prev"><div class="t">Little Wing</div><div class="tl" id="ptl"></div></div>
+</div></div></div>
+<div style="max-width:720px">
+<div class="eb">04 · Custom tuning colour</div>
+<h2 class="D">Higher tuning, brighter colour</h2>
+<div class="law"><span>Tesler's Law</span><span>Hick's Law</span></div>
+<p>A new tuning gets its colour automatically, so nobody has to pick one (<b>Tesler's Law</b>). The picker is there for anyone who wants it, and <b>Reset to auto</b> undoes the override.</p>
+<div class="math">sum &nbsp;= Σ MIDI note of every string<br>ref &nbsp;= Σ MIDI of standard tuning for that instrument<br>off &nbsp;= (sum − ref) / strings &nbsp;<i style="color:#7d7d7d">// avg semitones vs standard</i><br>t &nbsp;&nbsp;&nbsp;= clamp((off + 4) / 5, 0, 1) &nbsp;<i style="color:#7d7d7d">// −4…+1 → 0…1, same path as built-ins</i><br><b>hue</b> = 345° − t × 235° &nbsp;<i style="color:#7d7d7d">// magenta (low) → blue → cyan → lime (high)</i><br><b>L</b> = 0.64 + 0.24 × t (dark) · 0.45 + 0.17 × t (light) · <b>C</b> = 0.16 &nbsp;<i style="color:#7d7d7d">// OKLCH, gamut-clipped</i></div>
+<p>Dividing by the string count means a 4-string bass and a 7-string guitar use the same scale.</p>
+<p>The path skips 35°–75° (shaded on the wheel), so an auto colour is never brand orange. Custom colours are the user's choice: auto is only the starting point, and any picked colour is fine because the label always names the tuning.</p>
+<p>Try it on the phone: step a string up or down, drag on the wheel, or switch instruments. The name and colour show up straight away in a song row (<b>Doherty Threshold</b>). The note and stepper targets are 44pt or larger (<b>Fitts's Law</b>).</p>
+</div>
+</div>
+
+<div class="card c4" data-screen-label="Spacing">
+<div class="eb">05 · Spacing</div>
+<h2 class="D">4-pt scale</h2>
+<div class="law"><span>Law of Proximity</span><span>Chunking</span></div>
+<p>Related items 4–8 apart, groups 16–24, sections 32+. Screen gutter 16 (lists) / 20 (headings).</p>
+<div class="sp" id="sp"></div>
+</div>
+
+<div class="card c4" data-screen-label="Radii">
+<div class="eb">06 · Corner rounding</div>
+<h2 class="D">Six radii</h2>
+<div class="law"><span>Law of Prägnanz</span><span>Law of Common Region</span></div>
+<p>Anything you tap is a pill or a soft square. Containers get larger radii, so nesting reads as inside-of.</p>
+<div class="rad">
+<div style="border-radius:6px">xs · 6<br>tag, kbd</div>
+<div style="border-radius:12px">sm · 12<br>link tile, stepper</div>
+<div style="border-radius:16px">field · 16<br>input, list group</div>
+<div style="border-radius:20px">md · 20<br>card, row card</div>
+<div style="border-radius:28px">lg · 28<br>hero, sheet top</div>
+<div style="border-radius:999px">pill · full<br>button, chip, nav</div>
+</div>
+</div>
+
+<div class="card c4" data-screen-label="Elevation">
+<div class="eb">07 · Elevation</div>
+<h2 class="D">Lighter = higher</h2>
+<div class="law"><span>Law of Common Region</span><span>Aesthetic-Usability</span></div>
+<p>Shadows barely show on near-black, so height comes from a lighter surface. Real shadow only on things that float: the nav, sheets and the primary CTA glow.</p>
+<div class="elv">
+<div class="l" style="left:18px;top:18px;right:18px;height:290px;background:#0c0b0a;box-shadow:inset 0 0 0 1px #2a2522">e0 · bg<small>no shadow</small></div>
+<div class="l" style="left:34px;top:64px;right:34px;height:228px;background:#151311">e1 · surface-1<small>card, row card</small></div>
+<div class="l" style="left:50px;top:112px;right:50px;height:164px;background:#1d1a17;box-shadow:0 10px 30px rgba(0,0,0,.5)">e2 · surface-2 + float<small>pill nav · 0 10 30 / 50%</small></div>
+<div class="l" style="left:66px;top:160px;right:66px;height:100px;background:#26221e;box-shadow:0 -8px 32px rgba(0,0,0,.6)">e3 · surface-3<small>sheet · 0 −8 32 / 60%</small></div>
+<div class="l" style="left:90px;bottom:28px;height:38px;padding:0 16px;border-radius:19px;background:#ff7a1a;color:#1a0c02;display:flex;align-items:center;box-shadow:0 8px 24px rgba(255,122,26,.3)">CTA glow · accent 30%</div>
+</div>
+</div>
+
+<div class="card c7" data-screen-label="Motion">
+<div class="eb">08 · Motion</div>
+<h2 class="D">Fast, and out of the way</h2>
+<div class="law"><span>Doherty Threshold</span><span>Flow</span><span>Von Restorff</span></div>
+<p>Every tap answers within 100ms (press state, haptic). Transitions finish well under 400ms. When the system follows "Reduce motion", slides become 120ms fades. Nothing loops or pulses except the Live dot.</p>
+<div class="mt">
+<div><small>instant · 100</small><b>100</b><p>Press scale .96, toggles, haptic.</p></div>
+<div><small>quick · 200</small><b>200</b><p>Toast, chip, row expand.</p></div>
+<div><small>standard · 280</small><b>280</b><p>Sheet, page push, banner.</p></div>
+<div><small>emphasis · 400</small><b>400</b><p>Go live, session start. Rare.</p></div>
+</div>
+<p style="margin-top:12px;font-size:13px">Easing: <span class="M" style="font-size:11px">standard (.2,0,0,1)</span> for most things, <span class="M" style="font-size:11px">decelerate (.05,.7,.1,1)</span> when something enters, <span class="M" style="font-size:11px">accelerate (.3,0,1,1)</span> at 200ms when it leaves.</p>
+<div class="stage">
+<div class="btns"><button id="bS">Row actions</button><button id="bT" class="pri">Remove song</button><button id="bB">Bandmate edits</button></div>
+<div class="banner" id="ban"><b>3 changes by Mike</b><span>Fall Set · just now</span></div>
+<div class="scrim" id="scr"></div>
+<div class="sheet" id="sh"><div class="r">Move…</div><div class="r">Add note</div><div class="r" style="color:#ff5d5d;border:0">Remove from set</div></div>
+<div class="toast" id="tst">Removed “Black” from Fall Set <u>Undo</u></div>
+</div>
+</div>
+
+<div class="card c5" data-screen-label="Targets">
+<div class="eb">09 · Targets &amp; type floor</div>
+<h2 class="D">Big enough for a gig</h2>
+<div class="law"><span>Fitts's Law</span><span>Flow</span></div>
+<p>Minimum 44pt / 48dp everywhere. Stage screens (practice session, performance, jam live) use 64 for prev/next, and the whole half-screen is a tap zone.</p>
+<div class="tg"><div style="width:44px;height:44px">44</div><div style="width:48px;height:48px">48dp</div><div style="width:64px;height:64px">64<br>stage</div><div style="width:150px;height:96px;border-radius:24px;background:#ff7a1a;color:#1a0c02">Next<br>½ screen</div></div>
+<div class="cap">Type floor</div>
+<p style="font-size:14px">Body 16, never below 13 (mono meta 11 only for labels, never instructions). Text scale is honoured up to 200%. Rows grow taller; the token and dot stay fixed size.</p>
+</div>
+
+<div class="card c12" data-screen-label="Overlay rules">
+<div class="eb">10 · Overlays</div>
+<h2 class="D">Three patterns, one job each</h2>
+<div class="law"><span>Jakob's Law</span><span>Hick's Law</span><span>Occam's Razor</span></div>
+<p>Each kind of task always opens the same way, so the app's behaviour is predictable. This replaces the five patterns the old prototypes mixed.</p>
+<div class="ovl">
+<div><div class="mini"><i style="inset:0;background:#1b1815"></i><i style="left:12px;top:12px;width:28px;height:28px;border-radius:14px;background:#2b2622"></i><i style="right:12px;top:12px;width:52px;height:28px;border-radius:14px;background:#ff7a1a"></i><i style="left:12px;right:12px;top:54px;height:30px;border-radius:10px;background:#26221e"></i><i style="left:12px;right:12px;top:92px;height:30px;border-radius:10px;background:#26221e"></i></div>
+<h3>Full-screen route</h3><p>Creating or editing anything with fields: song editor, new show, new tuning, profile. Close on the left, Save on the right. Leaving with unsaved changes asks first. <em>Back gesture works.</em></p></div>
+<div><div class="mini"><i style="inset:0;background:rgba(0,0,0,.45)"></i><i style="left:0;right:0;bottom:0;height:84px;border-radius:20px 20px 0 0;background:#26221e"></i><i style="left:50%;bottom:72px;width:30px;height:4px;margin-left:-15px;border-radius:2px;background:#4a433d"></i><i style="left:16px;right:16px;bottom:44px;height:1px;background:#3a342f"></i><i style="left:16px;right:16px;bottom:20px;height:1px;background:#3a342f"></i></div>
+<h3>Bottom sheet</h3><p>Quick picks and actions: row actions (they replace kebabs), tuning picker, key picker, Move, share/QR. Swipe down to dismiss. <em>Within thumb reach.</em></p></div>
+<div><div class="mini"><i style="inset:0;background:rgba(0,0,0,.55)"></i><i style="left:22px;right:22px;top:32px;height:86px;border-radius:20px;background:#26221e"></i><i style="right:34px;top:88px;width:56px;height:20px;border-radius:10px;background:#ff5d5d"></i><i style="right:98px;top:88px;width:44px;height:20px;border-radius:10px;background:#3a342f"></i></div>
+<h3>Dialog</h3><p>Only for confirming something destructive, and it names the consequence ("Used in 2 setlists"). The destructive button is red and on the right. Typed confirmation for delete band / account / transfer.</p></div>
+</div>
+<p style="margin-top:14px;font-size:13px">Non-blocking feedback: <b>toast</b> (bottom, 4s, optional Undo) for your own actions. <b>Banner</b> (top, grouped, "3 changes by Mike") for bandmates' changes. Never push for live edits.</p>
+</div>
+
+<div class="card c8" data-screen-label="Flutter tokens">
+<div class="eb">11 · Flutter mapping</div>
+<h2 class="D">ThemeExtension</h2>
+<div class="law"><span>Tesler's Law</span></div>
+<pre><i>// lib/theme/rock_tokens.dart: one theme, accent overridden per context scope</i>
+<b>class</b> RockColors <b>extends</b> ThemeExtension&lt;RockColors&gt; {  <i>// RockColors.dark / RockColors.light</i>
+  <i>dark </i> bg 0C0B0A · surface1 151311 · surface2 1D1A17 · surface3 26221E · line 2A2522 · text F4EFE9 · text2 CFC6BD · muted A69C92
+  <i>light</i> bg F7F3EE · surface1 FFFDFA · surface2 EBE4DC · surface3 FFFFFF · line DDD4CA · text 1A1512 · text2 3D352F · muted 6B6158
+  accent / onAccent / accentInk  <i>// band FF7A1A / 1A0C02 / (dark FF7A1A, light B84D00)</i>
+                                 <i>// personal 7C86F5 / 0B0D2B / (dark 9AA2FF, light 3F49C9)</i>
+  <i>dark </i> success 3EC986 · warning FFD166 · danger FF5D5D
+  <i>light</i> success 1C8050 · warning 9A6200 · danger CC3333
+  tuningDot  <i>// 8px circle, theme value of the tuning pair · always paired with caps label</i>
+}
+<i>// ThemeMode.system by default; Settings → Appearance overrides. Stage routes suggest dark.</i>
+<b>class</b> RockTuning  { Map&lt;TuningId, Color&gt; spine; Color custom(List&lt;int&gt; midi, Instrument i); }  <i>// spine = oklch(dark .64→.88 | light .45→.62, .16, 345°→110°) by pitch rank · each tuning is a dark/light pair</i>
+<b>class</b> RockSpace   { x1 4 · x2 8 · x3 12 · x4 16 · x5 20 · x6 24 · x8 32 · x10 40 · x14 56 }
+<b>class</b> RockRadius  { xs 6 · sm 12 · field 16 · md 20 · lg 28 · pill 999 }
+<b>class</b> RockMotion  { instant 100ms · quick 200ms · standard 280ms · emphasis 400ms
+                     standard Cubic(.2,0,0,1) · decel Cubic(.05,.7,.1,1) · accel Cubic(.3,0,1,1) }
+<b>class</b> RockTarget  { min 48 · stage 64 }
+<b>class</b> RockType    { display BigShouldersDisplay 800 · ui AtkinsonHyperlegibleNext · mono MartianMono }</pre>
+</div>
+
+<div class="card c4" data-screen-label="Decisions">
+<div class="eb">Source of truth</div>
+<h2 class="D">Locked</h2>
+<p>Everything on this page is locked for the build. The decision log and open items are in <b>DECISIONS.md</b> in this folder. Exploration history lives in <span class="M" style="font-size:12px">refresh/</span>.</p>
+<p>Tuning is drawn in rows as a <b>tinted pill</b> with a coloured label (see Song Row). The 8px dot is used only where a pill won't fit (desktop sidebar, retune strip in landscape).</p>
+</div>
+
+</div></div>
+
+<script>
+(()=>{
+const okhex=(L,C,h)=>{for(let c=C;c>=0;c-=.005){const a=c*Math.cos(h*Math.PI/180),b=c*Math.sin(h*Math.PI/180);const l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,s=(L-.0894841775*a-1.291485548*b)**3;const lin=[4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.707614701*s];if(lin.every(v=>v>=-.0005&&v<=1.0005))return '#'+lin.map(v=>{v=Math.min(1,Math.max(0,v));v=v<=.0031308?12.92*v:1.055*v**(1/2.4)-.055;return Math.round(v*255).toString(16).padStart(2,'0')}).join('')}return '#888888'};
+const lumH=h=>{const L=[1,3,5].map(i=>{const v=parseInt(h.slice(i,i+2),16)/255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return .2126*L[0]+.7152*L[1]+.0722*L[2]};
+const cr=(a,b)=>{const x=lumH(a),y=lumH(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+// ranked low→high by avg semitones/string vs standard
+const RANK=[['cstd','C Standard','C','STD',-4],['db','Drop B','B','DROP',-3.33],['dc','Drop C','C','DROP',-2.33],['whole','Whole-step down','D','STD',-2],['ddb','Drop D♭','D♭','DROP',-1.33],['od','Open D','D','OPEN',-1.17],['og','Open G','G','OPEN',-1],['dad','DADGAD','D','DADGAD',-1],['half','Half-step down','E♭','STD',-1],['dd','Drop D','D','DROP',-.33],['std','Standard','E','STD',0]];
+const T=RANK.map((r,i)=>{const t=i/(RANK.length-1);return [r[0],r[1],r[2],r[3],okhex(.64+.24*t,.16,345-235*t),r[4],okhex(.45+.17*t,.16,345-235*t)]}).concat([['cus','Custom','C','OPEN',okhex(.72,.16,280),null,okhex(.52,.16,280)],['unk','Unknown','?','—',okhex(.7,0,0),null,okhex(.52,0,0)]]);
+const H=Object.fromEntries(T.map(t=>[t[0],t[4]]));const HL=Object.fromEntries(T.map(t=>[t[0],t[6]]));
+const lab=t=>t[3]==='DADGAD'?'DADGAD':t[3]==='—'?'UNKNOWN':t[2]+' '+t[3];
+document.getElementById('spine').innerHTML=T.map(t=>`<div class="tun"><span class="tl"><i style="background:${t[4]}"></i>${lab(t)}</span><div class="nm">${t[1]}</div><div class="tl" style="background:#f7f3ee;color:#1a1512;padding:3px 8px;border-radius:6px"><i style="background:${t[6]}"></i>light</div><div class="hx">dk ${t[4]} · ${cr(t[4],'#0c0b0a').toFixed(1)}<br>lt ${t[6]} · ${cr(t[6],'#f7f3ee').toFixed(1)}${t[5]!=null?`<br>${t[5]>0?'+':''}${t[5]} st`:''}</div></div>`).join('');
+const SP=[[2,'hair · 2'],[4,'x1 · 4'],[8,'x2 · 8'],[12,'x3 · 12'],[16,'x4 · 16 gutter'],[20,'x5 · 20'],[24,'x6 · 24'],[32,'x8 · 32'],[40,'x10 · 40'],[56,'x14 · 56']];
+document.getElementById('sp').innerHTML=SP.map(s=>`<div><span>${s[1]}</span><i style="width:${s[0]*4}px"></i></div>`).join('');
+
+// light/dark
+const ROLES={dk:[['bg','#0c0b0a'],['surface-1','#151311'],['surface-2','#1d1a17'],['text','#f4efe9'],['muted','#a69c92'],['line','#2a2522']],lt:[['bg','#f7f3ee'],['surface-1','#fffdfa'],['surface-2','#ebe4dc'],['text','#1a1512'],['muted','#6b6158'],['line','#ddd4ca']]};
+const SEM={dk:['#3ec986','#ff5d5d','#ff7a1a'],lt:['#1c8050','#cc3333','#b84d00']};
+const lum=h=>{const L=[1,3,5].map(i=>{const v=parseInt(h.slice(i,i+2),16)/255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return .2126*L[0]+.7152*L[1]+.0722*L[2]};
+const ink2=h=>(lum(h)+.05)/(lum('#1a1512')+.05)>=4.5?'#1a1512':'#ffffff';
+for(const k of ['dk','lt']){
+ const id=k==='dk'?'Dk':'Lt';const HH=k==='dk'?H:HL;
+ const ROWS=[['All Star',HH.std,'E','STD','F♯','3:14'],['Monkey Wrench',HH.dd,'D','DROP','B','3:51'],['Burn It to the Ground',HH.db,'B','DROP','B','3:32'],['Little Wing',HH.og,'G','OPEN','Em','2:25']];
+ document.getElementById('r'+id).innerHTML=ROLES[k].map(r=>{const lightBg=(([r,g,b])=>(.2126*r+.7152*g+.0722*b)/255>.4)([1,3,5].map(i=>parseInt(r[1].slice(i,i+2),16)));return `<div style="background:${r[1]};color:${lightBg?'#1a1512':'#f4efe9'}">${r[0]}<small>${r[1]}</small></div>`}).join('');
+ const s=SEM[k];
+ document.getElementById('l'+id).innerHTML=ROWS.map(r=>`<div class="trow"><div class="t">${r[0]}</div><span class="tl" style="width:78px"><i style="background:${r[1]}"></i>${r[2]} ${r[3]}</span></div>`).join('')+
+ `<div class="trow tbar" style="padding-top:12px;padding-bottom:10px"><div class="bp" style="background:#ff7a1a;color:#1a0c02">Start Play-Along</div><span class="lnk" style="color:${s[2]}">View set</span><span class="cf" style="color:${s[0]};margin-left:auto">✓ Confirmed</span><span class="cf" style="color:${s[1]}">✕ Cancelled</span></div>`;
+}
+
+// custom tuning
+const NN=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
+const name=m=>NN[m%12];const oct=m=>Math.floor(m/12)-1;
+const STD={g6:[40,45,50,55,59,64],g7:[35,40,45,50,55,59,64],b4:[28,33,38,43]};
+const INIT={g6:[36,43,48,55,60,64],g7:[35,40,45,50,55,59,64],b4:[28,33,38,43]};
+let inst='g6',notes=[...INIT.g6],override=null;
+const BUILT=T.filter(t=>t[5]!=null).map(t=>[t[1],t[4]]).concat([['the brand orange','#ff7a1a']]);
+const hsv=(h,s,v)=>{const f=n=>{const k=(n+h/60)%6;return v-v*s*Math.max(0,Math.min(k,4-k,1))};return [f(5),f(3),f(1)].map(x=>Math.round(x*255))};
+const hex=a=>'#'+a.map(x=>x.toString(16).padStart(2,'0')).join('');
+const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+function auto(){const sum=notes.reduce((a,b)=>a+b,0),ref=STD[inst].reduce((a,b)=>a+b,0),off=(sum-ref)/notes.length,t=Math.max(0,Math.min(1,(off+4)/5));let h=(345-t*235+360)%360;return {sum,ref,off,t,h,v:.64+.24*t}}
+function render(){
+ const a=auto();const h=override?override.h:a.h,v=override?override.v:a.v;const c=okhex(v,.16,h);
+ const std=STD[inst];
+ document.getElementById('strs').innerHTML=notes.map((m,i)=>`<div class="str" style="--c:${c}"><span class="k">${notes.length-i}</span><button class="stp" data-s="${i}" data-d="-1" aria-label="Down">−</button><div class="n ${m!==std[i]?'dif':''}">${name(m)}<sub>${oct(m)} · ${m}</sub></div><button class="stp" data-s="${i}" data-d="1" aria-label="Up">+</button></div>`).reverse().join('');
+ const W=116,r=46,ang=(h)*Math.PI/180;const dot=document.getElementById('dot');dot.style.left=(W/2+r*Math.cos(ang))+'px';dot.style.top=(W/2+r*Math.sin(ang))+'px';dot.style.background=c;
+ document.getElementById('mid').style.background=c;
+ document.getElementById('ctitle').textContent=override?'Picked by you':'Auto from pitch';
+ document.getElementById('cdesc').innerHTML=`MIDI sum <b class="M" style="font-size:12px;color:#f4efe9">${a.sum}</b> · ${a.off>=0?'+':''}${a.off.toFixed(1)} st/string vs standard`;
+ document.getElementById('reset').style.display=override?'block':'none';
+ const tn=document.getElementById('tname').value||'Custom';
+ document.getElementById('ptl').innerHTML=`<i style="background:${c}"></i>${tn.toUpperCase()}`;
+}
+document.getElementById('strs').addEventListener('click',e=>{const b=e.target.closest('.stp');if(!b)return;const i=+b.dataset.s;notes[i]=Math.max(20,Math.min(80,notes[i]+ +b.dataset.d));render()});
+document.getElementById('inst').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;inst=b.dataset.i;notes=[...INIT[inst]];document.querySelectorAll('#inst button').forEach(x=>x.classList.toggle('on',x===b));render()});
+const wh=document.getElementById('wheel');wh.style.background=`conic-gradient(from 90deg,${Array.from({length:13},(_,i)=>`${okhex(.75,.15,i*30)} ${i*30}deg`).join(',')})`;let drag=false;
+const pick=e=>{const R=wh.getBoundingClientRect();const x=e.clientX-R.left-R.width/2,y=e.clientY-R.top-R.height/2;let h=Math.atan2(y,x)*180/Math.PI;if(h<0)h+=360;override={h,v:override?override.v:auto().v};render()};
+wh.addEventListener('pointerdown',e=>{drag=true;wh.setPointerCapture(e.pointerId);pick(e)});wh.addEventListener('pointermove',e=>{if(drag)pick(e)});wh.addEventListener('pointerup',()=>drag=false);
+document.getElementById('reset').onclick=()=>{override=null;render()};
+document.getElementById('tname').oninput=render;
+render();
+
+// motion demo
+const $=id=>document.getElementById(id);let tt,bt;
+$('bS').onclick=()=>{const on=!$('sh').classList.contains('on');$('sh').classList.toggle('on',on);$('scr').classList.toggle('on',on)};
+$('scr').style.pointerEvents='auto';$('scr').onclick=()=>{$('sh').classList.remove('on');$('scr').classList.remove('on')};
+$('scr').style.pointerEvents='';
+$('scr').addEventListener('click',()=>{});
+$('bT').onclick=()=>{$('tst').classList.add('on');clearTimeout(tt);tt=setTimeout(()=>$('tst').classList.remove('on'),4000)};
+$('bB').onclick=()=>{$('ban').classList.add('on');clearTimeout(bt);bt=setTimeout(()=>$('ban').classList.remove('on'),3200)};
+document.querySelector('.stage').addEventListener('click',e=>{if(e.target.closest('.btns')||e.target.closest('.sheet'))return;$('sh').classList.remove('on');$('scr').classList.remove('on')});
+})();
+</script>
+</body>
+</html>

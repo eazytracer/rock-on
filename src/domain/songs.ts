@@ -1,0 +1,297 @@
+/**
+ * Song list maths (Song Row · View options, Sort, Filter). Pure, so web and
+ * the Flutter apps can share the rules: list a song once, order it, filter it.
+ */
+import type { Song } from '../models/Song'
+import type { ReferenceLink } from '../types'
+import type { SortDir, SortKind } from './sort'
+export type { SortDir } from './sort'
+
+export type Density = 'comfortable' | 'compact'
+export type SortField = 'title' | 'artist' | 'added' | 'nextShow'
+
+export interface ListView {
+  density: Density
+  artist: boolean
+  key: boolean
+  bpm: boolean
+  links: boolean
+  nextShow: boolean
+  showHidden: boolean
+  sort: SortField
+  dir: SortDir
+}
+
+export const DEFAULT_LIST_VIEW: ListView = {
+  density: 'comfortable',
+  artist: true,
+  key: true,
+  bpm: true,
+  links: true,
+  nextShow: false,
+  showHidden: false,
+  sort: 'title',
+  dir: 'asc',
+}
+
+/** Fills missing or malformed fields from the default (stored views can be stale). */
+export function readListView(stored: unknown): ListView {
+  const v = (stored && typeof stored === 'object' ? stored : {}) as Partial<
+    Record<keyof ListView, unknown>
+  >
+  const out = { ...DEFAULT_LIST_VIEW }
+  for (const k of Object.keys(out) as (keyof ListView)[]) {
+    if (typeof v[k] === typeof out[k])
+      (out as Record<string, unknown>)[k] = v[k]
+  }
+  // Newest / Oldest were fields; they are now Date added with a direction.
+  if (v.sort === 'newest' || v.sort === 'oldest') {
+    out.sort = 'added'
+    out.dir = v.sort === 'newest' ? 'desc' : 'asc'
+  }
+  if (!(out.sort in SORT_LABELS)) out.sort = DEFAULT_LIST_VIEW.sort
+  return out
+}
+
+export const SORT_LABELS: Record<SortField, string> = {
+  title: 'Title',
+  artist: 'Artist',
+  added: 'Date added',
+  nextShow: 'Next show',
+}
+
+export const SORT_KINDS: Record<SortField, SortKind> = {
+  title: 'text',
+  artist: 'text',
+  added: 'date',
+  nextShow: 'upcoming',
+}
+
+const byText = (a = '', b = '') =>
+  a.localeCompare(b, undefined, { sensitivity: 'base' })
+
+/**
+ * Orders songs by field and direction (Date added asc = oldest first); for
+ * Next show, songs not in an upcoming show go last either way.
+ */
+export function sortSongs(
+  songs: Song[],
+  field: SortField,
+  dir: SortDir,
+  nextShowAt: Map<string, number> = new Map()
+): Song[] {
+  const flip = dir === 'desc' ? -1 : 1
+  const time = (s: Song) => new Date(s.createdDate).getTime() || 0
+  return [...songs].sort((a, b) => {
+    switch (field) {
+      case 'artist':
+        return flip * byText(a.artist, b.artist) || byText(a.title, b.title)
+      case 'added':
+        return flip * (time(a) - time(b)) || byText(a.title, b.title)
+      case 'nextShow': {
+        const x = nextShowAt.get(a.id)
+        const y = nextShowAt.get(b.id)
+        if (x === undefined && y === undefined) return byText(a.title, b.title)
+        if (x === undefined) return 1
+        if (y === undefined) return -1
+        return flip * (x - y) || byText(a.title, b.title)
+      }
+      default:
+        return flip * byText(a.title, b.title)
+    }
+  })
+}
+
+/** Search matches title, artist or album; `tuning` narrows to one tuning. */
+export function filterSongs(
+  songs: Song[],
+  query: string,
+  tunings: readonly string[] = [],
+  tags: readonly string[] = []
+): Song[] {
+  const q = query.trim().toLowerCase()
+  return songs.filter(
+    s =>
+      (!tunings.length || tunings.includes(s.guitarTuning || 'Standard')) &&
+      tags.every(t => s.tags?.includes(t)) &&
+      (!q ||
+        [s.title, s.artist, s.album].some(f => f?.toLowerCase().includes(q)))
+  )
+}
+
+/** The Songs list as shown: hidden filter, search, tunings, tags, then the sort. */
+export function catalogList(
+  songs: Song[],
+  view: ListView,
+  hiddenIds: ReadonlySet<string>,
+  filter: {
+    query: string
+    tunings: readonly string[]
+    tags?: readonly string[]
+  },
+  nextShowAt?: Map<string, number>
+): Song[] {
+  const shown = view.showHidden
+    ? songs
+    : songs.filter(s => !hiddenIds.has(s.id))
+  return sortSongs(
+    filterSongs(shown, filter.query, filter.tunings, filter.tags),
+    view.sort,
+    view.dir,
+    nextShowAt
+  )
+}
+
+/**
+ * Title edited in place: trimmed; empty keeps the old one ("A song needs a
+ * title · kept the old one"). `changed` is false when nothing needs saving.
+ */
+export function commitTitle(
+  input: string,
+  previous: string
+): { title: string; reverted: boolean; changed: boolean } {
+  const title = input.trim()
+  if (!title) return { title: previous, reverted: true, changed: false }
+  return { title, reverted: false, changed: title !== previous }
+}
+
+export type LinkCategory =
+  | 'audio'
+  | 'tabs'
+  | 'video'
+  | 'lyrics'
+  | 'cloud'
+  | 'link'
+
+/** Song Row link tiles: six categories over the stored link icons. */
+export function linkCategory(link: Pick<ReferenceLink, 'icon'>): LinkCategory {
+  switch (link.icon) {
+    case 'spotify':
+    case 'soundcloud':
+      return 'audio'
+    case 'youtube':
+      return 'video'
+    case 'tabs':
+      return 'tabs'
+    case 'lyrics':
+      return 'lyrics'
+    case 'drive':
+    case 'dropbox':
+      return 'cloud'
+    default:
+      return 'link'
+  }
+}
+
+/** What a song row draws, wherever songs are listed (SongLine). */
+export interface SongLineData {
+  title: string
+  artist?: string | null
+  tuning?: string | null
+  /** A plain title with no song behind it (jam lineup): no tuning shown. */
+  noTuning?: boolean
+  key?: string | null
+  bpm?: number | null
+  /** Length in seconds; 0 when unknown. */
+  seconds: number
+  links?: ReferenceLink[]
+}
+
+export function toSongLine(s: Song): SongLineData {
+  return {
+    title: s.title,
+    artist: s.artist,
+    tuning: s.guitarTuning,
+    key: s.key,
+    bpm: s.bpm,
+    seconds: s.duration || 0,
+    links: s.referenceLinks ?? [],
+  }
+}
+
+export type NoteMark = 'none' | 'band' | 'mine' | 'both'
+
+export function noteMark(hasBand: boolean, hasMine: boolean): NoteMark {
+  if (hasBand && hasMine) return 'both'
+  if (hasBand) return 'band'
+  return hasMine ? 'mine' : 'none'
+}
+
+/** Tunings in use, in the order the list shows them as filter chips. */
+export function tuningsInUse(songs: Song[]): string[] {
+  const counts = new Map<string, number>()
+  for (const s of songs) {
+    const t = s.guitarTuning || 'Standard'
+    counts.set(t, (counts.get(t) ?? 0) + 1)
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || byText(a[0], b[0]))
+    .map(([t]) => t)
+}
+
+/** "Used in Fall Set and 1 show" (delete confirm, song menu). */
+export function usageSummary(
+  usage: { kind: string | null; name: string | null }[]
+): string {
+  const sets = usage.filter(u => u.kind === 'setlist')
+  const shows = usage.filter(u => u.kind === 'show').length
+  const parts: string[] = []
+  if (sets.length === 1) parts.push(sets[0].name ?? 'a setlist')
+  else if (sets.length > 1) parts.push(`${sets.length} setlists`)
+  if (shows) parts.push(`${shows} show${shows === 1 ? '' : 's'}`)
+  return parts.length ? `Used in ${parts.join(' and ')}` : ''
+}
+
+/** The tag that makes a My Songs song one of your jam songs. */
+export const JAM_TAG = 'jam'
+
+/**
+ * Tags as saved: lowercase, trimmed, no blanks, no repeats (first wins).
+ * Takes the comma-separated text of the Tags field or a list.
+ */
+export function normalizeTags(input: string | readonly string[]): string[] {
+  const parts = typeof input === 'string' ? input.split(',') : input
+  return [...new Set(parts.map(t => t.trim().toLowerCase()).filter(Boolean))]
+}
+
+/** The tags with `tag` added (at the end) or taken out. */
+export function withTag(
+  tags: readonly string[] | undefined,
+  tag: string,
+  on: boolean
+): string[] {
+  const rest = normalizeTags(tags ?? []).filter(t => t !== tag)
+  return on ? [...rest, tag] : rest
+}
+
+/**
+ * Jam songs builder: the My Songs songs whose `jam` tag changes when
+ * `picked` (ids) is saved, with their new tags.
+ */
+export function jamTagChanges(
+  mySongs: readonly Song[],
+  picked: ReadonlySet<string>
+): { id: string; tags: string[] }[] {
+  return mySongs
+    .filter(s => picked.has(s.id) !== !!s.tags?.includes(JAM_TAG))
+    .map(s => ({ id: s.id, tags: withTag(s.tags, JAM_TAG, picked.has(s.id)) }))
+}
+
+/** Mirrors the server's `normalize_text`: how songs match across people. */
+export function normalizeText(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[([][^)\]]*[)\]]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^(the|a|an) /, '')
+}
+
+/** Same song, by normalised exact title + artist. */
+export function songMatchKey(s: {
+  title: string
+  artist?: string | null
+}): string {
+  return `${normalizeText(s.title)}|${normalizeText(s.artist ?? '')}`
+}

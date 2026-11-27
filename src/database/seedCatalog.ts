@@ -222,13 +222,6 @@ export function getAllSongs(): SeedSong[] {
 }
 
 /**
- * Get songs by era
- */
-export function getSongsByEra(era: keyof typeof SEED_SONG_CATALOG): SeedSong[] {
-  return SEED_SONG_CATALOG[era] || []
-}
-
-/**
  * Get total song count
  */
 export function getTotalSongCount(): number {

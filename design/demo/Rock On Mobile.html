@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rock On — Mobile demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e8e2da;font-family:"Atkinson Hyperlegible Next",sans-serif;color:#1a1512;min-height:100vh}
+a{color:#b84d00}a:hover{color:#d85f00}
+.wrap{display:flex;gap:32px;justify-content:center;align-items:flex-start;padding:20px}
+.side{flex:1 1 300px;min-width:260px;max-width:440px;display:flex;flex-direction:column;gap:12px;position:sticky;top:20px;max-height:calc(100vh - 40px);overflow-y:auto;padding-right:4px}
+@media (max-width:720px){.wrap{flex-direction:column;align-items:center}.side{position:static;max-height:none;order:2}.stage{order:1;position:static}}
+.eb{font-family:"Martian Mono";font-size:11px;letter-spacing:.12em;color:#b84d00;text-transform:uppercase}
+h1{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;font-size:54px;line-height:.9}h1 span{color:#d85f00}
+.lede{font-size:14.5px;color:#3d352f;line-height:1.5;text-wrap:pretty}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar button{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:12px;height:38px;padding:0 12px;cursor:pointer;background:#f7f3ee;color:#1a1512;display:flex;align-items:center;gap:6px}
+.bar button.dk{background:#1a1512;color:#f4efe9}
+.crumb{font-family:"Martian Mono";font-size:11px;color:#6b6158;background:#f7f3ee;border-radius:10px;padding:8px 10px;line-height:1.5}
+.crumb b{color:#1a1512;font-weight:500}
+.cg{background:#f7f3ee;border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.cg>b{font-family:"Martian Mono";font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6b6158;margin:2px 2px 4px;display:flex;justify-content:space-between}
+.ck{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.4;padding:5px 2px;border-radius:8px}
+.ck input{accent-color:#d85f00;width:18px;height:18px;flex-shrink:0;margin-top:1px;cursor:pointer}
+.ck span{flex:1}.ck.on span{color:#8a8178;text-decoration:line-through}
+.ck .go{font-family:"Martian Mono";font-size:10.5px;color:#b84d00;cursor:pointer;flex-shrink:0;padding:2px 6px;border-radius:6px;background:#efe7dd}
+.ck .go:hover{background:#e3d6c8}
+.ck.cur{background:#efe7dd}
+.cnt{font-family:"Martian Mono";font-size:12px;color:#3d352f;padding:4px 2px}
+.stage{position:sticky;top:20px;width:410px;height:864px;flex-shrink:0}
+.pf{position:absolute;inset:0;width:410px;height:864px;border:0;visibility:hidden;background:transparent}
+.pf.on{visibility:visible}
+.note{font-size:12.5px;color:#6b6158;line-height:1.45}
+#phint{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#1a1512;color:#f4efe9;font-size:13.5px;font-weight:600;padding:10px 16px;border-radius:14px;opacity:0;transition:.2s;pointer-events:none;z-index:50}#phint.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0c0b0a"/><rect x="30" y="26" width="7" height="48" rx="2" fill="#ff7a1a"/><text x="44" y="66" font-family="Arial Black,Arial" font-weight="900" font-size="36" fill="#f4efe9">R</text></svg></template>
+<div class="wrap">
+<div class="side">
+<div class="eb">Rock On · Mobile demo</div>
+<h1>Walk it <span>through</span>.</h1>
+<p class="lede">Every screen here is a locked phone design, not a redraw, so what you see is what we agreed. Tap through as you would in the app; anything the screen itself does (drag, timeline, tuner, metronome, chart controls, sheets) works as it did on its locked page. <b>Go</b> jumps to any check.</p>
+<div class="bar"><button class="dk" id="bk">← Back</button><button id="hm">Home</button><button id="th">Dark / light</button><button id="reset">Reset ticks</button></div>
+<div class="crumb" id="crumb"></div>
+<div id="checks"></div>
+<p class="note"><b>Run a whole jam:</b> <a href="Jam%20Night.html" target="_blank">Jam Night</a> is a working prototype (host, guest, bar TV, counter iPad) that shares one jam across browser windows.</p>
+<p class="note">Each screen keeps its locked page's sample data, so the song you open may differ from the row you tapped (e.g. the chart is Amazing Grace). Dark / light applies to kit screens; the four earliest locked pages (Song Row, Song Editor, Song Chart, Sound Tools) are dark only until they move onto the kit.</p>
+</div>
+<div class="stage" id="ph"></div>
+</div>
+<script src="screens-bundle.js"></script>
+<script src="mobile.js"></script>
+<script>
+(()=>{const C=[
+['Core navigation',[['home','Home (band): show, practice, Tools, upcoming jams, quick actions'],['ctx','Header chip → dropdown: Personal, iPod Shuffle, Acoustic Duo each switch Home'],['homeAD','Acoustic Duo (new band): walkthrough, dismiss with ×'],['homeP','Personal: walkthrough, dismissable Create or join card'],['notif','Bell → Practice moved (Acoustic Duo): first-time switch prompt, then the short one'],['search','Search: type anything; filter chips'],['notifAll','See all → Activity / App updates'],['more','More: sun / moon top right, Band section, You, Jam, Friends, Settings']]],
+['Songs',[['songs','Catalog: sort sheet = field + direction toggle'],['viewopts','View options (live)'],['swipe','Swipe left · Press and hold'],['song','Song view: links, notes, full-screen notes'],['songNew','Add song: Spotify suggestions, filled form'],['tunPick','Tuning picker · Key (circle of fifths) · Add link'],['songCancel','Edit song · cancel with changes']]],
+['Chart and tools',[['chart','Chart: one continuous scroll, big Back/Next scroll buttons; Controls opens at the bottom'],['startnote','Starting note: piano, octave, play chord / note'],['tuner','Tuner: tuning picker, guiding arrows'],['metro','Metronome: tap, accents, subdivisions'],['chords','Chord lookup'],['customTuning','Custom tuning: neck, all strings ½ step, colour']]],
+['Setlists',[['setlists','Setlists list'],['setlist','Editor: drag, totals, retune lines, Add menu'],['timeline','Timeline: fixed gutter, tap clock / hold for mode'],['addSongs','Add songs: in-set icon keeps columns aligned'],['holdRow','Hold a row: Move tiles · Insert break · Remove']]],
+['Calendar',[['calendar','Agenda: type icons + colour, filters, New picker'],['show','Show: Confirmed, set copy, Open set'],['showCx','Cancelled · no set yet · offline · delete'],['practice','Practice → Start session'],['pracNew','New / duplicate practice: Start–End lists, filtered song picker'],['session','Session: Prev / Next name songs, Up next + Tune now'],['wrap','Wrap-up'],['histP','Practice history: Practices / Songs / recap']]],
+['Account and band',[['signin','Sign in → errors, forgot, check email'],['getStarted','Get started: four paths'],['settings','Settings → Tunings, Profile, Push, Delete'],['instr','Instrument picker'],['members','Band members → menu, invite, transfer, leave'],['bandNew','Create a band → band mark'],['join','Join preview'],['bandProfile','Band profile'],['friends','Friends: privacy status rolls open in place']]],
+['Final pass · Nov 7',[['calendar','Calendar: filters read All · Shows · Practices · Jams; New picker has the three types'],['showNew','New show: the show page, blank, Venue focused, saves as you go'],['pracRsvp',"Practice: Who's coming (Coming / Maybe / Can't)"],['song','Song view: Used in · Add chords & lyrics opens the chart editor'],['session','Session: Notes is a button → sheet (no Notes | Chart toggle)'],['setlists','Setlists: sort chip, card ⋯ → Duplicate / Delete'],['setNotes','Setlist notes sheet'],['songsP','Personal: band songs not in My Songs → Copy all / Pick'],['friendAdd','Friends → Add a friend: by name or code'],['songsLoad','States: Songs loading · empty · no matches'],['calErr','States: Calendar error + Retry'],['homeOff','States: Home offline banner'],['jamEmpty','States: Jam hub empty'],['jamNew','Host a jam: two fields to start'],['jamSettings','Jam settings: who can join, requests, approve, group sets']]],
+['Jam',[['jamHub','Jam hub: Hosting / Invited'],['jamLineup','Planned: Lineup / Requests / People → Go live'],['jamHost','Host: Up next, Call up anyway, fill a part'],['clearQ','Queue swipes (try it) · hold a group'],['walkup','Walk-up'],['guest','Guest: who knows your songs, coverage'],['hand','Raise a hand → pick parts'],['compare','Compare with someone · pitch a song'],['webGuest','Web guest (no app)']]]];
+const K='rockon-proto2-checks';const st=JSON.parse(localStorage.getItem(K)||'{}');let CUR='';
+const draw=()=>{let n=0,t=0;document.getElementById('checks').innerHTML=C.map(([g,items])=>`<div class="cg"><b>${g}</b>${items.map(([r,l])=>{t++;const k=g+r;if(st[k])n++;return `<label class="ck ${st[k]?'on':''} ${CUR===r?'cur':''}"><input type="checkbox" data-k="${k}" ${st[k]?'checked':''}><span>${l}</span><em class="go" data-go="${r}">Go</em></label>`}).join('')}</div>`).join('')+`<div class="cnt">${n} of ${t} verified</div>`};
+document.getElementById('checks').addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){e.preventDefault();Shell.tab(g.dataset.go)}});
+document.getElementById('checks').addEventListener('change',e=>{const k=e.target.dataset.k;st[k]=e.target.checked;localStorage.setItem(K,JSON.stringify(st));draw()});
+document.getElementById('reset').onclick=()=>{for(const k in st)delete st[k];localStorage.setItem(K,'{}');draw()};
+document.getElementById('bk').onclick=()=>Shell.back();
+document.getElementById('hm').onclick=()=>Shell.tab('home');
+document.getElementById('th').onclick=()=>Shell.setTheme(Shell.theme==='dark'?'light':'dark');
+Shell.onChange((k,stack)=>{CUR=k;const rt=Shell.RT[k];document.getElementById('crumb').innerHTML=`${stack.join(' › ')}<br><b>${rt[0]} · ${rt[1]}</b>`;localStorage.setItem('rockon-proto2-route',k);draw()});
+if(location.search.includes('test'))Shell.selfTest();
+draw();Shell.tab(localStorage.getItem('rockon-proto2-route')||'home');
+})();
+</script>
+</body>
+</html>

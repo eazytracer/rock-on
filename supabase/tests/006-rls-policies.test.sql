@@ -144,8 +144,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('users', 'users_select_jam_coparticipant'),
-  'users_select_jam_coparticipant policy should exist (read jam coparticipants)'
+  NOT tests.policy_exists('users', 'users_select_jam_coparticipant'),
+  'users_select_jam_coparticipant policy is gone (0.3 jam sessions retired, phase 7)'
 );
 
 select ok(
@@ -168,8 +168,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('user_profiles', 'user_profiles_select_jam_coparticipant'),
-  'user_profiles_select_jam_coparticipant policy should exist (display_name in jams)'
+  NOT tests.policy_exists('user_profiles', 'user_profiles_select_jam_coparticipant'),
+  'user_profiles_select_jam_coparticipant policy is gone (0.3 jam sessions retired, phase 7)'
 );
 
 select ok(
@@ -202,7 +202,7 @@ select ok(
 );
 
 -- ============================================================================
--- Band Memberships Policies (4 policies)
+-- Band Memberships Policies (read only: writes go through the phase 6 RPCs)
 -- ============================================================================
 
 select ok(
@@ -211,23 +211,23 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_insert_self'),
-  'memberships_insert_self policy should exist'
+  NOT tests.policy_exists('band_memberships', 'memberships_insert_self'),
+  'memberships_insert_self is gone (anyone could add themselves to any band)'
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_insert_by_creator'),
-  'memberships_insert_by_creator policy should exist (non-recursive)'
+  NOT tests.policy_exists('band_memberships', 'memberships_insert_by_creator'),
+  'memberships_insert_by_creator is gone (writes go through RPCs)'
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_update_by_creator'),
-  'memberships_update_by_creator policy should exist (non-recursive)'
+  NOT tests.policy_exists('band_memberships', 'memberships_update_by_creator'),
+  'memberships_update_by_creator is gone (set_member_role / transfer_ownership / remove_member)'
 );
 
 select ok(
-  tests.policy_exists('band_memberships', 'memberships_delete_self_or_creator'),
-  'memberships_delete_self_or_creator policy should exist (non-recursive)'
+  NOT tests.policy_exists('band_memberships', 'memberships_delete_self_or_creator'),
+  'memberships_delete_self_or_creator is gone (leave_band / remove_member)'
 );
 
 -- ============================================================================
@@ -235,8 +235,8 @@ select ok(
 -- ============================================================================
 
 select ok(
-  tests.policy_exists('invite_codes', 'invite_codes_select_authenticated'),
-  'invite_codes_select_authenticated policy should exist'
+  tests.policy_exists('invite_codes', 'invite_codes_select_admin'),
+  'invite_codes_select_admin policy should exist (the open select is gone)'
 );
 
 select ok(
@@ -259,8 +259,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('songs', 'songs_select_jam_coparticipant'),
-  'songs_select_jam_coparticipant policy should exist (read coparticipants personal songs)'
+  NOT tests.policy_exists('songs', 'songs_select_jam_coparticipant'),
+  'songs_select_jam_coparticipant policy is gone (jam songs are shared through who_knows_your_songs, phase 7)'
 );
 
 select ok(
@@ -424,8 +424,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('jam_sessions', 'jam_sessions_select_by_code'),
-  'jam_sessions_select_by_code policy should exist (allows join flow lookup)'
+  not tests.policy_exists('jam_sessions', 'jam_sessions_select_by_code'),
+  'jam_sessions_select_by_code policy is gone (lookup goes through get_jam_session_by_code)'
 );
 
 select ok(
@@ -453,8 +453,8 @@ select ok(
 );
 
 select ok(
-  tests.policy_exists('jam_participants', 'jam_participants_insert_self'),
-  'jam_participants_insert_self policy should exist'
+  tests.policy_exists('jam_participants', 'jam_participants_insert_host_self'),
+  'jam_participants_insert_host_self policy should exist (others join via join_jam_session)'
 );
 
 select ok(
@@ -497,14 +497,14 @@ select ok(
 
 select is(
   tests.policy_count('users'),
-  6,
-  'users table should have exactly 6 policies (self + band-member + jam-coparticipant + event-coparticipant + insert + update)'
+  5,
+  'users table should have exactly 5 policies (self + band-member + event-coparticipant + insert + update)'
 );
 
 select is(
   tests.policy_count('user_profiles'),
   7,
-  'user_profiles table should have exactly 7 policies (own select + jam-coparticipant + event-coparticipant select + insert + update + friends discoverable + friend select)'
+  'user_profiles table should have exactly 7 policies (own select + band-member + event-coparticipant select + insert + update + friends discoverable + friend select)'
 );
 
 -- Social events (mobile-redesign-port): co-participant name visibility for casting.
@@ -536,8 +536,8 @@ select is(
 
 select is(
   tests.policy_count('band_memberships'),
-  5,
-  'band_memberships table should have exactly 5 policies'
+  1,
+  'band_memberships table should have exactly 1 policy (read)'
 );
 
 select is(
@@ -548,8 +548,8 @@ select is(
 
 select is(
   tests.policy_count('songs'),
-  9,
-  'songs table should have exactly 9 policies (4 personal + 4 band + 1 jam-coparticipant select)'
+  8,
+  'songs table should have exactly 8 policies (4 personal + 4 band)'
 );
 
 select is(
@@ -578,8 +578,8 @@ select is(
 
 select is(
   tests.policy_count('jam_sessions'),
-  5,
-  'jam_sessions table should have exactly 5 policies'
+  4,
+  'jam_sessions table should have exactly 4 policies'
 );
 
 select is(

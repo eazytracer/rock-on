@@ -76,65 +76,15 @@ export async function createTestUserInDB(
 }
 
 /**
- * Sign up a new user via the UI
- * Navigates to /auth and completes the signup form
+ * Sign up a new user via the UI (`/auth/signup`). With email confirmations
+ * off (local), it lands on Get started.
  */
 export async function signUpViaUI(page: Page, user: TestUser): Promise<void> {
-  await page.goto('/auth')
-
-  // Wait for page to load
-  await expect(page).toHaveURL('/auth')
-
-  // Wait for auth page to fully load by checking for either login or signup form
-  await page.waitForSelector(
-    'button:has-text("Log In"), button:has-text("Create Account")',
-    {
-      state: 'visible',
-      timeout: 10000,
-    }
-  )
-
-  // If we see "Log In" button, we need to switch to signup form
-  const logInButton = page.locator('button:has-text("Log In")')
-  const isLoginForm = await logInButton.isVisible()
-
-  if (isLoginForm) {
-    // Click the "Sign up" link to switch to signup form
-    // Use full button text for Firefox compatibility
-    await page.click('button:has-text("Don\'t have an account")')
-
-    // Wait for signup form to appear
-    await page.waitForSelector('[data-testid="signup-name-input"]', {
-      state: 'visible',
-      timeout: 5000,
-    })
-  }
-
-  // Fill in the signup form (with realistic delays)
+  await page.goto('/auth/signup')
   await page.fill('[data-testid="signup-name-input"]', user.name)
-  await page.waitForTimeout(100)
   await page.fill('[data-testid="signup-email-input"]', user.email)
-  await page.waitForTimeout(100)
   await page.fill('[data-testid="signup-password-input"]', user.password)
-  await page.waitForTimeout(100)
-
-  // Fill confirm password if it exists
-  const confirmPasswordField = page.locator(
-    '[data-testid="signup-confirm-password-input"]'
-  )
-  if (await confirmPasswordField.isVisible()) {
-    await confirmPasswordField.fill(user.password)
-    await page.waitForTimeout(100)
-  }
-
-  // Submit the form
-  // Use specific selector to avoid clicking Google sign-up button
-  await page.click('button[type="submit"]:has-text("Create Account")')
-
-  // Small delay after click to allow UI state to update
-  await page.waitForTimeout(200)
-
-  // Wait for redirect (either to /get-started or /songs)
+  await page.click('[data-testid="signup-submit-button"]')
   await page.waitForURL(/\/(get-started|songs)/, { timeout: 10000 })
 }
 
@@ -143,31 +93,23 @@ export async function signUpViaUI(page: Page, user: TestUser): Promise<void> {
  */
 export async function loginViaUI(page: Page, user: TestUser): Promise<void> {
   await page.goto('/auth')
-
-  // Wait for page to load
-  await expect(page).toHaveURL('/auth')
-
-  // If we see "Sign Up" form, click to switch to login
-  const hasSignUpButton = await page
-    .locator('button:has-text("Sign Up"), button:has-text("Create Account")')
-    .isVisible()
-  if (hasSignUpButton) {
-    const switchToLogin = page.locator(
-      'button:has-text("Sign In"), a:has-text("Sign In")'
-    )
-    await switchToLogin.click()
-  }
-
-  // Fill in the login form
   await page.fill('[data-testid="login-email-input"]', user.email)
   await page.fill('[data-testid="login-password-input"]', user.password)
+  await page.click('[data-testid="sign-in-button"]')
+  await page.waitForURL(url => !url.pathname.startsWith('/auth'), {
+    timeout: 10000,
+  })
+}
 
-  // Submit the form
-  // Use specific selector to avoid clicking Google sign-in button
-  await page.click('button[type="submit"]:has-text("Log In")')
-
-  // Wait for redirect to songs page or band selector
-  await page.waitForURL(/\/(songs|bands|get-started)/, { timeout: 10000 })
+/**
+ * The signed-in user's id (from the app's `currentUserId`). Member rows are
+ * keyed by user id, since other users' emails aren't visible to non-admins.
+ */
+export async function getCurrentUserId(page: Page): Promise<string> {
+  const handle = await page.waitForFunction(() =>
+    localStorage.getItem('currentUserId')
+  )
+  return (await handle.jsonValue()) as string
 }
 
 /**
@@ -192,26 +134,12 @@ export async function deleteTestUser(userId: string): Promise<void> {
  * Log out the current user via UI
  */
 export async function logoutViaUI(page: Page): Promise<void> {
-  // Click logout button using data-testid
+  // Sign out lives in the account menu at the foot of the sidebar
+  await page.click('[data-testid="sidebar-account-button"]')
   await page.click('[data-testid="logout-button"]')
 
   // Wait for redirect to the auth page. The protected-route guard preserves a
   // `?returnTo=` param on the redirect (deep-link preservation), so match the
   // /auth path rather than the bare string.
   await page.waitForURL(/\/auth/, { timeout: 5000 })
-}
-
-/**
- * Check if user is logged in by checking for auth state
- */
-export async function isLoggedIn(page: Page): Promise<boolean> {
-  // Check if we're on a protected page (not /auth)
-  const url = page.url()
-  if (url.includes('/auth')) {
-    return false
-  }
-
-  // Check for user menu or other authenticated UI elements
-  const userMenu = page.locator('[data-testid="user-menu"]')
-  return await userMenu.isVisible()
 }

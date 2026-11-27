@@ -1,8 +1,7 @@
 /**
  * `list-songs <persona>` — print the persona's personal catalog.
  *
- * Runs as the persona, so RLS applies. Use `dump-session` for a full
- * service-role view.
+ * Runs as the persona, so RLS applies.
  */
 
 import { userClient } from '../clients'

@@ -1,766 +1,143 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ContentLoadingSpinner } from '../components/common/ContentLoadingSpinner'
-import { EntityHeader } from '../components/common/EntityHeader'
-import { InlineEditableField } from '../components/common/InlineEditableField'
-import { SectionCard } from '../components/common/SectionCard'
-import { PRACTICE_STATUS_OPTIONS } from '../components/common/InlineStatusBadge'
-import {
-  SortableSongListItem,
-  UISong,
-  UISetlistItem,
-  generateAvatarColor,
-  generateInitials,
-} from '../components/common/SongListItem'
-import { BrowseSongsDrawer } from '../components/common/BrowseSongsDrawer'
-import { EditSongModal } from '../components/songs/EditSongModal'
-import { SongNotesModal } from '../components/songs/SongNotesModal'
-import { MarkdownField } from '../components/notes/MarkdownField'
-import { ConfirmDialog } from '../components/common/ConfirmDialog'
-import { useConfirm } from '../hooks/useConfirm'
+/**
+ * The practice page (`/practices/:practiceId`, `/practices/new`): everything
+ * edits in place (PracticeDetail). Add songs (`?add=1`) opens the song drawer
+ * (full screen on phones); adding to a new practice creates it.
+ */
+import React, { useMemo } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { BackCrumb } from '../components/layout/MobileHeader'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
-import { useRealtimeSync } from '../hooks/useRealtimeSync'
-import { db } from '../services/database'
-import { getSyncRepository } from '../services/data/SyncRepository'
+import { BandRequiredPrompt } from '../components/common/BandRequiredPrompt'
+import { PracticeDetail } from '../components/calendar/PracticeDetail'
+import { SongBrowser } from '../components/setlists/SongBrowser'
 import {
-  formatShowDate,
-  formatTime12Hour,
-  formatDateForInput,
-  parseDateInputAsLocal,
-  parseTime12Hour,
-  getPracticeSessionStatus,
-} from '../utils/dateHelpers'
-import { secondsToDuration } from '../utils/formatters'
-import { ListMusic, Plus, FileText, Clock, Play } from 'lucide-react'
-import type { PracticeSession } from '../models/PracticeSession'
-import type { Song as DBSong } from '../models/Song'
-import type { Setlist as DBSetlist } from '../models/Setlist'
-import { useCreatePractice, useUpdatePractice } from '../hooks/usePractices'
+  calendarBackTo,
+  createPractice,
+  usePracticePage,
+} from '../hooks/useCalendar'
+import { useSetlistIndex } from '../hooks/useSetlists'
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+  defaultPracticeDate,
+  freshPracticeSong,
+  practiceTitle,
+} from '../domain/calendar'
+import { createLogger } from '../utils/logger'
 
-// Convert database song to UI song
-const dbSongToUISong = (dbSong: DBSong): UISong => {
-  return {
-    id: dbSong.id!,
-    title: dbSong.title,
-    artist: dbSong.artist || '',
-    duration: secondsToDuration(dbSong.duration || 0),
-    durationSeconds: dbSong.duration || 0,
-    key: dbSong.key,
-    tuning: dbSong.guitarTuning,
-    bpm: dbSong.bpm ? `${dbSong.bpm}` : '',
-    initials: generateInitials(dbSong.title),
-    avatarColor: generateAvatarColor(dbSong.title),
-    referenceLinks: dbSong.referenceLinks,
-  }
-}
+const log = createLogger('PracticeViewPage')
 
-// Format duration in minutes to hours/minutes
-const formatDuration = (minutes: number): string => {
-  if (minutes < 60) {
-    return `${minutes} min`
-  }
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  if (mins === 0) {
-    return `${hours}h`
-  }
-  return `${hours}h ${mins}m`
-}
-
-// Practice song with position for list
-interface UIPracticeSong {
-  id: string
-  songId: string
-  song: UISong
-  position: number
-  notes?: string // Session-specific notes for this song
-}
-
-// Main PracticeViewPage Component
 export const PracticeViewPage: React.FC = () => {
-  const navigate = useNavigate()
   const { practiceId } = useParams<{ practiceId: string }>()
+  const [params, setParams] = useSearchParams()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { showToast } = useToast()
-  const { confirm, dialogProps } = useConfirm()
+  const { currentBand, currentBandId, currentUser } = useAuth()
+  const bandId = currentBandId ?? ''
+  const { practice, save } = usePracticePage(practiceId ?? null)
+  const { rows: sets } = useSetlistIndex('band', bandId)
+  const back = () => navigate(calendarBackTo('/calendar?type=practice'))
 
-  // Detect "new" mode
-  const isNewMode = !practiceId || practiceId === 'new'
-
-  // Core state
-  const [loading, setLoading] = useState(!isNewMode)
-  const [practice, setPractice] = useState<PracticeSession | null>(null)
-  const [songs, setSongs] = useState<UIPracticeSong[]>([])
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-
-  // Available data for song picker
-  const [dbSongs, setDbSongs] = useState<DBSong[]>([])
-  const [dbSetlists, setDbSetlists] = useState<DBSetlist[]>([])
-
-  // Edit song modal state
-  const [editingSong, setEditingSong] = useState<DBSong | null>(null)
-
-  // Song notes modal state
-  const [songNotesModal, setSongNotesModal] = useState<{
-    songId: string
-    songTitle: string
-  } | null>(null)
-
-  // Hooks
-  const { createPractice } = useCreatePractice()
-  const { updatePractice } = useUpdatePractice()
-
-  // Get currentBandId and currentUserId from localStorage
-  const currentBandId = localStorage.getItem('currentBandId') || ''
-  const currentUserId = localStorage.getItem('currentUserId') || ''
-
-  // Refetch trigger for real-time sync
-  const [refetchTrigger, setRefetchTrigger] = useState(0)
-
-  // Subscribe to real-time sync events
-  useRealtimeSync({
-    events: ['songs:changed', 'practices:changed'],
-    bandId: currentBandId,
-    onSync: () => {
-      // Trigger refetch of practice data
-      setRefetchTrigger(prev => prev + 1)
-    },
-  })
-
-  // Drag & drop sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
-
-  // Load practice data
-  useEffect(() => {
-    const loadPractice = async () => {
-      // Load available songs and setlists for picker
-      if (currentBandId) {
-        const loadedDbSongs = await db.songs
-          .where('contextType')
-          .equals('band')
-          .and(s => s.contextId === currentBandId)
-          .toArray()
-
-        const loadedDbSetlists = await db.setlists
-          .where('bandId')
-          .equals(currentBandId)
-          .toArray()
-
-        setDbSongs(loadedDbSongs)
-        setDbSetlists(loadedDbSetlists)
-      }
-
-      // For new mode, create a default practice
-      if (isNewMode) {
-        const now = new Date()
-        // Default to 7 PM
-        now.setHours(19, 0, 0, 0)
-        const defaultPractice: Partial<PracticeSession> = {
-          scheduledDate: now,
-          duration: 120,
-          bandId: currentBandId,
-          songs: [],
-        }
-        setPractice(defaultPractice as PracticeSession)
-        return
-      }
-
-      // Only show loading spinner on initial load, not on realtime-triggered refetches
-      // This prevents scroll position loss when other users make changes
-      const isInitialLoad = refetchTrigger === 0
-      try {
-        if (isInitialLoad) {
-          setLoading(true)
-        }
-
-        // Load the practice session
-        const practiceSession = await db.practiceSessions.get(practiceId)
-
-        if (!practiceSession) {
-          navigate('/practices')
-          return
-        }
-
-        setPractice(practiceSession)
-
-        // Load songs for this practice
-        const practiceSongs: UIPracticeSong[] = []
-        if (practiceSession.songs && practiceSession.songs.length > 0) {
-          for (const sessionSong of practiceSession.songs) {
-            const song = await db.songs.get(sessionSong.songId)
-            if (song) {
-              practiceSongs.push({
-                id: crypto.randomUUID(),
-                songId: song.id!,
-                song: dbSongToUISong(song),
-                position: practiceSongs.length + 1,
-                notes: sessionSong.notes, // Session-specific notes
-              })
-            }
-          }
-        }
-        setSongs(practiceSongs)
-      } catch (err) {
-        console.error('Error loading practice:', err)
-        navigate('/practices')
-      } finally {
-        if (isInitialLoad) {
-          setLoading(false)
-        }
-      }
-    }
-
-    loadPractice()
-  }, [practiceId, navigate, currentBandId, isNewMode, refetchTrigger])
-
-  // Save a single field
-  const saveField = useCallback(
-    async (field: keyof PracticeSession, value: unknown) => {
-      if (isNewMode) {
-        // For new mode, just update local state
-        setPractice(prev => (prev ? { ...prev, [field]: value } : prev))
-        return
-      }
-
-      if (!practiceId) return
-
-      try {
-        await updatePractice(practiceId, { [field]: value })
-        setPractice(prev => (prev ? { ...prev, [field]: value } : prev))
-        showToast('Saved', 'success')
-      } catch (error) {
-        console.error('Error saving field:', error)
-        showToast('Failed to save', 'error')
-        throw error
-      }
-    },
-    [practiceId, isNewMode, updatePractice, showToast]
-  )
-
-  // Save date and time combined
-  const saveDateTime = useCallback(
-    async (date: string, time: string) => {
-      const baseDate = parseDateInputAsLocal(date)
-      const scheduledDateTime = parseTime12Hour(time, baseDate)
-
-      if (isNewMode) {
-        setPractice(prev =>
-          prev ? { ...prev, scheduledDate: scheduledDateTime } : prev
-        )
-        return
-      }
-
-      if (!practiceId) return
-
-      try {
-        await updatePractice(practiceId, { scheduledDate: scheduledDateTime })
-        setPractice(prev =>
-          prev ? { ...prev, scheduledDate: scheduledDateTime } : prev
-        )
-        showToast('Saved', 'success')
-      } catch (error) {
-        console.error('Error saving date/time:', error)
-        showToast('Failed to save', 'error')
-        throw error
-      }
-    },
-    [practiceId, isNewMode, updatePractice, showToast]
-  )
-
-  // Create new practice (for new mode)
-  const createPracticeHandler = useCallback(async () => {
-    if (!practice) return
-
-    try {
-      const newPracticeId = await createPractice({
-        bandId: currentBandId,
-        scheduledDate: practice.scheduledDate,
-        duration: practice.duration,
-        location: practice.location,
-        notes: practice.notes,
-        wrapupNotes: practice.wrapupNotes,
-        songs: songs.map(s => ({
-          songId: s.songId,
-          timeSpent: 0,
-          status: 'not-started' as const,
-          sectionsWorked: [],
-          improvements: [],
-          needsWork: [],
-          memberRatings: [],
-        })),
-      })
-
-      if (newPracticeId) {
-        showToast('Practice created', 'success')
-        navigate(`/practices/${newPracticeId}`, { replace: true })
-      }
-    } catch (error) {
-      console.error('Error creating practice:', error)
-      showToast('Failed to create practice', 'error')
-    }
-  }, [practice, songs, currentBandId, createPractice, showToast, navigate])
-
-  // Handle drag end for reordering songs (always active)
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-
-    if (over && active.id !== over.id) {
-      setSongs(prev => {
-        const oldIndex = prev.findIndex(item => item.id === active.id)
-        const newIndex = prev.findIndex(item => item.id === over.id)
-
-        const reordered = arrayMove(prev, oldIndex, newIndex).map(
-          (item, index) => ({
-            ...item,
-            position: index + 1,
-          })
-        )
-
-        // Auto-save song order if we have an existing practice
-        if (practiceId && !isNewMode) {
-          saveSongOrder(reordered)
-        }
-
-        return reordered
-      })
-    }
+  const browsing = params.get('add') === '1'
+  const setBrowsing = (on: boolean) => {
+    const next = new URLSearchParams(params)
+    if (on) next.set('add', '1')
+    else next.delete('add')
+    setParams(next, { replace: true })
   }
+  const songs = useMemo(() => practice?.songs ?? [], [practice?.songs])
+  const inSet = useMemo(() => new Set(songs.map(s => s.songId)), [songs])
 
-  // Save song order to database
-  const saveSongOrder = async (orderedSongs: UIPracticeSong[]) => {
-    if (!practiceId || isNewMode) return
+  if (!currentBandId)
+    return (
+      <BandRequiredPrompt
+        feature="Practices"
+        testid="practices-band-required"
+      />
+    )
 
+  const addSongs = async (ids: string[]) => {
+    const added = ids
+      .filter(id => !inSet.has(id))
+      .map(id => freshPracticeSong(id))
     try {
-      await updatePractice(practiceId, {
-        songs: orderedSongs.map(s => ({
-          songId: s.songId,
-          timeSpent: 0,
-          status: 'not-started' as const,
-          notes: s.notes, // Preserve session notes
-          sectionsWorked: [],
-          improvements: [],
-          needsWork: [],
-          memberRatings: [],
-        })),
-      })
+      if (practiceId) await save({ songs: [...songs, ...added] })
+      else {
+        const id = await createPractice(bandId, currentUser?.id, {
+          scheduledDate: defaultPracticeDate(new Date()),
+          songs: added,
+        })
+        void queryClient.invalidateQueries({ queryKey: ['calendar'] })
+        navigate(`/practices/${id}?add=1`, { replace: true })
+      }
+      return true
     } catch (err) {
-      console.error('Error saving song order:', err)
+      log.error('Add songs failed', err)
+      showToast("Couldn't add them. Try again.", 'error')
+      return false
     }
   }
 
-  // Save session notes for a specific song
-  const handleSaveSessionNotes = useCallback(
-    async (itemId: string, notes: string) => {
-      // Update local state first
-      const newSongs = songs.map(song =>
-        song.id === itemId ? { ...song, notes } : song
-      )
-      setSongs(newSongs)
+  const removeSong = async (id: string) => {
+    try {
+      await save({ songs: songs.filter(s => s.songId !== id) })
+      return true
+    } catch (err) {
+      log.error('Remove song failed', err)
+      showToast("Couldn't remove it. Try again.", 'error')
+      return false
+    }
+  }
 
-      // Save to database if we have an existing practice
-      if (practiceId && !isNewMode) {
-        try {
-          await updatePractice(practiceId, {
-            songs: newSongs.map(s => ({
-              songId: s.songId,
-              timeSpent: 0,
-              status: 'not-started' as const,
-              notes: s.notes,
-              sectionsWorked: [],
-              improvements: [],
-              needsWork: [],
-              memberRatings: [],
-            })),
-          })
-        } catch (err) {
-          console.error('Error saving session notes:', err)
-          showToast('Failed to save notes', 'error')
-        }
+  const browser = (
+    <SongBrowser
+      setName={
+        practice
+          ? practiceTitle(practice.name, new Date(practice.scheduledDate))
+          : 'New practice'
       }
-    },
-    [songs, practiceId, isNewMode, updatePractice, showToast]
+      contextType="band"
+      contextId={bandId}
+      userId={currentUser?.id ?? ''}
+      catalogName={currentBand?.name ?? 'band'}
+      inSet={inSet}
+      otherSets={sets}
+      withMine={false}
+      onAdd={addSongs}
+      onRemove={removeSong}
+      onClose={() => setBrowsing(false)}
+    />
   )
 
-  // Add song to practice (always available)
-  const addSongToPractice = (song: DBSong) => {
-    const newPosition = songs.length + 1
-    const uiSong = dbSongToUISong(song)
-    const newItem: UIPracticeSong = {
-      id: crypto.randomUUID(),
-      songId: song.id!,
-      song: uiSong,
-      position: newPosition,
-    }
-
-    const newSongs = [...songs, newItem]
-    setSongs(newSongs)
-
-    // Auto-save if we have an existing practice
-    if (practiceId && !isNewMode) {
-      saveSongOrder(newSongs)
-    }
-
-    showToast(`Added "${song.title}"`, 'success')
-  }
-
-  // Add all songs from setlist
-  const addAllSongsFromSetlist = (setlistSongs: DBSong[]) => {
-    const startPosition = songs.length + 1
-    const newItems: UIPracticeSong[] = setlistSongs.map((song, index) => ({
-      id: crypto.randomUUID(),
-      songId: song.id!,
-      song: dbSongToUISong(song),
-      position: startPosition + index,
-    }))
-
-    const newSongs = [...songs, ...newItems]
-    setSongs(newSongs)
-
-    // Auto-save if we have an existing practice
-    if (practiceId && !isNewMode) {
-      saveSongOrder(newSongs)
-    }
-
-    showToast(`Added ${setlistSongs.length} songs`, 'success')
-  }
-
-  // Remove song with confirmation
-  const removeSongFromPractice = async (itemId: string, songTitle: string) => {
-    const confirmed = await confirm({
-      title: 'Remove Song',
-      message: `Remove "${songTitle}" from this practice?`,
-      variant: 'warning',
-      confirmLabel: 'Remove',
-    })
-
-    if (confirmed) {
-      const newSongs = songs
-        .filter(item => item.id !== itemId)
-        .map((item, index) => ({ ...item, position: index + 1 }))
-
-      setSongs(newSongs)
-
-      // Auto-save if we have an existing practice
-      if (practiceId && !isNewMode) {
-        saveSongOrder(newSongs)
+  const detail = (
+    <PracticeDetail
+      key={practiceId ?? 'new'}
+      practiceId={practiceId ?? null}
+      bandId={bandId}
+      variant="page"
+      onCreated={id =>
+        navigate(`/practices/${id}${browsing ? '?add=1' : ''}`, {
+          replace: true,
+        })
       }
-
-      showToast('Song removed', 'success')
-    }
-  }
-
-  if (!practice) return null
-
-  // Build display data
-  const practiceDate = new Date(practice.scheduledDate)
-  const formattedDate = formatDateForInput(practiceDate)
-  const formattedTime = formatTime12Hour(practiceDate)
-  const dateLabel = formatShowDate(practiceDate)
-
-  const status = getPracticeSessionStatus(practice)
-
-  // Header title - auto-generated from date
-  const headerTitle = `Practice on ${practiceDate.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })}`
-
-  // Current song IDs for drawer
-  const songsInPractice = songs.map(item => item.songId)
-
-  // Convert to UISetlistItem format for SongListItem
-  const displayItems: UISetlistItem[] = songs.map(s => ({
-    id: s.id,
-    type: 'song' as const,
-    position: s.position,
-    song: s.song,
-    songId: s.songId,
-    notes: s.notes, // Session-specific notes
-  }))
+      onGone={back}
+      onAddSongs={() => setBrowsing(true)}
+    />
+  )
 
   return (
-    <ContentLoadingSpinner isLoading={loading}>
-      <div data-testid="practice-view-page">
-        {/* Header with inline editing */}
-        <EntityHeader
-          backPath="/calendar?filter=practices"
-          backLabel="Practices"
-          title={headerTitle}
-          titleEditable={false}
-          entityType="practice"
-          date={formattedDate}
-          time={formattedTime}
-          dateLabel={dateLabel}
-          timeLabel={formattedTime}
-          onDateSave={val => saveDateTime(String(val), formattedTime)}
-          onTimeSave={val => saveDateTime(formattedDate, String(val))}
-          venue={practice.location}
-          onVenueSave={val => saveField('location', String(val) || undefined)}
-          venuePlaceholder="Add location"
-          venueTestId="practice-location"
-          status={
-            !isNewMode
-              ? {
-                  value: status,
-                  onSave: () => {}, // Status is computed, not directly editable
-                  options: PRACTICE_STATUS_OPTIONS,
-                  disabled: true, // Practice status is auto-computed
-                }
-              : undefined
-          }
-        />
-
-        {/* Start Practice Button - shown for existing practices with songs */}
-        {!isNewMode && songs.length > 0 && (
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
-            <button
-              onClick={() => navigate(`/practices/${practiceId}/session`)}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-accent to-accent-deep hover:from-accent-hot hover:to-accent-deep text-white font-semibold rounded-xl transition-all shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30"
-              data-testid="start-practice-button"
-            >
-              <Play size={24} fill="currentColor" />
-              <span className="text-lg">Start Practice Session</span>
-            </button>
-          </div>
-        )}
-
-        {/* Content */}
-        <div className="max-w-6xl mx-auto py-6 space-y-6">
-          {/* New mode save button */}
-          {isNewMode && (
-            <div className="bg-bg-1 border border-accent rounded-lg p-4 flex items-center justify-between">
-              <div>
-                <p className="text-white font-medium">Creating new practice</p>
-                <p className="text-sm text-ink-4">
-                  Click any field above to edit, then save when ready
-                </p>
-              </div>
-              <button
-                onClick={createPracticeHandler}
-                className="px-4 py-2 bg-accent hover:bg-accent-deep text-white font-medium rounded-lg transition-colors"
-                data-testid="create-practice-button"
-              >
-                Create Practice
-              </button>
-            </div>
-          )}
-
-          {/* Details Section */}
-          <SectionCard title="Details">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Duration — location is edited inline in the header (venue slot). */}
-              <InlineEditableField
-                label="Duration"
-                value={practice.duration}
-                displayValue={formatDuration(practice.duration)}
-                onSave={val => saveField('duration', Number(val))}
-                type="duration"
-                icon={<Clock size={16} />}
-                data-testid="practice-duration"
-              />
-            </div>
-
-            {/* Pre-practice Notes - Full Width */}
-            <div className="mt-6 pt-6 border-t border-border-1">
-              <label className="block text-sm text-ink-3 mb-2 flex items-center gap-2">
-                <FileText size={16} />
-                Notes
-              </label>
-              <MarkdownField
-                value={practice.notes || ''}
-                onSave={val => saveField('notes', val || undefined)}
-                placeholder="What to focus on, parts to work on, objectives for the band..."
-                data-testid="practice-notes"
-              />
-            </div>
-          </SectionCard>
-
-          {/* Wrap-up Notes Section - Above songs list */}
-          <SectionCard
-            title="Wrap-up Notes"
-            description="Capture your thoughts after the practice - what went well, what to improve, or any action items."
-          >
-            <MarkdownField
-              value={practice.wrapupNotes || ''}
-              onSave={val => saveField('wrapupNotes', val || undefined)}
-              placeholder="How did it go? What to focus on next time?"
-              data-testid="practice-wrapup-notes"
-            />
-          </SectionCard>
-
-          {/* Divider and Songs Section - Full width, no container */}
-          <div className="border-t border-border-1 pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">
-                Songs ({songs.length})
-              </h2>
-              <button
-                onClick={() => setIsDrawerOpen(true)}
-                data-testid="add-songs-button"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
-              >
-                <Plus size={18} />
-                <span>Add Songs</span>
-              </button>
-            </div>
-
-            {songs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-border-1 rounded-lg">
-                <ListMusic size={48} className="text-border-1 mb-3" />
-                <p className="text-ink-4 text-sm mb-1">
-                  No songs in this practice
-                </p>
-                <p className="text-ink-5 text-xs mb-4">
-                  Add songs to practice during this session
-                </p>
-                <button
-                  onClick={() => setIsDrawerOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
-                >
-                  <Plus size={18} />
-                  <span>Add Songs</span>
-                </button>
-              </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={songs.map(i => i.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div data-testid="practice-songs-list" className="space-y-2">
-                    {displayItems.map((item, index) => {
-                      // Calculate song number (only count songs, not breaks/sections)
-                      const songNumber =
-                        item.type === 'song'
-                          ? displayItems
-                              .slice(0, index + 1)
-                              .filter(i => i.type === 'song').length
-                          : undefined
-
-                      return (
-                        <SortableSongListItem
-                          key={item.id}
-                          item={item}
-                          isEditing={true}
-                          showLinks={true}
-                          songNumber={songNumber}
-                          onRemove={() =>
-                            removeSongFromPractice(
-                              item.id,
-                              item.song?.title || 'this song'
-                            )
-                          }
-                          onEdit={() => {
-                            const song = dbSongs.find(s => s.id === item.songId)
-                            if (song) setEditingSong(song)
-                          }}
-                          onSaveSessionNotes={async notes =>
-                            handleSaveSessionNotes(item.id, notes)
-                          }
-                          onOpenSongNotes={
-                            item.song
-                              ? () =>
-                                  setSongNotesModal({
-                                    songId: item.song!.id,
-                                    songTitle: item.song!.title,
-                                  })
-                              : undefined
-                          }
-                        />
-                      )
-                    })}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
-          </div>
-        </div>
-
-        {/* Browse Songs Drawer */}
-        <BrowseSongsDrawer
-          isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
-          songs={dbSongs}
-          selectedSongIds={songsInPractice}
-          onAddSong={addSongToPractice}
-          setlists={dbSetlists}
-          onAddAllFromSetlist={addAllSongsFromSetlist}
-        />
-
-        {/* Confirm Dialog */}
-        <ConfirmDialog {...dialogProps} />
-
-        {/* Edit Song Modal */}
-        {editingSong && (
-          <EditSongModal
-            song={editingSong}
-            onClose={() => setEditingSong(null)}
-            onSave={async updatedSong => {
-              try {
-                await getSyncRepository().updateSong(
-                  updatedSong.id!,
-                  updatedSong
-                )
-                // Update the song in our local state
-                setDbSongs(prev =>
-                  prev.map(s => (s.id === updatedSong.id ? updatedSong : s))
-                )
-                // Also update the displayed songs list
-                setSongs(prev =>
-                  prev.map(ps =>
-                    ps.songId === updatedSong.id
-                      ? { ...ps, song: dbSongToUISong(updatedSong) }
-                      : ps
-                  )
-                )
-                setEditingSong(null)
-                showToast('Song updated', 'success')
-              } catch (error) {
-                console.error('Error updating song:', error)
-                showToast('Failed to update song', 'error')
-              }
-            }}
-          />
-        )}
-
-        {/* Song Notes Modal */}
-        {songNotesModal && (
-          <SongNotesModal
-            isOpen={true}
-            onClose={() => setSongNotesModal(null)}
-            songId={songNotesModal.songId}
-            songTitle={songNotesModal.songTitle}
-            userId={currentUserId}
-            bandId={currentBandId}
-          />
-        )}
-      </div>
-    </ContentLoadingSpinner>
+    <div data-testid="practice-view-page" className="md:pb-10">
+      <BackCrumb
+        label="Calendar"
+        onClick={back}
+        className="mb-4"
+        data-testid="practice-back"
+      />
+      {detail}
+      {browsing && browser}
+    </div>
   )
 }
+
+export default PracticeViewPage

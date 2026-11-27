@@ -2,12 +2,15 @@
  * FriendService — friend graph, requests, and code/QR discovery.
  *
  * Supabase-only + RLS. Reads are auto-scoped by RLS; the friendship row is written
- * by a SECURITY DEFINER trigger on accept (see the friends migration), and hidden-user
- * lookup goes through the resolve_friend_code RPC.
+ * by a SECURITY DEFINER trigger on accept (see the friends migration). Sending
+ * goes through `send_friend_request`, which enforces the target's request policy
+ * (a friend code skips it). Reads and writes throw so screens can show Retry.
  */
 
 import { getSupabaseClient } from './supabase/client'
 import { createLogger } from '../utils/logger'
+import { findPeople, sendFriendRequest } from './api/friends'
+import { ApiError } from './api/errors'
 import type {
   FriendSummary,
   FriendRequestSummary,
@@ -18,12 +21,16 @@ import type {
 
 const log = createLogger('FriendService')
 
-async function currentUserId(): Promise<string | null> {
+function client() {
   const supabase = getSupabaseClient()
-  if (!supabase) return null
+  if (!supabase) throw new Error('Supabase is not configured')
+  return supabase
+}
+
+async function currentUserId(): Promise<string | null> {
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await client().auth.getUser()
   return user?.id ?? null
 }
 
@@ -35,11 +42,9 @@ async function currentUserId(): Promise<string | null> {
  */
 async function namesFor(userIds: string[]): Promise<Map<string, string>> {
   const map = new Map<string, string>()
-  const supabase = getSupabaseClient()
-  if (!supabase || userIds.length === 0) return map
-  // rpc is untyped here (no generated DB types) — cast the call.
+  if (userIds.length === 0) return map
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.rpc as any)('related_names', {
+  const { data, error } = await (client().rpc as any)('related_names', {
     p_ids: userIds,
   })
   if (error) {
@@ -55,37 +60,97 @@ async function namesFor(userIds: string[]): Promise<Map<string, string>> {
   return map
 }
 
+interface PersonExtras {
+  instruments: string[]
+  color: string | null
+}
+
+/**
+ * Instruments and personal colour for whoever RLS lets us read (friends and
+ * findable people). Missing rows just get no extras.
+ */
+async function profilesFor(
+  userIds: string[]
+): Promise<Map<string, PersonExtras>> {
+  const map = new Map<string, PersonExtras>()
+  if (userIds.length === 0) return map
+  const { data, error } = await client()
+    .from('user_profiles')
+    .select('user_id, instruments, personal_color')
+    .in('user_id', userIds)
+  if (error) {
+    log.error('profilesFor failed', error)
+    return map
+  }
+  for (const row of (data as unknown as {
+    user_id: string
+    instruments: string[] | null
+    personal_color: string | null
+  }[]) ?? []) {
+    map.set(row.user_id, {
+      instruments: row.instruments ?? [],
+      color: row.personal_color,
+    })
+  }
+  return map
+}
+
+const NO_EXTRAS: PersonExtras = { instruments: [], color: null }
+
+/** User copy for each `send_friend_request` error key. */
+export function friendRequestErrorCopy(key: string, byCode: boolean): string {
+  switch (key) {
+    case 'not_found':
+      return byCode
+        ? 'No one has that code. Check it and try again.'
+        : "We couldn't find them."
+    case 'cannot_friend_self':
+      return byCode ? "That's your own code." : "That's you."
+    case 'already_friends':
+      return "You're already friends."
+    case 'request_pending':
+      return 'Request already sent.'
+    case 'requests_closed':
+      return "They aren't taking requests this way. Ask for their friend code."
+    default:
+      return "That didn't send. Try again."
+  }
+}
+
+export type SendResult =
+  | { ok: true; name: string; accepted: boolean }
+  | { ok: false; key: string; error: string }
+
 export class FriendService {
   /** Accepted friends of the current user. */
   static async getFriends(): Promise<FriendSummary[]> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return []
     const me = await currentUserId()
     if (!me) return []
-    const { data, error } = await supabase
+    const { data, error } = await client()
       .from('friendships')
       .select('id, user_a, user_b')
-    if (error) {
-      log.error('getFriends failed', error)
-      return []
-    }
+    if (error) throw error
     const rows =
       (data as unknown as { id: string; user_a: string; user_b: string }[]) ??
       []
     const others = rows.map(r => (r.user_a === me ? r.user_b : r.user_a))
-    const [names, shared] = await Promise.all([
+    const [names, shared, extras] = await Promise.all([
       namesFor(others),
       FriendService.sharedBandCounts(me, others),
+      profilesFor(others),
     ])
-    return rows.map(r => {
-      const otherId = r.user_a === me ? r.user_b : r.user_a
-      return {
-        friendshipId: r.id,
-        userId: otherId,
-        name: names.get(otherId) ?? 'Someone',
-        sharedBands: shared.get(otherId) ?? 0,
-      }
-    })
+    return rows
+      .map(r => {
+        const otherId = r.user_a === me ? r.user_b : r.user_a
+        return {
+          friendshipId: r.id,
+          userId: otherId,
+          name: names.get(otherId) ?? 'Someone',
+          sharedBands: shared.get(otherId) ?? 0,
+          ...(extras.get(otherId) ?? NO_EXTRAS),
+        }
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
   }
 
   /**
@@ -98,12 +163,13 @@ export class FriendService {
     userIds: string[]
   ): Promise<Map<string, number>> {
     const counts = new Map<string, number>()
-    const supabase = getSupabaseClient()
-    if (!supabase || userIds.length === 0) return counts
+    if (userIds.length === 0) return counts
+    const supabase = client()
     const { data: mine } = await supabase
       .from('band_memberships')
       .select('band_id')
       .eq('user_id', me)
+      .eq('status', 'active')
     const myBandIds = ((mine as unknown as { band_id: string }[]) ?? []).map(
       r => r.band_id
     )
@@ -113,29 +179,26 @@ export class FriendService {
       .select('user_id')
       .in('band_id', myBandIds)
       .in('user_id', userIds)
+      .eq('status', 'active')
     for (const row of (data as unknown as { user_id: string }[]) ?? []) {
       counts.set(row.user_id, (counts.get(row.user_id) ?? 0) + 1)
     }
     return counts
   }
 
-  /** Incoming + outgoing pending requests. */
+  /** Incoming + outgoing pending requests, newest first. */
   static async getRequests(): Promise<{
     incoming: FriendRequestSummary[]
     outgoing: FriendRequestSummary[]
   }> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return { incoming: [], outgoing: [] }
     const me = await currentUserId()
     if (!me) return { incoming: [], outgoing: [] }
-    const { data, error } = await supabase
+    const { data, error } = await client()
       .from('friend_requests')
       .select('id, requester_id, addressee_id, status, created_date')
       .eq('status', 'pending')
-    if (error) {
-      log.error('getRequests failed', error)
-      return { incoming: [], outgoing: [] }
-    }
+      .order('created_date', { ascending: false })
+    if (error) throw error
     const rows =
       (data as unknown as {
         id: string
@@ -147,7 +210,10 @@ export class FriendService {
     const others = rows.map(r =>
       r.requester_id === me ? r.addressee_id : r.requester_id
     )
-    const names = await namesFor(others)
+    const [names, extras] = await Promise.all([
+      namesFor(others),
+      profilesFor(others),
+    ])
     const incoming: FriendRequestSummary[] = []
     const outgoing: FriendRequestSummary[] = []
     for (const r of rows) {
@@ -160,32 +226,39 @@ export class FriendService {
         direction: isIncoming ? 'incoming' : 'outgoing',
         status: r.status,
         createdDate: new Date(r.created_date),
+        ...(extras.get(otherId) ?? NO_EXTRAS),
       }
       ;(isIncoming ? incoming : outgoing).push(item)
     }
     return { incoming, outgoing }
   }
 
-  /** The current user's own friend code + discovery settings. */
+  /**
+   * The current user's own friend code + privacy. Creates the profile row /
+   * fills a blank code first (ensure_friend_code), so a code always shows.
+   */
   static async getMyProfile(): Promise<MyFriendProfile | null> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return null
     const me = await currentUserId()
     if (!me) return null
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('friend_code, discoverable, friend_request_policy')
-      .eq('user_id', me)
-      .maybeSingle()
-    if (error || !data) {
-      log.error('getMyProfile failed', error)
-      return null
+    const read = async () => {
+      const { data, error } = await client()
+        .from('user_profiles')
+        .select('friend_code, discoverable, friend_request_policy')
+        .eq('user_id', me)
+        .maybeSingle()
+      if (error) throw error
+      return data as unknown as {
+        friend_code: string | null
+        discoverable: boolean
+        friend_request_policy: FriendRequestPolicy
+      } | null
     }
-    const row = data as unknown as {
-      friend_code: string | null
-      discoverable: boolean
-      friend_request_policy: FriendRequestPolicy
+    let row = await read()
+    if (!row?.friend_code) {
+      await FriendService.ensureFriendCode()
+      row = await read()
     }
+    if (!row) return null
     return {
       friendCode: row.friend_code ?? '',
       discoverable: row.discoverable,
@@ -195,16 +268,11 @@ export class FriendService {
 
   /**
    * Guarantee the current user has a profile row WITH a friend code, and return
-   * it. The app never inserts user_profiles rows, so a user can have no row or a
-   * NULL code → a blank share code; the ensure_friend_code RPC creates-or-fills
-   * it server-side. Idempotent; safe to call on every Friends load.
+   * it. The ensure_friend_code RPC creates-or-fills it server-side. Idempotent.
    */
   static async ensureFriendCode(): Promise<string | null> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return null
-    // rpc is untyped here (no generated DB types) — cast the call.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.rpc as any)('ensure_friend_code')
+    const { data, error } = await (client().rpc as any)('ensure_friend_code')
     if (error) {
       log.error('ensure_friend_code failed', error)
       return null
@@ -212,204 +280,83 @@ export class FriendService {
     return (data as string | null) ?? null
   }
 
-  static async setDiscoverable(discoverable: boolean): Promise<void> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return
+  /** Findable by name, and who may send you a request. */
+  static async savePrivacy(changes: {
+    discoverable?: boolean
+    policy?: FriendRequestPolicy
+  }): Promise<void> {
     const me = await currentUserId()
-    if (!me) return
-    const { error } = await supabase
+    if (!me) throw new Error('Not signed in')
+    const row: Record<string, unknown> = {}
+    if (changes.discoverable !== undefined)
+      row.discoverable = changes.discoverable
+    if (changes.policy !== undefined) row.friend_request_policy = changes.policy
+    const { error } = await client()
       .from('user_profiles')
-      .update({ discoverable } as never)
+      .update(row as never)
       .eq('user_id', me)
-    if (error) log.error('setDiscoverable failed', error)
+    if (error) throw error
   }
 
-  /** Who may send you a friend request (everyone / friends_of_friends / code_only). */
-  static async setPolicy(policy: FriendRequestPolicy): Promise<void> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return
-    const me = await currentUserId()
-    if (!me) return
-    const { error } = await supabase
-      .from('user_profiles')
-      .update({ friend_request_policy: policy } as never)
-      .eq('user_id', me)
-    if (error) log.error('setPolicy failed', error)
-  }
-
-  /**
-   * Send a friend request to whoever owns `code`. Returns the resolved name on
-   * success, or an error string.
-   */
-  static async sendRequestToCode(
-    code: string
-  ): Promise<{ ok: boolean; name?: string; error?: string }> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return { ok: false, error: 'Offline' }
-    const me = await currentUserId()
-    if (!me) return { ok: false, error: 'Not signed in' }
-    // rpc is untyped here (no generated DB types) — cast the call.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.rpc as any)('resolve_friend_code', {
-      p_code: code.trim().toUpperCase(),
-    })
-    if (error) {
-      log.error('resolve_friend_code failed', error)
-      return { ok: false, error: 'Lookup failed' }
-    }
-    const match = (
-      data as unknown as {
-        user_id: string
-        name: string
-        display_name: string | null
-      }[]
-    )?.[0]
-    if (!match) return { ok: false, error: 'No one found for that code' }
-    if (match.user_id === me)
-      return { ok: false, error: "That's your own code" }
-    const insName = match.display_name ?? match.name
-    const res = await FriendService.insertRequest(me, match.user_id)
-    return res.ok ? { ok: true, name: insName } : res
-  }
-
-  /**
-   * Find discoverable people by display name (RLS permits reading opted-in
-   * profiles). Excludes the current user; the caller annotates already-friend /
-   * already-requested rows from state it already holds. Hidden profiles never
-   * appear — they're reachable only by friend code.
-   */
+  /** Findable people by name (2+ chars), with instruments and mutual friends. */
   static async searchByName(query: string): Promise<FriendSearchResult[]> {
     const q = query.trim()
     if (q.length < 2) return []
-    const supabase = getSupabaseClient()
-    if (!supabase) return []
-    // The RPC matches discoverable users by their real users.name, excludes
-    // self, and escapes LIKE wildcards server-side.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.rpc as any)(
-      'search_discoverable_users',
-      { p_query: q }
-    )
-    if (error) {
-      log.error('searchByName failed', error)
-      return []
-    }
-    return (
-      (data as unknown as { user_id: string; name: string | null }[]) ?? []
-    )
+    const rows = await findPeople(q)
+    return rows
       .filter(r => r.name)
-      .map(r => ({ userId: r.user_id, name: r.name as string }))
-  }
-
-  /** Send a friend request straight to a user id (e.g. from name search). */
-  static async sendRequestToUser(
-    userId: string
-  ): Promise<{ ok: boolean; name?: string; error?: string }> {
-    const me = await currentUserId()
-    if (!me) return { ok: false, error: 'Not signed in' }
-    if (userId === me) return { ok: false, error: "That's you" }
-    const res = await FriendService.insertRequest(me, userId)
-    if (!res.ok) return res
-    const names = await namesFor([userId])
-    return { ok: true, name: names.get(userId) ?? 'them' }
+      .map(r => ({
+        userId: r.user_id,
+        name: r.name as string,
+        instruments: r.instruments ?? [],
+        color: r.personal_color,
+        mutualCount: r.mutual_count ?? 0,
+      }))
   }
 
   /**
-   * Insert a pending request from `me` to `targetId`, reactivating a stale
-   * declined/cancelled row if the UNIQUE (requester, addressee) slot is taken.
-   * Shared by the code and name-search send paths.
+   * Send a request by user id (name search) or friend code. If they had
+   * already asked you, the server accepts theirs instead (`accepted`).
    */
-  private static async insertRequest(
-    me: string,
-    targetId: string
-  ): Promise<{ ok: boolean; error?: string }> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return { ok: false, error: 'Offline' }
-    const { error: insErr } = await supabase
-      .from('friend_requests')
-      .insert({ requester_id: me, addressee_id: targetId } as never)
-    if (!insErr) return { ok: true }
-    if ((insErr as { code?: string }).code !== '23505') {
-      log.error('sendRequest insert failed', insErr)
-      return { ok: false, error: 'Could not send request' }
+  static async sendRequest(target: {
+    userId?: string
+    code?: string
+  }): Promise<SendResult> {
+    const byCode = !!target.code
+    try {
+      const row = await sendFriendRequest({
+        userId: target.userId,
+        // Codes are letters and digits; forgive a pasted space or hyphen.
+        code: target.code?.replace(/[^a-z0-9]/gi, '').toUpperCase(),
+      })
+      const me = await currentUserId()
+      const otherId =
+        row.requester_id === me ? row.addressee_id : row.requester_id
+      const names = await namesFor([otherId])
+      return {
+        ok: true,
+        name: names.get(otherId) ?? 'them',
+        accepted: row.status === 'accepted',
+      }
+    } catch (err) {
+      const key = err instanceof ApiError ? err.key : 'unknown'
+      if (key === 'unknown') log.error('send_friend_request failed', err)
+      return { ok: false, key, error: friendRequestErrorCopy(key, byCode) }
     }
-    // A request row already exists for this exact direction (the UNIQUE
-    // requester/addressee pair). Reactivate a stale row so the user can
-    // re-request; otherwise report its state. Reactivatable rows are:
-    //  - declined / cancelled: terminal rows the decline/cancel paths free,
-    //  - accepted-but-no-longer-friends: an orphaned row left behind when the
-    //    pair unfriended. The accept trigger writes `friendships` but keeps the
-    //    request row at 'accepted', and unfriend only deletes the friendship —
-    //    so re-adding used to dead-end on "You're already friends". This
-    //    self-heals rows predating the AFTER DELETE ON friendships cleanup
-    //    trigger (v0.4.5).
-    const { data: existing } = await supabase
-      .from('friend_requests')
-      .select('id, status')
-      .eq('requester_id', me)
-      .eq('addressee_id', targetId)
-      .maybeSingle()
-    const row = existing as { id: string; status: string } | null
-    const reactivatable =
-      !!row &&
-      (row.status === 'declined' ||
-        row.status === 'cancelled' ||
-        (row.status === 'accepted' &&
-          !(await FriendService.areFriends(me, targetId))))
-    if (row && reactivatable) {
-      const { error: upErr } = await supabase
-        .from('friend_requests')
-        .update({ status: 'pending', responded_date: null } as never)
-        .eq('id', row.id)
-      if (!upErr) return { ok: true }
-      log.error('sendRequest reactivate failed', upErr)
-      return { ok: false, error: 'Could not send request' }
-    }
-    return {
-      ok: false,
-      error:
-        row?.status === 'accepted'
-          ? "You're already friends"
-          : 'Request already pending',
-    }
-  }
-
-  /**
-   * Whether the two users currently have a friendship row, via the are_friends
-   * RPC (order-independent). On error, fail safe by assuming they ARE friends so
-   * a stale 'accepted' request is never reactivated against a real friend.
-   */
-  private static async areFriends(a: string, b: string): Promise<boolean> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return true
-    // rpc is untyped here (no generated DB types) — cast the call.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.rpc as any)('are_friends', {
-      u1: a,
-      u2: b,
-    })
-    if (error) {
-      log.error('are_friends failed', error)
-      return true
-    }
-    return data === true
   }
 
   static async acceptRequest(id: string): Promise<void> {
     // Must be an UPDATE: the BEFORE-UPDATE trigger writes the friendship row
     // when status flips to 'accepted'.
-    const supabase = getSupabaseClient()
-    if (!supabase) return
-    const { error } = await supabase
+    const { error } = await client()
       .from('friend_requests')
       .update({ status: 'accepted' } as never)
       .eq('id', id)
-    if (error) log.error('acceptRequest failed', error)
+    if (error) throw error
   }
 
   // Decline/cancel DELETE the row (not a status flip) so the UNIQUE
-  // (requester, addressee) slot is freed — a left-behind 'declined'/'cancelled'
-  // row would block either party from ever sending a fresh request again.
+  // (requester, addressee) slot is freed.
   static async declineRequest(id: string): Promise<void> {
     await FriendService.deleteRequest(id)
   }
@@ -418,22 +365,18 @@ export class FriendService {
   }
 
   private static async deleteRequest(id: string): Promise<void> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return
-    const { error } = await supabase
+    const { error } = await client()
       .from('friend_requests')
       .delete()
       .eq('id', id)
-    if (error) log.error('deleteRequest failed', error)
+    if (error) throw error
   }
 
   static async unfriend(friendshipId: string): Promise<void> {
-    const supabase = getSupabaseClient()
-    if (!supabase) return
-    const { error } = await supabase
+    const { error } = await client()
       .from('friendships')
       .delete()
       .eq('id', friendshipId)
-    if (error) log.error('unfriend failed', error)
+    if (error) throw error
   }
 }

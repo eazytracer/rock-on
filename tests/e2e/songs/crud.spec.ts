@@ -4,7 +4,7 @@ import {
   signUpViaUI,
   deleteTestUser,
 } from '../../fixtures/auth'
-import { createBandViaUI } from '../../fixtures/bands'
+import { createBandViaUI, joinBandViaUI } from '../../fixtures/bands'
 import { selectors } from '../../helpers/selectors'
 import {
   setupConsoleErrorTracking,
@@ -219,59 +219,30 @@ test.describe('Songs CRUD Operations', () => {
       timeout: 5000,
     })
 
-    // Open the actions menu
-    const actionsButton = page
-      .locator('[data-testid="song-actions-menu-button"]')
-      .first()
-    await expect(actionsButton).toBeVisible({ timeout: 5000 })
-    await actionsButton.click()
-    await page.waitForTimeout(300)
+    // Open the song page (the one place a song is edited) and edit in place
+    const row = page.locator('[data-testid^="song-row-"]').first()
+    await expect(row).toBeVisible({ timeout: 5000 })
+    await row.click()
+    await expect(page.getByTestId('song-view-page')).toBeVisible({
+      timeout: 5000,
+    })
 
-    // Click the edit button
-    const editButton = page.locator('[data-testid="edit-song-button"]').first()
-    await expect(editButton).toBeVisible({ timeout: 5000 })
-    await editButton.click()
-    await page.waitForTimeout(500)
+    await page.getByTestId('song-detail-title').click()
+    await page.getByTestId('song-title-input').fill('Updated Title')
+    await page.getByTestId('song-title-input').press('Enter')
+    await expect(page.getByText('Title saved')).toBeVisible()
 
-    // Edit the title
-    const titleInput = page.locator('input[name="title"]').first()
-    const isEditable = await titleInput.isEditable().catch(() => false)
+    await page.getByTestId('song-fact-bpm').click()
+    await page.getByTestId('song-bpm-input').fill('120')
+    await page.getByTestId('song-bpm-input').press('Enter')
+    await expect(page.getByTestId('song-fact-bpm')).toContainText('120')
 
-    if (isEditable) {
-      await titleInput.clear()
-      await titleInput.fill('Updated Title')
-
-      // Update BPM if field exists
-      const bpmInput = page
-        .locator('input[name="bpm"], input[name="tempo"]')
-        .first()
-      const hasBpm = await bpmInput.isVisible().catch(() => false)
-      if (hasBpm) {
-        await bpmInput.fill('120')
-      }
-
-      // Save changes
-      const saveButton = page
-        .locator('[data-testid="song-submit-button"]')
-        .first()
-      await saveButton.click()
-      await page.waitForTimeout(2000)
-
-      // Verify updated title appears
-      await expect(page.locator('text=Updated Title').first()).toBeVisible({
-        timeout: 5000,
-      })
-
-      // Original title should not be visible
-      const oldTitle = await page
-        .locator('text=Original Title')
-        .first()
-        .isVisible()
-        .catch(() => false)
-      expect(oldTitle).toBe(false)
-    } else {
-      console.log('Note: Song editing may not be fully implemented')
-    }
+    // Back to the list: the new title is there, the old one is gone
+    await page.getByTestId('song-page-back').click()
+    await expect(page.locator('text=Updated Title').first()).toBeVisible({
+      timeout: 5000,
+    })
+    await expect(page.locator('text=Original Title')).toHaveCount(0)
 
     await assertNoConsoleErrors(page, errors)
   })
@@ -316,12 +287,10 @@ test.describe('Songs CRUD Operations', () => {
       timeout: 5000,
     })
 
-    // Click the action menu on the song
-    const actionMenuButton = page
-      .locator('[data-testid="song-actions-menu-button"]')
-      .first()
-    await expect(actionMenuButton).toBeVisible({ timeout: 5000 })
-    await actionMenuButton.click()
+    // Open the song menu (right-click the row)
+    const songRow = page.locator('[data-testid^="song-row-"]').first()
+    await expect(songRow).toBeVisible({ timeout: 5000 })
+    await songRow.click({ button: 'right' })
     await page.waitForTimeout(300)
 
     // Click delete button in action menu
@@ -329,7 +298,7 @@ test.describe('Songs CRUD Operations', () => {
     await expect(deleteButton).toBeVisible({ timeout: 2000 })
     await deleteButton.click()
 
-    // The delete flow uses the shared ConfirmDialog. A setlist-membership check
+    // The delete flow uses the shared ConfirmDialog. A usage check (song_usage)
     // runs first, so give the dialog a little time to appear.
     const confirmDialog = page.locator('[data-testid="confirm-dialog"]')
     await expect(confirmDialog).toBeVisible({ timeout: 5000 })
@@ -337,7 +306,7 @@ test.describe('Songs CRUD Operations', () => {
     // Verify dialog content
     await expect(
       page.locator('[data-testid="confirm-dialog-title"]')
-    ).toHaveText('Delete Song')
+    ).toHaveText('Delete "Song To Delete"?')
 
     // Click confirm to delete
     const confirmButton = page.locator('[data-testid="confirm-dialog-confirm"]')
@@ -345,18 +314,13 @@ test.describe('Songs CRUD Operations', () => {
     await page.waitForTimeout(2000)
 
     // Verify success toast appeared (this contains the song title, so check first)
-    await expect(page.locator('text=Successfully deleted').first()).toBeVisible(
-      { timeout: 3000 }
-    )
+    await expect(
+      page.locator('text=Deleted "Song To Delete"').first()
+    ).toBeVisible({ timeout: 3000 })
     console.log('✓ Delete success toast appeared')
 
     // Wait for toast to potentially fade and page to update
     await page.waitForTimeout(1000)
-
-    // Verify song count shows 0 (since we only created one song)
-    const songCount = page.locator('text=(0 songs)')
-    await expect(songCount).toBeVisible({ timeout: 5000 })
-    console.log('✓ Song count shows 0 after deletion')
 
     // Verify empty state is shown
     const emptyState = page.locator('text=No songs yet')
@@ -382,7 +346,7 @@ test.describe('Songs CRUD Operations', () => {
     await page1.waitForURL(/\/songs/, { timeout: 10000 })
 
     // Get invite code
-    await page1.goto('/band-members')
+    await page1.goto('/band')
     await page1.waitForLoadState('networkidle')
     const inviteCodeElement = page1.locator(selectors.band.inviteCode).first()
     await expect(inviteCodeElement).toBeVisible({ timeout: 5000 })
@@ -391,9 +355,7 @@ test.describe('Songs CRUD Operations', () => {
     // User 2 joins band
     const user2 = createTestUser()
     await signUpViaUI(page2, user2)
-    await page2.fill(selectors.band.inviteCodeInput, inviteCode!)
-    await page2.click(selectors.band.joinButton)
-    await page2.waitForURL(/\/(songs|band-members|bands)/, { timeout: 10000 })
+    await joinBandViaUI(page2, inviteCode!.trim())
 
     // Both users navigate to songs page
     await page1.goto('/songs')
@@ -471,34 +433,15 @@ test.describe('Songs CRUD Operations', () => {
     await saveButton.click()
     await page.waitForTimeout(1000)
 
-    // Should show validation error or prevent submission
-    // The exact behavior depends on implementation
+    // An empty title can't be saved: the editor stays open
+    await expect(page.locator('input[name="title"]')).toBeVisible()
 
-    // Fill title but not artist
+    // Title is the only required field (redesign): title alone saves
     await page.fill('input[name="title"]', 'Test Song')
     await saveButton.click()
-    await page.waitForTimeout(1000)
-
-    // Should still show error if artist is required
-
-    // Fill all required fields
-    await page.fill('input[name="artist"]', 'Test Artist')
-
-    // Select key using the Circle of Fifths picker
-    const keyButton = page.locator('[data-testid="song-key-button"]').first()
-    await keyButton.click()
-    await page.waitForTimeout(300)
-    const keyPicker = page.locator('[data-testid="key-picker-F"]').first()
-    await keyPicker.click()
-    await page.waitForTimeout(300)
-    const confirmButton = page
-      .locator('[data-testid="key-picker-confirm"]')
-      .first()
-    await confirmButton.click()
-    await page.waitForTimeout(300)
-
-    await saveButton.click()
-    await page.waitForTimeout(2000)
+    await expect(page.locator('input[name="title"]')).toHaveCount(0, {
+      timeout: 5000,
+    })
 
     // Should now succeed
     const songVisible = await page

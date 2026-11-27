@@ -86,7 +86,10 @@ You are a Test Agent specialized in integration and end-to-end (E2E) testing. Yo
 
 ### Phase 2: Run Test Suite
 
-**Run all test layers systematically:**
+**Run all test layers systematically.** On the host, use the `just` recipes
+(`just test`, `just test-db`, `just test-e2e`); unit tests never run on host
+Node, while Playwright runs on the host against the stack started by `just dev`.
+See `docs/LOCAL_DEV.md` and `tests/README.md`.
 
 ```bash
 # 1. Unit tests (Execute Agent should have run these already)
@@ -284,8 +287,8 @@ All tests passing. Feature works as expected. No issues found.
 2. **Use Chrome DevTools MCP to reproduce:**
 
    ```
-   # Start dev server if not running
-   npm run dev
+   # Start the app if not running — host: `just dev`; inside the devcontainer:
+   # `npm run start:dev` (see docs/LOCAL_DEV.md → "Where am I running?")
 
    # Use Chrome MCP to manually reproduce
    mcp__chrome-devtools__navigate_page: http://localhost:5173/songs
@@ -424,7 +427,7 @@ Response: {"message": "JWT expired"}
 
 **Files to investigate:**
 
-- `supabase/migrations/20251106000000_baseline_schema.sql` (RLS policies)
+- `supabase/migrations/` (the feature migration's RLS policies)
 - `src/services/data/RemoteRepository.ts` (field mappings)
 - `src/hooks/useFavorites.ts` (API call logic)
 
@@ -555,7 +558,8 @@ Before marking testing complete:
    Error: net::ERR_CONNECTION_REFUSED at http://localhost:5173
    ```
 
-   **Fix:** `npm run dev` (Playwright should start it automatically)
+   **Fix:** start the app — `just dev` on the host, `npm run start:dev` inside
+   the devcontainer (see docs/LOCAL_DEV.md → "Where am I running?")
 
 3. **Wrong environment:**
 

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Setlist editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{color:#cfc6bd;font-family:"Atkinson Hyperlegible Next",sans-serif}
+a{color:#ff7a1a}a:hover{color:#ffa060}
+.frame{position:absolute}
+.col{display:flex;flex-direction:column;gap:28px;width:1696px}
+.doc{background:#141414;border-radius:28px;padding:30px;font-size:15px;line-height:1.5;text-wrap:pretty}
+.doc b{color:#fff}
+.eb{font-family:"Martian Mono";font-size:11px;letter-spacing:.12em;color:#ff7a1a;text-transform:uppercase}
+.H{font-family:"Big Shoulders Display";font-weight:800;text-transform:uppercase;line-height:.9;color:#f4efe9}
+h1.H{font-size:80px;margin:10px 0 14px}h1 span{color:#ff7a1a}
+.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:26px;margin-top:10px}
+.four h3{color:#fff;font-size:15px;margin-bottom:4px}.four p{font-size:14px}
+.phones{display:flex;gap:56px}
+.ph .cap{font-family:"Martian Mono";font-size:11px;letter-spacing:.1em;color:#5a5149;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+.ph .capd{font-size:13.5px;color:#3d352f;margin-bottom:12px;width:410px;line-height:1.45;min-height:78px}
+.ph .capd b{color:#1a1512}
+/* setlist cards */
+.slc{display:flex;align-items:center;gap:12px;padding:14px 16px;min-height:72px}
+.slc .g{flex:1;min-width:0}
+.slc b{display:block;font-size:17px;font-weight:700}
+.slc .m{font-family:"Martian Mono";font-size:11.5px;color:var(--mu);margin-top:4px}
+.slc .m em{font-style:normal;color:var(--tx)}
+.slc .nx{text-align:right;font-size:12.5px;color:var(--tx2);line-height:1.35;flex-shrink:0}
+.slc .nx small{display:block;font-family:"Martian Mono";font-size:10px;letter-spacing:.06em;color:var(--mu)}
+.slc .nx.none{color:var(--dim)}
+/* setlist notes */
+.snote{padding:12px 16px;display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:var(--tx2)}
+.snote svg.i{width:16px;height:16px;color:var(--mu);margin-top:2px}
+.snote .g{flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* timeline */
+.it{position:relative}
+.opt-rail .it{padding-left:52px}
+.tlon .r-grp{position:relative}
+.opt-rail .r-grp[data-list]:before{content:"";position:absolute;left:43px;top:0;bottom:0;width:2px;background:var(--line);z-index:1}
+.tm{display:none}
+.opt-rail .tm{display:block;position:absolute;left:0;top:13px;width:38px;text-align:right;font-family:var(--r-fm);font-size:10.5px;color:var(--tx2);z-index:2}
+.opt-rail .it.b .tm{top:15px}
+.opt-rail .it:after{content:"";position:absolute;left:40px;top:16px;width:8px;height:8px;border-radius:4px;background:var(--s1);box-shadow:inset 0 0 0 2px var(--mu2);z-index:2}
+.q{position:absolute;left:41px;width:6px;height:6px;border-radius:3px;background:var(--acc);z-index:3}
+.opt-rail .r-retune{padding-left:62px}
+.tlbar{display:none;align-items:center;gap:8px;margin:0 20px 10px;font-family:var(--r-fm);font-size:11px;color:var(--mu)}
+.tlon .tlbar{display:flex}
+.q{display:none}.opt-rail .q{display:block}
+.opt-e .r-grp[data-list],.opt-f .r-grp[data-list]{margin-left:52px;overflow:visible;position:relative}
+.opt-e .r-grp[data-list]>:first-child,.opt-e .r-grp[data-list]>:first-child>*,.opt-f .r-grp[data-list]>:first-child,.opt-f .r-grp[data-list]>:first-child>*{border-top-left-radius:var(--r-md);border-top-right-radius:var(--r-md)}
+.opt-e .r-grp[data-list]>:last-child,.opt-e .r-grp[data-list]>:last-child>*,.opt-f .r-grp[data-list]>:last-child,.opt-f .r-grp[data-list]>:last-child>*{border-bottom-left-radius:var(--r-md);border-bottom-right-radius:var(--r-md)}
+.opt-e .r-grp[data-list]:before,.opt-f .r-grp[data-list]:before{content:"";position:absolute;left:-23px;top:0;bottom:0;width:2px;border-radius:1px;background:var(--line)}
+.opt-e .tm{display:block;position:absolute;left:-22px;top:22px;transform:translate(-50%,-50%);padding:4px 0;background:var(--bg);font-family:var(--r-fm);font-size:10.5px;color:var(--tx);z-index:3;text-align:center;white-space:nowrap}
+.opt-e .q,.opt-f .q{display:block;left:-25px;z-index:4}
+.opt-f .it:after{content:"";position:absolute;left:-27px;top:0;width:10px;height:2px;background:var(--mu2);z-index:2}
+.opt-f .q{width:0;height:0}
+.opt-f .q i{position:absolute;left:3px;top:0;transform:translate(-50%,-50%);padding:4px 0;background:var(--bg);font-style:normal;font-family:var(--r-fm);font-size:10.5px;color:var(--accink);white-space:nowrap}
+.opt-e .r-sec,.opt-f .r-sec{padding-left:64px}
+.tlpop{position:absolute;top:104px;right:66px;z-index:20;background:var(--s2);border-radius:18px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.45);min-width:200px}
+.tlpop div{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:12px;font-weight:600;font-size:14.5px;cursor:pointer}
+.tlpop div.on{background:var(--s3)}.tlpop div svg.i{width:18px;height:18px}
+.tlpop div.dis{color:var(--dim);cursor:default;height:52px}.tlpop div.dis small{padding:2px 0 0;color:var(--dim)}
+.tlpop div .ck2{margin-left:auto;color:var(--accink)}
+.tlpop small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;color:var(--mu);padding:6px 12px 4px}
+.r-ib[data-tl]{user-select:none;-webkit-user-select:none;touch-action:none}
+.opt-a .r-sr .l1{padding-right:60px}.stt{position:absolute;right:16px;top:15px;font-family:var(--r-fm);font-size:12.5px;color:var(--accink);z-index:2}
+.stn{font-family:var(--r-fm);font-size:12px;color:var(--accink);margin-right:8px;font-weight:500}
+.mk{display:flex;align-items:center;gap:8px;padding:8px 16px 6px;font-family:var(--r-fm);font-size:11px;color:var(--accink)}.mk:after{content:"";flex:1;height:1px;background:var(--acc);opacity:.45}
+.stc,.stc *{color:var(--accink)!important}
+.tlbar .sg{display:flex;background:var(--s2);border-radius:16px;padding:2px;cursor:pointer}
+.tlbar .sg span{height:28px;padding:0 12px;border-radius:14px;display:grid;place-items:center;font-family:var(--r-fu);font-weight:700;font-size:12.5px;color:var(--mu)}
+.tlbar .sg span.on{background:var(--tx);color:var(--bg)}
+.tlbar .end{margin-left:auto}.tlbar .end b{color:var(--warn);font-weight:500}
+.r-ib.on{background:var(--acc);color:var(--onacc)}
+.dropq{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);z-index:6;background:var(--tx);color:var(--bg);border-radius:20px;height:40px;padding:0 16px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;white-space:nowrap}
+.dropq s{text-decoration:none;color:var(--mu2);font-weight:600}
+/* browser */
+.pick{display:flex;align-items:center;background:var(--s1);cursor:pointer}
+.pick .r-sr{flex:1;min-width:0;padding-right:8px}
+.ck{width:26px;height:26px;border-radius:13px;box-shadow:inset 0 0 0 2px var(--line);margin-right:14px;flex-shrink:0;display:grid;place-items:center;color:var(--onacc)}
+.ck svg.i{width:16px;height:16px;stroke-width:3;opacity:0}
+.pick.on .ck{background:var(--acc);box-shadow:none}.pick.on .ck svg.i{opacity:1}
+.pick.in{cursor:default}.pick.in .r-sr{opacity:.45}
+.pick.in .ck{box-shadow:none;background:var(--s3);color:var(--mu)}.pick.in .ck svg.i{opacity:1;stroke-width:2.2;width:14px;height:14px}
+.addm{display:flex;flex-direction:column;gap:8px}
+.addm .o{display:flex;align-items:center;gap:14px;min-height:64px;padding:0 16px;border-radius:18px;background:var(--s2)}
+.addm .o .ico{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--s3);color:var(--tx)}
+.addm .o.p .ico{background:var(--acc);color:var(--onacc)}
+.addm .o .ico svg.i{width:20px;height:20px}
+.addm .o b{display:block;font-size:16px}.addm .o small{font-size:12.5px;color:var(--mu)}
+.fromme{font-size:12.5px;color:var(--mu);padding:0 24px 8px;margin-top:-4px}
+.addall{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;min-height:60px}
+.addall .g{flex:1}.addall b{display:block;font-size:15px}.addall small{font-family:var(--r-fm);font-size:11px;color:var(--mu)}
+.addall .r-btn{height:36px;padding:0 14px;font-size:13px}
+/* move row */
+.mv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:4px 0 10px;border-bottom:1px solid var(--line)}
+.mv span{height:52px;border-radius:14px;background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:700}
+.mv span svg.i{width:18px;height:18px}
+.qk{display:flex;gap:6px;margin:4px 0 12px}
+.qk span{flex:1;height:44px;border-radius:14px;background:var(--s2);display:grid;place-items:center;font-family:var(--r-fm);font-weight:700;font-size:13px}
+.qk span.on{background:var(--acc);color:var(--onacc)}
+.notebox{background:var(--s2);border-radius:16px;padding:12px 14px;font-size:15px;min-height:76px;color:var(--tx)}
+.notebox small{display:block;font-family:var(--r-fm);font-size:10px;letter-spacing:.08em;color:var(--mu);margin-bottom:4px}
+.itnote{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--tx2);margin:2px 0 0 46px;padding-bottom:10px}
+.itnote svg.i{width:14px;height:14px;color:var(--mu2)}
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,sw,step,tp,row,retune,brk,sec,grp,gl,item,fld,srow,sheet,dialog,toast,banner,empty,phone,tpl,title,nav,appbar,backbar}=R;
+const S=Object.assign({},R.SONGS,{
+ as:{title:'All Star',artist:'Smash Mouth',tun:'std',dur:'3:14',key:'F♯',bpm:'104',links:['audio','video']},
+ wica:{title:'When I Come Around',artist:'Green Day',tun:'half',dur:'2:58',key:'G♭',bpm:'98',links:['audio','tabs']},
+ bg:{title:'Burn It to the Ground',artist:'Nickelback',tun:'db',dur:'3:32',key:'B',bpm:'132',links:['audio']},
+ sn:{title:'Seven Nation Army',artist:'The White Stripes',tun:'std',dur:'3:51',key:'E',bpm:'124',links:['audio','video'],notes:'mine'},
+ br:{title:'Breed',artist:'Nirvana',tun:'std',dur:'3:04',key:'Em',bpm:'135',links:['audio','tabs']},
+ tb:{title:'Them Bones',artist:'Alice In Chains',tun:'cstd',dur:'2:30',key:'D',bpm:'128',links:['tabs']},
+ hb:{title:'Hash Pipe',artist:'Weezer',tun:'half',dur:'3:06',key:'E♭',bpm:'124',links:['audio']}});
+const secs=d=>{const [m,s]=d.split(':').map(Number);return m*60+s};
+const fmt=m=>{const h=Math.floor(m/60),mm=Math.floor(m%60);return `${h}:${String(mm).padStart(2,'0')}`};
+const clk=m=>{const t=20*60+30+m;let h=Math.floor(t/60)%24;const mm=Math.floor(t%60);h=h%12||12;return `${h}:${String(mm).padStart(2,'0')}`};
+const INIT=()=>[{sec:'Set 1',items:['as','aag','mw','ev','mb']},{sec:'Set 2',items:['brk','wica','bg','bl','sn']}];
+const BRK={len:15,note:'Swap to backup kit'};
+const ST={};
+function stats(groups){let n=0,t=0,ret=0,prev=null;for(const g of groups)for(const id of g.items){if(id==='brk'){t+=BRK.len*60;continue}const s=S[id];n++;t+=secs(s.dur);if(prev&&prev!==s.tun)ret++;prev=s.tun}return {n,min:Math.round(t/60),ret}}
+function body(key){const st=ST[key];const {n,min,ret}=stats(st.groups);let h='';let prev=null,num=0,tm=0,lm=0;
+  for(const g of st.groups){h+=sec(g.sec);let inner='';
+  for(const id of g.items){const start=tm;let dur,content,isB=id==='brk';
+   if(st.tl&&st.opt==='c'){const m=Math.floor(start/15)*15;if(m>lm&&m>0){inner+=`<div class="mk"><span>${st.mode==='clock'?clk(m)+' PM':fmt(m)}</span></div>`;lm=m}}
+   if(isB){dur=BRK.len;content=brk(`Break · ${BRK.len} min`,BRK.note)}
+   else{const s=S[id];num++;if(prev&&prev!==s.tun)inner+=retune(prev,s.tun,{tune:true});prev=s.tun;dur=secs(s.dur)/60;content=songRow(s,num,start,st)+(st.notes&&st.notes[id]?`<div class="itnote">${ic('list')}${st.notes[id]}</div>`:'')}
+   let q='';for(let mk=st.opt==='f'?Math.ceil(start/15)*15:Math.ceil((start+.0001)/15)*15;mk<start+dur;mk+=15)q+=`<span class="q" style="top:calc(${((mk-start)/dur*100).toFixed(1)}% - 3px)">${st.opt==='f'?`<i>${st.mode==='clock'?clk(mk):fmt(mk)}</i>`:''}</span>`;
+   const lbl=st.mode==='clock'?clk(start):fmt(start);
+   inner+=`<div class="it ${isB?'b':''}" data-it="${id}"><span class="tm">${lbl}</span>${q}${content}</div>`;tm+=dur}
+  h+=grp(inner).replace('class="r-grp"',`class="r-grp" data-list="${key}"`)}
+ return {h,n,min,ret}}
+function editor(key){const st=ST[key];const b=body(key);
+ const tot=`<div class="r-tot"><span><b>${b.n}</b> songs</span>${st.tl?`<span>ends <b>${st.mode==='clock'?clk(b.min):fmt(b.min)}</b></span>`:`<span><b>${b.min}</b> min</span>`}<span><b data-ret>${b.ret}</b> retunes</span>${st.show?`<span class="${b.min>45?'over':''}"><b>${b.min}</b> of 45 min</span>`:''}</div>`;
+ const notes=grp(`<div class="snote">${ic('doc')}<div class="g">Two sets. Keep Set 1 under 25 so the venue can flip the room. <b style="color:var(--tx)">No count-ins</b> between the first three.</div>${ic('chev','width:16px;height:16px;color:var(--dim)')}</div>`);
+ return `<div class="${st.tl?'tlon opt-'+st.opt:''}" style="display:contents">`+tpl.detail({back:'Setlists',right:`<span class="r-ib ${st.tl?'on':''}" data-tl title="Timeline: tap to cycle, hold to choose">${ic(st.tl&&st.mode==='set'?'watch':'clock')}</span>`+chip('View',{icon:'view'})+ib('moreh'),
+  kicker:st.show?'Show set · The Crocodile · Sat, Nov 7 · 8:30 PM':'Setlist · iPod Shuffle',title:'Fall Set',facts:tot,body:notes+b.h+'<div style="height:120px"></div>',
+  cta:btn('Add',{kind:'pri',size:'lg',icon:'plus',iconSt:'width:20px;height:20px',attr:'data-addmenu'}).replace('r-btn pri','r-btn pri w'),overlay:(st.overlay||'')+(st.pop?`<div class="tlpop"><small>TIMELINE</small>${[['off','x','Off'],['clock','clock','Clock time'],['set','watch','Set time']].map(([v,i,l])=>{const on=v==='off'?!st.tl:st.tl&&st.mode===v,dis=v==='clock'&&!st.show;return dis?`<div class="dis">${ic(i)}<span>${l}<small>NEEDS A SHOW TIME</small></span></div>`:`<div data-tlset="${v}" class="${on?'on':''}">${ic(i)}${l}${on?`<span class="ck2">${ic('check')}</span>`:''}</div>`}).join('')}</div>`:'')})+'</div>'}
+const songRow=(s,num,start,st)=>{const lbl=st.mode==='clock'?clk(start):fmt(start);const O={n:num,grip:true,view:{bpm:false}};
+ if(st.tl&&st.opt==='d')return row(Object.assign({},s,{dur:lbl}),O).replace('w-time','w-time stc');
+ let h=row(s,O);if(st.tl&&st.opt==='a')h=h.replace('</div><div class="l2">',`<span class="stt">${lbl}</span></div><div class="l2">`);
+ if(st.tl&&st.opt==='b')h=h.replace(`<span class="n">${num}</span>`,`<span class="n">${num}</span><span class="stn">${lbl}</span>`);return h};
+const mk=(key,o={})=>{ST[key]=Object.assign({groups:INIT(),tl:false,opt:'e',mode:'clock',notes:{mw:'Breakdown at 2:40: watch Sarah'}},o);if(!('mode' in o))ST[key].mode=ST[key].show?'clock':'set';return key};
+
+// list of setlists
+const card=(n,m,next,when)=>`<div class="slc"><div class="g"><b>${n}</b><div class="m">${m}</div></div><div class="nx ${next?'':'none'}">${next?`<small>${when}</small>${next}`:'No show'}</div></div>`;
+const listScr=tpl.list({title:'Setlists',count:4,tools:chip('Next show',{icon:'sort'})+chip('Search',{icon:'search'}),
+ body:grp(card('Fall Set','<em>9</em> songs · <em>50</em> min · <em>4</em> retunes','The Crocodile','SAT, NOV 7')+card('Birthday Jam','<em>12</em> songs · <em>48</em> min · <em>2</em> retunes','Mike\'s Garage','SAT, NOV 14')+card('Acoustic Sunday','<em>6</em> songs · <em>24</em> min · <em>0</em> retunes','','')+card('Summer Set 2026','<em>14</em> songs · <em>61</em> min · <em>5</em> retunes','','')),fab:'New setlist',nav:2});
+
+// browser
+let PICKS=new Set(['aer','tb']);
+const IN=new Set(['as','aag','mw','ev','mb','wica','bg','bl','sn']);
+const pick=(id)=>{const inset=IN.has(id);return `<div class="pick ${inset?'in':''} ${PICKS.has(id)?'on':''}" data-pk="${id}">${row(S[id],{compact:true,view:{links:false,artist:true}})}<span class="ck" title="${inset?'Already in this set':''}">${inset?ic('list'):ic('check')}</span></div>`};
+const browser=()=>`${backbar('Fall Set')}<div class="r-ttl"><div class="r-d r-h2">Add songs</div></div><div class="r-search">${ic('search')}Search iPod Shuffle songs</div><div class="r-tools">${chip('All',{on:true})}${chip(tp('std','sm'))}${chip(tp('dd','sm'))}${chip(tp('half','sm'))}${chip(tp('dc','sm'))}${chip('More',{icon:'sort'})}</div>
+<div class="r-body">${gl('Add all from a setlist')}${grp(`<div class="addall">${ic('list','color:var(--mu)')}<div class="g"><b>Birthday Jam</b><small>12 songs · 5 already here</small></div>${btn('Add 7')}</div>`)}
+${gl('iPod Shuffle songs')}${grp(['aer','aag','aat','bc','bl','br','tb'].map(pick).join(''))}
+${gl('From my songs')}<div class="fromme">Copied into iPod Shuffle when you add them.</div>${grp(pick('hb'))}<div style="height:110px"></div></div>
+<div class="r-fade"></div><div class="r-dock">${btn(`Add ${PICKS.size} song${PICKS.size===1?'':'s'}`,{kind:'pri',size:'lg',icon:'plus',attr:'data-addn'}).replace('r-btn pri','r-btn pri w')}</div>`;
+
+// sheets
+const itemSheet=sheet({title:'Everlong',sub:'#4 in Fall Set · D DROP · 4:10',body:`<div class="mv"><span>${ic('up')}Up</span><span>${ic('down')}Down</span><span>${ic('up')}To top</span><span>${ic('arrow')}After…</span></div>`+srow({icon:'list',label:'Note for this set',sub:'Only shows in Fall Set'})+srow({icon:'open',label:'Open song'})+srow({icon:'edit',label:'Edit song'})+srow({icon:'trash',label:'Remove from set…',aside:'Stays in your songs',cls:'dng'})});
+const insertSheet=sheet({title:'Insert',body:seg(['Break','Section'],0)+`<div class="r-label" style="margin:10px 4px 6px">Length</div><div class="qk">${[5,10,15,20,30].map(v=>`<span class="${v===15?'on':''}">${v}</span>`).join('')}</div><div class="notebox"><small>NOTE · OPTIONAL</small>Swap to backup kit</div><div class="r-label" style="margin:12px 4px 6px">Goes after</div>`+srow({icon:'list',label:'#5 Man in the Box',trail:ic('chev','color:var(--dim)')}),buttons:btn('Cancel',{size:'lg'})+btn('Insert break',{kind:'pri',size:'lg'})});
+const addSheet=sheet({title:'Add to Fall Set',body:`<div class="addm"><div class="o p"><span class="ico">${ic('music')}</span><div><b>Songs</b><small>Pick one or many from iPod Shuffle</small></div></div><div class="o"><span class="ico">${ic('clock')}</span><div><b>Break</b><small>Timed gap · 15 min default</small></div></div><div class="o"><span class="ico">${ic('list')}</span><div><b>Section label</b><small>Set 3, Encore, Acoustic…</small></div></div></div>`});
+const rmDlg=dialog('Remove “Everlong” from Fall Set?','It stays in your songs and in any other setlist. The show copy for <b>The Crocodile</b> isn\'t affected.','Keep','Remove');
+const emptyScr=tpl.detail({back:'Setlists',right:ib('moreh'),title:'Encore Ideas',facts:'<div class="r-tot"><span><b>0</b> songs</span><span><b>0</b> min</span></div>',
+ body:empty('music','Add your first songs','Pick from iPod Shuffle songs, or copy a whole setlist in one go.',`<div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px">${btn('Add songs',{kind:'pri',size:'lg',icon:'plus'})}${btn('Add all from a setlist',{size:'lg',icon:'copy'})}</div>`)});
+
+const ph=(lbl,desc,inner,attr)=>`<div class="ph"><div class="cap">${lbl}</div><div class="capd">${desc}</div><div data-ph="${attr||''}">${phone(inner)}</div></div>`;
+const k1=mk('e1'),k2=mk('e2',{tl:true,show:true}),k3=mk('e3',{overlay:itemSheet}),k4=mk('e4',{overlay:insertSheet}),k5=mk('e5',{overlay:rmDlg}),k6=mk('e6',{overlay:addSheet});
+const R1=[ph('1 · Setlists','Cards show name, songs, time, retunes and the next show it\'s attached to (spec). Sorted by next show. Hold a card to duplicate or delete it. No statuses.',listScr),
+ ph('2 · Editor · drag me','Every change saves as you go; there\'s no Save button. <b>Drag a grip</b>, or hold a row, and the totals, retune lines and numbers update on drop. Breaks and sections don\'t take a number.',editor(k1),k1),
+ ph('3 · Timeline · try it','<b>Tap the clock</b> to turn the timeline on: a fixed gutter left of the cards, with each start time breaking the rail and orange dots every 15 minutes. <b>Hold it</b> to pick Clock or Set time. Opened from a show, so it starts in clock time; a plain setlist starts in set time.',editor(k2),k2),
+ ph('4 · Add songs','A pushed screen, not a sheet, because it has search. Only the current band\'s songs, plus <b>From my songs</b>. Songs already in the set are marked. <b>Tap rows</b> to pick, then add them in one go; you return to the same scroll spot (spec Must not). Tuning chips are the tunings this band actually uses, most-used first; <b>More</b> opens every tuning, custom ones included. Songs already in the set keep their place but show a muted setlist icon in the same circle, so the columns stay aligned.',browser(),'br')];
+const R2=[ph('5 · Add menu','One full-width <b>Add</b> button at the thumb. It opens three labelled choices: Songs (the common one, in accent), Break and Section label. Words, not an icon to decode (<b>Hick\'s Law</b>, <b>Jakob\'s Law</b>). Try it on phones 2 and 3.',editor(k6)),ph('6 · Hold a row','Moving one-handed without dragging (spec): Up, Down, To top and After… are 52px tiles. Then the per-set note, open, edit, and remove last.',editor(k3)),
+ ph('7 · Insert a break','Add → Break. Break or Section; 15 min is preselected (spec default), with one-tap lengths and an optional note. "Goes after" defaults to the row you last touched.',editor(k4)),
+ ph('8 · Remove','Confirmation names what isn\'t affected, which is the real worry: the song stays in the catalog and the show\'s copy is untouched.',editor(k5)),
+ ph('9 · Empty setlist','Spec: show the song browser CTA straight away. Two ways in, both full width.',emptyScr)];
+document.getElementById('mount').outerHTML=`<div class="frame col" style="left:80px;top:60px">
+<div class="doc" data-screen-label="Header"><div class="eb">Rock On · Source · Setlist editor · locked Oct 30 2026</div><h1 class="H">Build the <span>set</span>.</h1>
+<p style="font-size:17px;max-width:1240px;color:#d4d4d4">Built entirely from the kit (<span style="font-family:'Martian Mono';font-size:13px">source/kit</span>) against <span style="font-family:'Martian Mono';font-size:13px">setlist-editor.md</span> and workflow 06. It brings the timeline rail onto the new look, and adds the one-handed Move tiles, breaks and sections, and the song browser. Phones 2, 3 and 4 work.</p>
+<div class="four">
+<div><h3>Totals that react</h3><p>Songs, time with breaks, retunes, and "50 of 45 min" in warning yellow when you're over the show slot. Every edit updates them at once (<b>Goal-Gradient</b>, <b>Doherty Threshold</b>).</p></div>
+<div><h3>One Add button</h3><p>A single <b>Add</b> at the thumb opens Songs, Break or Section label as labelled choices. Nothing to discover, and everything else lives on the row (<b>Fitts's Law</b>, <b>Hick's Law</b>).</p></div>
+<div><h3>Timeline, not a mode</h3><p>A fixed gutter beside the cards, never on them. Tap toggles it; hold chooses Clock or Set time. Set time by default; clock time only when there's a show start (<b>Mental Model</b>, <b>Fitts's Law</b>).</p></div>
+<div><h3>Notes in three places</h3><p>Setlist notes sit at the top, clamped to two lines (tap to open). A per-set song note shows under its row. Song notes stay in the song view (<b>Law of Proximity</b>).</p></div>
+</div></div>
+<div class="phones" data-screen-label="Editor">${R1.join('')}</div>
+<div class="phones" data-screen-label="Actions">${R2.join('')}</div></div>`;
+
+// ---------- interactions ----------
+const rerender=key=>{const host=document.querySelector(`[data-ph="${key}"]`);host.innerHTML=phone(editor(key));bindDrag(key)};
+function bindDrag(key){document.querySelectorAll(`[data-ph="${key}"] [data-list]`).forEach(list=>{let drag=null,timer=null,start=null;
+ const its=()=>[...list.querySelectorAll('.it')];
+ const begin=(it,y)=>{const ph=document.createElement('div');ph.className='r-slot';ph.style.height=it.offsetHeight+'px';it.after(ph);it.style.zIndex=5;it.querySelector('.r-sr')&&it.querySelector('.r-sr').classList.add('lift');drag={it,ph,y0:y};if(navigator.vibrate)navigator.vibrate(8)};
+ list.addEventListener('pointerdown',e=>{const it=e.target.closest('.it');if(!it||it.classList.contains('b')||e.target.closest('.r-lk'))return;start={x:e.clientX,y:e.clientY,id:e.pointerId,it};
+  if(e.target.closest('[data-grip]')){e.preventDefault();list.setPointerCapture(e.pointerId);begin(it,e.clientY)}else timer=setTimeout(()=>{list.setPointerCapture(start.id);begin(it,start.y)},300)});
+ list.addEventListener('pointermove',e=>{if(!drag){if(start&&Math.hypot(e.clientX-start.x,e.clientY-start.y)>8)clearTimeout(timer);return}
+  drag.it.style.transform=`translateY(${e.clientY-drag.y0}px)`;const b0=drag.it.getBoundingClientRect(),cy=b0.top+b0.height/2;
+  for(const r of its()){if(r===drag.it)continue;const b=r.getBoundingClientRect();if(cy>b.top&&cy<b.bottom){const before=drag.it.getBoundingClientRect().top;if(cy>b.top+b.height/2)r.after(drag.ph);else r.before(drag.ph);drag.ph.before(drag.it);drag.y0+=drag.it.getBoundingClientRect().top-before;drag.it.style.transform=`translateY(${e.clientY-drag.y0}px)`;break}}});
+ const end=()=>{clearTimeout(timer);start=null;if(!drag)return;drag=null;
+  const lists=[...document.querySelectorAll(`[data-ph="${key}"] [data-list]`)];ST[key].groups.forEach((g,i)=>{g.items=[...lists[i].querySelectorAll('.it')].map(x=>x.dataset.it)});rerender(key)};
+ list.addEventListener('pointerup',end);list.addEventListener('pointercancel',end)})}
+[k1,k2].forEach(bindDrag);
+let HELD=false,HT=null;
+document.addEventListener('pointerdown',e=>{const tl=e.target.closest('[data-tl]');if(!tl)return;HT=setTimeout(()=>{const key=tl.closest('[data-ph]').dataset.ph;if(!ST[key])return;HELD=true;ST[key].pop=true;rerender(key);if(navigator.vibrate)navigator.vibrate(8)},450)});
+['pointerup','pointercancel','pointerleave'].forEach(n=>document.addEventListener(n,()=>clearTimeout(HT),true));
+document.addEventListener('click',e=>{
+ const am=e.target.closest('[data-addmenu]');if(am){const key=am.closest('[data-ph]').dataset.ph;if(ST[key]&&key!=='e6'){ST[key].overlay=addSheet;rerender(key)}return}
+ const ov=e.target.closest('[data-ph]');if(ov&&ST[ov.dataset.ph]&&ST[ov.dataset.ph].overlay===addSheet&&ov.dataset.ph!=='e6'){ST[ov.dataset.ph].overlay='';rerender(ov.dataset.ph);return}
+ const ts=e.target.closest('[data-tlset]');if(ts){const key=ts.closest('[data-ph]').dataset.ph,st=ST[key],v=ts.dataset.tlset;st.pop=false;if(v==='off')st.tl=false;else{st.tl=true;st.mode=v}rerender(key);return}
+ const tl=e.target.closest('[data-tl]');if(tl){const key=tl.closest('[data-ph]').dataset.ph,st=ST[key];if(!st)return;if(HELD){HELD=false;return}if(st.pop){st.pop=false;rerender(key);return}st.tl=!st.tl;rerender(key);return}
+ const anyp=e.target.closest('[data-ph]');if(anyp&&ST[anyp.dataset.ph]&&ST[anyp.dataset.ph].pop){ST[anyp.dataset.ph].pop=false;rerender(anyp.dataset.ph);return}
+ const md=e.target.closest('[data-tlmode]');if(md){const key=md.closest('[data-ph]').dataset.ph;ST[key].mode=ST[key].mode==='clock'?'set':'clock';rerender(key);return}
+ const pk=e.target.closest('[data-ph="br"] [data-pk]');if(pk&&!pk.classList.contains('in')){const id=pk.dataset.pk;PICKS.has(id)?PICKS.delete(id):PICKS.add(id);const host=document.querySelector('[data-ph="br"]');const y=host.querySelector('.r-body').scrollTop;host.innerHTML=phone(browser());host.querySelector('.r-body').scrollTop=y}
+});
+})();
+</script>
+</body>
+</html>

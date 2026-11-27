@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Deploy Supabase edge functions with the correct auth mode per
-# supabase/functions/FUNCTIONS.md. Prevents the "forgot --no-verify-jwt"
-# class of bug (v0.3.1 jam-view cascade).
+# Deploy Supabase edge functions with the correct auth mode. The AUTH_MODE
+# map below is the record of each function's two decisions (CLAUDE.md, Edge
+# Function Policy): auth mode (the flag) and role context (the comment).
+# Prevents the "forgot --no-verify-jwt" class of bug (the v0.3.1 cascade).
 #
 # Usage:
 #   ./scripts/deploy-edge-functions.sh           # deploy all
-#   ./scripts/deploy-edge-functions.sh jam-view  # deploy one
+#   ./scripts/deploy-edge-functions.sh spotify-search  # deploy one
 #
 # Requires: SUPABASE_ACCESS_TOKEN in env (source .env.supabase.local first).
 
@@ -13,16 +14,16 @@ set -euo pipefail
 
 PROJECT_REF="${SUPABASE_PROJECT_REF:-khzeuxxhigqcmrytsfux}"
 
-# Auth mode per function — mirror of FUNCTIONS.md. If you change this
-# table, update the manifest in the same commit.
+# Auth mode per function, with its role context. A new function needs an
+# entry here and in smoke-edge-functions.sh. Role "service_role" means every
+# public table it touches needs GRANT ... TO service_role.
 declare -A AUTH_MODE=(
-  [jam-view]="--no-verify-jwt"
-  [jam-recompute]=""  # verify JWT (default)
-  [spotify-search]="" # verify JWT (default)
+  [spotify-search]=""          # verify JWT; external HTTP only, no DB
+  [delete-account]=""          # verify JWT; caller runs delete_account RPC, service_role only for auth.admin.deleteUser
 )
 
 # List of functions in deploy order
-ALL_FUNCTIONS=(jam-view jam-recompute spotify-search)
+ALL_FUNCTIONS=(spotify-search delete-account)
 
 require_token() {
   if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
@@ -34,7 +35,7 @@ require_token() {
 deploy_one() {
   local fn="$1"
   if [[ -z "${AUTH_MODE[$fn]+x}" ]]; then
-    echo "Error: function '$fn' not in AUTH_MODE map. Update this script and supabase/functions/FUNCTIONS.md." >&2
+    echo "Error: function '$fn' not in AUTH_MODE map. Add it to this script's map and to smoke-edge-functions.sh." >&2
     exit 1
   fi
   local flag="${AUTH_MODE[$fn]}"

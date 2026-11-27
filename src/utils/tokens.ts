@@ -90,12 +90,6 @@ export const SHOW_TONE = {
   cancelled: 'danger',
 } as const satisfies Record<string, BadgeTone>
 
-export const SETLIST_TONE = {
-  active: 'accent',
-  draft: 'info',
-  archived: 'neutral',
-} as const satisfies Record<string, BadgeTone>
-
 export const PRACTICE_TONE = {
   scheduled: 'accent',
   'in-progress': 'info',

@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -33,20 +30,14 @@ export default {
         info: 'rgb(var(--info-rgb) / <alpha-value>)',
         success: 'rgb(var(--success-rgb) / <alpha-value>)',
         warn: 'rgb(var(--warn-rgb) / <alpha-value>)',
-
-        // Legacy brand aliases — point at the unified accent / token surfaces so the
-        // ~65 arbitrary-hex files migrate cleanly and the two oranges collapse to one.
-        'energy-orange': 'rgb(var(--accent-rgb) / <alpha-value>)',
-        'stage-black': 'rgb(var(--bg-1-rgb) / <alpha-value>)',
-        // M-2 fix: these five previously kept the ORIGINAL light-theme hex and
-        // rendered light-on-dark (bg-surface white flash, DevDashboard text-text).
-        // All repointed at dark tokens. NOTE: smoke-white/steel-gray/electric-yellow
-        // consumers (auth/*Form, notes/SongNotesPanel chain) are dead code — kept, not
-        // deleted, per project convention; repoint is purely defensive.
-        'electric-yellow': 'rgb(var(--warn-rgb) / <alpha-value>)',
-        'smoke-white': 'rgb(var(--ink-2-rgb) / <alpha-value>)',
-        'amp-red': 'rgb(var(--danger-rgb) / <alpha-value>)',
-        'steel-gray': 'rgb(var(--border-1-rgb) / <alpha-value>)',
+        divider: 'rgb(var(--divider-rgb) / <alpha-value>)',
+        'on-accent': 'rgb(var(--on-accent-rgb) / <alpha-value>)',
+        'accent-ink': 'rgb(var(--accent-ink-rgb) / <alpha-value>)',
+        chord: 'rgb(var(--chord-rgb) / <alpha-value>)',
+        'danger-fill': 'rgb(var(--danger-fill-rgb) / <alpha-value>)',
+        'type-show': 'rgb(var(--type-show-rgb) / <alpha-value>)',
+        'type-practice': 'rgb(var(--type-practice-rgb) / <alpha-value>)',
+        'type-jam': 'rgb(var(--type-jam-rgb) / <alpha-value>)',
 
         // Semantic Aliases
         primary: 'rgb(var(--accent-rgb) / <alpha-value>)',
@@ -59,26 +50,22 @@ export default {
         // Elevated card surface = one step up from the page background.
         'surface-elevated': 'rgb(var(--bg-2-rgb) / <alpha-value>)',
         text: 'rgb(var(--ink-1-rgb) / <alpha-value>)',
-
-        // Keep existing confidence colors
-        confidence: {
-          1: '#ef4444',
-          2: '#f97316',
-          3: '#eab308',
-          4: '#22c55e',
-          5: '#10b981',
-        }
       },
-      spacing: {
-        'touch': '44px', // iOS minimum touch target
-        'touch-lg': '56px', // Comfortable touch target
+      boxShadow: {
+        float: 'var(--shadow-float)',
+        sheet: 'var(--shadow-sheet)',
+        group: 'var(--shadow-group)',
+      },
+      transitionTimingFunction: {
+        rock: 'cubic-bezier(.2,0,0,1)',
       },
       screens: {
-        'xs': '320px',
+        xs: '320px',
       },
       fontFamily: {
-        sans: ['Geist', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        display: ['"Big Shoulders Display"', 'sans-serif'],
+        sans: ['"Atkinson Hyperlegible Next"', 'system-ui', 'sans-serif'],
+        mono: ['"Martian Mono"', 'ui-monospace', 'monospace'],
       },
       keyframes: {
         'slide-down': {
@@ -93,14 +80,17 @@ export default {
           '0%': { width: '100%' },
           '100%': { width: '0%' },
         },
+        skeleton: {
+          to: { backgroundPosition: '-200% 0' },
+        },
       },
       animation: {
         'slide-down': 'slide-down 0.3s ease-out',
         'slide-in-right': 'slide-in-right 0.3s ease-out',
         'toast-progress': 'toast-progress 4s linear',
+        skeleton: 'skeleton 1.4s linear infinite',
       },
     },
   },
   plugins: [],
 }
-

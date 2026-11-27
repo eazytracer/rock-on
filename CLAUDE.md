@@ -4,6 +4,13 @@ Coding rules and project policy for agents working in this repo. For the broader
 "how we build" process (research → plan → implement → test → release), see
 `docs/DEVELOPMENT.md`.
 
+## Docs
+
+The code is the source of truth. Record only hard decisions (what the app must
+/ must not do, dated, one-line why) in `docs/DECISIONS.md`, and keep
+`docs/INDEX.md` current when an area is added, moved or removed. Don't write
+docs that restate how the code works.
+
 ## Development Strategy
 
 1. **Think before coding.** State assumptions explicitly; if uncertain, ask. If
@@ -62,7 +69,8 @@ tag must exist for the merged `package.json` version, else the job fails loudly)
 ## Active Technologies
 
 TypeScript 5.x, React 18+, TailwindCSS, Vite. Supabase (Postgres/Auth/Realtime/
-Edge Functions). Offline-first: IndexedDB (Dexie) + sync queue. Testing: Vitest,
+Edge Functions). Online-only client: direct Supabase reads/writes, TanStack Query
+as an in-memory cache, `audit_log` realtime as the change feed. Testing: Vitest,
 Playwright, pgTAP.
 
 ## Project Structure
@@ -71,37 +79,42 @@ Playwright, pgTAP.
 src/
   ├── config/          # App configuration (mode detection)
   ├── services/
-  │   ├── data/        # Repository pattern & sync engine
+  │   ├── data/        # Repository (Supabase) + realtime change-notifier
   │   ├── auth/        # Authentication services
   │   └── supabase/    # Supabase client
   ├── components/ pages/ hooks/ contexts/ models/ utils/
 tests/
   ├── unit/            # mirror src/ structure
-  ├── integration/ e2e/ (Playwright) contract/
+  ├── integration/ e2e/ (Playwright) fixtures/ helpers/
 supabase/
   ├── migrations/ functions/ tests/ (pgTAP)
 ```
 
 ## Commands
 
-```bash
-npm run start:dev   # ALWAYS use this to start dev — never start Supabase, the
-                    # dev server, or edge functions manually. Handles the full
-                    # sequence: local Supabase → dev .env → edge functions
-                    # (supabase functions serve --no-verify-jwt, required for
-                    # jam-view + Spotify search) → Vite. Edge logs: /tmp/edge-functions.log
-npm run setup:local # First-time: start Supabase + generate .env.development/.env.test
+**The app always runs in a container.** Before starting anything, check where
+your shell is and follow `docs/LOCAL_DEV.md` → "Where am I running?":
 
-npm run dev         # Dev server only
-npm run build       # Production build
-npm run lint        # Lint
-npm run type-check  # tsc --noEmit
+- **On the host** (`/.dockerenv` absent): `just dev` — Supabase (host CLI) +
+  edge functions + Vite in the `rock-on-dev` container. Use the `just` recipes
+  for lint/type-check/tests; never run the app or unit tests on host Node.
+- **Inside the devcontainer**: `npm run start:dev` (workspace = app container).
+
+Either way, never start Supabase, Vite, or edge functions by hand — the scripts
+handle the sequence (edge functions are required for Spotify search and delete account;
+logs: `/tmp/edge-functions.log`).
+
+```bash
+just setup          # First-time: start Supabase + generate .env.development/.env.test
+just check          # lint + type-check + unit tests (in node:24-alpine)
+just build          # Production build
 ```
 
 Test commands and layout live in `tests/README.md` (the single source). Quick
-reference: `npm test` (unit+integration), `npm run test:quick` (~2s), `npm run
-test:e2e` (Playwright — needs `supabase start` + `npm run env:dev`), `npm run
-test:db` (pgTAP), `npm run test:all`.
+reference (on the host use the `just` equivalents, which containerize Node):
+`npm test` / `just test` (unit+integration), `npm run test:quick` /
+`just test-quick` (~2s), `npm run test:e2e` / `just test-e2e` (Playwright — needs
+the stack up), `npm run test:db` / `just test-db` (pgTAP).
 
 Environment management: `ENVIRONMENTS.md`.
 
@@ -188,14 +201,17 @@ const log = createLogger('MyComponent')
 log.debug(...) // dev only    log.info/warn(...) // dev+test    log.error(...) // always
 ```
 
+Enforced by ESLint `no-console` (exempt: `utils/logger.ts`, `src/test/`, edge
+functions). Don't leave troubleshooting traces behind — log failures, not steps.
+
 ## Database & Migrations
 
 **🚨 Production exists. The baseline is frozen — never edit it.** Schema changes
 land as **incremental migrations**.
 
-- **Schema of record:** `.claude/specifications/unified-database-schema.md`
-  (documents IndexedDB camelCase ↔ Supabase snake_case side by side). Never guess
-  a table/column name — check it.
+- **Schema of record:** the migrations + `src/types/database.types.ts`
+  (regenerate with `just types`). Never guess a table/column name — check the
+  types, or the local DB with `\d <table>`.
 - **Baseline:** `supabase/migrations/20251106000000_baseline_schema.sql` (17
   tables, RLS, audit log, realtime, triggers). Fresh installs = baseline + all
   incremental migrations in order (`supabase db reset`).
@@ -239,9 +255,10 @@ Reference migration (template for new feature migrations):
 
 ## Edge Function Policy
 
-Every edge function needs two documented decisions, both recorded as a row in
-`supabase/functions/FUNCTIONS.md` (a PR adding a function without updating the
-manifest is incomplete):
+Every edge function needs two decisions, both recorded in the `AUTH_MODE` map
+in `scripts/deploy-edge-functions.sh` (the flag, plus a one-line role-context
+comment), with its expected status in `scripts/smoke-edge-functions.sh`. A PR
+adding a function without a map entry is incomplete:
 
 1. **Auth mode** — JWT-verified at the gateway, or intentionally anonymous?
 2. **Role context** — queries via `service_role` (needs table grants — see above;
@@ -252,18 +269,18 @@ Deploy via the versioned script, never ad-hoc (the `--no-verify-jwt` flag is eas
 to forget): `./scripts/deploy-edge-functions.sh <name|all>`. Smoke-test after:
 `./scripts/smoke-edge-functions.sh` (failure = rollback).
 
-## Repository Layer Guardrails (CRITICAL)
+## Data Layer
 
-**Never write directly to `db.*` (Dexie/IndexedDB) outside the storage layer.**
-Direct writes bypass the sync queue — Supabase never sees the change. Use
-`repository.addSong()` / `updateSong()` etc. (see `IDataRepository.ts`).
-
-Enforced by ESLint (`npm run lint`) and a ratchet test
-(`tests/unit/guardrails/db-direct-write.test.ts`). Allowed files (storage layer):
-`LocalRepository.ts`, `SyncEngine.ts`, `RealtimeManager.ts`, seed files,
-`DatabaseService.ts`, `src/services/database/index.ts`. The `KNOWN_VIOLATIONS`
-list (tech debt) must only ever shrink — when migrating a file, remove it from
-both the test and the `.eslintrc.cjs` overrides.
+- **All data access goes through `repository`** (`services/data/RepositoryFactory`
+  → `RemoteRepository`, implementing `IDataRepository`). It reads/writes Supabase
+  directly; there is no local database or sync queue.
+- **Hooks use TanStack Query** (`services/queryClient.ts` holds the client and
+  the centralized `queryKeys`). Reference pattern: `hooks/useSongs.ts`.
+- **Live updates:** `RealtimeManager` listens to `audit_log` and emits
+  `{entity}:changed`; `useRealtimeInvalidate` turns those into query
+  invalidations. A table only produces live updates if it has an audit trigger —
+  add one in the migration when introducing a table other members should see
+  change live.
 
 ## Testing discipline
 
@@ -274,11 +291,11 @@ both the test and the `.eslintrc.cjs` overrides.
 
 ## Auth flow (quick reference)
 
-Multi-layer auth with a persistent layout. `useAuthCheck` validates the session
-on every route change (with a **1.5-hour grace period** for brief offline
-stretches during gigs); `ProtectedLayoutRoute` combines the check with the
-persistent `ModernLayout` and redirects unauthenticated users before rendering.
-Pages don't wrap themselves in `ModernLayout`; they use `ContentLoadingSpinner`
-for content-area loading. Key files: `hooks/useAuthCheck.ts`,
-`components/layout/ProtectedLayoutRoute.tsx`, `contexts/AuthContext.tsx`,
-`services/auth/SessionManager.ts`.
+The Supabase SDK session is the single source of truth. `useAuthCheck`
+re-validates it on every route change (it only signs out on a `SIGNED_OUT`
+event, never on a network error); `ProtectedLayoutRoute` combines the check with
+the persistent `ModernLayout` and redirects unauthenticated users before
+rendering. Pages don't wrap themselves in `ModernLayout`; they use
+`ContentLoadingSpinner` for content-area loading. Key files:
+`hooks/useAuthCheck.ts`, `components/layout/ProtectedLayoutRoute.tsx`,
+`contexts/AuthContext.tsx`, `services/auth/SupabaseAuthService.ts`.

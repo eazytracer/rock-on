@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Rock On — Jam: plan, guests, public view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../source/kit/rock.css">
+<link rel="stylesheet" href="../../source/kit/page.css">
+<link rel="stylesheet" href="../../source/kit/jam.css">
+</head>
+<body>
+<div id="mount"></div>
+<script src="../../source/kit/rock.js"></script>
+<script src="../../source/kit/page.js"></script>
+<script src="../../source/kit/jam.js"></script>
+<script>
+(()=>{
+const R=Rock,{ic,btn,ib,chip,seg,sw,tp,grp,gl,item,fld,srow,sheet,dialog,banner,phone,tpl,backbar,title,appbar,nav}=R,{ph,page}=Draft,J=Jam;
+// 1 hub
+const hub=`${appbar({right:ib('bell')})}${title('Jam')}<div class="r-body">
+<div class="jlive">${J.live()}<b>Tuesday Open Jam</b><span class="r-m">LUCKY'S · LIVE · 1:42 LEFT</span><div class="avs">${J.avs(['Eric','Dana','Kai','Mo'])}<span class="r-m r-muted" style="margin-left:8px">+5</span></div>${btn('Return to jam',{kind:'pri',size:'lg'}).replace('r-btn pri','r-btn pri w')}</div>
+${gl('Hosting · 2')}${grp(J.jrow('NOV','3','TUE','Tuesday Open Jam',"Lucky's · 8 PM · scheduled",'3 requests')+J.jrow('NOV','7','SAT','Birthday Jam',"Mike's Garage · 7 PM",''))}${gl('Invited · 1')}${grp(J.jrow('NOV','13','FRI',"Sarah's house session",'6 PM · Going',''))}
+<div class="hub2">${btn('Host a jam',{kind:'pri',size:'lg',icon:'plus'})}${btn('Join with a code',{size:'lg',icon:'qr'})}</div>
+<p class="expl">Find songs you all know, sign up for parts, and keep a running list. Everything still works on a clipboard. The app just makes it easier.</p></div>${nav(4)}`;
+// 2 create
+const create=tpl.editor({title:'Host a jam',save:'Create',body:`${grp(fld('Name','Tuesday Open Jam',{req:true}))}${gl('When')}${grp(`<div class="r-item" style="min-height:56px"><div class="g"><b>Right now</b><small>Go live straight away</small></div><span class="r-radio"></span></div><div class="r-item" style="min-height:56px"><div class="g"><b>Schedule it</b><small>Tue, Nov 3 · 8:00–11:00 PM</small></div><span class="r-radio on"></span></div>`)}
+${gl('Where')}${grp(item({lead:ic('home','color:var(--mu)'),title:"Lucky's Tavern",sub:'Optional',trail:'chev'}))}
+${gl('Who can join')}${grp(`<div style="padding:10px 12px">${seg(['Anyone with the link','Invite only'],0)}</div>`)}
+${gl('Before the night')}${grp(`<div class="tg"><div class="g"><b>Song requests</b><small>Guests suggest songs and say what they\\'ll play</small></div>${sw(true)}</div><div class="tg"><div class="g"><b>Approve requests myself</b><small>Off = requests go straight on the list</small></div>${sw(true)}</div>`)}
+${gl('Start from')}${grp(item({lead:ic('list','color:var(--mu)'),title:'No setlist',sub:'Or pick one of your setlists',trail:'chev'}))}<div style="height:30px"></div>`});
+// 3 planned: lineup
+const L=J.LINEUP;
+const plan=(tab,o={})=>`${backbar('Jam',ib('share')+ib('moreh'))}<div class="r-body"><div class="r-kick">${J.ty()} · Tue, Nov 3 · 8 PM · Lucky's</div><div class="r-d jt">Tuesday Open Jam</div>
+<div class="codeb"><span class="r-m">CODE <b>LUCK-42</b></span><span class="r-m r-muted">· 14 joined · 3 without the app</span></div>
+<div class="tabs3">${seg([`Lineup ${L.length}`,'Requests 3','People 17'],tab)}</div>${o.body||''}</div>${o.dock===false?'':`<div class="r-dock">${btn('Go live',{kind:'pri',size:'lg',icon:'live'}).replace('r-btn pri','r-btn pri w')}</div>`}${o.overlay||''}`;
+const lineup=plan(0,{body:grp(L.map((s,i)=>J.lrow(s,i+1,{grip:true})).join(''))+'<div style="height:110px"></div>'});
+const req=plan(1,{body:`<div class="rqst">${R.chip('Approve myself',{on:true})}${R.chip('Requests open',{})}</div>`+grp(J.REQ.map(J.rqrow).join(''))+'<div style="height:110px"></div>'});
+const people=plan(2,{body:`<div class="rqst"><span class="r-m r-muted">14 ON THE APP · 3 WALK-UPS</span>${btn('Add walk-up',{icon:'plus'})}</div>`+grp(J.PPL.map(J.prow).join(''))+'<div style="height:110px"></div>'});
+const walk=plan(2,{body:grp(J.PPL.slice(0,3).map(J.prow).join('')),overlay:sheet({title:'Add a walk-up',sub:'For someone without a phone. Just a name and what they play.',body:grp(fld('Name','Frank',{req:true,focus:true}))+`<div class="r-label" style="margin:12px 4px 6px">PLAYS</div><div class="inss">${['Vocals','Guitar','Bass','Drums','Keys','Harmonica','Other'].map((x,i)=>`<span class="${i===1||i===5?'on':''}">${x}</span>`).join('')}</div>`,buttons:btn('Cancel',{size:'lg'})+btn('Add Frank',{kind:'pri',size:'lg'})})});
+const golive=plan(0,{body:grp(L.slice(0,3).map((s,i)=>J.lrow(s,i+1,{})).join('')),dock:false,overlay:sheet({title:'Go live?',sub:'Starts the live jam. Everyone following gets the live list; requests and hands carry over.',body:`<div class="gl3">${[['list','6 songs on the lineup'],['hand','11 hands up'],['people','17 people']].map(([i,t])=>`<div>${ic(i)}<b>${t}</b></div>`).join('')}</div>`,buttons:btn('Not yet',{size:'lg'})+btn('Go live',{kind:'pri',size:'lg',icon:'live'})})});
+// guest app
+const gHand=`${backbar('Jam',ib('share'))}<div class="r-body"><div class="r-kick">${J.ty()} · Tue, Nov 3 · 8 PM · Lucky's</div><div class="r-d jt">Tuesday Open Jam</div><div class="me">${ic('user')}<span>You play <b>Bass, Vocals</b></span><span class="r-btn text">Change</span></div>
+<div class="tabs3">${seg(['Lineup 6','My hands 2','Request'],0)}</div>${grp(L.map((s,i)=>J.lrow(s,i+1,{guest:true,mine:i===1?'Bass':i===3?'Vocals':''})).join(''))}<div style="height:30px"></div></div>`;
+const gHandSheet=`${gHand}${sheet({title:'Black',sub:'Pearl Jam · E STD · 5:43',body:`<div class="r-label" style="margin:0 4px 8px">RAISE YOUR HAND FOR</div>${J.parts(L[0],'Bass')}<p class="sm">The host picks who plays. You'll see it here and on the night.</p>`,buttons:btn('Done',{kind:'pri',size:'lg'})})}`;
+const gReq=`${backbar('Jam')}${title('Request a song')}<div class="r-body">${grp(fld('Song','Interstate Love Song',{req:true})+fld('Artist','Stone Temple Pilots'))}
+<div class="r-label" style="margin:14px 24px 6px">I'LL PLAY</div><div class="inss" style="padding:0 14px">${['Vocals','Guitar','Bass','Drums','Keys','Other'].map((x,i)=>`<span class="${i===2?'on':''}">${x}</span>`).join('')}</div>
+<div class="r-label" style="margin:16px 24px 6px">LOOKING FOR</div><div class="inss lf" style="padding:0 14px">${['Vocals','Guitar','Bass','Drums','Keys','Other'].map((x,i)=>`<span class="${i===0||i===3?'on':''}">${x}</span>`).join('')}</div>
+<p class="sm" style="padding:10px 24px">People who play these get a nudge and can raise a hand.</p></div><div class="r-dock">${btn('Send request',{kind:'pri',size:'lg'}).replace('r-btn pri','r-btn pri w')}</div>`;
+// public web
+const web=(o={})=>`<div class="web"><div class="wurl">${ic('lock')}rockon.band/j/LUCK-42</div><div class="wbody">
+<div class="r-kick" style="padding:0">${J.ty()} · TONIGHT 8 PM · LUCKY'S</div><div class="r-d jt" style="padding:4px 0 10px">Tuesday Open Jam</div>
+${o.name?`<div class="me" style="margin:0 0 12px">${ic('user')}<span>You're <b>Dana</b> · Bass</span><span class="r-btn text">Change</span></div>`:`<div class="wname"><b>Let the host know you're here</b>${grp(fld('Your name','',{ph:true}))}<div class="inss">${['Vocals','Guitar','Bass','Drums','Keys','Just listening'].map(x=>`<span>${x}</span>`).join('')}</div>${btn("I'm here",{kind:'pri',size:'lg'}).replace('r-btn pri','r-btn pri w')}</div>`}
+${o.name?`<div style="margin:0 -12px">${grp(L.slice(0,4).map((s,i)=>J.lrow(s,i+1,{guest:true,mine:i===1?'Bass':''})).join(''))}</div><div style="display:flex;gap:8px;margin-top:12px">${btn('Request a song',{kind:'pri',size:'lg',icon:'plus'}).replace('r-btn pri','r-btn pri w')}</div>`:''}
+<div class="wsign">Get the app to keep your songs and find people who know them. <b>Sign up free</b> · <b>Log in</b></div></div></div>`;
+// table tent
+const tyb=`<span class="r-ty evt" style="margin-top:3px">${ic('party')}JAM</span>`;
+const calJ=tpl.list({title:'Calendar',tools:['All','Shows','Practices','Jams'].map((l,i)=>chip(l,{on:i===3})).join('')+chip('Join with a code',{icon:'qr'}),body:`${gl('Upcoming')}${grp([['NOV','3','TUE','Tuesday Open Jam',"8 PM · Lucky's · hosting"],['NOV','7','SAT','Birthday Jam',"7 PM · Mike's Garage · hosting"],['NOV','13','FRI',"Sarah's house session",'6 PM · going']].map(([m,d,dw,t,sub])=>item({lead:`<div class="db"><small>${m}</small><b>${d}</b><small style="margin-top:2px">${dw}</small></div>`,title:t,sub:sub+'<br>'+tyb,trail:'chev'})).join(''))}<div style="height:120px"></div>`,fab:'New jam',nav:3});
+const tent=`<div class="tent"><div class="tk">TUESDAY OPEN JAM · LUCKY'S</div><div class="tq">Want to play?</div><div class="qrw"><div class="qr"><i>${ic('hand')}</i></div></div><div class="tc">Scan to request a song or sign up.<br>No app needed.</div><div class="tcd">OR TELL THE HOST · CODE <b>LUCK-42</b></div></div>`;
+document.getElementById('mount').outerHTML=page({eb:'Rock On · Source · Jam: plan, guests, public view · locked Oct 31 2026 · to test',h:'Open <span>jam</span>.',
+ lede:'One Jam type: plan it, then <b>Go live</b>. The planned phase is the spec\'s jam-night event (lineup, requests, people, access). Built for a bar open jam: guests can request and raise hands from the web with no account, and the host adds walk-ups who don\'t have a phone. The live session is on the next page, in three directions.',
+ notes:[['Never required','Every phone-side step has a paper equivalent: the host can add a walk-up by name, approve a shouted request, or run the list without anyone else on the app (<b>Postel\'s Law</b>, <b>Tesler\'s Law</b>).'],['Requests find partners','A request says what you\'ll play and what you\'re looking for. People who play those parts get a nudge and can raise a hand (<b>Goal-Gradient</b>).'],['Hands, not forms','Each lineup song shows its parts as chips. Tap a part to raise or lower your hand. Filled parts show who\'s on (<b>Fitts\'s Law</b>, <b>Hick\'s Law</b>).'],['Web is a first-class guest','The QR on the table opens the web view: a name, what you play, then the lineup, hands and requests. Sign-up is offered, never required (spec Must not).']],
+ rows:[[ph('1 · Jam hub','A live jam you\'re in is the hero, with Return. Then <b>Hosting</b> and <b>Invited</b> (spec), each with a count. Host and Join are big. One line on what it\'s for.',hub),
+ ph('2 · Host a jam','Name, right now or scheduled, place, who can join, request settings, optional starting setlist. Scheduled shows on the calendar as a Jam.',create),
+ ph('3 · Planned · Lineup','The plan before the night. Each song: number, who added it, tuning, and its parts. Filled parts show initials; open parts are outlined. Drag to reorder.',lineup),
+ ph('4 · Planned · Requests','Each request: song, who asked, what they\'ll play, who they\'re looking for, and who\'s raised a hand. Approve puts it on the lineup with those hands.',req)],
+ [ph('5 · Planned · People','Everyone, with what they play and their hands up. Walk-ups are marked and editable. Add walk-up is right here.',people),
+ ph('6 · Add a walk-up','Name and what they play: that\'s it. They show in People and can be put on parts like anyone else.',walk),
+ ph('7 · Go live','At start time the host gets a reminder and this. A summary of what carries over, then the live session.',golive),
+ ph('8 · Guest · lineup','A guest in the app. Their parts at the top (Change), then the lineup. Their raised hands are filled; tap a song to raise one.',gHand)],
+ [ph('9 · Guest · raise a hand','Parts for this song, with who\'s already up. One tap each. The host decides.',gHandSheet),
+ ph('10 · Guest · request','Song, artist, what you\'ll play and what you\'re looking for, all as chips.',gReq),
+ ph('11 · Web · arriving','From the table QR, no account: a name and what you play (or just listening). One button.',web()),
+ ph('12 · Web · in','The lineup with hands, plus Request a song. A quiet sign-up line at the bottom.',web({name:true}))],
+ [ph('14 · Calendar · Jams','With one Jam type, the Calendar\'s Events filter becomes <b>Jams</b>: violet party icon, hosting or going, Join with a code, New jam. A live jam also shows on Home.',calJ),`<div class="ph"><div class="cap">13 · Table tent · print</div><div class="capd">The host prints this from Share. One big question, the QR and the code. For anyone without a phone, it says to tell the host.</div>${tent}</div>`]]});
+})();
+</script>
+</body>
+</html>

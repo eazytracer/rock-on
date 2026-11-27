@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test'
 
 /**
  * Read environment variables from file.
@@ -25,10 +25,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [
-    ['html'],
-    ['list']
-  ],
+  reporter: [['html'], ['list']],
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -56,46 +53,68 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    /* Audio tools (tuner fake mic, metronome drift): Chromium only, run with
+       `--project=tools`. Specs set their own fake-mic launch args. */
+    {
+      name: 'tools',
+      testMatch: /tools\/.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--autoplay-policy=no-user-gesture-required',
+          ],
+        },
+      },
+    },
+
     {
       name: 'chromium',
+      testIgnore: /tools\/.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Add chromium-specific args to fix CORS issues in tests
         launchOptions: {
           args: [
             '--disable-web-security',
-            '--disable-features=IsolateOrigins,site-per-process'
-          ]
-        }
+            '--disable-features=IsolateOrigins,site-per-process',
+          ],
+        },
       },
     },
 
     {
       name: 'firefox',
+      testIgnore: /tools\/.*\.spec\.ts/,
       use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
+      testIgnore: /tools\/.*\.spec\.ts/,
       use: { ...devices['Desktop Safari'] },
     },
 
     /* Test against mobile viewports. */
     {
       name: 'Mobile Chrome',
+      testIgnore: /tools\/.*\.spec\.ts/,
       use: {
         ...devices['Pixel 5'],
         // Add chromium-specific args to fix CORS issues in tests
         launchOptions: {
           args: [
             '--disable-web-security',
-            '--disable-features=IsolateOrigins,site-per-process'
-          ]
-        }
+            '--disable-features=IsolateOrigins,site-per-process',
+          ],
+        },
       },
     },
     {
       name: 'Mobile Safari',
+      testIgnore: /tools\/.*\.spec\.ts/,
       use: { ...devices['iPhone 12'] },
     },
 
@@ -119,4 +138,4 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000, // 120 seconds
   },
-});
+})

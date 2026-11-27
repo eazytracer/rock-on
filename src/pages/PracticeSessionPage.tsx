@@ -1,981 +1,822 @@
 /**
- * PracticeSessionPage — live practice session viewer.
- *
- * Full-screen on all viewports. Four responsive layouts auto-selected by
- * viewport dimensions, with a manual override that persists in localStorage:
- *
- * - TV / Monitor (≥1280px, aspect ≥ 3:2): 240px left rail + wide notes
- * - Tablet landscape (600–1279px, aspect > 1): compact header + full-width notes
- * - Tablet portrait (600–1279px, aspect < 1): vertical-space optimized
- * - Mobile (< 600px): minimal chrome
- *
- * Font size (S/M/L) also persists in localStorage. Scroll controls on the
- * notes panel respond to keyboard + BT foot pedal (PageUp/PageDown,
- * Space/Shift+Space). Song stepping uses ArrowLeft/ArrowRight/Home/End.
- * Escape returns to the practice detail page.
+ * Practice session (FP 7–8, Practice 2–4; desktop full-window session): a
+ * stage screen. Big Prev / Next name the song they go to; on the last song Next
+ * becomes End practice. Notes and Chart are buttons: on phones a sheet and the
+ * chart reader over the session; from tablet up they switch the side panel,
+ * which shows the chart when the song has one (Full screen opens the reader). The Up next card turns warn when the tuning changes. The screen
+ * stays awake; ← → / PgUp PgDn (pedals) change songs, N opens notes, S skips
+ * the song. From tablet up the left column also lists the song's links and
+ * takes this practice's note for the song (saved on blur). Ending shows the wrap-up (time played, songs played, skipped
+ * marked; tap a song to change it) and saves it with shared wrap-up notes.
  */
-
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import {
-  ArrowLeft,
+  Check,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  Monitor,
-  Tablet,
-  Smartphone,
-  Type,
+  FileText,
+  Maximize2,
+  X,
 } from 'lucide-react'
-import {
-  KeyPill,
-  BpmPill,
-  DurationPill,
-  TuningPill,
-} from '../components/common/MetaPill'
-import {
-  ScrollableNotes,
-  NotesFontSize,
-  NotesButtonSize,
-} from '../components/practice/ScrollableNotes'
-import { FooterNextPreview } from '../components/practice/FooterNextPreview'
-import { tuningColor } from '../utils/tunings'
-import { db } from '../services/database'
 import { useAuth } from '../contexts/AuthContext'
-import { useRealtimeSync } from '../hooks/useRealtimeSync'
-import { createLogger } from '../utils/logger'
-import type { PracticeSession } from '../models/PracticeSession'
+import { useToast } from '../contexts/ToastContext'
+import { usePracticePage } from '../hooks/useCalendar'
+import { useWakeLock } from '../hooks/useWakeLock'
+import { useChart } from '../hooks/useChart'
+import { useChartPrefs } from '../hooks/useChartPrefs'
+import { useStageKeys } from '../hooks/useStageKeys'
+import { SongNotesView } from '../components/songs/SongNotesView'
+import { ChartReader } from '../components/chart/ChartReader'
+import { ChartPanel } from '../components/chart/ChartPanel'
+import { Tuner } from '../components/tools/Tuner'
+import { ToolLayer } from '../components/tools/ToolLayer'
+import { ForkIcon } from '../components/setlists/SetlistStats'
+import { Button, Sheet, TuningPill } from '../components/ui'
+import { linkGlyph } from '../components/songs/linkGlyphs'
+import { repository } from '../services/data/RepositoryFactory'
+import { hoursMinutes, practiceTitle } from '../domain/calendar'
+import { formatSeconds, showKey } from '../domain/format'
+import { canonicalTuningId } from '../utils/tunings'
+import { parse } from '../domain/chordpro'
+import {
+  SIZE_MAX,
+  SIZE_MIN,
+  SIZE_STEP,
+  chartIsEmpty,
+} from '../domain/chartView'
+import { songTuningParam } from '../domain/tuner'
 import type { Song } from '../models/Song'
+import type { ReferenceLink, SessionSong } from '../types'
+import { createLogger } from '../utils/logger'
 
 const log = createLogger('PracticeSessionPage')
 
-// ---- Viewport detection ----
+const SIZES = ['text-[17px]', 'text-[20px]', 'text-[24px]', 'text-[29px]']
+const SIZE_KEY = 'practice-session-text-size'
 
-type LayoutMode = 'tv' | 'tablet-landscape' | 'tablet-portrait' | 'mobile'
-
-const LAYOUT_STORAGE_KEY = 'practice-session-layout-override'
-const FONT_STORAGE_KEY = 'practice-session-font-size'
-
-const detectLayout = (): LayoutMode => {
-  if (typeof window === 'undefined') return 'mobile'
-  const w = window.innerWidth
-  const h = window.innerHeight
-  const aspect = w / h
-  if (w >= 1280 && aspect >= 1.5) return 'tv'
-  if (w < 600) return 'mobile'
-  return aspect >= 1 ? 'tablet-landscape' : 'tablet-portrait'
+const clock = (s: number) => {
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const ss = String(s % 60).padStart(2, '0')
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
 }
-
-const isValidLayout = (s: string | null): s is LayoutMode =>
-  s === 'tv' ||
-  s === 'tablet-landscape' ||
-  s === 'tablet-portrait' ||
-  s === 'mobile'
-
-const isValidFontSize = (s: string | null): s is NotesFontSize =>
-  s === 'sm' || s === 'md' || s === 'lg'
-
-// ---- Helpers ----
-
-const formatTimer = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
-const formatDuration = (seconds: number): string => {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
-// ---- Main component ----
 
 export const PracticeSessionPage: React.FC = () => {
+  const { practiceId = '' } = useParams<{ practiceId: string }>()
   const navigate = useNavigate()
-  const { practiceId } = useParams<{ practiceId: string }>()
-  const { currentBandId } = useAuth()
-
-  // Data state
-  const [, setPractice] = useState<PracticeSession | null>(null)
-  const [songs, setSongs] = useState<Song[]>([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
-
-  // Layout + font state — persisted to localStorage
-  const [autoLayout, setAutoLayout] = useState<LayoutMode>(detectLayout)
-  const [layoutOverride, setLayoutOverride] = useState<LayoutMode | null>(
-    () => {
-      try {
-        const stored = localStorage.getItem(LAYOUT_STORAGE_KEY)
-        return isValidLayout(stored) ? stored : null
-      } catch {
-        return null
-      }
+  const queryClient = useQueryClient()
+  const { showToast } = useToast()
+  const { currentUser } = useAuth()
+  const { practice, songsById, loading, save } = usePracticePage(practiceId)
+  const wide =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(min-width: 768px)').matches
+  const [index, setIndex] = useState(0)
+  const [elapsed, setElapsed] = useState(0)
+  const [notesOpen, setNotesOpen] = useState(wide)
+  // What the side panel shows (from tablet up): the chart when the song has
+  // one, else the notes.
+  const [panel, setPanel] = useState<'chart' | 'notes'>('chart')
+  const [ending, setEnding] = useState(false)
+  const [wrapNotes, setWrapNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  // The tuner opens over the session (a layer, not a route: the session's
+  // place lives in this component's state).
+  const [tuner, setTuner] = useState<{
+    tuning: string
+    prev?: string
+    title: string
+  } | null>(null)
+  // The chart opens over the session the same way.
+  const [chartOpen, setChartOpen] = useState(false)
+  const [size, setSize] = useState(() => {
+    try {
+      const n = Number(localStorage.getItem(SIZE_KEY))
+      return n >= 0 && n < SIZES.length ? n : 1
+    } catch {
+      return 1
     }
+  })
+  // Seconds spent per song, and which songs were played (reached and not
+  // skipped).
+  const spent = useRef<number[]>([])
+  const [played, setPlayed] = useState<Set<number>>(() => new Set([0]))
+  const songStart = useRef(Date.now())
+  const startedAt = useRef(new Date())
+
+  useWakeLock()
+
+  const items: { ps: SessionSong; song: Song }[] = useMemo(
+    () =>
+      (practice?.songs ?? []).flatMap(ps => {
+        const song = songsById.get(ps.songId)
+        return song ? [{ ps, song }] : []
+      }),
+    [practice?.songs, songsById]
   )
-  const [fontSize, setFontSize] = useState<NotesFontSize>(() => {
-    try {
-      const stored = localStorage.getItem(FONT_STORAGE_KEY)
-      return isValidFontSize(stored) ? stored : 'md'
-    } catch {
-      return 'md'
-    }
-  })
-  const layout: LayoutMode = layoutOverride ?? autoLayout
+  const count = items.length
 
-  // Persist font-size changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(FONT_STORAGE_KEY, fontSize)
-    } catch {
-      /* ignore */
+  const curSong = items[index]?.song
+  const { chart, loading: chartLoading } = useChart(
+    curSong?.id ?? null,
+    practice?.bandId
+  )
+  const chordpro = chart?.chordpro ?? ''
+  const hasChart = useMemo(
+    () => !!chordpro.trim() && !chartIsEmpty(parse(chordpro)),
+    [chordpro]
+  )
+  const chartPrefs = useChartPrefs(curSong?.id ?? '')
+  const shown = panel === 'chart' && hasChart ? 'chart' : 'notes'
+  const showPanel = (p: 'chart' | 'notes') => {
+    if (notesOpen && shown === p) setNotesOpen(false)
+    else {
+      setPanel(p)
+      setNotesOpen(true)
     }
-  }, [fontSize])
+  }
 
-  // Persist layout override changes
   useEffect(() => {
-    try {
-      if (layoutOverride) {
-        localStorage.setItem(LAYOUT_STORAGE_KEY, layoutOverride)
-      } else {
-        localStorage.removeItem(LAYOUT_STORAGE_KEY)
-      }
-    } catch {
-      /* ignore */
-    }
-  }, [layoutOverride])
-
-  // Watch viewport for auto-layout updates
-  useEffect(() => {
-    const onResize = () => setAutoLayout(detectLayout())
-    window.addEventListener('resize', onResize)
-    window.addEventListener('orientationchange', onResize)
-    return () => {
-      window.removeEventListener('resize', onResize)
-      window.removeEventListener('orientationchange', onResize)
-    }
+    const t = setInterval(
+      () =>
+        setElapsed(
+          Math.floor((Date.now() - startedAt.current.getTime()) / 1000)
+        ),
+      1000
+    )
+    return () => clearInterval(t)
   }, [])
 
-  // Derived state
-  const currentSong = songs[currentIndex]
-  const nextSong = songs[currentIndex + 1] ?? null
-  const canGoPrev = currentIndex > 0
-  const canGoNext = currentIndex < songs.length - 1
-
-  // Load practice + songs
-  const loadData = useCallback(async () => {
-    if (!practiceId) {
-      setError('No practice ID provided')
-      setLoading(false)
-      return
-    }
-    try {
-      const practiceSession = await db.practiceSessions.get(practiceId)
-      if (!practiceSession) {
-        setError('Practice not found')
-        setLoading(false)
-        return
-      }
-      setPractice(practiceSession)
-
-      const loaded: Song[] = []
-      if (practiceSession.songs && practiceSession.songs.length > 0) {
-        for (const sessionSong of practiceSession.songs) {
-          const song = await db.songs.get(sessionSong.songId)
-          if (song) loaded.push(song)
-        }
-      }
-      if (loaded.length === 0) {
-        setError('No songs in this practice')
-        setLoading(false)
-        return
-      }
-      setSongs(loaded)
-      setLoading(false)
-    } catch (err) {
-      log.error('Error loading practice', err)
-      setError('Failed to load practice')
-      setLoading(false)
-    }
-  }, [practiceId])
-
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    try {
+      localStorage.setItem(SIZE_KEY, String(size))
+    } catch {
+      /* per-viewer convenience only */
+    }
+  }, [size])
 
-  useRealtimeSync({
-    events: ['songs:changed', 'practices:changed'],
-    bandId: currentBandId || '',
-    onSync: () => {
-      loadData()
+  // Record the session's start once the practice is loaded.
+  const started = useRef(false)
+  useEffect(() => {
+    if (!practice || started.current) return
+    started.current = true
+    if (practice.startTime) return
+    void repository
+      .updatePracticeSession(practice.id, { startTime: startedAt.current })
+      .catch(err => log.error('Record start failed', err))
+  }, [practice])
+
+  const go = useCallback(
+    (to: number) => {
+      if (to < 0 || to >= count || to === index) return
+      spent.current[index] =
+        (spent.current[index] ?? 0) + (Date.now() - songStart.current) / 1000
+      songStart.current = Date.now()
+      setPlayed(p => new Set(p).add(to))
+      setIndex(to)
     },
-  })
+    [count, index]
+  )
 
-  // Timer
-  useEffect(() => {
-    const i = setInterval(() => setElapsedSeconds(p => p + 1), 1000)
-    return () => clearInterval(i)
-  }, [])
+  const end = useCallback(() => {
+    spent.current[index] =
+      (spent.current[index] ?? 0) + (Date.now() - songStart.current) / 1000
+    songStart.current = Date.now()
+    // Played again: the wrap-up starts from the notes it already has.
+    setWrapNotes(w => w || practice?.wrapupNotes || '')
+    setEnding(true)
+  }, [index, practice?.wrapupNotes])
 
-  // Prevent body scroll while session is active
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [])
+  const togglePlayed = useCallback(
+    (i: number, on: boolean) =>
+      setPlayed(p => {
+        const n = new Set(p)
+        if (on) n.add(i)
+        else n.delete(i)
+        return n
+      }),
+    []
+  )
 
-  // Keyboard: song stepping + exit
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowLeft':
-          if (canGoPrev) setCurrentIndex(i => i - 1)
-          break
-        case 'ArrowRight':
-          if (canGoNext) setCurrentIndex(i => i + 1)
-          break
-        case 'Escape':
-          navigate(`/practices/${practiceId}`)
-          break
-        case 'Home':
-          setCurrentIndex(0)
-          break
-        case 'End':
-          setCurrentIndex(songs.length - 1)
-          break
+  const skip = useCallback(() => {
+    togglePlayed(index, false)
+    if (index === count - 1) end()
+    else go(index + 1)
+  }, [go, end, togglePlayed, index, count])
+
+  const exit = () => navigate(`/practices/${practiceId}`)
+
+  // Pedals and keys: ← → / PgUp PgDn change songs, N notes, S skip. A layer
+  // over the session (tuner, chart) takes the keys while it's open.
+  const nextSong = () => (index === count - 1 ? end() : go(index + 1))
+  const prevSong = () => go(index - 1)
+  const toggleNotes = () => (wide ? showPanel('notes') : setNotesOpen(o => !o))
+  useStageKeys(
+    {
+      ArrowRight: nextSong,
+      PageDown: nextSong,
+      ArrowLeft: prevSong,
+      PageUp: prevSong,
+      n: toggleNotes,
+      N: toggleNotes,
+      s: skip,
+      S: skip,
+    },
+    !ending && !tuner && !chartOpen
+  )
+
+  const saveWrapUp = async () => {
+    if (!practice || saving) return
+    setSaving(true)
+    const songs: SessionSong[] = practice.songs.map(ps => {
+      const i = items.findIndex(x => x.ps === ps)
+      if (i < 0) return ps
+      return {
+        ...ps,
+        timeSpent: Math.round((ps.timeSpent ?? 0) + (spent.current[i] ?? 0)),
+        status: played.has(i) ? 'completed' : 'skipped',
       }
+    })
+    try {
+      await repository.updatePracticeSession(practice.id, {
+        startTime: practice.startTime ?? startedAt.current,
+        endTime: new Date(),
+        wrapupNotes: wrapNotes.trim() || undefined,
+        songs,
+      })
+      void queryClient.invalidateQueries({ queryKey: ['practices'] })
+      void queryClient.invalidateQueries({ queryKey: ['calendar'] })
+      showToast('Practice saved', 'success')
+      exit()
+    } catch (err) {
+      log.error('Save wrap-up failed', err)
+      showToast("That didn't save. Try again.", 'error')
+      setSaving(false)
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [canGoPrev, canGoNext, songs.length, navigate, practiceId])
-
-  const handlePrev = useCallback(() => {
-    if (canGoPrev) setCurrentIndex(i => i - 1)
-  }, [canGoPrev])
-  const handleNext = useCallback(() => {
-    if (canGoNext) setCurrentIndex(i => i + 1)
-  }, [canGoNext])
-  const handleExit = useCallback(() => {
-    navigate(`/practices/${practiceId}`)
-  }, [navigate, practiceId])
-
-  // Layout cycle button — cycles through the four modes as a manual override
-  const handleLayoutCycle = () => {
-    const order: LayoutMode[] = [
-      'tv',
-      'tablet-landscape',
-      'tablet-portrait',
-      'mobile',
-    ]
-    const nextIdx = (order.indexOf(layout) + 1) % order.length
-    setLayoutOverride(order[nextIdx])
   }
 
-  const handleFontCycle = () => {
-    const order: NotesFontSize[] = ['sm', 'md', 'lg']
-    const nextIdx = (order.indexOf(fontSize) + 1) % order.length
-    setFontSize(order[nextIdx])
-  }
-
-  // ---- Loading / error states ----
-  if (loading) {
-    return (
-      <div className="fixed inset-0 z-50 bg-bg-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4" />
-          <p className="text-ink-3 text-sm">Loading practice session...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="fixed inset-0 z-50 bg-bg-1 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 text-lg mb-4">{error}</p>
-          <button
-            onClick={() => navigate('/practices')}
-            className="px-4 py-2 bg-bg-2 text-white rounded-lg hover:bg-bg-4 transition-colors"
-          >
-            Back to Practices
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (!currentSong) return null
-
-  const notesButtonSize: NotesButtonSize =
-    layout === 'tv' ? 'lg' : layout === 'mobile' ? 'sm' : 'md'
-
-  const layoutIcon =
-    layout === 'tv' ? (
-      <Monitor size={14} />
-    ) : layout === 'mobile' ? (
-      <Smartphone size={14} />
-    ) : (
-      <Tablet size={14} />
-    )
-
-  const commonHeaderControls = (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={handleFontCycle}
-        className="flex items-center gap-1 px-2 py-1.5 bg-bg-2 rounded text-ink-3 hover:text-white transition-colors text-xs"
-        title={`Font size: ${fontSize.toUpperCase()} (click to cycle)`}
-        data-testid="session-font-toggle"
-      >
-        <Type size={14} />
-        <span className="font-semibold">{fontSize.toUpperCase()}</span>
-      </button>
-      <button
-        onClick={handleLayoutCycle}
-        className="flex items-center gap-1 px-2 py-1.5 bg-bg-2 rounded text-accent hover:text-white transition-colors text-xs"
-        title={`Layout: ${layout} (click to cycle)`}
-        data-testid="session-layout-toggle"
-      >
-        {layoutIcon}
-      </button>
+  const shell = (children: React.ReactNode) => (
+    <div
+      className="fixed inset-0 z-[55] bg-bg-0 text-ink-1 flex flex-col"
+      data-testid="practice-session-page"
+    >
+      {children}
     </div>
   )
 
-  // Shared props for each layout
-  const layoutProps: LayoutProps = {
-    song: currentSong,
-    nextSong,
-    songs,
-    currentIndex,
-    elapsedSeconds,
-    fontSize,
-    notesButtonSize,
-    onPrev: handlePrev,
-    onNext: handleNext,
-    onExit: handleExit,
-    canGoPrev,
-    canGoNext,
-    isLastSong: !canGoNext,
-    headerControls: commonHeaderControls,
-  }
+  if (loading) return shell(<div className="flex-1" />)
+  if (!practice || count === 0)
+    return shell(
+      <div className="m-auto text-center px-6" data-testid="session-empty">
+        <b className="block text-lg mb-1">
+          {practice ? 'No songs in this practice' : 'This practice was deleted'}
+        </b>
+        <p className="text-ink-3 mb-4">
+          {practice
+            ? 'Add songs to the practice first.'
+            : "It's no longer on the calendar."}
+        </p>
+        <Button onClick={exit}>Back</Button>
+      </div>
+    )
 
-  return (
-    <div className="fixed inset-0 z-50 bg-bg-1 flex flex-col">
-      {layout === 'tv' ? (
-        <TVLayout {...layoutProps} />
-      ) : layout === 'tablet-landscape' ? (
-        <TabletLandscapeLayout {...layoutProps} />
-      ) : layout === 'tablet-portrait' ? (
-        <TabletPortraitLayout {...layoutProps} />
-      ) : (
-        <MobileLayout {...layoutProps} />
+  const cur = items[index]
+  const prev = items[index - 1]
+  const next = items[index + 1]
+  const last = index === count - 1
+  const retune =
+    next &&
+    canonicalTuningId(next.song.guitarTuning) !==
+      canonicalTuningId(cur.song.guitarTuning)
+
+  const facts = (
+    <div className="flex items-end gap-5 font-mono" data-testid="session-facts">
+      {cur.song.guitarTuning && (
+        <TuningPill tuning={cur.song.guitarTuning} size="lg" />
+      )}
+      {[
+        ['Key', cur.song.key ? showKey(cur.song.key) : '—'],
+        ['BPM', cur.song.bpm ? String(cur.song.bpm) : '—'],
+        ['Length', formatSeconds(cur.song.duration)],
+      ].map(([k, v]) => (
+        <span key={k} className="flex flex-col">
+          <small className="text-[10px] uppercase tracking-[.12em] text-ink-3">
+            {k}
+          </small>
+          <b className="text-[19px] text-ink-1">{v}</b>
+        </span>
+      ))}
+    </div>
+  )
+
+  const upNext = next ? (
+    <div
+      className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${
+        retune
+          ? 'bg-warn/10 shadow-[inset_0_0_0_1.5px_rgb(var(--warn-rgb))]'
+          : 'bg-bg-2'
+      }`}
+      data-testid="session-up-next"
+      data-retune={retune || undefined}
+    >
+      <span className="flex-1 min-w-0">
+        <small
+          className={`block font-mono text-[10.5px] uppercase tracking-[.12em] ${
+            retune ? 'text-warn' : 'text-ink-3'
+          }`}
+        >
+          Up next{retune && ' · tuning change'}
+        </small>
+        <b className="block text-[16px] truncate">{next.song.title}</b>
+        {retune && (
+          <span className="flex items-center gap-1.5 mt-1">
+            <TuningPill
+              tuning={cur.song.guitarTuning || 'Standard'}
+              size="sm"
+            />
+            <span className="text-ink-3">→</span>
+            <TuningPill
+              tuning={next.song.guitarTuning || 'Standard'}
+              size="sm"
+            />
+          </span>
+        )}
+      </span>
+      {retune && (
+        <Button
+          size="md"
+          onClick={() =>
+            setTuner({
+              tuning: songTuningParam(next.song),
+              prev: songTuningParam(cur.song),
+              title: next.song.title,
+            })
+          }
+          icon={<ForkIcon size={16} />}
+          className="bg-warn !text-bg-0"
+          data-testid="session-tune-now"
+        >
+          Tune now
+        </Button>
       )}
     </div>
+  ) : (
+    <div
+      className="rounded-2xl bg-bg-2 px-4 py-3 text-[14px] text-ink-3"
+      data-testid="session-up-next"
+    >
+      Last song. Next ends the practice.
+    </div>
   )
-}
 
-// ---- Shared layout props ----
-
-interface LayoutProps {
-  song: Song
-  nextSong: Song | null
-  songs: Song[]
-  currentIndex: number
-  elapsedSeconds: number
-  fontSize: NotesFontSize
-  notesButtonSize: NotesButtonSize
-  onPrev: () => void
-  onNext: () => void
-  onExit: () => void
-  canGoPrev: boolean
-  canGoNext: boolean
-  isLastSong: boolean
-  headerControls: React.ReactNode
-}
-
-// ---- TV layout ----
-
-const TVLayout: React.FC<LayoutProps> = ({
-  song,
-  nextSong,
-  songs,
-  currentIndex,
-  elapsedSeconds,
-  fontSize,
-  notesButtonSize,
-  onPrev,
-  onNext,
-  onExit,
-  canGoPrev,
-  canGoNext,
-  isLastSong,
-  headerControls,
-}) => {
-  const currentTuning = song.guitarTuning ?? 'Standard'
-  const nextTuning = nextSong?.guitarTuning ?? 'Standard'
-  const tuningChanges = Boolean(nextSong) && currentTuning !== nextTuning
-
-  return (
-    <>
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-bg-0 border-b border-border-1">
-        <button
-          onClick={onExit}
-          className="text-ink-3 hover:text-white transition-colors p-2 -ml-2"
-          aria-label="Exit session"
-          data-testid="session-exit-button"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div className="flex items-center gap-3 text-ink-3 text-sm">
-          <span className="font-semibold text-white">PRACTICE</span>
-          <span className="text-ink-5">•</span>
-          <span>
-            Song {currentIndex + 1} of {songs.length}
-          </span>
-          <span className="text-ink-5">•</span>
-          <span className="flex items-center gap-1.5">
-            <Clock size={14} />
-            <span className="font-mono" data-testid="session-timer">
-              {formatTimer(elapsedSeconds)}
-            </span>
-          </span>
-        </div>
-        {headerControls}
-      </header>
-
-      {/* Body */}
-      <div className="flex-1 flex min-h-0">
-        <aside className="w-[240px] flex-shrink-0 border-r border-border-1 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar bg-bg-0">
-          <div>
-            <div
-              className="text-white font-bold text-lg leading-tight"
-              data-testid="session-song-title"
-            >
-              {song.title}
-            </div>
-            {song.artist && (
-              <div
-                className="text-ink-3 text-sm"
-                data-testid="session-song-artist"
-              >
-                {song.artist}
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {song.key && (
-              <KeyPill value={song.key} block data-testid="session-song-key" />
-            )}
-            {song.bpm && (
-              <BpmPill
-                value={String(song.bpm)}
-                block
-                data-testid="session-song-bpm"
-              />
-            )}
-            <DurationPill value={formatDuration(song.duration)} block />
-            <TuningPill
-              tuning={currentTuning}
-              block
-              data-testid="session-song-tuning"
-            />
-          </div>
-
-          <div className="flex-1" />
-
-          {nextSong && (
-            <div
-              className="pt-3 border-t border-border-1"
-              data-testid="session-next-preview"
-            >
-              <div className="text-[10px] uppercase tracking-wider text-ink-4 mb-1">
-                Up next
-              </div>
-              <div className="text-white text-sm font-medium leading-tight">
-                {nextSong.title}
-              </div>
-              <div className="text-ink-3 text-xs mb-2">{nextSong.artist}</div>
-              <div className="flex flex-col gap-2">
-                <TuningPill tuning={nextTuning} size="sm" block />
-                {tuningChanges && (
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="w-2 h-2 rounded-full animate-pulse"
-                      style={{
-                        backgroundColor: tuningColor(nextTuning),
-                        boxShadow: `0 0 0 3px ${tuningColor(nextTuning)}55`,
-                      }}
-                    />
-                    <span className="text-warn text-[10px] font-semibold uppercase tracking-wider">
-                      Tuning change!
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </aside>
-
-        <div className="flex-1 min-w-0 p-6 flex flex-col min-h-0">
-          <div className="text-[10px] uppercase tracking-wider text-ink-4 mb-2">
-            Band notes
-          </div>
-          <div className="flex-1 min-h-0">
-            <ScrollableNotes
-              notes={song.notes}
-              fontSize={fontSize}
-              buttonSize={notesButtonSize}
-              windowShortcuts
-              data-testid="session-notes"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <SessionFooter
-        currentIndex={currentIndex}
-        songs={songs}
-        onPrev={onPrev}
-        onNext={onNext}
-        onEnd={onExit}
-        canGoPrev={canGoPrev}
-        canGoNext={canGoNext}
-        isLastSong={isLastSong}
-        variant="dots"
-      />
-    </>
+  const navButtons = (
+    <div className="grid grid-cols-[1fr_1.6fr] gap-2.5">
+      <button
+        type="button"
+        onClick={() => go(index - 1)}
+        disabled={!prev}
+        className="flex flex-col items-center justify-center gap-1 h-24 rounded-[22px] bg-bg-3 text-ink-1 disabled:opacity-35"
+        data-testid="session-prev"
+      >
+        <ChevronLeft size={26} />
+        <span className="font-mono text-[11px] uppercase tracking-[.1em] text-ink-2 truncate max-w-[90%]">
+          {prev ? prev.song.title : 'Start'}
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={() => (last ? end() : go(index + 1))}
+        className="flex flex-col items-center justify-center gap-1 h-24 rounded-[22px] bg-accent text-on-accent"
+        data-testid="session-next"
+      >
+        {last ? <Check size={26} /> : <ChevronRight size={26} />}
+        <span className="font-mono text-[11px] uppercase tracking-[.1em] truncate max-w-[90%]">
+          {last ? 'End practice' : next.song.title}
+        </span>
+      </button>
+    </div>
   )
-}
 
-// ---- Tablet landscape ----
+  // A− / A+ size what the panel shows: the chart (your chart size) or notes.
+  const chartSized = wide && notesOpen && shown === 'chart'
+  const on = 'shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))]'
+  const sizeControl = (
+    <span className="flex items-center rounded-full bg-bg-3">
+      <button
+        type="button"
+        aria-label="Smaller text"
+        onClick={() =>
+          chartSized
+            ? chartPrefs.stepSize(s => Math.max(SIZE_MIN, s - SIZE_STEP))
+            : setSize(s => Math.max(0, s - 1))
+        }
+        className="w-11 h-11 text-[13px] font-bold"
+        data-testid="session-text-smaller"
+      >
+        A
+      </button>
+      <button
+        type="button"
+        aria-label="Larger text"
+        onClick={() =>
+          chartSized
+            ? chartPrefs.stepSize(s => Math.min(SIZE_MAX, s + SIZE_STEP))
+            : setSize(s => Math.min(SIZES.length - 1, s + 1))
+        }
+        className="w-11 h-11 text-[19px] font-bold"
+        data-testid="session-text-larger"
+      >
+        A
+      </button>
+    </span>
+  )
 
-const TabletLandscapeLayout: React.FC<LayoutProps> = ({
-  song,
-  nextSong,
-  songs,
-  currentIndex,
-  elapsedSeconds,
-  fontSize,
-  notesButtonSize,
-  onPrev,
-  onNext,
-  onExit,
-  canGoPrev,
-  canGoNext,
-  isLastSong,
-  headerControls,
-}) => {
-  const currentTuning = song.guitarTuning ?? 'Standard'
-  return (
+  const toolButtons = (
+    <div className="flex items-center gap-2">
+      <Button
+        size="md"
+        icon={<FileText size={16} />}
+        onClick={toggleNotes}
+        className={notesOpen && wide && shown === 'notes' ? on : ''}
+        aria-pressed={notesOpen && (!wide || shown === 'notes')}
+        data-testid="session-notes-toggle"
+      >
+        Notes
+      </Button>
+      <Button
+        size="md"
+        onClick={() => (wide ? showPanel('chart') : setChartOpen(true))}
+        disabled={wide && !hasChart && !chartLoading}
+        title={wide && !hasChart ? 'No chart for this song' : undefined}
+        className={chartSized ? on : ''}
+        aria-pressed={wide ? chartSized : undefined}
+        data-testid="session-chart"
+      >
+        Chart
+      </Button>
+      <Button
+        size="md"
+        onClick={() =>
+          setTuner({
+            tuning: songTuningParam(cur.song),
+            title: cur.song.title,
+          })
+        }
+        icon={<ForkIcon size={15} />}
+        data-testid="session-tune"
+      >
+        Tune
+      </Button>
+      <Button
+        size="md"
+        onClick={skip}
+        title="Skip this song (S)"
+        data-testid="session-skip"
+      >
+        Skip
+      </Button>
+      {wide && <span className="ml-auto">{sizeControl}</span>}
+    </div>
+  )
+
+  const practiceNote = cur.ps.notes && (
+    <p
+      className="flex items-start gap-2 text-[15px] text-ink-2"
+      data-testid="session-practice-note"
+    >
+      <FileText size={16} className="mt-0.5 shrink-0 text-ink-3" />
+      {cur.ps.notes}
+    </p>
+  )
+
+  const saveNote = (notes: string) =>
+    save({
+      songs: practice.songs.map(ps => (ps === cur.ps ? { ...ps, notes } : ps)),
+    }).catch(err => {
+      log.error('Save practice note failed', err)
+      showToast("The note didn't save. Try again.", 'error')
+    })
+
+  const links = cur.song.referenceLinks ?? []
+
+  const notes = (
+    <SongNotesView
+      song={cur.song}
+      userId={currentUser?.id ?? ''}
+      bandId={practice.bandId}
+      size={SIZES[size]}
+    />
+  )
+
+  const reachedList = items.map((x, i) => ({
+    title: x.song.title,
+    min: Math.round((spent.current[i] ?? 0) / 60),
+    hit: played.has(i),
+  }))
+
+  return shell(
     <>
-      <header className="flex items-center justify-between px-4 py-3 bg-bg-0 border-b border-border-1">
+      <header className="flex items-center gap-3 px-4 md:px-6 pt-[max(12px,env(safe-area-inset-top))] pb-2">
         <button
-          onClick={onExit}
-          className="text-ink-3 hover:text-white p-2 -ml-2"
-          aria-label="Exit session"
-          data-testid="session-exit-button"
+          type="button"
+          aria-label="Leave session"
+          onClick={exit}
+          className="grid place-items-center w-11 h-11 rounded-full bg-bg-2 shrink-0"
+          data-testid="session-exit"
         >
-          <ArrowLeft size={18} />
+          <X size={19} />
         </button>
-        <div className="text-center flex-1 px-2 min-w-0">
-          <div
-            className="text-white font-bold truncate"
-            data-testid="session-song-title"
+        <div className="flex-1 text-center md:text-left md:flex md:items-baseline md:gap-3 font-mono">
+          <small
+            className="block text-[11px] uppercase tracking-[.14em] text-ink-3"
+            data-testid="session-position"
           >
-            {song.title}
-          </div>
-          {song.artist && (
-            <div
-              className="text-ink-3 text-xs truncate"
-              data-testid="session-song-artist"
-            >
-              {song.artist}
-            </div>
-          )}
+            Song {index + 1} of {count}
+          </small>
+          <b className="text-[20px]" data-testid="session-elapsed">
+            {clock(elapsed)}
+          </b>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs text-ink-3">
-            <Clock size={14} />
-            <span className="font-mono" data-testid="session-timer">
-              {formatTimer(elapsedSeconds)}
-            </span>
-          </div>
-          {headerControls}
-        </div>
+        <Button size="md" onClick={end} data-testid="session-end">
+          End
+        </Button>
       </header>
-
-      <div className="flex items-center justify-center flex-wrap gap-2 px-4 py-2 bg-bg-0 border-b border-border-1">
-        {song.key && (
-          <KeyPill value={song.key} data-testid="session-song-key" />
-        )}
-        {song.bpm && (
-          <BpmPill value={String(song.bpm)} data-testid="session-song-bpm" />
-        )}
-        <DurationPill value={formatDuration(song.duration)} />
-        <TuningPill tuning={currentTuning} data-testid="session-song-tuning" />
-      </div>
-
-      <div className="flex-1 min-h-0 p-4 overflow-hidden">
-        <ScrollableNotes
-          notes={song.notes}
-          fontSize={fontSize}
-          buttonSize={notesButtonSize}
-          windowShortcuts
-          data-testid="session-notes"
-        />
-      </div>
-
-      <SessionFooter
-        currentIndex={currentIndex}
-        songs={songs}
-        onPrev={onPrev}
-        onNext={onNext}
-        onEnd={onExit}
-        canGoPrev={canGoPrev}
-        canGoNext={canGoNext}
-        isLastSong={isLastSong}
-        variant="next-preview"
-        nextSong={nextSong}
-        currentTuning={currentTuning}
-      />
-    </>
-  )
-}
-
-// ---- Tablet portrait ----
-
-const TabletPortraitLayout: React.FC<LayoutProps> = ({
-  song,
-  nextSong,
-  songs,
-  currentIndex,
-  elapsedSeconds,
-  fontSize,
-  notesButtonSize,
-  onPrev,
-  onNext,
-  onExit,
-  canGoPrev,
-  canGoNext,
-  isLastSong,
-  headerControls,
-}) => {
-  const currentTuning = song.guitarTuning ?? 'Standard'
-  return (
-    <>
-      <header className="flex items-center justify-between px-3 py-2.5 bg-bg-0 border-b border-border-1">
-        <button
-          onClick={onExit}
-          className="text-ink-3 hover:text-white p-1.5"
-          aria-label="Exit session"
-          data-testid="session-exit-button"
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <div className="text-center flex-1 px-2 min-w-0">
-          <div
-            className="text-white text-sm font-bold truncate"
-            data-testid="session-song-title"
-          >
-            {song.title}
-          </div>
-          {song.artist && (
-            <div
-              className="text-ink-3 text-[11px] truncate"
-              data-testid="session-song-artist"
-            >
-              {song.artist}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="text-[11px] text-ink-3 flex items-center gap-1">
-            <Clock size={12} />
-            <span className="font-mono" data-testid="session-timer">
-              {formatTimer(elapsedSeconds)}
-            </span>
-          </div>
-          {headerControls}
-        </div>
-      </header>
-
-      <div className="flex flex-wrap items-center justify-center gap-1.5 px-3 py-2 bg-bg-0 border-b border-border-1">
-        {song.key && (
-          <KeyPill value={song.key} size="sm" data-testid="session-song-key" />
-        )}
-        {song.bpm && (
-          <BpmPill
-            value={String(song.bpm)}
-            size="sm"
-            data-testid="session-song-bpm"
-          />
-        )}
-        <DurationPill value={formatDuration(song.duration)} size="sm" />
-        <TuningPill
-          tuning={currentTuning}
-          size="sm"
-          data-testid="session-song-tuning"
-        />
-      </div>
-
-      <div className="flex-1 min-h-0 p-3 overflow-hidden">
-        <ScrollableNotes
-          notes={song.notes}
-          fontSize={fontSize}
-          buttonSize={notesButtonSize}
-          windowShortcuts
-          data-testid="session-notes"
-        />
-      </div>
-
-      <SessionFooter
-        currentIndex={currentIndex}
-        songs={songs}
-        onPrev={onPrev}
-        onNext={onNext}
-        onEnd={onExit}
-        canGoPrev={canGoPrev}
-        canGoNext={canGoNext}
-        isLastSong={isLastSong}
-        variant="next-preview"
-        nextSong={nextSong}
-        currentTuning={currentTuning}
-      />
-    </>
-  )
-}
-
-// ---- Mobile ----
-
-const MobileLayout: React.FC<LayoutProps> = ({
-  song,
-  nextSong,
-  songs,
-  currentIndex,
-  elapsedSeconds,
-  fontSize,
-  notesButtonSize,
-  onPrev,
-  onNext,
-  onExit,
-  canGoPrev,
-  canGoNext,
-  isLastSong,
-  headerControls,
-}) => {
-  const currentTuning = song.guitarTuning ?? 'Standard'
-  return (
-    <>
-      <header className="flex items-center justify-between px-3 py-2 bg-bg-0 border-b border-border-1">
-        <button
-          onClick={onExit}
-          className="text-ink-3 hover:text-white p-1"
-          aria-label="Exit session"
-          data-testid="session-exit-button"
-        >
-          <ArrowLeft size={14} />
-        </button>
-        <div className="text-center flex-1 px-2 min-w-0">
-          <div
-            className="text-white text-sm font-bold truncate"
-            data-testid="session-song-title"
-          >
-            {song.title}
-          </div>
-          {song.artist && (
-            <div
-              className="text-ink-3 text-[10px] truncate"
-              data-testid="session-song-artist"
-            >
-              {song.artist}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 text-[10px] text-ink-3">
-            <Clock size={11} />
-            <span className="font-mono" data-testid="session-timer">
-              {formatTimer(elapsedSeconds)}
-            </span>
-          </div>
-          {headerControls}
-        </div>
-      </header>
-
-      <div className="flex justify-center items-center gap-1 py-1.5 bg-bg-0 border-b border-border-1">
-        {songs.slice(0, 8).map((_, i) => (
+      <div className="flex gap-1.5 px-4 md:px-6 pb-3" aria-hidden>
+        {items.map((_, i) => (
           <span
             key={i}
-            className={`w-1.5 h-1.5 rounded-full ${
-              i === currentIndex
-                ? 'bg-accent'
-                : i < currentIndex
-                  ? 'bg-ink-5'
-                  : 'bg-border-1'
+            className={`h-1 flex-1 rounded-full ${
+              i === index ? 'bg-accent' : played.has(i) ? 'bg-ink-3' : 'bg-bg-3'
             }`}
           />
         ))}
       </div>
 
-      <div className="flex items-center justify-center flex-wrap gap-1 px-2 py-2">
-        {song.key && (
-          <KeyPill value={song.key} size="sm" data-testid="session-song-key" />
-        )}
-        {song.bpm && (
-          <BpmPill
-            value={String(song.bpm)}
-            size="sm"
-            data-testid="session-song-bpm"
-          />
-        )}
-        <DurationPill value={formatDuration(song.duration)} size="sm" />
-        <TuningPill
-          tuning={currentTuning}
-          size="sm"
-          data-testid="session-song-tuning"
-        />
-      </div>
+      {wide ? (
+        <div className="flex-1 min-h-0 flex gap-8 px-6">
+          <div className="w-[min(42%,460px)] shrink-0 flex flex-col gap-4 min-h-0">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[.14em] text-ink-3">
+                {cur.song.artist}
+              </p>
+              <h1
+                className="font-display font-extrabold uppercase leading-[.9] text-[64px] break-words"
+                data-testid="session-title"
+              >
+                {cur.song.title}
+              </h1>
+            </div>
+            {facts}
+            {toolButtons}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar-thin flex flex-col gap-4">
+              {links.length > 0 && (
+                <div
+                  className="flex flex-col gap-1"
+                  data-testid="session-links"
+                >
+                  {links.map((l, i) => (
+                    <SessionLink key={i} link={l} />
+                  ))}
+                </div>
+              )}
+              <PracticeNoteField
+                key={index}
+                value={cur.ps.notes ?? ''}
+                onCommit={saveNote}
+              />
+            </div>
+            <div className="pb-3">{upNext}</div>
+          </div>
+          {notesOpen && (
+            <div
+              className="flex-1 min-w-0 overflow-y-auto custom-scrollbar pb-6"
+              data-testid="session-notes-panel"
+              data-showing={shown}
+            >
+              {shown === 'chart' ? (
+                <>
+                  <div className="sticky top-0 z-[1] flex justify-end pb-2 bg-bg-0">
+                    <Button
+                      size="md"
+                      icon={<Maximize2 size={15} />}
+                      onClick={() => setChartOpen(true)}
+                      data-testid="session-chart-full"
+                    >
+                      Full screen
+                    </Button>
+                  </div>
+                  <ChartPanel song={cur.song} chordpro={chordpro} />
+                </>
+              ) : (
+                notes
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar-thin px-4 flex flex-col gap-4">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[.14em] text-ink-3">
+              {cur.song.artist}
+            </p>
+            <h1
+              className="font-display font-extrabold uppercase leading-[.9] text-[48px] break-words"
+              data-testid="session-title"
+            >
+              {cur.song.title}
+            </h1>
+          </div>
+          {facts}
+          {toolButtons}
+          {practiceNote}
+          <div className="mt-auto">{upNext}</div>
+        </div>
+      )}
 
-      <div className="flex-1 min-h-0 px-3 pb-2 overflow-hidden">
-        <ScrollableNotes
-          notes={song.notes}
-          fontSize={fontSize}
-          buttonSize={notesButtonSize}
-          windowShortcuts
-          data-testid="session-notes"
-        />
-      </div>
+      <footer className="px-4 md:px-6 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+        {navButtons}
+      </footer>
 
-      <SessionFooter
-        currentIndex={currentIndex}
-        songs={songs}
-        onPrev={onPrev}
-        onNext={onNext}
-        onEnd={onExit}
-        canGoPrev={canGoPrev}
-        canGoNext={canGoNext}
-        isLastSong={isLastSong}
-        variant="next-preview"
-        nextSong={nextSong}
-        currentTuning={currentTuning}
-        compactFooter
-      />
+      {notesOpen && !wide && (
+        <Sheet
+          onClose={() => setNotesOpen(false)}
+          title={cur.song.title}
+          sub="Notes"
+          data-testid="session-notes-sheet"
+        >
+          <div className="flex justify-end -mt-1 mb-2">{sizeControl}</div>
+          <div className="pb-5 max-h-[55vh] overflow-y-auto custom-scrollbar-thin">
+            {notes}
+          </div>
+        </Sheet>
+      )}
+
+      {tuner && (
+        <ToolLayer
+          title="Tuner"
+          sub={tuner.title}
+          onClose={() => setTuner(null)}
+          data-testid="session-tuner-layer"
+        >
+          <Tuner tuning={tuner.tuning} prev={tuner.prev} />
+        </ToolLayer>
+      )}
+
+      {chartOpen && (
+        <ChartReader
+          song={cur.song}
+          layer
+          onClose={() => setChartOpen(false)}
+          data-testid="session-chart-layer"
+        />
+      )}
+
+      {ending && (
+        <Sheet
+          onClose={() => setEnding(false)}
+          title="Practice done"
+          sub={practiceTitle(practice.name, new Date(practice.scheduledDate))}
+          width={440}
+          data-testid="session-wrapup"
+        >
+          <div className="pb-5">
+            <p
+              className="font-mono text-[13px] text-ink-2 mb-3"
+              data-testid="session-wrapup-summary"
+            >
+              {hoursMinutes(elapsed / 60)} played ·{' '}
+              {reachedList.filter(r => r.hit).length} of {count} songs
+            </p>
+            <div className="max-h-[32vh] overflow-y-auto custom-scrollbar-thin -mx-1 mb-3">
+              {reachedList.map((r, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => togglePlayed(i, !r.hit)}
+                  aria-pressed={r.hit}
+                  className="w-full flex items-center gap-3 px-1 py-1.5 rounded-lg text-left active:bg-bg-3"
+                  data-testid={`session-wrapup-song-${i}`}
+                >
+                  <span
+                    className={`grid place-items-center w-6 h-6 rounded-full shrink-0 ${
+                      r.hit ? 'bg-success text-white' : 'bg-bg-3'
+                    }`}
+                  >
+                    {r.hit && <Check size={14} strokeWidth={3} />}
+                  </span>
+                  <span
+                    className={`flex-1 truncate ${r.hit ? 'text-ink-1' : 'text-ink-3'}`}
+                  >
+                    {r.title}
+                  </span>
+                  <span className="font-mono text-[12px] text-ink-3">
+                    {r.hit ? `${r.min} min` : 'skipped'}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <label
+              htmlFor="session-wrapup-notes"
+              className="block font-mono text-[10.5px] uppercase tracking-[.12em] text-ink-3 mb-1.5"
+            >
+              Wrap-up notes · shared with the band
+            </label>
+            <textarea
+              id="session-wrapup-notes"
+              name="wrapupNotes"
+              data-testid="session-wrapup-notes"
+              value={wrapNotes}
+              onChange={e => setWrapNotes(e.target.value)}
+              rows={3}
+              placeholder="What's tight now, what needs another run"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-bg-3 text-[15px] text-ink-1 placeholder:text-ink-4 outline-none resize-none custom-scrollbar-thin"
+            />
+            <div className="grid grid-cols-2 gap-2.5 mt-3">
+              <Button
+                size="lg"
+                onClick={() => setEnding(false)}
+                data-testid="session-wrapup-back"
+              >
+                Back
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={saveWrapUp}
+                disabled={saving}
+                data-testid="session-wrapup-save"
+              >
+                Save wrap-up
+              </Button>
+            </div>
+          </div>
+        </Sheet>
+      )}
     </>
   )
 }
 
-// ---- Session footer (shared) ----
-
-interface SessionFooterProps {
-  currentIndex: number
-  songs: Song[]
-  onPrev: () => void
-  onNext: () => void
-  onEnd: () => void
-  canGoPrev: boolean
-  canGoNext: boolean
-  isLastSong: boolean
-  variant: 'dots' | 'next-preview'
-  nextSong?: Song | null
-  currentTuning?: string
-  compactFooter?: boolean
-}
-
-const SessionFooter: React.FC<SessionFooterProps> = ({
-  currentIndex,
-  songs,
-  onPrev,
-  onNext,
-  onEnd,
-  canGoPrev,
-  canGoNext,
-  isLastSong,
-  variant,
-  nextSong,
-  currentTuning,
-  compactFooter = false,
-}) => {
-  const PrevBtn = (
-    <button
-      onClick={onPrev}
-      disabled={!canGoPrev}
-      className={`flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-        canGoPrev
-          ? 'bg-bg-2 text-white hover:bg-bg-4'
-          : 'bg-bg-2/50 text-ink-5 cursor-not-allowed'
-      }`}
-      data-testid="session-prev-button"
-      aria-label="Previous song"
-    >
-      <ChevronLeft size={14} />
-      {!compactFooter && <span>Prev</span>}
-    </button>
-  )
-
-  const NextBtn = isLastSong ? (
-    <button
-      onClick={onEnd}
-      className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-green-600 text-white hover:bg-green-700"
-      data-testid="session-end-button"
-    >
-      {!compactFooter && <span>End</span>}
-      <ChevronRight size={14} />
-    </button>
-  ) : (
-    <button
-      onClick={onNext}
-      disabled={!canGoNext}
-      className={`flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-        canGoNext
-          ? 'bg-accent text-white hover:bg-accent-deep'
-          : 'bg-accent/50 text-white/50 cursor-not-allowed'
-      }`}
-      data-testid="session-next-button"
-      aria-label="Next song"
-    >
-      {!compactFooter && <span>Next</span>}
-      <ChevronRight size={14} />
-    </button>
-  )
-
+/** One of the song's links: glyph, kind and description; opens a new tab. */
+const SessionLink: React.FC<{ link: ReferenceLink }> = ({ link }) => {
+  const g = linkGlyph(link)
   return (
-    <nav className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-0 border-t border-border-1">
-      {PrevBtn}
-      {variant === 'dots' ? (
-        <div
-          className="flex items-center gap-1"
-          data-testid="session-progress"
-          aria-label={`Song ${currentIndex + 1} of ${songs.length}`}
-        >
-          {songs.map((_, i) => (
-            <span
-              key={i}
-              className={`w-1.5 h-1.5 rounded-full ${
-                i === currentIndex
-                  ? 'bg-accent'
-                  : i < currentIndex
-                    ? 'bg-ink-5'
-                    : 'bg-border-1'
-              }`}
-            />
-          ))}
-        </div>
-      ) : (
-        <FooterNextPreview
-          nextSong={nextSong}
-          currentTuning={currentTuning}
-          compact={compactFooter}
-          data-testid="session-next-preview"
-        />
-      )}
-      {NextBtn}
-    </nav>
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 min-h-[44px] px-2 -mx-2 rounded-xl hover:bg-bg-2"
+      data-testid="session-link"
+    >
+      <span
+        className={`grid place-items-center w-9 h-9 shrink-0 rounded-[10px] border border-border-1 [&>svg]:w-[17px] [&>svg]:h-[17px] ${g.tone}`}
+      >
+        {g.icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[15px] font-bold text-ink-1 truncate">
+          {g.name}
+        </span>
+        <span className="block text-[12.5px] text-ink-3 truncate">
+          {link.description || link.url}
+        </span>
+      </span>
+    </a>
   )
 }
+
+/** This practice's note for the song; saves when the field loses focus. */
+const PracticeNoteField: React.FC<{
+  value: string
+  onCommit: (notes: string) => void
+}> = ({ value, onCommit }) => {
+  const [v, setV] = useState(value)
+  useEffect(() => setV(value), [value])
+  return (
+    <div>
+      <label
+        htmlFor="session-practice-note"
+        className="block font-mono text-[10.5px] uppercase tracking-[.12em] text-ink-3 mb-1.5"
+      >
+        Practice note · this song
+      </label>
+      <textarea
+        id="session-practice-note"
+        name="practiceNote"
+        data-testid="session-practice-note-input"
+        value={v}
+        onChange={e => setV(e.target.value)}
+        onBlur={() => {
+          const t = v.trim()
+          if (t !== value.trim()) onCommit(t)
+        }}
+        rows={4}
+        placeholder="What to work on next time"
+        className="w-full px-3.5 py-2.5 rounded-xl bg-bg-2 text-[15px] text-ink-1 placeholder:text-ink-4 outline-none focus:shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))] resize-none custom-scrollbar-thin"
+      />
+    </div>
+  )
+}
+
+export default PracticeSessionPage

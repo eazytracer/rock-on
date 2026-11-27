@@ -11,19 +11,17 @@ export const selectors = {
       '[data-testid="login-email-input"], input[name="email"], input[type="email"]',
     passwordInput:
       '[data-testid="login-password-input"], input[name="password"]',
-    signInButton: 'button[type="submit"]:has-text("Log In")',
+    signInButton: '[data-testid="sign-in-button"]',
 
-    // Signup form
+    // Signup form (/auth/signup): one password field, no confirm
     nameInput: '[data-testid="signup-name-input"], input[name="name"]',
     signupEmailInput: '[data-testid="signup-email-input"]',
     signupPasswordInput: '[data-testid="signup-password-input"]',
-    confirmPasswordInput:
-      '[data-testid="signup-confirm-password-input"], input[name="confirmPassword"]',
-    signUpButton: 'button[type="submit"]:has-text("Create Account")',
+    signUpButton: '[data-testid="signup-submit-button"]',
 
     // Navigation between forms
-    switchToSignUp: 'button:has-text("Don\'t have an account")',
-    switchToSignIn: 'button:has-text("Already have an account")',
+    switchToSignUp: '[data-testid="create-account-link"]',
+    switchToSignIn: '[data-testid="sign-in-link"]',
 
     // Error messages
     errorMessage: '.text-\\[\\#D7263D\\], [role="alert"]',
@@ -136,6 +134,6 @@ export const selectors = {
     setlistsLink: 'a[href="/setlists"], nav a:has-text("Setlists")',
     showsLink: 'a[href="/shows"], nav a:has-text("Shows")',
     practicesLink: 'a[href="/practices"], nav a:has-text("Practices")',
-    bandMembersLink: 'a[href="/band-members"], nav a:has-text("Members")',
+    bandMembersLink: 'a[href="/band"], nav a:has-text("Members")',
   },
 }

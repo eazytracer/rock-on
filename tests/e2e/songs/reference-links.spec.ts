@@ -225,45 +225,25 @@ test.describe('Song Reference Links', () => {
     })
   })
 
-  test.describe('Spotify Search Toggle', () => {
-    test('can toggle Spotify search section', async ({ page }) => {
-      const errors = setupConsoleErrorTracking(page)
+  test.describe('Spotify matches', () => {
+    test('typing a title offers Spotify matches without blocking manual entry', async ({
+      page,
+    }) => {
       const user = createTestUser()
 
       await signUpViaUI(page, user)
-      await createBandViaUI(page, `Spotify Toggle Test ${Date.now()}`)
+      await createBandViaUI(page, `Spotify Match Test ${Date.now()}`)
       await page.waitForURL(/\/songs/, { timeout: 10000 })
 
-      // Open add song modal
-      await page
-        .locator('button:has-text("Add Song"), [data-testid="add-song-button"]')
-        .first()
-        .click()
-      await page.waitForTimeout(500)
+      await page.locator('[data-testid="add-song-button"]').first().click()
+      await page.locator('[data-testid="song-title-input"]').fill('Everlong')
 
-      // Find the Spotify search toggle
-      const spotifyToggle = page.locator(
-        '[data-testid="toggle-spotify-search"]'
-      )
-      await expect(spotifyToggle).toBeVisible({ timeout: 5000 })
-      await expect(spotifyToggle).toContainText('Search Spotify to auto-fill')
-
-      // Click to expand
-      await spotifyToggle.click()
-      await page.waitForTimeout(300)
-
-      // Verify search input appears
-      const searchInput = page.locator('[data-testid="spotify-search-input"]')
-      await expect(searchInput).toBeVisible({ timeout: 3000 })
-
-      // Click again to collapse
-      await spotifyToggle.click()
-      await page.waitForTimeout(300)
-
-      // Verify search input is hidden
-      await expect(searchInput).not.toBeVisible()
-
-      await assertNoConsoleErrors(page, errors)
+      // No toggle any more: matches appear under the title when Spotify
+      // answers. Either way the title alone is enough to save.
+      await page.locator('[data-testid="song-submit-button"]').click()
+      await expect(
+        page.locator('[data-testid^="song-row-"]', { hasText: 'Everlong' })
+      ).toBeVisible({ timeout: 5000 })
     })
   })
 })

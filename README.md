@@ -1,7 +1,7 @@
 # Rock-On
 
 A band management application for musicians to organize songs, setlists, shows,
-and practice sessions — plus jam sessions and venue events.
+and practice sessions — plus jams.
 
 ## Quick Start
 
@@ -32,8 +32,9 @@ npm run setup:local   # first-time: Supabase + env files
 npm run start:dev     # Supabase + edge functions + dev server
 ```
 
-Note: run tests/build in Docker on Node 24 (see docs/LOCAL_DEV.md) — a
-mismatched host Node causes phantom test failures.
+Note: these `npm` commands are for **inside the devcontainer**. On the host, run
+the app and tests through `just` / Docker on Node 24 (see docs/LOCAL_DEV.md →
+"Where am I running?") — a mismatched host Node causes phantom test failures.
 
 </details>
 
@@ -43,23 +44,23 @@ mismatched host Node causes phantom test failures.
 - **Setlists** — build and order setlists for performances
 - **Shows** — track upcoming and past performances
 - **Practice Sessions** — schedule/log practices, with a live session mode
-- **Jam Sessions** — impromptu jams; join by code, match songs across catalogs
-- **Events** — venue-oriented lineups, RSVP, and casting
+- **Jam** — host a jam, invite friends or share a code, match songs across
+  catalogs, run the lineup live (host console, bar TV, kiosk)
 - **Band Management** — invite members and collaborate
-- **Offline-First** — works offline with automatic sync when connected
+- **Live updates** — band members see each other's changes in real time
 
 ## Tech Stack
 
 - **Frontend:** React 18+, TypeScript, TailwindCSS, Vite
 - **Backend:** Supabase (PostgreSQL, Auth, Realtime, Edge Functions)
-- **Local Storage:** IndexedDB (Dexie) for offline-first architecture
+- **Data:** online-only; direct Supabase reads/writes, TanStack Query as an in-memory cache, `audit_log` realtime for live updates
 - **Testing:** Vitest (unit), Playwright (E2E), pgTAP (database)
 
 ## Development
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24 (runs in the `node:24-alpine` container; see docs/LOCAL_DEV.md)
 - Docker (for local Supabase)
 
 ### Commands
@@ -110,7 +111,9 @@ npm run env:status        # Lost track of which environment is active?
 - [CLAUDE.md](./CLAUDE.md) — coding rules and project policy
 - [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) — how we build (agent workflow)
 - [ENVIRONMENTS.md](./ENVIRONMENTS.md) — environment configuration
-- Database schema: `.claude/specifications/unified-database-schema.md`
+- [docs/INDEX.md](./docs/INDEX.md) — map of the app: each area and where it lives
+- [docs/DECISIONS.md](./docs/DECISIONS.md) — hard product and technical rules, dated
+- Database schema: `supabase/migrations/` + `src/types/database.types.ts`
 
 ## Project Structure
 
@@ -121,7 +124,7 @@ rock-on/
 │   ├── pages/              # Page components
 │   ├── services/           # Business logic
 │   │   ├── auth/           # Authentication
-│   │   ├── data/           # Data sync (offline-first)
+│   │   ├── data/           # Repository (Supabase) + realtime
 │   │   └── supabase/       # Supabase client
 │   └── models/             # TypeScript types
 ├── supabase/               # Supabase configuration

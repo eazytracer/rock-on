@@ -5,15 +5,15 @@
 -- Category: Schema + Data Integrity
 -- Created: 2026-04-22
 --
--- See `.claude/artifacts/2026-04-22T21:37_pgtap-coverage-review.md` for the
--- broader review that motivated this file. The intent is that any future
+-- From the Apr 22 2026 pgTAP coverage review. The intent is that any future
 -- migration that touches jam tables must update this file or break a test —
 -- so the social-catalog surface stays anchored.
 
 begin;
 
--- 12 indexes + 8 FK on-delete + 3 check + 4 unique + 4 cascade-functional = 31
-select plan(31);
+-- 12 indexes + 8 FK on-delete + 3 check + 4 unique + 4 cascade-functional
+-- + 4 retired (phase 7: tables stay, RPCs and the co-participant policy go) = 35
+select plan(35);
 
 -- ============================================================================
 -- Indexes (12)
@@ -77,15 +77,13 @@ select is(
   'jam_sessions.saved_setlist_id should ON DELETE SET NULL (preserve the jam if saved setlist is deleted)'
 );
 
--- jam_sessions.last_modified_by is intentionally NO ACTION (RESTRICT). This
--- is the same RESTRICT pattern the harness reset has to NULL-out before
--- deleting a user. If the schema ever flips this to CASCADE or SET NULL,
--- update `cascadeDeletePublicUserRows` in scripts/test-harness/personas.ts
--- to remove the matching cleanup step.
+-- jam_sessions.last_modified_by is ON DELETE SET NULL since phase 6 (delete
+-- account, decision 8). The harness cleanup in `cascadeDeletePublicUserRows`
+-- (scripts/test-harness/personas.ts) that NULLs it first is now redundant.
 select is(
   (SELECT confdeltype FROM pg_constraint WHERE conname = 'jam_sessions_last_modified_by_fkey')::text,
-  'a',
-  'jam_sessions.last_modified_by should be NO ACTION (RESTRICT) — harness cascadeDeletePublicUserRows clears it explicitly'
+  'n',
+  'jam_sessions.last_modified_by should ON DELETE SET NULL (delete account keeps the jam)'
 );
 
 -- jam_participants inbound from jam_sessions
@@ -310,6 +308,22 @@ select results_eq(
   ARRAY[true],
   'Deleting the seed setlist should NULL out jam_sessions.seed_setlist_id (jam survives)'
 );
+
+-- ============================================================================
+-- Retired in phase 7 (7d): the tables stay until a later release drops them;
+-- nobody can call the 0.3 RPCs, and co-participants no longer read songs.
+-- ============================================================================
+select ok(NOT has_function_privilege('authenticated', 'public.join_jam_session(text)', 'EXECUTE'),
+  'join_jam_session is revoked from authenticated');
+select ok(NOT has_function_privilege('authenticated', 'public.get_jam_session_by_code(text)', 'EXECUTE'),
+  'get_jam_session_by_code is revoked from authenticated');
+select ok(NOT has_function_privilege('authenticated', 'public.replace_jam_matches(uuid, jsonb)', 'EXECUTE'),
+  'replace_jam_matches is revoked from authenticated');
+select ok(NOT EXISTS (SELECT 1 FROM pg_policies
+                       WHERE schemaname = 'public'
+                         AND policyname IN ('songs_select_jam_coparticipant', 'users_select_jam_coparticipant',
+                                            'user_profiles_select_jam_coparticipant')),
+  'the 0.3 jam co-participant policies are gone');
 
 select * from finish();
 rollback;

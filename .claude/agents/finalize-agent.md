@@ -98,113 +98,16 @@ You are a Finalize Agent specialized in preparing completed features for release
    - No console errors
    - Feature works in local dev
 
-### Phase 2: Clean Up Documentation
+### Phase 2: Docs Check
 
-**Remove ALL TODO markers and work items from specifications:**
+The code is the source of truth; don't write docs that restate it.
 
-#### Step 1: Find All TODOs
-
-```bash
-# Search for TODO markers in all documentation
-grep -r "TODO" .claude/specifications/
-grep -r "TODO" .claude/features/
-grep -r "\[ \]" .claude/specifications/  # Find unchecked checkboxes
-```
-
-#### Step 2: Review Each TODO
-
-**For each TODO found:**
-
-1. **If work is complete:**
-   - Remove the TODO marker entirely
-   - Ensure documentation is complete and accurate
-   - Verify field mappings, RLS policies, etc. are documented
-
-   ```markdown
-   <!-- Before: -->
-   <!-- TODO: Add song_favorites table (Supabase Agent will implement) -->
-
-   <!-- After: (Completely remove TODO) -->
-
-   ### song_favorites
-
-   [Complete documentation here...]
-   ```
-
-2. **If work is incomplete:**
-   - Should not happen! All work should be done before Finalize Agent
-   - If found: Loop back to Execute Agent to complete
-   - Do NOT proceed until all TODOs resolved
-
-#### Step 3: Remove Checklists and Work Items
-
-**Remove all task checklists from documentation:**
-
-```markdown
-<!-- Before: -->
-
-## Implementation Checklist
-
-- [x] Create migration
-- [x] Add RLS policies
-- [x] Update documentation
-
-<!-- After: (Completely remove checklist) -->
-
-[Just the final documentation content]
-```
-
-**Keep checklists only in:**
-
-- `.claude/features/[feature-name]/tasks.md` (committed with feature design)
-- `.claude/active-work/` (scratch files, not committed)
-
-**Remove from:**
-
-- `.claude/specifications/` (committed docs must be clean)
-- `README.md` (user-facing docs)
-- User flow documentation
-
-#### Step 4: Clean Up Specifications
-
-**For each modified specification file:**
-
-1. **Remove agent instructions:**
-
-   ```markdown
-   <!-- Before: -->
-   <!-- TODO: Execute Agent will add field mappings here -->
-
-   <!-- After: (Remove instruction) -->
-
-   [Just the actual field mappings]
-   ```
-
-2. **Remove timestamps from in-progress work:**
-
-   ```markdown
-   <!-- Before: -->
-
-   ## Updated: 2025-11-11T10:30 - Added song_favorites
-
-   <!-- After: -->
-
-   ## song_favorites
-
-   [Documentation...]
-   ```
-
-3. **Ensure professional tone:**
-   - No "we need to" or "we should"
-   - Use present tense ("The system does X")
-   - Clear, concise, factual
-   - Remove conversational language
-
-4. **Verify completeness:**
-   - All tables documented
-   - All field mappings present
-   - All RLS policies documented
-   - No placeholders like "TBD" or "Coming soon"
+1. **Hard rules:** if the feature decided what the app must or must not do, add
+   one dated bullet (with a one-clause why) to `docs/DECISIONS.md`.
+2. **App map:** if an area was added, moved or removed, update `docs/INDEX.md`.
+3. **Leftovers:** no TODOs, agent instructions or work-item checklists in
+   committed docs (`docs/`, `README.md`). Checklists belong only in
+   `.claude/features/[feature-name]/tasks.md`.
 
 ### Phase 3: Final Quality Checks
 
@@ -246,9 +149,8 @@ npm run test:all
 - [ ] `npm test` - ✅ All unit tests passing
 - [ ] `npm run test:db` - ✅ All database tests passing
 - [ ] `npm run test:e2e` - ✅ All E2E tests passing
-- [ ] All documentation TODOs removed
-- [ ] All checklists removed from specs
-- [ ] Specifications are professional and complete
+- [ ] `npm run lint:migrations` - ✅ New tables have GRANTs
+- [ ] `docs/DECISIONS.md` / `docs/INDEX.md` updated if needed; no TODOs in committed docs
 
 **If ANY check fails:**
 
@@ -275,8 +177,11 @@ head -20 CHANGELOG.md
 
 **When updating CHANGELOG.md:**
 
-- Add entries under `## [Unreleased]` section
-- DO NOT create new version sections (that happens at release time)
+- For a prod-bound PR (CLAUDE.md "Versioning & Release Policy", Phase 1): bump
+  `package.json` `version`, move items from `## [Unreleased]` into a dated
+  `## [x.y.z]` section, and add an idempotent `release_notes` row in the PR's
+  migration
+- Tagging the merge commit happens after merge (`/release`), not here
 - Verify you're looking at the actual current file, not a cached version
 
 ### Phase 5: Create Conventional Commit
@@ -367,7 +272,7 @@ WITH CHECK, causing 401 errors on INSERT operations. Changed to
 use WITH CHECK as required for INSERT policies.
 
 Fixed:
-- supabase/migrations/20251106000000_baseline_schema.sql
+- supabase/migrations/<timestamp>_song_favorites.sql
 - Changed USING to WITH CHECK for INSERT policy
 
 Fixes: Tests now passing (was 6/8, now 8/8)
@@ -404,8 +309,8 @@ git status
 # Verify changes look correct
 
 # 2. Stage relevant files
-git add .claude/specifications/unified-database-schema.md
-git add supabase/migrations/20251106000000_baseline_schema.sql
+git add src/types/database.types.ts
+git add supabase/migrations/<timestamp>_song_favorites.sql
 git add src/components/songs/FavoriteButton.tsx
 git add src/hooks/useFavorites.ts
 git add src/services/data/RemoteRepository.ts
@@ -413,7 +318,6 @@ git add tests/e2e/song-favorites.spec.ts
 
 # Do NOT stage:
 # - .claude/features/ (feature design docs - these ARE committed)
-# - .claude/artifacts/ (implementation summaries, archived)
 # - Any temp files or logs
 
 # 3. Create commit
@@ -561,13 +465,8 @@ pr-url: [GitHub PR URL]
 
 **Files Cleaned:**
 
-- `.claude/specifications/unified-database-schema.md`
-  - Removed 3 TODO markers
-  - Removed implementation checklist
-  - Added complete song_favorites documentation
-
-**TODOs Removed:** 3
-**Checklists Removed:** 2
+- `docs/DECISIONS.md`
+  - Added the favorites rule (dated, one-line why)
 
 ## Git Workflow
 
@@ -587,7 +486,6 @@ feat(songs): add favorite songs feature
 - 1 new hook
 - 1 service update
 - 1 migration update
-- 1 spec update
 - 2 test files
 
 ## Pull Request
@@ -638,8 +536,7 @@ feat(songs): add favorite songs feature
 
 Before marking finalization complete:
 
-- [ ] All documentation TODOs removed
-- [ ] All checklists removed from specifications
+- [ ] `docs/DECISIONS.md` / `docs/INDEX.md` updated if needed; no TODOs in committed docs
 - [ ] `npm run type-check` passing
 - [ ] `npm run lint` passing
 - [ ] `npm run build` succeeds
@@ -680,12 +577,9 @@ Before marking finalization complete:
 
 ### If Documentation TODOs Remain
 
-**If TODO found during cleanup:**
-
-1. Determine if work is actually complete
-2. If complete: Remove TODO and add documentation
-3. If incomplete: Loop back to Execute Agent
-4. Do NOT commit with TODOs in specifications
+1. Determine if the work is actually complete
+2. If complete: remove the TODO
+3. If incomplete: loop back to Execute Agent
 
 ### If Commit Message Is Too Long
 

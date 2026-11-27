@@ -4,8 +4,6 @@
 
 // Polyfill for crypto.randomUUID() - not available in older mobile browsers
 if (!crypto.randomUUID) {
-  console.warn('⚠️ crypto.randomUUID not available, using polyfill')
-
   crypto.randomUUID =
     function randomUUID(): `${string}-${string}-${string}-${string}-${string}` {
       // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx

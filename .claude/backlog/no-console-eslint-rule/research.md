@@ -27,7 +27,7 @@ However, direct `console.*` calls bypass this filtering and appear in production
 - `logger.debug()`, `logger.info()`, `logger.warn()`, `logger.error()`
 - `createLogger(namespace)` for namespaced logging
 
-**Specification:** `.claude/specifications/logging.md`
+**Logger:** `src/utils/logger.ts`
 
 ## Scope of Work
 
@@ -169,5 +169,4 @@ npm run lint -- src/services/data/SyncEngine.ts
 
 ## Related
 
-- Logging specification: `.claude/specifications/logging.md`
 - Logger utility: `src/utils/logger.ts`

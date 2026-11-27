@@ -29,7 +29,7 @@ const SIZE_CONFIG = {
  * Unified empty-state panel.
  *
  * Replaces 9+ inline icon+headline+subtext+CTA patterns across SongsPage,
- * SetlistsPage, ShowsPage, JamSessionPage, and BrowseSongsDrawer.
+ * SetlistsPage and ShowsPage.
  */
 export function EmptyState({
   icon: Icon,
@@ -81,7 +81,7 @@ function ActionButton({
   const styles =
     variant === 'primary'
       ? `${base} bg-accent/10 text-accent hover:bg-accent/20`
-      : `${base} text-ink-3 hover:text-white hover:bg-border-1`
+      : `${base} text-ink-3 hover:text-ink-1 hover:bg-border-1`
 
   return (
     <button

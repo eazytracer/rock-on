@@ -19,6 +19,8 @@ export interface Show {
   payment?: number // Payment in cents
   contacts?: ShowContact[]
   status: ShowStatus
+  /** The venue has said yes. Independent of status (0.11.0). */
+  confirmed?: boolean
   notes?: string
   createdDate: Date
   updatedDate: Date
@@ -37,41 +39,4 @@ export interface ShowContact {
   notes?: string
 }
 
-export type ShowStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
-
-/**
- * Default values for new shows
- */
-export const DEFAULT_SHOW_DURATION = 120 // 2 hours in minutes
-export const DEFAULT_SHOW_STATUS: ShowStatus = 'scheduled'
-
-/**
- * Helper to create a new show with defaults
- */
-export function createNewShow(
-  data: Partial<Show> & Pick<Show, 'bandId' | 'name' | 'scheduledDate'>
-): Show {
-  const now = new Date()
-
-  return {
-    id: crypto.randomUUID(),
-    duration: DEFAULT_SHOW_DURATION,
-    status: DEFAULT_SHOW_STATUS,
-    createdDate: now,
-    updatedDate: now,
-    contacts: [],
-    ...data,
-  }
-}
-
-/**
- * Helper to create a new contact with defaults
- */
-export function createNewContact(
-  data: Partial<ShowContact> & Pick<ShowContact, 'name' | 'role'>
-): ShowContact {
-  return {
-    id: crypto.randomUUID(),
-    ...data,
-  }
-}
+export type ShowStatus = 'scheduled' | 'completed' | 'cancelled'

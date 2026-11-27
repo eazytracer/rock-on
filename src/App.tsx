@@ -4,25 +4,47 @@ import {
   Routes,
   Route,
   Navigate,
+  useParams,
+  useSearchParams,
 } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
-import { ItemSyncStatusProvider } from './hooks/useItemSyncStatus.tsx'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from './services/queryClient'
 import { ProtectedLayoutRoute } from './components/layout/ProtectedLayoutRoute'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { AuthCallback } from './pages/auth/AuthCallback'
-import { ConflictResolutionModal } from './components/sync/ConflictResolutionModal'
-import { useSyncConflicts } from './hooks/useSyncConflicts'
+import { FEATURE_FLAGS } from './config/featureFlags'
 
 // Lazy load pages for better performance
-const AuthPages = lazy(() =>
-  import('./pages/AuthPages').then(module => ({
-    default: module.AuthPages,
+const SignInPage = lazy(() => import('./pages/auth/SignInPage'))
+const SignUpPage = lazy(() => import('./pages/auth/SignUpPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
+const GetStartedPage = lazy(() => import('./pages/auth/GetStartedPage'))
+const JamCodePage = lazy(() => import('./pages/auth/JamCodePage'))
+const BandPage = lazy(() => import('./pages/BandPage'))
+const BandProfilePage = lazy(() => import('./pages/BandProfilePage'))
+const BandNewPage = lazy(() => import('./pages/BandNewPage'))
+const JoinBandPage = lazy(() => import('./pages/JoinBandPage'))
+const JoinCodePage = lazy(() => import('./pages/jam/JoinCodePage'))
+const JamTvPage = lazy(() => import('./pages/jam/JamTvPage'))
+const KioskPage = lazy(() => import('./pages/jam/KioskPage'))
+const TermsPage = lazy(() =>
+  import('./pages/LegalPage').then(m => ({ default: m.TermsPage }))
+)
+const PrivacyPage = lazy(() =>
+  import('./pages/LegalPage').then(m => ({ default: m.PrivacyPage }))
+)
+const SongNewPage = lazy(() =>
+  import('./pages/SongNewPage').then(module => ({
+    default: module.SongNewPage,
   }))
 )
-const BandMembersPage = lazy(() =>
-  import('./pages/BandMembersPage').then(module => ({
-    default: module.BandMembersPage,
+const SongViewPage = lazy(() =>
+  import('./pages/SongViewPage').then(module => ({
+    default: module.SongViewPage,
   }))
 )
 const SongsPage = lazy(() =>
@@ -65,16 +87,11 @@ const SettingsPage = lazy(() =>
     default: module.SettingsPage,
   }))
 )
-const JamSessionPage = lazy(() =>
-  import('./pages/JamSessionPage').then(module => ({
-    default: module.JamSessionPage,
-  }))
-)
-const JamViewPage = lazy(() =>
-  import('./pages/JamViewPage').then(module => ({
-    default: module.JamViewPage,
-  }))
-)
+const JamHubPage = lazy(() => import('./pages/jam/JamHubPage'))
+const JamNewPage = lazy(() => import('./pages/jam/JamNewPage'))
+const JamPage = lazy(() => import('./pages/jam/JamPage'))
+const JamSongsPage = lazy(() => import('./pages/jam/JamSongsPage'))
+const JamConsolePage = lazy(() => import('./pages/jam/JamConsolePage'))
 // mobile-redesign-port: net-new IA screens (Home / Calendar / More / Notifications)
 const HomePage = lazy(() =>
   import('./pages/HomePage').then(module => ({ default: module.HomePage }))
@@ -97,24 +114,23 @@ const FriendsPage = lazy(() =>
     default: module.FriendsPage,
   }))
 )
-const EventsPage = lazy(() =>
-  import('./pages/EventsPage').then(module => ({ default: module.EventsPage }))
+
+const ChartPage = lazy(() =>
+  import('./pages/ChartPage').then(module => ({ default: module.ChartPage }))
 )
-const EventDetailPage = lazy(() =>
-  import('./pages/EventDetailPage').then(module => ({
-    default: module.EventDetailPage,
+const ChartEditPage = lazy(() =>
+  import('./pages/ChartEditPage').then(module => ({
+    default: module.ChartEditPage,
   }))
 )
-const EventCreatePage = lazy(() =>
-  import('./pages/EventCreatePage').then(module => ({
-    default: module.EventCreatePage,
-  }))
+const ToolsPage = lazy(() =>
+  import('./pages/ToolsPage').then(module => ({ default: module.ToolsPage }))
 )
 
 // Dev-only pages
-const DevDashboard = lazy(() =>
-  import('./pages/DevDashboard/DevDashboard').then(module => ({
-    default: module.DevDashboard,
+const DevAudioHarnessPage = lazy(() =>
+  import('./pages/DevAudioHarnessPage').then(module => ({
+    default: module.DevAudioHarnessPage,
   }))
 )
 const DevUIPreviewPage = lazy(() =>
@@ -123,11 +139,31 @@ const DevUIPreviewPage = lazy(() =>
   }))
 )
 
+/** The practice page edits in place; the old editor URL lands there. */
+/** Old Events links (in the wild): `/events?join=CODE` → `/j/CODE`, else the hub. */
+const EventsRedirect: React.FC = () => {
+  const [params] = useSearchParams()
+  const code = params.get('join')
+  return <Navigate to={code ? `/j/${code}` : '/jam'} replace />
+}
+const EventRedirect: React.FC = () => {
+  const { eventId } = useParams<{ eventId: string }>()
+  return <Navigate to={`/jam/${eventId}`} replace />
+}
+/** The 0.3 public view: `/jam/view/:code` → `/j/:code`. */
+const JamViewRedirect: React.FC = () => {
+  const { shortCode } = useParams<{ shortCode: string }>()
+  return <Navigate to={`/j/${shortCode}`} replace />
+}
+
+const PracticeEditRedirect: React.FC = () => {
+  const { practiceId } = useParams<{ practiceId: string }>()
+  return <Navigate to={`/practices/${practiceId}`} replace />
+}
+
 const AppContent: React.FC = () => {
   const { syncing, realtimeManager } = useAuth()
   const { showToast } = useToast()
-  const { currentConflict, resolveConflict, dismissConflict } =
-    useSyncConflicts()
 
   // Listen for toast events from RealtimeManager
   // CRITICAL: We must use a ref to the listener so we can properly clean it up
@@ -139,9 +175,6 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (!realtimeManager) {
-      console.warn(
-        '[AppContent] No realtimeManager, toast listener not registered'
-      )
       return
     }
 
@@ -158,17 +191,14 @@ const AppContent: React.FC = () => {
       message: string
       type: 'info' | 'success' | 'error'
     }) => {
-      console.log('[AppContent] Realtime toast received:', message, type)
       showToast(message, type)
     }
     toastHandlerRef.current = handleToast
 
-    console.log('[AppContent] Registering toast listener')
     realtimeManager.on('toast', handleToast)
 
     return () => {
       if (realtimeManager && toastHandlerRef.current) {
-        console.log('[AppContent] Unregistering toast listener')
         realtimeManager.off('toast', toastHandlerRef.current)
       }
     }
@@ -179,19 +209,12 @@ const AppContent: React.FC = () => {
     // The previous `bg-surface` (`#F5F5F5`) caused a light-gray flash to
     // show through during route-level Suspense fallbacks.
     <div className="min-h-screen bg-bg-0">
-      {/* Sync conflict resolution modal */}
-      <ConflictResolutionModal
-        conflict={currentConflict}
-        onResolve={resolveConflict}
-        onDismiss={dismissConflict}
-      />
-
       {/* Sync indicator overlay — themed to match the app (dark surface
           with brand-orange accent). Previously `bg-blue-600`, which was
           the visible "blue banner" at the top of every page while sync
           was in flight. */}
       {syncing && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-bg-2 border-b border-border-1 text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-bg-2 border-b border-border-1 text-ink-1 px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
           <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
           <span className="text-ink-3">Syncing your data from cloud...</span>
         </div>
@@ -206,16 +229,33 @@ const AppContent: React.FC = () => {
       >
         <Routes>
           {/* Auth routes - public (no layout) */}
-          <Route path="/auth" element={<AuthPages />} />
+          <Route path="/auth" element={<SignInPage />} />
+          <Route path="/auth/signup" element={<SignUpPage />} />
+          <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
+          <Route path="/auth/reset" element={<ResetPasswordPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/get-started" element={<AuthPages />} />
+          <Route path="/get-started" element={<GetStartedPage />} />
+          <Route path="/get-started/jam" element={<JamCodePage />} />
 
-          {/* Dev Dashboard - accessible in development only (no layout) */}
-          <Route path="/dev/dashboard" element={<DevDashboard />} />
+          {/* Dev-only preview page (no layout) */}
           <Route path="/dev/ui-preview" element={<DevUIPreviewPage />} />
+          {import.meta.env.DEV && (
+            <Route
+              path="/dev/audio-harness"
+              element={<DevAudioHarnessPage />}
+            />
+          )}
 
-          {/* Public jam session view — no auth required */}
-          <Route path="/jam/view/:shortCode" element={<JamViewPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+
+          {/* The 0.3 jam view link: to the code resolver. */}
+          <Route path="/jam/view/:shortCode" element={<JamViewRedirect />} />
+          {/* Jam codes and band invites (resolver), the bar TV, the counter iPad:
+              public, no layout (the resolver adds it for signed-in visitors). */}
+          <Route path="/j/:code" element={<JoinCodePage />} />
+          <Route path="/j/:code/tv" element={<JamTvPage />} />
+          <Route path="/kiosk" element={<KioskPage />} />
 
           {/* Protected routes - with persistent layout */}
           {/* ModernLayout stays mounted during navigation between these routes */}
@@ -225,43 +265,67 @@ const AppContent: React.FC = () => {
             <Route path="/more" element={<MorePage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/events/new" element={<EventCreatePage />} />
-            <Route path="/events/:eventId" element={<EventDetailPage />} />
+            <Route path="/events" element={<EventsRedirect />} />
+            <Route
+              path="/events/new"
+              element={<Navigate to="/jam/new" replace />}
+            />
+            <Route path="/events/:eventId" element={<EventRedirect />} />
             <Route path="/songs" element={<SongsPage />} />
+            <Route path="/songs/new" element={<SongNewPage />} />
+            <Route path="/songs/:songId" element={<SongViewPage />} />
+            <Route path="/songs/:songId/chart" element={<ChartPage />} />
+            <Route
+              path="/songs/:songId/chart/edit"
+              element={<ChartEditPage />}
+            />
             <Route path="/setlists" element={<SetlistsPage />} />
             <Route path="/setlists/new" element={<SetlistViewPage />} />
             <Route path="/setlists/:setlistId" element={<SetlistViewPage />} />
-            <Route path="/shows" element={<ShowsPage />} />
+            <Route
+              path="/shows"
+              element={
+                FEATURE_FLAGS.REDESIGN_CALENDAR ? (
+                  <Navigate to="/calendar?type=show" replace />
+                ) : (
+                  <ShowsPage />
+                )
+              }
+            />
             <Route path="/shows/new" element={<ShowViewPage />} />
             <Route path="/shows/:showId" element={<ShowViewPage />} />
-            {/* The standalone practices list was consolidated into the Calendar
-                agenda (calendar consolidation). Redirect the retired /practices
-                route to the canonical filtered calendar for old bookmarks. The
-                /practices/new and /practices/:id detail routes remain live. */}
+            {/* Practices live on the Calendar; the page (new, edit in place)
+                and the session stay. */}
             <Route
               path="/practices"
-              element={<Navigate to="/calendar?filter=practices" replace />}
+              element={<Navigate to="/calendar?type=practice" replace />}
             />
             <Route path="/practices/new" element={<PracticeViewPage />} />
             <Route
               path="/practices/:practiceId"
               element={<PracticeViewPage />}
             />
-            {/* Retired PracticeBuilderPage (D2): /edit now redirects to the
-                canonical inline-edit view for any stale links/bookmarks. */}
             <Route
               path="/practices/:practiceId/edit"
-              element={<Navigate to=".." relative="path" replace />}
+              element={<PracticeEditRedirect />}
             />
             <Route
               path="/practices/:practiceId/session"
               element={<PracticeSessionPage />}
             />
-            <Route path="/band-members" element={<BandMembersPage />} />
+            <Route path="/band" element={<BandPage />} />
+            <Route path="/band/profile" element={<BandProfilePage />} />
+            <Route path="/band/new" element={<BandNewPage />} />
+            <Route path="/j" element={<JoinBandPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/jam" element={<JamSessionPage />} />
-            <Route path="/jam/:sessionId" element={<JamSessionPage />} />
+            <Route path="/settings/:section" element={<SettingsPage />} />
+            <Route path="/jam" element={<JamHubPage />} />
+            <Route path="/jam/new" element={<JamNewPage />} />
+            <Route path="/jam/songs" element={<JamSongsPage />} />
+            <Route path="/jam/:id" element={<JamPage />} />
+            <Route path="/jam/:id/live" element={<JamConsolePage />} />
+            <Route path="/tools" element={<ToolsPage />} />
+            <Route path="/tools/:tab" element={<ToolsPage />} />
           </Route>
         </Routes>
       </Suspense>
@@ -271,15 +335,17 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <ToastProvider>
-          <ItemSyncStatusProvider>
-            <AppContent />
-          </ItemSyncStatusProvider>
-        </ToastProvider>
-      </AuthProvider>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <AuthProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <AppContent />
+            </ToastProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </Router>
+    </QueryClientProvider>
   )
 }
 

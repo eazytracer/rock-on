@@ -11,6 +11,7 @@ import {
   setupConsoleErrorTracking,
   assertNoConsoleErrors,
 } from '../../helpers/assertions'
+import { createBandViaUI } from '../../fixtures/bands'
 
 test.describe('Protected Routes', () => {
   test.describe('Unauthenticated Access', () => {
@@ -45,10 +46,10 @@ test.describe('Protected Routes', () => {
       await expect(page).toHaveURL(/\/auth/, { timeout: 5000 })
     })
 
-    test('redirects unauthenticated users from /band-members to /auth', async ({
+    test('redirects unauthenticated users from /band to /auth', async ({
       page,
     }) => {
-      await page.goto('/band-members')
+      await page.goto('/band')
       await expect(page).toHaveURL(/\/auth/, { timeout: 5000 })
     })
   })
@@ -64,13 +65,7 @@ test.describe('Protected Routes', () => {
 
       // Create a band
       const bandName = `Test Band ${Date.now()}`
-      await page.fill(
-        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-        bandName
-      )
-      await page.click(
-        '[data-testid="create-band-button"], button:has-text("Create Band")'
-      )
+      await createBandViaUI(page, bandName)
 
       // Wait for redirect to songs
       await page.waitForURL(/\/songs/, { timeout: 10000 })
@@ -114,13 +109,7 @@ test.describe('Protected Routes', () => {
       await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
       const bandName = `Test Band ${Date.now()}`
-      await page.fill(
-        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-        bandName
-      )
-      await page.click(
-        '[data-testid="create-band-button"], button:has-text("Create Band")'
-      )
+      await createBandViaUI(page, bandName)
 
       await page.waitForURL(/\/songs/, { timeout: 10000 })
 
@@ -189,13 +178,7 @@ test.describe('Protected Routes', () => {
       await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
       const bandName = `Test Band ${Date.now()}`
-      await page.fill(
-        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-        bandName
-      )
-      await page.click(
-        '[data-testid="create-band-button"], button:has-text("Create Band")'
-      )
+      await createBandViaUI(page, bandName)
 
       await page.waitForURL(/\/songs/, { timeout: 10000 })
 
@@ -223,13 +206,7 @@ test.describe('Protected Routes', () => {
       await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
       const bandName = `Test Band ${Date.now()}`
-      await page.fill(
-        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-        bandName
-      )
-      await page.click(
-        '[data-testid="create-band-button"], button:has-text("Create Band")'
-      )
+      await createBandViaUI(page, bandName)
 
       await page.waitForURL(/\/songs/, { timeout: 10000 })
 
@@ -277,13 +254,7 @@ test.describe('Protected Routes', () => {
       await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
       const bandName = `Test Band ${Date.now()}`
-      await page.fill(
-        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-        bandName
-      )
-      await page.click(
-        '[data-testid="create-band-button"], button:has-text("Create Band")'
-      )
+      await createBandViaUI(page, bandName)
 
       await page.waitForURL(/\/songs/, { timeout: 10000 })
 
@@ -319,13 +290,7 @@ test.describe('Protected Routes', () => {
       await expect(page).toHaveURL(/\/get-started/, { timeout: 10000 })
 
       const bandName = `Test Band ${Date.now()}`
-      await page.fill(
-        '[data-testid="create-band-name-input"], input[name="bandName"], input[id="band-name"]',
-        bandName
-      )
-      await page.click(
-        '[data-testid="create-band-button"], button:has-text("Create Band")'
-      )
+      await createBandViaUI(page, bandName)
 
       await page.waitForURL(/\/songs/, { timeout: 10000 })
 
@@ -343,10 +308,14 @@ test.describe('Protected Routes', () => {
 
       // Click a navigation link instead of direct URL navigation
       // This tests the React Router navigation path
+      // The SDK may notice the missing session on its own and redirect before
+      // the click lands — either path must end on /auth.
       const setlistsLink = page
         .locator('a[href="/setlists"], nav >> text=Setlists')
         .first()
-      await setlistsLink.click()
+      if (!/\/auth/.test(page.url())) {
+        await setlistsLink.click({ timeout: 5000 }).catch(() => {})
+      }
 
       // Should be redirected to auth page
       await expect(page).toHaveURL(/\/auth/, { timeout: 5000 })

@@ -65,9 +65,15 @@ export const FEATURE_FLAGS = {
     'SYNC_USE_AUDIT_LOG',
     true // Enabled by default - this is the bugfix
   ),
-} as const
 
-// Log feature flags in development
-if (typeof window !== 'undefined' && import.meta.env.MODE === 'development') {
-  console.log('🚩 Feature Flags:', FEATURE_FLAGS)
-}
+  /**
+   * Redesign phase 4: the Shows list page is retired into the Calendar
+   * (`/shows` → `/calendar?type=show`). Turn off to bring the old list back.
+   * Override: localStorage.setItem('REDESIGN_CALENDAR', 'false')
+   */
+  REDESIGN_CALENDAR: isEnabled(
+    'VITE_REDESIGN_CALENDAR',
+    'REDESIGN_CALENDAR',
+    true
+  ),
+} as const

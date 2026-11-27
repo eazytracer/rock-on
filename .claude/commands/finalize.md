@@ -29,7 +29,9 @@ Complete a feature implementation with final quality checks, documentation updat
    - `npm run type-check` - TypeScript validation
    - `npm run lint` - Code style
    - `npm test` - All unit/integration tests
+   - `npm run lint:migrations` + `npm run test:db` - GRANTs and pgTAP (if the schema changed)
    - `npm run test:e2e` - E2E tests (if applicable)
+   - On the host use the `just` recipes (`just check`, `just test-db`, `just test-e2e`)
 
 2. **Validates completeness**:
    - All tasks in `tasks.md` marked complete
@@ -39,7 +41,7 @@ Complete a feature implementation with final quality checks, documentation updat
 
 3. **Updates documentation**:
    - Updates `CLAUDE.md` if new patterns introduced
-   - Creates/updates relevant specs in `.claude/specifications/`
+   - Adds hard rules to `docs/DECISIONS.md`; updates `docs/INDEX.md` if an area moved
    - Adds JSDoc comments where needed
 
 4. **Completes feature**:
@@ -48,10 +50,10 @@ Complete a feature implementation with final quality checks, documentation updat
    - Moves directory to `.claude/completed/<feature-name>/`
    - Updates `CHANGELOG.md` with feature entry
 
-5. **Handles versioning** (optional):
-   - Prompts for version bump if warranted
-   - Updates `package.json` version
-   - Suggests GitHub release tag
+5. **Handles versioning** (required for prod-bound PRs; see below):
+   - Bumps `package.json` version
+   - Adds a dated CHANGELOG section and a `release_notes` row
+   - Tagging happens after merge via `/release`
 
 6. **Prepares git workflow**:
    - Shows `git status` summary

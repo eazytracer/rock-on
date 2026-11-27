@@ -39,7 +39,7 @@ export const ContentLoadingSpinner: React.FC<ContentLoadingSpinnerProps> = ({
       >
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-400 text-sm">Loading...</span>
+          <span className="text-ink-3 text-sm">Loading...</span>
         </div>
       </div>
     )
