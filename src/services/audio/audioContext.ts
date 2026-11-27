@@ -10,17 +10,6 @@ const log = createLogger('audioContext')
 type Ctor = typeof AudioContext
 let ctx: AudioContext | null = null
 
-/** True where Web Audio exists. */
-export function audioSupported(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    !!(
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext?: Ctor }).webkitAudioContext
-    )
-  )
-}
-
 /** The shared context (created on first use). */
 export function getAudioContext(): AudioContext {
   if (!ctx) {

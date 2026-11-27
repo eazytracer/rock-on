@@ -37,26 +37,6 @@ export function formatShowDate(date: Date | string): string {
 }
 
 /**
- * Format a date with time for show details
- * Example: "Dec 8, 2025 at 8:00 PM"
- */
-export function formatShowDateTime(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-
-  if (!d || isNaN(d.getTime())) return ''
-
-  const dateStr = d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-
-  const timeStr = formatTime12Hour(d)
-
-  return `${dateStr} at ${timeStr}`
-}
-
-/**
  * Format time in 12-hour format: "8:00 PM"
  */
 export function formatTime12Hour(date: Date | string): string {
@@ -115,22 +95,6 @@ export function roundUpToQuarterHour(date: Date = new Date()): Date {
   const next = Math.ceil(minutes / 15) * 15
   result.setMinutes(next) // handles 60 → rolls to next hour
   return result
-}
-
-/**
- * Check if a date is in the past
- */
-export function isPastDate(date: Date | string): boolean {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d < new Date()
-}
-
-/**
- * Check if a date is upcoming (future)
- */
-export function isUpcomingDate(date: Date | string): boolean {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d >= new Date()
 }
 
 /**
@@ -260,31 +224,4 @@ export function formatDateTimeForInput(date: Date | string): string {
   const minutes = String(d.getMinutes()).padStart(2, '0')
 
   return `${year}-${month}-${day}T${hours}:${minutes}`
-}
-
-/**
- * Get relative time string like "2 days from now" or "3 weeks ago"
- */
-export function getRelativeTimeString(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  const now = new Date()
-  const diffMs = d.getTime() - now.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Tomorrow'
-  if (diffDays === -1) return 'Yesterday'
-  if (diffDays > 1 && diffDays < 7) return `In ${diffDays} days`
-  if (diffDays < -1 && diffDays > -7) return `${Math.abs(diffDays)} days ago`
-  if (diffDays >= 7 && diffDays < 14) return 'Next week'
-  if (diffDays >= 14 && diffDays < 30)
-    return `In ${Math.floor(diffDays / 7)} weeks`
-  if (diffDays <= -7 && diffDays > -14) return 'Last week'
-  if (diffDays <= -14 && diffDays > -30)
-    return `${Math.floor(Math.abs(diffDays) / 7)} weeks ago`
-  if (diffDays >= 30) return `In ${Math.floor(diffDays / 30)} months`
-  if (diffDays <= -30)
-    return `${Math.floor(Math.abs(diffDays) / 30)} months ago`
-
-  return formatShowDate(d)
 }

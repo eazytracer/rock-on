@@ -120,17 +120,6 @@ export function useDuplicateSong() {
   return (songId: string) => mutation.mutateAsync(songId)
 }
 
-export function useSetBandNote() {
-  const queryClient = useQueryClient()
-  const mutation = useMutation({
-    mutationFn: (v: { songId: string; notes: string; version?: number }) =>
-      setBandNote(v.songId, v.notes, v.version),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['songs'] }),
-  })
-  return (songId: string, notes: string, version?: number) =>
-    mutation.mutateAsync({ songId, notes, version })
-}
-
 /** One song, fresh from the server (song view). */
 export function useSong(songId: string, initial?: Song) {
   const query = useQuery({

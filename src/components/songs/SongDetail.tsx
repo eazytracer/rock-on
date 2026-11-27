@@ -1,7 +1,8 @@
 /**
- * The desktop Songs pane (docs/redesign/10 · 1.6): a read-only preview of the
- * selected song. One way out: Open goes to the song page, where a song is
- * edited (double-clicking the row does the same).
+ * The desktop song pane (docs/redesign/10 · 1.6; Songs, setlists, practices):
+ * a read-only preview of the selected song. One way out: Open goes to the song
+ * page, where a song is edited (double-clicking the row does the same), with
+ * Back to the list it came from (`origin`).
  */
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -13,6 +14,7 @@ import {
   CalendarDays,
   Mic2,
   Maximize2,
+  X,
 } from 'lucide-react'
 import type { Song } from '../../models/Song'
 import { TuningPill } from '../ui'
@@ -23,7 +25,9 @@ import { formatSeconds, showKey } from '../../domain/format'
 import { usePersonalNote } from '../../hooks/useNotes'
 import { useSongUsage } from '../../hooks/useSongCatalog'
 import { formatShowDate } from '../../utils/dateHelpers'
-import { songHref } from '../../utils/songOrigin'
+import { formatOrigin, songHref, type SongOrigin } from '../../utils/songOrigin'
+
+const SONGS: SongOrigin = { kind: 'songs' }
 
 const SECTION =
   'px-1 pt-5 pb-2 font-mono text-[11px] tracking-[.14em] uppercase text-ink-3 flex items-center'
@@ -31,14 +35,17 @@ const SECTION =
 export const SongDetail: React.FC<{
   song: Song
   userId: string
-}> = ({ song, userId }) => {
+  origin?: SongOrigin
+  /** Shows × (a pane that can close; the Songs pane always has a song). */
+  onClose?: () => void
+}> = ({ song, userId, origin = SONGS, onClose }) => {
   const navigate = useNavigate()
   const isBand = song.contextType === 'band'
   const bandId = isBand ? song.contextId : ''
   const { personalNote } = usePersonalNote(song.id, userId, bandId)
   const { usage } = useSongUsage(song.id)
 
-  const open = () => navigate(songHref(song.id, { kind: 'songs' }))
+  const open = () => navigate(songHref(song.id, origin))
 
   const facts = [
     ['Key', song.key ? showKey(song.key) : '—'],
@@ -61,6 +68,17 @@ export const SongDetail: React.FC<{
         >
           <Maximize2 size={15} /> Open
         </button>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close preview"
+            className="shrink-0 -mt-1 grid place-items-center w-9 h-9 rounded-full bg-bg-3 text-ink-2 hover:bg-bg-4 hover:text-ink-1"
+            data-testid="song-pane-close"
+          >
+            <X size={17} />
+          </button>
+        )}
       </div>
       <h1
         className="font-display font-extrabold uppercase leading-[.9] text-ink-1 break-words text-[40px]"
@@ -86,7 +104,7 @@ export const SongDetail: React.FC<{
       <div className="mt-4 flex gap-2">
         <ChartButton
           song={song}
-          search="?from=songs"
+          search={`?${new URLSearchParams({ from: formatOrigin(origin) })}`}
           testId="songs-pane-chords-button"
         />
       </div>

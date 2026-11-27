@@ -39,30 +39,3 @@ export interface Song {
   notesEditedBy?: string
   notesEditedAt?: Date
 }
-
-export const SongSchema = {
-  '++id': '',
-  title: '',
-  artist: '',
-  album: '',
-  duration: '',
-  key: '',
-  bpm: '',
-  difficulty: '',
-  guitarTuning: '',
-  structure: '',
-  lyrics: '',
-  chords: '',
-  notes: '',
-  referenceLinks: '',
-  tags: '',
-  createdDate: '',
-  lastPracticed: '',
-  confidenceLevel: '',
-  contextType: '',
-  contextId: '',
-  createdBy: '',
-  visibility: '',
-  songGroupId: '',
-  linkedFromSongId: '',
-}

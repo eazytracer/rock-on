@@ -8,12 +8,3 @@ export interface Band {
   settings: BandSettings
   memberIds: string[]
 }
-
-export const BandSchema = {
-  '++id': '',
-  name: '',
-  description: '',
-  createdDate: '',
-  settings: '',
-  memberIds: '',
-}

@@ -34,7 +34,7 @@ import { readSongsFilter, writeSongsFilter } from '../hooks/useSongOrigin'
 import { useConfirm } from '../hooks/useConfirm'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { SongRow } from '../components/songs/SongRow'
-import { SongDetail } from '../components/songs/SongDetail'
+import { SongPane } from '../components/songs/SongPane'
 import { TuningFilter } from '../components/songs/TuningFilter'
 import {
   SongMenu,
@@ -527,14 +527,7 @@ export const SongsPage: React.FC = () => {
 
       {!isDesktop && songs.length > 0 && <DockAction>{addButton}</DockAction>}
 
-      {hasPane && selected && (
-        <aside
-          className="fixed right-0 top-0 h-screen w-[400px] 2xl:w-[480px] border-l border-border-1 bg-bg-1 overflow-y-auto custom-scrollbar-thin px-6 pt-7"
-          data-testid="song-pane"
-        >
-          <SongDetail key={selected.id} song={selected} userId={userId} />
-        </aside>
-      )}
+      {hasPane && selected && <SongPane song={selected} userId={userId} />}
 
       {menu && (
         <SongMenu

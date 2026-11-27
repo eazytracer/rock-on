@@ -36,13 +36,13 @@ one song row, `SongDetail`, `SongSheets`, `EditSongModal` for Add only, `Spotify
 **Setlists.** `/setlists` (index of cards), `/setlists/new`, `/setlists/:setlistId` (editor full width; saves as
 you go; retune lines, breaks, sections, timeline, name switcher). `pages/SetlistsPage.tsx`,
 `SetlistViewPage.tsx`, `components/setlists/*` (`SongBrowser` is the one Add songs picker), `hooks/useSetlists.ts`,
-`hooks/useDragAndDrop.ts`, `services/api/setlists.ts`, `domain/setlist.ts`.
+`services/api/setlists.ts`, `domain/setlist.ts`.
 
 **Calendar, shows, practices.** `/calendar` (agenda, All · Shows · Practices · Jams filters; `/shows` and
 `/practices` redirect here), `/shows/new`, `/shows/:showId` (show page, edit in place, set copy),
 `/practices/new`, `/practices/:practiceId` (practice page, edit in place), `/practices/:practiceId/session`
 (stage screen). `pages/CalendarPage.tsx`, `ShowViewPage.tsx`, `PracticeViewPage.tsx`, `PracticeSessionPage.tsx`,
-`components/calendar/*`, `components/sessions/*`; hooks `useCalendar`, `useShows`, `usePractices`, `useWakeLock`,
+`components/calendar/*`; hooks `useCalendar`, `useShows`, `usePractices`, `useWakeLock`,
 `useStageKeys`; `services/api/calendar.ts`; `domain/calendar.ts`. `ShowsPage.tsx` is the old list, behind the
 `REDESIGN_CALENDAR` flag (`config/featureFlags.ts`).
 
@@ -120,7 +120,7 @@ smoke only through those scripts.
 ## Tests
 
 `tests/README.md` is the single source for commands and layout. `tests/unit/` mirrors `src/` (Vitest),
-`tests/integration/`, `tests/contract/`, `tests/e2e/<area>/` (Playwright, needs the stack up), `tests/fixtures/`,
+`tests/integration/`, `tests/e2e/<area>/` (Playwright, needs the stack up), `tests/fixtures/`,
 `tests/helpers/`. pgTAP lives in `supabase/tests/`.
 
 ## Scripts and just

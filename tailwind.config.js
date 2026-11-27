@@ -39,20 +39,6 @@ export default {
         'type-practice': 'rgb(var(--type-practice-rgb) / <alpha-value>)',
         'type-jam': 'rgb(var(--type-jam-rgb) / <alpha-value>)',
 
-        // Legacy brand aliases — point at the unified accent / token surfaces so the
-        // ~65 arbitrary-hex files migrate cleanly and the two oranges collapse to one.
-        'energy-orange': 'rgb(var(--accent-rgb) / <alpha-value>)',
-        'stage-black': 'rgb(var(--bg-1-rgb) / <alpha-value>)',
-        // M-2 fix: these five previously kept the ORIGINAL light-theme hex and
-        // rendered light-on-dark (bg-surface white flash, DevDashboard text-text).
-        // All repointed at dark tokens. NOTE: smoke-white/steel-gray/electric-yellow
-        // consumers (auth/*Form, notes/SongNotesPanel chain) are dead code — kept, not
-        // deleted, per project convention; repoint is purely defensive.
-        'electric-yellow': 'rgb(var(--warn-rgb) / <alpha-value>)',
-        'smoke-white': 'rgb(var(--ink-2-rgb) / <alpha-value>)',
-        'amp-red': 'rgb(var(--danger-rgb) / <alpha-value>)',
-        'steel-gray': 'rgb(var(--border-1-rgb) / <alpha-value>)',
-
         // Semantic Aliases
         primary: 'rgb(var(--accent-rgb) / <alpha-value>)',
         secondary: 'rgb(var(--warn-rgb) / <alpha-value>)',
@@ -64,15 +50,6 @@ export default {
         // Elevated card surface = one step up from the page background.
         'surface-elevated': 'rgb(var(--bg-2-rgb) / <alpha-value>)',
         text: 'rgb(var(--ink-1-rgb) / <alpha-value>)',
-
-        // Keep existing confidence colors
-        confidence: {
-          1: '#ef4444',
-          2: '#f97316',
-          3: '#eab308',
-          4: '#22c55e',
-          5: '#10b981',
-        },
       },
       boxShadow: {
         float: 'var(--shadow-float)',
@@ -81,10 +58,6 @@ export default {
       },
       transitionTimingFunction: {
         rock: 'cubic-bezier(.2,0,0,1)',
-      },
-      spacing: {
-        touch: '44px', // iOS minimum touch target
-        'touch-lg': '56px', // Comfortable touch target
       },
       screens: {
         xs: '320px',

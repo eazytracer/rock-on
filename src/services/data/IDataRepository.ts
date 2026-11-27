@@ -36,7 +36,7 @@ export interface BandFilter {
 
 /**
  * Data repository interface
- * Abstracts data access for local, remote, or synchronized storage
+ * Abstracts data access (implemented by RemoteRepository over Supabase)
  */
 export interface IDataRepository {
   // ========== SONGS ==========
@@ -118,7 +118,6 @@ export interface IDataRepository {
 
   /**
    * Create a new invite code
-   * Automatically syncs to Supabase via SyncEngine
    */
   addInviteCode(inviteCode: InviteCode): Promise<InviteCode>
 

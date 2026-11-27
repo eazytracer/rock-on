@@ -131,7 +131,10 @@
 --       refusal: no_jam, invite_only · raises: rate_limited
 --   join_event_by_code (legacy pages) now refuses non-code, ended and locked jams.
 --
--- No release_notes row: the redesign ships as one release (Phase 5 decision 3).
+-- release_notes: the redesign ships to production as one release, 1.0.0
+-- (Phase 5 decision 3). Production last shipped 0.5.0, so the rows the earlier
+-- redesign migrations added for 0.6.0–0.11.0 (never released) are removed and
+-- one 1.0.0 entry replaces them.
 -- Idempotent.
 -- ============================================================================
 
@@ -2932,3 +2935,28 @@ BEGIN
     EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon', r.sig);
   END LOOP;
 END $$;
+
+-- ── release_notes: 1.0.0 ─────────────────────────────────────────────────────
+DELETE FROM public.release_notes
+ WHERE version IN ('0.6.0', '0.6.1', '0.7.0', '0.8.0', '0.9.0', '0.9.1', '0.10.0', '0.11.0');
+
+INSERT INTO public.release_notes (version, title, body) VALUES (
+  '1.0.0',
+  'A whole new Rock On',
+  $md$Rock On has been rebuilt from the ground up, with a fresh look and everything
+your band needs in fewer taps:
+
+- **Songs** open as a page, with chords and lyrics you can read on stage, links,
+  notes and the song's tuning.
+- **Setlists** edit in place: drag to reorder, breaks and sections, retunes
+  between songs, and a running time against your slot.
+- **One Calendar** for shows, practices and jams. Plan a practice from a
+  setlist, then run it live with big Prev / Next buttons, the chart on screen
+  and a wrap-up at the end.
+- **Jam**: host a night, share a code, and let anyone join from their phone, no
+  account needed.
+- **Tools**: a tuner, a metronome and chord charts, one tap from any song.
+- **Your band and friends**: invite by link or code, band roles, and privacy
+  settings for what friends see.$md$
+) ON CONFLICT (version) DO UPDATE
+  SET title = EXCLUDED.title, body = EXCLUDED.body;

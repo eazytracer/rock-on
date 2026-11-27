@@ -171,7 +171,7 @@ export class RemoteRepository implements IDataRepository {
     if (song.album !== undefined) result.album = song.album || null
     if (song.duration !== undefined) result.duration = song.duration
     if (song.key !== undefined) result.key = song.key
-    if (song.bpm !== undefined) result.tempo = song.bpm // bpm (IndexedDB) -> tempo (Supabase)
+    if (song.bpm !== undefined) result.tempo = song.bpm // bpm (model) -> tempo (Supabase)
     if (song.difficulty !== undefined) result.difficulty = song.difficulty
     if (song.guitarTuning !== undefined)
       result.guitar_tuning = song.guitarTuning
@@ -208,14 +208,14 @@ export class RemoteRepository implements IDataRepository {
       album: row.album ?? '',
       duration: row.duration ?? 0,
       key: row.key,
-      bpm: row.tempo ?? 0, // tempo (Supabase) -> bpm (IndexedDB)
+      bpm: row.tempo ?? 0, // tempo (Supabase) -> bpm (model)
       difficulty: row.difficulty ?? 1,
-      guitarTuning: row.guitar_tuning ?? 'Standard', // guitar_tuning (Supabase) -> guitarTuning (IndexedDB)
+      guitarTuning: row.guitar_tuning ?? 'Standard', // guitar_tuning (Supabase) -> guitarTuning (model)
       tuningId: row.tuning_id ?? null,
-      structure: [], // IndexedDB only - not in Supabase
-      lyrics: '', // IndexedDB only - not in Supabase (Supabase has lyrics_url instead)
-      chords: [], // IndexedDB only - not in Supabase (Supabase has chords_url instead)
-      // reference_links (Supabase JSONB) -> referenceLinks (IndexedDB)
+      structure: [], // model only - not in Supabase
+      lyrics: '', // model only - not in Supabase (Supabase has lyrics_url instead)
+      chords: [], // model only - not in Supabase (Supabase has chords_url instead)
+      // reference_links (Supabase JSONB) -> referenceLinks (model)
       // Support both old 'type' and new 'icon' field names for backward compatibility
       referenceLinks: (row.reference_links ?? []).map((link: any) => ({
         icon: link.icon ?? link.type ?? 'other',
@@ -694,7 +694,7 @@ export class RemoteRepository implements IDataRepository {
       name: row.name ?? undefined,
       location: row.location ?? '',
       type: row.type ?? 'rehearsal',
-      status: 'scheduled', // Default status for IndexedDB (not in Supabase)
+      status: 'scheduled', // model default (not in Supabase)
       notes: row.notes ?? '',
       wrapupNotes: row.wrapup_notes ?? '',
       objectives: row.objectives ?? [],
@@ -1310,7 +1310,7 @@ export class RemoteRepository implements IDataRepository {
       permissions: membership.permissions ?? [],
       joined_date: membership.joinedDate,
       status: membership.status,
-      // Note: nickname, customRole exist in IndexedDB only
+      // Note: nickname, customRole exist in the model only
       // Note: Supabase has NO updated_date field
     }
   }

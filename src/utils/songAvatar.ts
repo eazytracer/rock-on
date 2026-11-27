@@ -1,8 +1,5 @@
 /**
  * Song avatar utilities — canonical source for avatar color + initials generation.
- *
- * Previously duplicated in SongListItem, BrowseSongsDrawer, SetlistsPage,
- * PracticeBuilderPage, and BandPage. Import from here instead.
  */
 
 const AVATAR_COLORS = [

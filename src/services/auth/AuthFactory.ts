@@ -30,22 +30,5 @@ export function createAuthService(): IAuthService {
   return authServiceInstance
 }
 
-/**
- * Get the current auth service instance
- */
-export function getAuthService(): IAuthService {
-  if (!authServiceInstance) {
-    return createAuthService()
-  }
-  return authServiceInstance
-}
-
-/**
- * Reset the auth service instance (useful for testing)
- */
-export function resetAuthService(): void {
-  authServiceInstance = null
-}
-
 // Export singleton instance
 export const authService = createAuthService()

@@ -244,7 +244,7 @@ export const SearchOverlay: React.FC<{
         </form>
 
         {query.trim() && (
-          <div className="shrink-0 flex gap-2 px-3 pb-2 overflow-x-auto scrollbar-none">
+          <div className="shrink-0 flex gap-2 px-3 pb-2 overflow-x-auto no-scrollbar">
             {(
               [
                 ['all', 'All'],

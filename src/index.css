@@ -172,53 +172,6 @@
 }
 
 @layer components {
-  /* Header styles */
-  .header {
-    @apply fixed top-0 left-0 right-0 z-40 bg-stage-black/95 backdrop-blur-sm border-b border-steel-gray/20;
-    height: 64px;
-  }
-
-  @media (min-width: 768px) {
-    .header {
-      height: 72px;
-    }
-  }
-
-  /* Logo styles */
-  .logo {
-    @apply h-8 w-auto md:h-10;
-  }
-
-  /* Touch target styles */
-  .touch-target {
-    @apply min-h-touch min-w-touch;
-  }
-
-  .touch-target-lg {
-    @apply min-h-touch-lg min-w-touch-lg;
-  }
-
-  /* Confidence level styles */
-  .confidence-1 {
-    @apply bg-confidence-1 text-white;
-  }
-
-  .confidence-2 {
-    @apply bg-confidence-2 text-white;
-  }
-
-  .confidence-3 {
-    @apply bg-confidence-3 text-white;
-  }
-
-  .confidence-4 {
-    @apply bg-confidence-4 text-white;
-  }
-
-  .confidence-5 {
-    @apply bg-confidence-5 text-white;
-  }
-
   /* Custom Scrollbar Styles - Dark Theme */
   .custom-scrollbar {
     scrollbar-width: thin;
@@ -436,20 +389,9 @@
   .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--border-2-rgb));
   }
-
-  /* Fully hidden scrollbar — for horizontally scrollable strips (e.g. a tab
-     bar) that must never push the page wide or show a bar. */
-  .scrollbar-none {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
 }
 
-/* Native date/time inputs on legacy surfaces (e.g. the practice SessionForm).
+/* Native date/time inputs where they remain (Notifications quiet hours).
    The app standard is the custom C0 DatePicker/TimePickerDropdown; where a native
    input still exists, render its OS picker in dark mode so it doesn't clash with
    the theme. (Custom pickers own their own icon; these rules only affect natives.) */

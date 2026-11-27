@@ -72,8 +72,8 @@ export const logger: Logger = {
  * Create a namespaced logger for a specific module
  *
  * Usage:
- *   const log = createLogger('SyncEngine')
- *   log.debug('Sync started')  // Outputs: [SyncEngine] Sync started
+ *   const log = createLogger('SongsPage')
+ *   log.debug('Loaded')  // Outputs: [SongsPage] Loaded
  */
 export function createLogger(namespace: string): Logger {
   const prefix = `[${namespace}]`

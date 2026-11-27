@@ -25,7 +25,6 @@ Testing layers:
 - **Integration Tests** - Exercise `RemoteRepository` against a mocked/real
   Supabase surface.
 - **E2E Tests** - Browser-based tests using Playwright (full stack).
-- **Contract Tests** - API contract validation.
 - **Database Tests** - Schema + trigger validation using pgTAP.
 
 **Key Principle:** Mock at the boundary (the Supabase client), not internally.

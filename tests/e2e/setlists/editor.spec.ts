@@ -352,6 +352,14 @@ test.describe('Setlist editor', () => {
       await page.reload()
       await expect.poll(() => titles(page)).toEqual(['Everlong', 'Black'])
 
+      // The retune is its own row: above Black (i0) now…
+      const retuneBefore = (item: string) =>
+        page
+          .getByTestId('setlist-retune-row')
+          .locator('xpath=following-sibling::li[1]')
+          .getByTestId(`setlist-song-${item}`)
+      await expect(retuneBefore('i0')).toBeVisible()
+
       // Mouse: drag Black's grip above Everlong.
       const from = await page
         .getByTestId('setlist-song-i0')
@@ -361,6 +369,8 @@ test.describe('Setlist editor', () => {
       await page.mouse.move(from!.x + 10, from!.y + 10)
       await page.mouse.down()
       await page.mouse.move(from!.x + 10, to!.y + 4, { steps: 12 })
+      // …and above Everlong while dragging, not riding along with Black.
+      await expect(retuneBefore('i1')).toBeVisible()
       await page.mouse.up()
       await expect.poll(() => titles(page)).toEqual(['Black', 'Everlong'])
     })

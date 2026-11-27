@@ -26,25 +26,6 @@ export function durationToSeconds(duration: string): number {
 }
 
 /**
- * Convert seconds (194) to duration string "3:14"
- */
-export function secondsToDuration(seconds: number): string {
-  if (!seconds || seconds < 0) return '0:00'
-
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const secs = seconds % 60
-
-  if (hours > 0) {
-    // Format: H:MM:SS
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  } else {
-    // Format: M:SS
-    return `${minutes}:${secs.toString().padStart(2, '0')}`
-  }
-}
-
-/**
  * Convert cents (50000) to dollar string "$500.00"
  */
 export function centsToDollars(cents: number): string {
@@ -70,25 +51,4 @@ export function dollarsToCents(dollars: string): number {
 
   // Convert to cents
   return Math.round(amount * 100)
-}
-
-/**
- * Format BPM for display
- */
-export function formatBpm(bpm: number | undefined): string {
-  if (!bpm) return ''
-  return `${bpm} bpm`
-}
-
-/**
- * Parse BPM from string like "104 bpm" or "104"
- */
-export function parseBpm(bpmString: string): number {
-  if (!bpmString) return 0
-
-  // Remove "bpm" and whitespace, parse as integer
-  const cleaned = bpmString.replace(/[^\d]/g, '')
-  const bpm = parseInt(cleaned, 10)
-
-  return isNaN(bpm) ? 0 : bpm
 }

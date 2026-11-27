@@ -85,7 +85,7 @@ src/
   ├── components/ pages/ hooks/ contexts/ models/ utils/
 tests/
   ├── unit/            # mirror src/ structure
-  ├── integration/ e2e/ (Playwright) contract/
+  ├── integration/ e2e/ (Playwright) fixtures/ helpers/
 supabase/
   ├── migrations/ functions/ tests/ (pgTAP)
 ```

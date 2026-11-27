@@ -4,7 +4,12 @@
  * calendar is the page blank and the first change creates it; name, when,
  * where and focus save as you go; songs come from the Add songs drawer, drag by the
  * grip and × out; Duplicate makes a copy a week later; delete from the
- * agenda's row menu; the old /edit URL lands on the page.
+ * agenda's row menu; the old /edit URL lands on the page. From a setlist (its
+ * ⋯ → Plan a practice, or Add songs filtered by it) songs keep the set's order,
+ * and a RETUNE line sits on each song whose tuning differs from the one before.
+ * A song opened from the practice comes Back to it; from 1440 px a click
+ * previews it in the song pane and a double-click opens it. A past practice
+ * can still start, and its wrap-up notes edit in place.
  */
 import { test, expect, type Page } from '@playwright/test'
 import { deleteTestUser } from '../../fixtures/auth'
@@ -229,5 +234,153 @@ test.describe('Practices', () => {
     await page.getByTestId('confirm-dialog-confirm').click()
     await expect(row).toHaveCount(0)
     expect(await practices(seed.bandId)).toHaveLength(0)
+  })
+
+  /** Fall Set as Everlong (Drop D), Breed, Black: not alphabetical. */
+  const reorderFall = async (seed: CalendarSeed) => {
+    const { Everlong, Breed, Black } = seed.songs
+    const admin = await getSupabaseAdmin()
+    await admin
+      .from('setlists')
+      .update({
+        items: [Everlong, Breed, Black].map((songId, i) => ({
+          id: `i${i}`,
+          type: 'song',
+          position: i + 1,
+          songId,
+        })),
+      })
+      .eq('id', seed.fall)
+  }
+
+  test('Plan a practice from a setlist keeps its order and retunes', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    await reorderFall(seed)
+    const { Everlong, Breed, Black } = seed.songs
+    await page.goto(`/setlists/${seed.fall}`)
+    await page.getByTestId('setlist-header-menu').click()
+    await page.getByTestId('setlist-menu-practice').click()
+    await expect(page).toHaveURL(/\/practices\/[0-9a-f-]{36}$/)
+    await expect.poll(() => order(page)).toEqual([Everlong, Breed, Black])
+    // Drop D → Standard before Breed; Breed → Black needs none.
+    const retunes = page.getByTestId('practice-retune')
+    await expect(retunes).toHaveCount(1)
+    // Its own row, right above Breed.
+    await expect(
+      page
+        .getByTestId('practice-retune-row')
+        .locator('xpath=following-sibling::li[1]')
+    ).toHaveAttribute('data-song-id', Breed)
+    expect(await practices(seed.bandId)).toHaveLength(2)
+  })
+
+  test('Add songs filtered by a setlist lists and adds in its order', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    await reorderFall(seed)
+    const { Everlong, Breed, Black } = seed.songs
+    await page.goto('/practices/new?add=1')
+    const browser = page.getByTestId('song-browser')
+    await browser.getByTestId('browser-setlist-filter').click()
+    await page.getByTestId(`browser-setlist-option-${seed.fall}`).click()
+    await expect
+      .poll(() =>
+        browser
+          .locator('[data-testid^="browser-song-"]')
+          .evaluateAll(els =>
+            els.map(e =>
+              e.getAttribute('data-testid')!.replace('browser-song-', '')
+            )
+          )
+      )
+      .toEqual([Everlong, Breed, Black])
+    await browser.getByTestId('browser-add-all').click()
+    await expect(page).toHaveURL(/\/practices\/[0-9a-f-]{36}\?add=1$/)
+    await browser.getByTestId('browser-done').click()
+    await expect.poll(() => order(page)).toEqual([Everlong, Breed, Black])
+  })
+
+  test('a song opened from the practice comes Back to it', async ({ page }) => {
+    seed = await seedCalendar(page)
+    const { Everlong } = seed.songs
+    await page.goto(`/practices/${seed.practice}`)
+    await page.getByTestId(`practice-song-${Everlong}`).click()
+    await expect(page).toHaveURL(
+      new RegExp(`/songs/${Everlong}\\?from=practice`)
+    )
+    await expect(page.getByTestId('song-page-back')).toHaveText(/Practice/)
+    await page.getByTestId('song-page-back').click()
+    await expect(page).toHaveURL(new RegExp(`/practices/${seed.practice}$`))
+  })
+
+  test.describe('wide', () => {
+    test.use({ viewport: { width: 1440, height: 900 } })
+
+    test('a click previews the song in the pane; a double-click opens it', async ({
+      page,
+    }) => {
+      seed = await seedCalendar(page)
+      const { Everlong } = seed.songs
+      await page.goto(`/practices/${seed.practice}`)
+      const row = page.getByTestId(`practice-song-${Everlong}`)
+      await row.click()
+      await expect(page).toHaveURL(new RegExp(`/practices/${seed.practice}$`))
+      const pane = page.getByTestId('song-pane')
+      await expect(pane.getByTestId('song-detail-title')).toHaveText('Everlong')
+      // A second click keeps it open (no flicker before a double-click); × closes.
+      await row.click()
+      await expect(pane).toBeVisible()
+      await pane.getByTestId('song-pane-close').click()
+      await expect(pane).toHaveCount(0)
+
+      await row.dblclick()
+      await expect(page).toHaveURL(
+        new RegExp(`/songs/${Everlong}\\?from=practice`)
+      )
+    })
+  })
+
+  test('a past practice can still start, and its wrap-up notes edit in place', async ({
+    page,
+  }) => {
+    seed = await seedCalendar(page)
+    const admin = await getSupabaseAdmin()
+    await admin
+      .from('practice_sessions')
+      .update({
+        scheduled_date: new Date(Date.now() - 2 * 86400_000).toISOString(),
+        wrapup_notes: 'Bridge loose',
+      })
+      .eq('id', seed.practice)
+    await page.goto(`/practices/${seed.practice}`)
+    await expect(page.getByTestId('practice-detail')).toHaveAttribute(
+      'data-status',
+      'done'
+    )
+    const notes = page.getByTestId('practice-wrapup-notes-input')
+    await expect(notes).toHaveValue('Bridge loose')
+    await notes.fill('Bridge tight now')
+    await notes.blur()
+    await expect
+      .poll(async () => {
+        const { data } = await admin
+          .from('practice_sessions')
+          .select('wrapup_notes')
+          .eq('id', seed!.practice)
+          .single()
+        return data!.wrapup_notes
+      })
+      .toBe('Bridge tight now')
+
+    await page.getByTestId('practice-start-session').click()
+    await expect(page).toHaveURL(/\/session$/)
+    // Its wrap-up starts from the notes it has.
+    await page.getByTestId('session-end').click()
+    await expect(page.getByTestId('session-wrapup-notes')).toHaveValue(
+      'Bridge tight now'
+    )
   })
 })

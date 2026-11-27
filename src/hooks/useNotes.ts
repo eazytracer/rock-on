@@ -2,51 +2,7 @@ import { useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { repository } from '../services/data/RepositoryFactory'
 import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
-import { setBandNote } from '../services/api/songs'
 import type { SongPersonalNoteInput } from '../models/SongPersonalNote'
-import type { SongNoteEntry, SongNoteEntryInput } from '../models/SongNoteEntry'
-
-/**
- * Hook to manage band-level notes on a song (song.notes field).
- */
-export function useBandNotes(songId: string) {
-  const queryClient = useQueryClient()
-
-  const query = useQuery({
-    queryKey: [...queryKeys.songs.detail(songId), 'bandNotes'],
-    queryFn: async () => {
-      const song = await repository.getSong(songId)
-      return song?.notes || ''
-    },
-    enabled: !!songId,
-  })
-
-  const mutation = useMutation({
-    mutationFn: async (newNotes: string) => {
-      await setBandNote(songId, newNotes)
-      return newNotes
-    },
-    onSuccess: newNotes => {
-      queryClient.setQueryData(
-        [...queryKeys.songs.detail(songId), 'bandNotes'],
-        newNotes
-      )
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['songs'] })
-    },
-  })
-
-  return {
-    notes: query.data ?? '',
-    loading: query.isLoading,
-    error: (query.error || mutation.error) as Error | null,
-    updateNotes: (newNotes: string) => mutation.mutateAsync(newNotes),
-    refetch: useCallback(async () => {
-      await query.refetch()
-    }, [query]),
-  }
-}
 
 /**
  * Hook to manage personal notes for a song.
@@ -175,82 +131,5 @@ export function useNoteEntries(songId: string, bandId: string, userId: string) {
     refetch: useCallback(async () => {
       await query.refetch()
     }, [query]),
-  }
-}
-
-/**
- * Hook to create a note entry.
- */
-export function useCreateNoteEntry() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: (input: SongNoteEntryInput) =>
-      repository.createNoteEntry(input),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
-    },
-  })
-
-  return {
-    createEntry: (input: SongNoteEntryInput) => mutation.mutateAsync(input),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
-  }
-}
-
-/**
- * Hook to update a note entry.
- */
-export function useUpdateNoteEntry() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: ({
-      entryId,
-      content,
-      visibility,
-    }: {
-      entryId: string
-      content: string
-      visibility: 'personal' | 'band'
-    }): Promise<SongNoteEntry> =>
-      repository.updateNoteEntry(entryId, { content, visibility }),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
-    },
-  })
-
-  return {
-    updateEntry: (
-      entryId: string,
-      content: string,
-      visibility: 'personal' | 'band'
-    ) => mutation.mutateAsync({ entryId, content, visibility }),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
-  }
-}
-
-/**
- * Hook to delete a note entry.
- */
-export function useDeleteNoteEntry() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: async (entryId: string) => {
-      await repository.deleteNoteEntry(entryId)
-      return true
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
-    },
-  })
-
-  return {
-    deleteEntry: (entryId: string) => mutation.mutateAsync(entryId),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
   }
 }

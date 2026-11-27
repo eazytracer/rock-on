@@ -7,8 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-26
+
+The redesign, as one release. Production last shipped 0.5.0, so 1.0.0 also
+ships everything listed under 0.6.0–0.11.0 below; those versions were never
+released on their own. From here the web app takes bug fixes only until the
+mobile apps are done.
+
 ### Added
 
+- **Plan a practice from a setlist** (setlist ⋯ → Plan a practice): a new
+  practice with the set's songs, in the set's order.
+- Practice song lists show the **RETUNE** line between songs whose tunings
+  differ, as setlists do.
+- Practice session, from tablet up: the left column lists the song's links and
+  has a practice-note field for the song (saves when you leave it).
+- Practice session, from tablet up: the side panel shows the song's chart
+  (in your key, chords setting and size) when it has one, else its notes;
+  Notes and Chart switch it, A− / A+ size what it shows, and Full screen opens
+  the chart reader over the session.
 - **Jam** (`/jam`, replaces Events and the 0.3 jam sessions): a hub (Hosting,
   Invited, Friends' jams), Host a jam, and the jam page: lineup with parts and
   hands (more hands than slots is fine, "Guitar 2"), song requests (pending
@@ -118,6 +135,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add songs filtered by a setlist lists the songs, and Add all adds them, in
+  that set's order instead of A–Z.
+- Setlists and practices, from 1440 px: a click previews the song in the
+  song pane on the right, as on Songs; double-click or the pane's Open goes
+  to the song page (a click used to open it on practices).
 - **Phone dock.** On a page with a main action (Start practice session, a
   setlist's Add, Open set, the metronome's Tap / Start, Add song, New setlist,
   New show / practice) the tab bar tucks into
@@ -145,14 +167,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   card's Manage band).
 - Custom tunings without a picked colour show an automatic colour from pitch
   instead of grey.
+- RETUNE lines on setlists and practices are thin rows of their own between
+  songs; while you drag, the list reorders live and retunes and numbers follow
+  the order you'd drop instead of riding along with the dragged song.
+- A practice's Start practice session button stays at the bottom of the
+  screen from tablet up, as it does on phones, instead of only after the songs.
 
 ### Fixed
 
+- A song opened from a practice or a show now has Back to that practice or
+  show (it went to Songs).
+- A practice whose time has passed can still start a session, and its wrap-up
+  notes edit in place on the practice page (a session started again opens its
+  wrap-up with them).
 - A desktop picker popover with a long list (the song's tuning picker) now
   scrolls inside the screen instead of running off the bottom.
 
 ### Database
 
+- Release notes: one 1.0.0 entry replaces the rows for 0.6.0–0.11.0, which
+  were never released (in `20261121120000_redesign_phase_7.sql`).
 - Redesign phase 7 (`20261121120000_redesign_phase_7.sql`): jams on the Events
   tables (`live` status, who can join, requests visible, default parts,
   guest participants, lineup states and queue, hands by participant, kiosk

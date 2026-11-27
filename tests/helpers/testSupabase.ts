@@ -12,38 +12,17 @@ export function getTestSupabaseClient(): SupabaseClient {
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321'
-  const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY
 
   if (!supabaseKey) {
-    throw new Error('SUPABASE_SERVICE_KEY or VITE_SUPABASE_ANON_KEY must be set for testing')
+    throw new Error(
+      'SUPABASE_SERVICE_KEY or VITE_SUPABASE_ANON_KEY must be set for testing'
+    )
   }
 
   testSupabaseClient = createClient(supabaseUrl, supabaseKey)
   return testSupabaseClient
-}
-
-/**
- * Reset Supabase test data for a specific band
- * Preserves auth users but clears band-specific data
- */
-export async function resetSupabaseTestData(bandId: string = 'test-band-id') {
-  const supabase = getTestSupabaseClient()
-
-  try {
-    // Delete test data (preserve auth users)
-    // Order matters due to foreign key constraints
-    await supabase.from('shows').delete().eq('band_id', bandId)
-    await supabase.from('setlists').delete().eq('band_id', bandId)
-    await supabase.from('practice_sessions').delete().eq('band_id', bandId)
-    await supabase.from('songs').delete().eq('context_id', bandId)
-    await supabase.from('band_memberships').delete().eq('band_id', bandId)
-    await supabase.from('bands').delete().eq('id', bandId)
-
-    return true
-  } catch (error) {
-    console.error('Error resetting Supabase test data:', error)
-    return false
-  }
 }
 
 /**
@@ -56,7 +35,9 @@ export async function verifySupabaseSchema() {
   const errors: string[] = []
 
   // Verify shows table exists
-  const { error: showsError } = await supabase.from('shows').select('count', { count: 'exact', head: true })
+  const { error: showsError } = await supabase
+    .from('shows')
+    .select('count', { count: 'exact', head: true })
   if (showsError) {
     errors.push(`Shows table error: ${showsError.message}`)
   }
@@ -112,38 +93,14 @@ export async function verifySupabaseSchema() {
 }
 
 /**
- * Get table counts from Supabase
- */
-export async function getSupabaseTableCounts(bandId: string = 'test-band-id') {
-  const supabase = getTestSupabaseClient()
-
-  const [
-    { count: songsCount },
-    { count: setlistsCount },
-    { count: showsCount },
-    { count: practicesCount }
-  ] = await Promise.all([
-    supabase.from('songs').select('*', { count: 'exact', head: true }).eq('context_id', bandId),
-    supabase.from('setlists').select('*', { count: 'exact', head: true }).eq('band_id', bandId),
-    supabase.from('shows').select('*', { count: 'exact', head: true }).eq('band_id', bandId),
-    supabase.from('practice_sessions').select('*', { count: 'exact', head: true }).eq('band_id', bandId)
-  ])
-
-  return {
-    songs: songsCount || 0,
-    setlists: setlistsCount || 0,
-    shows: showsCount || 0,
-    practices: practicesCount || 0
-  }
-}
-
-/**
  * Check if Supabase is running and accessible
  */
 export async function isSupabaseAvailable(): Promise<boolean> {
   try {
     const supabase = getTestSupabaseClient()
-    const { error } = await supabase.from('songs').select('count', { count: 'exact', head: true })
+    const { error } = await supabase
+      .from('songs')
+      .select('count', { count: 'exact', head: true })
     return !error
   } catch {
     return false

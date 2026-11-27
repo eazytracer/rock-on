@@ -67,6 +67,7 @@ import {
 import type { Show, ShowContact } from '../../models/Show'
 import { DockAction } from '../layout/PhoneDock'
 import { MoreButton } from '../common/MoreButton'
+import { songHref } from '../../utils/songOrigin'
 import { createLogger } from '../../utils/logger'
 
 const log = createLogger('ShowDetail')
@@ -996,7 +997,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
         onRecopy={recopy}
         onAdd={() => (isNew ? void ensureSaved() : setSheet('copy'))}
         onNew={newSet}
-        onOpenSong={id => navigate(`/songs/${id}`)}
+        onOpenSong={id => navigate(songHref(id, { kind: 'show', id: show.id }))}
         docked={page}
       />
 

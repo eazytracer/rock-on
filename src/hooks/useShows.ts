@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ShowService } from '../services/ShowService'
 import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
-import type { Show } from '../models/Show'
 
 /**
  * Hook to fetch shows for a band (sorted by scheduled date ascending).
@@ -58,72 +57,6 @@ export function useUpcomingShows(bandId: string) {
   }, [shows])
 
   return { upcomingShows, pastShows, loading, error }
-}
-
-/**
- * Hook to create a new show.
- */
-export function useCreateShow() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: async (showData: Partial<Show>) => {
-      return ShowService.createShow({
-        bandId: showData.bandId || '',
-        name: showData.name || 'Untitled Show',
-        scheduledDate: showData.scheduledDate || new Date(),
-        duration: showData.duration || 120,
-        venue: showData.venue,
-        location: showData.location,
-        loadInTime: showData.loadInTime,
-        soundcheckTime: showData.soundcheckTime,
-        payment: showData.payment,
-        contacts: showData.contacts,
-        setlistId: showData.setlistId,
-        status: showData.status,
-        notes: showData.notes,
-      })
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['shows'] })
-    },
-  })
-
-  return {
-    createShow: (showData: Partial<Show>) => mutation.mutateAsync(showData),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
-  }
-}
-
-/**
- * Hook to update a show.
- */
-export function useUpdateShow() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: async ({
-      showId,
-      updates,
-    }: {
-      showId: string
-      updates: Partial<Show>
-    }) => {
-      await ShowService.updateShow(showId, updates)
-      return true
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['shows'] })
-    },
-  })
-
-  return {
-    updateShow: (showId: string, updates: Partial<Show>) =>
-      mutation.mutateAsync({ showId, updates }),
-    loading: mutation.isPending,
-    error: mutation.error as Error | null,
-  }
 }
 
 /**

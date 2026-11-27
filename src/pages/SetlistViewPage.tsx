@@ -17,6 +17,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { BackCrumb } from '../components/layout/MobileHeader'
 import { MoreButton } from '../components/common/MoreButton'
 import {
+  CalendarPlus,
   Clock,
   Copy,
   FileText,
@@ -80,10 +81,16 @@ import {
   startOffsets,
   type IndexRow,
 } from '../domain/setlist'
-import { showTitle } from '../domain/calendar'
-import { useShowPage } from '../hooks/useCalendar'
+import {
+  defaultPracticeDate,
+  freshPracticeSong,
+  showTitle,
+} from '../domain/calendar'
+import { createPractice, useShowPage } from '../hooks/useCalendar'
+import { useQueryClient } from '@tanstack/react-query'
 import { originHref, parseOrigin } from '../utils/songOrigin'
 import { songHref } from '../utils/songOrigin'
+import { SongPane } from '../components/songs/SongPane'
 import type { SetlistItem } from '../types'
 import { DockAction } from '../components/layout/PhoneDock'
 import { createLogger } from '../utils/logger'
@@ -160,6 +167,8 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
   const { showToast } = useToast()
   const { currentBand, currentUser } = useAuth()
   const desktop = useMediaQuery('(min-width: 768px)')
+  // From 1440 px the selected song previews in the song pane.
+  const hasPane = useMediaQuery('(min-width: 1440px)')
   const { confirm, dialogProps } = useConfirm()
 
   const { setlist, songsById, loading, error, refetch, run } =
@@ -194,6 +203,7 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
       : undefined)
   const duplicate = useDuplicateSetlist()
   const { deleteSetlist } = useDeleteSetlist()
+  const queryClient = useQueryClient()
 
   const [selected, setSelected] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
@@ -225,6 +235,11 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
     [items, songsById]
   )
   const totals = editorTotals(rows, me?.showMinutes)
+  const selectedSongId = items.find(i => i.id === selected)?.songId
+  const paneSong =
+    hasPane && !browsing && selectedSongId
+      ? songsById.get(selectedSongId)
+      : undefined
   const inSet = useMemo(
     () => new Set(items.flatMap(i => (i.songId ? [i.songId] : []))),
     [items]
@@ -441,6 +456,25 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
     navigate(`/setlists/${id}`)
   }
 
+  // A band set's songs, in order, as a new practice (breaks and sections drop).
+  const handlePractice = async () => {
+    setHeaderMenu(false)
+    const ids = [...new Set(items.flatMap(i => (i.songId ? [i.songId] : [])))]
+    const id = await attempt('Plan a practice', () =>
+      createPractice(ctxId, currentUser?.id, {
+        scheduledDate: defaultPracticeDate(new Date()),
+        songs: ids.map(songId => freshPracticeSong(songId)),
+      })
+    )
+    if (!id) return
+    void queryClient.invalidateQueries({ queryKey: ['calendar'] })
+    showToast(
+      `Practice planned with ${ids.length} ${ids.length === 1 ? 'song' : 'songs'} from "${setlist.name}"`,
+      'success'
+    )
+    navigate(`/practices/${id}`)
+  }
+
   const handleDelete = async () => {
     setHeaderMenu(false)
     const ok = await confirm({
@@ -617,7 +651,10 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
       selectedId={selected}
       editingId={editing}
       rail={railLabels}
-      onSelect={id => setSelected(id === selected && desktop ? null : id)}
+      // With the pane, only its × deselects (a re-click would close it).
+      onSelect={id =>
+        setSelected(id === selected && desktop && !hasPane ? null : id)
+      }
       onOpenSong={openSong}
       onMenu={(id, at) => {
         setSelected(id)
@@ -720,7 +757,12 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
     insert && (insert.after ? rows.find(r => r.item.id === insert.after) : null)
 
   return (
-    <div data-testid="setlist-view-page" className={desktop ? '' : 'pb-28'}>
+    <div
+      data-testid="setlist-view-page"
+      className={
+        !desktop ? 'pb-28' : paneSong ? 'mr-[400px] 2xl:mr-[480px]' : ''
+      }
+    >
       {header}
 
       {desktop ? (
@@ -728,7 +770,9 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
           <div className="flex items-center gap-4 py-3.5 mb-3 border-b border-divider">
             {totalsLine}
             <span className="ml-auto font-mono text-[11.5px] tracking-[.14em] uppercase text-ink-3">
-              Click a row to select · drag to reorder
+              {hasPane
+                ? 'Click to preview · double-click to open · drag to reorder'
+                : 'Click a row to select · drag to reorder'}
             </span>
           </div>
           {notesCard}
@@ -755,6 +799,14 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
             </DockAction>
           )}
         </>
+      )}
+      {paneSong && (
+        <SongPane
+          song={paneSong}
+          userId={currentUser?.id ?? ''}
+          origin={{ kind: 'setlist', id: setlistId }}
+          onClose={() => setSelected(null)}
+        />
       )}
       {browsing && (
         <SongBrowser
@@ -806,6 +858,15 @@ const SetlistEditor: React.FC<{ setlistId: string }> = ({ setlistId }) => {
             onClick={handleDuplicate}
             data-testid="setlist-menu-duplicate"
           />
+          {ctxType === 'band' && (
+            <SheetItem
+              icon={<CalendarPlus />}
+              label="Plan a practice"
+              hint="With these songs, in this order"
+              onClick={handlePractice}
+              data-testid="setlist-menu-practice"
+            />
+          )}
           <SheetItem
             icon={<Trash2 />}
             label="Delete…"

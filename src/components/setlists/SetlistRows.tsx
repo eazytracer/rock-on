@@ -1,12 +1,13 @@
 /**
- * The set's rows (Setlist Editor 2–3, ab2-editor): song rows, a RETUNE line on
- * each song whose tuning differs from the song before, break and section rows
- * that edit in place. Drag by the grip (mouse, touch or keyboard). Desktop:
+ * The set's rows (Setlist Editor 2–3, ab2-editor): song rows, a thin RETUNE
+ * row before each song whose tuning differs from the song before, break and
+ * section rows that edit in place. Drag by the grip (mouse, touch or
+ * keyboard); the rows reorder live, so retunes and numbers follow. Desktop:
  * click selects, double-click opens the song, ⋯ / right-click opens the row
  * menu. Phone: hold a row for the menu. The timeline rail is a fixed gutter
  * left of the rows.
  */
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   DndContext,
@@ -15,10 +16,13 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  MeasuringStrategy,
   type DragEndEvent,
+  type DragOverEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
+  arrayMove,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
@@ -34,7 +38,7 @@ import {
   X,
 } from 'lucide-react'
 import type { SetlistItem } from '../../types'
-import { BREAK_MINUTES, type EditorRow } from '../../domain/setlist'
+import { BREAK_MINUTES, editorRows, type EditorRow } from '../../domain/setlist'
 import { toolsHref } from '../../domain/toolsLink'
 import { songTuningParam } from '../../domain/tuner'
 import { LineNumber, SongLine } from '../songs/SongLine'
@@ -69,40 +73,87 @@ export interface SetlistRowsProps {
 }
 
 export const SetlistRows: React.FC<SetlistRowsProps> = props => {
-  const { rows, onMove } = props
+  const { onMove } = props
+  // Item ids in the order while dragging (until the saved order comes back).
+  const [order, setOrder] = useState<string[] | null>(null)
+  useEffect(() => setOrder(null), [props.rows])
+  const rows = useMemo(() => {
+    if (!order) return props.rows
+    const byId = new Map(props.rows.map(r => [r.item.id, r]))
+    const songs = new Map(
+      props.rows.flatMap(r =>
+        r.kind === 'song' && r.song && r.item.songId
+          ? [[r.item.songId, r.song] as const]
+          : []
+      )
+    )
+    return editorRows(
+      order.flatMap(id => byId.get(id)?.item ?? []),
+      id => songs.get(id)
+    )
+  }, [order, props.rows])
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
-  const onDragEnd = ({ active, over }: DragEndEvent) => {
+  const onDragOver = ({ active, over }: DragOverEvent) => {
     if (!over || active.id === over.id) return
-    const to = rows.findIndex(r => r.item.id === over.id)
-    if (to >= 0) onMove(String(active.id), to)
+    setOrder(o => {
+      const cur = o ?? props.rows.map(r => r.item.id)
+      const from = cur.indexOf(String(active.id))
+      const to = cur.indexOf(String(over.id))
+      return from >= 0 && to >= 0 ? arrayMove(cur, from, to) : cur
+    })
+  }
+  const onDragEnd = ({ active }: DragEndEvent) => {
+    const id = String(active.id)
+    const to = order?.indexOf(id) ?? -1
+    if (to >= 0 && to !== props.rows.findIndex(r => r.item.id === id))
+      onMove(id, to)
+    else setOrder(null)
   }
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+      onDragOver={onDragOver}
       onDragEnd={onDragEnd}
+      onDragCancel={() => setOrder(null)}
     >
       <SortableContext
         items={rows.map(r => r.item.id)}
         strategy={verticalListSortingStrategy}
       >
         <ol className="flex flex-col" data-testid="setlist-rows">
-          {rows.map((r, i) => (
-            <SortableRow
-              key={r.item.id}
-              {...props}
-              row={r}
-              time={props.rail?.[i] ?? null}
-              railOn={!!props.rail}
-              afterSong={rows[i - 1]?.kind === 'song'}
-              beforeSong={rows[i + 1]?.kind === 'song'}
-            />
-          ))}
+          {rows.map((r, i) => {
+            const afterSong = rows[i - 1]?.kind === 'song'
+            return (
+              <React.Fragment key={r.item.id}>
+                {r.kind === 'song' && r.retuneFrom !== null && (
+                  <li data-testid="setlist-retune-row">
+                    <Gutter on={!!props.rail}>
+                      <div
+                        className={`bg-bg-2 ${afterSong ? 'border-t border-divider' : 'rounded-t-[20px]'}`}
+                      >
+                        <RetuneLine from={r.retuneFrom} to={r.song?.tuning} />
+                      </div>
+                    </Gutter>
+                  </li>
+                )}
+                <SortableRow
+                  {...props}
+                  row={r}
+                  time={props.rail?.[i] ?? null}
+                  railOn={!!props.rail}
+                  afterSong={afterSong}
+                  beforeSong={rows[i + 1]?.kind === 'song'}
+                />
+              </React.Fragment>
+            )
+          })}
         </ol>
       </SortableContext>
     </DndContext>
@@ -138,10 +189,11 @@ const SortableRow: React.FC<
   onRemove,
 }) => {
   const id = row.item.id
-  const retuneFrom = row.kind === 'song' && row.song ? row.retuneFrom : null
-  const retune = retuneFrom !== null
-  const top = afterSong ? 'border-t border-divider' : 'rounded-t-[20px]'
-  const round = `${retune ? '' : top} ${beforeSong ? '' : 'rounded-b-[20px]'}`
+  // A retune row above joins the run: divide from it like from a song.
+  const retune = row.kind === 'song' && row.retuneFrom !== null
+  const top =
+    afterSong || retune ? 'border-t border-divider' : 'rounded-t-[20px]'
+  const round = `${top} ${beforeSong ? '' : 'rounded-b-[20px]'}`
   const {
     attributes,
     listeners,
@@ -382,13 +434,6 @@ const SortableRow: React.FC<
         opacity: isDragging ? 0.85 : undefined,
       }}
     >
-      {row.kind === 'song' && retuneFrom !== null && (
-        <Gutter on={railOn}>
-          <div className={`bg-bg-2 ${top}`}>
-            <RetuneLine from={retuneFrom} to={row.song?.tuning} />
-          </div>
-        </Gutter>
-      )}
       <Gutter on={railOn} time={row.kind === 'section' ? '' : time}>
         {body}
       </Gutter>
@@ -421,14 +466,18 @@ const Gutter: React.FC<{
   )
 
 /** "RETUNE E STD → D DROP  Tune": Tune opens the tuner on the new tuning. */
-const RetuneLine: React.FC<{ from: string; to?: string | null }> = ({
+export const RetuneLine: React.FC<{
+  from: string
+  to?: string | null
+  className?: string
+  testid?: string
+}> = ({
   from,
   to,
+  className = 'pl-3 md:pl-10 py-1',
+  testid = 'setlist-retune',
 }) => (
-  <div
-    className="flex items-center gap-2 pl-3 md:pl-10 pt-2 pb-0.5"
-    data-testid="setlist-retune"
-  >
+  <div className={`flex items-center gap-2 ${className}`} data-testid={testid}>
     <span className="font-mono text-[11px] tracking-[.12em] text-warn">
       RETUNE
     </span>
@@ -441,8 +490,8 @@ const RetuneLine: React.FC<{ from: string; to?: string | null }> = ({
         prev: songTuningParam({ guitarTuning: from }),
       })}
       onClick={e => e.stopPropagation()}
-      className="ml-1 h-8 px-3 rounded-full bg-bg-2 text-[13px] font-bold text-ink-1 flex items-center gap-1.5 hover:bg-bg-3"
-      data-testid="setlist-retune-tune"
+      className="ml-1 h-6 px-2.5 rounded-full bg-bg-3 text-[12px] font-bold text-ink-1 flex items-center gap-1.5 hover:bg-bg-4"
+      data-testid={`${testid}-tune`}
     >
       <ForkIcon className="text-warn" /> Tune
     </Link>

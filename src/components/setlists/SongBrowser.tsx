@@ -4,7 +4,7 @@
  * row puts the song in or takes it back out, at once: the check shows it's
  * in. × / Done / Esc close it. Band sets list the band's songs plus "From my
  * songs" (copied into the band on add). Filter by another setlist (then "Add
- * all") and by tuning (chips: the tunings these songs use, most used first;
+ * all", in the set's order) and by tuning (chips: the tunings these songs use, most used first;
  * tap again to clear).
  */
 import React, { useEffect, useMemo, useState } from 'react'
@@ -151,10 +151,22 @@ export const SongBrowser: React.FC<SongBrowserProps> = ({
         (s.artist ?? '').toLowerCase().includes(t))
     )
   }
-  const byTitle = (a: Song, b: Song) => a.title.localeCompare(b.title)
-  const list = catalog.filter(match).sort(byTitle)
-  const mine = fromMine.filter(match).sort(byTitle)
-  const missing = fromSet ? [...list, ...mine].filter(s => !isIn(s)) : []
+  // Filtered by a setlist, songs keep that set's order (and go in that way).
+  const setPos = useMemo(
+    () => new Map(fromSet?.songs.map((s, i) => [s.id, i]) ?? []),
+    [fromSet]
+  )
+  const pos = (s: Song) =>
+    setPos.get(s.id!) ??
+    (s.linkedFromSongId ? setPos.get(s.linkedFromSongId) : undefined) ??
+    Infinity
+  const order = (a: Song, b: Song) =>
+    fromSet ? pos(a) - pos(b) : a.title.localeCompare(b.title)
+  const list = catalog.filter(match).sort(order)
+  const mine = fromMine.filter(match).sort(order)
+  const missing = fromSet
+    ? [...list, ...mine].filter(s => !isIn(s)).sort(order)
+    : []
 
   const add = async (ids: string[]) => {
     if (!ids.length || busy) return

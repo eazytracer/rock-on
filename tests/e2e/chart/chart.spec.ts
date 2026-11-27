@@ -279,7 +279,7 @@ Engine ticking low
       expect((await chart(s.songId))!.chordpro).toBe(LONG_CHART)
     })
 
-    test('the session Chart is a layer and keeps the place', async ({
+    test('the session panel shows the chart; Full screen is a layer that keeps the place', async ({
       page,
     }) => {
       const cal = await seedCalendar(page)
@@ -291,12 +291,26 @@ Engine ticking low
           '{start_of_chorus}\n[D]Hold the line, [G]hold the line\n{end_of_chorus}\n',
       })
       await page.goto(`/practices/${cal.practice}/session`)
+      const panel = page.getByTestId('session-notes-panel')
+      // Black has no chart: the panel shows notes and Chart is off.
+      await expect(panel).toHaveAttribute('data-showing', 'notes')
+      await expect(page.getByTestId('session-chart')).toBeDisabled()
+
       await page.getByTestId('session-next').click()
       const pos = page.getByTestId('session-position')
       await expect(pos).toHaveText(/Song 2 of 3/i)
+      // Everlong has one: the panel shows it; Notes and Chart switch it.
+      await expect(panel).toHaveAttribute('data-showing', 'chart')
+      await expect(page.getByTestId('session-chart-text')).toContainText(
+        'Hold the line'
+      )
+      await page.getByTestId('session-notes-toggle').click()
+      await expect(panel).toHaveAttribute('data-showing', 'notes')
+      await page.getByTestId('session-chart').click()
+      await expect(panel).toHaveAttribute('data-showing', 'chart')
       const url = page.url()
 
-      await page.getByTestId('session-chart').click()
+      await page.getByTestId('session-chart-full').click()
       const layer = page.getByTestId('session-chart-layer')
       await expect(layer).toBeVisible()
       await expect(layer.getByTestId('chart-text')).toContainText(

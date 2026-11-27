@@ -35,27 +35,6 @@ export interface InviteCode {
   isActive: boolean
 }
 
-export const BandMembershipSchema = {
-  '++id': '',
-  userId: '',
-  bandId: '',
-  role: '',
-  joinedDate: '',
-  status: '',
-  '*permissions': '',
-}
-
-export const InviteCodeSchema = {
-  '++id': '',
-  bandId: '',
-  code: '',
-  createdBy: '',
-  expiresAt: '',
-  maxUses: '',
-  currentUses: '',
-  createdDate: '',
-}
-
 /** A band membership joined with the member's user row and profile */
 export interface BandMemberWithProfile {
   membership: BandMembership

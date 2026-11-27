@@ -1,7 +1,7 @@
 # Rock-On
 
 A band management application for musicians to organize songs, setlists, shows,
-and practice sessions — plus jam sessions and venue events.
+and practice sessions — plus jams.
 
 ## Quick Start
 
@@ -44,8 +44,8 @@ the app and tests through `just` / Docker on Node 24 (see docs/LOCAL_DEV.md →
 - **Setlists** — build and order setlists for performances
 - **Shows** — track upcoming and past performances
 - **Practice Sessions** — schedule/log practices, with a live session mode
-- **Jam Sessions** — impromptu jams; join by code, match songs across catalogs
-- **Events** — venue-oriented lineups, RSVP, and casting
+- **Jam** — host a jam, invite friends or share a code, match songs across
+  catalogs, run the lineup live (host console, bar TV, kiosk)
 - **Band Management** — invite members and collaborate
 - **Live updates** — band members see each other's changes in real time
 
@@ -60,7 +60,7 @@ the app and tests through `just` / Docker on Node 24 (see docs/LOCAL_DEV.md →
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24 (runs in the `node:24-alpine` container; see docs/LOCAL_DEV.md)
 - Docker (for local Supabase)
 
 ### Commands

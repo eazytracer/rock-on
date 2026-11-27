@@ -3,7 +3,8 @@
  * Practice 2–4): Start from the practice page; Prev / Next name the song they
  * go to and the last Next ends; keys and pedals (← → / PgUp PgDn), N for
  * notes (a panel on desktop, a sheet on phones); Up next warns on a tuning
- * change; the wrap-up saves time played, songs reached and shared notes.
+ * change; the wrap-up saves time played, songs reached and shared notes. On
+ * desktop the left column lists the song's links and takes a practice note.
  */
 import { test, expect } from '@playwright/test'
 import { deleteTestUser } from '../../fixtures/auth'
@@ -87,6 +88,58 @@ test.describe('Practice session', () => {
       await expect(panel).toBeVisible()
     })
 
+    test("the left column lists the song's links and saves a practice note", async ({
+      page,
+    }) => {
+      seed = await seedCalendar(page)
+      const admin = await getSupabaseAdmin()
+      await admin
+        .from('songs')
+        .update({
+          reference_links: [
+            {
+              icon: 'youtube',
+              url: 'https://www.youtube.com/watch?v=x',
+              description: 'Live at Wembley',
+            },
+          ],
+        })
+        .eq('id', seed.songs.Black)
+      await page.goto(`/practices/${seed.practice}/session`)
+      await expect(page.getByTestId('session-link')).toContainText(
+        'Live at Wembley'
+      )
+      await expect(page.getByTestId('session-link')).toHaveAttribute(
+        'target',
+        '_blank'
+      )
+
+      const note = page.getByTestId('session-practice-note-input')
+      // Typing in the note doesn't skip (S) or toggle notes (N).
+      await note.fill('Slow the intro')
+      await note.press('s')
+      await expect(page.getByTestId('session-title')).toHaveText('Black')
+      await note.fill('Slow the intro')
+      // Leaving the field (Next) saves it; the next song has its own note.
+      await page.getByTestId('session-next').click()
+      await expect(page.getByTestId('session-title')).toHaveText('Everlong')
+      await expect(note).toHaveValue('')
+      await expect(page.getByTestId('session-link')).toHaveCount(0)
+      await page.getByTestId('session-prev').click()
+      await expect(note).toHaveValue('Slow the intro')
+
+      await expect
+        .poll(async () => {
+          const { data } = await admin
+            .from('practice_sessions')
+            .select('songs')
+            .eq('id', seed!.practice)
+            .single()
+          return data!.songs[0].notes
+        })
+        .toBe('Slow the intro')
+    })
+
     test('the wrap-up saves time, songs reached and shared notes', async ({
       page,
     }) => {
@@ -104,7 +157,7 @@ test.describe('Practice session', () => {
         .fill('Bridge on Everlong still loose')
       await page.getByTestId('session-wrapup-save').click()
       await expect(page).toHaveURL(new RegExp(`/practices/${seed.practice}$`))
-      await expect(page.getByTestId('practice-wrapup')).toContainText(
+      await expect(page.getByTestId('practice-wrapup-notes-input')).toHaveValue(
         'Bridge on Everlong still loose'
       )
 

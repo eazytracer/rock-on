@@ -16,22 +16,3 @@ export interface UserProfile {
   createdDate: Date
   updatedDate: Date
 }
-
-export const UserSchema = {
-  '++id': '',
-  email: '',
-  name: '',
-  createdDate: '',
-  lastLogin: '',
-  authProvider: '',
-}
-
-export const UserProfileSchema = {
-  '++id': '',
-  userId: '',
-  displayName: '',
-  '*instruments': '',
-  avatarUrl: '',
-  createdDate: '',
-  updatedDate: '',
-}

@@ -1,34 +1,54 @@
 /**
  * Practice session (FP 7–8, Practice 2–4; desktop full-window session): a
  * stage screen. Big Prev / Next name the song they go to; on the last song Next
- * becomes End practice. Notes is a button: a sheet on phones, a side panel from
- * tablet up. The Up next card turns warn when the tuning changes. The screen
+ * becomes End practice. Notes and Chart are buttons: on phones a sheet and the
+ * chart reader over the session; from tablet up they switch the side panel,
+ * which shows the chart when the song has one (Full screen opens the reader). The Up next card turns warn when the tuning changes. The screen
  * stays awake; ← → / PgUp PgDn (pedals) change songs, N opens notes, S skips
- * the song. Ending shows the wrap-up (time played, songs played, skipped
+ * the song. From tablet up the left column also lists the song's links and
+ * takes this practice's note for the song (saved on blur). Ending shows the wrap-up (time played, songs played, skipped
  * marked; tap a song to change it) and saves it with shared wrap-up notes.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronLeft, ChevronRight, FileText, X } from 'lucide-react'
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Maximize2,
+  X,
+} from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { usePracticePage } from '../hooks/useCalendar'
 import { useWakeLock } from '../hooks/useWakeLock'
+import { useChart } from '../hooks/useChart'
+import { useChartPrefs } from '../hooks/useChartPrefs'
 import { useStageKeys } from '../hooks/useStageKeys'
 import { SongNotesView } from '../components/songs/SongNotesView'
 import { ChartReader } from '../components/chart/ChartReader'
+import { ChartPanel } from '../components/chart/ChartPanel'
 import { Tuner } from '../components/tools/Tuner'
 import { ToolLayer } from '../components/tools/ToolLayer'
 import { ForkIcon } from '../components/setlists/SetlistStats'
 import { Button, Sheet, TuningPill } from '../components/ui'
+import { linkGlyph } from '../components/songs/linkGlyphs'
 import { repository } from '../services/data/RepositoryFactory'
 import { hoursMinutes, practiceTitle } from '../domain/calendar'
 import { formatSeconds, showKey } from '../domain/format'
 import { canonicalTuningId } from '../utils/tunings'
+import { parse } from '../domain/chordpro'
+import {
+  SIZE_MAX,
+  SIZE_MIN,
+  SIZE_STEP,
+  chartIsEmpty,
+} from '../domain/chartView'
 import { songTuningParam } from '../domain/tuner'
 import type { Song } from '../models/Song'
-import type { SessionSong } from '../types'
+import type { ReferenceLink, SessionSong } from '../types'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('PracticeSessionPage')
@@ -49,13 +69,16 @@ export const PracticeSessionPage: React.FC = () => {
   const queryClient = useQueryClient()
   const { showToast } = useToast()
   const { currentUser } = useAuth()
-  const { practice, songsById, loading } = usePracticePage(practiceId)
+  const { practice, songsById, loading, save } = usePracticePage(practiceId)
   const wide =
     typeof window !== 'undefined' &&
     window.matchMedia('(min-width: 768px)').matches
   const [index, setIndex] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [notesOpen, setNotesOpen] = useState(wide)
+  // What the side panel shows (from tablet up): the chart when the song has
+  // one, else the notes.
+  const [panel, setPanel] = useState<'chart' | 'notes'>('chart')
   const [ending, setEnding] = useState(false)
   const [wrapNotes, setWrapNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -94,6 +117,26 @@ export const PracticeSessionPage: React.FC = () => {
     [practice?.songs, songsById]
   )
   const count = items.length
+
+  const curSong = items[index]?.song
+  const { chart, loading: chartLoading } = useChart(
+    curSong?.id ?? null,
+    practice?.bandId
+  )
+  const chordpro = chart?.chordpro ?? ''
+  const hasChart = useMemo(
+    () => !!chordpro.trim() && !chartIsEmpty(parse(chordpro)),
+    [chordpro]
+  )
+  const chartPrefs = useChartPrefs(curSong?.id ?? '')
+  const shown = panel === 'chart' && hasChart ? 'chart' : 'notes'
+  const showPanel = (p: 'chart' | 'notes') => {
+    if (notesOpen && shown === p) setNotesOpen(false)
+    else {
+      setPanel(p)
+      setNotesOpen(true)
+    }
+  }
 
   useEffect(() => {
     const t = setInterval(
@@ -141,8 +184,10 @@ export const PracticeSessionPage: React.FC = () => {
     spent.current[index] =
       (spent.current[index] ?? 0) + (Date.now() - songStart.current) / 1000
     songStart.current = Date.now()
+    // Played again: the wrap-up starts from the notes it already has.
+    setWrapNotes(w => w || practice?.wrapupNotes || '')
     setEnding(true)
-  }, [index])
+  }, [index, practice?.wrapupNotes])
 
   const togglePlayed = useCallback(
     (i: number, on: boolean) =>
@@ -167,7 +212,7 @@ export const PracticeSessionPage: React.FC = () => {
   // over the session (tuner, chart) takes the keys while it's open.
   const nextSong = () => (index === count - 1 ? end() : go(index + 1))
   const prevSong = () => go(index - 1)
-  const toggleNotes = () => setNotesOpen(o => !o)
+  const toggleNotes = () => (wide ? showPanel('notes') : setNotesOpen(o => !o))
   useStageKeys(
     {
       ArrowRight: nextSong,
@@ -354,12 +399,19 @@ export const PracticeSessionPage: React.FC = () => {
     </div>
   )
 
+  // A− / A+ size what the panel shows: the chart (your chart size) or notes.
+  const chartSized = wide && notesOpen && shown === 'chart'
+  const on = 'shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))]'
   const sizeControl = (
     <span className="flex items-center rounded-full bg-bg-3">
       <button
         type="button"
         aria-label="Smaller text"
-        onClick={() => setSize(s => Math.max(0, s - 1))}
+        onClick={() =>
+          chartSized
+            ? chartPrefs.stepSize(s => Math.max(SIZE_MIN, s - SIZE_STEP))
+            : setSize(s => Math.max(0, s - 1))
+        }
         className="w-11 h-11 text-[13px] font-bold"
         data-testid="session-text-smaller"
       >
@@ -368,7 +420,11 @@ export const PracticeSessionPage: React.FC = () => {
       <button
         type="button"
         aria-label="Larger text"
-        onClick={() => setSize(s => Math.min(SIZES.length - 1, s + 1))}
+        onClick={() =>
+          chartSized
+            ? chartPrefs.stepSize(s => Math.min(SIZE_MAX, s + SIZE_STEP))
+            : setSize(s => Math.min(SIZES.length - 1, s + 1))
+        }
         className="w-11 h-11 text-[19px] font-bold"
         data-testid="session-text-larger"
       >
@@ -382,20 +438,20 @@ export const PracticeSessionPage: React.FC = () => {
       <Button
         size="md"
         icon={<FileText size={16} />}
-        onClick={() => setNotesOpen(o => !o)}
-        className={
-          notesOpen && wide
-            ? 'shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))]'
-            : ''
-        }
-        aria-pressed={notesOpen}
+        onClick={toggleNotes}
+        className={notesOpen && wide && shown === 'notes' ? on : ''}
+        aria-pressed={notesOpen && (!wide || shown === 'notes')}
         data-testid="session-notes-toggle"
       >
         Notes
       </Button>
       <Button
         size="md"
-        onClick={() => setChartOpen(true)}
+        onClick={() => (wide ? showPanel('chart') : setChartOpen(true))}
+        disabled={wide && !hasChart && !chartLoading}
+        title={wide && !hasChart ? 'No chart for this song' : undefined}
+        className={chartSized ? on : ''}
+        aria-pressed={wide ? chartSized : undefined}
         data-testid="session-chart"
       >
         Chart
@@ -434,6 +490,16 @@ export const PracticeSessionPage: React.FC = () => {
       {cur.ps.notes}
     </p>
   )
+
+  const saveNote = (notes: string) =>
+    save({
+      songs: practice.songs.map(ps => (ps === cur.ps ? { ...ps, notes } : ps)),
+    }).catch(err => {
+      log.error('Save practice note failed', err)
+      showToast("The note didn't save. Try again.", 'error')
+    })
+
+  const links = cur.song.referenceLinks ?? []
 
   const notes = (
     <SongNotesView
@@ -503,16 +569,49 @@ export const PracticeSessionPage: React.FC = () => {
               </h1>
             </div>
             {facts}
-            {practiceNote}
             {toolButtons}
-            <div className="mt-auto pb-3">{upNext}</div>
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar-thin flex flex-col gap-4">
+              {links.length > 0 && (
+                <div
+                  className="flex flex-col gap-1"
+                  data-testid="session-links"
+                >
+                  {links.map((l, i) => (
+                    <SessionLink key={i} link={l} />
+                  ))}
+                </div>
+              )}
+              <PracticeNoteField
+                key={index}
+                value={cur.ps.notes ?? ''}
+                onCommit={saveNote}
+              />
+            </div>
+            <div className="pb-3">{upNext}</div>
           </div>
           {notesOpen && (
             <div
               className="flex-1 min-w-0 overflow-y-auto custom-scrollbar pb-6"
               data-testid="session-notes-panel"
+              data-showing={shown}
             >
-              {notes}
+              {shown === 'chart' ? (
+                <>
+                  <div className="sticky top-0 z-[1] flex justify-end pb-2 bg-bg-0">
+                    <Button
+                      size="md"
+                      icon={<Maximize2 size={15} />}
+                      onClick={() => setChartOpen(true)}
+                      data-testid="session-chart-full"
+                    >
+                      Full screen
+                    </Button>
+                  </div>
+                  <ChartPanel song={cur.song} chordpro={chordpro} />
+                </>
+              ) : (
+                notes
+              )}
             </div>
           )}
         </div>
@@ -656,6 +755,67 @@ export const PracticeSessionPage: React.FC = () => {
         </Sheet>
       )}
     </>
+  )
+}
+
+/** One of the song's links: glyph, kind and description; opens a new tab. */
+const SessionLink: React.FC<{ link: ReferenceLink }> = ({ link }) => {
+  const g = linkGlyph(link)
+  return (
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 min-h-[44px] px-2 -mx-2 rounded-xl hover:bg-bg-2"
+      data-testid="session-link"
+    >
+      <span
+        className={`grid place-items-center w-9 h-9 shrink-0 rounded-[10px] border border-border-1 [&>svg]:w-[17px] [&>svg]:h-[17px] ${g.tone}`}
+      >
+        {g.icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[15px] font-bold text-ink-1 truncate">
+          {g.name}
+        </span>
+        <span className="block text-[12.5px] text-ink-3 truncate">
+          {link.description || link.url}
+        </span>
+      </span>
+    </a>
+  )
+}
+
+/** This practice's note for the song; saves when the field loses focus. */
+const PracticeNoteField: React.FC<{
+  value: string
+  onCommit: (notes: string) => void
+}> = ({ value, onCommit }) => {
+  const [v, setV] = useState(value)
+  useEffect(() => setV(value), [value])
+  return (
+    <div>
+      <label
+        htmlFor="session-practice-note"
+        className="block font-mono text-[10.5px] uppercase tracking-[.12em] text-ink-3 mb-1.5"
+      >
+        Practice note · this song
+      </label>
+      <textarea
+        id="session-practice-note"
+        name="practiceNote"
+        data-testid="session-practice-note-input"
+        value={v}
+        onChange={e => setV(e.target.value)}
+        onBlur={() => {
+          const t = v.trim()
+          if (t !== value.trim()) onCommit(t)
+        }}
+        rows={4}
+        placeholder="What to work on next time"
+        className="w-full px-3.5 py-2.5 rounded-xl bg-bg-2 text-[15px] text-ink-1 placeholder:text-ink-4 outline-none focus:shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))] resize-none custom-scrollbar-thin"
+      />
+    </div>
   )
 }
 

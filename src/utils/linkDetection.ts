@@ -166,24 +166,3 @@ export function getLinkTypeInfo(type: LinkType): LinkTypeInfo {
     ...config,
   }
 }
-
-/**
- * All available link types.
- */
-export const LINK_TYPES: LinkType[] = [
-  'spotify',
-  'youtube',
-  'tabs',
-  'lyrics',
-  'drive',
-  'dropbox',
-  'soundcloud',
-  'other',
-]
-
-/**
- * Get all link type infos for display in dropdowns/menus.
- */
-export function getAllLinkTypeInfos(): LinkTypeInfo[] {
-  return LINK_TYPES.map(getLinkTypeInfo)
-}

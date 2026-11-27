@@ -16,6 +16,8 @@
  * Palette A was approved in the UI unification review (2026-04-22).
  */
 
+import { noteName } from '../domain/notes'
+
 export interface TuningEntry {
   id: string
   label: string
@@ -211,15 +213,6 @@ export function tuningLabel(
   const entry = registry.find(t => t.id === id)
   // Fall back to the raw input if it's a custom tuning; default to "Standard"
   return entry?.label ?? tuning ?? 'Standard'
-}
-
-/**
- * Convenience list of labels for rendering a <select> of tunings in song
- * creation / editing UIs. Returns just the built-in labels in registry
- * order.
- */
-export function builtInTuningLabels(): string[] {
-  return CANONICAL_TUNINGS.map(t => t.label)
 }
 
 // ── Full built-in tuning data (mirrors the seed in the tunings migration) ─────
@@ -419,22 +412,7 @@ export const BUILTIN_TUNINGS: readonly BuiltinTuning[] = [
 
 /** MIDI note number → note name with octave (flats for accidentals, e.g. Eb3). */
 export function midiToNoteName(midi: number): string {
-  const names = [
-    'C',
-    'Db',
-    'D',
-    'Eb',
-    'E',
-    'F',
-    'Gb',
-    'G',
-    'Ab',
-    'A',
-    'Bb',
-    'B',
-  ]
-  const octave = Math.floor(midi / 12) - 1
-  return `${names[((midi % 12) + 12) % 12]}${octave}`
+  return noteName(midi)
 }
 
 /** MIDI pitches → note names with the octave dropped, e.g. "E A D G B E". */

@@ -23,10 +23,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     xl: 'h-12 w-12',
   }
 
-  // Color tokens map to the app's dark theme. `primary` uses the brand
-  // `energy-orange` (tailwind.config.js → primary: '#FE4401'); previously
-  // this was blue, which produced the off-palette "blue text" that showed
-  // up in every Suspense fallback and FullPageSpinner.
+  // Color tokens map to the app's theme; `primary` is the accent.
   const colorClasses = {
     primary: 'text-primary',
     secondary: 'text-ink-3',
@@ -101,22 +98,3 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   return <Spinner />
 }
-
-export const FullPageSpinner: React.FC<{ text?: string }> = ({
-  text = 'Loading...',
-}) => (
-  <div className="fixed inset-0 flex items-center justify-center bg-bg-0/90 z-50">
-    <div className="flex flex-col items-center space-y-4">
-      <LoadingSpinner size="xl" color="primary" />
-      <p className="text-lg text-ink-3 font-medium">{text}</p>
-    </div>
-  </div>
-)
-
-export const InlineSpinner: React.FC<{ text?: string }> = ({
-  text = 'Loading...',
-}) => (
-  <div className="flex items-center justify-center py-8">
-    <LoadingSpinner size="lg" color="primary" text={text} />
-  </div>
-)

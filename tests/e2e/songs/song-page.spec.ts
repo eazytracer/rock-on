@@ -141,6 +141,27 @@ test.describe('Song page', () => {
       )
     })
 
+    test('From a setlist: a click previews in the pane, Open keeps Back to the set', async ({
+      page,
+    }) => {
+      seed = await setup(page)
+      await page.goto(`/setlists/${seed.setlistId}`)
+      await page
+        .locator('[data-testid^="setlist-song-i"]', { hasText: 'Bravo' })
+        .click()
+      await expect(page).toHaveURL(new RegExp(`/setlists/${seed.setlistId}$`))
+      const pane = page.getByTestId('song-pane')
+      await expect(pane.getByTestId('song-detail-title')).toHaveText('Bravo')
+      await pane.getByTestId('song-pane-close').click()
+      await expect(pane).toHaveCount(0)
+
+      await page
+        .locator('[data-testid^="setlist-song-i"]', { hasText: 'Bravo' })
+        .click()
+      await page.getByTestId('songs-pane-open').click()
+      await expect(page.getByTestId('song-page-back')).toHaveText(/Fall Set/)
+    })
+
     test('Direct link: no stepper, ?from survives a reload', async ({
       page,
     }) => {

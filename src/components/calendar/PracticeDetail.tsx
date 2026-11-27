@@ -50,6 +50,9 @@ import {
 import type { PracticeSession } from '../../models/PracticeSession'
 import { DockAction } from '../layout/PhoneDock'
 import { MoreButton } from '../common/MoreButton'
+import { songHref } from '../../utils/songOrigin'
+import { SongPane } from '../songs/SongPane'
+import { useMediaQuery } from '../../hooks/useResponsive'
 import { createLogger } from '../../utils/logger'
 
 const log = createLogger('PracticeDetail')
@@ -98,6 +101,9 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
   const [sheet, setSheet] = useState<null | 'menu' | { note: number }>(null)
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null)
   const [creating, setCreating] = useState(false)
+  // The song pane (page, from 1440 px): a click previews, a double-click opens.
+  const hasPane = useMediaQuery('(min-width: 1440px)') && variant === 'page'
+  const [paneId, setPaneId] = useState<string | null>(null)
   const now = useMemo(() => new Date(), [])
   const draftDate = useMemo(() => defaultPracticeDate(now), [now])
 
@@ -159,12 +165,19 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
   const status = practiceStatus(at, minutes, now)
   const title = practiceTitle(practice.name, at)
   const page = variant === 'page'
+  const paneSong =
+    hasPane && paneId && practice.songs.some(s => s.songId === paneId)
+      ? songsById.get(paneId)
+      : undefined
   const played =
     practice.startTime && practice.endTime
       ? (new Date(practice.endTime).getTime() -
           new Date(practice.startTime).getTime()) /
         60000
       : null
+  // Wrap-up once it was played in a session or its time has passed; its notes
+  // edit in place.
+  const wrapUp = !isNew && (played !== null || status === 'done')
   const reached = practice.songs.filter(s => s.status === 'completed').length
   const total = Math.round(
     practice.songs.reduce(
@@ -225,10 +238,18 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
         ? 'Now'
         : `Upcoming · ${countdown(at, now).replace('Tonight', 'today')}`
 
-  // Full page: in the phone dock beside the tucked tab bar, after the songs
-  // from tablet up. Pane: under the title, so it's in view without scrolling.
-  const startButton = !isNew && status !== 'done' && (
-    <div className={page ? 'w-full md:mt-6' : 'mt-4'}>
+  // Full page: in the phone dock beside the tucked tab bar; from tablet up,
+  // after the songs and stuck to the bottom of the screen until you scroll
+  // there, over a fade. Pane: under the title, so it's in view without
+  // scrolling.
+  const startButton = !isNew && (
+    <div
+      className={
+        page
+          ? 'w-full md:sticky md:bottom-0 md:z-20 md:mt-2 md:pt-6 md:pb-5 md:bg-gradient-to-t md:from-bg-1 md:from-60% md:to-transparent'
+          : 'mt-4'
+      }
+    >
       <Button
         variant="primary"
         size="lg"
@@ -261,6 +282,7 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
   return (
     <div
       data-testid="practice-detail"
+      className={paneSong ? 'min-[1440px]:mr-[400px] 2xl:mr-[480px]' : ''}
       data-practice-id={practice.id || undefined}
       data-status={isNew ? 'new' : status}
     >
@@ -318,26 +340,33 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
       </div>
       {!page && startButton}
 
-      {played !== null && (
+      {wrapUp && (
         <>
-          <p className={groupLabel}>Wrap-up{menu}</p>
-          <div className={card + ' px-4 py-3'} data-testid="practice-wrapup">
-            <p className="font-mono text-[12.5px] text-ink-2">
+          <label htmlFor="practice-wrapup-notes" className={groupLabel}>
+            Wrap-up{menu}
+          </label>
+          {played !== null && (
+            <p
+              className="px-1 pb-2 font-mono text-[12.5px] text-ink-2"
+              data-testid="practice-wrapup"
+            >
               {hoursMinutes(played)} played · {reached} of{' '}
               {practice.songs.length} songs
             </p>
-            {practice.wrapupNotes && (
-              <p className="mt-1.5 text-[14.5px] text-ink-1 whitespace-pre-wrap">
-                {practice.wrapupNotes}
-              </p>
-            )}
-          </div>
+          )}
+          <NotesField
+            id="practice-wrapup-notes"
+            name="wrapupNotes"
+            value={practice.wrapupNotes ?? ''}
+            placeholder="What's tight now, what needs another run"
+            onCommit={wrapupNotes => void save({ wrapupNotes })}
+          />
         </>
       )}
 
       <p className={groupLabel}>
         When and where
-        {played === null && menu}
+        {!wrapUp && menu}
       </p>
       <div
         className={`${card} p-4 grid grid-cols-2 gap-3 ${page ? 'xl:grid-cols-4' : ''}`}
@@ -385,7 +414,10 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
       <label htmlFor="practice-focus" className={groupLabel}>
         Focus
       </label>
-      <FocusField
+      <NotesField
+        id="practice-focus"
+        name="practiceFocus"
+        placeholder="What do you want to get out of this one?"
         value={practice.notes ?? ''}
         onCommit={notes => void save({ notes })}
       />
@@ -407,8 +439,12 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
           songs={practice.songs}
           songsById={songsById}
           onChange={songs => void save({ songs })}
-          onOpenSong={id => navigate(`/songs/${id}`)}
+          onOpenSong={id =>
+            navigate(songHref(id, { kind: 'practice', id: practice.id }))
+          }
           onNote={i => setSheet({ note: i })}
+          selectedId={paneSong ? paneId : null}
+          onSelect={hasPane ? setPaneId : undefined}
         />
       )}
       <AddSongsRow
@@ -455,6 +491,14 @@ export const PracticeDetail: React.FC<PracticeDetailProps> = ({
           data-testid="practice-song-note-sheet"
         />
       )}
+      {paneSong && (
+        <SongPane
+          song={paneSong}
+          userId={currentUser?.id ?? ''}
+          origin={{ kind: 'practice', id: practice.id }}
+          onClose={() => setPaneId(null)}
+        />
+      )}
       <ConfirmDialog {...dialogProps} />
     </div>
   )
@@ -489,11 +533,14 @@ const NameInput: React.FC<{
   )
 }
 
-/** Focus: plain text, edited in place; it grows with its lines and saves on leave. */
-const FocusField: React.FC<{
+/** Focus, wrap-up notes: plain text, edited in place; it grows with its lines and saves on leave. */
+const NotesField: React.FC<{
+  id: string
+  name: string
+  placeholder: string
   value: string
   onCommit: (value: string) => void
-}> = ({ value, onCommit }) => {
+}> = ({ id, name, placeholder, value, onCommit }) => {
   const [v, setV] = useState(value)
   const ref = useRef<HTMLTextAreaElement>(null)
   useEffect(() => setV(value), [value])
@@ -506,12 +553,12 @@ const FocusField: React.FC<{
   return (
     <textarea
       ref={ref}
-      id="practice-focus"
-      name="practiceFocus"
-      data-testid="practice-focus-input"
+      id={id}
+      name={name}
+      data-testid={`${id}-input`}
       rows={2}
       value={v}
-      placeholder="What do you want to get out of this one?"
+      placeholder={placeholder}
       onChange={e => setV(e.target.value)}
       onBlur={() => v.trim() !== value && onCommit(v.trim())}
       className={`${card} block w-full resize-none overflow-hidden px-4 py-3 text-[14.5px] leading-relaxed text-ink-1 placeholder:text-ink-4 outline-none focus:shadow-[inset_0_0_0_1.5px_rgb(var(--accent-rgb))]`}

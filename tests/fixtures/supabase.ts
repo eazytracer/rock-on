@@ -72,10 +72,3 @@ export async function getSupabaseAdmin(): Promise<SupabaseClient> {
 
   return adminClient
 }
-
-/**
- * Reset the admin client (useful for tests)
- */
-export function resetSupabaseAdmin(): void {
-  adminClient = null
-}

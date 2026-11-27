@@ -143,18 +143,3 @@ export async function logoutViaUI(page: Page): Promise<void> {
   // /auth path rather than the bare string.
   await page.waitForURL(/\/auth/, { timeout: 5000 })
 }
-
-/**
- * Check if user is logged in by checking for auth state
- */
-export async function isLoggedIn(page: Page): Promise<boolean> {
-  // Check if we're on a protected page (not /auth)
-  const url = page.url()
-  if (url.includes('/auth')) {
-    return false
-  }
-
-  // Check for user menu or other authenticated UI elements
-  const userMenu = page.locator('[data-testid="user-menu"]')
-  return await userMenu.isVisible()
-}

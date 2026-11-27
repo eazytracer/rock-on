@@ -1,13 +1,9 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { PracticeSessionService } from '../services/PracticeSessionService'
-import { repository } from '../services/data/RepositoryFactory'
 import { queryKeys, EMPTY_ARRAY } from '../services/queryClient'
 import { useRealtimeInvalidate } from './useRealtimeInvalidate'
 import { getPracticeEffectiveEnd } from '../utils/dateHelpers'
-import { createLogger } from '../utils/logger'
-
-const log = createLogger('usePractices')
 
 /**
  * Hook to fetch practices (rehearsals) for a band, sorted by date ascending.
@@ -72,55 +68,4 @@ export function useUpcomingPractices(bandId: string) {
   }, [practices])
 
   return { upcomingPractices, pastPractices, loading, error, refetch }
-}
-
-/**
- * Hook to get song suggestions from upcoming shows/gigs (their setlists).
- */
-export function useAutoSuggestSongs(bandId: string) {
-  const [suggestedSongs, setSuggestedSongs] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-
-  const getSuggestions = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Get upcoming shows (gigs) using PracticeSessionService.
-      const now = new Date()
-      const response = await PracticeSessionService.getSessions({
-        bandId,
-        startDate: now.toISOString(),
-      })
-
-      const upcomingShows = response.sessions.filter(s => s.type === 'gig')
-
-      // Collect song IDs from each upcoming show's setlist (via repository).
-      const songIds = new Set<string>()
-      for (const show of upcomingShows) {
-        if (show.setlistId) {
-          const setlist = await repository.getSetlist(show.setlistId)
-          if (setlist?.items) {
-            setlist.items.forEach(item => {
-              if (item.type === 'song' && item.songId) {
-                songIds.add(item.songId)
-              }
-            })
-          }
-        }
-      }
-
-      setSuggestedSongs(Array.from(songIds))
-      return Array.from(songIds)
-    } catch (err) {
-      log.error('Error getting song suggestions:', err)
-      setError(err as Error)
-      return []
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return { suggestedSongs, getSuggestions, loading, error }
 }
